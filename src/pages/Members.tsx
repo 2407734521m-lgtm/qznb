@@ -62,7 +62,12 @@ export default function Members() {
 
   function open(m: M, photoEl: HTMLElement, img: string) {
     const s = shotFrom(photoEl, img);
-    if (s) setShot(s);
+    if (s) {
+      // 按卡片所在列决定飞入方向：左列← / 右列→ / 中间↓
+      const cx = photoEl.getBoundingClientRect(), midX = cx.x + cx.width / 2, w = window.innerWidth;
+      s.dir = midX < w * 0.38 ? 'left' : midX > w * 0.62 ? 'right' : 'down';
+      setShot(s);
+    }
     nav(`/members/${m.id}`, { state: { m, img } });
   }
 

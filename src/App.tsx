@@ -9,22 +9,24 @@ import Members from './pages/Members';
 import Member from './pages/Member';
 import MyProfile from './pages/MyProfile';
 import Timeline from './pages/Timeline';
-import Album from './pages/Album';
 import AlbumDetail from './pages/AlbumDetail';
-import Feed from './pages/Feed';
+import Discover from './pages/Discover';
+import Friends from './pages/Friends';
+import Chat from './pages/Chat';
 import Admin from './pages/Admin';
 
 const TABS = [
   { to: '/members', label: '成员', ic: '👥' },
-  { to: '/feed', label: '动态', ic: '💬' },
-  { to: '/albums', label: '相册', ic: '📷' },
-  { to: '/timeline', label: '时间线', ic: '✨' },
+  { to: '/feed', label: '动态', ic: '✨' },
+  { to: '/friends', label: '好友', ic: '💌' },
+  { to: '/timeline', label: '时间线', ic: '🌟' },
   { to: '/me', label: '我的', ic: '🙂' },
 ];
 
 function isTabActive(tab: string, path: string) {
   if (tab === '/members') return path === '/' || path.startsWith('/members');
-  if (tab === '/albums') return path.startsWith('/albums');
+  if (tab === '/feed') return path.startsWith('/feed') || path.startsWith('/albums');
+  if (tab === '/friends') return path.startsWith('/friends') || path.startsWith('/chat');
   if (tab === '/timeline') return path.startsWith('/timeline');
   return path === tab;
 }
@@ -73,9 +75,11 @@ function Shell() {
               <Route path="/" element={<Navigate to="/members" replace />} />
               <Route path="/members" element={<Members />} />
               <Route path="/members/:id" element={<Member />} />
-              <Route path="/feed" element={<Feed />} />
-              <Route path="/albums" element={<Album />} />
+              <Route path="/feed" element={<Discover />} />
+              <Route path="/albums" element={<Navigate to="/feed" replace />} />
               <Route path="/albums/:id" element={<AlbumDetail />} />
+              <Route path="/friends" element={<Friends />} />
+              <Route path="/chat/:cid" element={<Chat />} />
               <Route path="/timeline" element={<Timeline />} />
               <Route path="/timeline/:uid" element={<Timeline />} />
               <Route path="/me" element={<div className="me-compact"><MyProfile /></div>} />

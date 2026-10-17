@@ -15,6 +15,9 @@ export default function MyProfile() {
   const [joined, setJoined] = useState(true); const [avatar, setAvatar] = useState<string | null>(null);
   const [code, setCode] = useState(''); const [msg, setMsg] = useState(''); const [busy, setBusy] = useState(false);
   const [keys, setKeys] = useState<Array<{ id: string; friendly_name?: string | null; created_at?: string }>>([]);
+  const [role, setRole] = useState('');
+  useEffect(() => { supabase.rpc('my_role').then(({ data }) => setRole(data ?? '')); }, []);
+  async function logout() { await supabase.auth.signOut(); }
 
   useEffect(() => { (async () => {
     const [p, pr, c] = await Promise.all([
@@ -113,6 +116,12 @@ export default function MyProfile() {
           <button onClick={() => delKey(k.id)}>删除</button>
         </div>
       ))}
+      <hr />
+      <div className="row" style={{ gap: 8 }}>
+        {(role === 'admin' || role === 'super_admin') &&
+          <button className="ghost" onClick={() => { location.hash = '#/admin'; }}>⚙️ 管理后台</button>}
+        <button className="ghost" onClick={logout}>退出登录</button>
+      </div>
     </div>
   );
 }

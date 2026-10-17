@@ -49,6 +49,8 @@ export default function MyProfile() {
   const [privOpen, setPrivOpen] = useState(false);
   const [baseOpen, setBaseOpen] = useState(true);
   const [lookOpen, setLookOpen] = useState(false);
+  const [gameOpen, setGameOpen] = useState(true);
+  const [keyOpen, setKeyOpen] = useState(false);
   const [uname, setUname] = useState('');
   const [theme, setTheme] = useState('aurora'); const [layout, setLayout] = useState('right');
   const [joined, setJoined] = useState(true); const [avatar, setAvatar] = useState<string | null>(null);
@@ -226,8 +228,7 @@ export default function MyProfile() {
         {PROFILE_FIELDS.map(([k, label]) => fieldInput(k, label))}
       </Collapsible>
 
-      <div className="card">
-        <h3 className="me-sec-t">🎮 游戏与社交</h3>
+      <Collapsible icon="🎮" title="游戏与社交" open={gameOpen} onToggle={() => setGameOpen(o => !o)}>
         <label>我的游戏段位</label>
         {!gprof && <button className="ghost" style={{ width: '100%' }} onClick={openGpick}>🎮 设置我的游戏段位</button>}
         {gprof && (
@@ -251,7 +252,7 @@ export default function MyProfile() {
         {fieldInput('contact', '联系方式', '手机号 / QQ…')}
         <label style={{ marginBottom: 6 }}>社交平台</label>
         <SocialPicker value={v.social ?? ''} onChange={s => setV({ ...v, social: s })} />
-      </div>
+      </Collapsible>
 
       <Collapsible icon="🔒" title="隐私设置"
         sub={`${PRIV_ROWS.filter(([f]) => priv[f]).length}/${PRIV_ROWS.length} 项公开`}
@@ -288,8 +289,7 @@ export default function MyProfile() {
           onClick={() => window.dispatchEvent(new Event('ca:wallpaper:open'))}>🖼️ 换壁纸</button>
       </Collapsible>
 
-      <div className="card">
-        <h3 className="me-sec-t">🔑 通行密钥登录</h3>
+      <Collapsible icon="🔑" title="通行密钥登录" open={keyOpen} onToggle={() => setKeyOpen(o => !o)}>
         <p className="mut" style={{ fontSize: 12.5 }}>注册后，下次登录可用指纹 / 面容 ID 一键登录，不用输密码。</p>
         <button onClick={regKey}>注册通行密钥</button>
         {keys.map(k => (
@@ -298,16 +298,20 @@ export default function MyProfile() {
             <button className="mini" onClick={() => delKey(k.id)}>删除</button>
           </div>
         ))}
-      </div>
+      </Collapsible>
 
-      <div className="card">
-        <h3 className="me-sec-t">⚙️ 账号</h3>
-        <div className="row" style={{ gap: 8 }}>
-          {(role === 'admin' || role === 'super_admin') &&
-            <button className="ghost" onClick={() => { location.hash = '#/admin'; }}>🛠️ 管理后台</button>}
-          <button className="ghost" onClick={() => setFbOpen(true)}>💬 意见反馈</button>
-          <button className="ghost" onClick={logout}>退出登录</button>
-        </div>
+      <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+        <div style={{ padding: '16px 20px 6px', fontSize: 16, fontWeight: 700 }}>⚙️ 账号</div>
+        {(role === 'admin' || role === 'super_admin') &&
+          <button type="button" onClick={() => { location.hash = '#/admin'; }}
+            style={{ width: '100%', display: 'flex', alignItems: 'center', padding: '13px 20px', background: 'none', border: 0, borderTop: '1px solid #ffffff10', color: 'inherit', font: 'inherit', fontSize: 14, cursor: 'pointer', textAlign: 'left' }}>
+            🛠️ 管理后台 <span style={{ flex: 1 }} /><span style={{ color: '#fff', opacity: 0.6 }}>›</span></button>}
+        <button type="button" onClick={() => setFbOpen(true)}
+          style={{ width: '100%', display: 'flex', alignItems: 'center', padding: '13px 20px', background: 'none', border: 0, borderTop: '1px solid #ffffff10', color: 'inherit', font: 'inherit', fontSize: 14, cursor: 'pointer', textAlign: 'left' }}>
+          💬 意见反馈 <span style={{ flex: 1 }} /><span style={{ color: '#fff', opacity: 0.6 }}>›</span></button>
+        <button type="button" onClick={logout}
+          style={{ width: '100%', display: 'flex', alignItems: 'center', padding: '13px 20px', background: 'none', border: 0, borderTop: '1px solid #ffffff10', color: 'inherit', font: 'inherit', fontSize: 14, cursor: 'pointer', textAlign: 'left' }}>
+          退出登录 <span style={{ flex: 1 }} /><span style={{ color: '#fff', opacity: 0.6 }}>›</span></button>
       </div>
 
       {msg && <p className="card me-msg">{msg}</p>}

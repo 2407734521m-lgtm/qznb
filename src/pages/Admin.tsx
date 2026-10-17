@@ -8,6 +8,7 @@ type Post = { id: number; content: string; author_id: string; created_at: string
 type Alb = { id: number; title: string; category: string; created_at: string };
 type Fb = { id: number; name: string | null; contact: string | null; content: string; kind: string; status: string; created_at: string };
 type Gp = { profile_id: string; game_name: string; game_uid: string | null; rank: string | null; status: string; updated_at: string };
+type Ic = { id: number; code: string; nickname: string | null; active: boolean; created_at: string };
 
 const ROLE_LABEL: Record<string, string> = { super_admin: '超级管理员', admin: '管理员', member: '成员' };
 
@@ -19,8 +20,9 @@ export default function Admin() {
   const [logs, setLogs] = useState<Log[]>([]);
   const [posts, setPosts] = useState<Post[]>([]);
   const [albums, setAlbums] = useState<Alb[]>([]);
-  const [code, setCode] = useState('');
-  const [nick, setNick] = useState('');
+  const [ics, setIcs] = useState<Ic[]>([]);
+  const [newCode, setNewCode] = useState('');
+  const [newNick, setNewNick] = useState('');
   const [feedbacks, setFeedbacks] = useState<Fb[]>([]);
   const [gpend, setGpend] = useState<Gp[]>([]);
   const [gok, setGok] = useState<Gp[]>([]);
@@ -36,8 +38,8 @@ export default function Admin() {
     if (!m.error) setMembers(m.data as Member[]);
     const em = await supabase.from('profile_emails').select('id, email');
     if (!em.error) setEmails(Object.fromEntries((em.data ?? []).map((x: any) => [x.id, x.email])));
-    const s = await supabase.from('app_settings').select('invite_code, invite_nickname').eq('id', 1).maybeSingle();
-    if (!s.error && s.data) { setCode(s.data.invite_code ?? ''); setNick(s.data.invite_nickname ?? ''); }
+    const ic = await supabase.from('invite_codes').select('id, code, nickname, active, created_at').order('created_at');
+    if (!ic.error) setIcs(ic.data as Ic[]);
     const fb = await supabase.from('feedbacks').select('id, name, contact, content, kind, status, created_at')
       .order('created_at', { ascending: false }).limit(50);
     if (!fb.error) setFeedbacks(fb.data as Fb[]);
@@ -76,10 +78,22 @@ export default function Admin() {
     setMsg(error ? '操作失败：' + error.message : '已更新');
     if (!error) refresh();
   }
-  async function saveCode() {
+  async function addIc() {
+    const c = newCode.trim();
+    if (!c) return setMsg('请填写邀请码');
     setMsg('');
-    const { error } = await supabase.rpc('set_invite_settings', { new_code: code.trim(), nick: nick.trim() });
-    setMsg(error ? '保存失败：' + error.message : '邀请码与昵称已更新');
+    const { error } = await supabase.rpc('create_invite_code', { new_code: c, nick: newNick.trim() || null });
+    setMsg(error ? '添加失败：' + error.message : '邀请码已添加 ✓');
+    if (!error) { setNewCode(''); setNewNick(''); refresh(); }
+  }
+  async function delIc(id: number) {
+    if (!confirm('删除这个邀请码？之前用它加入的成员不受影响。')) return;
+    const { error } = await supabase.rpc('delete_invite_code', { cid: id });
+    if (!error) refresh(); else setMsg('删除失败：' + error.message);
+  }
+  async function toggleIc(id: number, a: boolean) {
+    const { error } = await supabase.rpc('set_invite_code_active', { cid: id, active: !a });
+    if (!error) refresh(); else setMsg('操作失败：' + error.message);
   }
   async function markFb(id: number, done: boolean) {
     const { error } = await supabase.from('feedbacks').update({ status: done ? 'done' : 'open' }).eq('id', id);
@@ -164,18 +178,33 @@ export default function Admin() {
       </div>
 
       <div className="adm-sec card">
-        <h3>班级邀请码</h3>
+        <h3>🎟️ 邀请码管理</h3>
         {isSuper ? (<>
-          <div className="row" style={{ gap: 8 }}>
-            <input value={code} onChange={e => setCode(e.target.value)} placeholder="邀请码" style={{ maxWidth: 220 }} />
-            <button className="pri" style={{ width: 'auto', padding: '10px 24px' }} onClick={saveCode}>保存</button>
+          {ics.map(ic => (
+            <div key={ic.id} style={{ padding: '8px 0', borderBottom: '1px solid #ffffff0c', opacity: ic.active ? 1 : 0.5 }}>
+              <div style={{ fontSize: 14.5, fontWeight: 700 }}>{ic.code}
+                {!ic.active && <span className="mut" style={{ fontSize: 12, fontWeight: 400 }}>（已停用）</span>}</div>
+              <div className="mut" style={{ fontSize: 12.5, marginTop: 2 }}>
+                欢迎动画：「{ic.nickname || 'xxx'} — Welcome to Class 13!」
+              </div>
+              <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
+                <button className="mini ghost" onClick={() => toggleIc(ic.id, ic.active)}>{ic.active ? '停用' : '启用'}</button>
+                <button className="mini danger" onClick={() => delIc(ic.id)}>删除</button>
+              </div>
+            </div>
+          ))}
+          {ics.length === 0 && <p className="mut" style={{ fontSize: 13 }}>还没有邀请码，添加一个吧</p>}
+          <label style={{ marginTop: 10 }}>新邀请码</label>
+          <input value={newCode} onChange={e => setNewCode(e.target.value)} placeholder="如：zhangsan" maxLength={40} />
+          <label style={{ marginTop: 8 }}>欢迎昵称（这个码专属）</label>
+          <input value={newNick} onChange={e => setNewNick(e.target.value)} placeholder="如：张三" maxLength={30} style={{ maxWidth: 220 }} />
+          <div style={{ marginTop: 8 }}>
+            <button className="pri" style={{ width: 'auto', padding: '10px 24px' }} onClick={addIc}>＋ 添加邀请码</button>
           </div>
-          <label style={{ marginTop: 10 }}>欢迎昵称</label>
-          <input value={nick} onChange={e => setNick(e.target.value)} placeholder="如：千栀的班级" maxLength={30} style={{ maxWidth: 220 }} />
           <p className="mut" style={{ fontSize: 12.5, margin: '6px 0 0' }}>
-            别人用邀请码加入时，屏幕会播放「{nick.trim() || 'xxx'} — Welcome to Class 13!」欢迎动画（约 2 秒）
+            给不同同学发不同的邀请码，每个人加入时看到的欢迎动画就是他自己的名字
           </p>
-        </>) : <p className="mut">邀请码仅超级管理员可查看和修改</p>}
+        </>) : <p className="mut">邀请码仅超级管理员可管理</p>}
       </div>
 
       <div className="adm-sec card">

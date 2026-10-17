@@ -37,7 +37,7 @@ export default function WallpaperOnboarding({ onDone }: { onDone: () => void }) 
   const thumb = (active: boolean): React.CSSProperties => ({
     width: 56, height: 56, borderRadius: 14, border: active ? '2px solid #fff' : '1px solid #ffffff2e',
     cursor: 'pointer', flexShrink: 0, overflow: 'hidden',
-    boxShadow: active ? '0 0 0 2px #8b7bff88, 0 6px 18px #0009' : 'none',
+    boxShadow: active ? '0 0 0 2px #ffffffaa, 0 6px 18px #0009' : 'none',
   });
 
   return (

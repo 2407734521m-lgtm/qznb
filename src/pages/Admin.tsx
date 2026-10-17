@@ -51,7 +51,14 @@ export default function Admin() {
   const [notices, setNotices] = useState<Notice[]>([]);
   const [noticeText, setNoticeText] = useState('');
   // 成员位置与设备
-  const [presence, setPresence] = useState<Record<string, { device: string | null; location: string | null }>>({});
+  const [presence, setPresence] = useState<Record<string, { device: string | null; location: string | null; updated_at: string | null }>>({});
+  // 10 个新功能的状态
+  const [gq, setGq] = useState('');                       // 全站搜索
+  const [fbFilter, setFbFilter] = useState('all');        // 反馈筛选：all/open/done
+  const [logQ, setLogQ] = useState('');                   // 日志筛选
+  const [editId, setEditId] = useState<string | null>(null); // 正在编辑资料的成员
+  const [editForm, setEditForm] = useState({ display_name: '', real_name: '', signature: '' });
+  const [batchBusy, setBatchBusy] = useState(false);
 
   useEffect(() => { supabase.rpc('my_role').then(({ data }) => setRole(data ?? '')); }, []);
 
@@ -88,7 +95,7 @@ export default function Admin() {
     const nt = await supabase.from('board_messages').select('id, content, created_at')
       .eq('is_admin_msg', true).order('created_at', { ascending: false }).limit(20);
     if (!nt.error) setNotices(nt.data as Notice[]);
-    const mp = await supabase.from('member_presence').select('profile_id, device, location');
+    const mp = await supabase.from('member_presence').select('profile_id, device, location, updated_at');
     if (!mp.error) setPresence(Object.fromEntries((mp.data ?? []).map((x: any) => [x.profile_id, x])));
   }
 
@@ -198,6 +205,110 @@ export default function Admin() {
     await supabase.from('board_messages').delete().eq('id', id);
     refresh();
   }
+  // —— 10 个新功能 ——
+  // 1) 批量生成邀请码
+  async function batchCodes(n: number) {
+    if (!confirm(`一次生成 ${n} 个随机邀请码？`)) return;
+    setBatchBusy(true); setMsg('');
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let ok = 0;
+    for (let i = 0; i < n; i++) {
+      let code = '';
+      for (let j = 0; j < 6; j++) code += chars[Math.floor(Math.random() * chars.length)];
+      const { error } = await supabase.rpc('create_invite_code', { new_code: code, nick: null });
+      if (!error) ok++;
+    }
+    setBatchBusy(false);
+    setMsg(`已生成 ${ok} 个邀请码 ✓`);
+    refresh();
+  }
+  // 2) 通讯录导出 CSV
+  function exportCSV() {
+    const rows: string[][] = [['姓名', '用户名', '真实姓名', '邮箱', '角色', '已加入']];
+    members.forEach(m => rows.push([
+      m.display_name || '', m.username, m.real_name || '', emails[m.id] || '',
+      ROLE_LABEL[m.role] || m.role, m.joined ? '是' : '否',
+    ]));
+    const csv = '﻿' + rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+    a.download = '班级通讯录.csv'; a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+    setMsg('通讯录已导出 ✓');
+  }
+  // 3) 数据导出 JSON（动态/相册/留言/反馈/公告）
+  async function exportJSON() {
+    setMsg('正在打包数据…');
+    const [p, a, b, f] = await Promise.all([
+      supabase.from('posts').select('id, author_id, content, created_at').order('created_at', { ascending: false }).limit(500),
+      supabase.from('albums').select('id, title, category, created_at').order('created_at', { ascending: false }).limit(200),
+      supabase.from('board_messages').select('id, author_id, content, is_admin_msg, created_at').order('created_at', { ascending: false }).limit(500),
+      supabase.from('feedbacks').select('id, name, contact, content, kind, status, created_at').order('created_at', { ascending: false }).limit(500),
+    ]);
+    const data = { exported_at: new Date().toISOString(), posts: p.data ?? [], albums: a.data ?? [], board: b.data ?? [], feedbacks: f.data ?? [] };
+    const aEl = document.createElement('a');
+    aEl.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }));
+    aEl.download = '班级数据备份.json'; aEl.click();
+    setTimeout(() => URL.revokeObjectURL(aEl.href), 5000);
+    setMsg('数据已导出 ✓');
+  }
+  // 4) 编辑成员资料
+  function startEdit(mb: Member) {
+    setEditId(mb.id);
+    setEditForm({ display_name: mb.display_name || '', real_name: mb.real_name || '', signature: '' });
+    const prof = supabase.from('profiles').select('signature').eq('id', mb.id).maybeSingle()
+      .then(({ data }) => { if (data) setEditForm(f => ({ ...f, signature: (data as any).signature || '' })); });
+    void prof;
+  }
+  async function saveEdit() {
+    if (!editId) return;
+    setMsg('');
+    const { error } = await supabase.rpc('admin_update_profile', {
+      target: editId,
+      p_display_name: editForm.display_name.trim() || null,
+      p_real_name: editForm.real_name.trim() || null,
+      p_signature: editForm.signature.trim() || null,
+    });
+    setMsg(error ? '保存失败：' + error.message : '已更新 ✓');
+    if (!error) { setEditId(null); refresh(); }
+  }
+  // 待办 / 在线 / 趋势（纯计算）
+  const todoFb = feedbacks.filter(f => f.status === 'open').length;
+  const todoGame = gameProfiles.filter(g => g.status === 'pending').length;
+  const todoJoin = members.filter(m => !m.joined).length;
+  const onlineList = members.filter(m => {
+    const t = presence[m.id]?.updated_at;
+    return t && Date.now() - new Date(t).getTime() < 15 * 60 * 1000;
+  });
+  const trend = (() => {
+    const days: { k: string; label: string; n: number }[] = [];
+    for (let i = 13; i >= 0; i--) {
+      const d = new Date(); d.setDate(d.getDate() - i);
+      const k = d.toISOString().slice(0, 10);
+      days.push({ k, label: k.slice(5), n: 0 });
+    }
+    members.forEach(m => {
+      const k = (m.created_at || '').slice(0, 10);
+      const f = days.find(x => x.k === k);
+      if (f) f.n++;
+    });
+    return days;
+  })();
+  const trendMax = Math.max(1, ...trend.map(d => d.n));
+  // 全站搜索（基于已加载的数据）
+  const gqs = gq.trim().toLowerCase();
+  const searchRes = gqs ? {
+    members: members.filter(m => (m.display_name || '').toLowerCase().includes(gqs) || m.username.toLowerCase().includes(gqs) || (m.real_name || '').toLowerCase().includes(gqs)),
+    posts: posts.filter(p => (p.content || '').toLowerCase().includes(gqs)),
+    albums: albums.filter(a => (a.title || '').toLowerCase().includes(gqs)),
+    feedbacks: feedbacks.filter(f => (f.content || '').toLowerCase().includes(gqs) || (f.name || '').toLowerCase().includes(gqs)),
+    notices: notices.filter(n => n.content.toLowerCase().includes(gqs)),
+  } : null;
+  const fbShown = feedbacks.filter(f => fbFilter === 'all' ? true : f.status === fbFilter);
+  const logShown = logs.filter(l => {
+    const s = logQ.trim().toLowerCase(); if (!s) return true;
+    return (l.action || '').toLowerCase().includes(s) || JSON.stringify(l.detail ?? {}).toLowerCase().includes(s);
+  });
   async function revokeGp(pid: string) {
     if (!confirm('撤销该成员的段位认证？卡片标签会消失。')) return;
     const { error } = await supabase.from('game_profiles').delete().eq('profile_id', pid);
@@ -235,14 +346,14 @@ export default function Admin() {
   const NAV: [string, string][] = [
     ['adm-overview', '📊 总览'], ['adm-board', '📢 公告'], ['adm-members', '👥 成员'],
     ['adm-invite', '🎟️ 邀请码'], ['adm-feedback', '💬 反馈'], ['adm-game', '🎮 段位'],
-    ['adm-content', '🖼️ 内容'],
+    ['adm-content', '🖼️ 内容'], ['adm-search', '🔍 搜索'], ['adm-export', '💾 导出'],
     ...(isSuper ? [['adm-test', '🧪 测试'] as [string, string]] : []),
     ['adm-logs', '📝 日志'],
   ];
   function go(id: string) { document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
 
   return (
-    <div className="page">
+    <div className="page" style={{ paddingBottom: 92 }}>
       <div className="hero" style={{ paddingTop: 8 }}>
         <h1 style={{ fontSize: 24 }}>管理后台</h1>
         <p>{isSuper ? '超 级 管 理 员' : '管 理 员'}</p>
@@ -259,10 +370,42 @@ export default function Admin() {
         ))}
       </div>
 
-      <div className="row" style={{ gap: 8, overflowX: 'auto', padding: '10px 2px 4px', flexWrap: 'nowrap' }}>
-        {NAV.map(([id, label]) => (
-          <button key={id} className="mini ghost" style={{ whiteSpace: 'nowrap', flexShrink: 0 }} onClick={() => go(id)}>{label}</button>
-        ))}
+      {(todoFb > 0 || todoGame > 0 || todoJoin > 0) && (
+        <div className="adm-sec card" style={{ borderColor: '#ffd47955' }}>
+          <h3>🔔 待办事项</h3>
+          <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
+            {todoFb > 0 && <button className="mini" onClick={() => go('adm-feedback')}>💬 {todoFb} 条反馈未处理</button>}
+            {todoGame > 0 && <button className="mini" onClick={() => go('adm-game')}>🎮 {todoGame} 个段位待审核</button>}
+            {todoJoin > 0 && <button className="mini" onClick={() => go('adm-members')}>👥 {todoJoin} 人未加入班级</button>}
+          </div>
+        </div>
+      )}
+
+      <div className="row" style={{ gap: 10, alignItems: 'stretch' }}>
+        <div className="adm-sec card" style={{ flex: 1, minWidth: 0 }}>
+          <h3>📈 近14天注册</h3>
+          <div className="row" style={{ gap: 3, alignItems: 'flex-end', height: 64, flexWrap: 'nowrap' }}>
+            {trend.map(d => (
+              <div key={d.k} style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', height: '100%' }} title={`${d.k}：${d.n} 人`}>
+                <div style={{
+                  width: '70%', height: `${Math.max(4, (d.n / trendMax) * 44)}px`, borderRadius: 3,
+                  background: d.n > 0 ? 'linear-gradient(180deg,#ffffff,#d9deef)' : '#ffffff18',
+                }} />
+                <div className="mut" style={{ fontSize: 8.5, marginTop: 3 }}>{d.label.slice(3)}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="adm-sec card" style={{ flex: 1, minWidth: 0 }}>
+          <h3>🟢 当前在线（{onlineList.length}）</h3>
+          {onlineList.length === 0
+            ? <p className="mut" style={{ fontSize: 12.5, margin: 0 }}>近15分钟没人活跃</p>
+            : <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {onlineList.map(m => (
+                <span key={m.id} className="mini ghost" style={{ fontSize: 12 }}>{m.display_name || m.username}</span>
+              ))}
+            </div>}
+        </div>
       </div>
 
       <div className="adm-sec card" id="adm-board" style={{ scrollMarginTop: 60 }}>
@@ -284,8 +427,11 @@ export default function Admin() {
 
       <div className="adm-sec card" id="adm-members" style={{ scrollMarginTop: 60 }}>
         <h3>成员管理（{shown.length} 人）</h3>
-        <input placeholder="🔍 搜索名字 / 用户名 / 真实姓名 / 邮箱" value={q} onChange={e => setQ(e.target.value)}
-          style={{ marginBottom: 10 }} />
+        <div className="row" style={{ gap: 8, marginBottom: 10 }}>
+          <input placeholder="🔍 搜索名字 / 用户名 / 真实姓名 / 邮箱" value={q} onChange={e => setQ(e.target.value)}
+            style={{ flex: 1, minWidth: 0, marginBottom: 0 }} />
+          <button className="mini" onClick={exportCSV}>📥 导出通讯录</button>
+        </div>
         <table className="tbl"><thead><tr><th>成员</th><th>邮箱</th><th>角色</th><th>状态</th><th></th></tr></thead>
           <tbody>{shown.map(mb => (
             <tr key={mb.id}>
@@ -301,12 +447,26 @@ export default function Admin() {
               <td style={{ fontSize: 13 }}>{mb.joined ? '已加入' : '未加入'}</td>
               <td>{isSuper && mb.id !== me && mb.role !== 'super_admin' && (
                 <span className="row" style={{ gap: 6, flexWrap: 'wrap' }}>
+                  <button className="mini" onClick={() => startEdit(mb)}>编辑资料</button>
                   {mb.role === 'admin'
                     ? <button className="mini" onClick={() => changeRole(mb.id, 'member')}>降为成员</button>
                     : <button className="mini" onClick={() => changeRole(mb.id, 'admin')}>设为管理员</button>}
                   <button className="mini" onClick={() => toggleJoined(mb.id, !mb.joined)}>{mb.joined ? '移出班级' : '恢复'}</button>
                   {mb.id !== me && <button className="mini danger" onClick={() => delMember(mb.id, mb.display_name || mb.username)}>删除</button>}
                 </span>
+              )}
+              {editId === mb.id && (
+                <div style={{ marginTop: 8, padding: 10, border: '1px solid #ffffff22', borderRadius: 10, background: '#ffffff08' }}>
+                  <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
+                    <input placeholder="显示名" value={editForm.display_name} onChange={e => setEditForm(f => ({ ...f, display_name: e.target.value }))} style={{ flex: '1 1 100px', minWidth: 0 }} />
+                    <input placeholder="真实姓名" value={editForm.real_name} onChange={e => setEditForm(f => ({ ...f, real_name: e.target.value }))} style={{ flex: '1 1 100px', minWidth: 0 }} />
+                  </div>
+                  <input placeholder="个性签名" value={editForm.signature} onChange={e => setEditForm(f => ({ ...f, signature: e.target.value }))} style={{ marginTop: 8 }} />
+                  <div className="row" style={{ gap: 8, marginTop: 8 }}>
+                    <button className="mini" onClick={saveEdit}>保存</button>
+                    <button className="mini ghost" onClick={() => setEditId(null)}>取消</button>
+                  </div>
+                </div>
               )}</td>
             </tr>
           ))}</tbody></table>
@@ -314,6 +474,12 @@ export default function Admin() {
 
       <div className="adm-sec card" id="adm-invite" style={{ scrollMarginTop: 60 }}>
         <h3>🎟️ 邀请码管理</h3>
+        <div className="row" style={{ gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
+          <span className="mut" style={{ fontSize: 12.5 }}>批量生成：</span>
+          <button className="mini" disabled={batchBusy} onClick={() => batchCodes(10)}>10 个</button>
+          <button className="mini" disabled={batchBusy} onClick={() => batchCodes(20)}>20 个</button>
+          <button className="mini" disabled={batchBusy} onClick={() => batchCodes(50)}>50 个</button>
+        </div>
         {isSuper ? (<>
           {ics.map(ic => (
             <div key={ic.id} style={{ padding: '8px 0', borderBottom: '1px solid #ffffff0c', opacity: ic.active ? 1 : 0.5 }}>
@@ -343,9 +509,14 @@ export default function Admin() {
       </div>
 
       <div className="adm-sec card" id="adm-feedback" style={{ scrollMarginTop: 60 }}>
-        <h3>💬 反馈管理（{feedbacks.filter(f => f.status === 'open').length} 条未处理）</h3>
-        {feedbacks.length === 0 && <p className="mut" style={{ fontSize: 13 }}>暂无反馈</p>}
-        {feedbacks.map(f => (
+        <h3>💬 反馈管理（{todoFb} 条未处理）</h3>
+        <div className="row" style={{ gap: 8, marginBottom: 8 }}>
+          {([['all', '全部'], ['open', '未处理'], ['done', '已处理']] as [string, string][]).map(([k, l]) => (
+            <button key={k} className={'mini' + (fbFilter === k ? '' : ' ghost')} onClick={() => setFbFilter(k)}>{l}</button>
+          ))}
+        </div>
+        {fbShown.length === 0 && <p className="mut" style={{ fontSize: 13 }}>暂无反馈</p>}
+        {fbShown.map(f => (
           <div key={f.id} style={{ padding: '10px 0', borderBottom: '1px solid #ffffff0c', opacity: f.status === 'done' ? 0.55 : 1 }}>
             <div style={{ fontSize: 13.5 }}>
               <span className="mut" style={{ fontSize: 11.5, marginRight: 6 }}>
@@ -434,6 +605,46 @@ export default function Admin() {
         ))}
       </div>
 
+      <div className="adm-sec card" id="adm-search" style={{ scrollMarginTop: 60 }}>
+        <h3>🔍 全站搜索</h3>
+        <input placeholder="搜成员 / 动态 / 相册 / 反馈 / 公告…" value={gq} onChange={e => setGq(e.target.value)}
+          style={{ marginBottom: 10 }} />
+        {searchRes && (
+          <div style={{ fontSize: 13.5 }}>
+            {searchRes.members.length > 0 && (<>
+              <p className="mut" style={{ fontSize: 12.5, margin: '8px 0 4px' }}>成员（{searchRes.members.length}）</p>
+              {searchRes.members.map(m => <div key={m.id} style={{ padding: '4px 0' }}>{m.display_name || m.username} <span className="mut">@{m.username}</span></div>)}
+            </>)}
+            {searchRes.posts.length > 0 && (<>
+              <p className="mut" style={{ fontSize: 12.5, margin: '8px 0 4px' }}>动态（{searchRes.posts.length}）</p>
+              {searchRes.posts.slice(0, 10).map(p => <div key={p.id} style={{ padding: '4px 0' }}>{nameOf(p.author_id)}：{(p.content || '').slice(0, 40)}</div>)}
+            </>)}
+            {searchRes.albums.length > 0 && (<>
+              <p className="mut" style={{ fontSize: 12.5, margin: '8px 0 4px' }}>相册（{searchRes.albums.length}）</p>
+              {searchRes.albums.map(a => <div key={a.id} style={{ padding: '4px 0' }}>{a.title} · {a.category}</div>)}
+            </>)}
+            {searchRes.feedbacks.length > 0 && (<>
+              <p className="mut" style={{ fontSize: 12.5, margin: '8px 0 4px' }}>反馈（{searchRes.feedbacks.length}）</p>
+              {searchRes.feedbacks.slice(0, 10).map(f => <div key={f.id} style={{ padding: '4px 0' }}>{(f.content || '').slice(0, 40)}</div>)}
+            </>)}
+            {searchRes.notices.length > 0 && (<>
+              <p className="mut" style={{ fontSize: 12.5, margin: '8px 0 4px' }}>公告（{searchRes.notices.length}）</p>
+              {searchRes.notices.map(n => <div key={n.id} style={{ padding: '4px 0' }}>{n.content.slice(0, 40)}</div>)}
+            </>)}
+            {Object.values(searchRes).every(a => a.length === 0) && <p className="mut">没搜到相关内容</p>}
+          </div>
+        )}
+      </div>
+
+      <div className="adm-sec card" id="adm-export" style={{ scrollMarginTop: 60 }}>
+        <h3>💾 数据导出</h3>
+        <p className="priv-note" style={{ margin: '0 0 8px' }}>把网站内容打包下载，留个备份。</p>
+        <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
+          <button className="mini" onClick={exportJSON}>导出内容备份（JSON）</button>
+          <button className="mini" onClick={exportCSV}>导出通讯录（CSV）</button>
+        </div>
+      </div>
+
       {isSuper && (
         <div className="adm-sec card" id="adm-test" style={{ scrollMarginTop: 60 }}>
           <h3>🧪 测试工具</h3>
@@ -463,12 +674,28 @@ export default function Admin() {
 
       <div className="adm-sec card" id="adm-logs" style={{ scrollMarginTop: 60 }}>
         <h3>📝 操作日志</h3>
-        {logs.length === 0 && <p className="mut" style={{ fontSize: 13 }}>暂无记录</p>}
-        {logs.map(l => (
+        <input placeholder="🔍 筛选操作，如：delete_member" value={logQ} onChange={e => setLogQ(e.target.value)}
+          style={{ marginBottom: 10 }} />
+        {logShown.length === 0 && <p className="mut" style={{ fontSize: 13 }}>暂无记录</p>}
+        {logShown.map(l => (
           <div key={l.id} className="log">
             {(l.created_at ?? '').slice(0, 16).replace('T', ' ')} · {l.action} · {JSON.stringify(l.detail ?? {})}
           </div>
         ))}
+      </div>
+
+      {/* 底部导航：固定在屏幕下方，随时跳转分区 */}
+      <div style={{
+        position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 60,
+        padding: '10px 12px calc(10px + env(safe-area-inset-bottom))',
+        background: '#0b0d14d9', backdropFilter: 'blur(20px) saturate(1.6)', WebkitBackdropFilter: 'blur(20px) saturate(1.6)',
+        borderTop: '1px solid #ffffff17',
+      }}>
+        <div className="row" style={{ gap: 8, overflowX: 'auto', flexWrap: 'nowrap' }}>
+          {NAV.map(([id, label]) => (
+            <button key={id} className="mini ghost" style={{ whiteSpace: 'nowrap', flexShrink: 0 }} onClick={() => go(id)}>{label}</button>
+          ))}
+        </div>
       </div>
     </div>
   );

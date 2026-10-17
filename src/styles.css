@@ -137,6 +137,23 @@ button:disabled{opacity:.5}
 .welcome-nick{font-size:34px;font-weight:800;margin-bottom:10px;
   background:linear-gradient(120deg,#ffd9ec,#c4b5fd,#a5f3fc);-webkit-background-clip:text;background-clip:text;color:transparent}
 .welcome-en{font-size:20px;letter-spacing:2px;color:#fff;text-shadow:0 2px 24px #a78bfa88}
+
+/* 游戏段位标签 & 选择器 */
+.gbadge{display:inline-block;margin-top:8px;padding:5px 14px;border-radius:999px;font-size:12.5px;font-weight:700;
+  background:linear-gradient(120deg,#ffd9ec22,#c4b5fd22);border:1px solid #c4b5fd55;color:#ffe9f4;
+  box-shadow:0 2px 12px #a78bfa33;white-space:nowrap}
+.gbadge.preview{margin:10px 0 2px;font-size:14px}
+.gpick{width:min(94vw,460px);max-height:88vh;overflow-y:auto;background:#171224;border:1px solid #ffffff1c;border-radius:18px;padding:16px}
+.gpick-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.glist{display:flex;flex-direction:column;gap:6px;margin-top:10px;max-height:52vh;overflow-y:auto}
+.grow{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;background:#ffffff08;border:1px solid #ffffff12;color:#fff;text-align:left;width:100%}
+.grow .gi{font-size:22px}
+.grow .gn{font-weight:700;font-size:14px;flex:1}
+.grow.sel{border-color:#a78bfa88;background:#a78bfa18;margin-bottom:6px}
+.rankgrid{display:flex;flex-wrap:wrap;gap:8px;margin:4px 0 8px}
+.rankchip{padding:8px 14px;border-radius:999px;background:#ffffff0d;border:1px solid #ffffff1c;color:#fff;font-size:13px}
+.rankchip.on{background:linear-gradient(135deg,#7c6cf0,#a855f7);border-color:transparent;font-weight:700}
+.gprof{margin:2px 0 10px;padding:10px 12px;border-radius:12px;background:#ffffff08;border:1px solid #ffffff12}
 .profile.compact .kv{margin:10px 0}
 .profile.compact .kv div{font-size:14.5px}
 .profile.compact .sig{margin:12px 0;font-size:14.5px}

@@ -12,8 +12,11 @@ const CONTACT_FIELDS = [
   ['social', '社交平台', 'show_social', '微信 / 微博 / B站…'],
 ] as const;
 const ALL_FIELDS = [...PROFILE_FIELDS, ...CONTACT_FIELDS];
-const THEMES = [['aurora', '极光'], ['sunset', '晚霞'], ['forest', '森林'], ['mono', '黑白'], ['stars', '星空'], ['ocean', '海洋']];
+const THEMES = [['aurora', '极光', '#7c9cff', '#c27cff'], ['sunset', '晚霞', '#ff8a5c', '#ff5c93'],
+  ['forest', '森林', '#4ade80', '#14b8a6'], ['mono', '黑白', '#e8e8e8', '#777777'],
+  ['stars', '星空', '#818cf8', '#38bdf8'], ['ocean', '海洋', '#22d3ee', '#3b82f6']];
 const LAYOUTS = [['left', '照片在左'], ['right', '照片在右'], ['center', '居中'], ['full', '全屏背景']];
+const PRIV_ICONS: Record<string, string> = { show_avatar: '🖼️', show_name: '📝', show_age: '🎂', show_personality: '✨', show_signature: '💬', show_bio: '📖', show_hobbies: '🎯', show_game_id: '🎮', show_contact: '📞', show_social: '🌐' };
 
 export default function MyProfile() {
   const uid = useAuth().session!.user.id;
@@ -144,7 +147,7 @@ export default function MyProfile() {
           {[['show_avatar', '个人照片'], ...ALL_FIELDS.map(([, label, flag]) => [flag, label] as const)].map(([flag, label]) => (
             <button key={flag} type="button" className={'priv-btn' + (priv[flag] ? ' on' : '')}
               onClick={() => setPriv({ ...priv, [flag]: !priv[flag] })}>
-              <span>{label}</span>
+              <span>{PRIV_ICONS[flag] ?? '🔹'} {label}</span>
               <span className="sw"><span className="knob" /></span>
             </button>
           ))}
@@ -153,8 +156,21 @@ export default function MyProfile() {
 
       <div className="card">
         <h3 className="me-sec-t">🎨 我的主页外观</h3>
-        <label>主题<select value={theme} onChange={e => setTheme(e.target.value)}>{THEMES.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select></label>
-        <label>照片位置<select value={layout} onChange={e => setLayout(e.target.value)}>{LAYOUTS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select></label>
+        <p className="priv-note">主题</p>
+        <div className="theme-grid">
+          {THEMES.map(([k, l, c1, c2]) => (
+            <button key={k} type="button" className={'theme-chip' + (theme === k ? ' on' : '')} onClick={() => setTheme(k)}>
+              <span className="dot" style={{ background: `linear-gradient(135deg,${c1},${c2})` }} />
+              {l}
+            </button>
+          ))}
+        </div>
+        <p className="priv-note" style={{ marginTop: 12 }}>照片位置</p>
+        <div className="seg">
+          {LAYOUTS.map(([k, l]) => (
+            <button key={k} type="button" className={layout === k ? 'on' : ''} onClick={() => setLayout(k)}>{l}</button>
+          ))}
+        </div>
       </div>
 
       <div className="card">

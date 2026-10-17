@@ -253,6 +253,8 @@ export default function MyProfile() {
             <button key={k} type="button" className={layout === k ? 'on' : ''} onClick={() => setLayout(k)}>{l}</button>
           ))}
         </div>
+        <button type="button" className="pri" style={{ width: '100%', marginTop: 12 }}
+          onClick={() => window.dispatchEvent(new Event('ca:wallpaper:open'))}>🖼️ 换壁纸</button>
       </div>
 
       <div className="card">

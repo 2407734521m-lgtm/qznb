@@ -89,8 +89,12 @@ button:disabled{opacity:.5}
 .profile.compact{display:flex;gap:16px;align-items:flex-start;flex-wrap:nowrap;margin-top:6px}
 .profile.compact .info{flex:1;min-width:0}
 .profile.compact .info h1{font-size:23px;margin:0 0 4px;letter-spacing:1px}
-.profile.compact .head-photo{width:132px;flex:none}
+.profile.compact .head-photo{width:170px;flex:none}
 .profile.compact .head-photo .photo{width:100%;box-shadow:0 16px 40px #000a}
+.profile.compact.rev{flex-direction:row-reverse}
+.profile.compact.center{flex-direction:column;align-items:center;text-align:center}
+.profile.compact.center .head-photo{order:-1}
+.upbtn{display:inline-block;margin-top:10px;cursor:pointer;font-size:12.5px;padding:8px 14px;text-align:center}
 .profile.compact .kv{margin:10px 0}
 .profile.compact .kv div{font-size:14.5px}
 .profile.compact .sig{margin:12px 0;font-size:14.5px}

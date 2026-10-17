@@ -4,24 +4,24 @@
 export type Dir = 'left' | 'right' | 'down';
 
 export type Shot = {
-  img: string;          // 照片 URL（无照片时传空字符串，调用方应跳过）
+  img: string;          // 照片 URL（无照片时传空字符串，用首字占位飞）
   x: number; y: number; // 视口坐标
   w: number; h: number;
   r: number;            // 起始圆角 px
   key?: string;         // 业务标识（如成员 id），用于返回时定位目标
   dir?: Dir;            // 飞入方向：left / right / down
+  label?: string;       // 无照片时的首字占位（如名字）
 };
 
 let pending: Shot | null = null;
 export function setShot(s: Shot | null) { pending = s; }
 export function takeShot(): Shot | null { const s = pending; pending = null; return s; }
 
-export function shotFrom(el: HTMLElement, img: string): Shot | null {
-  if (!img) return null;
+export function shotFrom(el: HTMLElement, img: string, label?: string): Shot | null {
   const r = el.getBoundingClientRect();
   if (r.width < 4 || r.height < 4) return null;
   const cs = getComputedStyle(el);
-  return { img, x: r.x, y: r.y, w: r.width, h: r.height, r: parseFloat(cs.borderRadius) || 0 };
+  return { img, x: r.x, y: r.y, w: r.width, h: r.height, r: parseFloat(cs.borderRadius) || 0, label };
 }
 
 /** 让一个"幽灵"照片从 shot 位置飞到 target 元素的位置/大小。 */
@@ -29,10 +29,18 @@ export function flyTo(shot: Shot, target: HTMLElement, opts?: { duration?: numbe
   const tr = target.getBoundingClientRect();
   const ghost = document.createElement('div');
   ghost.className = 'fly-clone';
-  const img = document.createElement('img');
-  img.src = shot.img;
-  img.alt = '';
-  ghost.appendChild(img);
+  if (shot.img) {
+    const img = document.createElement('img');
+    img.src = shot.img;
+    img.alt = '';
+    ghost.appendChild(img);
+  } else {
+    // 无照片：用名字首字占位，照样飞
+    const fb = document.createElement('div');
+    fb.className = 'fly-letter';
+    fb.textContent = (shot.label || '?').slice(0, 1).toUpperCase();
+    ghost.appendChild(fb);
+  }
   ghost.style.left = shot.x + 'px';
   ghost.style.top = shot.y + 'px';
   ghost.style.width = shot.w + 'px';

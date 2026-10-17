@@ -34,6 +34,46 @@ function isTabActive(tab: string, path: string) {
   return path === tab;
 }
 
+// 测试账号快切：从管理后台一键切换登录后，各页面右下角悬浮"结束测试"一键切回
+// （只有走过管理后台切换流程的人才看得到，普通用户没有）
+function TestSwitchFab() {
+  const { session } = useAuth();
+  const [testingAs, setTestingAs] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  useEffect(() => {
+    try { setTestingAs(sessionStorage.getItem('ca_testing_as')); } catch { setTestingAs(null); }
+  }, [session]);
+  if (!session || !testingAs) return null;
+  async function back() {
+    if (busy) return;
+    setBusy(true);
+    let accounts: { email: string; password: string }[] = [];
+    let fromEmail = '';
+    try {
+      accounts = JSON.parse(localStorage.getItem('ca_test_accounts') || '[]');
+      fromEmail = sessionStorage.getItem('ca_testing_from') || '';
+      sessionStorage.removeItem('ca_testing_as');
+      sessionStorage.removeItem('ca_testing_from');
+    } catch {}
+    const acc = accounts.find(a => a.email === fromEmail);
+    await supabase.auth.signOut();
+    if (acc) {
+      const { error } = await supabase.auth.signInWithPassword({ email: acc.email, password: acc.password });
+      if (error) alert('切回失败，请手动登录：' + error.message);
+    }
+    setBusy(false);
+  }
+  return (
+    <button onClick={back} disabled={busy}
+      style={{
+        position: 'fixed', right: 14, bottom: 92, zIndex: 200, padding: '10px 15px', borderRadius: 999,
+        border: '1px solid #ffffff2e', color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer',
+        background: 'color-mix(in srgb, #1a1e30 72%, transparent)', backdropFilter: 'blur(12px)',
+        boxShadow: '0 8px 24px #000a', opacity: busy ? 0.6 : 1,
+      }}>⇄ {busy ? '切换中…' : '结束测试'}</button>
+  );
+}
+
 function Shell() {
   const { session, loading } = useAuth();
   const [role, setRole] = useState('');
@@ -202,6 +242,7 @@ function Shell() {
       </nav>}
       {showWp && <WallpaperOnboarding onDone={() => setShowWp(false)} />}
       {welcome !== null && <WelcomeOverlay nick={welcome} onDone={welcomeDone} />}
+      <TestSwitchFab />
     </>
   );
 }

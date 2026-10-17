@@ -3,10 +3,10 @@ import { motion, useReducedMotion } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import FeedbackModal from '../components/FeedbackModal';
 import { downscaleImage } from '../lib/media';
-import bgDefault from '../assets/bg.jpg';
+import bgDefault from '../assets/cow.jpg';
 
-const BG_KEY = 'ca_login_bg';
-const DEFAULT_BG = bgDefault; // 默认壁纸（樱花）
+const BG_KEY = 'ca_login_bg_v2';
+const DEFAULT_BG = bgDefault; // 默认壁纸（纯牛马）
 
 // 登录标识可以是：QQ 邮箱 / 用户名 / 真实姓名
 async function resolveEmail(ident: string): Promise<string> {
@@ -37,7 +37,7 @@ export default function Login() {
   const [resendIn, setResendIn] = useState(0);
   const [codeSent, setCodeSent] = useState(false); // 注册页：验证码是否已发送
   const [bg, setBg] = useState<string>(() => { try { return localStorage.getItem(BG_KEY) || DEFAULT_BG; } catch { return DEFAULT_BG; } });
-  const [blur, setBlur] = useState(5); const [dark, setDark] = useState(45);
+  const [blur, setBlur] = useState(3); const [dark, setDark] = useState(45);
   const [showBg, setShowBg] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null); const bgRef = useRef<HTMLInputElement>(null);
 

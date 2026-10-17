@@ -14,6 +14,7 @@ export default function MyProfile() {
   const [theme, setTheme] = useState('aurora'); const [layout, setLayout] = useState('left');
   const [joined, setJoined] = useState(true); const [avatar, setAvatar] = useState<string | null>(null);
   const [code, setCode] = useState(''); const [msg, setMsg] = useState(''); const [busy, setBusy] = useState(false);
+  const [keys, setKeys] = useState<Array<{ id: string; friendly_name?: string | null; created_at?: string }>>([]);
 
   useEffect(() => { (async () => {
     const [p, pr, c] = await Promise.all([
@@ -59,6 +60,30 @@ export default function MyProfile() {
     if (data) { setJoined(true); setMsg('已加入班级'); } else setMsg('邀请码不正确');
   }
 
+  async function loadKeys() {
+    try {
+      const { data, error } = await supabase.auth.passkey.list();
+      if (!error && data) setKeys((data as unknown as { passkeys?: typeof keys }).passkeys ?? []);
+    } catch { /* 忽略，旧版本客户端不支持时不展示 */ }
+  }
+  useEffect(() => { loadKeys(); }, []);
+
+  async function regKey() {
+    setMsg('');
+    try {
+      const { error } = await supabase.auth.registerPasskey();
+      if (error) throw error;
+      setMsg('通行密钥已注册，下次登录可用指纹 / 面容 ID 一键登录');
+      loadKeys();
+    } catch (x) { setMsg('注册失败：' + (x as Error).message); }
+  }
+
+  async function delKey(id: string) {
+    const { error } = await supabase.auth.passkey.delete({ id });
+    setMsg(error ? '删除失败：' + error.message : '通行密钥已删除');
+    loadKeys();
+  }
+
   return (
     <div className="card">
       <h2>我的档案</h2>
@@ -78,6 +103,16 @@ export default function MyProfile() {
       <label>照片位置<select value={layout} onChange={e => setLayout(e.target.value)}>{LAYOUTS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select></label>
       {msg && <p>{msg}</p>}
       <button className="pri" disabled={busy} onClick={save}>{busy ? '保存中…' : '保存'}</button>
+      <hr />
+      <h3>通行密钥登录</h3>
+      <p style={{ fontSize: 13, opacity: 0.75 }}>注册后，下次登录可用指纹 / 面容 ID / 安全密钥一键登录，不用输密码。</p>
+      <button onClick={regKey}>注册通行密钥</button>
+      {keys.map(k => (
+        <div key={k.id} className="row" style={{ justifyContent: 'space-between' }}>
+          <span>{k.friendly_name || '通行密钥'} · {k.created_at?.slice(0, 10) ?? ''}</span>
+          <button onClick={() => delKey(k.id)}>删除</button>
+        </div>
+      ))}
     </div>
   );
 }

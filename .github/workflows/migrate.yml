@@ -1,0 +1,31 @@
+name: Run DB migration
+on:
+  workflow_dispatch:
+    inputs:
+      invite_code:
+        description: 'Invite code to set in app_settings'
+        required: true
+        default: 'class13-2025'
+permissions: { contents: read }
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install postgresql-client
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client
+      - name: Run migration SQL
+        run: psql -h db.wnddwkdfndrkxivvrxcy.supabase.co -U postgres -d postgres -v ON_ERROR_STOP=1 -f supabase/migrations/001_init.sql
+        env:
+          PGPASSWORD: ${{ secrets.DB_PASSWORD }}
+      - name: Set invite code
+        run: psql -h db.wnddwkdfndrkxivvrxcy.supabase.co -U postgres -d postgres -v ON_ERROR_STOP=1 -c "insert into app_settings(id, invite_code) values (1,'${{ inputs.invite_code }}') on conflict (id) do update set invite_code = excluded.invite_code;"
+        env:
+          PGPASSWORD: ${{ secrets.DB_PASSWORD }}
+      - name: Verify tables and invite code
+        run: |
+          psql -h db.wnddwkdfndrkxivvrxcy.supabase.co -U postgres -d postgres -c "select table_name from information_schema.tables where table_schema='public' and table_name in ('profiles','profile_privacy','profile_contacts','app_settings','admin_audit_logs') order by 1;"
+          psql -h db.wnddwkdfndrkxivvrxcy.supabase.co -U postgres -d postgres -t -c "select 'invite_code=' || invite_code from app_settings where id=1;"
+          psql -h db.wnddwkdfndrkxivvrxcy.supabase.co -U postgres -d postgres -t -c "select 'bootstrap_fn=' || count(*) from pg_proc where pronamespace='public'::regnamespace and proname='bootstrap_super_admin';"
+        env:
+          PGPASSWORD: ${{ secrets.DB_PASSWORD }}

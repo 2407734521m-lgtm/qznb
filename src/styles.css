@@ -4,6 +4,8 @@
 html,body{margin:0;overflow-x:hidden}
 body{background:var(--bg);color:var(--fg);font:16px/1.6 system-ui,-apple-system,"Noto Sans SC","PingFang SC","Microsoft YaHei",sans-serif;min-height:100vh}
 .glow{position:fixed;inset:0;z-index:-2;pointer-events:none;background:radial-gradient(600px 400px at 15% 0%,color-mix(in srgb,var(--a) 35%,transparent),transparent),radial-gradient(500px 400px at 100% 100%,color-mix(in srgb,var(--b) 30%,transparent),transparent)}
+/* 全站默认壁纸（樱花，微模糊） */
+.app-bg{position:fixed;inset:0;z-index:-1;pointer-events:none;background-size:cover;background-position:center;filter:blur(7px) brightness(42%);transform:scale(1.1)}
 a{color:var(--a)}
 .wrap{max-width:960px;margin:0 auto;padding:20px calc(20px + env(safe-area-inset-right)) calc(20px + var(--tab-h)) calc(20px + env(safe-area-inset-left))}
 @media(min-width:769px){.wrap{padding-bottom:40px}}
@@ -203,6 +205,16 @@ input[type=file]::file-selector-button{
 .me-compact input,.me-compact textarea,.me-compact select{padding:9px 10px;font-size:13.5px;margin:4px 0 8px}
 .me-compact button.pri{padding:11px;font-size:14px}
 .me-compact p{font-size:13px}
+
+/* 隐私设置：分类 toggle 按钮组 */
+.priv-list{display:flex;flex-direction:column;gap:8px;margin:6px 0 14px}
+.priv-btn{display:flex;align-items:center;justify-content:space-between;width:100%;padding:10px 14px;border-radius:13px;border:1px solid #ffffff1c;background:#ffffff0a;color:var(--fg);font:inherit;font-size:13.5px;cursor:pointer;transition:border-color .2s,background .2s;text-align:left}
+.priv-btn.on{border-color:color-mix(in srgb,var(--a) 55%,transparent);background:color-mix(in srgb,var(--a) 12%,transparent)}
+.priv-btn .sw{width:42px;height:24px;border-radius:999px;background:#ffffff22;position:relative;transition:background .2s;flex:none}
+.priv-btn.on .sw{background:linear-gradient(135deg,var(--a),var(--b))}
+.priv-btn .knob{position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:left .2s;box-shadow:0 1px 4px #0006}
+.priv-btn.on .knob{left:21px}
+.priv-note{font-size:11.5px;color:var(--mut);margin:-8px 0 10px}
 
 /* 页面转场 */
 .page{animation:pagein .32s cubic-bezier(.2,.7,.3,1)}

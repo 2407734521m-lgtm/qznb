@@ -37,7 +37,7 @@ export default function Member() {
     if (reduce || !m) return;
     const s = takeShot();
     if (s?.dir) setEnterDir(s.dir);
-    if (!s?.img || !photoRef.current) return;
+    if (!s || !photoRef.current) return;
     const target = photoRef.current;
     // 等照片 URL 就绪再飞，避免幽灵图与目标错位
     const t = setTimeout(() => {
@@ -49,8 +49,8 @@ export default function Member() {
   }, [m?.id, imgUrl]);
 
   function goBack() {
-    if (!reduce && photoRef.current && imgUrl) {
-      const s = shotFrom(photoRef.current, imgUrl);
+    if (!reduce && photoRef.current) {
+      const s = shotFrom(photoRef.current, imgUrl ?? '', name);
       if (s) { s.key = id; s.dir = REV[enterDir]; setShot(s); }
     }
     nav(-1);

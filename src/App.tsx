@@ -90,6 +90,45 @@ function AdminRoute() {
   return isAdmin ? <Admin /> : <AdminLogin />;
 }
 
+// 密码重置：从重置邮件点链接回来（URL 带 code），在这里设置新密码
+function ResetPassword({ onDone }: { onDone: () => void }) {
+  const [pw, setPw] = useState('');
+  const [pw2, setPw2] = useState('');
+  const [err, setErr] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [ok, setOk] = useState(false);
+  async function doReset() {
+    if (pw.length < 8) return setErr('密码至少 8 位');
+    if (pw !== pw2) return setErr('两次输入的密码不一致');
+    setErr(''); setBusy(true);
+    const { error } = await supabase.auth.updateUser({ password: pw });
+    setBusy(false);
+    if (error) return setErr('设置失败：' + error.message + '（链接可能过期了，重新发一封重置邮件吧）');
+    setOk(true);
+  }
+  return (
+    <div style={{ minHeight: '72vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+      <div className="login-card">
+        <h1 style={{ fontSize: 20 }}>🔑 重置密码</h1>
+        <p className="sub">设 置 新 密 码</p>
+        {ok ? (<>
+          <p className="priv-note">✓ 密码已重置，下次用新密码登录</p>
+          <button className="pri" onClick={onDone}>进入班级</button>
+        </>) : (<>
+          <label>新密码</label>
+          <input type="password" value={pw} onChange={e => setPw(e.target.value)} placeholder="至少 8 位"
+            autoComplete="new-password" onKeyDown={e => e.key === 'Enter' && doReset()} />
+          <label>确认新密码</label>
+          <input type="password" value={pw2} onChange={e => setPw2(e.target.value)} placeholder="再输一次"
+            autoComplete="new-password" onKeyDown={e => e.key === 'Enter' && doReset()} />
+          {err && <p className="err">{err}</p>}
+          <button className="pri" disabled={busy} onClick={doReset}>{busy ? '设置中…' : '设置新密码'}</button>
+        </>)}
+      </div>
+    </div>
+  );
+}
+
 function Shell() {
   const { session, loading } = useAuth();  const [role, setRole] = useState('');
   const loc = useLocation();
@@ -112,6 +151,12 @@ function Shell() {
 
   // 注册带邀请码：欢迎动画要在 App 层播（登录页验证通过会直接卸载，来不及播）
   const [welcome, setWelcome] = useState<string | null>(null);
+  const [pwReset, setPwReset] = useState(() => {
+    try {
+      return new URLSearchParams(window.location.search).has('code')
+        || /[?&#]type=recovery/.test(window.location.search + window.location.hash);
+    } catch { return false; }
+  });
   // 登录后首次：全屏过渡 + 选壁纸（有欢迎动画时等它播完再弹）
   const [showWp, setShowWp] = useState(false);
   useEffect(() => {
@@ -182,6 +227,11 @@ function Shell() {
   if (!session) return isAdminPage
     ? (<><div className="glow" /><div style={{ position: 'fixed', inset: 0, background: '#07090f' }} /><div style={{ position: 'relative' }}><AdminLogin /></div></>)
     : (<><div className="glow" /><Login /></>);
+  // 从重置密码邮件回来：优先显示设置新密码页
+  if (pwReset) return (<><div className="glow" /><ResetPassword onDone={() => {
+    setPwReset(false);
+    try { window.history.replaceState(null, '', window.location.pathname + window.location.hash); } catch {}
+  }} /></>);
 
   return (
     <>

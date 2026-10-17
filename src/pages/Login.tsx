@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 
 // 用 QQ 邮箱注册/登录；用户名仍作为班级内的显示名，随 metadata 存入 profiles。
+// 另支持通行密钥（WebAuthn）：先在「我的档案」里注册，之后可用指纹/面容一键登录。
 const isEmail = (s: string) => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(s.trim());
 
 export default function Login() {
@@ -42,6 +43,18 @@ export default function Login() {
     } catch (x) { setErr((x as Error).message); } finally { setBusy(false); }
   }
 
+  async function passkeyLogin() {
+    if (busy) return;
+    setErr(''); setBusy(true);
+    try {
+      const { error } = await supabase.auth.signInWithPasskey();
+      if (error) throw error;
+      nav(from, { replace: true });
+    } catch (x) {
+      setErr('通行密钥登录失败：' + (x as Error).message + '。请确认已在「我的档案」里注册过通行密钥');
+    } finally { setBusy(false); }
+  }
+
   return (
     <div className="center"><form className="card" onSubmit={submit} style={{ width: 'min(360px,100%)', textAlign: 'left' }}>
       <h2>我们的班级 · 青春档案</h2>
@@ -55,6 +68,9 @@ export default function Login() {
       <button className="pri" disabled={busy}>{busy ? '请稍候…' : mode === 'in' ? '登录' : '注册'}</button>
       <p><a href="#/login" onClick={ev => { ev.preventDefault(); setErr(''); setMode(mode === 'in' ? 'up' : 'in'); }}>
         {mode === 'in' ? '没有账号？去注册' : '已有账号？去登录'}</a></p>
+      <hr />
+      <button type="button" disabled={busy} onClick={passkeyLogin}>使用通行密钥登录</button>
+      <p style={{ fontSize: 12, opacity: 0.7 }}>用指纹 / 面容 ID 一键登录。首次使用请先密码登录，然后在「我的档案」里注册通行密钥。</p>
     </form></div>
   );
 }

@@ -109,6 +109,34 @@ button:disabled{opacity:.5}
 .crop-bar{display:flex;gap:10px;align-items:center;width:min(78vw,320px)}
 .crop-bar input[type=range]{flex:1;accent-color:var(--a)}
 .autosave{text-align:center;font-size:12px;color:var(--mut);padding:10px 0 4px}
+
+/* 好友 */
+.frow{display:flex;align-items:center;gap:12px;padding:10px 4px;border-bottom:1px solid #ffffff0d}
+.frow:last-child{border-bottom:none}
+.frow .nm{font-weight:700;font-size:14.5px}
+.frow .sub{font-size:12px;color:var(--mut)}
+.frow .go{margin-left:auto}
+
+/* 聊天 */
+.chat-head{display:flex;align-items:center;margin-bottom:6px}
+.chat-list{display:flex;flex-direction:column;gap:8px;padding:8px 2px 12px;min-height:38vh}
+.bubble{max-width:78%;padding:9px 13px;border-radius:16px;font-size:14px;line-height:1.55;word-break:break-word;animation:pagein .25s ease}
+.bubble.them{align-self:flex-start;background:#ffffff12;border:1px solid #ffffff1c;border-bottom-left-radius:6px}
+.bubble.me{align-self:flex-end;background:linear-gradient(135deg,#7c6cf0,#a855f7);color:#fff;border-bottom-right-radius:6px}
+.bubble .tm{display:block;font-size:10px;opacity:.6;margin-top:4px}
+.chat-bar{position:sticky;bottom:calc(var(--tab-h, 76px) + 8px);display:flex;gap:8px;background:#14101fd9;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);padding:10px;border-radius:16px;border:1px solid #ffffff14;z-index:5}
+.chat-bar input{flex:1;background:#ffffff0d;border:1px solid #ffffff1c;border-radius:12px;padding:10px 12px;color:#fff;font-size:14px}
+
+/* 邀请码欢迎动画 */
+.welcome-mask{position:fixed;inset:0;z-index:400;display:grid;place-items:center;
+  background:radial-gradient(ellipse at center,#1c1132f2 0%,#0b0716fa 70%);
+  animation:win .45s cubic-bezier(.2,.7,.3,1)}
+@keyframes win{from{opacity:0}to{opacity:1}}
+.welcome-inner{text-align:center;padding:0 24px;animation:wup 2.2s cubic-bezier(.2,.7,.3,1) forwards}
+@keyframes wup{0%{opacity:0;transform:translateY(26px) scale(.94)}12%{opacity:1;transform:none}82%{opacity:1;transform:none}100%{opacity:0;transform:translateY(-14px) scale(.98)}}
+.welcome-nick{font-size:34px;font-weight:800;margin-bottom:10px;
+  background:linear-gradient(120deg,#ffd9ec,#c4b5fd,#a5f3fc);-webkit-background-clip:text;background-clip:text;color:transparent}
+.welcome-en{font-size:20px;letter-spacing:2px;color:#fff;text-shadow:0 2px 24px #a78bfa88}
 .profile.compact .kv{margin:10px 0}
 .profile.compact .kv div{font-size:14.5px}
 .profile.compact .sig{margin:12px 0;font-size:14.5px}

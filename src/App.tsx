@@ -42,6 +42,9 @@ function Shell() {
   const isAdminPage = loc.pathname === '/admin';
   const nav = useNavigate();
   const touchX = useRef<number | null>(null);
+  const barRef = useRef<HTMLElement>(null);
+  // 拖拽 scrub：手指按住底栏滑动时，高亮 pill 实时跟随
+  const [scrub, setScrub] = useState<number | null>(null);
 
   // 全站壁纸（登录后的 onboarding 可改）
   const [wp, setWp] = useState(getWallpaper);
@@ -60,18 +63,48 @@ function Shell() {
     return () => window.removeEventListener('ca:wallpaper:open', open);
   }, [session]);
 
-  // 底栏左右滑动切换 tab（像 iPhone 小横条）
-  function tabTouchStart(e: React.TouchEvent) { touchX.current = e.touches[0].clientX; }
-  function tabTouchEnd(e: React.TouchEvent) {
-    if (touchX.current == null) return;
-    const dx = e.changedTouches[0].clientX - touchX.current;
-    touchX.current = null;
-    if (Math.abs(dx) < 40) return;
-    const idx = TABS.findIndex(t => isTabActive(t.to, loc.pathname));
-    if (idx < 0) return;
-    const ni = idx + (dx < 0 ? 1 : -1);
-    if (ni >= 0 && ni < TABS.length) nav(TABS[ni].to);
+  // 按住底栏拖拽：高亮实时跟随手指，松手切换（像 iPhone 小横条 scrub）
+  function tabFromX(clientX: number): number | null {
+    const links = barRef.current?.querySelectorAll('a');
+    if (!links || links.length === 0) return null;
+    let best = -1, bestD = Infinity;
+    links.forEach((a, i) => {
+      const r = a.getBoundingClientRect();
+      if (clientX >= r.left - 8 && clientX <= r.right + 8) { best = i; bestD = -1; }
+      else if (bestD >= 0) {
+        const d = Math.abs(clientX - (r.left + r.width / 2));
+        if (d < bestD) { bestD = d; best = i; }
+      }
+    });
+    return best;
   }
+  function tabTouchStart(e: React.TouchEvent) {
+    touchX.current = e.touches[0].clientX;
+    setScrub(tabFromX(e.touches[0].clientX));
+  }
+  function tabTouchMove(e: React.TouchEvent) {
+    if (touchX.current == null) return;
+    setScrub(tabFromX(e.touches[0].clientX));
+  }
+  function tabTouchEnd(e: React.TouchEvent) {
+    const sx = touchX.current;
+    const target = scrub;
+    touchX.current = null; setScrub(null);
+    if (sx == null) return;
+    let ni: number | null = target;
+    if (ni == null) { // 快滑：没有 move 事件时按位移方向切
+      const dx = e.changedTouches[0].clientX - sx;
+      if (Math.abs(dx) < 40) return;
+      const idx = TABS.findIndex(t => isTabActive(t.to, loc.pathname));
+      if (idx < 0) return;
+      ni = idx + (dx < 0 ? 1 : -1);
+    }
+    if (ni >= 0 && ni < TABS.length) {
+      const cur = TABS.findIndex(t => isTabActive(t.to, loc.pathname));
+      if (ni !== cur) nav(TABS[ni].to);
+    }
+  }
+  function tabTouchCancel() { touchX.current = null; setScrub(null); }
 
   useEffect(() => {
     if (session) supabase.rpc('my_role').then(({ data }) => setRole(data ?? ''));
@@ -136,14 +169,18 @@ function Shell() {
         </AnimatePresence>
       </div>
 
-      {!isAdminPage && <nav className="tabbar" onTouchStart={tabTouchStart} onTouchEnd={tabTouchEnd}
+      {!isAdminPage && <nav ref={barRef} className="tabbar"
+        onTouchStart={tabTouchStart} onTouchMove={tabTouchMove}
+        onTouchEnd={tabTouchEnd} onTouchCancel={tabTouchCancel}
         style={{ touchAction: 'pan-y' }}>
-        {TABS.map(t => {
-          const on = isTabActive(t.to, loc.pathname);
+        {TABS.map((t, i) => {
+          const activeIdx = TABS.findIndex(x => isTabActive(x.to, loc.pathname));
+          const pill = scrub ?? activeIdx;
+          const on = i === activeIdx;
           return (
             <NavLink key={t.to} to={t.to} className={on ? 'on' : ''}
-              style={{ position: 'relative', ...(on ? { background: 'transparent' } : {}) }}>
-              {on && <motion.span layoutId="tab-glass"
+              style={{ position: 'relative', ...(i === pill ? { background: 'transparent' } : {}) }}>
+              {i === pill && <motion.span layoutId="tab-glass"
                 transition={{ type: 'spring', stiffness: 550, damping: 38 }}
                 style={{ position: 'absolute', inset: 0, borderRadius: 999,
                   background: 'linear-gradient(135deg,var(--a),var(--b))',

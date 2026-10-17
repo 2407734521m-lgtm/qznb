@@ -206,6 +206,19 @@ input[type=file]::file-selector-button{
 .me-compact button.pri{padding:11px;font-size:14px}
 .me-compact p{font-size:13px}
 
+/* 我的页面美化 */
+.me-page{display:flex;flex-direction:column;gap:12px}
+.me-page .card{margin:0}
+.me-head{display:flex;align-items:center;gap:14px}
+.me-ava{width:66px;height:66px;border-radius:50%;overflow:hidden;position:relative;flex:none;cursor:pointer;
+  background:linear-gradient(135deg,var(--a),var(--b));display:flex;align-items:center;justify-content:center;
+  font-size:26px;font-weight:700;color:#fff;border:2px solid #ffffff2e}
+.me-ava img{width:100%;height:100%;object-fit:cover}
+.me-ava-edit{position:absolute;right:1px;bottom:1px;font-size:13px;background:#000b;border-radius:50%;padding:3px;line-height:1}
+.me-sec-t{margin:0 0 10px;font-size:14px}
+.me-msg{padding:12px;text-align:center;font-size:13.5px}
+.me-save{position:sticky;bottom:calc(96px + env(safe-area-inset-bottom));box-shadow:0 8px 28px #0007}
+
 /* 隐私设置：分类 toggle 按钮组 */
 .priv-list{display:flex;flex-direction:column;gap:8px;margin:6px 0 14px}
 .priv-btn{display:flex;align-items:center;justify-content:space-between;width:100%;padding:10px 14px;border-radius:13px;border:1px solid #ffffff1c;background:#ffffff0a;color:var(--fg);font:inherit;font-size:13.5px;cursor:pointer;transition:border-color .2s,background .2s;text-align:left}

@@ -3,6 +3,7 @@ import { Routes, Route, NavLink, Navigate, useLocation } from 'react-router-dom'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { supabase } from './lib/supabase';
 import { useAuth } from './auth';
+import bgUrl from './assets/bg.jpg';
 import Login from './pages/Login';
 import Members from './pages/Members';
 import Member from './pages/Member';
@@ -48,6 +49,7 @@ function Shell() {
   return (
     <>
       <div className="glow" />
+      <div className="app-bg" style={{ backgroundImage: `url(${bgUrl})` }} />
       <nav className="topnav">
         <span className="links">
           {TABS.map(t => (

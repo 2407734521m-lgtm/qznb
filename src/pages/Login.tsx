@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import FeedbackModal from '../components/FeedbackModal';
-import WelcomeOverlay from '../components/WelcomeOverlay';
 import { downscaleImage } from '../lib/media';
 import bgDefault from '../assets/cow.jpg';
 
@@ -40,7 +39,6 @@ export default function Login() {
   const [sentEmail, setSentEmail] = useState(''); // 验证码实际发到的邮箱
   const [tempPw, setTempPw] = useState(false); // 发送验证码时密码还没填好，用了临时密码
   const [invite, setInvite] = useState(''); // 注册页邀请码
-  const [welcomeNick, setWelcomeNick] = useState<string | null>(null);
   const [bg, setBg] = useState<string>(() => { try { return localStorage.getItem(BG_KEY) || DEFAULT_BG; } catch { return DEFAULT_BG; } });
   const [blur, setBlur] = useState(3); const [dark, setDark] = useState(45);
   const [showBg, setShowBg] = useState(false);
@@ -160,9 +158,13 @@ export default function Login() {
       await uploadAvatar(uid);
       const iv = invite.trim();
       if (iv) {
+        // 欢迎动画递给 App 层播（这里播会被登录跳转直接卸载）
         const { data: nick, error: e3 } = await supabase.rpc('join_with_code', { code: iv });
-        if (!e3 && nick !== null && nick !== undefined) setWelcomeNick((nick as string) || nm);
-        else setErr('注册成功，但邀请码不正确，稍后可到 我的 → 🎟️加入班级 填写');
+        if (!e3 && nick !== null && nick !== undefined) {
+          try { sessionStorage.setItem('ca_welcome_nick', (nick as string) || nm); } catch {}
+        } else {
+          try { sessionStorage.setItem('ca_invite_bad', '1'); } catch {}
+        }
       }
       setCodeSent(false); setCode('');
     } catch (e: any) {
@@ -197,7 +199,6 @@ export default function Login() {
 
   return (
     <>
-      {welcomeNick !== null && <WelcomeOverlay nick={welcomeNick} onDone={() => setWelcomeNick(null)} />}
       {bg && <div className="login-bg" style={{ backgroundImage: `url(${bg})`, filter: `blur(${blur}px) brightness(${100 - dark}%)`, transform: 'scale(1.1)' }} />}
       <div className="login-wrap">
         <motion.div className="login-card page"

@@ -95,6 +95,20 @@ button:disabled{opacity:.5}
 .profile.compact.center{flex-direction:column;align-items:center;text-align:center}
 .profile.compact.center .head-photo{order:-1}
 .upbtn{display:inline-block;margin-top:10px;cursor:pointer;font-size:12.5px;padding:8px 14px;text-align:center}
+
+/* 头像裁剪 */
+.crop-mask{position:fixed;inset:0;z-index:300;background:#000d;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:20px}
+.crop-box{width:min(78vw,320px);aspect-ratio:1;border-radius:18px;overflow:hidden;position:relative;touch-action:none;background:#151515;box-shadow:0 0 0 1px #ffffff2a,0 24px 60px #000;cursor:grab}
+.crop-box img{position:absolute;left:50%;top:50%;user-select:none;-webkit-user-select:none;max-width:none;pointer-events:none}
+.crop-grid{position:absolute;inset:0;pointer-events:none}
+.crop-grid i{position:absolute;background:#ffffff2e}
+.crop-grid i:nth-child(1){left:33.3%;top:0;bottom:0;width:1px}
+.crop-grid i:nth-child(2){left:66.6%;top:0;bottom:0;width:1px}
+.crop-grid i:nth-child(3){top:33.3%;left:0;right:0;height:1px}
+.crop-grid i:nth-child(4){top:66.6%;left:0;right:0;height:1px}
+.crop-bar{display:flex;gap:10px;align-items:center;width:min(78vw,320px)}
+.crop-bar input[type=range]{flex:1;accent-color:var(--a)}
+.autosave{text-align:center;font-size:12px;color:var(--mut);padding:10px 0 4px}
 .profile.compact .kv{margin:10px 0}
 .profile.compact .kv div{font-size:14.5px}
 .profile.compact .sig{margin:12px 0;font-size:14.5px}

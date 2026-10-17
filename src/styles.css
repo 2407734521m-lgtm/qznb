@@ -18,10 +18,9 @@ a{color:var(--a)}
 .topnav .sp{flex:1}
 .tabbar{display:none}
 @media(max-width:768px){
-  .topnav .links{display:none}
-  .mob-admin{display:inline}
-  .topnav{padding:10px 16px}
+  .topnav{display:none}
   .wrap{padding-bottom:calc(104px + env(safe-area-inset-bottom))}
+  .searchbar{top:10px}
   /* 悬浮胶囊底栏 */
   .tabbar{
     display:flex;position:fixed;z-index:50;left:50%;transform:translateX(-50%);
@@ -188,6 +187,13 @@ button:disabled{opacity:.5}
 .bg-panel .row{margin:6px 0}
 .bg-panel input[type=range]{margin:0;padding:0}
 .priv-note{font-size:11.5px;color:var(--mut);margin:-8px 0 10px}
+
+/* 文件选择按钮美化 */
+input[type=file]{font-size:13px}
+input[type=file]::file-selector-button{
+  background:linear-gradient(135deg,var(--a),var(--b));color:#fff;border:0;border-radius:10px;
+  padding:8px 16px;margin-right:10px;cursor:pointer;font:inherit;font-size:13px;
+}
 
 /* 我的档案页紧凑版 */
 .me-compact .card{padding:16px}

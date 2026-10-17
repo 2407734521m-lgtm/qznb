@@ -127,15 +127,14 @@ export default function MyProfile() {
   }
 
   async function join() {
-    const { data, error } = await supabase.rpc('join_class', { code: code.trim() });
+    const c = code.trim();
+    if (!c) return setMsg('请填写邀请码');
+    const { data, error } = await supabase.rpc('join_with_code', { code: c });
     if (error) return setMsg('加入失败：' + error.message);
-    if (data) {
-      setJoined(true); setMsg('已加入班级 ✓');
-      // 邀请码欢迎动画：xxx — Welcome to Class 13!
-      supabase.rpc('invite_nickname').then(({ data: nick }) => {
-        setWelcome(typeof nick === 'string' ? nick : '');
-      });
-    } else setMsg('邀请码不正确');
+    if (data === null || data === undefined) return setMsg('邀请码不正确');
+    setJoined(true); setMsg('已加入班级 ✓'); setCode('');
+    // 欢迎动画：这个邀请码专属的昵称 — Welcome to Class 13!
+    setWelcome(data as string);
   }
 
   async function loadKeys() {

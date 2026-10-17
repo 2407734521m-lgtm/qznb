@@ -15,13 +15,14 @@ const ALL_FIELDS = [...PROFILE_FIELDS, ...CONTACT_FIELDS];
 const THEMES = [['aurora', '极光', '#7c9cff', '#c27cff'], ['sunset', '晚霞', '#ff8a5c', '#ff5c93'],
   ['forest', '森林', '#4ade80', '#14b8a6'], ['mono', '黑白', '#e8e8e8', '#777777'],
   ['stars', '星空', '#818cf8', '#38bdf8'], ['ocean', '海洋', '#22d3ee', '#3b82f6']];
+const LAYOUTS = [['left', '照片在左'], ['right', '照片在右'], ['center', '居中']];
 const PRIV_ICONS: Record<string, string> = { show_avatar: '🖼️', show_name: '📝', show_age: '🎂', show_personality: '✨', show_signature: '💬', show_bio: '📖', show_hobbies: '🎯', show_game_id: '🎮', show_contact: '📞', show_social: '🌐' };
 
 export default function MyProfile() {
   const uid = useAuth().session!.user.id;
   const [v, setV] = useState<Record<string, string>>({}); const [priv, setPriv] = useState<Record<string, boolean>>({});
   const [uname, setUname] = useState('');
-  const [theme, setTheme] = useState('aurora'); const [layout, setLayout] = useState('left');
+  const [theme, setTheme] = useState('aurora'); const [layout, setLayout] = useState('right');
   const [joined, setJoined] = useState(true); const [avatar, setAvatar] = useState<string | null>(null);
   const [code, setCode] = useState(''); const [msg, setMsg] = useState(''); const [busy, setBusy] = useState(false);
   const [keys, setKeys] = useState<Array<{ id: string; friendly_name?: string | null; created_at?: string }>>([]);
@@ -162,6 +163,12 @@ export default function MyProfile() {
               <span className="dot" style={{ background: `linear-gradient(135deg,${c1},${c2})` }} />
               {l}
             </button>
+          ))}
+        </div>
+        <p className="priv-note" style={{ marginTop: 12 }}>照片位置</p>
+        <div className="seg">
+          {LAYOUTS.map(([k, l]) => (
+            <button key={k} type="button" className={layout === k ? 'on' : ''} onClick={() => setLayout(k)}>{l}</button>
           ))}
         </div>
       </div>

@@ -5,7 +5,10 @@ import { supabase } from '../lib/supabase';
 import { useSignedUrl } from '../lib/media';
 import Photo from '../components/Photo';
 import { setShot, takeShot, shotFrom, flyTo } from '../lib/transition';
+import type { Dir } from '../lib/transition';
 import type { M } from './Members';
+
+const REV: Record<Dir, Dir> = { left: 'right', right: 'left', down: 'down' };
 
 export default function Member() {
   const { id = '' } = useParams(); const nav = useNavigate(); const reduce = useReducedMotion();
@@ -13,6 +16,7 @@ export default function Member() {
   const [m, setM] = useState<any>(locState?.m ?? null);
   const [err, setErr] = useState('');
   const [flying, setFlying] = useState(false);
+  const [enterDir, setEnterDir] = useState<Dir>('down');
   const photoRef = useRef<HTMLDivElement>(null);
   const imgUrl = useSignedUrl('avatars', m?.avatar_path);
 
@@ -32,6 +36,7 @@ export default function Member() {
   useEffect(() => {
     if (reduce || !m) return;
     const s = takeShot();
+    if (s?.dir) setEnterDir(s.dir);
     if (!s?.img || !photoRef.current) return;
     const target = photoRef.current;
     // 等照片 URL 就绪再飞，避免幽灵图与目标错位
@@ -46,7 +51,7 @@ export default function Member() {
   function goBack() {
     if (!reduce && photoRef.current && imgUrl) {
       const s = shotFrom(photoRef.current, imgUrl);
-      if (s) { s.key = id; setShot(s); }
+      if (s) { s.key = id; s.dir = REV[enterDir]; setShot(s); }
     }
     nav(-1);
   }
@@ -54,14 +59,20 @@ export default function Member() {
   if (err) return <div className="page"><div className="center"><div className="card">{err}</div></div></div>;
   const name = m?.display_name ?? m?.username ?? '';
   const rows = m ? ([['性格', m.personality], ['年龄', m.age], ['个性签名', m.signature],
-    ['简介', m.bio], ['兴趣爱好', m.hobbies], ['联系方式', m.contact], ['社交账号', m.social]] as [string, any][])
+    ['简介', m.bio], ['兴趣爱好', m.hobbies], ['游戏账号', m.game_id], ['联系方式', m.contact], ['社交平台', m.social]] as [string, any][])
     .filter(([, v]) => v) : [];
 
-  const itemProps = (i: number) => ({
-    initial: { opacity: 0, x: reduce ? 0 : 36 },
-    animate: { opacity: 1, x: 0 },
-    transition: { duration: reduce ? 0 : 0.5, delay: reduce ? 0 : 0.3 + i * 0.07, ease: [0.22, 1, 0.36, 1] as [number, number, number, number] },
-  });
+  const itemProps = (i: number) => {
+    const init = reduce ? { opacity: 0 }
+      : enterDir === 'left' ? { opacity: 0, x: -48 }
+      : enterDir === 'right' ? { opacity: 0, x: 48 }
+      : { opacity: 0, y: 48 };
+    return {
+      initial: init,
+      animate: { opacity: 1, x: 0, y: 0 },
+      transition: { duration: reduce ? 0 : 0.5, delay: reduce ? 0 : 0.3 + i * 0.07, ease: [0.22, 1, 0.36, 1] as [number, number, number, number] },
+    };
+  };
 
   return (
     <div className="page">

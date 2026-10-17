@@ -3,6 +3,7 @@ import { useLocation, useNavigate, useParams, Link } from 'react-router-dom';
 import { motion, useReducedMotion } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import { useSignedUrl } from '../lib/media';
+import { useAuth } from '../auth';
 import Photo from '../components/Photo';
 import { setShot, takeShot, shotFrom, flyTo } from '../lib/transition';
 import type { Dir } from '../lib/transition';
@@ -17,6 +18,9 @@ export default function Member() {
   const [err, setErr] = useState('');
   const [flying, setFlying] = useState(false);
   const [enterDir, setEnterDir] = useState<Dir>('down');
+  const [upMsg, setUpMsg] = useState('');
+  const uid = useAuth().session?.user.id;
+  const isMe = !!uid && uid === id;
   const photoRef = useRef<HTMLDivElement>(null);
   const imgUrl = useSignedUrl('avatars', m?.avatar_path);
 
@@ -56,8 +60,24 @@ export default function Member() {
     nav(-1);
   }
 
+  async function uploadPhoto(f?: File) {
+    if (!f || !isMe) return;
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(f.type)) return setUpMsg('仅支持 JPG / PNG / WebP');
+    if (f.size > 2 * 1024 * 1024) return setUpMsg('图片不能超过 2MB');
+    setUpMsg('上传中…');
+    const path = `${id}/${crypto.randomUUID()}.${f.type.split('/')[1]}`;
+    const up = await supabase.storage.from('avatars').upload(path, f, { contentType: f.type });
+    if (up.error) return setUpMsg('上传失败：' + up.error.message);
+    const { error } = await supabase.from('profiles').update({ avatar_path: path }).eq('id', id);
+    if (error) return setUpMsg('保存失败：' + error.message);
+    if (m?.avatar_path) await supabase.storage.from('avatars').remove([m.avatar_path]);
+    setM({ ...m, avatar_path: path }); setUpMsg('已更新 ✓');
+  }
+
   if (err) return <div className="page"><div className="center"><div className="card">{err}</div></div></div>;
   const name = m?.display_name ?? m?.username ?? '';
+  const layout = m?.theme?.layout ?? 'right'; // 默认照片在右
+  const pcls = 'profile compact' + (layout === 'left' ? ' rev' : layout === 'center' ? ' center' : '');
   const rows = m ? ([['性格', m.personality], ['年龄', m.age], ['个性签名', m.signature],
     ['简介', m.bio], ['兴趣爱好', m.hobbies], ['游戏账号', m.game_id], ['联系方式', m.contact], ['社交平台', m.social]] as [string, any][])
     .filter(([, v]) => v) : [];
@@ -75,7 +95,7 @@ export default function Member() {
   return (
     <div className="page">
       <button className="backbtn" onClick={goBack}>← 返回成员墙</button>
-      <div className="profile compact">
+      <div className={pcls}>
         <div className="info">
           <motion.h1 {...itemProps(0)}>{name || '…'}</motion.h1>
           {rows.map(([k, v], i) => k === '个性签名'
@@ -89,8 +109,15 @@ export default function Member() {
             </motion.div>
           )}
         </div>
-        <div ref={photoRef} className="head-photo" style={{ visibility: flying ? 'hidden' : 'visible' }}>
-          <Photo id={id} path={m?.avatar_path} name={name || '?'} />
+        <div className="head-photo">
+          <div ref={photoRef} style={{ visibility: flying ? 'hidden' : 'visible' }}>
+            <Photo id={id} path={m?.avatar_path} name={name || '?'} />
+          </div>
+          {isMe && <label className="ghost upbtn">📷 上传照片
+            <input type="file" hidden accept="image/jpeg,image/png,image/webp"
+              onChange={e => { uploadPhoto(e.target.files?.[0]); e.target.value = ''; }} />
+          </label>}
+          {isMe && upMsg && <p className="mut" style={{ fontSize: 12, margin: '6px 0 0' }}>{upMsg}</p>}
         </div>
       </div>
     </div>

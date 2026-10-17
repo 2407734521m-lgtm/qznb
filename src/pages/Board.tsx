@@ -28,7 +28,6 @@ export default function Board() {
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const [profiles, setProfiles] = useState<Record<string, Profile>>({});
   const [text, setText] = useState('');
-  const [asNotice, setAsNotice] = useState(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
   const [isAdmin, setIsAdmin] = useState(false);
@@ -53,11 +52,11 @@ export default function Board() {
     if (!c) return;
     setBusy(true); setErr('');
     const { error } = await supabase.from('board_messages').insert({
-      author_id: me, content: c.slice(0, 500), is_admin_msg: isAdmin && asNotice,
+      author_id: me, content: c.slice(0, 500), is_admin_msg: false,
     });
     setBusy(false);
     if (error) return setErr('发送失败：' + error.message);
-    setText(''); setAsNotice(false); load();
+    setText(''); load();
   }
 
   async function del(id: number) {
@@ -109,15 +108,8 @@ export default function Board() {
 
       <div style={{ position: 'sticky', bottom: 84, zIndex: 30, marginTop: 12 }}>
         <div className="card" style={{ margin: 0, padding: 10, backdropFilter: 'blur(16px)', background: '#141824d9' }}>
-          {isAdmin && (
-            <div className="row" style={{ marginBottom: 8 }}>
-              <button type="button" className={'mini' + (asNotice ? '' : ' ghost')} style={asNotice ? { background: '#ffd47933', borderColor: '#ffd47988' } : undefined}
-                onClick={() => setAsNotice(!asNotice)}>📢 以公告发布{asNotice ? ' ✓' : ''}</button>
-              <span className="mut" style={{ fontSize: 12 }}>公告会置顶显示在最上面</span>
-            </div>
-          )}
           <div className="row">
-            <input value={text} onChange={e => setText(e.target.value)} placeholder={isAdmin && asNotice ? '写公告…' : '说点什么…'}
+            <input value={text} onChange={e => setText(e.target.value)} placeholder="说点什么…"
               maxLength={500} style={{ flex: 1, minWidth: 0 }} onKeyDown={e => e.key === 'Enter' && send()} />
             <button className="pri" style={{ width: 'auto', padding: '10px 22px' }} disabled={busy || !text.trim()} onClick={send}>
               {busy ? '…' : '发送'}</button>

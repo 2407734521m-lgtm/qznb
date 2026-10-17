@@ -66,7 +66,7 @@ function Shell() {
     if (touchX.current == null) return;
     const dx = e.changedTouches[0].clientX - touchX.current;
     touchX.current = null;
-    if (Math.abs(dx) < 48) return;
+    if (Math.abs(dx) < 40) return;
     const idx = TABS.findIndex(t => isTabActive(t.to, loc.pathname));
     if (idx < 0) return;
     const ni = idx + (dx < 0 ? 1 : -1);
@@ -136,7 +136,8 @@ function Shell() {
         </AnimatePresence>
       </div>
 
-      {!isAdminPage && <nav className="tabbar" onTouchStart={tabTouchStart} onTouchEnd={tabTouchEnd}>
+      {!isAdminPage && <nav className="tabbar" onTouchStart={tabTouchStart} onTouchEnd={tabTouchEnd}
+        style={{ touchAction: 'pan-y' }}>
         {TABS.map(t => {
           const on = isTabActive(t.to, loc.pathname);
           return (

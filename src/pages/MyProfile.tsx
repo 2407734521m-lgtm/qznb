@@ -94,14 +94,23 @@ export default function MyProfile() {
         <input placeholder="邀请码" value={code} onChange={e => setCode(e.target.value)} />
         <button className="pri" onClick={join}>加入班级</button><hr /></div>}
       <label>个人照片（≤2MB）<input type="file" accept="image/jpeg,image/png,image/webp" onChange={e => upload(e.target.files?.[0])} /></label>
-      {FIELDS.map(([k, label, flag]) => (
+      {FIELDS.map(([k, label]) => (
         <div key={k}>
           <label>{label}{k === 'bio' ? <textarea rows={4} maxLength={1000} value={v[k] ?? ''} onChange={e => setV({ ...v, [k]: e.target.value })} />
             : <input value={v[k] ?? ''} maxLength={100} onChange={e => setV({ ...v, [k]: e.target.value })} />}</label>
-          <label className="row"><input type="checkbox" checked={!!priv[flag]} onChange={e => setPriv({ ...priv, [flag]: e.target.checked })} />对其他成员公开</label>
         </div>
       ))}
-      <label className="row"><input type="checkbox" checked={!!priv.show_avatar} onChange={e => setPriv({ ...priv, show_avatar: e.target.checked })} />照片对其他成员公开</label>
+      <h3>🔒 隐私设置</h3>
+      <p className="priv-note">哪些资料对其他成员公开，点一下开关就行</p>
+      <div className="priv-list">
+        {[['show_avatar', '个人照片'], ...FIELDS.map(([, label, flag]) => [flag, label] as const)].map(([flag, label]) => (
+          <button key={flag} type="button" className={'priv-btn' + (priv[flag] ? ' on' : '')}
+            onClick={() => setPriv({ ...priv, [flag]: !priv[flag] })}>
+            <span>{label}</span>
+            <span className="sw"><span className="knob" /></span>
+          </button>
+        ))}
+      </div>
       <label>主页主题<select value={theme} onChange={e => setTheme(e.target.value)}>{THEMES.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select></label>
       <label>照片位置<select value={layout} onChange={e => setLayout(e.target.value)}>{LAYOUTS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select></label>
       {msg && <p>{msg}</p>}

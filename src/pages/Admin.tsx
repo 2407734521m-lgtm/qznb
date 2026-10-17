@@ -13,6 +13,7 @@ export default function Admin() {
   const me = useAuth().session!.user.id;
   const [role, setRole] = useState<string | null>(null);
   const [members, setMembers] = useState<Member[]>([]);
+  const [emails, setEmails] = useState<Record<string, string>>({});
   const [logs, setLogs] = useState<Log[]>([]);
   const [posts, setPosts] = useState<Post[]>([]);
   const [albums, setAlbums] = useState<Alb[]>([]);
@@ -25,6 +26,8 @@ export default function Admin() {
     const m = await supabase.from('profiles')
       .select('id, username, display_name, real_name, role, joined, created_at').order('created_at');
     if (!m.error) setMembers(m.data as Member[]);
+    const em = await supabase.from('profile_emails').select('id, email');
+    if (!em.error) setEmails(Object.fromEntries((em.data ?? []).map((x: any) => [x.id, x.email])));
     const s = await supabase.from('app_settings').select('invite_code').eq('id', 1).maybeSingle();
     if (!s.error && s.data) setCode(s.data.invite_code ?? '');
     const l = await supabase.from('admin_audit_logs')
@@ -76,10 +79,11 @@ export default function Admin() {
 
       <div className="adm-sec card">
         <h3>成员管理（{members.length} 人）</h3>
-        <table className="tbl"><thead><tr><th>成员</th><th>角色</th><th>状态</th><th></th></tr></thead>
+        <table className="tbl"><thead><tr><th>成员</th><th>邮箱</th><th>角色</th><th>状态</th><th></th></tr></thead>
           <tbody>{members.map(mb => (
             <tr key={mb.id}>
               <td>{mb.display_name || mb.username}<br /><span className="mut" style={{ fontSize: 12 }}>@{mb.username}{mb.real_name ? ` · ${mb.real_name}` : ''}</span></td>
+              <td style={{ fontSize: 12 }}>{emails[mb.id] ?? '—'}</td>
               <td><span className={`chip ${mb.role === 'super_admin' ? 'sa' : mb.role === 'admin' ? 'ad' : ''}`}>{ROLE_LABEL[mb.role] ?? mb.role}</span></td>
               <td style={{ fontSize: 13 }}>{mb.joined ? '已加入' : '未加入'}</td>
               <td>{isSuper && mb.id !== me && mb.role !== 'super_admin' && (

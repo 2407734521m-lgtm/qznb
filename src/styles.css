@@ -29,10 +29,10 @@ a{color:var(--a)}
     bottom:calc(14px + env(safe-area-inset-bottom));
     width:max-content;max-width:calc(100vw - 28px);
     padding:6px;gap:2px;
-    background:color-mix(in srgb,#141826 74%,transparent);
-    backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);
-    border:1px solid #ffffff1f;border-radius:999px;
-    box-shadow:0 14px 44px #000c;
+    background:color-mix(in srgb,#1a1e30 38%,transparent);
+    backdrop-filter:blur(30px) saturate(1.8);-webkit-backdrop-filter:blur(30px) saturate(1.8);
+    border:1px solid #ffffff2e;border-radius:999px;
+    box-shadow:0 14px 44px #000c,inset 0 1px 0 #ffffff2b;
   }
   .tabbar a{
     flex:1;display:flex;align-items:center;justify-content:center;

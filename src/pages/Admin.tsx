@@ -6,6 +6,7 @@ type Member = { id: string; username: string; display_name: string | null; real_
 type Log = { id: number; action: string; detail: unknown; created_at: string };
 type Post = { id: number; content: string; author_id: string; created_at: string };
 type Alb = { id: number; title: string; category: string; created_at: string };
+type Fb = { id: number; name: string | null; contact: string | null; content: string; kind: string; status: string; created_at: string };
 
 const ROLE_LABEL: Record<string, string> = { super_admin: '超级管理员', admin: '管理员', member: '成员' };
 
@@ -18,6 +19,8 @@ export default function Admin() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [albums, setAlbums] = useState<Alb[]>([]);
   const [code, setCode] = useState('');
+  const [nick, setNick] = useState('');
+  const [feedbacks, setFeedbacks] = useState<Fb[]>([]);
   const [msg, setMsg] = useState('');
   const [q, setQ] = useState('');
   const [stats, setStats] = useState({ posts: 0, photos: 0 });
@@ -30,8 +33,11 @@ export default function Admin() {
     if (!m.error) setMembers(m.data as Member[]);
     const em = await supabase.from('profile_emails').select('id, email');
     if (!em.error) setEmails(Object.fromEntries((em.data ?? []).map((x: any) => [x.id, x.email])));
-    const s = await supabase.from('app_settings').select('invite_code').eq('id', 1).maybeSingle();
-    if (!s.error && s.data) setCode(s.data.invite_code ?? '');
+    const s = await supabase.from('app_settings').select('invite_code, invite_nickname').eq('id', 1).maybeSingle();
+    if (!s.error && s.data) { setCode(s.data.invite_code ?? ''); setNick(s.data.invite_nickname ?? ''); }
+    const fb = await supabase.from('feedbacks').select('id, name, contact, content, kind, status, created_at')
+      .order('created_at', { ascending: false }).limit(50);
+    if (!fb.error) setFeedbacks(fb.data as Fb[]);
     const l = await supabase.from('admin_audit_logs')
       .select('id, action, detail, created_at').order('created_at', { ascending: false }).limit(50);
     if (!l.error) setLogs(l.data as Log[]);
@@ -62,8 +68,17 @@ export default function Admin() {
   }
   async function saveCode() {
     setMsg('');
-    const { error } = await supabase.rpc('set_invite_code', { new_code: code.trim() });
-    setMsg(error ? '保存失败：' + error.message : '邀请码已更新');
+    const { error } = await supabase.rpc('set_invite_settings', { new_code: code.trim(), nick: nick.trim() });
+    setMsg(error ? '保存失败：' + error.message : '邀请码与昵称已更新');
+  }
+  async function markFb(id: number, done: boolean) {
+    const { error } = await supabase.from('feedbacks').update({ status: done ? 'done' : 'open' }).eq('id', id);
+    if (!error) refresh(); else setMsg('操作失败：' + error.message);
+  }
+  async function delFb(id: number) {
+    if (!confirm('删除这条反馈？')) return;
+    const { error } = await supabase.from('feedbacks').delete().eq('id', id);
+    if (!error) refresh(); else setMsg('删除失败：' + error.message);
   }
   async function delPost(id: number) {
     if (!confirm('删除这条动态（含评论点赞）？')) return;
@@ -129,12 +144,39 @@ export default function Admin() {
 
       <div className="adm-sec card">
         <h3>班级邀请码</h3>
-        {isSuper ? (
+        {isSuper ? (<>
           <div className="row" style={{ gap: 8 }}>
             <input value={code} onChange={e => setCode(e.target.value)} placeholder="邀请码" style={{ maxWidth: 220 }} />
             <button className="pri" style={{ width: 'auto', padding: '10px 24px' }} onClick={saveCode}>保存</button>
           </div>
-        ) : <p className="mut">邀请码仅超级管理员可查看和修改</p>}
+          <label style={{ marginTop: 10 }}>欢迎昵称</label>
+          <input value={nick} onChange={e => setNick(e.target.value)} placeholder="如：千栀的班级" maxLength={30} style={{ maxWidth: 220 }} />
+          <p className="mut" style={{ fontSize: 12.5, margin: '6px 0 0' }}>
+            别人用邀请码加入时，屏幕会播放「{nick.trim() || 'xxx'} — Welcome to Class 13!」欢迎动画（约 2 秒）
+          </p>
+        </>) : <p className="mut">邀请码仅超级管理员可查看和修改</p>}
+      </div>
+
+      <div className="adm-sec card">
+        <h3>💬 反馈管理（{feedbacks.filter(f => f.status === 'open').length} 条未处理）</h3>
+        {feedbacks.length === 0 && <p className="mut" style={{ fontSize: 13 }}>暂无反馈</p>}
+        {feedbacks.map(f => (
+          <div key={f.id} style={{ padding: '10px 0', borderBottom: '1px solid #ffffff0c', opacity: f.status === 'done' ? 0.55 : 1 }}>
+            <div style={{ fontSize: 13.5 }}>
+              <span className="mut" style={{ fontSize: 11.5, marginRight: 6 }}>
+                {f.kind === 'login' ? '🔑 登录反馈' : '💬 意见反馈'} · {(f.created_at || '').slice(0, 16).replace('T', ' ')}
+              </span>
+              {(f.name || f.contact) && <span className="mut" style={{ fontSize: 12 }}> — {f.name ?? ''}{f.name && f.contact ? ' / ' : ''}{f.contact ?? ''}</span>}
+              {f.status === 'done' && <span style={{ fontSize: 11.5, color: '#7ee2a8', marginLeft: 6 }}>✓ 已处理</span>}
+            </div>
+            <div style={{ fontSize: 14, margin: '4px 0 8px' }}>{f.content}</div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button className="mini ghost" onClick={() => markFb(f.id, f.status !== 'done')}>
+                {f.status === 'done' ? '标为未处理' : '标为已处理'}</button>
+              {isSuper && <button className="mini danger" onClick={() => delFb(f.id)}>删除</button>}
+            </div>
+          </div>
+        ))}
       </div>
 
       <div className="adm-sec card">

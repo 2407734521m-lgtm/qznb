@@ -194,12 +194,13 @@ export default function Login() {
             </div>
             <label>QQ 邮箱</label>
             <input value={email} onChange={e => setEmail(e.target.value)} placeholder="123456@qq.com" inputMode="email" />
+            <p className="priv-note" style={{ margin: '2px 0 0' }}>📧 注册后 6 位验证码将发送到这个邮箱</p>
             <label>密码</label>
             <input type="password" value={pw} onChange={e => setPw(e.target.value)} placeholder="至少 8 位" autoComplete="new-password" />
             <label>确认密码</label>
             <input type="password" value={pw2} onChange={e => setPw2(e.target.value)} placeholder="再输一次" autoComplete="new-password" />
             {err && <p className="err">{err}</p>}
-            <button className="pri" disabled={busy} onClick={doReg}>{busy ? '注册中…' : '注册并进入'}</button>
+            <button className="pri" disabled={busy} onClick={doReg}>{busy ? '发送中…' : '获取验证码'}</button>
             <p className="login-switch">已有账号？<button onClick={() => { setMode('login'); setErr(''); }}>去登录</button></p>
           </>)}
 

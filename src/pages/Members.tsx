@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase';
 import { useSignedUrl } from '../lib/media';
 import Photo from '../components/Photo';
 import { setShot, takeShot, shotFrom, flyTo } from '../lib/transition';
+import { badgeText } from '../data/games';
 
 export type M = {
   id: string; username: string; display_name: string | null; personality: string | null;
@@ -12,7 +13,7 @@ export type M = {
 };
 const PAGE = 18;
 
-function Card({ m, i, onOpen }: { m: M; i: number; onOpen: (m: M, el: HTMLElement, img: string) => void }) {
+function Card({ m, i, badge, onOpen }: { m: M; i: number; badge?: string; onOpen: (m: M, el: HTMLElement, img: string) => void }) {
   const reduce = useReducedMotion();
   const url = useSignedUrl('avatars', m.avatar_path);
   const ref = useRef<HTMLDivElement>(null);
@@ -26,6 +27,7 @@ function Card({ m, i, onOpen }: { m: M; i: number; onOpen: (m: M, el: HTMLElemen
       <Photo id={m.id} path={m.avatar_path} name={name} />
       <h3>{name}</h3>
       <p>{m.signature ?? m.personality ?? '这个人很神秘'}</p>
+      {badge && <div className="gbadge">{badge}</div>}
     </motion.div>
   );
 }
@@ -33,6 +35,7 @@ function Card({ m, i, onOpen }: { m: M; i: number; onOpen: (m: M, el: HTMLElemen
 export default function Members() {
   const nav = useNavigate(); const reduce = useReducedMotion();
   const [q, setQ] = useState(''); const [rows, setRows] = useState<M[]>([]);
+  const [badges, setBadges] = useState<Record<string, string>>({});
   const [state, setState] = useState<'loading' | 'ok' | 'error'>('loading'); const [more, setMore] = useState(false);
 
   async function load(reset: boolean, query: string, base: M[]) {
@@ -43,6 +46,15 @@ export default function Members() {
     setRows(reset ? list : [...base, ...list]); setMore(list.length === PAGE); setState('ok');
   }
   useEffect(() => { const t = setTimeout(() => load(true, q, []), 300); return () => clearTimeout(t); }, [q]);
+  useEffect(() => {
+    supabase.rpc('game_badges').then(({ data }) => {
+      const map: Record<string, string> = {};
+      ((data ?? []) as Array<{ profile_id: string; game_name: string; rank: string }>).forEach(b => {
+        map[b.profile_id] = badgeText(b.game_name, b.rank);
+      });
+      setBadges(map);
+    });
+  }, []);
 
   // 返回时的反向共享元素过渡：飞回对应的卡片
   useEffect(() => {
@@ -85,7 +97,7 @@ export default function Members() {
       {state === 'ok' && rows.length === 0 && <div className="center"><div className="card">
         {q ? '没有找到匹配的成员。' : '还没有成员公开资料。先到「我的」填写资料并加入班级，邀请同学注册吧。'}</div></div>}
       <div className="mgrid">
-        {rows.map((m, i) => <Card key={m.id} m={m} i={i} onOpen={open} />)}
+        {rows.map((m, i) => <Card key={m.id} m={m} i={i} badge={badges[m.id]} onOpen={open} />)}
       </div>
       {state === 'loading' && <p className="center" style={{ minHeight: 120 }}>加载中…</p>}
       {state === 'ok' && more && <button className="pri" onClick={() => load(false, q, rows)}>加载更多</button>}

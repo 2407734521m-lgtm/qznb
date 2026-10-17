@@ -37,6 +37,7 @@ function Shell() {
   const loc = useLocation();
   const reduce = useReducedMotion();
   const isAdmin = role === 'admin' || role === 'super_admin';
+  const isAdminPage = loc.pathname === '/admin';
 
   useEffect(() => {
     if (session) supabase.rpc('my_role').then(({ data }) => setRole(data ?? ''));
@@ -52,6 +53,14 @@ function Shell() {
     <>
       <div className="glow" />
       <div className="app-bg" style={{ backgroundImage: `url(${bgUrl})` }} />
+      {isAdminPage ? (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', position: 'sticky', top: 0, zIndex: 40, background: 'rgba(10,12,20,.78)', backdropFilter: 'blur(12px)', borderBottom: '1px solid rgba(255,255,255,.08)' }}>
+          <b style={{ fontSize: 15 }}>🛠️ 管理后台</b>
+          <span style={{ flex: 1 }} />
+          <NavLink to="/members" style={{ fontSize: 13, color: '#9db4ff', textDecoration: 'none' }}>← 回站点</NavLink>
+          <button className="mini ghost" onClick={logout}>退出</button>
+        </div>
+      ) : (
       <nav className="topnav">
         <span className="links">
           {TABS.map(t => (
@@ -63,6 +72,7 @@ function Shell() {
         {isAdmin && <a href="#/admin" title="管理后台" className="mob-admin" style={{ textDecoration: 'none', marginRight: 4 }}>⚙️</a>}
         <button onClick={logout} title="退出登录">退出</button>
       </nav>
+      )}
 
       <div className="wrap">
         <AnimatePresence mode="wait">
@@ -90,11 +100,11 @@ function Shell() {
         </AnimatePresence>
       </div>
 
-      <nav className="tabbar">
+      {!isAdminPage && <nav className="tabbar">
         {TABS.map(t => (
           <NavLink key={t.to} to={t.to} className={isTabActive(t.to, loc.pathname) ? 'on' : ''}>{t.label}</NavLink>
         ))}
-      </nav>
+      </nav>}
     </>
   );
 }

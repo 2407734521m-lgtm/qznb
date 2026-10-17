@@ -20,7 +20,7 @@ async function resolveEmail(ident: string): Promise<string> {
 
 export default function Login() {
   const reduce = useReducedMotion();
-  const [mode, setMode] = useState<'login' | 'reg'>('login');
+  const [mode, setMode] = useState<'login' | 'reg' | 'forgot'>('login');
   const [ident, setIdent] = useState(''); // 登录标识
   const [pw, setPw] = useState('');
   const [name, setName] = useState('');
@@ -39,6 +39,7 @@ export default function Login() {
   const [sentEmail, setSentEmail] = useState(''); // 验证码实际发到的邮箱
   const [tempPw, setTempPw] = useState(false); // 发送验证码时密码还没填好，用了临时密码
   const [invite, setInvite] = useState(''); // 注册页邀请码
+  const [forgotSent, setForgotSent] = useState(false); // 忘记密码：重置邮件是否已发送
   const [bg, setBg] = useState<string>(() => { try { return localStorage.getItem(BG_KEY) || DEFAULT_BG; } catch { return DEFAULT_BG; } });
   const [blur, setBlur] = useState(3); const [dark, setDark] = useState(45);
   const [showBg, setShowBg] = useState(false);
@@ -199,6 +200,24 @@ export default function Login() {
     setResendIn(60);
   }
 
+  // 忘记密码：发重置邮件，点邮件里的链接回来设新密码
+  async function doForgot() {
+    const em = email.trim();
+    if (!/^[1-9]\d{4,10}@qq\.com$/i.test(em)) return setErr('请填写正确的 QQ 邮箱');
+    setErr(''); setBusy(true);
+    try {
+      const redirectTo = window.location.origin + window.location.pathname;
+      const { error } = await supabase.auth.resetPasswordForEmail(em, { redirectTo });
+      if (error) throw error;
+      setForgotSent(true);
+    } catch (e: any) {
+      const m = e?.message || '';
+      setErr(/rate limit|429/i.test(m) ? '发得太频繁了，稍后再试'
+        : /redirect/i.test(m) ? '发送失败：跳转地址未在 Supabase 后台放行，请联系管理员'
+        : '发送失败：' + (m || '网络错误'));
+    } finally { setBusy(false); }
+  }
+
   return (
     <>
       {bg && <div className="login-bg" style={{ backgroundImage: `url(${bg})`, filter: `blur(${blur}px) brightness(${100 - dark}%)`, transform: 'scale(1.1)' }} />}
@@ -232,8 +251,21 @@ export default function Login() {
             {err && <p className="err">{err}</p>}
             <button className="pri" disabled={busy} onClick={doLogin}>{busy ? '登录中…' : '进入班级'}</button>
             <button className="ghost" style={{ width: '100%', marginTop: 8 }} disabled={busy} onClick={doPasskey}>🔑 使用通行密钥登录</button>
-            <p className="login-switch">还没有账号？<button onClick={() => { setMode('reg'); setErr(''); setCodeSent(false); setCode(''); setInvite(''); }}>去注册</button></p>
+            <p className="login-switch">忘记密码了？<button onClick={() => { setMode('forgot'); setErr(''); setForgotSent(false); }}>点我重置</button></p>
+            <p className="login-switch">还没有账号？<button onClick={() => { setMode('reg'); setErr(''); setCodeSent(false); setCode(''); setInvite(''); setForgotSent(false); }}>去注册</button></p>
             <p className="login-switch" style={{ marginTop: 2 }}>如果登录不上<button onClick={() => setFbOpen(true)}>点我反馈</button></p>
+          </>) : mode === 'forgot' ? (<>
+            <h1 style={{ fontSize: 22 }}>🔑 重置密码</h1>
+            <p className="sub">找 回 密 码</p>
+            <p className="priv-note" style={{ margin: '0 0 4px' }}>输入注册时的 QQ 邮箱，我们会发一封重置邮件给你<br />点邮件里的链接，会自动跳回来设置新密码</p>
+            <label>QQ 邮箱</label>
+            <input value={email} onChange={e => setEmail(e.target.value)} placeholder="123456@qq.com" inputMode="email"
+              onKeyDown={e => e.key === 'Enter' && doForgot()} />
+            {err && <p className="err">{err}</p>}
+            {forgotSent
+              ? <p className="priv-note">✓ 重置邮件已发送，去邮箱点链接吧<br />（没收到的话去垃圾箱看看）</p>
+              : <button className="pri" disabled={busy} onClick={doForgot}>{busy ? '发送中…' : '发送重置邮件'}</button>}
+            <p className="login-switch"><button onClick={() => { setMode('login'); setErr(''); setForgotSent(false); }}>← 返回登录</button></p>
           </>) : (<>
             <label>用户名</label>
             <input value={name} onChange={e => setName(e.target.value)} placeholder="班级里显示的名字，可重复" maxLength={30} />
@@ -268,7 +300,7 @@ export default function Login() {
             <input value={invite} onChange={e => setInvite(e.target.value)} placeholder="有邀请码就填，可直接加入班级" />
             {err && <p className="err">{err}</p>}
             <button className="pri" disabled={busy} onClick={doReg}>{busy ? '注册中…' : '注册并进入'}</button>
-            <p className="login-switch">已有账号？<button onClick={() => { setMode('login'); setErr(''); setCodeSent(false); setCode(''); setInvite(''); }}>去登录</button></p>
+            <p className="login-switch">已有账号？<button onClick={() => { setMode('login'); setErr(''); setCodeSent(false); setCode(''); setInvite(''); setForgotSent(false); }}>去登录</button></p>
           </>)}
 
           <div className="bg-panel">

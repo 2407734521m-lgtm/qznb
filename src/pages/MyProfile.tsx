@@ -32,9 +32,9 @@ function Collapsible({ icon, title, sub, open, onToggle, children }: {
       <button type="button" onClick={onToggle}
         style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '16px 20px', background: 'none', border: 0, color: 'inherit', font: 'inherit', cursor: 'pointer', textAlign: 'left' }}>
         <span style={{ fontSize: 16, fontWeight: 700 }}>{icon} {title}</span>
-        {sub && <span className="mut" style={{ fontSize: 12 }}>{sub}</span>}
+        {sub && <span style={{ fontSize: 12, color: '#fff', opacity: 0.85 }}>{sub}</span>}
         <span style={{ flex: 1 }} />
-        <span className="mut" style={{ fontSize: 13, display: 'inline-block', transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .25s' }}>▼</span>
+        <span style={{ fontSize: 13, color: '#fff', display: 'inline-block', transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .25s' }}>▼</span>
       </button>
       <div className={'xpanel' + (open ? ' open' : '')}><div><div className="xbody" style={{ padding: '0 20px 20px' }}>
         {children}

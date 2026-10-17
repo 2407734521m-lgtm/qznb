@@ -19,6 +19,8 @@ export default function Admin() {
   const [albums, setAlbums] = useState<Alb[]>([]);
   const [code, setCode] = useState('');
   const [msg, setMsg] = useState('');
+  const [q, setQ] = useState('');
+  const [stats, setStats] = useState({ posts: 0, photos: 0 });
 
   useEffect(() => { supabase.rpc('my_role').then(({ data }) => setRole(data ?? '')); }, []);
 
@@ -39,6 +41,9 @@ export default function Admin() {
     const a = await supabase.from('albums').select('id, title, category, created_at')
       .order('created_at', { ascending: false }).limit(30);
     if (!a.error) setAlbums(a.data as Alb[]);
+    const pc = await supabase.from('posts').select('id', { count: 'exact', head: true });
+    const hc = await supabase.from('album_photos').select('id', { count: 'exact', head: true });
+    setStats({ posts: pc.count ?? 0, photos: hc.count ?? 0 });
   }
 
   useEffect(() => { if (role === 'admin' || role === 'super_admin') refresh(); }, [role]);
@@ -68,6 +73,18 @@ export default function Admin() {
     if (!confirm('删除这个相册（含所有照片）？')) return;
     await supabase.from('albums').delete().eq('id', id); refresh();
   }
+  async function toggleJoined(id: string, j: boolean) {
+    if (!confirm(j ? '恢复该成员加入班级？' : '将该成员移出班级？移出后他看不到成员内容，别人也看不到他。')) return;
+    setMsg('');
+    const { error } = await supabase.rpc('set_joined', { target: id, j });
+    setMsg(error ? '操作失败：' + error.message : '已更新');
+    if (!error) refresh();
+  }
+  const shown = members.filter(mb => {
+    const s = q.trim().toLowerCase(); if (!s) return true;
+    return (mb.display_name || '').toLowerCase().includes(s) || mb.username.toLowerCase().includes(s)
+      || (emails[mb.id] || '').toLowerCase().includes(s) || (mb.real_name || '').toLowerCase().includes(s);
+  });
 
   return (
     <div className="page">
@@ -77,19 +94,34 @@ export default function Admin() {
       </div>
       {msg && <p className="card" style={{ padding: 12 }}>{msg}</p>}
 
+      <div className="row" style={{ gap: 10 }}>
+        {[['成员', members.length], ['已加入', members.filter(x => x.joined).length],
+          ['动态', stats.posts], ['照片', stats.photos]].map(([l, n]) => (
+          <div key={l as string} className="card" style={{ flex: 1, textAlign: 'center', padding: '12px 4px', margin: 0 }}>
+            <div style={{ fontSize: 22, fontWeight: 700 }}>{n}</div>
+            <div className="mut" style={{ fontSize: 12 }}>{l}</div>
+          </div>
+        ))}
+      </div>
+
       <div className="adm-sec card">
-        <h3>成员管理（{members.length} 人）</h3>
+        <h3>成员管理（{shown.length} 人）</h3>
+        <input placeholder="🔍 搜索名字 / 用户名 / 真实姓名 / 邮箱" value={q} onChange={e => setQ(e.target.value)}
+          style={{ marginBottom: 10 }} />
         <table className="tbl"><thead><tr><th>成员</th><th>邮箱</th><th>角色</th><th>状态</th><th></th></tr></thead>
-          <tbody>{members.map(mb => (
+          <tbody>{shown.map(mb => (
             <tr key={mb.id}>
               <td>{mb.display_name || mb.username}<br /><span className="mut" style={{ fontSize: 12 }}>@{mb.username}{mb.real_name ? ` · ${mb.real_name}` : ''}</span></td>
               <td style={{ fontSize: 12 }}>{emails[mb.id] ?? '—'}</td>
               <td><span className={`chip ${mb.role === 'super_admin' ? 'sa' : mb.role === 'admin' ? 'ad' : ''}`}>{ROLE_LABEL[mb.role] ?? mb.role}</span></td>
               <td style={{ fontSize: 13 }}>{mb.joined ? '已加入' : '未加入'}</td>
               <td>{isSuper && mb.id !== me && mb.role !== 'super_admin' && (
-                mb.role === 'admin'
-                  ? <button className="mini" onClick={() => changeRole(mb.id, 'member')}>降为成员</button>
-                  : <button className="mini" onClick={() => changeRole(mb.id, 'admin')}>设为管理员</button>
+                <span className="row" style={{ gap: 6, flexWrap: 'wrap' }}>
+                  {mb.role === 'admin'
+                    ? <button className="mini" onClick={() => changeRole(mb.id, 'member')}>降为成员</button>
+                    : <button className="mini" onClick={() => changeRole(mb.id, 'admin')}>设为管理员</button>}
+                  <button className="mini" onClick={() => toggleJoined(mb.id, !mb.joined)}>{mb.joined ? '移出班级' : '恢复'}</button>
+                </span>
               )}</td>
             </tr>
           ))}</tbody></table>

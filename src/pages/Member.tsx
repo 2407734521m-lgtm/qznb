@@ -28,8 +28,8 @@ export default function Member() {
 
   useEffect(() => {
     const el = document.documentElement; const t = m?.theme ?? {};
-    el.dataset.theme = t.theme ?? 'aurora'; el.dataset.layout = t.layout ?? 'left';
-    return () => { delete el.dataset.theme; delete el.dataset.layout; };
+    el.dataset.theme = t.theme ?? 'aurora';
+    return () => { delete el.dataset.theme; };
   }, [m?.theme]);
 
   // 进入：共享元素飞入
@@ -63,24 +63,19 @@ export default function Member() {
     .filter(([, v]) => v) : [];
 
   const itemProps = (i: number) => {
-    const init = reduce ? { opacity: 0 }
-      : enterDir === 'left' ? { opacity: 0, x: -48 }
-      : enterDir === 'right' ? { opacity: 0, x: 48 }
-      : { opacity: 0, y: 48 };
+    // 基本信息从左侧滑入，贴到照片旁边
+    const init = reduce ? { opacity: 0 } : { opacity: 0, x: -48 };
     return {
       initial: init,
       animate: { opacity: 1, x: 0, y: 0 },
-      transition: { duration: reduce ? 0 : 0.5, delay: reduce ? 0 : 0.3 + i * 0.07, ease: [0.22, 1, 0.36, 1] as [number, number, number, number] },
+      transition: { duration: reduce ? 0 : 0.5, delay: reduce ? 0 : 0.35 + i * 0.07, ease: [0.22, 1, 0.36, 1] as [number, number, number, number] },
     };
   };
 
   return (
     <div className="page">
       <button className="backbtn" onClick={goBack}>← 返回成员墙</button>
-      <div className="profile">
-        <div ref={photoRef} style={{ width: 'min(300px,100%)', visibility: flying ? 'hidden' : 'visible' }}>
-          <Photo id={id} path={m?.avatar_path} name={name || '?'} />
-        </div>
+      <div className="profile compact">
         <div className="info">
           <motion.h1 {...itemProps(0)}>{name || '…'}</motion.h1>
           {rows.map(([k, v], i) => k === '个性签名'
@@ -93,6 +88,9 @@ export default function Member() {
               </Link>
             </motion.div>
           )}
+        </div>
+        <div ref={photoRef} className="head-photo" style={{ visibility: flying ? 'hidden' : 'visible' }}>
+          <Photo id={id} path={m?.avatar_path} name={name || '?'} />
         </div>
       </div>
     </div>

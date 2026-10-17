@@ -5,6 +5,7 @@ import { supabase } from './lib/supabase';
 import { useAuth } from './auth';
 import { getWallpaper, isOnboarded } from './lib/wallpaper';
 import WallpaperOnboarding from './components/WallpaperOnboarding';
+import WelcomeOverlay from './components/WelcomeOverlay';
 import bgUrl from './assets/bg.jpg';
 import Login from './pages/Login';
 import Members from './pages/Members';
@@ -54,14 +55,23 @@ function Shell() {
     return () => window.removeEventListener('ca:wallpaper', h);
   }, []);
 
-  // 登录后首次：全屏过渡 + 选壁纸
+  // 注册带邀请码：欢迎动画要在 App 层播（登录页验证通过会直接卸载，来不及播）
+  const [welcome, setWelcome] = useState<string | null>(null);
+  // 登录后首次：全屏过渡 + 选壁纸（有欢迎动画时等它播完再弹）
   const [showWp, setShowWp] = useState(false);
   useEffect(() => {
-    if (session && !isOnboarded()) setShowWp(true);
+    if (!session) return;
+    let nick: string | null = null;
+    try { nick = sessionStorage.getItem('ca_welcome_nick'); sessionStorage.removeItem('ca_welcome_nick'); } catch {}
+    if (nick !== null) setWelcome(nick);
+    else if (!isOnboarded()) setShowWp(true);
+  }, [session]);
+  useEffect(() => {
     const open = () => setShowWp(true);
     window.addEventListener('ca:wallpaper:open', open);
     return () => window.removeEventListener('ca:wallpaper:open', open);
-  }, [session]);
+  }, []);
+  function welcomeDone() { setWelcome(null); if (!isOnboarded()) setShowWp(true); }
 
   // 按住底栏拖拽：高亮实时跟随手指，松手切换（像 iPhone 小横条 scrub）
   function tabFromX(clientX: number): number | null {
@@ -191,6 +201,7 @@ function Shell() {
         })}
       </nav>}
       {showWp && <WallpaperOnboarding onDone={() => setShowWp(false)} />}
+      {welcome !== null && <WelcomeOverlay nick={welcome} onDone={welcomeDone} />}
     </>
   );
 }

@@ -123,6 +123,14 @@ export default function Admin() {
     if (!confirm('删除这个相册（含所有照片）？')) return;
     await supabase.from('albums').delete().eq('id', id); refresh();
   }
+  async function delMember(id: string, name: string) {
+    if (!confirm(`彻底删除成员 ${name}？他的账号、资料、动态、照片、好友等所有数据都会被删除，无法恢复！`)) return;
+    if (!confirm('再次确认：真的要彻底删除吗？')) return;
+    setMsg('');
+    const { error } = await supabase.rpc('delete_member', { target: id });
+    setMsg(error ? '删除失败：' + error.message : '已彻底删除');
+    if (!error) refresh();
+  }
   async function toggleJoined(id: string, j: boolean) {
     if (!confirm(j ? '恢复该成员加入班级？' : '将该成员移出班级？移出后他看不到成员内容，别人也看不到他。')) return;
     setMsg('');
@@ -171,6 +179,7 @@ export default function Admin() {
                     ? <button className="mini" onClick={() => changeRole(mb.id, 'member')}>降为成员</button>
                     : <button className="mini" onClick={() => changeRole(mb.id, 'admin')}>设为管理员</button>}
                   <button className="mini" onClick={() => toggleJoined(mb.id, !mb.joined)}>{mb.joined ? '移出班级' : '恢复'}</button>
+                  {mb.id !== me && <button className="mini danger" onClick={() => delMember(mb.id, mb.display_name || mb.username)}>删除</button>}
                 </span>
               )}</td>
             </tr>

@@ -8,7 +8,7 @@ on:
         default: 'class13-2025'
 permissions: { contents: read }
 env:
-  PGHOST: aws-0-us-west-2.pooler.supabase.com
+  PGHOST: aws-1-us-west-2.pooler.supabase.com
   PGPORT: 6543
   PGUSER: postgres.wnddwkdfndrkxivvrxcy
   PGDATABASE: postgres

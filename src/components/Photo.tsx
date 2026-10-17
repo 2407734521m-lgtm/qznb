@@ -1,18 +1,17 @@
 import { useState } from 'react';
-import { motion, useReducedMotion } from 'framer-motion';
-import { useAvatar } from '../lib/useAvatar';
+import { useSignedUrl } from '../lib/media';
 
-// 列表与详情页使用相同的 layoutId，实现照片共享元素过渡（FLIP，只动 transform）。
-export default function Photo({ id, path, name }: { id: string; path?: string | null; name: string }) {
-  const url = useAvatar(path);
+// 通用照片：私有 bucket 用签名链接；无照片时显示名字首字。
+// 共享元素过渡由调用方用 lib/transition.ts 的 FLIP 手动驱动。
+export default function Photo({ id, path, name, bucket = 'avatars', className = '' }:
+  { id: string; path?: string | null; name: string; bucket?: string; className?: string }) {
+  const url = useSignedUrl(bucket, path);
   const [bad, setBad] = useState(false);
-  const reduce = useReducedMotion();
   return (
-    <motion.div layoutId={`photo-${id}`} className="photo"
-      transition={{ duration: reduce ? 0 : 0.6, ease: [0.22, 1, 0.36, 1] }}>
+    <div className={`photo ${className}`} data-photo={id}>
       {url && !bad
-        ? <img src={url} alt={name} loading="lazy" onError={() => setBad(true)} />
-        : <span>{name.slice(0, 1).toUpperCase()}</span>}
-    </motion.div>
+        ? <img src={url} alt={name} loading="lazy" draggable={false} onError={() => setBad(true)} />
+        : <span className="photo-fallback">{name.slice(0, 1).toUpperCase()}</span>}
+    </div>
   );
 }

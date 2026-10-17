@@ -2,9 +2,10 @@ import { useEffect, useRef, useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import { downscaleImage } from '../lib/media';
+import bgDefault from '../assets/bg.jpg';
 
 const BG_KEY = 'ca_login_bg';
-const DEFAULT_BG = 'bg.jpg'; // 默认壁纸（樱花）
+const DEFAULT_BG = bgDefault; // 默认壁纸（樱花）
 
 // 登录标识可以是：QQ 邮箱 / 用户名 / 真实姓名
 async function resolveEmail(ident: string): Promise<string> {

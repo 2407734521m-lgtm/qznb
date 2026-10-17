@@ -1,9 +1,9 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { HashRouter } from 'react-router-dom';
 import App from './App';
 import Admin from './pages/Admin';
-import Login from './pages/Login';
+import AdminLogin from './pages/AdminLogin';
 import { AuthProvider, useAuth } from './auth';
 import { supabase } from './lib/supabase';
 import './styles.css';
@@ -13,8 +13,14 @@ const isAdminHost = window.location.hostname.split('.')[0].toLowerCase() === 'ad
 
 function AdminShell() {
   const { session, loading } = useAuth();
-  if (loading) return <div className="center">加载中…</div>;
-  if (!session) return (<><div className="glow" /><Login /></>);
+  const [role, setRole] = useState<string | null>(null);
+  useEffect(() => {
+    if (!session) { setRole(null); return; }
+    supabase.rpc('my_role').then(({ data }) => setRole(data ?? ''));
+  }, [session]);
+  if (loading || (session && role === null)) return <div className="center">加载中…</div>;
+  const isAdmin = role === 'admin' || role === 'super_admin';
+  if (!isAdmin) return (<><div className="glow" /><AdminLogin showBack={false} /></>);
   return (<>
     <div className="glow" />
     <div className="wrap"><Admin /></div>

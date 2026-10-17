@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../auth';
 
-type Member = { id: string; username: string; display_name: string | null; role: string; joined: boolean; created_at: string };
+type Member = { id: string; username: string; display_name: string | null; real_name: string | null; role: string; joined: boolean; created_at: string };
 type Log = { id: number; action: string; detail: unknown; created_at: string };
 
 const ROLE_LABEL: Record<string, string> = { super_admin: '超级管理员', admin: '管理员', member: '成员' };
@@ -21,7 +21,7 @@ export default function Admin() {
 
   async function refresh() {
     const m = await supabase.from('profiles')
-      .select('id, username, display_name, role, joined, created_at').order('created_at');
+      .select('id, username, display_name, real_name, role, joined, created_at').order('created_at');
     if (!m.error) setMembers(m.data as Member[]);
     const s = await supabase.from('app_settings').select('invite_code').eq('id', 1).maybeSingle();
     if (!s.error && s.data) setCode(s.data.invite_code ?? '');
@@ -60,7 +60,7 @@ export default function Admin() {
       <h3>成员管理（{members.length} 人）</h3>
       {members.map(mb => (
         <div key={mb.id} className="row" style={{ justifyContent: 'space-between', gap: 8 }}>
-          <span>{mb.display_name || mb.username}（{mb.username}）· {ROLE_LABEL[mb.role] ?? mb.role}{mb.joined ? '' : ' · 未加入'}</span>
+          <span>{mb.display_name || mb.username}（{mb.username}）· {ROLE_LABEL[mb.role] ?? mb.role}{mb.joined ? '' : ' · 未加入'}{mb.real_name ? ` · 真实姓名：${mb.real_name}` : ''}</span>
           {isSuper && mb.id !== me && mb.role !== 'super_admin' && (
             mb.role === 'admin'
               ? <button onClick={() => changeRole(mb.id, 'member')}>降为成员</button>

@@ -4,7 +4,8 @@ import { useSignedUrl } from '../lib/media';
 import { useAuth } from '../auth';
 import AvatarCropper from '../components/AvatarCropper';
 import FeedbackModal from '../components/FeedbackModal';
-import GamePicker, { type GameProfile } from '../components/GamePicker';
+import GamePicker, { type GameProfile, type Origin } from '../components/GamePicker';
+import SocialPicker from '../components/SocialPicker';
 import { badgeText } from '../data/games';
 
 const PROFILE_FIELDS = [['display_name', '名字', 'show_name'], ['age', '年龄', 'show_age'],
@@ -34,6 +35,12 @@ export default function MyProfile() {
   const [welcome, setWelcome] = useState<string | null>(null);
   const [gprof, setGprof] = useState<GameProfile | null>(null);
   const [gpickOpen, setGpickOpen] = useState(false);
+  const [gpickOrigin, setGpickOrigin] = useState<Origin | null>(null);
+  function openGpick(e: React.MouseEvent<HTMLElement>) {
+    const r = e.currentTarget.getBoundingClientRect();
+    setGpickOrigin({ x: r.left, y: r.top, w: r.width, h: r.height });
+    setGpickOpen(true);
+  }
   const loadedRef = useRef(false); const savingRef = useRef(false); const pendingRef = useRef(false);
   const [keys, setKeys] = useState<Array<{ id: string; friendly_name?: string | null; created_at?: string }>>([]);
   const [role, setRole] = useState('');
@@ -192,7 +199,7 @@ export default function MyProfile() {
       <div className="card">
         <h3 className="me-sec-t">🎮 游戏与社交</h3>
         <label>我的游戏段位</label>
-        {!gprof && <button className="ghost" onClick={() => setGpickOpen(true)}>🎮 设置我的游戏段位</button>}
+        {!gprof && <button className="ghost" style={{ width: '100%' }} onClick={openGpick}>🎮 设置我的游戏段位</button>}
         {gprof && (
           <div className="gprof">
             <div style={{ fontSize: 14.5, fontWeight: 700 }}>{gprof.game_name}
@@ -206,12 +213,14 @@ export default function MyProfile() {
               {gprof.status === 'rejected' && '❌ 审核未通过，可以修改后重新提交'}
             </div>
             <div className="row" style={{ gap: 8 }}>
-              <button className="ghost" style={{ width: 'auto', padding: '8px 18px' }} onClick={() => setGpickOpen(true)}>修改</button>
+              <button className="ghost" style={{ width: 'auto', padding: '8px 18px' }} onClick={openGpick}>修改</button>
               <button className="ghost" style={{ width: 'auto', padding: '8px 18px' }} onClick={clearGame}>清除</button>
             </div>
           </div>
         )}
-        {CONTACT_FIELDS.map(([k, label, , ph]) => fieldInput(k, label, ph))}
+        {fieldInput('contact', '联系方式', '手机号 / QQ…')}
+        <label style={{ marginBottom: 6 }}>社交平台</label>
+        <SocialPicker value={v.social ?? ''} onChange={s => setV({ ...v, social: s })} />
       </div>
 
       <div className="card">
@@ -276,7 +285,7 @@ export default function MyProfile() {
       {cropSrc && <AvatarCropper src={cropSrc} onCancel={closeCrop} onDone={uploadCropped} />}
       {fbOpen && <FeedbackModal kind="general" onClose={() => setFbOpen(false)} />}
       {welcome !== null && <WelcomeOverlay nick={welcome} onDone={() => setWelcome(null)} />}
-      {gpickOpen && <GamePicker initial={gprof} onClose={() => setGpickOpen(false)}
+      {gpickOpen && <GamePicker initial={gprof} origin={gpickOrigin} onClose={() => setGpickOpen(false)}
         onDone={() => { setGpickOpen(false); reloadGame(); setMsg('已提交，等待管理员审核 ✓'); }} />}
     </div>
   );

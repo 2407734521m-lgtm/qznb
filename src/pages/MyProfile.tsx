@@ -3,6 +3,8 @@ import { supabase } from '../lib/supabase';
 import { useSignedUrl } from '../lib/media';
 import { useAuth } from '../auth';
 import AvatarCropper from '../components/AvatarCropper';
+import FeedbackModal from '../components/FeedbackModal';
+import WelcomeOverlay from '../components/WelcomeOverlay';
 
 const PROFILE_FIELDS = [['display_name', '名字', 'show_name'], ['age', '年龄', 'show_age'],
   ['personality', '性格', 'show_personality'], ['signature', '个性签名', 'show_signature'],
@@ -28,6 +30,8 @@ export default function MyProfile() {
   const [code, setCode] = useState(''); const [msg, setMsg] = useState('');
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [cropSrc, setCropSrc] = useState<string | null>(null);
+  const [fbOpen, setFbOpen] = useState(false);
+  const [welcome, setWelcome] = useState<string | null>(null);
   const loadedRef = useRef(false); const savingRef = useRef(false); const pendingRef = useRef(false);
   const [keys, setKeys] = useState<Array<{ id: string; friendly_name?: string | null; created_at?: string }>>([]);
   const [role, setRole] = useState('');
@@ -102,7 +106,13 @@ export default function MyProfile() {
   async function join() {
     const { data, error } = await supabase.rpc('join_class', { code: code.trim() });
     if (error) return setMsg('加入失败：' + error.message);
-    if (data) { setJoined(true); setMsg('已加入班级 ✓'); } else setMsg('邀请码不正确');
+    if (data) {
+      setJoined(true); setMsg('已加入班级 ✓');
+      // 邀请码欢迎动画：xxx — Welcome to Class 13!
+      supabase.rpc('invite_nickname').then(({ data: nick }) => {
+        setWelcome(typeof nick === 'string' ? nick : '');
+      });
+    } else setMsg('邀请码不正确');
   }
 
   async function loadKeys() {
@@ -218,6 +228,7 @@ export default function MyProfile() {
         <div className="row" style={{ gap: 8 }}>
           {(role === 'admin' || role === 'super_admin') &&
             <button className="ghost" onClick={() => { location.hash = '#/admin'; }}>🛠️ 管理后台</button>}
+          <button className="ghost" onClick={() => setFbOpen(true)}>💬 意见反馈</button>
           <button className="ghost" onClick={logout}>退出登录</button>
         </div>
       </div>
@@ -227,6 +238,8 @@ export default function MyProfile() {
         {saveState === 'saving' ? '● 保存中…' : saveState === 'saved' ? '✓ 已自动保存' : saveState === 'error' ? '● 保存失败，请检查网络' : '✓ 改动会自动保存'}
       </p>
       {cropSrc && <AvatarCropper src={cropSrc} onCancel={closeCrop} onDone={uploadCropped} />}
+      {fbOpen && <FeedbackModal kind="general" onClose={() => setFbOpen(false)} />}
+      {welcome !== null && <WelcomeOverlay nick={welcome} onDone={() => setWelcome(null)} />}
     </div>
   );
 }

@@ -6,7 +6,7 @@ type Member = { id: string; username: string; display_name: string | null; real_
 type Log = { id: number; action: string; detail: unknown; created_at: string };
 type Post = { id: number; content: string; author_id: string; created_at: string };
 type Alb = { id: number; title: string; category: string; created_at: string };
-type Fb = { id: number; name: string | null; contact: string | null; content: string; kind: string; status: string; created_at: string };
+type Fb = { id: number; name: string | null; contact: string | null; content: string; kind: string; status: string; created_at: string; user_id: string | null };
 type Gp = { profile_id: string; game_name: string; game_uid: string | null; rank: string | null; status: string; updated_at: string };
 type Ic = { id: number; code: string; nickname: string | null; active: boolean; created_at: string };
 type TestAccount = { id: string; label: string; email: string; password: string };
@@ -42,6 +42,10 @@ export default function Admin() {
   const [taEmail, setTaEmail] = useState('');
   const [taPw, setTaPw] = useState('');
   const [taMsg, setTaMsg] = useState('');
+  // 给反馈提交人发消息
+  const [replyOpen, setReplyOpen] = useState<number | null>(null);
+  const [replyText, setReplyText] = useState<Record<number, string>>({});
+  const [replyBusy, setReplyBusy] = useState(false);
 
   useEffect(() => { supabase.rpc('my_role').then(({ data }) => setRole(data ?? '')); }, []);
 
@@ -53,7 +57,7 @@ export default function Admin() {
     if (!em.error) setEmails(Object.fromEntries((em.data ?? []).map((x: any) => [x.profile_id, x.email])));
     const ic = await supabase.from('invite_codes').select('id, code, nickname, active, created_at').order('created_at');
     if (!ic.error) setIcs(ic.data as Ic[]);
-    const fb = await supabase.from('feedbacks').select('id, name, contact, content, kind, status, created_at')
+    const fb = await supabase.from('feedbacks').select('id, name, contact, content, kind, status, created_at, user_id')
       .order('created_at', { ascending: false }).limit(50);
     if (!fb.error) setFeedbacks(fb.data as Fb[]);
     const gp = await supabase.from('game_profiles')
@@ -136,6 +140,26 @@ export default function Admin() {
   async function markFb(id: number, done: boolean) {
     const { error } = await supabase.from('feedbacks').update({ status: done ? 'done' : 'open' }).eq('id', id);
     if (!error) refresh(); else setMsg('操作失败：' + error.message);
+  }
+  // 给反馈提交人发站内消息（对方在 好友-聊天 里能看到）
+  async function sendReply(fb: Fb) {
+    const text = (replyText[fb.id] || '').trim();
+    if (!text || !fb.user_id) return;
+    if (replyBusy) return;
+    setReplyBusy(true); setMsg('');
+    try {
+      const { data: cid, error: e1 } = await supabase.rpc('get_or_create_conversation', { other: fb.user_id });
+      if (e1) throw e1;
+      const { error: e2 } = await supabase.from('messages').insert({
+        conversation_id: Number(cid), sender_id: me, body: text.slice(0, 2000),
+      });
+      if (e2) throw e2;
+      setReplyText({ ...replyText, [fb.id]: '' });
+      setReplyOpen(null);
+      setMsg('消息已发送 ✓，对方在「好友 - 聊天」里能看到');
+    } catch (e: any) {
+      setMsg('发送失败：' + (e?.message || '网络错误'));
+    } finally { setReplyBusy(false); }
   }
   async function delFb(id: number) {
     if (!confirm('删除这条反馈？')) return;
@@ -294,11 +318,31 @@ export default function Admin() {
               {f.status === 'done' && <span style={{ fontSize: 11.5, color: '#7ee2a8', marginLeft: 6 }}>✓ 已处理</span>}
             </div>
             <div style={{ fontSize: 14, margin: '4px 0 8px' }}>{f.content}</div>
-            <div style={{ display: 'flex', gap: 8 }}>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               <button className="mini ghost" onClick={() => markFb(f.id, f.status !== 'done')}>
                 {f.status === 'done' ? '标为未处理' : '标为已处理'}</button>
+              {f.user_id && (
+                <button className="mini" onClick={() => {
+                  if (replyOpen === f.id) { setReplyOpen(null); return; }
+                  setReplyOpen(f.id);
+                  setReplyText(t => t[f.id] ? t : { ...t, [f.id]: `关于你的反馈「${(f.content || '').slice(0, 24)}${(f.content || '').length > 24 ? '…' : ''}」，处理结果：` });
+                }}>💬 给提交人发消息</button>)}
               {isSuper && <button className="mini danger" onClick={() => delFb(f.id)}>删除</button>}
             </div>
+            {replyOpen === f.id && (
+              <div style={{ marginTop: 8 }}>
+                <textarea value={replyText[f.id] || ''} onChange={e => setReplyText({ ...replyText, [f.id]: e.target.value })}
+                  rows={3} maxLength={2000} placeholder="告诉提交人处理结果…" style={{ width: '100%' }} />
+                <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
+                  <button className="mini" disabled={replyBusy} onClick={() => sendReply(f)}>
+                    {replyBusy ? '发送中…' : '发送'}</button>
+                  <button className="mini ghost" onClick={() => setReplyOpen(null)}>取消</button>
+                </div>
+                <p className="mut" style={{ fontSize: 12, margin: '4px 0 0' }}>
+                  发给 {nameOf(f.user_id!)}，对方在「好友 - 聊天」里能看到
+                </p>
+              </div>
+            )}
           </div>
         ))}
       </div>

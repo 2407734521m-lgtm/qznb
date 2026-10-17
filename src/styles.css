@@ -143,7 +143,6 @@ button:disabled{opacity:.5}
   background:linear-gradient(120deg,#ffd9ec22,#c4b5fd22);border:1px solid #c4b5fd55;color:#ffe9f4;
   box-shadow:0 2px 12px #a78bfa33;white-space:nowrap}
 .gbadge.preview{margin:10px 0 2px;font-size:14px}
-.gpick{width:min(94vw,460px);max-height:88vh;overflow-y:auto;background:#171224;border:1px solid #ffffff1c;border-radius:18px;padding:16px}
 .gpick-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
 .glist{display:flex;flex-direction:column;gap:6px;margin-top:10px;max-height:52vh;overflow-y:auto}
 .grow{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;background:#ffffff08;border:1px solid #ffffff12;color:#fff;text-align:left;width:100%}
@@ -154,6 +153,39 @@ button:disabled{opacity:.5}
 .rankchip{padding:8px 14px;border-radius:999px;background:#ffffff0d;border:1px solid #ffffff1c;color:#fff;font-size:13px}
 .rankchip.on{background:linear-gradient(135deg,#7c6cf0,#a855f7);border-color:transparent;font-weight:700}
 .gprof{margin:2px 0 10px;padding:10px 12px;border-radius:12px;background:#ffffff08;border:1px solid #ffffff12}
+
+/* 游戏选择器：从按钮位置展开全屏 */
+.gmask{position:fixed;inset:0;z-index:299;background:#000a;opacity:0;transition:opacity .3s ease}
+.gmask.on{opacity:1}
+.gexpand{position:fixed;z-index:300;overflow:hidden;background:#171224;border:1px solid #ffffff1c;
+  transition:left .34s cubic-bezier(.2,.7,.3,1),top .34s cubic-bezier(.2,.7,.3,1),
+  width .34s cubic-bezier(.2,.7,.3,1),height .34s cubic-bezier(.2,.7,.3,1),border-radius .34s ease,opacity .3s ease;
+  box-shadow:0 24px 80px #000c}
+.gexpand-in{height:100%;overflow-y:auto;padding:16px}
+.gpick-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.glist{display:flex;flex-direction:column;gap:6px;margin-top:10px;max-height:calc(100dvh - 170px);overflow-y:auto;padding-bottom:8px}
+.ganim{animation:gin .45s cubic-bezier(.2,.7,.3,1) both}
+@keyframes gin{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+
+/* 详情页：游戏 / 社交展开按钮 */
+.xbtns{display:flex;gap:8px;margin-top:10px}
+.xbtn{padding:9px 22px;border-radius:999px;background:#ffffff0d;border:1px solid #ffffff22;color:#fff;
+  font-size:13.5px;font-weight:600;transition:all .25s ease}
+.xbtn.on{background:linear-gradient(135deg,#7c6cf0,#a855f7);border-color:transparent;box-shadow:0 4px 16px #a855f755}
+.xpanel{display:grid;grid-template-rows:0fr;transition:grid-template-rows .32s cubic-bezier(.2,.7,.3,1)}
+.xpanel.open{grid-template-rows:1fr}
+.xpanel>div{overflow:hidden;min-height:0}
+.xbody{padding:8px 2px 2px}
+.xrow{display:flex;gap:10px;align-items:baseline;font-size:13.5px;padding:7px 0;border-bottom:1px solid #ffffff0c}
+.xrow:last-child{border-bottom:none}
+.xrow b{min-width:40px;color:var(--mut);font-weight:600;font-size:12.5px}
+
+/* 社交平台选择器 */
+.socpick{display:flex;flex-direction:column;gap:8px}
+.socrow{display:flex;align-items:center;gap:8px}
+.socrow .socp{flex:none;min-width:64px;font-size:13px;font-weight:700;color:#ffe9f4}
+.socrow input{flex:1;margin:0}
+.socrow .mini{flex:none}
 .profile.compact .kv{margin:10px 0}
 .profile.compact .kv div{font-size:14.5px}
 .profile.compact .sig{margin:12px 0;font-size:14.5px}

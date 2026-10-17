@@ -20,7 +20,7 @@ jobs:
       - name: Install postgresql-client
         run: sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client
       - name: Run migration SQL
-        run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/001_init.sql
+        run: for f in supabase/migrations/*.sql; do echo "== $f =="; psql -v ON_ERROR_STOP=1 -f "$f"; done
         env:
           PGPASSWORD: ${{ secrets.DB_PASSWORD }}
       - name: Set invite code

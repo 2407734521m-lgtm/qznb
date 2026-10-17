@@ -9,6 +9,13 @@ type Alb = { id: number; title: string; category: string; created_at: string };
 type Fb = { id: number; name: string | null; contact: string | null; content: string; kind: string; status: string; created_at: string };
 type Gp = { profile_id: string; game_name: string; game_uid: string | null; rank: string | null; status: string; updated_at: string };
 type Ic = { id: number; code: string; nickname: string | null; active: boolean; created_at: string };
+type TestAccount = { id: string; label: string; email: string; password: string };
+
+const TA_KEY = 'ca_test_accounts';
+function loadTAs(): TestAccount[] {
+  try { const v = JSON.parse(localStorage.getItem(TA_KEY) || '[]'); return Array.isArray(v) ? v : []; }
+  catch { return []; }
+}
 
 const ROLE_LABEL: Record<string, string> = { super_admin: '超级管理员', admin: '管理员', member: '成员' };
 
@@ -29,6 +36,12 @@ export default function Admin() {
   const [msg, setMsg] = useState('');
   const [q, setQ] = useState('');
   const [stats, setStats] = useState({ posts: 0, photos: 0 });
+  // 测试账号快切（仅超管）：账号存本机，一键切换登录方便测试
+  const [tas, setTas] = useState<TestAccount[]>(loadTAs);
+  const [taLabel, setTaLabel] = useState('');
+  const [taEmail, setTaEmail] = useState('');
+  const [taPw, setTaPw] = useState('');
+  const [taMsg, setTaMsg] = useState('');
 
   useEffect(() => { supabase.rpc('my_role').then(({ data }) => setRole(data ?? '')); }, []);
 
@@ -94,6 +107,31 @@ export default function Admin() {
   async function toggleIc(id: number, a: boolean) {
     const { error } = await supabase.rpc('set_invite_code_active', { cid: id, active: !a });
     if (!error) refresh(); else setMsg('操作失败：' + error.message);
+  }
+
+  function saveTAs(list: TestAccount[]) {
+    setTas(list);
+    try { localStorage.setItem(TA_KEY, JSON.stringify(list)); } catch {}
+  }
+  function addTa() {
+    const em = taEmail.trim();
+    if (!em || !taPw) return setTaMsg('邮箱和密码都要填');
+    saveTAs([...loadTAs(), { id: 'ta' + Date.now(), label: taLabel.trim(), email: em, password: taPw }]);
+    setTaLabel(''); setTaEmail(''); setTaPw(''); setTaMsg('已保存 ✓');
+  }
+  function delTa(id: string) { saveTAs(loadTAs().filter(a => a.id !== id)); }
+  async function switchTo(a: TestAccount) {
+    if (!confirm(`切换登录到 ${a.label || a.email}？当前账号会先退出。`)) return;
+    setTaMsg('');
+    const { data: { user } } = await supabase.auth.getUser();
+    const fromEmail = user?.email || '';
+    await supabase.auth.signOut();
+    const { error } = await supabase.auth.signInWithPassword({ email: a.email, password: a.password });
+    if (error) return; // 已退到登录页，手动登录即可
+    try {
+      sessionStorage.setItem('ca_testing_as', a.email);
+      sessionStorage.setItem('ca_testing_from', fromEmail);
+    } catch {}
   }
   async function markFb(id: number, done: boolean) {
     const { error } = await supabase.from('feedbacks').update({ status: done ? 'done' : 'open' }).eq('id', id);
@@ -161,6 +199,33 @@ export default function Admin() {
           </div>
         ))}
       </div>
+
+      {isSuper && (
+        <div className="adm-sec card">
+          <h3>⇄ 测试账号快切</h3>
+          <p className="priv-note" style={{ margin: '0 0 8px' }}>保存测试账号，一键切换登录，方便测试。密码只存这台手机的浏览器里。建议把管理号也存进来，切出去后右下角会有"结束测试"一键切回。</p>
+          {tas.map(a => (
+            <div key={a.id} className="row" style={{ alignItems: 'center', padding: '7px 0', borderBottom: '1px solid #ffffff0c' }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 14, fontWeight: 700 }}>{a.label || a.email}</div>
+                <div className="mut" style={{ fontSize: 12 }}>{a.email}</div>
+              </div>
+              <button className="mini" onClick={() => switchTo(a)}>切换登录</button>
+              <button className="mini danger" onClick={() => delTa(a.id)}>删除</button>
+            </div>
+          ))}
+          <div className="row" style={{ gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
+            <input placeholder="备注名（选填，如：测试号）" value={taLabel} onChange={e => setTaLabel(e.target.value)}
+              style={{ flex: '1 1 90px', minWidth: 0 }} />
+            <input placeholder="QQ 邮箱" value={taEmail} onChange={e => setTaEmail(e.target.value)} inputMode="email"
+              style={{ flex: '1 1 110px', minWidth: 0 }} />
+            <input type="password" placeholder="密码" value={taPw} onChange={e => setTaPw(e.target.value)}
+              style={{ flex: '1 1 90px', minWidth: 0 }} />
+            <button className="mini" onClick={addTa}>保存账号</button>
+          </div>
+          {taMsg && <p className="priv-note" style={{ marginTop: 6 }}>{taMsg}</p>}
+        </div>
+      )}
 
       <div className="adm-sec card">
         <h3>成员管理（{shown.length} 人）</h3>

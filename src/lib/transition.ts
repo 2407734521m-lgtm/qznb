@@ -50,8 +50,9 @@ export function flyTo(shot: Shot, target: HTMLElement, opts?: { duration?: numbe
 
   const dx = tr.x + tr.width / 2 - (shot.x + shot.w / 2);
   const dy = tr.y + tr.height / 2 - (shot.y + shot.h / 2);
-  const sx = tr.width / shot.w;
-  const sy = tr.height / shot.h;
+  // 等比缩放：照片比例始终不变
+  const su = Math.min(tr.width / shot.w, tr.height / shot.h);
+  const sx = su, sy = su;
   const targetR = getComputedStyle(target).borderRadius || '0px';
   const dur = opts?.duration ?? 620;
   // 方向性中途点：left/right/down 让照片带一点弧线甩入

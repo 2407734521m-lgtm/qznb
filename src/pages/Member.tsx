@@ -4,6 +4,7 @@ import { motion, useReducedMotion } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import { useSignedUrl } from '../lib/media';
 import { useAuth } from '../auth';
+import AvatarCropper from '../components/AvatarCropper';
 import Photo from '../components/Photo';
 import { setShot, takeShot, shotFrom, flyTo } from '../lib/transition';
 import type { Dir } from '../lib/transition';
@@ -19,6 +20,7 @@ export default function Member() {
   const [flying, setFlying] = useState(false);
   const [enterDir, setEnterDir] = useState<Dir>('down');
   const [upMsg, setUpMsg] = useState('');
+  const [cropSrc, setCropSrc] = useState<string | null>(null);
   const uid = useAuth().session?.user.id;
   const isMe = !!uid && uid === id;
   const photoRef = useRef<HTMLDivElement>(null);
@@ -60,13 +62,19 @@ export default function Member() {
     nav(-1);
   }
 
-  async function uploadPhoto(f?: File) {
+  function pickPhoto(f?: File) {
     if (!f || !isMe) return;
     if (!['image/jpeg', 'image/png', 'image/webp'].includes(f.type)) return setUpMsg('仅支持 JPG / PNG / WebP');
     if (f.size > 2 * 1024 * 1024) return setUpMsg('图片不能超过 2MB');
-    setUpMsg('上传中…');
-    const path = `${id}/${crypto.randomUUID()}.${f.type.split('/')[1]}`;
-    const up = await supabase.storage.from('avatars').upload(path, f, { contentType: f.type });
+    setUpMsg('');
+    setCropSrc(URL.createObjectURL(f));
+  }
+  function closeCrop() { if (cropSrc) URL.revokeObjectURL(cropSrc); setCropSrc(null); }
+
+  async function uploadCropped(blob: Blob) {
+    closeCrop(); setUpMsg('上传中…');
+    const path = `${id}/${crypto.randomUUID()}.jpg`;
+    const up = await supabase.storage.from('avatars').upload(path, blob, { contentType: 'image/jpeg' });
     if (up.error) return setUpMsg('上传失败：' + up.error.message);
     const { error } = await supabase.from('profiles').update({ avatar_path: path }).eq('id', id);
     if (error) return setUpMsg('保存失败：' + error.message);
@@ -115,11 +123,12 @@ export default function Member() {
           </div>
           {isMe && <label className="ghost upbtn">📷 上传照片
             <input type="file" hidden accept="image/jpeg,image/png,image/webp"
-              onChange={e => { uploadPhoto(e.target.files?.[0]); e.target.value = ''; }} />
+              onChange={e => { pickPhoto(e.target.files?.[0]); e.target.value = ''; }} />
           </label>}
           {isMe && upMsg && <p className="mut" style={{ fontSize: 12, margin: '6px 0 0' }}>{upMsg}</p>}
         </div>
       </div>
+      {cropSrc && <AvatarCropper src={cropSrc} onCancel={closeCrop} onDone={uploadCropped} />}
     </div>
   );
 }

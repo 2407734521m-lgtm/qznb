@@ -47,7 +47,7 @@ export default function Members() {
   // 返回时的反向共享元素过渡：飞回对应的卡片
   useEffect(() => {
     const s = takeShot();
-    if (!s?.img || reduce) return;
+    if (!s || reduce) return;
     const t = setTimeout(() => {
       const sel = s.key ? `[data-member="${CSS.escape(s.key)}"] .photo` : '.mcard .photo';
       const el = document.querySelector(sel) as HTMLElement | null;
@@ -61,7 +61,7 @@ export default function Members() {
   }, []);
 
   function open(m: M, photoEl: HTMLElement, img: string) {
-    const s = shotFrom(photoEl, img);
+    const s = shotFrom(photoEl, img, m.display_name || m.username);
     if (s) {
       // 按卡片所在列决定飞入方向：左列← / 右列→ / 中间↓
       const cx = photoEl.getBoundingClientRect(), midX = cx.x + cx.width / 2, w = window.innerWidth;

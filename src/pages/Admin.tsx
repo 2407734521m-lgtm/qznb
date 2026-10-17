@@ -9,6 +9,7 @@ type Alb = { id: number; title: string; category: string; created_at: string };
 type Fb = { id: number; name: string | null; contact: string | null; content: string; kind: string; status: string; created_at: string; user_id: string | null };
 type Gp = { profile_id: string; game_name: string; game_uid: string | null; rank: string | null; status: string; updated_at: string };
 type Ic = { id: number; code: string; nickname: string | null; active: boolean; created_at: string };
+type Notice = { id: number; content: string; created_at: string };
 type TestAccount = { id: string; label: string; email: string; password: string };
 
 const TA_KEY = 'ca_test_accounts';
@@ -46,6 +47,11 @@ export default function Admin() {
   const [replyOpen, setReplyOpen] = useState<number | null>(null);
   const [replyText, setReplyText] = useState<Record<number, string>>({});
   const [replyBusy, setReplyBusy] = useState(false);
+  // 公告管理
+  const [notices, setNotices] = useState<Notice[]>([]);
+  const [noticeText, setNoticeText] = useState('');
+  // 成员位置与设备
+  const [presence, setPresence] = useState<Record<string, { device: string | null; location: string | null }>>({});
 
   useEffect(() => { supabase.rpc('my_role').then(({ data }) => setRole(data ?? '')); }, []);
 
@@ -79,6 +85,11 @@ export default function Admin() {
     const pc = await supabase.from('posts').select('id', { count: 'exact', head: true });
     const hc = await supabase.from('album_photos').select('id', { count: 'exact', head: true });
     setStats({ posts: pc.count ?? 0, photos: hc.count ?? 0 });
+    const nt = await supabase.from('board_messages').select('id, content, created_at')
+      .eq('is_admin_msg', true).order('created_at', { ascending: false }).limit(20);
+    if (!nt.error) setNotices(nt.data as Notice[]);
+    const mp = await supabase.from('member_presence').select('profile_id, device, location');
+    if (!mp.error) setPresence(Object.fromEntries((mp.data ?? []).map((x: any) => [x.profile_id, x])));
   }
 
   useEffect(() => { if (role === 'admin' || role === 'super_admin') refresh(); }, [role]);
@@ -172,6 +183,21 @@ export default function Admin() {
     setMsg(error ? '操作失败：' + error.message : approve ? '已通过 ✓' : '已驳回');
     if (!error) refresh();
   }
+  // 公告管理：只有管理员能发布，会置顶在公告板最上面
+  async function postNotice() {
+    const c = noticeText.trim();
+    if (!c) return setMsg('先写点公告内容');
+    setMsg('');
+    const { error } = await supabase.from('board_messages')
+      .insert({ author_id: me, content: c.slice(0, 500), is_admin_msg: true });
+    setMsg(error ? '发布失败：' + error.message : '公告已发布 ✓（公告板最上面能看到）');
+    if (!error) { setNoticeText(''); refresh(); }
+  }
+  async function delNotice(id: number) {
+    if (!confirm('删除这条公告？')) return;
+    await supabase.from('board_messages').delete().eq('id', id);
+    refresh();
+  }
   async function revokeGp(pid: string) {
     if (!confirm('撤销该成员的段位认证？卡片标签会消失。')) return;
     const { error } = await supabase.from('game_profiles').delete().eq('profile_id', pid);
@@ -205,6 +231,15 @@ export default function Admin() {
     return (mb.display_name || '').toLowerCase().includes(s) || mb.username.toLowerCase().includes(s)
       || (emails[mb.id] || '').toLowerCase().includes(s) || (mb.real_name || '').toLowerCase().includes(s);
   });
+  // 分区导航
+  const NAV: [string, string][] = [
+    ['adm-overview', '📊 总览'], ['adm-board', '📢 公告'], ['adm-members', '👥 成员'],
+    ['adm-invite', '🎟️ 邀请码'], ['adm-feedback', '💬 反馈'], ['adm-game', '🎮 段位'],
+    ['adm-content', '🖼️ 内容'],
+    ...(isSuper ? [['adm-test', '🧪 测试'] as [string, string]] : []),
+    ['adm-logs', '📝 日志'],
+  ];
+  function go(id: string) { document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
 
   return (
     <div className="page">
@@ -214,7 +249,7 @@ export default function Admin() {
       </div>
       {msg && <p className="card" style={{ padding: 12 }}>{msg}</p>}
 
-      <div className="row" style={{ gap: 10 }}>
+      <div className="row" id="adm-overview" style={{ gap: 10, scrollMarginTop: 60 }}>
         {[['成员', members.length], ['已加入', members.filter(x => x.joined).length],
           ['动态', stats.posts], ['照片', stats.photos]].map(([l, n]) => (
           <div key={l as string} className="card" style={{ flex: 1, textAlign: 'center', padding: '12px 4px', margin: 0 }}>
@@ -224,41 +259,43 @@ export default function Admin() {
         ))}
       </div>
 
-      {isSuper && (
-        <div className="adm-sec card">
-          <h3>⇄ 测试账号快切</h3>
-          <p className="priv-note" style={{ margin: '0 0 8px' }}>保存测试账号，一键切换登录，方便测试。密码只存这台手机的浏览器里。建议把管理号也存进来，切出去后右下角会有"结束测试"一键切回。</p>
-          {tas.map(a => (
-            <div key={a.id} className="row" style={{ alignItems: 'center', padding: '7px 0', borderBottom: '1px solid #ffffff0c' }}>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 14, fontWeight: 700 }}>{a.label || a.email}</div>
-                <div className="mut" style={{ fontSize: 12 }}>{a.email}</div>
-              </div>
-              <button className="mini" onClick={() => switchTo(a)}>切换登录</button>
-              <button className="mini danger" onClick={() => delTa(a.id)}>删除</button>
-            </div>
-          ))}
-          <div className="row" style={{ gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
-            <input placeholder="备注名（选填，如：测试号）" value={taLabel} onChange={e => setTaLabel(e.target.value)}
-              style={{ flex: '1 1 90px', minWidth: 0 }} />
-            <input placeholder="QQ 邮箱" value={taEmail} onChange={e => setTaEmail(e.target.value)} inputMode="email"
-              style={{ flex: '1 1 110px', minWidth: 0 }} />
-            <input type="password" placeholder="密码" value={taPw} onChange={e => setTaPw(e.target.value)}
-              style={{ flex: '1 1 90px', minWidth: 0 }} />
-            <button className="mini" onClick={addTa}>保存账号</button>
-          </div>
-          {taMsg && <p className="priv-note" style={{ marginTop: 6 }}>{taMsg}</p>}
-        </div>
-      )}
+      <div className="row" style={{ gap: 8, overflowX: 'auto', padding: '10px 2px 4px', flexWrap: 'nowrap' }}>
+        {NAV.map(([id, label]) => (
+          <button key={id} className="mini ghost" style={{ whiteSpace: 'nowrap', flexShrink: 0 }} onClick={() => go(id)}>{label}</button>
+        ))}
+      </div>
 
-      <div className="adm-sec card">
+      <div className="adm-sec card" id="adm-board" style={{ scrollMarginTop: 60 }}>
+        <h3>📢 公告管理</h3>
+        <p className="priv-note" style={{ margin: '0 0 8px' }}>公告只有管理员能发布，会置顶显示在公告板最上面，普通成员只能看和留言。</p>
+        <textarea value={noticeText} onChange={e => setNoticeText(e.target.value)} rows={3} maxLength={500}
+          placeholder="写公告…" style={{ width: '100%' }} />
+        <div style={{ marginTop: 8 }}>
+          <button className="pri" style={{ width: 'auto', padding: '10px 26px' }} onClick={postNotice}>📢 发布公告</button>
+        </div>
+        {notices.map(n => (
+          <div key={n.id} className="row" style={{ justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #ffffff0c' }}>
+            <span style={{ fontSize: 13.5, flex: 1, minWidth: 0 }}>{n.content}
+              <br /><span className="mut" style={{ fontSize: 12 }}>{(n.created_at || '').slice(0, 16).replace('T', ' ')}</span></span>
+            <button className="mini danger" onClick={() => delNotice(n.id)}>删除</button>
+          </div>
+        ))}
+      </div>
+
+      <div className="adm-sec card" id="adm-members" style={{ scrollMarginTop: 60 }}>
         <h3>成员管理（{shown.length} 人）</h3>
         <input placeholder="🔍 搜索名字 / 用户名 / 真实姓名 / 邮箱" value={q} onChange={e => setQ(e.target.value)}
           style={{ marginBottom: 10 }} />
         <table className="tbl"><thead><tr><th>成员</th><th>邮箱</th><th>角色</th><th>状态</th><th></th></tr></thead>
           <tbody>{shown.map(mb => (
             <tr key={mb.id}>
-              <td>{mb.display_name || mb.username}<br /><span className="mut" style={{ fontSize: 12 }}>@{mb.username}{mb.real_name ? ` · ${mb.real_name}` : ''}</span></td>
+              <td>{mb.display_name || mb.username}<br /><span className="mut" style={{ fontSize: 12 }}>@{mb.username}{mb.real_name ? ` · ${mb.real_name}` : ''}</span>
+                {presence[mb.id] && (presence[mb.id].location || presence[mb.id].device) && (
+                  <><br /><span className="mut" style={{ fontSize: 11 }}>
+                    {presence[mb.id].location ? `📍${presence[mb.id].location}` : ''}
+                    {presence[mb.id].location && presence[mb.id].device ? ' · ' : ''}
+                    {presence[mb.id].device ? `📱${presence[mb.id].device}` : ''}
+                  </span></>)}</td>
               <td style={{ fontSize: 12 }}>{emails[mb.id] ?? '—'}</td>
               <td><span className={`chip ${mb.role === 'super_admin' ? 'sa' : mb.role === 'admin' ? 'ad' : ''}`}>{ROLE_LABEL[mb.role] ?? mb.role}</span></td>
               <td style={{ fontSize: 13 }}>{mb.joined ? '已加入' : '未加入'}</td>
@@ -275,7 +312,7 @@ export default function Admin() {
           ))}</tbody></table>
       </div>
 
-      <div className="adm-sec card">
+      <div className="adm-sec card" id="adm-invite" style={{ scrollMarginTop: 60 }}>
         <h3>🎟️ 邀请码管理</h3>
         {isSuper ? (<>
           {ics.map(ic => (
@@ -305,7 +342,7 @@ export default function Admin() {
         </>) : <p className="mut">邀请码仅超级管理员可管理</p>}
       </div>
 
-      <div className="adm-sec card">
+      <div className="adm-sec card" id="adm-feedback" style={{ scrollMarginTop: 60 }}>
         <h3>💬 反馈管理（{feedbacks.filter(f => f.status === 'open').length} 条未处理）</h3>
         {feedbacks.length === 0 && <p className="mut" style={{ fontSize: 13 }}>暂无反馈</p>}
         {feedbacks.map(f => (
@@ -347,7 +384,7 @@ export default function Admin() {
         ))}
       </div>
 
-      <div className="adm-sec card">
+      <div className="adm-sec card" id="adm-game" style={{ scrollMarginTop: 60 }}>
         <h3>🎮 游戏段位审核</h3>
         {gpend.length === 0 && gok.length === 0 && <p className="mut" style={{ fontSize: 13 }}>暂无提交</p>}
         {gpend.length > 0 && <>
@@ -376,8 +413,9 @@ export default function Admin() {
         </>}
       </div>
 
-      <div className="adm-sec card">
-        <h3>动态管理</h3>
+      <div className="adm-sec card" id="adm-content" style={{ scrollMarginTop: 60 }}>
+        <h3>🖼️ 内容管理</h3>
+        <p className="mut" style={{ fontSize: 12.5, margin: '0 0 6px' }}>班级动态</p>
         {posts.length === 0 && <p className="mut" style={{ fontSize: 13 }}>暂无动态</p>}
         {posts.map(p => (
           <div key={p.id} className="row" style={{ justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #ffffff0c' }}>
@@ -386,10 +424,7 @@ export default function Admin() {
             <button className="mini danger" onClick={() => delPost(p.id)}>删除</button>
           </div>
         ))}
-      </div>
-
-      <div className="adm-sec card">
-        <h3>相册管理</h3>
+        <p className="mut" style={{ fontSize: 12.5, margin: '14px 0 6px' }}>班级相册</p>
         {albums.length === 0 && <p className="mut" style={{ fontSize: 13 }}>暂无相册</p>}
         {albums.map(a => (
           <div key={a.id} className="row" style={{ justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #ffffff0c' }}>
@@ -399,8 +434,35 @@ export default function Admin() {
         ))}
       </div>
 
-      <div className="adm-sec card">
-        <h3>操作日志</h3>
+      {isSuper && (
+        <div className="adm-sec card" id="adm-test" style={{ scrollMarginTop: 60 }}>
+          <h3>🧪 测试工具</h3>
+          <p className="priv-note" style={{ margin: '0 0 8px' }}>测试账号快切：保存测试账号，一键切换登录，方便测试。密码只存这台手机的浏览器里。建议把管理号也存进来，切出去后右下角会有"结束测试"一键切回。</p>
+          {tas.map(a => (
+            <div key={a.id} className="row" style={{ alignItems: 'center', padding: '7px 0', borderBottom: '1px solid #ffffff0c' }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 14, fontWeight: 700 }}>{a.label || a.email}</div>
+                <div className="mut" style={{ fontSize: 12 }}>{a.email}</div>
+              </div>
+              <button className="mini" onClick={() => switchTo(a)}>切换登录</button>
+              <button className="mini danger" onClick={() => delTa(a.id)}>删除</button>
+            </div>
+          ))}
+          <div className="row" style={{ gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
+            <input placeholder="备注名（选填，如：测试号）" value={taLabel} onChange={e => setTaLabel(e.target.value)}
+              style={{ flex: '1 1 90px', minWidth: 0 }} />
+            <input placeholder="QQ 邮箱" value={taEmail} onChange={e => setTaEmail(e.target.value)} inputMode="email"
+              style={{ flex: '1 1 110px', minWidth: 0 }} />
+            <input type="password" placeholder="密码" value={taPw} onChange={e => setTaPw(e.target.value)}
+              style={{ flex: '1 1 90px', minWidth: 0 }} />
+            <button className="mini" onClick={addTa}>保存账号</button>
+          </div>
+          {taMsg && <p className="priv-note" style={{ marginTop: 6 }}>{taMsg}</p>}
+        </div>
+      )}
+
+      <div className="adm-sec card" id="adm-logs" style={{ scrollMarginTop: 60 }}>
+        <h3>📝 操作日志</h3>
         {logs.length === 0 && <p className="mut" style={{ fontSize: 13 }}>暂无记录</p>}
         {logs.map(l => (
           <div key={l.id} className="log">

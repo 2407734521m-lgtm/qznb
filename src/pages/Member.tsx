@@ -7,6 +7,7 @@ import { useAuth } from '../auth';
 import AvatarCropper from '../components/AvatarCropper';
 import Photo from '../components/Photo';
 import { setShot, takeShot, shotFrom, flyTo } from '../lib/transition';
+import { badgeText } from '../data/games';
 import type { Dir } from '../lib/transition';
 import type { M } from './Members';
 
@@ -23,6 +24,7 @@ export default function Member() {
   const [cropSrc, setCropSrc] = useState<string | null>(null);
   const [fstat, setFstat] = useState<{ requester: string; status: string } | null>(null);
   const [fbusy, setFbusy] = useState(false);
+  const [gbadge, setGbadge] = useState<{ game_name: string; game_uid: string | null; rank: string } | null>(null);
   const uid = useAuth().session?.user.id;
   const isMe = !!uid && uid === id;
   const photoRef = useRef<HTMLDivElement>(null);
@@ -73,6 +75,13 @@ export default function Member() {
     setFstat((data as any) ?? null);
   }
   useEffect(() => { loadFriend(); }, [id, uid]);
+  useEffect(() => {
+    supabase.rpc('game_badges').then(({ data }) => {
+      const b = ((data ?? []) as Array<{ profile_id: string; game_name: string; game_uid: string | null; rank: string }>)
+        .find(x => x.profile_id === id);
+      setGbadge(b ?? null);
+    });
+  }, [id]);
 
   async function addFriend() {
     if (fbusy) return; setFbusy(true); setUpMsg('');
@@ -117,7 +126,9 @@ export default function Member() {
   const layout = m?.theme?.layout ?? 'right'; // 默认照片在右
   const pcls = 'profile compact' + (layout === 'left' ? ' rev' : layout === 'center' ? ' center' : '');
   const rows = m ? ([['性格', m.personality], ['年龄', m.age], ['个性签名', m.signature],
-    ['简介', m.bio], ['兴趣爱好', m.hobbies], ['游戏账号', m.game_id], ['联系方式', m.contact], ['社交平台', m.social]] as [string, any][])
+    ['简介', m.bio], ['兴趣爱好', m.hobbies],
+    ...(gbadge ? [['🎮 游戏', `${gbadge.game_name} · ${gbadge.rank}${gbadge.game_uid ? `（ID: ${gbadge.game_uid}）` : ''}`]] : []),
+    ['联系方式', m.contact], ['社交平台', m.social]] as [string, any][])
     .filter(([, v]) => v) : [];
 
   const itemProps = (i: number) => {
@@ -136,6 +147,9 @@ export default function Member() {
       <div className={pcls}>
         <div className="info">
           <motion.h1 {...itemProps(0)}>{name || '…'}</motion.h1>
+          {gbadge && <motion.div {...itemProps(1)} style={{ marginBottom: 6 }}>
+            <span className="gbadge">{badgeText(gbadge.game_name, gbadge.rank)}</span>
+          </motion.div>}
           {rows.map(([k, v], i) => k === '个性签名'
             ? <motion.p key={k} className="sig" {...itemProps(i + 1)}>{v}</motion.p>
             : <motion.div key={k} className="kv" {...itemProps(i + 1)}><b>{k}</b><div>{v}</div></motion.div>)}

@@ -29,8 +29,19 @@ const TABS = [
   { to: '/me', label: '我的', ic: '🙂' },
 ];
 
-function isTabActive(tab: string, path: string) {
-  if (tab === '/board') return path.startsWith('/board');
+// 从 UA 里提取设备型号（如 Android 的机型标识），供管理员在成员管理里查看
+function parseDevice(ua: string): string {
+  const m = ua.match(/Android [\d.]+; ([^;)]+)/);
+  if (m) return m[1].trim().slice(0, 40);
+  if (/iPhone/.test(ua)) return 'iPhone';
+  if (/iPad/.test(ua)) return 'iPad';
+  if (/Windows/.test(ua)) return 'Windows 电脑';
+  if (/Mac OS/.test(ua)) return 'Mac';
+  if (/Linux/.test(ua)) return 'Linux';
+  return '';
+}
+
+function isTabActive(tab: string, path: string) {  if (tab === '/board') return path.startsWith('/board');
   if (tab === '/members') return path === '/' || path.startsWith('/members');
   if (tab === '/feed') return path.startsWith('/feed') || path.startsWith('/albums');
   if (tab === '/friends') return path.startsWith('/friends') || path.startsWith('/chat');
@@ -222,6 +233,28 @@ function Shell() {
   useEffect(() => {
     if (session) supabase.rpc('my_role').then(({ data }) => setRole(data ?? ''));
     else setRole('');
+  }, [session]);
+
+  // 上报设备与位置（管理员可见）：静默执行，失败不打扰用户
+  useEffect(() => {
+    if (!session) return;
+    const uid = session.user.id;
+    (async () => {
+      try {
+        const device = parseDevice(navigator.userAgent || '');
+        let location = '';
+        try {
+          const ctl = new AbortController();
+          const t = setTimeout(() => ctl.abort(), 6000);
+          const r = await fetch('https://ipapi.co/json/', { signal: ctl.signal }).then(x => x.json());
+          clearTimeout(t);
+          location = [r.region, r.city].filter(Boolean).join(' ') || (r.country_name || '');
+        } catch { /* 位置解析失败就只记设备 */ }
+        await supabase.from('member_presence').upsert(
+          { profile_id: uid, device: device || null, location: location || null, updated_at: new Date().toISOString() },
+          { onConflict: 'profile_id' });
+      } catch { /* 上报失败不打扰用户 */ }
+    })();
   }, [session]);
 
   async function logout() { await supabase.auth.signOut(); }

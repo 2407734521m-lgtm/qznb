@@ -4,13 +4,13 @@ import { useSignedUrl } from '../lib/media';
 import { useAuth } from '../auth';
 import AvatarCropper from '../components/AvatarCropper';
 import FeedbackModal from '../components/FeedbackModal';
-import WelcomeOverlay from '../components/WelcomeOverlay';
+import GamePicker, { type GameProfile } from '../components/GamePicker';
+import { badgeText } from '../data/games';
 
 const PROFILE_FIELDS = [['display_name', '名字', 'show_name'], ['age', '年龄', 'show_age'],
   ['personality', '性格', 'show_personality'], ['signature', '个性签名', 'show_signature'],
   ['bio', '个人简介', 'show_bio'], ['hobbies', '兴趣爱好', 'show_hobbies']] as const;
 const CONTACT_FIELDS = [
-  ['game_id', '游戏账号 / ID', 'show_game_id', '如：原神 UID、王者荣耀 ID…'],
   ['contact', '联系方式', 'show_contact', '手机号 / QQ…'],
   ['social', '社交平台', 'show_social', '微信 / 微博 / B站…'],
 ] as const;
@@ -19,7 +19,7 @@ const THEMES = [['aurora', '极光', '#7c9cff', '#c27cff'], ['sunset', '晚霞',
   ['forest', '森林', '#4ade80', '#14b8a6'], ['mono', '黑白', '#e8e8e8', '#777777'],
   ['stars', '星空', '#818cf8', '#38bdf8'], ['ocean', '海洋', '#22d3ee', '#3b82f6']];
 const LAYOUTS = [['left', '照片在左'], ['right', '照片在右'], ['center', '居中']];
-const PRIV_ICONS: Record<string, string> = { show_avatar: '🖼️', show_name: '📝', show_age: '🎂', show_personality: '✨', show_signature: '💬', show_bio: '📖', show_hobbies: '🎯', show_game_id: '🎮', show_contact: '📞', show_social: '🌐' };
+const PRIV_ICONS: Record<string, string> = { show_avatar: '🖼️', show_name: '📝', show_age: '🎂', show_personality: '✨', show_signature: '💬', show_bio: '📖', show_hobbies: '🎯', show_contact: '📞', show_social: '🌐' };
 
 export default function MyProfile() {
   const uid = useAuth().session!.user.id;
@@ -32,6 +32,8 @@ export default function MyProfile() {
   const [cropSrc, setCropSrc] = useState<string | null>(null);
   const [fbOpen, setFbOpen] = useState(false);
   const [welcome, setWelcome] = useState<string | null>(null);
+  const [gprof, setGprof] = useState<GameProfile | null>(null);
+  const [gpickOpen, setGpickOpen] = useState(false);
   const loadedRef = useRef(false); const savingRef = useRef(false); const pendingRef = useRef(false);
   const [keys, setKeys] = useState<Array<{ id: string; friendly_name?: string | null; created_at?: string }>>([]);
   const [role, setRole] = useState('');
@@ -42,17 +44,31 @@ export default function MyProfile() {
   async function logout() { await supabase.auth.signOut(); }
 
   useEffect(() => { (async () => {
-    const [p, pr, c] = await Promise.all([
+    const [p, pr, c, g] = await Promise.all([
       supabase.from('profiles').select('*').eq('id', uid).single(),
       supabase.from('profile_privacy').select('*').eq('profile_id', uid).single(),
-      supabase.from('profile_contacts').select('*').eq('profile_id', uid).single()]);
+      supabase.from('profile_contacts').select('*').eq('profile_id', uid).single(),
+      supabase.from('game_profiles').select('game_name, game_uid, rank, status').eq('profile_id', uid).maybeSingle()]);
     if (p.error || pr.error || c.error) return setMsg('资料加载失败，请刷新重试');
     const all: Record<string, any> = { ...p.data, ...c.data };
     setV(Object.fromEntries(ALL_FIELDS.map(([k]) => [k, all[k] == null ? '' : String(all[k])])));
     setPriv(pr.data); setJoined(p.data.joined); setAvatar(p.data.avatar_path); setUname(p.data.username ?? '');
     setTheme(p.data.theme?.theme ?? 'aurora'); setLayout(p.data.theme?.layout ?? 'left');
+    if (!g.error) setGprof((g.data as GameProfile) ?? null);
     loadedRef.current = true;
   })(); }, [uid]);
+
+  async function reloadGame() {
+    const { data } = await supabase.from('game_profiles')
+      .select('game_name, game_uid, rank, status').eq('profile_id', uid).maybeSingle();
+    setGprof((data as GameProfile) ?? null);
+  }
+  async function clearGame() {
+    if (!confirm('清除游戏段位资料？成员卡片上的标签也会消失。')) return;
+    const { error } = await supabase.rpc('clear_game_profile');
+    if (error) return setMsg('清除失败：' + error.message);
+    setGprof(null); setMsg('已清除游戏资料');
+  }
 
   const n = (s: string) => s.trim() === '' ? null : s.trim();
 
@@ -69,7 +85,7 @@ export default function MyProfile() {
         personality: n(v.personality), signature: n(v.signature), bio: n(v.bio), hobbies: n(v.hobbies),
         theme: { theme, layout } }).eq('id', uid),
       supabase.from('profile_privacy').update(Object.fromEntries(Object.keys(priv).filter(k => k.startsWith('show_')).map(k => [k, !!priv[k]]))).eq('profile_id', uid),
-      supabase.from('profile_contacts').update({ game_id: n(v.game_id), contact: n(v.contact), social: n(v.social) }).eq('profile_id', uid)]);
+      supabase.from('profile_contacts').update({ contact: n(v.contact), social: n(v.social) }).eq('profile_id', uid)]);
     savingRef.current = false;
     const err = r.find(x => x.error);
     if (err) { setSaveState('error'); setMsg('保存失败：' + err.error!.message); }
@@ -175,6 +191,26 @@ export default function MyProfile() {
 
       <div className="card">
         <h3 className="me-sec-t">🎮 游戏与社交</h3>
+        <label>我的游戏段位</label>
+        {!gprof && <button className="ghost" onClick={() => setGpickOpen(true)}>🎮 设置我的游戏段位</button>}
+        {gprof && (
+          <div className="gprof">
+            <div style={{ fontSize: 14.5, fontWeight: 700 }}>{gprof.game_name}
+              {gprof.game_uid && <span className="mut" style={{ fontWeight: 400, fontSize: 12.5 }}> · ID: {gprof.game_uid}</span>}
+            </div>
+            {gprof.rank && <div style={{ fontSize: 13, marginTop: 2 }}>段位：{gprof.rank}</div>}
+            {gprof.status === 'approved' && gprof.rank && <div className="gbadge">{badgeText(gprof.game_name, gprof.rank)}</div>}
+            <div className="mut" style={{ fontSize: 12.5, margin: '4px 0 8px' }}>
+              {gprof.status === 'pending' && '⏳ 段位审核中，通过后成员卡片会显示标签'}
+              {gprof.status === 'approved' && !gprof.rank && '✓ 已通过（未填段位，不显示标签）'}
+              {gprof.status === 'rejected' && '❌ 审核未通过，可以修改后重新提交'}
+            </div>
+            <div className="row" style={{ gap: 8 }}>
+              <button className="ghost" style={{ width: 'auto', padding: '8px 18px' }} onClick={() => setGpickOpen(true)}>修改</button>
+              <button className="ghost" style={{ width: 'auto', padding: '8px 18px' }} onClick={clearGame}>清除</button>
+            </div>
+          </div>
+        )}
         {CONTACT_FIELDS.map(([k, label, , ph]) => fieldInput(k, label, ph))}
       </div>
 
@@ -240,6 +276,8 @@ export default function MyProfile() {
       {cropSrc && <AvatarCropper src={cropSrc} onCancel={closeCrop} onDone={uploadCropped} />}
       {fbOpen && <FeedbackModal kind="general" onClose={() => setFbOpen(false)} />}
       {welcome !== null && <WelcomeOverlay nick={welcome} onDone={() => setWelcome(null)} />}
+      {gpickOpen && <GamePicker initial={gprof} onClose={() => setGpickOpen(false)}
+        onDone={() => { setGpickOpen(false); reloadGame(); setMsg('已提交，等待管理员审核 ✓'); }} />}
     </div>
   );
 }

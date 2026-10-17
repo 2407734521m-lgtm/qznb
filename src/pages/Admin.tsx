@@ -274,7 +274,7 @@ export default function Admin() {
   }
   // 待办 / 在线 / 趋势（纯计算）
   const todoFb = feedbacks.filter(f => f.status === 'open').length;
-  const todoGame = gameProfiles.filter(g => g.status === 'pending').length;
+  const todoGame = gpend.length;
   const todoJoin = members.filter(m => !m.joined).length;
   const onlineList = members.filter(m => {
     const t = presence[m.id]?.updated_at;

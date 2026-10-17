@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase';
 import { downscaleImage } from '../lib/media';
 
 const BG_KEY = 'ca_login_bg';
+const DEFAULT_BG = 'bg.jpg'; // 默认壁纸（樱花）
 
 // 登录标识可以是：QQ 邮箱 / 用户名 / 真实姓名
 async function resolveEmail(ident: string): Promise<string> {
@@ -27,12 +28,12 @@ export default function Login() {
   const [avatar, setAvatar] = useState<File | null>(null);
   const [avatarPrev, setAvatarPrev] = useState<string | null>(null);
   const [err, setErr] = useState(''); const [busy, setBusy] = useState(false);
-  const [bg, setBg] = useState<string | null>(() => { try { return localStorage.getItem(BG_KEY); } catch { return null; } });
-  const [blur, setBlur] = useState(8); const [dark, setDark] = useState(55);
+  const [bg, setBg] = useState<string>(() => { try { return localStorage.getItem(BG_KEY) || DEFAULT_BG; } catch { return DEFAULT_BG; } });
+  const [blur, setBlur] = useState(5); const [dark, setDark] = useState(45);
   const [showBg, setShowBg] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null); const bgRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => { try { bg ? localStorage.setItem(BG_KEY, bg) : localStorage.removeItem(BG_KEY); } catch {} }, [bg]);
+  useEffect(() => { try { localStorage.setItem(BG_KEY, bg); } catch {} }, [bg]);
 
   function pickAvatar(f: File | undefined) {
     if (!f) return;
@@ -140,7 +141,7 @@ export default function Login() {
             {showBg && (<div style={{ marginTop: 8 }}>
               <div className="row">
                 <button className="ghost" style={{ fontSize: 12 }} onClick={() => bgRef.current?.click()}>上传照片</button>
-                {bg && <button className="ghost" style={{ fontSize: 12 }} onClick={() => setBg(null)}>恢复默认</button>}
+                {bg !== DEFAULT_BG && <button className="ghost" style={{ fontSize: 12 }} onClick={() => setBg(DEFAULT_BG)}>恢复默认</button>}
                 <input ref={bgRef} type="file" accept="image/*" hidden onChange={e => {
                   const f = e.target.files?.[0]; if (!f) return;
                   const r = new FileReader();

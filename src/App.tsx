@@ -1,8 +1,10 @@
-import { useEffect, useState } from 'react';
-import { Routes, Route, NavLink, Navigate, useLocation } from 'react-router-dom';
+import { useEffect, useRef, useState } from 'react';
+import { Routes, Route, NavLink, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { supabase } from './lib/supabase';
 import { useAuth } from './auth';
+import { getWallpaper, isOnboarded } from './lib/wallpaper';
+import WallpaperOnboarding from './components/WallpaperOnboarding';
 import bgUrl from './assets/bg.jpg';
 import Login from './pages/Login';
 import Members from './pages/Members';
@@ -38,6 +40,38 @@ function Shell() {
   const reduce = useReducedMotion();
   const isAdmin = role === 'admin' || role === 'super_admin';
   const isAdminPage = loc.pathname === '/admin';
+  const nav = useNavigate();
+  const touchX = useRef<number | null>(null);
+
+  // 全站壁纸（登录后的 onboarding 可改）
+  const [wp, setWp] = useState(getWallpaper);
+  useEffect(() => {
+    const h = () => setWp(getWallpaper());
+    window.addEventListener('ca:wallpaper', h);
+    return () => window.removeEventListener('ca:wallpaper', h);
+  }, []);
+
+  // 登录后首次：全屏过渡 + 选壁纸
+  const [showWp, setShowWp] = useState(false);
+  useEffect(() => {
+    if (session && !isOnboarded()) setShowWp(true);
+    const open = () => setShowWp(true);
+    window.addEventListener('ca:wallpaper:open', open);
+    return () => window.removeEventListener('ca:wallpaper:open', open);
+  }, [session]);
+
+  // 底栏左右滑动切换 tab（像 iPhone 小横条）
+  function tabTouchStart(e: React.TouchEvent) { touchX.current = e.touches[0].clientX; }
+  function tabTouchEnd(e: React.TouchEvent) {
+    if (touchX.current == null) return;
+    const dx = e.changedTouches[0].clientX - touchX.current;
+    touchX.current = null;
+    if (Math.abs(dx) < 48) return;
+    const idx = TABS.findIndex(t => isTabActive(t.to, loc.pathname));
+    if (idx < 0) return;
+    const ni = idx + (dx < 0 ? 1 : -1);
+    if (ni >= 0 && ni < TABS.length) nav(TABS[ni].to);
+  }
 
   useEffect(() => {
     if (session) supabase.rpc('my_role').then(({ data }) => setRole(data ?? ''));
@@ -52,7 +86,9 @@ function Shell() {
   return (
     <>
       <div className="glow" />
-      <div className="app-bg" style={{ backgroundImage: `url(${bgUrl})` }} />
+      <div className="app-bg" style={wp.kind === 'grad'
+        ? { background: wp.src, filter: `blur(${wp.blur}px) brightness(${100 - wp.dark}%)` }
+        : { backgroundImage: `url(${wp.src === 'default' ? bgUrl : wp.src})`, filter: `blur(${wp.blur}px) brightness(${100 - wp.dark}%)` }} />
       {isAdminPage ? (
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', position: 'sticky', top: 0, zIndex: 40, background: 'rgba(10,12,20,.78)', backdropFilter: 'blur(12px)', borderBottom: '1px solid rgba(255,255,255,.08)' }}>
           <b style={{ fontSize: 15 }}>🛠️ 管理后台</b>
@@ -100,11 +136,23 @@ function Shell() {
         </AnimatePresence>
       </div>
 
-      {!isAdminPage && <nav className="tabbar">
-        {TABS.map(t => (
-          <NavLink key={t.to} to={t.to} className={isTabActive(t.to, loc.pathname) ? 'on' : ''}>{t.label}</NavLink>
-        ))}
+      {!isAdminPage && <nav className="tabbar" onTouchStart={tabTouchStart} onTouchEnd={tabTouchEnd}>
+        {TABS.map(t => {
+          const on = isTabActive(t.to, loc.pathname);
+          return (
+            <NavLink key={t.to} to={t.to} className={on ? 'on' : ''}
+              style={{ position: 'relative', ...(on ? { background: 'transparent' } : {}) }}>
+              {on && <motion.span layoutId="tab-glass"
+                transition={{ type: 'spring', stiffness: 550, damping: 38 }}
+                style={{ position: 'absolute', inset: 0, borderRadius: 999,
+                  background: 'linear-gradient(135deg,var(--a),var(--b))',
+                  boxShadow: '0 4px 16px color-mix(in srgb,var(--a) 45%,transparent)' }} />}
+              <span style={{ position: 'relative', zIndex: 1 }}>{t.label}</span>
+            </NavLink>
+          );
+        })}
       </nav>}
+      {showWp && <WallpaperOnboarding onDone={() => setShowWp(false)} />}
     </>
   );
 }

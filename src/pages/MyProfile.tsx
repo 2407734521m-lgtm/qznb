@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useSignedUrl } from '../lib/media';
 import { useAuth } from '../auth';
+import AvatarCropper from '../components/AvatarCropper';
 
 const PROFILE_FIELDS = [['display_name', '名字', 'show_name'], ['age', '年龄', 'show_age'],
   ['personality', '性格', 'show_personality'], ['signature', '个性签名', 'show_signature'],
@@ -24,7 +25,10 @@ export default function MyProfile() {
   const [uname, setUname] = useState('');
   const [theme, setTheme] = useState('aurora'); const [layout, setLayout] = useState('right');
   const [joined, setJoined] = useState(true); const [avatar, setAvatar] = useState<string | null>(null);
-  const [code, setCode] = useState(''); const [msg, setMsg] = useState(''); const [busy, setBusy] = useState(false);
+  const [code, setCode] = useState(''); const [msg, setMsg] = useState('');
+  const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  const [cropSrc, setCropSrc] = useState<string | null>(null);
+  const loadedRef = useRef(false); const savingRef = useRef(false); const pendingRef = useRef(false);
   const [keys, setKeys] = useState<Array<{ id: string; friendly_name?: string | null; created_at?: string }>>([]);
   const [role, setRole] = useState('');
   const fileRef = useRef<HTMLInputElement>(null);
@@ -43,27 +47,51 @@ export default function MyProfile() {
     setV(Object.fromEntries(ALL_FIELDS.map(([k]) => [k, all[k] == null ? '' : String(all[k])])));
     setPriv(pr.data); setJoined(p.data.joined); setAvatar(p.data.avatar_path); setUname(p.data.username ?? '');
     setTheme(p.data.theme?.theme ?? 'aurora'); setLayout(p.data.theme?.layout ?? 'left');
+    loadedRef.current = true;
   })(); }, [uid]);
 
   const n = (s: string) => s.trim() === '' ? null : s.trim();
-  async function save() {
-    if (busy) return; setBusy(true); setMsg('');
-    const age = n(v.age ?? ''); if (age && !(Number(age) >= 5 && Number(age) <= 120)) { setBusy(false); return setMsg('年龄需在 5–120 之间'); }
+
+  // 自动保存：改动后 1 秒自动存，不用点保存按钮
+  async function doSave() {
+    if (savingRef.current) { pendingRef.current = true; return; }
+    savingRef.current = true; setSaveState('saving');
+    const age = n(v.age ?? '');
+    if (age && !(Number(age) >= 5 && Number(age) <= 120)) {
+      savingRef.current = false; setSaveState('idle'); setMsg('年龄需在 5–120 之间'); return;
+    }
     const r = await Promise.all([
       supabase.from('profiles').update({ display_name: n(v.display_name), age: age ? Number(age) : null,
         personality: n(v.personality), signature: n(v.signature), bio: n(v.bio), hobbies: n(v.hobbies),
         theme: { theme, layout } }).eq('id', uid),
       supabase.from('profile_privacy').update(Object.fromEntries(Object.keys(priv).filter(k => k.startsWith('show_')).map(k => [k, !!priv[k]]))).eq('profile_id', uid),
       supabase.from('profile_contacts').update({ game_id: n(v.game_id), contact: n(v.contact), social: n(v.social) }).eq('profile_id', uid)]);
-    setBusy(false); setMsg(r.some(x => x.error) ? '保存失败：' + r.find(x => x.error)!.error!.message : '已保存 ✓');
+    savingRef.current = false;
+    const err = r.find(x => x.error);
+    if (err) { setSaveState('error'); setMsg('保存失败：' + err.error!.message); }
+    else { setMsg(''); setSaveState('saved'); }
+    if (pendingRef.current) { pendingRef.current = false; doSave(); }
   }
+  useEffect(() => {
+    if (!loadedRef.current) return;
+    const t = setTimeout(() => { doSave(); }, 1000);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [v, priv, theme, layout]);
 
-  async function upload(f?: File) {
+  function pickAvatar(f?: File) {
     if (!f) return;
     if (!['image/jpeg', 'image/png', 'image/webp'].includes(f.type)) return setMsg('仅支持 JPG / PNG / WebP');
     if (f.size > 2 * 1024 * 1024) return setMsg('图片不能超过 2MB');
-    const path = `${uid}/${crypto.randomUUID()}.${f.type.split('/')[1]}`;
-    const up = await supabase.storage.from('avatars').upload(path, f, { contentType: f.type });
+    setMsg('');
+    setCropSrc(URL.createObjectURL(f));
+  }
+  function closeCrop() { if (cropSrc) URL.revokeObjectURL(cropSrc); setCropSrc(null); }
+
+  async function uploadCropped(blob: Blob) {
+    closeCrop(); setMsg('头像上传中…');
+    const path = `${uid}/${crypto.randomUUID()}.jpg`;
+    const up = await supabase.storage.from('avatars').upload(path, blob, { contentType: 'image/jpeg' });
     if (up.error) return setMsg('上传失败：' + up.error.message);
     const { error } = await supabase.from('profiles').update({ avatar_path: path }).eq('id', uid);
     if (error) return setMsg('保存失败：' + error.message);
@@ -120,7 +148,7 @@ export default function MyProfile() {
           <p className="mut" style={{ margin: '2px 0 0', fontSize: 12.5 }}>@{uname}</p>
         </div>
         <input ref={fileRef} type="file" hidden accept="image/jpeg,image/png,image/webp"
-          onChange={e => { upload(e.target.files?.[0]); e.target.value = ''; }} />
+          onChange={e => { pickAvatar(e.target.files?.[0]); e.target.value = ''; }} />
       </div>
 
       {!joined && <div className="card"><h3 className="me-sec-t">🎟️ 加入班级</h3>
@@ -195,7 +223,10 @@ export default function MyProfile() {
       </div>
 
       {msg && <p className="card me-msg">{msg}</p>}
-      <button className="pri me-save" disabled={busy} onClick={save}>{busy ? '保存中…' : '💾 保存全部'}</button>
+      <p className="autosave">
+        {saveState === 'saving' ? '● 保存中…' : saveState === 'saved' ? '✓ 已自动保存' : saveState === 'error' ? '● 保存失败，请检查网络' : '✓ 改动会自动保存'}
+      </p>
+      {cropSrc && <AvatarCropper src={cropSrc} onCancel={closeCrop} onDone={uploadCropped} />}
     </div>
   );
 }

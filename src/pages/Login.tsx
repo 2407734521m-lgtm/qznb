@@ -153,8 +153,10 @@ export default function Login() {
         const { error: e2 } = await supabase.auth.updateUser({ password: pw });
         if (e2) throw new Error('密码设置失败：' + e2.message);
       }
-      // 资料以点注册时填的为准（防止点了验证码后又改了名字）
-      supabase.from('profiles').update({ username: nm, real_name: rl, display_name: nm }).eq('id', uid).then(() => {});
+      // 资料以点注册时填的为准（防止点了验证码后又改了名字）。
+      // 注意：username / real_name 由注册触发器写入，列级权限不允许前端直接改，
+      // 这里只更新展示名（之前带上前两列会导致整条更新被数据库拒绝）
+      supabase.from('profiles').update({ display_name: nm }).eq('id', uid).then(() => {});
       await uploadAvatar(uid);
       const iv = invite.trim();
       if (iv) {

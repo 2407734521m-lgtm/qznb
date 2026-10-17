@@ -1,42 +1,89 @@
-import { useEffect, useState } from 'react';
-import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import { useEffect, useRef, useState } from 'react';
+import { useLocation, useNavigate, useParams, Link } from 'react-router-dom';
 import { motion, useReducedMotion } from 'framer-motion';
 import { supabase } from '../lib/supabase';
+import { useSignedUrl } from '../lib/media';
 import Photo from '../components/Photo';
+import { setShot, takeShot, shotFrom, flyTo } from '../lib/transition';
 import type { M } from './Members';
 
 export default function Member() {
   const { id = '' } = useParams(); const nav = useNavigate(); const reduce = useReducedMotion();
-  const pre = (useLocation().state as { m?: M } | null)?.m;
-  const [m, setM] = useState<any>(pre ?? null); const [err, setErr] = useState('');
+  const locState = (useLocation().state as { m?: M; img?: string } | null);
+  const [m, setM] = useState<any>(locState?.m ?? null);
+  const [err, setErr] = useState('');
+  const [flying, setFlying] = useState(false);
+  const photoRef = useRef<HTMLDivElement>(null);
+  const imgUrl = useSignedUrl('avatars', m?.avatar_path);
 
   useEffect(() => {
     supabase.rpc('member_detail', { uid: id }).then(({ data, error }) => {
       if (error || !data?.length) setErr('无法加载该成员，可能尚未加入班级。'); else setM(data[0]);
     });
   }, [id]);
+
   useEffect(() => {
     const el = document.documentElement; const t = m?.theme ?? {};
     el.dataset.theme = t.theme ?? 'aurora'; el.dataset.layout = t.layout ?? 'left';
     return () => { delete el.dataset.theme; delete el.dataset.layout; };
   }, [m?.theme]);
 
-  if (err) return <div className="center"><div className="card">{err}</div></div>;
+  // 进入：共享元素飞入
+  useEffect(() => {
+    if (reduce || !m) return;
+    const s = takeShot();
+    if (!s?.img || !photoRef.current) return;
+    const target = photoRef.current;
+    // 等照片 URL 就绪再飞，避免幽灵图与目标错位
+    const t = setTimeout(() => {
+      setFlying(true);
+      flyTo(s, target, { onDone: () => setFlying(false) });
+    }, 60);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [m?.id, imgUrl]);
+
+  function goBack() {
+    if (!reduce && photoRef.current && imgUrl) {
+      const s = shotFrom(photoRef.current, imgUrl);
+      if (s) { s.key = id; setShot(s); }
+    }
+    nav(-1);
+  }
+
+  if (err) return <div className="page"><div className="center"><div className="card">{err}</div></div></div>;
   const name = m?.display_name ?? m?.username ?? '';
-  const rows = m ? ([['性格', m.personality], ['年龄', m.age], ['个性签名', m.signature], ['简介', m.bio],
-    ['兴趣爱好', m.hobbies], ['联系方式', m.contact], ['社交账号', m.social]] as [string, any][]).filter(([, v]) => v) : [];
+  const rows = m ? ([['性格', m.personality], ['年龄', m.age], ['个性签名', m.signature],
+    ['简介', m.bio], ['兴趣爱好', m.hobbies], ['联系方式', m.contact], ['社交账号', m.social]] as [string, any][])
+    .filter(([, v]) => v) : [];
+
+  const itemProps = (i: number) => ({
+    initial: { opacity: 0, x: reduce ? 0 : 36 },
+    animate: { opacity: 1, x: 0 },
+    transition: { duration: reduce ? 0 : 0.5, delay: reduce ? 0 : 0.3 + i * 0.07, ease: [0.22, 1, 0.36, 1] as [number, number, number, number] },
+  });
+
   return (
-    <>
-      <button onClick={() => nav(-1)}>← 返回</button>
+    <div className="page">
+      <button className="backbtn" onClick={goBack}>← 返回成员墙</button>
       <div className="profile">
-        <Photo id={id} path={m?.avatar_path} name={name || '?'} />
+        <div ref={photoRef} style={{ width: 'min(300px,100%)', visibility: flying ? 'hidden' : 'visible' }}>
+          <Photo id={id} path={m?.avatar_path} name={name || '?'} />
+        </div>
         <div className="info">
-          {[<h1 key="n">{name}</h1>, ...rows.map(([k, v]) => <p key={k}><b>{k}</b><br />{v}</p>)].map((el, i) => (
-            <motion.div key={i} initial={{ opacity: 0, x: reduce ? 0 : 40 }} animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: reduce ? 0 : 0.5, delay: reduce ? 0 : 0.25 + i * 0.07 }}>{el}</motion.div>
-          ))}
+          <motion.h1 {...itemProps(0)}>{name || '…'}</motion.h1>
+          {rows.map(([k, v], i) => k === '个性签名'
+            ? <motion.p key={k} className="sig" {...itemProps(i + 1)}>{v}</motion.p>
+            : <motion.div key={k} className="kv" {...itemProps(i + 1)}><b>{k}</b><div>{v}</div></motion.div>)}
+          {m && (
+            <motion.div {...itemProps(rows.length + 1)}>
+              <Link to={`/timeline/${id}`} className="ghost" style={{ display: 'inline-block', textDecoration: 'none', marginTop: 8 }}>
+                ✨ 看{name}的青春时间线
+              </Link>
+            </motion.div>
+          )}
         </div>
       </div>
-    </>
+    </div>
   );
 }

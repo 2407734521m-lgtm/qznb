@@ -106,15 +106,17 @@ export default function Board() {
 
       {msgs.length === 0 && <div className="center" style={{ minHeight: 160 }}><div className="card">还没有留言，来发第一条吧 ✨</div></div>}
 
-      <div style={{ position: 'sticky', bottom: 84, zIndex: 30, marginTop: 12 }}>
-        <div className="card" style={{ margin: 0, padding: 10, backdropFilter: 'blur(16px)', background: '#141824d9' }}>
-          <div className="row">
+      <div style={{ height: 70 }} />
+
+      <div style={{ position: 'fixed', left: 12, right: 12, bottom: 'calc(78px + env(safe-area-inset-bottom))', zIndex: 30 }}>
+        <div className="card" style={{ margin: 0, padding: 8, borderRadius: 18, backdropFilter: 'blur(16px)', background: '#141824d9' }}>
+          <div className="row" style={{ gap: 8 }}>
             <input value={text} onChange={e => setText(e.target.value)} placeholder="说点什么…"
-              maxLength={500} style={{ flex: 1, minWidth: 0 }} onKeyDown={e => e.key === 'Enter' && send()} />
-            <button className="pri" style={{ width: 'auto', padding: '10px 22px' }} disabled={busy || !text.trim()} onClick={send}>
+              maxLength={500} style={{ flex: 1, minWidth: 0, padding: '9px 12px', fontSize: 13.5 }} onKeyDown={e => e.key === 'Enter' && send()} />
+            <button className="pri" style={{ width: 'auto', padding: '9px 18px', fontSize: 13.5 }} disabled={busy || !text.trim()} onClick={send}>
               {busy ? '…' : '发送'}</button>
           </div>
-          {err && <p className="err" style={{ margin: '6px 0 0' }}>{err}</p>}
+          {err && <p className="err" style={{ margin: '6px 0 0', fontSize: 12.5 }}>{err}</p>}
         </div>
       </div>
     </div>

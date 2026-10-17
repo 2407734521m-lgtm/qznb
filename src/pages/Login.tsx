@@ -31,12 +31,22 @@ export default function Login() {
   const [avatarPrev, setAvatarPrev] = useState<string | null>(null);
   const [err, setErr] = useState(''); const [busy, setBusy] = useState(false);
   const [fbOpen, setFbOpen] = useState(false);
+  // 邮箱验证码
+  const [verifyEmail, setVerifyEmail] = useState<string | null>(null);
+  const [code, setCode] = useState('');
+  const [resendIn, setResendIn] = useState(0);
   const [bg, setBg] = useState<string>(() => { try { return localStorage.getItem(BG_KEY) || DEFAULT_BG; } catch { return DEFAULT_BG; } });
   const [blur, setBlur] = useState(5); const [dark, setDark] = useState(45);
   const [showBg, setShowBg] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null); const bgRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => { try { localStorage.setItem(BG_KEY, bg); } catch {} }, [bg]);
+
+  useEffect(() => {
+    if (resendIn <= 0) return;
+    const t = setTimeout(() => setResendIn(v => v - 1), 1000);
+    return () => clearTimeout(t);
+  }, [resendIn]);
 
   function pickAvatar(f: File | undefined) {
     if (!f) return;
@@ -47,15 +57,22 @@ export default function Login() {
 
   async function doLogin() {
     setErr(''); setBusy(true);
+    let em = '';
     try {
-      const em = await resolveEmail(ident);
+      em = await resolveEmail(ident);
       const { error } = await supabase.auth.signInWithPassword({ email: em, password: pw });
       if (error) throw error;
     } catch (e: any) {
+      const m = e?.message || '';
+      if (/email not confirmed/i.test(m) && em) {
+        // 邮箱还没验证：转到验证码界面
+        setVerifyEmail(em); setCode(''); setResendIn(0); setErr(''); setBusy(false);
+        return;
+      }
       setErr(e?.message === 'notfound' ? '找不到这个账号，请检查用户名 / 真实姓名 / QQ 邮箱是否正确'
         : e?.message === 'empty' ? '请输入登录账号'
-        : /Invalid login credentials/i.test(e?.message || '') ? '账号或密码错误'
-        : '登录失败：' + (e?.message || '网络错误'));
+        : /Invalid login credentials/i.test(m) ? '账号或密码错误'
+        : '登录失败：' + (m || '网络错误'));
     } finally { setBusy(false); }
   }
 
@@ -64,6 +81,14 @@ export default function Login() {
     try { const { error } = await supabase.auth.signInWithPasskey(); if (error) throw error; }
     catch (e: any) { setErr('通行密钥登录失败：' + (e?.message || '未知错误')); }
     finally { setBusy(false); }
+  }
+
+  async function uploadAvatar(uid: string) {
+    if (!avatar) return;
+    const small = await downscaleImage(avatar);
+    const path = `${uid}/${Date.now()}.jpg`;
+    const up = await supabase.storage.from('avatars').upload(path, small, { contentType: 'image/jpeg' });
+    if (!up.error) await supabase.from('profiles').update({ avatar_path: path }).eq('id', uid);
   }
 
   async function doReg() {
@@ -81,16 +106,40 @@ export default function Login() {
         options: { data: { username: nm, real_name: rl } },
       });
       if (error) throw error;
-      const uid = data.user?.id;
-      if (uid && avatar) {
-        const small = await downscaleImage(avatar);
-        const path = `${uid}/${Date.now()}.jpg`;
-        const up = await supabase.storage.from('avatars').upload(path, small, { contentType: 'image/jpeg' });
-        if (!up.error) await supabase.from('profiles').update({ avatar_path: path }).eq('id', uid);
+      if (data.session) {
+        // 未开启邮箱确认：直接进
+        await uploadAvatar(data.session.user.id);
+      } else {
+        // 已开启邮箱确认：去输验证码
+        setVerifyEmail(em); setCode(''); setResendIn(60); setErr('');
       }
     } catch (e: any) {
       setErr(/already registered|already exists/i.test(e?.message || '') ? '这个 QQ 邮箱已经注册过，直接登录吧' : '注册失败：' + (e?.message || '网络错误'));
     } finally { setBusy(false); }
+  }
+
+  async function doVerify() {
+    const c = code.trim();
+    if (!/^\d{6}$/.test(c)) return setErr('请输入 6 位数字验证码');
+    if (!verifyEmail) return;
+    setErr(''); setBusy(true);
+    try {
+      const { data, error } = await supabase.auth.verifyOtp({ email: verifyEmail, token: c, type: 'signup' });
+      if (error) throw error;
+      if (data.session) await uploadAvatar(data.session.user.id);
+      setVerifyEmail(null); setCode('');
+    } catch (e: any) {
+      const m = e?.message || '';
+      setErr(/expired/i.test(m) ? '验证码已过期，请重新发送' : '验证码不正确，请重试');
+    } finally { setBusy(false); }
+  }
+
+  async function doResend() {
+    if (!verifyEmail || resendIn > 0 || busy) return;
+    setErr('');
+    const { error } = await supabase.auth.resend({ type: 'signup', email: verifyEmail });
+    if (error) { setErr(/rate limit|429/i.test(error.message) ? '发得太频繁了，稍后再试' : '发送失败：' + error.message); return; }
+    setResendIn(60);
   }
 
   return (
@@ -103,7 +152,21 @@ export default function Login() {
           <h1>我们的班级</h1>
           <p className="sub">青 春 档 案</p>
 
-          {mode === 'login' ? (<>
+          {verifyEmail ? (<>
+            <h1 style={{ fontSize: 22 }}>📧 验证邮箱</h1>
+            <p className="sub">注 册 验 证</p>
+            <p className="priv-note" style={{ margin: '0 0 4px' }}>验证码已发送到 <b style={{ color: '#fff' }}>{verifyEmail}</b><br />QQ 邮箱如果没收到，请检查垃圾箱</p>
+            <label>验证码</label>
+            <input value={code} onChange={e => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+              placeholder="6 位数字" inputMode="numeric" autoComplete="one-time-code"
+              style={{ letterSpacing: 10, textAlign: 'center', fontSize: 22, fontWeight: 700 }}
+              onKeyDown={e => e.key === 'Enter' && doVerify()} />
+            {err && <p className="err">{err}</p>}
+            <button className="pri" disabled={busy} onClick={doVerify}>{busy ? '验证中…' : '验证并进入'}</button>
+            <button className="ghost" style={{ width: '100%', marginTop: 8 }} disabled={busy || resendIn > 0} onClick={doResend}>
+              {resendIn > 0 ? `重新发送（${resendIn}s）` : '重新发送验证码'}</button>
+            <p className="login-switch"><button onClick={() => { setVerifyEmail(null); setCode(''); setErr(''); }}>← 返回</button></p>
+          </>) : mode === 'login' ? (<>
             <label>账号</label>
             <input value={ident} onChange={e => setIdent(e.target.value)} placeholder="QQ 邮箱 / 用户名 / 真实姓名" autoComplete="username" />
             <label>密码</label>

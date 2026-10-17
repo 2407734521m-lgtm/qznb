@@ -23,10 +23,32 @@ const LAYOUTS = [['left', '照片在左'], ['right', '照片在右'], ['center',
 const PRIV_ICONS: Record<string, string> = { show_avatar: '🖼️', show_name: '📝', show_age: '🎂', show_personality: '✨', show_signature: '💬', show_bio: '📖', show_hobbies: '🎯', show_contact: '📞', show_social: '🌐' };
 const PRIV_ROWS: [string, string][] = [['show_avatar', '个人照片'], ...ALL_FIELDS.map(([, label, flag]) => [flag, label] as [string, string])];
 
+// 通用折叠栏
+function Collapsible({ icon, title, sub, open, onToggle, children }: {
+  icon: string; title: string; sub?: string; open: boolean; onToggle: () => void; children: React.ReactNode;
+}) {
+  return (
+    <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+      <button type="button" onClick={onToggle}
+        style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '16px 20px', background: 'none', border: 0, color: 'inherit', font: 'inherit', cursor: 'pointer', textAlign: 'left' }}>
+        <span style={{ fontSize: 16, fontWeight: 700 }}>{icon} {title}</span>
+        {sub && <span className="mut" style={{ fontSize: 12 }}>{sub}</span>}
+        <span style={{ flex: 1 }} />
+        <span className="mut" style={{ fontSize: 13, display: 'inline-block', transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .25s' }}>▼</span>
+      </button>
+      <div className={'xpanel' + (open ? ' open' : '')}><div><div className="xbody" style={{ padding: '0 20px 20px' }}>
+        {children}
+      </div></div></div>
+    </div>
+  );
+}
+
 export default function MyProfile() {
   const uid = useAuth().session!.user.id;
   const [v, setV] = useState<Record<string, string>>({}); const [priv, setPriv] = useState<Record<string, boolean>>({});
   const [privOpen, setPrivOpen] = useState(false);
+  const [baseOpen, setBaseOpen] = useState(true);
+  const [lookOpen, setLookOpen] = useState(false);
   const [uname, setUname] = useState('');
   const [theme, setTheme] = useState('aurora'); const [layout, setLayout] = useState('right');
   const [joined, setJoined] = useState(true); const [avatar, setAvatar] = useState<string | null>(null);
@@ -192,10 +214,9 @@ export default function MyProfile() {
           <button className="pri" style={{ width: 'auto', padding: '10px 26px' }} onClick={join}>加入</button>
         </div></div>}
 
-      <div className="card">
-        <h3 className="me-sec-t">📝 基本资料</h3>
+      <Collapsible icon="📝" title="基本资料" open={baseOpen} onToggle={() => setBaseOpen(o => !o)}>
         {PROFILE_FIELDS.map(([k, label]) => fieldInput(k, label))}
-      </div>
+      </Collapsible>
 
       <div className="card">
         <h3 className="me-sec-t">🎮 游戏与社交</h3>
@@ -224,30 +245,22 @@ export default function MyProfile() {
         <SocialPicker value={v.social ?? ''} onChange={s => setV({ ...v, social: s })} />
       </div>
 
-      <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-        <button type="button" onClick={() => setPrivOpen(o => !o)}
-          style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '16px 20px', background: 'none', border: 0, color: 'inherit', font: 'inherit', cursor: 'pointer', textAlign: 'left' }}>
-          <span style={{ fontSize: 16, fontWeight: 700 }}>🔒 隐私设置</span>
-          <span className="mut" style={{ fontSize: 12 }}>{PRIV_ROWS.filter(([f]) => priv[f]).length}/{PRIV_ROWS.length} 项公开</span>
-          <span style={{ flex: 1 }} />
-          <span className="mut" style={{ fontSize: 13, display: 'inline-block', transform: privOpen ? 'rotate(180deg)' : 'none', transition: 'transform .25s' }}>▼</span>
-        </button>
-        <div className={'xpanel' + (privOpen ? ' open' : '')}><div><div className="xbody" style={{ padding: '0 20px 20px' }}>
-          <p className="priv-note">哪些资料对其他成员公开，点一下开关就行</p>
-          <div className="priv-list">
-            {PRIV_ROWS.map(([flag, label]) => (
-              <button key={flag} type="button" className={'priv-btn' + (priv[flag] ? ' on' : '')}
-                onClick={() => setPriv({ ...priv, [flag]: !priv[flag] })}>
-                <span>{PRIV_ICONS[flag] ?? '🔹'} {label}</span>
-                <span className="sw"><span className="knob" /></span>
-              </button>
-            ))}
-          </div>
-        </div></div></div>
-      </div>
+      <Collapsible icon="🔒" title="隐私设置"
+        sub={`${PRIV_ROWS.filter(([f]) => priv[f]).length}/${PRIV_ROWS.length} 项公开`}
+        open={privOpen} onToggle={() => setPrivOpen(o => !o)}>
+        <p className="priv-note">哪些资料对其他成员公开，点一下开关就行</p>
+        <div className="priv-list">
+          {PRIV_ROWS.map(([flag, label]) => (
+            <button key={flag} type="button" className={'priv-btn' + (priv[flag] ? ' on' : '')}
+              onClick={() => setPriv({ ...priv, [flag]: !priv[flag] })}>
+              <span>{PRIV_ICONS[flag] ?? '🔹'} {label}</span>
+              <span className="sw"><span className="knob" /></span>
+            </button>
+          ))}
+        </div>
+      </Collapsible>
 
-      <div className="card">
-        <h3 className="me-sec-t">🎨 我的主页外观</h3>
+      <Collapsible icon="🎨" title="我的主页外观" open={lookOpen} onToggle={() => setLookOpen(o => !o)}>
         <p className="priv-note">主题</p>
         <div className="theme-grid">
           {THEMES.map(([k, l, c1, c2]) => (
@@ -265,7 +278,7 @@ export default function MyProfile() {
         </div>
         <button type="button" className="pri" style={{ width: '100%', marginTop: 12 }}
           onClick={() => window.dispatchEvent(new Event('ca:wallpaper:open'))}>🖼️ 换壁纸</button>
-      </div>
+      </Collapsible>
 
       <div className="card">
         <h3 className="me-sec-t">🔑 通行密钥登录</h3>

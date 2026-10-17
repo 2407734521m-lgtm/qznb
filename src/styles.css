@@ -86,19 +86,18 @@ button:disabled{opacity:.5}
 .mcard p{margin:0 2px 4px;color:var(--mut);font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
 /* ============ 个人档案 ============ */
-.profile{display:flex;gap:26px;align-items:flex-start;flex-wrap:wrap;margin-top:6px}
-.profile .photo{width:min(300px,100%);box-shadow:0 24px 60px #000a}
-.profile .info{flex:1;min-width:240px}
-.profile .info h1{font-size:30px;margin:0 0 4px;letter-spacing:1px}
+.profile.compact{display:flex;gap:16px;align-items:flex-start;flex-wrap:nowrap;margin-top:6px}
+.profile.compact .info{flex:1;min-width:0}
+.profile.compact .info h1{font-size:23px;margin:0 0 4px;letter-spacing:1px}
+.profile.compact .head-photo{width:132px;flex:none}
+.profile.compact .head-photo .photo{width:100%;box-shadow:0 16px 40px #000a}
+.profile.compact .kv{margin:10px 0}
+.profile.compact .kv div{font-size:14.5px}
+.profile.compact .sig{margin:12px 0;font-size:14.5px}
 .kv{margin:14px 0}
 .kv b{display:block;font-size:12px;color:var(--mut);font-weight:500;letter-spacing:1px;margin-bottom:2px}
 .kv div{font-size:15.5px}
 .sig{font-size:16px;color:var(--fg);border-left:3px solid var(--a);padding-left:12px;margin:16px 0;font-style:normal}
-[data-layout=right] .profile{flex-direction:row-reverse}
-[data-layout=center] .profile{flex-direction:column;align-items:center;text-align:center}
-[data-layout=center] .profile .sig{border-left:0;border-top:3px solid var(--a);padding:12px 0 0}
-[data-layout=full] .profile .photo{position:fixed;inset:0;width:100%;aspect-ratio:auto;border-radius:0;z-index:-1;opacity:.32}
-[data-layout=full] .profile .photo img{filter:saturate(1.1)}
 [data-theme=sunset]{--a:#ff8a5c;--b:#ff5c93}
 [data-theme=forest]{--a:#4ade80;--b:#14b8a6}
 [data-theme=mono]{--a:#e8e8e8;--b:#777}

@@ -69,6 +69,8 @@ button:disabled{opacity:.5}
 /* 共享元素过渡的"幽灵"照片 */
 .fly-clone{position:fixed;z-index:200;overflow:hidden;pointer-events:none;will-change:transform;box-shadow:0 20px 60px #000a}
 .fly-clone img{width:100%;height:100%;object-fit:cover;display:block}
+.fly-letter{width:100%;height:100%;display:grid;place-items:center;border-radius:inherit;
+  background:linear-gradient(135deg,#ffffff1a,#ffffff08);font-size:44px;color:#ffffff66;font-weight:600}
 
 /* ============ 成员墙 ============ */
 .hero{padding:28px 4px 8px}

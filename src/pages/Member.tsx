@@ -8,6 +8,7 @@ import AvatarCropper from '../components/AvatarCropper';
 import Photo from '../components/Photo';
 import { setShot, takeShot, shotFrom, flyTo } from '../lib/transition';
 import { badgeText } from '../data/games';
+import { parseSocial } from '../data/social';
 import type { Dir } from '../lib/transition';
 import type { M } from './Members';
 
@@ -25,6 +26,7 @@ export default function Member() {
   const [fstat, setFstat] = useState<{ requester: string; status: string } | null>(null);
   const [fbusy, setFbusy] = useState(false);
   const [gbadge, setGbadge] = useState<{ game_name: string; game_uid: string | null; rank: string } | null>(null);
+  const [gx, setGx] = useState<'game' | 'social' | null>(null);
   const uid = useAuth().session?.user.id;
   const isMe = !!uid && uid === id;
   const photoRef = useRef<HTMLDivElement>(null);
@@ -126,9 +128,7 @@ export default function Member() {
   const layout = m?.theme?.layout ?? 'right'; // 默认照片在右
   const pcls = 'profile compact' + (layout === 'left' ? ' rev' : layout === 'center' ? ' center' : '');
   const rows = m ? ([['性格', m.personality], ['年龄', m.age], ['个性签名', m.signature],
-    ['简介', m.bio], ['兴趣爱好', m.hobbies],
-    ...(gbadge ? [['🎮 游戏', `${gbadge.game_name} · ${gbadge.rank}${gbadge.game_uid ? `（ID: ${gbadge.game_uid}）` : ''}`]] : []),
-    ['联系方式', m.contact], ['社交平台', m.social]] as [string, any][])
+    ['简介', m.bio], ['兴趣爱好', m.hobbies], ['联系方式', m.contact]] as [string, any][])
     .filter(([, v]) => v) : [];
 
   const itemProps = (i: number) => {
@@ -153,6 +153,32 @@ export default function Member() {
           {rows.map(([k, v], i) => k === '个性签名'
             ? <motion.p key={k} className="sig" {...itemProps(i + 1)}>{v}</motion.p>
             : <motion.div key={k} className="kv" {...itemProps(i + 1)}><b>{k}</b><div>{v}</div></motion.div>)}
+          {(gbadge || m?.social) && (
+            <motion.div {...itemProps(rows.length + 1)} className="xbtns">
+              {gbadge && <button type="button" className={'xbtn' + (gx === 'game' ? ' on' : '')}
+                onClick={() => setGx(gx === 'game' ? null : 'game')}>🎮 游戏</button>}
+              {m?.social && <button type="button" className={'xbtn' + (gx === 'social' ? ' on' : '')}
+                onClick={() => setGx(gx === 'social' ? null : 'social')}>🌐 社交</button>}
+            </motion.div>
+          )}
+          <div className={'xpanel' + (gx ? ' open' : '')}>
+            <div>
+              {gx === 'game' && gbadge && (
+                <div className="xbody">
+                  <div className="xrow"><b>游戏</b><span>{gbadge.game_name}</span></div>
+                  <div className="xrow"><b>段位</b><span>{gbadge.rank}</span></div>
+                  {gbadge.game_uid && <div className="xrow"><b>ID</b><span>{gbadge.game_uid}</span></div>}
+                </div>
+              )}
+              {gx === 'social' && m?.social && (
+                <div className="xbody">
+                  {parseSocial(m.social).map((it, i) => (
+                    <div key={i} className="xrow"><b>{it.p || '账号'}</b><span>{it.a}</span></div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
           {m && (
             <motion.div {...itemProps(rows.length + 1)}>
               <Link to={`/timeline/${id}`} className="ghost" style={{ display: 'inline-block', textDecoration: 'none', marginTop: 8 }}>

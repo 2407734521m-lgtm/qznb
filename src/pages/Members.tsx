@@ -13,6 +13,14 @@ export type M = {
 };
 const PAGE = 18;
 
+const LAYOUTS = [
+  { k: 'c2', name: '2列 · 大卡', icon: '🖼️' },
+  { k: 'c3', name: '3列', icon: '🔲' },
+  { k: 'c4', name: '4列 · 紧凑', icon: '▦' },
+  { k: 'c6', name: '6列 · 迷你', icon: '⋮⋮' },
+  { k: 'list', name: '列表', icon: '📋' },
+] as const;
+
 function Card({ m, i, badge, onOpen }: { m: M; i: number; badge?: string; onOpen: (m: M, el: HTMLElement, img: string) => void }) {
   const reduce = useReducedMotion();
   const url = useSignedUrl('avatars', m.avatar_path);
@@ -36,6 +44,11 @@ export default function Members() {
   const nav = useNavigate(); const reduce = useReducedMotion();
   const [q, setQ] = useState(''); const [rows, setRows] = useState<M[]>([]);
   const [badges, setBadges] = useState<Record<string, string>>({});
+  const [layout, setLayout] = useState<string>(() => localStorage.getItem('ca_members_layout') || 'c2');
+  const [lopen, setLopen] = useState(false);
+  function pickLayout(k: string) {
+    setLayout(k); localStorage.setItem('ca_members_layout', k); setLopen(false);
+  }
   const [state, setState] = useState<'loading' | 'ok' | 'error'>('loading'); const [more, setMore] = useState(false);
 
   async function load(reset: boolean, query: string, base: M[]) {
@@ -96,7 +109,23 @@ export default function Members() {
         <button className="ghost" onClick={() => load(true, q, [])}>重试</button></p>}
       {state === 'ok' && rows.length === 0 && <div className="center"><div className="card">
         {q ? '没有找到匹配的成员。' : '还没有成员公开资料。先到「我的」填写资料并加入班级，邀请同学注册吧。'}</div></div>}
-      <div className="mgrid">
+      <div className="mtoolbar">
+        <span className="mut" style={{ fontSize: 12.5 }}>{rows.length} 位成员</span>
+        <div className="lswitch">
+          <button type="button" className="ghost" style={{ width: 'auto', padding: '8px 14px', fontSize: 13 }}
+            onClick={() => setLopen(!lopen)}>🔲 排列</button>
+          {lopen && <>
+            <div className="lmask" onClick={() => setLopen(false)} />
+            <div className="lpop">
+              {LAYOUTS.map(l => (
+                <button key={l.k} type="button" className={layout === l.k ? 'on' : ''}
+                  onClick={() => pickLayout(l.k)}>{l.icon} {l.name}</button>
+              ))}
+            </div>
+          </>}
+        </div>
+      </div>
+      <div className={'mgrid ' + layout}>
         {rows.map((m, i) => <Card key={m.id} m={m} i={i} badge={badges[m.id]} onOpen={open} />)}
       </div>
       {state === 'loading' && <p className="center" style={{ minHeight: 120 }}>加载中…</p>}

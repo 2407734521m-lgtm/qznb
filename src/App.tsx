@@ -49,7 +49,6 @@ function Shell() {
     <>
       <div className="glow" />
       <nav className="topnav">
-        <span className="brand">青春档案</span>
         <span className="links">
           {TABS.map(t => (
             <NavLink key={t.to} to={t.to} className={isTabActive(t.to, loc.pathname) ? 'on' : ''}>{t.label}</NavLink>
@@ -77,7 +76,7 @@ function Shell() {
               <Route path="/albums/:id" element={<AlbumDetail />} />
               <Route path="/timeline" element={<Timeline />} />
               <Route path="/timeline/:uid" element={<Timeline />} />
-              <Route path="/me" element={<MyProfile />} />
+              <Route path="/me" element={<div className="me-compact"><MyProfile /></div>} />
               <Route path="/admin" element={<Admin />} />
               <Route path="*" element={<Navigate to="/members" replace />} />
             </Routes>
@@ -87,9 +86,7 @@ function Shell() {
 
       <nav className="tabbar">
         {TABS.map(t => (
-          <NavLink key={t.to} to={t.to} className={isTabActive(t.to, loc.pathname) ? 'on' : ''}>
-            <span className="ic">{t.ic}</span>{t.label}
-          </NavLink>
+          <NavLink key={t.to} to={t.to} className={isTabActive(t.to, loc.pathname) ? 'on' : ''}>{t.label}</NavLink>
         ))}
       </nav>
     </>

@@ -43,7 +43,7 @@ function Shell() {
   async function logout() { await supabase.auth.signOut(); }
 
   if (loading) return <div className="center">加载中…</div>;
-  if (!session) return (<><div className="glow" /><Login />);
+  if (!session) return (<><div className="glow" /><Login /></>);
 
   return (
     <>

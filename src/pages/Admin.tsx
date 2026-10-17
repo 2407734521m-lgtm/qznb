@@ -7,6 +7,7 @@ type Log = { id: number; action: string; detail: unknown; created_at: string };
 type Post = { id: number; content: string; author_id: string; created_at: string };
 type Alb = { id: number; title: string; category: string; created_at: string };
 type Fb = { id: number; name: string | null; contact: string | null; content: string; kind: string; status: string; created_at: string };
+type Gp = { profile_id: string; game_name: string; game_uid: string | null; rank: string | null; status: string; updated_at: string };
 
 const ROLE_LABEL: Record<string, string> = { super_admin: '超级管理员', admin: '管理员', member: '成员' };
 
@@ -21,6 +22,8 @@ export default function Admin() {
   const [code, setCode] = useState('');
   const [nick, setNick] = useState('');
   const [feedbacks, setFeedbacks] = useState<Fb[]>([]);
+  const [gpend, setGpend] = useState<Gp[]>([]);
+  const [gok, setGok] = useState<Gp[]>([]);
   const [msg, setMsg] = useState('');
   const [q, setQ] = useState('');
   const [stats, setStats] = useState({ posts: 0, photos: 0 });
@@ -38,6 +41,13 @@ export default function Admin() {
     const fb = await supabase.from('feedbacks').select('id, name, contact, content, kind, status, created_at')
       .order('created_at', { ascending: false }).limit(50);
     if (!fb.error) setFeedbacks(fb.data as Fb[]);
+    const gp = await supabase.from('game_profiles')
+      .select('profile_id, game_name, game_uid, rank, status, updated_at').order('updated_at', { ascending: false });
+    if (!gp.error) {
+      const list = gp.data as Gp[];
+      setGpend(list.filter(x => x.status === 'pending'));
+      setGok(list.filter(x => x.status === 'approved'));
+    }
     const l = await supabase.from('admin_audit_logs')
       .select('id, action, detail, created_at').order('created_at', { ascending: false }).limit(50);
     if (!l.error) setLogs(l.data as Log[]);
@@ -79,6 +89,17 @@ export default function Admin() {
     if (!confirm('删除这条反馈？')) return;
     const { error } = await supabase.from('feedbacks').delete().eq('id', id);
     if (!error) refresh(); else setMsg('删除失败：' + error.message);
+  }
+  async function reviewGp(pid: string, approve: boolean) {
+    setMsg('');
+    const { error } = await supabase.rpc('review_game_profile', { pid, approve });
+    setMsg(error ? '操作失败：' + error.message : approve ? '已通过 ✓' : '已驳回');
+    if (!error) refresh();
+  }
+  async function revokeGp(pid: string) {
+    if (!confirm('撤销该成员的段位认证？卡片标签会消失。')) return;
+    const { error } = await supabase.from('game_profiles').delete().eq('profile_id', pid);
+    if (!error) refresh(); else setMsg('操作失败：' + error.message);
   }
   async function delPost(id: number) {
     if (!confirm('删除这条动态（含评论点赞）？')) return;
@@ -177,6 +198,35 @@ export default function Admin() {
             </div>
           </div>
         ))}
+      </div>
+
+      <div className="adm-sec card">
+        <h3>🎮 游戏段位审核</h3>
+        {gpend.length === 0 && gok.length === 0 && <p className="mut" style={{ fontSize: 13 }}>暂无提交</p>}
+        {gpend.length > 0 && <>
+          <p className="mut" style={{ fontSize: 12.5 }}>待审核（{gpend.length}）</p>
+          {gpend.map(g => (
+            <div key={g.profile_id} style={{ padding: '8px 0', borderBottom: '1px solid #ffffff0c' }}>
+              <div style={{ fontSize: 13.5 }}><b>{nameOf(g.profile_id)}</b> · {g.game_name}
+                {g.rank ? <> · <span style={{ color: '#ffd9ec' }}>{g.rank}</span></> : <span className="mut">（未填段位）</span>}
+                {g.game_uid && <span className="mut"> · ID: {g.game_uid}</span>}
+              </div>
+              <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
+                <button className="mini pri" onClick={() => reviewGp(g.profile_id, true)}>✓ 通过</button>
+                <button className="mini ghost" onClick={() => reviewGp(g.profile_id, false)}>✕ 驳回</button>
+              </div>
+            </div>
+          ))}
+        </>}
+        {gok.length > 0 && <>
+          <p className="mut" style={{ fontSize: 12.5, marginTop: 10 }}>已通过（{gok.length}）</p>
+          {gok.map(g => (
+            <div key={g.profile_id} className="row" style={{ justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #ffffff0c' }}>
+              <span style={{ fontSize: 13 }}>{nameOf(g.profile_id)} · {g.game_name}{g.rank ? ` · ${g.rank}` : ''}</span>
+              <button className="mini danger" onClick={() => revokeGp(g.profile_id)}>撤销</button>
+            </div>
+          ))}
+        </>}
       </div>
 
       <div className="adm-sec card">

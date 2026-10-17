@@ -36,8 +36,8 @@ export default function Admin() {
     const m = await supabase.from('profiles')
       .select('id, username, display_name, real_name, role, joined, created_at').order('created_at');
     if (!m.error) setMembers(m.data as Member[]);
-    const em = await supabase.from('profile_emails').select('id, email');
-    if (!em.error) setEmails(Object.fromEntries((em.data ?? []).map((x: any) => [x.id, x.email])));
+    const em = await supabase.from('profile_emails').select('profile_id, email');
+    if (!em.error) setEmails(Object.fromEntries((em.data ?? []).map((x: any) => [x.profile_id, x.email])));
     const ic = await supabase.from('invite_codes').select('id, code, nickname, active, created_at').order('created_at');
     if (!ic.error) setIcs(ic.data as Ic[]);
     const fb = await supabase.from('feedbacks').select('id, name, contact, content, kind, status, created_at')

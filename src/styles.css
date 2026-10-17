@@ -293,7 +293,6 @@ button:disabled{opacity:.5}
 
 /* ============ 登录页 ============ */
 .login-bg{position:fixed;inset:0;z-index:-1;background-size:cover;background-position:center}
-.login-bg::after{content:"";position:absolute;inset:0;background:#0b0d14}
 .login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
 .login-card{width:min(340px,94vw);background:#ffffff0d;border:1px solid #ffffff1e;border-radius:24px;padding:26px 22px;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);box-shadow:0 24px 70px #000b}
 .login-card h1{font-size:21px;margin:0 0 2px;letter-spacing:2px;text-align:center;font-weight:800}

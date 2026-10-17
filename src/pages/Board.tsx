@@ -1,0 +1,130 @@
+import { useEffect, useState } from 'react';
+import { motion, useReducedMotion } from 'framer-motion';
+import { supabase } from '../lib/supabase';
+import { useAuth } from '../auth';
+import { useSignedUrl } from '../lib/media';
+
+type Msg = { id: number; author_id: string; content: string; is_admin_msg: boolean; created_at: string };
+type Profile = { id: string; username: string; display_name: string | null; avatar_path: string | null };
+
+function Avatar({ p, size = 38 }: { p?: Profile; size?: number }) {
+  const url = useSignedUrl('avatars', p?.avatar_path);
+  return (
+    <div className="av" style={{ width: size, height: size }}>
+      {url ? <img src={url} alt="" /> : <span>{(p?.display_name ?? p?.username ?? '?').slice(0, 1)}</span>}
+    </div>
+  );
+}
+function timeAgo(s: string) {
+  const d = (Date.now() - new Date(s).getTime()) / 1000;
+  if (d < 60) return '刚刚'; if (d < 3600) return Math.floor(d / 60) + ' 分钟前';
+  if (d < 86400) return Math.floor(d / 3600) + ' 小时前';
+  if (d < 86400 * 30) return Math.floor(d / 86400) + ' 天前';
+  return new Date(s).toLocaleDateString();
+}
+
+export default function Board() {
+  const me = useAuth().session!.user.id; const reduce = useReducedMotion();
+  const [msgs, setMsgs] = useState<Msg[]>([]);
+  const [profiles, setProfiles] = useState<Record<string, Profile>>({});
+  const [text, setText] = useState('');
+  const [asNotice, setAsNotice] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState('');
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  async function load() {
+    const { data } = await supabase.from('board_messages')
+      .select('id, author_id, content, is_admin_msg, created_at')
+      .order('is_admin_msg', { ascending: false }).order('created_at', { ascending: false }).limit(100);
+    const list = (data ?? []) as Msg[];
+    setMsgs(list);
+    const { data: dir } = await supabase.rpc('member_directory', { q: '', lim: 50, skip: 0 });
+    const pm: Record<string, Profile> = {};
+    ((dir ?? []) as any[]).forEach(x => { pm[x.id] = x; });
+    setProfiles(pm);
+    const { data: r } = await supabase.rpc('my_role');
+    setIsAdmin(r === 'admin' || r === 'super_admin');
+  }
+  useEffect(() => { load(); }, []);
+
+  async function send() {
+    const c = text.trim();
+    if (!c) return;
+    setBusy(true); setErr('');
+    const { error } = await supabase.from('board_messages').insert({
+      author_id: me, content: c.slice(0, 500), is_admin_msg: isAdmin && asNotice,
+    });
+    setBusy(false);
+    if (error) return setErr('发送失败：' + error.message);
+    setText(''); setAsNotice(false); load();
+  }
+
+  async function del(id: number) {
+    if (!confirm('删除这条留言？')) return;
+    await supabase.from('board_messages').delete().eq('id', id);
+    load();
+  }
+
+  const notices = msgs.filter(m => m.is_admin_msg);
+  const talks = msgs.filter(m => !m.is_admin_msg);
+
+  function renderMsg(m: Msg, i: number) {
+    const a = profiles[m.author_id];
+    return (
+      <motion.article key={m.id} className="post" style={m.is_admin_msg ? { border: '1px solid #ffd47955', background: '#fff8e61a' } : undefined}
+        initial={reduce ? {} : { opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, delay: Math.min(i * 0.04, 0.25) }}>
+        <div className="hd">
+          <Avatar p={a} />
+          <div><div className="nm">{a ? (a.display_name ?? a.username) : '…'}
+            {m.is_admin_msg && <span className="chip ad" style={{ marginLeft: 8, fontSize: 11 }}>📢 公告</span>}</div>
+            <div className="tm">{timeAgo(m.created_at)}</div></div>
+          <div style={{ flex: 1 }} />
+          {(m.author_id === me || isAdmin) && <button className="del" onClick={() => del(m.id)}>删除</button>}
+        </div>
+        <p className="bd" style={{ whiteSpace: 'pre-wrap' }}>{m.content}</p>
+      </motion.article>
+    );
+  }
+
+  return (
+    <div className="page" style={{ paddingBottom: 120 }}>
+      <div className="hero">
+        <h1>公告板</h1>
+        <p>班 级 通 知 · 留 言</p>
+      </div>
+
+      {notices.length > 0 && <>
+        <p className="mut" style={{ fontSize: 12.5, margin: '4px 2px 8px' }}>📢 管理员公告</p>
+        {notices.map((m, i) => renderMsg(m, i))}
+      </>}
+
+      {talks.length > 0 && <>
+        <p className="mut" style={{ fontSize: 12.5, margin: '14px 2px 8px' }}>💬 同学留言</p>
+        {talks.map((m, i) => renderMsg(m, i + notices.length))}
+      </>}
+
+      {msgs.length === 0 && <div className="center" style={{ minHeight: 160 }}><div className="card">还没有留言，来发第一条吧 ✨</div></div>}
+
+      <div style={{ position: 'sticky', bottom: 84, zIndex: 30, marginTop: 12 }}>
+        <div className="card" style={{ margin: 0, padding: 10, backdropFilter: 'blur(16px)', background: '#141824d9' }}>
+          {isAdmin && (
+            <div className="row" style={{ marginBottom: 8 }}>
+              <button type="button" className={'mini' + (asNotice ? '' : ' ghost')} style={asNotice ? { background: '#ffd47933', borderColor: '#ffd47988' } : undefined}
+                onClick={() => setAsNotice(!asNotice)}>📢 以公告发布{asNotice ? ' ✓' : ''}</button>
+              <span className="mut" style={{ fontSize: 12 }}>公告会置顶显示在最上面</span>
+            </div>
+          )}
+          <div className="row">
+            <input value={text} onChange={e => setText(e.target.value)} placeholder={isAdmin && asNotice ? '写公告…' : '说点什么…'}
+              maxLength={500} style={{ flex: 1, minWidth: 0 }} onKeyDown={e => e.key === 'Enter' && send()} />
+            <button className="pri" style={{ width: 'auto', padding: '10px 22px' }} disabled={busy || !text.trim()} onClick={send}>
+              {busy ? '…' : '发送'}</button>
+          </div>
+          {err && <p className="err" style={{ margin: '6px 0 0' }}>{err}</p>}
+        </div>
+      </div>
+    </div>
+  );
+}

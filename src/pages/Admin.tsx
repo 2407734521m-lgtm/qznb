@@ -684,16 +684,23 @@ export default function Admin() {
         ))}
       </div>
 
-      {/* 底部导航：固定在屏幕下方，随时跳转分区 */}
+      {/* 底部导航：悬浮小药丸，和主站底栏一样 */}
       <div style={{
-        position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 60,
-        padding: '10px 12px calc(10px + env(safe-area-inset-bottom))',
-        background: '#0b0d14d9', backdropFilter: 'blur(20px) saturate(1.6)', WebkitBackdropFilter: 'blur(20px) saturate(1.6)',
-        borderTop: '1px solid #ffffff17',
+        position: 'fixed', left: '50%', transform: 'translateX(-50%)', zIndex: 60,
+        bottom: 'calc(14px + env(safe-area-inset-bottom))',
+        width: 'max-content', maxWidth: 'calc(100vw - 28px)',
+        padding: 6, borderRadius: 999,
+        background: 'color-mix(in srgb,#1a1e30 38%,transparent)',
+        backdropFilter: 'blur(30px) saturate(1.8)', WebkitBackdropFilter: 'blur(30px) saturate(1.8)',
+        border: '1px solid #ffffff2e',
+        boxShadow: '0 14px 44px #000c,inset 0 1px 0 #ffffff2b',
       }}>
-        <div className="row" style={{ gap: 8, overflowX: 'auto', flexWrap: 'nowrap' }}>
+        <div className="row" style={{ gap: 2, overflowX: 'auto', flexWrap: 'nowrap', maxWidth: '100%' }}>
           {NAV.map(([id, label]) => (
-            <button key={id} className="mini ghost" style={{ whiteSpace: 'nowrap', flexShrink: 0 }} onClick={() => go(id)}>{label}</button>
+            <button key={id} onClick={() => go(id)} style={{
+              flexShrink: 0, whiteSpace: 'nowrap', padding: '9px 13px', borderRadius: 999,
+              background: 'none', border: 0, color: 'var(--mut)', fontSize: 13, cursor: 'pointer',
+            }}>{label}</button>
           ))}
         </div>
       </div>

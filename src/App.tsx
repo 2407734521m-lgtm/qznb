@@ -18,8 +18,10 @@ import Friends from './pages/Friends';
 import Chat from './pages/Chat';
 import Admin from './pages/Admin';
 import AdminLogin from './pages/AdminLogin';
+import Board from './pages/Board';
 
 const TABS = [
+  { to: '/board', label: '公告', ic: '📢' },
   { to: '/members', label: '成员', ic: '👥' },
   { to: '/feed', label: '动态', ic: '✨' },
   { to: '/friends', label: '好友', ic: '💌' },
@@ -28,6 +30,7 @@ const TABS = [
 ];
 
 function isTabActive(tab: string, path: string) {
+  if (tab === '/board') return path.startsWith('/board');
   if (tab === '/members') return path === '/' || path.startsWith('/members');
   if (tab === '/feed') return path.startsWith('/feed') || path.startsWith('/albums');
   if (tab === '/friends') return path.startsWith('/friends') || path.startsWith('/chat');
@@ -269,6 +272,7 @@ function Shell() {
             transition={{ duration: reduce ? 0.12 : 0.28, ease: [0.22, 1, 0.36, 1] }}>
             <Routes location={loc}>
               <Route path="/" element={<Navigate to="/members" replace />} />
+              <Route path="/board" element={<Board />} />
               <Route path="/members" element={<Members />} />
               <Route path="/members/:id" element={<Member />} />
               <Route path="/feed" element={<Discover />} />

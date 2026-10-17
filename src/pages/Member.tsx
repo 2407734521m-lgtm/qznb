@@ -21,6 +21,8 @@ export default function Member() {
   const [enterDir, setEnterDir] = useState<Dir>('down');
   const [upMsg, setUpMsg] = useState('');
   const [cropSrc, setCropSrc] = useState<string | null>(null);
+  const [fstat, setFstat] = useState<{ requester: string; status: string } | null>(null);
+  const [fbusy, setFbusy] = useState(false);
   const uid = useAuth().session?.user.id;
   const isMe = !!uid && uid === id;
   const photoRef = useRef<HTMLDivElement>(null);
@@ -62,6 +64,34 @@ export default function Member() {
     nav(-1);
   }
 
+  // 好友状态
+  async function loadFriend() {
+    if (!uid || uid === id) return;
+    const { data } = await supabase.from('friendships').select('requester,status')
+      .or(`and(requester.eq.${uid},addressee.eq.${id}),and(requester.eq.${id},addressee.eq.${uid})`)
+      .maybeSingle();
+    setFstat((data as any) ?? null);
+  }
+  useEffect(() => { loadFriend(); }, [id, uid]);
+
+  async function addFriend() {
+    if (fbusy) return; setFbusy(true); setUpMsg('');
+    const { data, error } = await supabase.rpc('send_friend_request', { target: id });
+    setFbusy(false);
+    if (error) return setUpMsg('请求失败：' + error.message);
+    if (data === 'accepted') setUpMsg('对方已申请你，已成为好友 ✓');
+    else if (data === 'already_friends') setUpMsg('已经是好友了');
+    else if (data === 'already_pending') setUpMsg('已申请，等待对方通过');
+    else setUpMsg('好友申请已发送 ✓');
+    loadFriend();
+  }
+  async function goChat() {
+    if (fbusy) return; setFbusy(true);
+    const { data, error } = await supabase.rpc('get_or_create_conversation', { other: id });
+    setFbusy(false);
+    if (error) return setUpMsg('打开聊天失败：' + error.message);
+    nav(`/chat/${data}`, { state: { name } });
+  }
   function pickPhoto(f?: File) {
     if (!f || !isMe) return;
     if (!['image/jpeg', 'image/png', 'image/webp'].includes(f.type)) return setUpMsg('仅支持 JPG / PNG / WebP');
@@ -126,6 +156,15 @@ export default function Member() {
               onChange={e => { pickPhoto(e.target.files?.[0]); e.target.value = ''; }} />
           </label>}
           {isMe && upMsg && <p className="mut" style={{ fontSize: 12, margin: '6px 0 0' }}>{upMsg}</p>}
+          {!isMe && uid && (
+            !fstat ? <button className="ghost upbtn" disabled={fbusy} onClick={addFriend}>＋ 加好友</button>
+            : fstat.status === 'accepted'
+              ? <button className="pri upbtn" style={{ width: 'auto', padding: '8px 18px' }} disabled={fbusy} onClick={goChat}>💬 去聊天</button>
+              : fstat.status === 'pending' && fstat.requester === uid
+                ? <button className="ghost upbtn" disabled>⏳ 已申请，等待通过</button>
+                : <button className="pri upbtn" style={{ width: 'auto', padding: '8px 18px' }} onClick={() => nav('/friends')}>💌 对方想加你，去看看</button>
+          )}
+          {!isMe && upMsg && <p className="mut" style={{ fontSize: 12, margin: '6px 0 0' }}>{upMsg}</p>}
         </div>
       </div>
       {cropSrc && <AvatarCropper src={cropSrc} onCancel={closeCrop} onDone={uploadCropped} />}

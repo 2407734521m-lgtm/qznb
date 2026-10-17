@@ -85,6 +85,31 @@ button:disabled{opacity:.5}
 .mcard h3{margin:10px 2px 2px;font-size:15px;font-weight:700}
 .mcard p{margin:0 2px 4px;color:var(--mut);font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
+/* 成员墙排列切换 */
+.mtoolbar{display:flex;align-items:center;justify-content:space-between;margin:2px 0 8px}
+.lswitch{position:relative}
+.lmask{position:fixed;inset:0;z-index:60}
+.lpop{position:absolute;right:0;top:calc(100% + 6px);z-index:61;background:#1d1730f5;border:1px solid #ffffff1c;
+  border-radius:14px;padding:6px;display:flex;flex-direction:column;gap:2px;min-width:158px;
+  box-shadow:0 16px 40px #000a;animation:gin .25s ease}
+.lpop button{background:none;border:none;color:#fff;text-align:left;padding:10px 12px;border-radius:10px;font-size:13.5px}
+.lpop button.on{background:#a78bfa2e;font-weight:700}
+.mgrid.c2{grid-template-columns:repeat(2,1fr)}
+.mgrid.c3{grid-template-columns:repeat(3,1fr);gap:10px}
+.mgrid.c4{grid-template-columns:repeat(4,1fr);gap:8px}
+.mgrid.c6{grid-template-columns:repeat(6,1fr);gap:6px}
+.mgrid.c3 .mcard h3{font-size:13.5px}
+.mgrid.c4 .mcard,.mgrid.c6 .mcard{padding:6px}
+.mgrid.c4 .mcard h3{font-size:12px;margin-top:6px}
+.mgrid.c6 .mcard h3{font-size:10.5px;margin-top:4px}
+.mgrid.c4 .mcard p,.mgrid.c6 .mcard p,.mgrid.c4 .mcard .gbadge,.mgrid.c6 .mcard .gbadge{display:none}
+.mgrid.list{grid-template-columns:1fr;gap:8px}
+.mgrid.list .mcard{display:flex;align-items:center;gap:12px;padding:8px 12px}
+.mgrid.list .mcard .photo{width:52px;height:52px;aspect-ratio:1;flex:none}
+.mgrid.list .mcard h3{margin:0;font-size:14.5px}
+.mgrid.list .mcard p{margin:2px 0 0}
+.mgrid.list .mcard .gbadge{margin-top:4px}
+
 /* ============ 个人档案 ============ */
 .profile.compact{display:flex;gap:16px;align-items:flex-start;flex-wrap:nowrap;margin-top:6px}
 .profile.compact .info{flex:1;min-width:0}

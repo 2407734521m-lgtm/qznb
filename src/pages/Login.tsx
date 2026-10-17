@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { supabase } from '../lib/supabase';
+import FeedbackModal from '../components/FeedbackModal';
 import { downscaleImage } from '../lib/media';
 import bgDefault from '../assets/bg.jpg';
 
@@ -29,6 +30,7 @@ export default function Login() {
   const [avatar, setAvatar] = useState<File | null>(null);
   const [avatarPrev, setAvatarPrev] = useState<string | null>(null);
   const [err, setErr] = useState(''); const [busy, setBusy] = useState(false);
+  const [fbOpen, setFbOpen] = useState(false);
   const [bg, setBg] = useState<string>(() => { try { return localStorage.getItem(BG_KEY) || DEFAULT_BG; } catch { return DEFAULT_BG; } });
   const [blur, setBlur] = useState(5); const [dark, setDark] = useState(45);
   const [showBg, setShowBg] = useState(false);
@@ -111,6 +113,7 @@ export default function Login() {
             <button className="pri" disabled={busy} onClick={doLogin}>{busy ? '登录中…' : '进入班级'}</button>
             <button className="ghost" style={{ width: '100%', marginTop: 8 }} disabled={busy} onClick={doPasskey}>🔑 使用通行密钥登录</button>
             <p className="login-switch">还没有账号？<button onClick={() => { setMode('reg'); setErr(''); }}>去注册</button></p>
+            <p className="login-switch" style={{ marginTop: 2 }}>如果登录不上<button onClick={() => setFbOpen(true)}>点我反馈</button></p>
           </>) : (<>
             <label>用户名</label>
             <input value={name} onChange={e => setName(e.target.value)} placeholder="班级里显示的名字，可重复" maxLength={30} />
@@ -166,6 +169,7 @@ export default function Login() {
           </div>
         </motion.div>
       </div>
+      {fbOpen && <FeedbackModal kind="login" onClose={() => setFbOpen(false)} />}
     </>
   );
 }

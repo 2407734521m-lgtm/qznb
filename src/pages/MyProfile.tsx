@@ -72,6 +72,14 @@ export default function MyProfile() {
   const avatarUrl = useSignedUrl('avatars', avatar);
 
   useEffect(() => { supabase.rpc('my_role').then(({ data }) => setRole(data ?? '')); }, []);
+  useEffect(() => { // 注册时邀请码无效：在这里提示（登录页的报错会被跳转吞掉）
+    try {
+      if (sessionStorage.getItem('ca_invite_bad')) {
+        sessionStorage.removeItem('ca_invite_bad');
+        setMsg('邀请码不正确，请检查后重新填写');
+      }
+    } catch {}
+  }, []);
   async function logout() { await supabase.auth.signOut(); }
 
   useEffect(() => { (async () => {

@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
-import { HashRouter, Routes, Route, NavLink, Navigate, useLocation } from 'react-router-dom';
+import { Routes, Route, NavLink, Navigate, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { supabase } from './lib/supabase';
-import { AuthProvider, useAuth } from './auth';
+import { useAuth } from './auth';
 import Login from './pages/Login';
 import Members from './pages/Members';
 import Member from './pages/Member';
@@ -96,12 +96,7 @@ function Shell() {
   );
 }
 
+// main.tsx 已提供 <HashRouter><AuthProvider>，这里只返回 Shell（重复嵌套路由会直接崩溃黑屏）。
 export default function App() {
-  return (
-    <HashRouter>
-      <AuthProvider>
-        <Shell />
-      </AuthProvider>
-    </HashRouter>
-  );
+  return <Shell />;
 }

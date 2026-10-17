@@ -86,10 +86,10 @@ export default function MyProfile() {
     const [p, pr, c, g] = await Promise.all([
       supabase.from('profiles').select('*').eq('id', uid).single(),
       supabase.from('profile_privacy').select('*').eq('profile_id', uid).single(),
-      supabase.from('profile_contacts').select('*').eq('profile_id', uid).single(),
+      supabase.from('profile_contacts').select('*').eq('profile_id', uid).maybeSingle(),
       supabase.from('game_profiles').select('game_name, game_uid, rank, status').eq('profile_id', uid).maybeSingle()]);
     if (p.error || pr.error || c.error) return setMsg('资料加载失败，请刷新重试');
-    const all: Record<string, any> = { ...p.data, ...c.data };
+    const all: Record<string, any> = { ...p.data, ...(c.data ?? {}) };
     setV(Object.fromEntries(ALL_FIELDS.map(([k]) => [k, all[k] == null ? '' : String(all[k])])));
     setPriv(pr.data); setJoined(p.data.joined); setAvatar(p.data.avatar_path); setUname(p.data.username ?? '');
     setTheme(p.data.theme?.theme ?? 'aurora'); setLayout(p.data.theme?.layout ?? 'left');
@@ -124,7 +124,7 @@ export default function MyProfile() {
         personality: n(v.personality), signature: n(v.signature), bio: n(v.bio), hobbies: n(v.hobbies),
         theme: { theme, layout } }).eq('id', uid),
       supabase.from('profile_privacy').update(Object.fromEntries(Object.keys(priv).filter(k => k.startsWith('show_')).map(k => [k, !!priv[k]]))).eq('profile_id', uid),
-      supabase.from('profile_contacts').update({ contact: n(v.contact), social: n(v.social) }).eq('profile_id', uid)]);
+      supabase.from('profile_contacts').upsert({ profile_id: uid, contact: n(v.contact), social: n(v.social) }, { onConflict: 'profile_id' })]);
     savingRef.current = false;
     const err = r.find(x => x.error);
     if (err) { setSaveState('error'); setMsg('保存失败：' + err.error!.message); }

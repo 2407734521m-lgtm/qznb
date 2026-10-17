@@ -17,6 +17,7 @@ import Discover from './pages/Discover';
 import Friends from './pages/Friends';
 import Chat from './pages/Chat';
 import Admin from './pages/Admin';
+import AdminLogin from './pages/AdminLogin';
 
 const TABS = [
   { to: '/members', label: '成员', ic: '👥' },
@@ -74,9 +75,23 @@ function TestSwitchFab() {
   );
 }
 
-function Shell() {
+// /admin 路由守卫：已是管理员直接进后台，否则显示独立的管理员登录页
+function AdminRoute() {
   const { session, loading } = useAuth();
-  const [role, setRole] = useState('');
+  const [role, setRole] = useState<string | null>(null);
+  useEffect(() => {
+    if (!session) { setRole(null); return; }
+    let live = true;
+    supabase.rpc('my_role').then(({ data }) => { if (live) setRole(data ?? ''); });
+    return () => { live = false; };
+  }, [session]);
+  if (loading || (session && role === null)) return <div className="center" style={{ minHeight: '60vh' }}>加载中…</div>;
+  const isAdmin = role === 'admin' || role === 'super_admin';
+  return isAdmin ? <Admin /> : <AdminLogin />;
+}
+
+function Shell() {
+  const { session, loading } = useAuth();  const [role, setRole] = useState('');
   const loc = useLocation();
   const reduce = useReducedMotion();
   const isAdmin = role === 'admin' || role === 'super_admin';
@@ -164,7 +179,9 @@ function Shell() {
   async function logout() { await supabase.auth.signOut(); }
 
   if (loading) return <div className="center">加载中…</div>;
-  if (!session) return (<><div className="glow" /><Login /></>);
+  if (!session) return isAdminPage
+    ? (<><div className="glow" /><div style={{ position: 'fixed', inset: 0, background: '#07090f' }} /><div style={{ position: 'relative' }}><AdminLogin /></div></>)
+    : (<><div className="glow" /><Login /></>);
 
   return (
     <>
@@ -212,7 +229,7 @@ function Shell() {
               <Route path="/timeline" element={<Timeline />} />
               <Route path="/timeline/:uid" element={<Timeline />} />
               <Route path="/me" element={<div className="me-compact"><MyProfile /></div>} />
-              <Route path="/admin" element={<Admin />} />
+              <Route path="/admin" element={<AdminRoute />} />
               <Route path="*" element={<Navigate to="/members" replace />} />
             </Routes>
           </motion.div>

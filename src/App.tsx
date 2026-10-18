@@ -203,6 +203,38 @@ function Shell() {
     return () => window.removeEventListener('notif-read', h);
   }, []);
 
+  // 登录弹窗公告：管理员开了"登录弹窗"的公告，成员登录时弹一次
+  const [loginPop, setLoginPop] = useState<any>(null);
+  useEffect(() => {
+    if (!session || loc.pathname === '/admin') { setLoginPop(null); return; }
+    let alive = true;
+    (async () => {
+      try {
+        const seen: number[] = JSON.parse(localStorage.getItem('ca_popup_seen') || '[]');
+        const now = new Date().toISOString();
+        const { data } = await supabase.from('board_messages')
+          .select('id, content, created_at')
+          .eq('is_admin_msg', true).eq('popup_on_login', true)
+          .is('deleted_at', null)
+          .or(`expires_at.is.null,expires_at.gt.${now}`)
+          .order('created_at', { ascending: false }).limit(10);
+        const fresh = (data ?? []).filter(a => !seen.includes(a.id));
+        if (alive && fresh.length) setLoginPop(fresh[0]);
+      } catch { /* 忽略 */ }
+    })();
+    return () => { alive = false; };
+  }, [session]);
+  function closeLoginPop() {
+    if (loginPop) {
+      try {
+        const seen: number[] = JSON.parse(localStorage.getItem('ca_popup_seen') || '[]');
+        if (!seen.includes(loginPop.id)) seen.push(loginPop.id);
+        localStorage.setItem('ca_popup_seen', JSON.stringify(seen));
+      } catch {}
+    }
+    setLoginPop(null);
+  }
+
   // 全站壁纸（登录后的 onboarding 可改）
   const [wp, setWp] = useState(getWallpaper);
   useEffect(() => {
@@ -402,6 +434,30 @@ function Shell() {
       </nav>}
       {showWp && <WallpaperOnboarding onDone={() => setShowWp(false)} />}
       {welcome !== null && <WelcomeOverlay nick={welcome} onDone={welcomeDone} />}
+      {loginPop && (
+        <div onClick={closeLoginPop} style={{
+          position: 'fixed', inset: 0, zIndex: 300, background: '#000b',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24,
+          backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)',
+        }}>
+          <div onClick={e => e.stopPropagation()} style={{
+            width: '100%', maxWidth: 380, borderRadius: 18, padding: 20,
+            background: 'linear-gradient(160deg,#1a2140,#0e1428)',
+            border: '1px solid #5b8cff44', boxShadow: '0 20px 60px #000d',
+          }}>
+            <div style={{ fontSize: 11, color: '#8b93b0', marginBottom: 6 }}>班级公告</div>
+            <div style={{ fontSize: 15, lineHeight: 1.8, whiteSpace: 'pre-wrap', color: '#fff' }}>{loginPop.content}</div>
+            <div style={{ color: 'var(--mut)', fontSize: 11.5, marginTop: 10 }}>
+              {(loginPop.created_at || '').slice(0, 16).replace('T', ' ')}
+            </div>
+            <button onClick={closeLoginPop} style={{
+              marginTop: 14, width: '100%', padding: '11px 0', borderRadius: 999, border: 0,
+              background: 'linear-gradient(135deg,#5b8cff,#8b5cf6)', color: '#fff',
+              fontSize: 14, fontWeight: 700, cursor: 'pointer',
+            }}>知道了</button>
+          </div>
+        </div>
+      )}
       <TestSwitchFab />
     </>
   );

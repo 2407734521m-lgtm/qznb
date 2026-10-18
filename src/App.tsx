@@ -155,6 +155,28 @@ function Shell() {
   const barRef = useRef<HTMLElement>(null);
   // 拖拽 scrub：手指按住底栏滑动时，高亮 pill 实时跟随
   const [scrub, setScrub] = useState<number | null>(null);
+  // 公告红点：有未读管理员公告时显示
+  const [boardUnread, setBoardUnread] = useState(false);
+  useEffect(() => {
+    if (!session) { setBoardUnread(false); return; }
+    let alive = true;
+    (async () => {
+      try {
+        const { data: r } = await supabase.from('board_reads').select('last_seen_at').eq('profile_id', session.user.id).maybeSingle();
+        const lastSeen = (r as any)?.last_seen_at as string | undefined;
+        let q = supabase.from('board_messages').select('id', { count: 'exact', head: true }).eq('is_admin_msg', true);
+        if (lastSeen) q = q.gt('created_at', lastSeen);
+        const { count } = await q;
+        if (alive) setBoardUnread((count ?? 0) > 0);
+      } catch { /* 忽略，红点不影响主流程 */ }
+    })();
+    return () => { alive = false; };
+  }, [session, loc.pathname]);
+  useEffect(() => {
+    const h = () => setBoardUnread(false);
+    window.addEventListener('board-read', h);
+    return () => window.removeEventListener('board-read', h);
+  }, []);
 
   // 全站壁纸（登录后的 onboarding 可改）
   const [wp, setWp] = useState(getWallpaper);
@@ -340,7 +362,11 @@ function Shell() {
                 style={{ position: 'absolute', inset: 0, borderRadius: 999,
                   background: 'linear-gradient(135deg,var(--a),var(--b))',
                   boxShadow: '0 4px 16px color-mix(in srgb,var(--a) 45%,transparent)' }} />}
-              <span style={{ position: 'relative', zIndex: 1 }}>{t.label}</span>
+              <span style={{ position: 'relative', zIndex: 1 }}>{t.label}
+                {t.to === '/board' && boardUnread && <span style={{
+                  position: 'absolute', top: -2, right: -10, width: 8, height: 8,
+                  borderRadius: '50%', background: '#ff4d4f',
+                  boxShadow: '0 0 6px #ff4d4f' }} />}</span>
             </NavLink>
           );
         })}

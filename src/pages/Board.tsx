@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../auth';
 import { useSignedUrl } from '../lib/media';
 
-type Msg = { id: number; author_id: string; content: string; is_admin_msg: boolean; is_pinned: boolean; created_at: string };
+type Msg = { id: number; author_id: string; title: string | null; content: string; is_admin_msg: boolean; is_pinned: boolean; created_at: string };
 type Profile = { id: string; username: string; display_name: string | null; avatar_path: string | null };
 
 function Avatar({ p, size = 38 }: { p?: Profile; size?: number }) {
@@ -35,7 +35,7 @@ export default function Board() {
   async function load() {
     const nowIso = new Date().toISOString();
     const { data } = await supabase.from('board_messages')
-      .select('id, author_id, content, is_admin_msg, is_pinned, created_at')
+      .select('id, author_id, title, content, is_admin_msg, is_pinned, created_at')
       .is('deleted_at', null)
       .or(`expires_at.is.null,expires_at.gt.${nowIso}`)
       .order('is_pinned', { ascending: false }).order('is_admin_msg', { ascending: false }).order('created_at', { ascending: false }).limit(100);
@@ -90,6 +90,7 @@ export default function Board() {
           <div style={{ flex: 1 }} />
           {(m.author_id === me || isAdmin) && <button className="del" onClick={() => del(m.id)}>删除</button>}
         </div>
+        {m.is_admin_msg && m.title && <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 4 }}>{m.title}</div>}
         <p className="bd" style={{ whiteSpace: 'pre-wrap' }}>{m.content}</p>
       </motion.article>
     );

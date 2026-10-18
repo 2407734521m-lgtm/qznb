@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import AdminMemberModal from '../components/AdminMemberModal';
-import { supabase } from '../lib/supabase';
+import { supabase, supabaseBaseUrl } from '../lib/supabase';
 import { useAuth } from '../auth';
 
 /**
@@ -729,7 +729,7 @@ function Settings({ me, setMsg }: { me: string; setMsg: (s: string) => void }) {
     catch { r.storage = '异常'; }
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      const resp = await fetch('https://wnddwkdfndrkxivvrxcy.supabase.co/functions/v1/notify', {
+      const resp = await fetch(`${supabaseBaseUrl}/functions/v1/notify`, {
         method: 'POST', headers: { 'Content-Type': 'application/json', 'apikey': 'sb_publishable_4dNtXkAYz6Q2KE0hZdZyKw_vF7b9T5q' }, body: '{}',
       });
       r.notify = resp.status === 401 ? '正常' : `异常（${resp.status}）`;

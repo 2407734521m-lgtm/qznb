@@ -24,10 +24,25 @@ const PRIV_ICONS: Record<string, string> = { show_avatar: '🖼️', show_name: 
 const PRIV_ROWS: [string, string][] = [['show_avatar', '个人照片'], ...ALL_FIELDS.map(([, label, flag]) => [flag, label] as [string, string])];
 
 // 通用折叠栏
+// 折叠栏展开/收起状态持久化：记住，下次打开保持上次的样子
+function usePersistedSec(key: string, init: boolean) {
+  const [v, setV] = useState(() => {
+    try { const s = localStorage.getItem(key); return s === null ? init : s === '1'; }
+    catch { return init; }
+  });
+  const set = (u: boolean | ((o: boolean) => boolean)) => {
+    setV(prev => {
+      const nv = typeof u === 'function' ? (u as (o: boolean) => boolean)(prev) : u;
+      try { localStorage.setItem(key, nv ? '1' : '0'); } catch {}
+      return nv;
+    });
+  };
+  return [v, set] as const;
+}
+
 function Collapsible({ icon, title, sub, open, onToggle, children }: {
   icon: string; title: string; sub?: string; open: boolean; onToggle: () => void; children: React.ReactNode;
-}) {
-  return (
+}) {  return (
     <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
       <button type="button" onClick={onToggle}
         style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '16px 20px', background: 'none', border: 0, color: 'inherit', font: 'inherit', cursor: 'pointer', textAlign: 'left' }}>
@@ -46,11 +61,12 @@ function Collapsible({ icon, title, sub, open, onToggle, children }: {
 export default function MyProfile() {
   const uid = useAuth().session!.user.id;
   const [v, setV] = useState<Record<string, string>>({}); const [priv, setPriv] = useState<Record<string, boolean>>({});
-  const [privOpen, setPrivOpen] = useState(false);
-  const [baseOpen, setBaseOpen] = useState(true);
-  const [lookOpen, setLookOpen] = useState(false);
-  const [gameOpen, setGameOpen] = useState(true);
-  const [keyOpen, setKeyOpen] = useState(false);
+  // 折叠栏的展开/收起要记住，下次打开保持上次的样子
+  const [privOpen, setPrivOpen] = usePersistedSec('ca_sec_priv', false);
+  const [baseOpen, setBaseOpen] = usePersistedSec('ca_sec_base', true);
+  const [lookOpen, setLookOpen] = usePersistedSec('ca_sec_look', false);
+  const [gameOpen, setGameOpen] = usePersistedSec('ca_sec_game', true);
+  const [keyOpen, setKeyOpen] = usePersistedSec('ca_sec_key', false);
   const [uname, setUname] = useState('');
   const [theme, setTheme] = useState('aurora'); const [layout, setLayout] = useState('right');
   const [joined, setJoined] = useState(true); const [avatar, setAvatar] = useState<string | null>(null);

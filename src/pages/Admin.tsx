@@ -58,7 +58,7 @@ export default function Admin() {
   const [fbFilter, setFbFilter] = useState('all');        // 反馈筛选：all/open/done
   const [logQ, setLogQ] = useState('');                   // 日志筛选
   const [editId, setEditId] = useState<string | null>(null); // 正在编辑资料的成员
-  const [editForm, setEditForm] = useState({ display_name: '', real_name: '', signature: '' });
+  const [editForm, setEditForm] = useState({ display_name: '', signature: '' });
   const [batchBusy, setBatchBusy] = useState(false);
   const [tab, setTab] = useState('overview'); // 当前板块：必须放在提前返回之前，否则 hook 数量变化会崩（React #310）
   const [detailId, setDetailId] = useState<string | null>(null); // 点进成员详情
@@ -258,7 +258,7 @@ export default function Admin() {
   // 4) 编辑成员资料
   function startEdit(mb: Member) {
     setEditId(mb.id);
-    setEditForm({ display_name: mb.display_name || '', real_name: mb.real_name || '', signature: '' });
+    setEditForm({ display_name: mb.display_name || '', signature: '' });
     const prof = supabase.from('profiles').select('signature').eq('id', mb.id).maybeSingle()
       .then(({ data }) => { if (data) setEditForm(f => ({ ...f, signature: (data as any).signature || '' })); });
     void prof;
@@ -269,7 +269,6 @@ export default function Admin() {
     const { error } = await supabase.rpc('admin_update_profile', {
       target: editId,
       p_display_name: editForm.display_name.trim() || null,
-      p_real_name: editForm.real_name.trim() || null,
       p_signature: editForm.signature.trim() || null,
     });
     setMsg(error ? '保存失败：' + error.message : '已更新 ✓');
@@ -467,7 +466,6 @@ export default function Admin() {
                 <div style={{ marginTop: 8, padding: 10, border: '1px solid #ffffff22', borderRadius: 10, background: '#ffffff08' }}>
                   <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
                     <input placeholder="显示名" value={editForm.display_name} onChange={e => setEditForm(f => ({ ...f, display_name: e.target.value }))} style={{ flex: '1 1 100px', minWidth: 0 }} />
-                    <input placeholder="真实姓名" value={editForm.real_name} onChange={e => setEditForm(f => ({ ...f, real_name: e.target.value }))} style={{ flex: '1 1 100px', minWidth: 0 }} />
                   </div>
                   <input placeholder="个性签名" value={editForm.signature} onChange={e => setEditForm(f => ({ ...f, signature: e.target.value }))} style={{ marginTop: 8 }} />
                   <div className="row" style={{ gap: 8, marginTop: 8 }}>

@@ -404,14 +404,16 @@ function Members({ me, isSuper, setMsg, extQ }: { me: string; isSuper: boolean; 
     <div style={{ ...card }}>
       <h3 style={h3}>成员（{filtered.length}）</h3>
       <input value={q} onChange={e => { setQ(e.target.value); setPage(0); }} placeholder="搜索名字 / 用户名 / 真实姓名" style={{ marginBottom: 8 }} />
-      <div className="row" style={{ gap: 6, marginBottom: 8 }}>
+      <div className="row" style={{ gap: 6, marginBottom: 8, flexWrap: 'nowrap', overflowX: 'auto', scrollbarWidth: 'none' }}>
         {([['all', '全部角色'], ['member', '成员'], ['admin', '内容管理员'], ['super_admin', '超级管理员']] as const).map(([k, l]) => (
-          <button key={k} className={'mini' + (fRole === k ? '' : ' ghost')} onClick={() => { setFRole(k); setPage(0); }}>{l}</button>
+          <button key={k} className={'mini' + (fRole === k ? '' : ' ghost')} style={{ whiteSpace: 'nowrap', flexShrink: 0 }}
+            onClick={() => { setFRole(k); setPage(0); }}>{l}</button>
         ))}
       </div>
-      <div className="row" style={{ gap: 6, marginBottom: 4 }}>
+      <div className="row" style={{ gap: 6, marginBottom: 4, flexWrap: 'nowrap', overflowX: 'auto', scrollbarWidth: 'none' }}>
         {([['all', '全部状态'], ['joined', '正常'], ['unjoined', '已禁用']] as const).map(([k, l]) => (
-          <button key={k} className={'mini' + (fJoined === k ? '' : ' ghost')} onClick={() => { setFJoined(k); setPage(0); }}>{l}</button>
+          <button key={k} className={'mini' + (fJoined === k ? '' : ' ghost')} style={{ whiteSpace: 'nowrap', flexShrink: 0 }}
+            onClick={() => { setFJoined(k); setPage(0); }}>{l}</button>
         ))}
       </div>
       {sel.size > 0 && (

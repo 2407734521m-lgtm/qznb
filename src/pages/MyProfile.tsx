@@ -40,10 +40,10 @@ function usePersistedSec(key: string, init: boolean) {
   return [v, set] as const;
 }
 
-function Collapsible({ icon, title, sub, open, onToggle, children }: {
-  icon: string; title: string; sub?: string; open: boolean; onToggle: () => void; children: React.ReactNode;
+function Collapsible({ icon, title, sub, open, onToggle, children, sid }: {
+  icon: string; title: string; sub?: string; open: boolean; onToggle: () => void; children: React.ReactNode; sid?: string;
 }) {  return (
-    <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+    <div className="card" id={sid} style={{ padding: 0, overflow: 'hidden' }}>
       <button type="button" onClick={onToggle}
         style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '16px 20px', background: 'none', border: 0, color: 'inherit', font: 'inherit', cursor: 'pointer', textAlign: 'left' }}>
         <span style={{ fontSize: 16, fontWeight: 700 }}>{icon} {title}</span>
@@ -68,6 +68,17 @@ export default function MyProfile() {
   const [gameOpen, setGameOpen] = usePersistedSec('ca_sec_game', true);
   const [keyOpen, setKeyOpen] = usePersistedSec('ca_sec_key', false);
   const [notifOpen, setNotifOpen] = usePersistedSec('ca_sec_notif', false);
+  // 个人中心 hub 跳转：?sec=base|game|look|priv 自动展开并滚动
+  useEffect(() => {
+    const sec = new URLSearchParams(window.location.hash.split('?')[1] || '').get('sec');
+    const map: Record<string, (v: boolean) => void> = {
+      base: setBaseOpen, game: setGameOpen, look: setLookOpen, priv: setPrivOpen,
+    };
+    if (sec && map[sec]) {
+      map[sec](true);
+      setTimeout(() => document.getElementById('sec-' + sec)?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 350);
+    }
+  }, []);
   const [notifs, setNotifs] = useState<any[]>([]);
   const [notifUnread, setNotifUnread] = useState(0);
   const [uname, setUname] = useState('');
@@ -282,7 +293,7 @@ export default function MyProfile() {
           <button className="pri" style={{ width: 'auto', padding: '10px 26px' }} onClick={join}>加入</button>
         </div></div>}
 
-      <Collapsible icon="📝" title="基本资料" open={baseOpen} onToggle={() => setBaseOpen(o => !o)}>
+      <Collapsible sid="sec-base" icon="📝" title="基本资料" open={baseOpen} onToggle={() => setBaseOpen(o => !o)}>
         {PROFILE_FIELDS.map(([k, label]) => fieldInput(k, label))}
         {/* 自我介绍视频 */}
         <div style={{ marginTop: 12 }}>
@@ -304,7 +315,7 @@ export default function MyProfile() {
         </div>
       </Collapsible>
 
-      <Collapsible icon="🎮" title="游戏与社交" open={gameOpen} onToggle={() => setGameOpen(o => !o)}>
+      <Collapsible sid="sec-game" icon="🎮" title="游戏与社交" open={gameOpen} onToggle={() => setGameOpen(o => !o)}>
         <label>我的游戏段位</label>
         {!gprof && <button className="ghost" style={{ width: '100%' }} onClick={openGpick}>🎮 设置我的游戏段位</button>}
         {gprof && (
@@ -330,7 +341,7 @@ export default function MyProfile() {
         <SocialPicker value={v.social ?? ''} onChange={s => setV({ ...v, social: s })} />
       </Collapsible>
 
-      <Collapsible icon="🔒" title="隐私设置"
+      <Collapsible sid="sec-priv" icon="🔒" title="隐私设置"
         sub={`${PRIV_ROWS.filter(([f]) => priv[f]).length}/${PRIV_ROWS.length} 项公开`}
         open={privOpen} onToggle={() => setPrivOpen(o => !o)}>
         <p className="priv-note">哪些资料对其他成员公开，点一下开关就行</p>
@@ -345,7 +356,7 @@ export default function MyProfile() {
         </div>
       </Collapsible>
 
-      <Collapsible icon="🎨" title="我的主页外观" open={lookOpen} onToggle={() => setLookOpen(o => !o)}>
+      <Collapsible icon="🎨" sid="sec-look" title="我的主页外观" open={lookOpen} onToggle={() => setLookOpen(o => !o)}>
         <p className="priv-note">主题</p>
         <div className="theme-grid">
           {THEMES.map(([k, l, c1, c2]) => (

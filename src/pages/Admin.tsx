@@ -63,12 +63,12 @@ function Spark({ data, color }: { data: number[]; color: string }) {
   );
 }
 function TrendChart({ data }: { data: number[] }) {
-  const w = 300, h = 72;
-  const max = Math.max(...data, 1) * 1.25;
+  const w = 300, h = 90;
+  const max = Math.max(...data, 1);
   const line = 'M' + data.map((v, i) => `${((i / (data.length - 1)) * w).toFixed(1)},${(h - 8 - (v / max) * (h - 20)).toFixed(1)}`).join(' L');
   const ly = h - 8 - (data[data.length - 1] / max) * (h - 20);
   return (
-    <svg viewBox={`0 0 ${w} ${h}`} style={{ width: '100%', height: 72, display: 'block' }}>
+    <svg viewBox={`0 0 ${w} ${h}`} style={{ width: '100%', height: 90, display: 'block' }}>
       <defs><linearGradient id="dtrend" x1="0" y1="0" x2="0" y2="1">
         <stop offset="0" stopColor="#5b8cff" stopOpacity=".45" />
         <stop offset="1" stopColor="#5b8cff" stopOpacity="0" />
@@ -289,13 +289,11 @@ function Overview({ setMsg }: { setMsg: (s: string) => void }) {
   return (<>
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
       {stats.map(([k, v, d, col]) => (
-        <div key={k} style={{ ...card, marginBottom: 0, padding: '10px 12px', display: 'flex', alignItems: 'center', gap: 8 }}>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 11, color: '#8b93b0' }}>{k}</div>
-            <div style={{ fontSize: 22, fontWeight: 800, margin: '2px 0', color: '#fff' }}>{v}</div>
-            <div style={{ fontSize: 10.5, whiteSpace: 'nowrap' }}>{statSub[k]}</div>
-          </div>
-          <div style={{ width: 64, flexShrink: 0 }}><Spark data={d} color={col} /></div>
+        <div key={k} style={{ ...card, marginBottom: 0, padding: 12 }}>
+          <div style={{ fontSize: 11, color: '#8b93b0' }}>{k}</div>
+          <div style={{ fontSize: 24, fontWeight: 800, margin: '4px 0', color: '#fff' }}>{v}</div>
+          <div style={{ fontSize: 10.5 }}>{statSub[k]}</div>
+          <Spark data={d} color={col} />
         </div>
       ))}
     </div>

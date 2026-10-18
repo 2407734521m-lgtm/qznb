@@ -67,6 +67,9 @@ export default function MyProfile() {
   const [lookOpen, setLookOpen] = usePersistedSec('ca_sec_look', false);
   const [gameOpen, setGameOpen] = usePersistedSec('ca_sec_game', true);
   const [keyOpen, setKeyOpen] = usePersistedSec('ca_sec_key', false);
+  const [notifOpen, setNotifOpen] = usePersistedSec('ca_sec_notif', false);
+  const [notifs, setNotifs] = useState<any[]>([]);
+  const [notifUnread, setNotifUnread] = useState(0);
   const [uname, setUname] = useState('');
   const [theme, setTheme] = useState('aurora'); const [layout, setLayout] = useState('right');
   const [joined, setJoined] = useState(true); const [avatar, setAvatar] = useState<string | null>(null);
@@ -96,6 +99,14 @@ export default function MyProfile() {
   const videoInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => { supabase.rpc('my_role').then(({ data }) => setRole(data ?? '')); }, []);
+  useEffect(() => { // 加载站内通知
+    supabase.from('notifications').select('*').eq('profile_id', uid)
+      .order('created_at', { ascending: false }).limit(30).then(({ data }) => {
+        const list = (data ?? []) as any[];
+        setNotifs(list);
+        setNotifUnread(list.filter(n => !n.is_read).length);
+      });
+  }, [uid]);
   useEffect(() => { // 注册时邀请码无效：在这里提示（登录页的报错会被跳转吞掉）
     try {
       if (sessionStorage.getItem('ca_invite_bad')) {
@@ -363,6 +374,28 @@ export default function MyProfile() {
             <button className="mini" onClick={() => delKey(k.id)}>删除</button>
           </div>
         ))}
+      </Collapsible>
+
+      <Collapsible icon="🔔" title={`站内通知${notifUnread ? `（${notifUnread} 条未读）` : ''}`} open={notifOpen} onToggle={() => {
+        const n = !notifOpen; setNotifOpen(n);
+        if (n && notifUnread > 0) {
+          supabase.from('notifications').update({ is_read: true }).eq('profile_id', uid).eq('is_read', false).then(() => {
+            setNotifUnread(0);
+            setNotifs(prev => prev.map(x => ({ ...x, is_read: true })));
+            window.dispatchEvent(new Event('notif-read'));
+          });
+        }
+      }}>
+        {notifs.length === 0 ? <p className="mut" style={{ fontSize: 13 }}>暂无通知</p> :
+          notifs.map(n => (
+            <div key={n.id} style={{ padding: '10px 0', borderBottom: '1px solid #ffffff0c', opacity: n.is_read ? 0.65 : 1 }}>
+              <div style={{ fontSize: 13.5, fontWeight: n.is_read ? 400 : 700 }}>
+                {!n.is_read && <span style={{ color: '#ff4d4f', marginRight: 6 }}>●</span>}{n.title}
+              </div>
+              {n.body && <div className="mut" style={{ fontSize: 12.5, marginTop: 2 }}>{n.body}</div>}
+              <div className="mut" style={{ fontSize: 11.5, marginTop: 2 }}>{(n.created_at || '').slice(0, 16).replace('T', ' ')}</div>
+            </div>
+          ))}
       </Collapsible>
 
       <div className="card" style={{ padding: 0, overflow: 'hidden' }}>

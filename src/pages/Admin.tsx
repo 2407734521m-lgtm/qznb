@@ -9,7 +9,7 @@ type Post = { id: number; content: string; author_id: string; created_at: string
 type Alb = { id: number; title: string; category: string; created_at: string };
 type Fb = { id: number; name: string | null; contact: string | null; content: string; kind: string; status: string; created_at: string; user_id: string | null };
 type Gp = { profile_id: string; game_name: string; game_uid: string | null; rank: string | null; status: string; updated_at: string };
-type Ic = { id: number; code: string; nickname: string | null; active: boolean; created_at: string };
+type Ic = { id: number; code: string; nickname: string | null; active: boolean; created_at: string; expires_at: string | null };
 type Notice = { id: number; content: string; created_at: string; is_pinned: boolean };
 type TestAccount = { id: string; label: string; email: string; password: string };
 
@@ -32,6 +32,7 @@ export default function Admin() {
   const [ics, setIcs] = useState<Ic[]>([]);
   const [newCode, setNewCode] = useState('');
   const [newNick, setNewNick] = useState('');
+  const [newExp, setNewExp] = useState('0'); // 邀请码过期：0=不过期
   const [feedbacks, setFeedbacks] = useState<Fb[]>([]);
   const [gpend, setGpend] = useState<Gp[]>([]);
   const [gok, setGok] = useState<Gp[]>([]);
@@ -51,6 +52,7 @@ export default function Admin() {
   // 公告管理
   const [notices, setNotices] = useState<Notice[]>([]);
   const [noticeText, setNoticeText] = useState('');
+  const [noticeExp, setNoticeExp] = useState('0'); // 过期：0=不过期，1/3/7/30=天数
   // 成员位置与设备
   const [presence, setPresence] = useState<Record<string, { device: string | null; location: string | null; updated_at: string | null }>>({});
   // 10 个新功能的状态
@@ -71,7 +73,7 @@ export default function Admin() {
     if (!m.error) setMembers(m.data as Member[]);
     const em = await supabase.from('profile_emails').select('profile_id, email');
     if (!em.error) setEmails(Object.fromEntries((em.data ?? []).map((x: any) => [x.profile_id, x.email])));
-    const ic = await supabase.from('invite_codes').select('id, code, nickname, active, created_at').order('created_at');
+    const ic = await supabase.from('invite_codes').select('id, code, nickname, active, created_at, expires_at').order('created_at');
     if (!ic.error) setIcs(ic.data as Ic[]);
     const fb = await supabase.from('feedbacks').select('id, name, contact, content, kind, status, created_at, user_id')
       .order('created_at', { ascending: false }).limit(50);
@@ -121,8 +123,13 @@ export default function Admin() {
     if (!c) return setMsg('请填写邀请码');
     setMsg('');
     const { error } = await supabase.rpc('create_invite_code', { new_code: c, nick: newNick.trim() || null });
-    setMsg(error ? '添加失败：' + error.message : '邀请码已添加 ✓');
-    if (!error) { setNewCode(''); setNewNick(''); refresh(); }
+    if (error) { setMsg('添加失败：' + error.message); return; }
+    const days = parseInt(newExp, 10);
+    if (days > 0) {
+      await supabase.from('invite_codes').update({ expires_at: new Date(Date.now() + days * 864e5).toISOString() }).eq('code', c);
+    }
+    setMsg('邀请码已添加 ✓' + (days > 0 ? `（${days} 天后过期）` : ''));
+    setNewCode(''); setNewNick(''); setNewExp('0'); refresh();
   }
   async function delIc(id: number) {
     if (!confirm('删除这个邀请码？之前用它加入的成员不受影响。')) return;
@@ -198,10 +205,12 @@ export default function Admin() {
     const c = noticeText.trim();
     if (!c) return setMsg('先写点公告内容');
     setMsg('');
+    const days = parseInt(noticeExp, 10);
+    const exp = days > 0 ? new Date(Date.now() + days * 864e5).toISOString() : null;
     const { error } = await supabase.from('board_messages')
-      .insert({ author_id: me, content: c.slice(0, 500), is_admin_msg: true });
+      .insert({ author_id: me, content: c.slice(0, 500), is_admin_msg: true, expires_at: exp });
     setMsg(error ? '发布失败：' + error.message : '公告已发布 ✓（公告板最上面能看到）');
-    if (!error) { setNoticeText(''); refresh(); }
+    if (!error) { setNoticeText(''); setNoticeExp('0'); refresh(); }
   }
   async function delNotice(id: number) {
     if (!confirm('删除这条公告？')) return;
@@ -423,8 +432,16 @@ export default function Admin() {
         <p className="priv-note" style={{ margin: '0 0 8px' }}>公告只有管理员能发布，会置顶显示在公告板最上面，普通成员只能看和留言。</p>
         <textarea value={noticeText} onChange={e => setNoticeText(e.target.value)} rows={3} maxLength={500}
           placeholder="写公告…" style={{ width: '100%' }} />
-        <div style={{ marginTop: 8 }}>
+        <div className="row" style={{ marginTop: 8, gap: 8, alignItems: 'center' }}>
           <button className="pri" style={{ width: 'auto', padding: '10px 26px' }} onClick={postNotice}>发布公告</button>
+          <label className="mut" style={{ fontSize: 12.5 }}>过期：</label>
+          <select value={noticeExp} onChange={e => setNoticeExp(e.target.value)} style={{ width: 'auto', padding: '8px' }}>
+            <option value="0">不过期</option>
+            <option value="1">1 天后</option>
+            <option value="3">3 天后</option>
+            <option value="7">7 天后</option>
+            <option value="30">30 天后</option>
+          </select>
         </div>
         {notices.map(n => (
           <div key={n.id} className="row" style={{ justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #ffffff0c' }}>
@@ -501,6 +518,7 @@ export default function Admin() {
                 {!ic.active && <span className="mut" style={{ fontSize: 12, fontWeight: 400 }}>（已停用）</span>}</div>
               <div className="mut" style={{ fontSize: 12.5, marginTop: 2 }}>
                 欢迎动画：「{ic.nickname || 'xxx'} — Welcome to Class 13!」
+                {ic.expires_at && <> · {new Date(ic.expires_at) < new Date() ? '已过期' : '过期：' + ic.expires_at.slice(0, 16).replace('T', ' ')}</>}
               </div>
               <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
                 <button className="mini ghost" onClick={() => toggleIc(ic.id, ic.active)}>{ic.active ? '停用' : '启用'}</button>
@@ -513,6 +531,13 @@ export default function Admin() {
           <input value={newCode} onChange={e => setNewCode(e.target.value)} placeholder="如：zhangsan" maxLength={40} />
           <label style={{ marginTop: 8 }}>欢迎昵称（这个码专属）</label>
           <input value={newNick} onChange={e => setNewNick(e.target.value)} placeholder="如：张三" maxLength={30} style={{ maxWidth: 220 }} />
+          <label style={{ marginTop: 8 }}>有效期</label>
+          <select value={newExp} onChange={e => setNewExp(e.target.value)} style={{ maxWidth: 220 }}>
+            <option value="0">不过期</option>
+            <option value="1">1 天（一次性）</option>
+            <option value="3">3 天</option>
+            <option value="7">7 天</option>
+          </select>
           <div style={{ marginTop: 8 }}>
             <button className="pri" style={{ width: 'auto', padding: '10px 24px' }} onClick={addIc}>＋ 添加邀请码</button>
           </div>

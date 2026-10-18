@@ -43,7 +43,7 @@ export default function Feed() {
   const fref = useRef<HTMLInputElement>(null);
 
   async function load() {
-    const { data: ps } = await supabase.from('posts').select('*').order('created_at', { ascending: false }).limit(30);
+    const { data: ps } = await supabase.from('posts').select('*').is('deleted_at', null).order('created_at', { ascending: false }).limit(30);
     const list = (ps ?? []) as Post[];
     setPosts(list);
     if (!list.length) return;
@@ -57,7 +57,7 @@ export default function Feed() {
     const cnt: Record<number, number> = {}; const mine: Record<number, boolean> = {};
     (lk ?? []).forEach((r: any) => { cnt[r.post_id] = (cnt[r.post_id] || 0) + 1; if (r.profile_id === me) mine[r.post_id] = true; });
     setLikes(cnt); setLiked(mine);
-    const { data: cs } = await supabase.from('comments').select('*').in('post_id', pids).order('created_at');
+    const { data: cs } = await supabase.from('comments').select('*').is('deleted_at', null).in('post_id', pids).order('created_at');
     const cm: Record<number, Cmt[]> = {}; const aids = new Set<string>();
     (cs ?? []).forEach((c: any) => { (cm[c.post_id] = cm[c.post_id] || []).push(c); aids.add(c.author_id); });
     setCmts(cm);
@@ -119,6 +119,14 @@ export default function Feed() {
     await supabase.from('posts').delete().eq('id', p.id);
     load();
   }
+  async function reportPost(p: Post) {
+    const reason = prompt('举报这条动态，请输入原因：');
+    if (!reason || !reason.trim()) return;
+    const { error } = await supabase.from('reports').insert({
+      reporter_id: me, target_type: 'post', target_id: String(p.id), reason: reason.trim().slice(0, 200),
+    });
+    alert(error ? '举报失败：' + error.message : '已举报，管理员会处理');
+  }
   async function delCmt(c: Cmt) {
     await supabase.from('comments').delete().eq('id', c.id);
     load();
@@ -162,6 +170,7 @@ export default function Feed() {
                 {liked[p.id] ? '❤️' : '🤍'} {likes[p.id] || ''}
               </button>
               <button onClick={() => setOpenCmt({ ...openCmt, [p.id]: !open })}>💬 {list.length || ''} 评论</button>
+              {p.author_id !== me && <button className="mini ghost" onClick={() => reportPost(p)}>举报</button>}
               {(p.author_id === me || isAdmin) && <button className="del" onClick={() => delPost(p)}>删除</button>}
             </div>
             {open && <div className="cmt">

@@ -1,0 +1,650 @@
+import { useEffect, useState } from 'react';
+import { supabase } from '../lib/supabase';
+import { useAuth } from '../auth';
+
+/**
+ * 管理后台测试版（V2）：高级管理控制中心
+ * 通过 #/admin-v2 进入，不影响现有 /admin
+ * 设计：深色玻璃拟态，文字按钮无 emoji，手机优先
+ */
+
+type Member = {
+  id: string; username: string; display_name: string | null; real_name: string | null;
+  role: string; joined: boolean; created_at: string;
+};
+type Post = { id: number; author_id: string; content: string; image_url: string | null; created_at: string; deleted_at: string | null };
+type Cmt = { id: number; post_id: number; author_id: string; content: string; created_at: string; deleted_at: string | null };
+type Report = {
+  id: number; reporter_id: string | null; target_type: string; target_id: string;
+  reason: string; status: string; handle_note: string | null; created_at: string;
+};
+type Log = { id: number; action: string; detail: unknown; created_at: string };
+
+const TABS_ALL: [string, string, boolean][] = [
+  ['overview', '总览', false],
+  ['members', '成员', false],
+  ['moderate', '审核', false],
+  ['board', '公告', false],
+  ['logs', '日志', false],
+  ['settings', '设置', true], // 仅超管
+];
+
+const card: React.CSSProperties = {
+  background: 'color-mix(in srgb,#141824 72%,transparent)',
+  backdropFilter: 'blur(24px) saturate(1.6)', WebkitBackdropFilter: 'blur(24px) saturate(1.6)',
+  border: '1px solid #ffffff1c', borderRadius: 16, padding: 14, marginBottom: 12,
+  boxShadow: '0 8px 32px #0008,inset 0 1px 0 #ffffff14',
+};
+const h3: React.CSSProperties = { margin: '0 0 10px', fontSize: 15, fontWeight: 700 };
+const mut: React.CSSProperties = { color: 'var(--mut)', fontSize: 12.5 };
+const rowBtn: React.CSSProperties = { display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 8 };
+
+async function alog(action: string, detail: any) {
+  try { await supabase.rpc('log_admin_action', { p_action: action, p_detail: JSON.stringify(detail) }); } catch {}
+}
+
+function timeAgo(s: string) {
+  const d = (Date.now() - new Date(s).getTime()) / 1000;
+  if (d < 60) return '刚刚'; if (d < 3600) return Math.floor(d / 60) + ' 分钟前';
+  if (d < 86400) return Math.floor(d / 3600) + ' 小时前';
+  if (d < 86400 * 30) return Math.floor(d / 86400) + ' 天前';
+  return new Date(s).toLocaleDateString();
+}
+
+export default function AdminV2() {
+  const me = useAuth().session!.user.id;
+  const [role, setRole] = useState('');
+  const [tab, setTab] = useState('overview');
+  const [msg, setMsg] = useState('');
+  const isSuper = role === 'super_admin';
+  const tabs = TABS_ALL.filter(([, , sup]) => !sup || isSuper);
+
+  useEffect(() => {
+    supabase.rpc('my_role').then(({ data }) => setRole(data ?? ''));
+  }, []);
+
+  function switchTab(id: string) {
+    setTab(id); setMsg('');
+    window.scrollTo({ top: 0 });
+  }
+
+  if (!role) return <div className="center" style={{ minHeight: '60vh' }}>加载中…</div>;
+
+  return (
+    <div className="page" style={{ paddingBottom: 110 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+        <div>
+          <h2 style={{ margin: 0, fontSize: 20 }}>管理控制中心</h2>
+          <span style={{ ...mut, background: '#ffd47933', padding: '2px 10px', borderRadius: 999, border: '1px solid #ffd47955' }}>
+            测试版 · {isSuper ? '超级管理员' : '内容管理员'}
+          </span>
+        </div>
+        <button className="mini ghost" onClick={() => { location.hash = '#/admin'; }}>返回旧版</button>
+      </div>
+
+      {msg && <p className="priv-note" style={{ margin: '0 0 10px' }}>{msg}</p>}
+
+      {tab === 'overview' && <Overview setMsg={setMsg} />}
+      {tab === 'members' && <Members me={me} isSuper={isSuper} setMsg={setMsg} />}
+      {tab === 'moderate' && <Moderate setMsg={setMsg} />}
+      {tab === 'board' && <BoardMgr me={me} setMsg={setMsg} />}
+      {tab === 'logs' && <Logs />}
+      {tab === 'settings' && isSuper && <Settings me={me} setMsg={setMsg} />}
+
+      {/* 底部 dock */}
+      <div style={{
+        position: 'fixed', left: '50%', transform: 'translateX(-50%)', zIndex: 60,
+        bottom: 'calc(14px + env(safe-area-inset-bottom))',
+        width: 'max-content', maxWidth: 'calc(100vw - 28px)',
+        padding: 6, borderRadius: 999,
+        background: 'color-mix(in srgb,#1a1e30 42%,transparent)',
+        backdropFilter: 'blur(30px) saturate(1.8)', WebkitBackdropFilter: 'blur(30px) saturate(1.8)',
+        border: '1px solid #ffffff2e',
+        boxShadow: '0 14px 44px #000c,inset 0 1px 0 #ffffff2b',
+      }}>
+        <div className="row" style={{ gap: 2, overflowX: 'auto', flexWrap: 'nowrap', maxWidth: '100%' }}>
+          {tabs.map(([id, label]) => (
+            <button key={id} onClick={() => switchTab(id)} style={{
+              flexShrink: 0, whiteSpace: 'nowrap', padding: '9px 14px', borderRadius: 999, cursor: 'pointer',
+              fontSize: 13, border: 0, fontFamily: 'inherit',
+              background: tab === id ? 'linear-gradient(135deg,var(--a),var(--b))' : 'none',
+              color: tab === id ? '#1c2030' : 'var(--mut)',
+              fontWeight: tab === id ? 700 : 400,
+            }}>{label}</button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ---------------- 总览 ---------------- */
+function Overview({ setMsg }: { setMsg: (s: string) => void }) {
+  const [st, setSt] = useState<any>(null);
+  useEffect(() => {
+    (async () => {
+      try {
+        const [m, p, c, ph, r, nm] = await Promise.all([
+          supabase.from('profiles').select('id', { count: 'exact', head: true }),
+          supabase.from('posts').select('id', { count: 'exact', head: true }).is('deleted_at', null),
+          supabase.from('comments').select('id', { count: 'exact', head: true }).is('deleted_at', null),
+          supabase.from('album_photos').select('id', { count: 'exact', head: true }),
+          supabase.from('reports').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+          supabase.from('profiles').select('id, display_name, username, created_at')
+            .order('created_at', { ascending: false }).limit(5),
+        ]);
+        const week = new Date(Date.now() - 7 * 864e5).toISOString();
+        const { count: new7 } = await supabase.from('profiles').select('id', { count: 'exact', head: true }).gte('created_at', week);
+        const { data: logs } = await supabase.from('admin_audit_logs')
+          .select('id, action, created_at').order('created_at', { ascending: false }).limit(5);
+        // DB 连通性
+        const t0 = Date.now();
+        const { error: pingErr } = await supabase.from('profiles').select('id', { head: true }).limit(1);
+        setSt({
+          members: m.count ?? 0, posts: p.count ?? 0, comments: c.count ?? 0,
+          photos: ph.count ?? 0, pendingReports: r.count ?? 0, new7: new7 ?? 0,
+          newMembers: nm.data ?? [], recentLogs: logs ?? [],
+          dbOk: !pingErr, dbMs: Date.now() - t0,
+        });
+      } catch (e: any) { setMsg('总览加载失败：' + (e.message || '')); }
+    })();
+  }, []);
+  if (!st) return <div className="center">加载中…</div>;
+  const cells: [string, string][] = [
+    ['注册成员', String(st.members)], ['近7天新增', String(st.new7)],
+    ['动态', String(st.posts)], ['评论', String(st.comments)],
+    ['照片', String(st.photos)], ['待处理举报', String(st.pendingReports)],
+  ];
+  return (<>
+    <div style={{ ...card }}>
+      <h3 style={h3}>数据总览</h3>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 8 }}>
+        {cells.map(([k, v]) => (
+          <div key={k} style={{ background: '#ffffff08', borderRadius: 12, padding: '10px 6px', textAlign: 'center' }}>
+            <div style={{ fontSize: 20, fontWeight: 800 }}>{v}</div>
+            <div style={mut}>{k}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+    <div style={{ ...card }}>
+      <h3 style={h3}>系统状态</h3>
+      <div style={{ fontSize: 13.5, lineHeight: 2 }}>
+        <div>数据库：{st.dbOk ? <span style={{ color: '#7dff9e' }}>连接正常（{st.dbMs}ms）</span> : <span style={{ color: '#ff8080' }}>连接异常</span>}</div>
+      </div>
+    </div>
+    <div style={{ ...card }}>
+      <h3 style={h3}>最近加入</h3>
+      {(st.newMembers as any[]).map((m: any) => (
+        <div key={m.id} style={{ fontSize: 13.5, padding: '6px 0', borderBottom: '1px solid #ffffff0c' }}>
+          {m.display_name || m.username} <span style={mut}>· {timeAgo(m.created_at)}</span>
+        </div>
+      ))}
+      {st.newMembers.length === 0 && <p style={mut}>暂无</p>}
+    </div>
+    <div style={{ ...card }}>
+      <h3 style={h3}>最近管理操作</h3>
+      {(st.recentLogs as any[]).map((l: any) => (
+        <div key={l.id} style={{ fontSize: 12.5, padding: '6px 0', borderBottom: '1px solid #ffffff0c' }}>
+          <span style={mut}>{(l.created_at || '').slice(5, 16).replace('T', ' ')}</span> · {l.action}
+        </div>
+      ))}
+      {st.recentLogs.length === 0 && <p style={mut}>暂无</p>}
+    </div>
+  </>);
+}
+
+/* ---------------- 成员管理 ---------------- */
+function Members({ me, isSuper, setMsg }: { me: string; isSuper: boolean; setMsg: (s: string) => void }) {
+  const [list, setList] = useState<Member[]>([]);
+  const [q, setQ] = useState('');
+  const [fRole, setFRole] = useState('all');
+  const [fJoined, setFJoined] = useState('all');
+  const [sel, setSel] = useState<Set<string>>(new Set());
+  const [page, setPage] = useState(0);
+  const PER = 20;
+
+  async function load() {
+    const { data } = await supabase.from('profiles')
+      .select('id, username, display_name, real_name, role, joined, created_at')
+      .order('created_at', { ascending: false }).limit(500);
+    setList((data ?? []) as Member[]);
+  }
+  useEffect(() => { load(); }, []);
+
+  const filtered = list.filter(m => {
+    if (fRole !== 'all' && m.role !== fRole) return false;
+    if (fJoined === 'joined' && !m.joined) return false;
+    if (fJoined === 'unjoined' && m.joined) return false;
+    if (q) {
+      const s = (q || '').toLowerCase();
+      return (m.display_name || '').toLowerCase().includes(s) || m.username.toLowerCase().includes(s)
+        || (m.real_name || '').toLowerCase().includes(s);
+    }
+    return true;
+  });
+  const pages = Math.max(1, Math.ceil(filtered.length / PER));
+  const shown = filtered.slice(page * PER, (page + 1) * PER);
+
+  async function setJoined(ids: string[], joined: boolean) {
+    if (!confirm(`${joined ? '恢复' : '禁用'}选中的 ${ids.length} 个账号？`)) return;
+    for (const id of ids) {
+      const { error } = await supabase.rpc('set_joined', { target: id, joined });
+      if (!error) await alog(joined ? 'member_restore' : 'member_ban', { target: id });
+    }
+    setSel(new Set()); load(); setMsg('已处理');
+  }
+  async function setRole(id: string, newRole: string, name: string) {
+    if (id === me) return setMsg('不能修改自己的角色');
+    if (!confirm(`把 ${name} 设为${newRole === 'super_admin' ? '超级管理员' : newRole === 'admin' ? '内容管理员' : '普通成员'}？`)) return;
+    const { error } = await supabase.rpc('set_role', { target: id, new_role: newRole });
+    setMsg(error ? '失败：' + error.message : '角色已更新');
+    if (!error) load();
+  }
+
+  return (<>
+    <div style={{ ...card }}>
+      <h3 style={h3}>成员（{filtered.length}）</h3>
+      <input value={q} onChange={e => { setQ(e.target.value); setPage(0); }} placeholder="搜索名字 / 用户名 / 真实姓名" style={{ marginBottom: 8 }} />
+      <div className="row" style={{ gap: 6, marginBottom: 8 }}>
+        {([['all', '全部角色'], ['member', '成员'], ['admin', '内容管理员'], ['super_admin', '超级管理员']] as const).map(([k, l]) => (
+          <button key={k} className={'mini' + (fRole === k ? '' : ' ghost')} onClick={() => { setFRole(k); setPage(0); }}>{l}</button>
+        ))}
+      </div>
+      <div className="row" style={{ gap: 6, marginBottom: 4 }}>
+        {([['all', '全部状态'], ['joined', '正常'], ['unjoined', '已禁用']] as const).map(([k, l]) => (
+          <button key={k} className={'mini' + (fJoined === k ? '' : ' ghost')} onClick={() => { setFJoined(k); setPage(0); }}>{l}</button>
+        ))}
+      </div>
+      {sel.size > 0 && (
+        <div className="row" style={{ gap: 8, marginTop: 8 }}>
+          <button className="mini" onClick={() => setJoined([...sel], true)}>恢复选中（{sel.size}）</button>
+          <button className="mini danger" onClick={() => setJoined([...sel], false)}>禁用选中（{sel.size}）</button>
+          <button className="mini ghost" onClick={() => setSel(new Set())}>取消选择</button>
+        </div>
+      )}
+    </div>
+    {shown.map(m => (
+      <div key={m.id} style={{ ...card, opacity: m.joined ? 1 : 0.55 }}>
+        <div className="row" style={{ gap: 8, alignItems: 'center' }}>
+          <input type="checkbox" checked={sel.has(m.id)}
+            onChange={e => { const n = new Set(sel); e.target.checked ? n.add(m.id) : n.delete(m.id); setSel(n); }} />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 14, fontWeight: 700 }}>{m.display_name || m.username}
+              <span style={{ ...mut, marginLeft: 8 }}>{m.role === 'super_admin' ? '超级管理员' : m.role === 'admin' ? '内容管理员' : '成员'}</span>
+              {!m.joined && <span style={{ color: '#ff8080', fontSize: 12 }}> · 已禁用</span>}
+            </div>
+            <div style={mut}>@{m.username}{m.real_name ? ` · ${m.real_name}` : ''} · {timeAgo(m.created_at)}</div>
+          </div>
+        </div>
+        <div style={rowBtn}>
+          {m.joined
+            ? <button className="mini danger" disabled={m.id === me} onClick={() => setJoined([m.id], false)}>禁用</button>
+            : <button className="mini" onClick={() => setJoined([m.id], true)}>恢复</button>}
+          {isSuper && m.role !== 'super_admin' && (
+            <select value={m.role} onChange={e => setRole(m.id, e.target.value, m.display_name || m.username)}
+              style={{ width: 'auto', padding: '6px 8px', fontSize: 12.5 }} disabled={m.id === me}>
+              <option value="member">普通成员</option>
+              <option value="admin">内容管理员</option>
+              <option value="super_admin">超级管理员</option>
+            </select>
+          )}
+        </div>
+      </div>
+    ))}
+    {pages > 1 && (
+      <div className="row" style={{ gap: 8, justifyContent: 'center', marginTop: 4 }}>
+        <button className="mini ghost" disabled={page === 0} onClick={() => setPage(p => p - 1)}>上一页</button>
+        <span style={mut}>{page + 1} / {pages}</span>
+        <button className="mini ghost" disabled={page >= pages - 1} onClick={() => setPage(p => p + 1)}>下一页</button>
+      </div>
+    )}
+  </>);
+}
+
+/* ---------------- 内容审核 ---------------- */
+function Moderate({ setMsg }: { setMsg: (s: string) => void }) {
+  const [sub, setSub] = useState<'posts' | 'comments' | 'reports'>('reports');
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [cmts, setCmts] = useState<Cmt[]>([]);
+  const [reports, setReports] = useState<Report[]>([]);
+  const [names, setNames] = useState<Record<string, string>>({});
+
+  async function load() {
+    const [p, c, r] = await Promise.all([
+      supabase.from('posts').select('id, author_id, content, image_url, created_at, deleted_at').order('created_at', { ascending: false }).limit(50),
+      supabase.from('comments').select('id, post_id, author_id, content, created_at, deleted_at').order('created_at', { ascending: false }).limit(50),
+      supabase.from('reports').select('*').order('created_at', { ascending: false }).limit(50),
+    ]);
+    setPosts((p.data ?? []) as Post[]); setCmts((c.data ?? []) as Cmt[]); setReports((r.data ?? []) as Report[]);
+    const ids = new Set<string>();
+    (p.data ?? []).forEach((x: any) => ids.add(x.author_id));
+    (c.data ?? []).forEach((x: any) => ids.add(x.author_id));
+    if (ids.size) {
+      const { data: dir } = await supabase.rpc('member_directory', { q: '', lim: 200, skip: 0 });
+      const mp: Record<string, string> = {};
+      ((dir ?? []) as any[]).forEach((x: any) => { mp[x.id] = x.display_name ?? x.username; });
+      setNames(mp);
+    }
+  }
+  useEffect(() => { load(); }, []);
+
+  async function hidePost(p: Post, hide: boolean) {
+    if (!confirm(hide ? '隐藏这条动态？（进回收站，可恢复）' : '恢复这条动态？')) return;
+    const { error } = await supabase.from('posts').update({ deleted_at: hide ? new Date().toISOString() : null }).eq('id', p.id);
+    if (!error) { await alog(hide ? 'post_hide' : 'post_restore', { id: p.id }); load(); }
+    else setMsg('失败：' + error.message);
+  }
+  async function delPost(p: Post) {
+    if (!confirm('彻底删除这条动态？不可恢复！')) return;
+    if (!confirm('再次确认：真的彻底删除吗？')) return;
+    const { error } = await supabase.from('posts').delete().eq('id', p.id);
+    if (!error) { await alog('post_delete', { id: p.id }); load(); }
+    else setMsg('失败：' + error.message);
+  }
+  async function hideCmt(c: Cmt, hide: boolean) {
+    if (!confirm(hide ? '隐藏这条评论？' : '恢复这条评论？')) return;
+    const { error } = await supabase.from('comments').update({ deleted_at: hide ? new Date().toISOString() : null }).eq('id', c.id);
+    if (!error) { await alog(hide ? 'comment_hide' : 'comment_restore', { id: c.id }); load(); }
+    else setMsg('失败：' + error.message);
+  }
+  async function handleReport(r: Report, ok: boolean) {
+    const note = ok ? '' : (prompt('驳回原因（可选）：') ?? '');
+    if (!ok && note === null) return;
+    const { error } = await supabase.from('reports').update({
+      status: ok ? 'done' : 'rejected', handle_note: note || null, handled_at: new Date().toISOString(),
+    }).eq('id', r.id);
+    if (!error) { await alog('report_handle', { id: r.id, result: ok ? 'done' : 'rejected', note }); load(); setMsg('已处理'); }
+    else setMsg('失败：' + error.message);
+  }
+
+  const pending = reports.filter(r => r.status === 'pending').length;
+  return (<>
+    <div className="row" style={{ gap: 6, marginBottom: 12 }}>
+      <button className={'mini' + (sub === 'reports' ? '' : ' ghost')} onClick={() => setSub('reports')}>举报{pending ? `（${pending}）` : ''}</button>
+      <button className={'mini' + (sub === 'posts' ? '' : ' ghost')} onClick={() => setSub('posts')}>动态</button>
+      <button className={'mini' + (sub === 'comments' ? '' : ' ghost')} onClick={() => setSub('comments')}>评论</button>
+    </div>
+
+    {sub === 'reports' && (<>
+      {reports.length === 0 && <div style={card}><p style={mut}>暂无举报</p></div>}
+      {reports.map(r => (
+        <div key={r.id} style={{ ...card, opacity: r.status === 'pending' ? 1 : 0.6 }}>
+          <div style={{ fontSize: 13.5 }}>
+            <b>{r.target_type}</b> #{r.target_id} · {r.status === 'pending' ? '待处理' : r.status === 'done' ? '已处理' : '已驳回'}
+          </div>
+          <div style={{ fontSize: 13, marginTop: 4 }}>原因：{r.reason}</div>
+          {r.handle_note && <div style={mut}>处理备注：{r.handle_note}</div>}
+          <div style={mut}>{timeAgo(r.created_at)}</div>
+          {r.status === 'pending' && (
+            <div style={rowBtn}>
+              <button className="mini" onClick={() => handleReport(r, true)}>已处理</button>
+              <button className="mini ghost" onClick={() => handleReport(r, false)}>驳回</button>
+            </div>
+          )}
+        </div>
+      ))}
+    </>)}
+
+    {sub === 'posts' && (<>
+      {posts.map(p => (
+        <div key={p.id} style={{ ...card, opacity: p.deleted_at ? 0.55 : 1 }}>
+          <div style={{ fontSize: 13.5 }}>{(p.content || '').slice(0, 120)}</div>
+          <div style={mut}>{names[p.author_id] || '…'} · {timeAgo(p.created_at)}{p.deleted_at ? ' · 已隐藏' : ''}</div>
+          <div style={rowBtn}>
+            {p.deleted_at
+              ? <button className="mini" onClick={() => hidePost(p, false)}>恢复</button>
+              : <button className="mini ghost" onClick={() => hidePost(p, true)}>隐藏</button>}
+            <button className="mini danger" onClick={() => delPost(p)}>彻底删除</button>
+          </div>
+        </div>
+      ))}
+      {posts.length === 0 && <div style={card}><p style={mut}>暂无动态</p></div>}
+    </>)}
+
+    {sub === 'comments' && (<>
+      {cmts.map(c => (
+        <div key={c.id} style={{ ...card, opacity: c.deleted_at ? 0.55 : 1 }}>
+          <div style={{ fontSize: 13.5 }}>{(c.content || '').slice(0, 120)}</div>
+          <div style={mut}>{names[c.author_id] || '…'} · 动态 #{c.post_id} · {timeAgo(c.created_at)}{c.deleted_at ? ' · 已隐藏' : ''}</div>
+          <div style={rowBtn}>
+            {c.deleted_at
+              ? <button className="mini" onClick={() => hideCmt(c, false)}>恢复</button>
+              : <button className="mini ghost" onClick={() => hideCmt(c, true)}>隐藏</button>}
+          </div>
+        </div>
+      ))}
+      {cmts.length === 0 && <div style={card}><p style={mut}>暂无评论</p></div>}
+    </>)}
+  </>);
+}
+
+/* ---------------- 公告管理 ---------------- */
+function BoardMgr({ me, setMsg }: { me: string; setMsg: (s: string) => void }) {
+  const [text, setText] = useState('');
+  const [exp, setExp] = useState('0');
+  const [list, setList] = useState<any[]>([]);
+  async function load() {
+    const { data } = await supabase.from('board_messages')
+      .select('id, content, is_pinned, expires_at, created_at').eq('is_admin_msg', true)
+      .order('is_pinned', { ascending: false }).order('created_at', { ascending: false }).limit(20);
+    setList(data ?? []);
+  }
+  useEffect(() => { load(); }, []);
+  async function post() {
+    const c = text.trim(); if (!c) return setMsg('先写点公告内容');
+    const days = parseInt(exp, 10);
+    const { error } = await supabase.from('board_messages').insert({
+      author_id: me, content: c.slice(0, 500), is_admin_msg: true,
+      expires_at: days > 0 ? new Date(Date.now() + days * 864e5).toISOString() : null,
+    });
+    if (!error) { await alog('notice_post', { len: c.length }); setText(''); setExp('0'); load(); setMsg('公告已发布'); }
+    else setMsg('发布失败：' + error.message);
+  }
+  async function togglePin(n: any) {
+    const { error } = await supabase.from('board_messages').update({ is_pinned: !n.is_pinned }).eq('id', n.id);
+    if (!error) { await alog(n.is_pinned ? 'notice_unpin' : 'notice_pin', { id: n.id }); load(); }
+    else setMsg('失败：' + error.message);
+  }
+  async function del(id: number) {
+    if (!confirm('删除这条公告？')) return;
+    // 软删除进回收站
+    const { error } = await supabase.from('board_messages').update({ deleted_at: new Date().toISOString() }).eq('id', id);
+    if (!error) { await alog('notice_hide', { id }); load(); }
+    else setMsg('失败：' + error.message);
+  }
+  return (
+    <div style={card}>
+      <h3 style={h3}>公告管理</h3>
+      <textarea value={text} onChange={e => setText(e.target.value)} rows={3} maxLength={500} placeholder="写公告…" style={{ width: '100%' }} />
+      <div className="row" style={{ gap: 8, marginTop: 8, alignItems: 'center' }}>
+        <button className="pri" style={{ width: 'auto', padding: '10px 26px' }} onClick={post}>发布公告</button>
+        <span style={mut}>过期：</span>
+        <select value={exp} onChange={e => setExp(e.target.value)} style={{ width: 'auto', padding: '8px' }}>
+          <option value="0">不过期</option><option value="1">1 天</option>
+          <option value="3">3 天</option><option value="7">7 天</option><option value="30">30 天</option>
+        </select>
+      </div>
+      <div style={{ marginTop: 12 }}>
+        {list.map(n => (
+          <div key={n.id} style={{ padding: '8px 0', borderBottom: '1px solid #ffffff0c' }}>
+            <div style={{ fontSize: 13.5 }}>{n.is_pinned && '📌 '}{(n.content || '').slice(0, 80)}</div>
+            <div style={mut}>{(n.created_at || '').slice(0, 16).replace('T', ' ')}
+              {n.expires_at ? ` · 过期 ${n.expires_at.slice(0, 16).replace('T', ' ')}` : ' · 不过期'}</div>
+            <div style={rowBtn}>
+              <button className="mini ghost" onClick={() => togglePin(n)}>{n.is_pinned ? '取消置顶' : '置顶'}</button>
+              <button className="mini danger" onClick={() => del(n.id)}>撤下</button>
+            </div>
+          </div>
+        ))}
+        {list.length === 0 && <p style={mut}>暂无公告</p>}
+      </div>
+    </div>
+  );
+}
+
+/* ---------------- 日志 ---------------- */
+function Logs() {
+  const [logs, setLogs] = useState<Log[]>([]);
+  const [q, setQ] = useState('');
+  useEffect(() => {
+    supabase.from('admin_audit_logs').select('id, action, detail, created_at')
+      .order('created_at', { ascending: false }).limit(100)
+      .then(({ data }) => setLogs((data ?? []) as Log[]));
+  }, []);
+  const shown = logs.filter(l => !q || l.action.toLowerCase().includes(q.toLowerCase()));
+  return (
+    <div style={card}>
+      <h3 style={h3}>操作日志（{shown.length}）</h3>
+      <input value={q} onChange={e => setQ(e.target.value)} placeholder="筛选，如：member_ban" style={{ marginBottom: 10 }} />
+      {shown.map(l => (
+        <div key={l.id} style={{ fontSize: 12.5, padding: '7px 0', borderBottom: '1px solid #ffffff0c' }}>
+          <span style={mut}>{(l.created_at || '').slice(0, 16).replace('T', ' ')}</span>
+          <div><b>{l.action}</b></div>
+          <div style={mut}>{JSON.stringify(l.detail ?? {}).slice(0, 200)}</div>
+        </div>
+      ))}
+      {shown.length === 0 && <p style={mut}>暂无记录</p>}
+      <p style={{ ...mut, marginTop: 10 }}>日志仅管理员可见，不可删除或修改。</p>
+    </div>
+  );
+}
+
+/* ---------------- 系统设置（仅超管） ---------------- */
+function Settings({ me, setMsg }: { me: string; setMsg: (s: string) => void }) {
+  const [vals, setVals] = useState<Record<string, string>>({});
+  const [health, setHealth] = useState<any>(null);
+  const [backups, setBackups] = useState<any[]>([]);
+
+  async function load() {
+    const { data } = await supabase.from('site_settings').select('key, value');
+    const o: Record<string, string> = {};
+    (data ?? []).forEach((x: any) => { o[x.key] = x.value; });
+    setVals(o);
+    const { data: bl } = await supabase.from('backup_logs').select('*').order('created_at', { ascending: false }).limit(10);
+    setBackups(bl ?? []);
+  }
+  useEffect(() => { load(); }, []);
+
+  async function save(key: string, value: string) {
+    const { error } = await supabase.from('site_settings').upsert({ key, value }, { onConflict: 'key' });
+    if (!error) { await alog('setting_change', { key, value }); setMsg('已保存'); load(); }
+    else setMsg('保存失败：' + error.message);
+  }
+
+  async function checkHealth() {
+    const r: any = {};
+    try { const t0 = Date.now(); const { error } = await supabase.from('profiles').select('id', { head: true }).limit(1); r.db = error ? '异常' : `正常（${Date.now() - t0}ms）`; }
+    catch { r.db = '异常'; }
+    try { const { data } = await supabase.storage.listBuckets(); r.storage = (data ?? []).map((b: any) => b.name).join('、') || '无'; }
+    catch { r.storage = '异常'; }
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const resp = await fetch('https://wnddwkdfndrkxivvrxcy.supabase.co/functions/v1/notify', {
+        method: 'POST', headers: { 'Content-Type': 'application/json', 'apikey': 'sb_publishable_4dNtXkAYz6Q2KE0hZdZyKw_vF7b9T5q' }, body: '{}',
+      });
+      r.notify = resp.status === 401 ? '正常' : `异常（${resp.status}）`;
+    } catch { r.notify = '异常'; }
+    setHealth(r);
+    await alog('health_check', r);
+  }
+
+  async function backup() {
+    if (!confirm('导出全站数据备份？文件会直接下载到本机，不经过公开链接。')) return;
+    setMsg('正在备份…');
+    try {
+      const [p, po, cm, al, ap, bm, fb] = await Promise.all([
+        supabase.from('profiles').select('id, username, display_name, real_name, role, joined, created_at, age, personality, signature, bio, hobbies'),
+        supabase.from('posts').select('*').limit(2000),
+        supabase.from('comments').select('*').limit(5000),
+        supabase.from('albums').select('*').limit(500),
+        supabase.from('album_photos').select('id, album_id, photo_url, caption, created_at').limit(5000),
+        supabase.from('board_messages').select('*').limit(2000),
+        supabase.from('feedbacks').select('*').limit(2000),
+      ]);
+      const data = {
+        backup_at: new Date().toISOString(), scope: 'full',
+        profiles: p.data ?? [], posts: po.data ?? [], comments: cm.data ?? [],
+        albums: al.data ?? [], album_photos: ap.data ?? [], board: bm.data ?? [], feedbacks: fb.data ?? [],
+      };
+      const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `班级备份_${new Date().toISOString().slice(0, 10)}.json`;
+      a.click(); URL.revokeObjectURL(a.href);
+      await supabase.from('backup_logs').insert({ created_by: me, scope: 'full', status: 'ok', note: `成员${(p.data ?? []).length} 动态${(po.data ?? []).length}` });
+      await alog('backup', { scope: 'full' });
+      setMsg('备份完成，文件已下载'); load();
+    } catch (e: any) {
+      setMsg('备份失败：' + (e.message || ''));
+      try { await supabase.from('backup_logs').insert({ created_by: me, scope: 'full', status: 'fail', note: e.message || '' }); } catch {}
+    }
+  }
+
+  return (<>
+    <div style={card}>
+      <h3 style={h3}>全站设置</h3>
+      <label style={mut}>网站标题</label>
+      <div className="row" style={{ gap: 8, marginBottom: 10 }}>
+        <input value={vals.site_title ?? ''} onChange={e => setVals({ ...vals, site_title: e.target.value })} style={{ flex: 1 }} />
+        <button className="mini" onClick={() => save('site_title', vals.site_title ?? '')}>保存</button>
+      </div>
+      <label style={mut}>副标题</label>
+      <div className="row" style={{ gap: 8, marginBottom: 10 }}>
+        <input value={vals.site_subtitle ?? ''} onChange={e => setVals({ ...vals, site_subtitle: e.target.value })} style={{ flex: 1 }} />
+        <button className="mini" onClick={() => save('site_subtitle', vals.site_subtitle ?? '')}>保存</button>
+      </div>
+      <div className="row" style={{ gap: 8, alignItems: 'center', marginBottom: 10 }}>
+        <span style={{ fontSize: 13.5 }}>注册强制邀请码</span>
+        <button className={'mini' + (vals.require_invite === 'true' ? '' : ' ghost')}
+          onClick={() => save('require_invite', vals.require_invite === 'true' ? 'false' : 'true')}>
+          {vals.require_invite === 'true' ? '开' : '关'}
+        </button>
+      </div>
+      <div className="row" style={{ gap: 8, alignItems: 'center' }}>
+        <span style={{ fontSize: 13.5 }}>维护模式</span>
+        <button className={'mini' + (vals.maintenance === 'true' ? '' : ' ghost')}
+          onClick={() => {
+            if (vals.maintenance !== 'true' && !confirm('开启维护模式？普通成员将看到维护提示。')) return;
+            save('maintenance', vals.maintenance === 'true' ? 'false' : 'true');
+          }}>
+          {vals.maintenance === 'true' ? '开' : '关'}
+        </button>
+      </div>
+      {vals.maintenance === 'true' && (<>
+        <label style={{ ...mut, marginTop: 8 }}>维护提示语</label>
+        <div className="row" style={{ gap: 8 }}>
+          <input value={vals.maintenance_msg ?? ''} onChange={e => setVals({ ...vals, maintenance_msg: e.target.value })} style={{ flex: 1 }} />
+          <button className="mini" onClick={() => save('maintenance_msg', vals.maintenance_msg ?? '')}>保存</button>
+        </div>
+      </>)}
+    </div>
+
+    <div style={card}>
+      <h3 style={h3}>健康检查</h3>
+      <button className="pri" style={{ width: 'auto', padding: '10px 26px' }} onClick={checkHealth}>开始检查</button>
+      {health && (
+        <div style={{ fontSize: 13.5, lineHeight: 2, marginTop: 8 }}>
+          <div>数据库：{health.db}</div>
+          <div>存储桶：{health.storage}</div>
+          <div>邮件函数：{health.notify}</div>
+        </div>
+      )}
+    </div>
+
+    <div style={card}>
+      <h3 style={h3}>备份</h3>
+      <p style={mut}>备份文件直接下载到本机，不生成公开链接。恢复前请先确认，避免覆盖新数据。</p>
+      <button className="pri" style={{ width: 'auto', padding: '10px 26px' }} onClick={backup}>一键备份</button>
+      <div style={{ marginTop: 10 }}>
+        {backups.map(b => (
+          <div key={b.id} style={{ fontSize: 12.5, padding: '6px 0', borderBottom: '1px solid #ffffff0c' }}>
+            {(b.created_at || '').slice(0, 16).replace('T', ' ')} · {b.scope} · {b.status === 'ok' ? '成功' : '失败'}
+            {b.note ? ` · ${b.note}` : ''}
+          </div>
+        ))}
+        {backups.length === 0 && <p style={mut}>暂无备份记录</p>}
+      </div>
+    </div>
+  </>);
+}

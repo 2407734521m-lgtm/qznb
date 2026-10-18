@@ -103,21 +103,20 @@ export default function Home() {
         )}
       </div>
 
-      {/* 快捷入口 */}
+      {/* 快捷入口（文字版，无图标） */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 8, marginBottom: 12 }}>
         {([
-          ['/members', '同学档案', '👥'],
-          ['/feed', '班级动态', '✨'],
-          ['/timeline', '青春回忆', '🌟'],
-          ['/capsule', '时光胶囊', '📦'],
-          ['/wishes', '愿望墙', '💫'],
-          ['/events', '班级活动', '🎉'],
-        ] as const).map(([to, label, icon]) => (
+          ['/members', '同学档案'],
+          ['/feed', '班级动态'],
+          ['/timeline', '青春回忆'],
+          ['/capsule', '时光胶囊'],
+          ['/wishes', '愿望墙'],
+          ['/events', '班级活动'],
+        ] as const).map(([to, label]) => (
           <button key={to} onClick={() => nav(to)} style={{
-            ...card, marginBottom: 0, cursor: 'pointer', textAlign: 'center', padding: '16px 8px',
+            ...card, marginBottom: 0, cursor: 'pointer', textAlign: 'center', padding: '20px 8px',
           }}>
-            <div style={{ fontSize: 26 }}>{icon}</div>
-            <div style={{ fontSize: 13, marginTop: 6 }}>{label}</div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: '#fff', textShadow: '0 1px 8px #000a' }}>{label}</div>
           </button>
         ))}
       </div>

@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../auth';
 import { useSignedUrl } from '../lib/media';
 
-type Msg = { id: number; author_id: string; content: string; is_admin_msg: boolean; created_at: string };
+type Msg = { id: number; author_id: string; content: string; is_admin_msg: boolean; is_pinned: boolean; created_at: string };
 type Profile = { id: string; username: string; display_name: string | null; avatar_path: string | null };
 
 function Avatar({ p, size = 38 }: { p?: Profile; size?: number }) {
@@ -34,8 +34,8 @@ export default function Board() {
 
   async function load() {
     const { data } = await supabase.from('board_messages')
-      .select('id, author_id, content, is_admin_msg, created_at')
-      .order('is_admin_msg', { ascending: false }).order('created_at', { ascending: false }).limit(100);
+      .select('id, author_id, content, is_admin_msg, is_pinned, created_at')
+      .order('is_pinned', { ascending: false }).order('is_admin_msg', { ascending: false }).order('created_at', { ascending: false }).limit(100);
     const list = (data ?? []) as Msg[];
     setMsgs(list);
     const { data: dir } = await supabase.rpc('member_directory', { q: '', lim: 50, skip: 0 });
@@ -44,6 +44,10 @@ export default function Board() {
     setProfiles(pm);
     const { data: r } = await supabase.rpc('my_role');
     setIsAdmin(r === 'admin' || r === 'super_admin');
+    // 标记已读：打开公告板即视为看过
+    supabase.from('board_reads').upsert({ profile_id: me, last_seen_at: new Date().toISOString() }, { onConflict: 'profile_id' }).then(() => {
+      window.dispatchEvent(new Event('board-read'));
+    });
   }
   useEffect(() => { load(); }, []);
 
@@ -77,7 +81,8 @@ export default function Board() {
         <div className="hd">
           <Avatar p={a} />
           <div><div className="nm">{a ? (a.display_name ?? a.username) : '…'}
-            {m.is_admin_msg && <span className="chip ad" style={{ marginLeft: 8, fontSize: 11 }}>📢 公告</span>}</div>
+            {m.is_admin_msg && <span className="chip ad" style={{ marginLeft: 8, fontSize: 11 }}>📢 公告</span>}
+            {m.is_pinned && <span className="chip" style={{ marginLeft: 6, fontSize: 11 }}>📌 置顶</span>}</div>
             <div className="tm">{timeAgo(m.created_at)}</div></div>
           <div style={{ flex: 1 }} />
           {(m.author_id === me || isAdmin) && <button className="del" onClick={() => del(m.id)}>删除</button>}

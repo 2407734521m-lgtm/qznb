@@ -583,10 +583,11 @@ function Moderate({ setMsg }: { setMsg: (s: string) => void }) {
 function BoardMgr({ me, setMsg }: { me: string; setMsg: (s: string) => void }) {
   const [text, setText] = useState('');
   const [exp, setExp] = useState('0');
+  const [popup, setPopup] = useState(false);
   const [list, setList] = useState<any[]>([]);
   async function load() {
     const { data } = await supabase.from('board_messages')
-      .select('id, content, is_pinned, expires_at, created_at').eq('is_admin_msg', true)
+      .select('id, content, is_pinned, popup_on_login, expires_at, created_at').eq('is_admin_msg', true)
       .order('is_pinned', { ascending: false }).order('created_at', { ascending: false }).limit(20);
     setList(data ?? []);
   }
@@ -597,13 +598,19 @@ function BoardMgr({ me, setMsg }: { me: string; setMsg: (s: string) => void }) {
     const { error } = await supabase.from('board_messages').insert({
       author_id: me, content: c.slice(0, 500), is_admin_msg: true,
       expires_at: days > 0 ? new Date(Date.now() + days * 864e5).toISOString() : null,
+      popup_on_login: popup,
     });
-    if (!error) { await alog('notice_post', { len: c.length }); setText(''); setExp('0'); load(); setMsg('公告已发布'); }
+    if (!error) { await alog('notice_post', { len: c.length, popup }); setText(''); setExp('0'); setPopup(false); load(); setMsg('公告已发布'); }
     else setMsg('发布失败：' + error.message);
   }
   async function togglePin(n: any) {
     const { error } = await supabase.from('board_messages').update({ is_pinned: !n.is_pinned }).eq('id', n.id);
     if (!error) { await alog(n.is_pinned ? 'notice_unpin' : 'notice_pin', { id: n.id }); load(); }
+    else setMsg('失败：' + error.message);
+  }
+  async function togglePopup(n: any) {
+    const { error } = await supabase.from('board_messages').update({ popup_on_login: !n.popup_on_login }).eq('id', n.id);
+    if (!error) { await alog(n.popup_on_login ? 'notice_popup_off' : 'notice_popup_on', { id: n.id }); load(); }
     else setMsg('失败：' + error.message);
   }
   async function del(id: number) {
@@ -624,15 +631,21 @@ function BoardMgr({ me, setMsg }: { me: string; setMsg: (s: string) => void }) {
           <option value="0">不过期</option><option value="1">1 天</option>
           <option value="3">3 天</option><option value="7">7 天</option><option value="30">30 天</option>
         </select>
+        <label style={{ ...mut, display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', color: '#fff' }}>
+          <input type="checkbox" checked={popup} onChange={e => setPopup(e.target.checked)} style={{ width: 16, height: 16 }} />
+          登录时弹窗提醒
+        </label>
       </div>
       <div style={{ marginTop: 12 }}>
         {list.map(n => (
           <div key={n.id} style={{ padding: '8px 0', borderBottom: '1px solid #ffffff0c' }}>
             <div style={{ fontSize: 13.5 }}>{n.is_pinned && '📌 '}{(n.content || '').slice(0, 80)}</div>
             <div style={mut}>{(n.created_at || '').slice(0, 16).replace('T', ' ')}
-              {n.expires_at ? ` · 过期 ${n.expires_at.slice(0, 16).replace('T', ' ')}` : ' · 不过期'}</div>
+              {n.expires_at ? ` · 过期 ${n.expires_at.slice(0, 16).replace('T', ' ')}` : ' · 不过期'}
+              {n.popup_on_login ? ' · 登录弹窗开' : ''}</div>
             <div style={rowBtn}>
               <button className="mini ghost" onClick={() => togglePin(n)}>{n.is_pinned ? '取消置顶' : '置顶'}</button>
+              <button className="mini ghost" onClick={() => togglePopup(n)}>{n.popup_on_login ? '关弹窗' : '开弹窗'}</button>
               <button className="mini danger" onClick={() => del(n.id)}>撤下</button>
             </div>
           </div>
@@ -913,6 +926,11 @@ function FeedbackTab({ me, isSuper, setMsg }: { me: string; isSuper: boolean; se
     const { error } = await supabase.from('feedbacks').update({ status: done ? 'done' : 'open' }).eq('id', id);
     if (!error) { await alog('feedback_mark', { id, done }); load(); } else setMsg('操作失败：' + error.message);
   }
+  async function togglePopup(n: any) {
+    const { error } = await supabase.from('board_messages').update({ popup_on_login: !n.popup_on_login }).eq('id', n.id);
+    if (!error) { await alog(n.popup_on_login ? 'notice_popup_off' : 'notice_popup_on', { id: n.id }); load(); }
+    else setMsg('失败：' + error.message);
+  }
   async function del(id: number) {
     if (!confirm('删除这条反馈？')) return;
     const { error } = await supabase.from('feedbacks').delete().eq('id', id);
@@ -1095,6 +1113,11 @@ function EventTab({ me, setMsg }: { me: string; setMsg: (s: string) => void }) {
     });
     if (error) setMsg('发布失败：' + error.message);
     else { await alog('event_add', { title: title.trim() }); setTitle(''); setDesc(''); setAt(''); setLoc(''); load(); setMsg('活动已发布'); }
+  }
+  async function togglePopup(n: any) {
+    const { error } = await supabase.from('board_messages').update({ popup_on_login: !n.popup_on_login }).eq('id', n.id);
+    if (!error) { await alog(n.popup_on_login ? 'notice_popup_off' : 'notice_popup_on', { id: n.id }); load(); }
+    else setMsg('失败：' + error.message);
   }
   async function del(id: number) {
     if (!confirm('删除这个活动？报名数据一起删除。')) return;

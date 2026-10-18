@@ -10,7 +10,7 @@ type Alb = { id: number; title: string; category: string; created_at: string };
 type Fb = { id: number; name: string | null; contact: string | null; content: string; kind: string; status: string; created_at: string; user_id: string | null };
 type Gp = { profile_id: string; game_name: string; game_uid: string | null; rank: string | null; status: string; updated_at: string };
 type Ic = { id: number; code: string; nickname: string | null; active: boolean; created_at: string };
-type Notice = { id: number; content: string; created_at: string };
+type Notice = { id: number; content: string; created_at: string; is_pinned: boolean };
 type TestAccount = { id: string; label: string; email: string; password: string };
 
 const TA_KEY = 'ca_test_accounts';
@@ -95,8 +95,8 @@ export default function Admin() {
     const pc = await supabase.from('posts').select('id', { count: 'exact', head: true });
     const hc = await supabase.from('album_photos').select('id', { count: 'exact', head: true });
     setStats({ posts: pc.count ?? 0, photos: hc.count ?? 0 });
-    const nt = await supabase.from('board_messages').select('id, content, created_at')
-      .eq('is_admin_msg', true).order('created_at', { ascending: false }).limit(20);
+    const nt = await supabase.from('board_messages').select('id, content, created_at, is_pinned')
+      .eq('is_admin_msg', true).order('is_pinned', { ascending: false }).order('created_at', { ascending: false }).limit(20);
     if (!nt.error) setNotices(nt.data as Notice[]);
     const mp = await supabase.from('member_presence').select('profile_id, device, location, updated_at');
     if (!mp.error) setPresence(Object.fromEntries((mp.data ?? []).map((x: any) => [x.profile_id, x])));
@@ -207,6 +207,11 @@ export default function Admin() {
     if (!confirm('删除这条公告？')) return;
     await supabase.from('board_messages').delete().eq('id', id);
     refresh();
+  }
+  async function togglePin(n: Notice) {
+    const { error } = await supabase.from('board_messages').update({ is_pinned: !n.is_pinned }).eq('id', n.id);
+    if (error) setMsg('操作失败：' + error.message);
+    else refresh();
   }
   // —— 10 个新功能 ——
   // 1) 批量生成邀请码
@@ -423,8 +428,9 @@ export default function Admin() {
         </div>
         {notices.map(n => (
           <div key={n.id} className="row" style={{ justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #ffffff0c' }}>
-            <span style={{ fontSize: 13.5, flex: 1, minWidth: 0 }}>{n.content}
+            <span style={{ fontSize: 13.5, flex: 1, minWidth: 0 }}>{n.is_pinned && '📌 '}{n.content}
               <br /><span className="mut" style={{ fontSize: 12 }}>{(n.created_at || '').slice(0, 16).replace('T', ' ')}</span></span>
+            <button className="mini" onClick={() => togglePin(n)}>{n.is_pinned ? '取消置顶' : '置顶'}</button>
             <button className="mini danger" onClick={() => delNotice(n.id)}>删除</button>
           </div>
         ))}

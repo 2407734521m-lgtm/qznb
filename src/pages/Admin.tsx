@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../auth';
+import AdminMemberModal from '../components/AdminMemberModal';
 
 type Member = { id: string; username: string; display_name: string | null; real_name: string | null; role: string; joined: boolean; created_at: string };
 type Log = { id: number; action: string; detail: unknown; created_at: string };
@@ -60,6 +61,7 @@ export default function Admin() {
   const [editForm, setEditForm] = useState({ display_name: '', real_name: '', signature: '' });
   const [batchBusy, setBatchBusy] = useState(false);
   const [tab, setTab] = useState('overview'); // 当前板块：必须放在提前返回之前，否则 hook 数量变化会崩（React #310）
+  const [detailId, setDetailId] = useState<string | null>(null); // 点进成员详情
 
   useEffect(() => { supabase.rpc('my_role').then(({ data }) => setRole(data ?? '')); }, []);
 
@@ -441,7 +443,7 @@ export default function Admin() {
         <table className="tbl"><thead><tr><th>成员</th><th>邮箱</th><th>角色</th><th>状态</th><th></th></tr></thead>
           <tbody>{shown.map(mb => (
             <tr key={mb.id}>
-              <td>{mb.display_name || mb.username}<br /><span className="mut" style={{ fontSize: 12 }}>@{mb.username}{mb.real_name ? ` · ${mb.real_name}` : ''}</span>
+              <td><a onClick={() => setDetailId(mb.id)} style={{ cursor: 'pointer', color: 'inherit', textDecoration: 'underline', textUnderlineOffset: 3 }}>{mb.display_name || mb.username}</a><br /><span className="mut" style={{ fontSize: 12 }}>@{mb.username}{mb.real_name ? ` · ${mb.real_name}` : ''}</span>
                 {presence[mb.id] && (presence[mb.id].location || presence[mb.id].device) && (
                   <><br /><span className="mut" style={{ fontSize: 11 }}>
                     {presence[mb.id].location ? presence[mb.id].location : ''}
@@ -704,6 +706,11 @@ export default function Admin() {
         ))}
       </div>
       </>)}
+
+      {/* 点进成员详情 */}
+      {detailId && (
+        <AdminMemberModal memberId={detailId} onClose={() => setDetailId(null)} onChanged={refresh} />
+      )}
 
       {/* 底部 dock：跟主站底栏一样，点一下切换到独立板块 */}
       <div style={{

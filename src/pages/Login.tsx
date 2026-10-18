@@ -35,9 +35,6 @@ export default function Login() {
   const [verifyEmail, setVerifyEmail] = useState<string | null>(null);
   const [code, setCode] = useState('');
   const [resendIn, setResendIn] = useState(0);
-  const [codeSent, setCodeSent] = useState(false); // 注册页：验证码是否已发送
-  const [sentEmail, setSentEmail] = useState(''); // 验证码实际发到的邮箱
-  const [tempPw, setTempPw] = useState(false); // 发送验证码时密码还没填好，用了临时密码
   const [invite, setInvite] = useState(''); // 注册页邀请码
   const [forgotSent, setForgotSent] = useState(false); // 忘记密码：重置邮件是否已发送
   const [bg, setBg] = useState<string>(() => { try { return localStorage.getItem(BG_KEY) || DEFAULT_BG; } catch { return DEFAULT_BG; } });
@@ -96,68 +93,26 @@ export default function Login() {
     if (!up.error) await supabase.from('profiles').update({ avatar_path: path }).eq('id', uid);
   }
 
-  // 注册页：点「获取验证码」→ 只需要填好用户名/真实姓名/邮箱，密码可以后填
-  async function sendCode() {
-    setErr('');
-    const nm = name.trim(), rl = real.trim(), em = email.trim();
-    if (nm.length < 1 || nm.length > 30) return setErr('用户名 1～30 个字');
-    if (!rl || rl.length > 30) return setErr('请填写真实姓名（仅管理员可见）');
-    if (!/^[1-9]\d{4,10}@qq\.com$/i.test(em)) return setErr('请填写正确的 QQ 邮箱');
-    if (resendIn > 0 || busy) return;
-    if (codeSent && em !== sentEmail) return setErr('邮箱换了？验证码发到了最开始填的邮箱，请改回去再收');
-    // 密码还没填好就先用随机密码占位，点注册时再换成用户填的
-    let pwd = pw, tmp = false;
-    if (pw.length < 8 || pw !== pw2) { pwd = 'Tmp!' + crypto.randomUUID().replace(/-/g, '').slice(0, 12); tmp = true; }
-    setBusy(true);
-    try {
-      if (!codeSent) {
-        const { data, error } = await supabase.auth.signUp({
-          email: em, password: pwd,
-          options: { data: { username: nm, real_name: rl } },
-        });
-        if (error) throw error;
-        if (data.session) { await uploadAvatar(data.session.user.id); return; } // 未开邮箱确认：直接进
-        setSentEmail(em); setTempPw(tmp);
-      } else {
-        const { error } = await supabase.auth.resend({ type: 'signup', email: sentEmail });
-        if (error) throw error;
-      }
-      setCodeSent(true); setResendIn(60); setErr('');
-    } catch (e: any) {
-      const m = e?.message || '';
-      setErr(/already registered|already exists/i.test(m) ? '这个 QQ 邮箱已经注册过，直接登录吧'
-        : /rate limit|429/i.test(m) ? '发得太频繁了，稍后再试'
-        : '发送失败：' + (m || '网络错误'));
-    } finally { setBusy(false); }
-  }
-
   async function doReg() {
     setErr('');
     const nm = name.trim(), rl = real.trim(), em = email.trim();
     if (nm.length < 1 || nm.length > 30) return setErr('用户名 1～30 个字');
     if (!rl || rl.length > 30) return setErr('请填写真实姓名（仅管理员可见）');
     if (!/^[1-9]\d{4,10}@qq\.com$/i.test(em)) return setErr('请填写正确的 QQ 邮箱');
-    if (!codeSent) return setErr('请先点「获取验证码」，再把邮箱收到的数字码填进来');
-    if (em !== sentEmail) return setErr('邮箱改动了，请重新获取验证码');
     if (pw.length < 8) return setErr('密码至少 8 位');
     if (pw !== pw2) return setErr('两次输入的密码不一致');
     if (!invite.trim()) return setErr('请填写邀请码，没有的话问管理员要');
-    const c = code.trim();
-    if (!/^\d{6,10}$/.test(c)) return setErr('请输入邮箱收到的数字验证码');
     setBusy(true);
     try {
-      // 验证码校验走 Supabase 后台，前端只做格式检查
-      const { data, error } = await supabase.auth.verifyOtp({ email: sentEmail, token: c, type: 'signup' });
+      const { data, error } = await supabase.auth.signUp({
+        email: em, password: pw,
+        options: { data: { username: nm, real_name: rl } },
+      });
       if (error) throw error;
-      const uid = data.session?.user?.id;
+      const uid = data.session?.user?.id || data.user?.id;
       if (!uid) throw new Error('no session');
-      if (tempPw) {
-        const { error: e2 } = await supabase.auth.updateUser({ password: pw });
-        if (e2) throw new Error('密码设置失败：' + e2.message);
-      }
-      // 资料以点注册时填的为准（防止点了验证码后又改了名字）。
       // 注意：username / real_name 由注册触发器写入，列级权限不允许前端直接改，
-      // 这里只更新展示名（之前带上前两列会导致整条更新被数据库拒绝）
+      // 这里只更新展示名
       supabase.from('profiles').update({ display_name: nm }).eq('id', uid).then(() => {});
       await uploadAvatar(uid);
       const iv = invite.trim();
@@ -168,10 +123,10 @@ export default function Login() {
       } else {
         try { sessionStorage.setItem('ca_invite_bad', '1'); } catch {}
       }
-      setCodeSent(false); setCode('');
     } catch (e: any) {
       const m = e?.message || '';
-      setErr(/expired|invalid/i.test(m) ? '验证码不正确或已过期，请核对后重试' : '注册失败：' + (m || '网络错误'));
+      setErr(/already registered|already exists/i.test(m) ? '这个 QQ 邮箱已经注册过，直接登录吧'
+        : '注册失败：' + (m || '网络错误'));
     } finally { setBusy(false); }
   }
 
@@ -251,7 +206,7 @@ export default function Login() {
             <button className="pri" disabled={busy} onClick={doLogin}>{busy ? '登录中…' : '进入班级'}</button>
             <button className="ghost" style={{ width: '100%', marginTop: 8 }} disabled={busy} onClick={doPasskey}>🔑 使用通行密钥登录</button>
             <p className="login-switch">忘记密码了？<button onClick={() => { setMode('forgot'); setErr(''); setForgotSent(false); }}>点我重置</button></p>
-            <p className="login-switch">还没有账号？<button onClick={() => { setMode('reg'); setErr(''); setCodeSent(false); setCode(''); setInvite(''); setForgotSent(false); }}>去注册</button></p>
+            <p className="login-switch">还没有账号？<button onClick={() => { setMode('reg'); setErr(''); setCode(''); setInvite(''); setForgotSent(false); }}>去注册</button></p>
             <p className="login-switch" style={{ marginTop: 2 }}>如果登录不上<button onClick={() => setFbOpen(true)}>点我反馈</button></p>
           </>) : mode === 'forgot' ? (<>
             <h1 style={{ fontSize: 22 }}>🔑 重置密码</h1>
@@ -282,15 +237,6 @@ export default function Login() {
             </div>
             <label>QQ 邮箱</label>
             <input value={email} onChange={e => setEmail(e.target.value)} placeholder="123456@qq.com" inputMode="email" />
-            <label>邮箱验证码</label>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <input value={code} onChange={e => setCode(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                placeholder="邮箱收到的数字码" inputMode="numeric" autoComplete="one-time-code"
-                style={{ flex: 1, minWidth: 0, letterSpacing: 8, textAlign: 'center', fontSize: 18, fontWeight: 700 }} />
-              <button className="ghost" style={{ whiteSpace: 'nowrap', padding: '0 14px' }}
-                disabled={busy || resendIn > 0} onClick={sendCode}>
-                {resendIn > 0 ? `重新发送(${resendIn}s)` : codeSent ? '重新发送' : '获取验证码'}</button>
-            </div>
             <label>密码</label>
             <input type="password" value={pw} onChange={e => setPw(e.target.value)} placeholder="至少 8 位" autoComplete="new-password" />
             <label>确认密码</label>
@@ -299,7 +245,7 @@ export default function Login() {
             <input value={invite} onChange={e => setInvite(e.target.value)} placeholder="找管理员要邀请码" />
             {err && <p className="err">{err}</p>}
             <button className="pri" disabled={busy} onClick={doReg}>{busy ? '注册中…' : '注册并进入'}</button>
-            <p className="login-switch">已有账号？<button onClick={() => { setMode('login'); setErr(''); setCodeSent(false); setCode(''); setInvite(''); setForgotSent(false); }}>去登录</button></p>
+            <p className="login-switch">已有账号？<button onClick={() => { setMode('login'); setErr(''); setCode(''); setInvite(''); setForgotSent(false); }}>去登录</button></p>
           </>)}
 
           <div className="bg-panel">

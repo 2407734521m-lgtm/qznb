@@ -112,6 +112,7 @@ export default function Home() {
           ['/timeline', '青春回忆'],
           ['/capsule', '时光胶囊'],
           ['/wishes', '愿望墙'],
+          ['/greetings', '留言墙'],
           ['/events', '班级活动'],
         ] as const).map(([to, label]) => (
           <button key={to} onClick={() => nav(to)} style={{

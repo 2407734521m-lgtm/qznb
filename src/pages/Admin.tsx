@@ -84,7 +84,7 @@ export default function Admin() {
             {isSuper ? '超级管理员' : '内容管理员'}
           </span>
         </div>
-        <button className="mini ghost" onClick={() => { location.hash = '#/admin'; }}>返回旧版</button>
+
       </div>
 
       {msg && <p className="priv-note" style={{ margin: '0 0 10px' }}>{msg}</p>}

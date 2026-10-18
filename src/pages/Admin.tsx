@@ -1,232 +1,682 @@
 import { useEffect, useState } from 'react';
+import AdminMemberModal from '../components/AdminMemberModal';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../auth';
-import AdminMemberModal from '../components/AdminMemberModal';
 
-type Member = { id: string; username: string; display_name: string | null; real_name: string | null; role: string; joined: boolean; created_at: string };
+/**
+ * 管理后台测试版（V2）：高级管理控制中心
+ * 通过 #/admin-v2 进入，不影响现有 /admin
+ * 设计：深色玻璃拟态，文字按钮无 emoji，手机优先
+ */
+
+type Member = {
+  id: string; username: string; display_name: string | null; real_name: string | null;
+  role: string; joined: boolean; created_at: string;
+};
+type Post = { id: number; author_id: string; content: string; image_url: string | null; created_at: string; deleted_at: string | null };
+type Cmt = { id: number; post_id: number; author_id: string; content: string; created_at: string; deleted_at: string | null };
+type Report = {
+  id: number; reporter_id: string | null; target_type: string; target_id: string;
+  reason: string; status: string; handle_note: string | null; created_at: string;
+};
 type Log = { id: number; action: string; detail: unknown; created_at: string };
-type Post = { id: number; content: string; author_id: string; created_at: string };
-type Alb = { id: number; title: string; category: string; created_at: string };
-type Fb = { id: number; name: string | null; contact: string | null; content: string; kind: string; status: string; created_at: string; user_id: string | null };
-type Gp = { profile_id: string; game_name: string; game_uid: string | null; rank: string | null; status: string; updated_at: string };
-type Ic = { id: number; code: string; nickname: string | null; active: boolean; created_at: string; expires_at: string | null };
-type Notice = { id: number; content: string; created_at: string; is_pinned: boolean };
-type TestAccount = { id: string; label: string; email: string; password: string };
 
-const TA_KEY = 'ca_test_accounts';
-function loadTAs(): TestAccount[] {
-  try { const v = JSON.parse(localStorage.getItem(TA_KEY) || '[]'); return Array.isArray(v) ? v : []; }
-  catch { return []; }
+const TABS_ALL: [string, string, boolean][] = [
+  ['overview', '总览', false],
+  ['members', '成员', false],
+  ['invite', '邀请码', false],
+  ['moderate', '审核', false],
+  ['feedback', '反馈', false],
+  ['game', '段位', false],
+  ['board', '公告', false],
+  ['logs', '日志', false],
+  ['settings', '设置', true], // 仅超管
+  ['test', '测试', true], // 仅超管
+];
+
+const card: React.CSSProperties = {
+  background: 'color-mix(in srgb,#141824 72%,transparent)',
+  backdropFilter: 'blur(24px) saturate(1.6)', WebkitBackdropFilter: 'blur(24px) saturate(1.6)',
+  border: '1px solid #ffffff1c', borderRadius: 16, padding: 14, marginBottom: 12,
+  boxShadow: '0 8px 32px #0008,inset 0 1px 0 #ffffff14',
+};
+const h3: React.CSSProperties = { margin: '0 0 10px', fontSize: 15, fontWeight: 700 };
+const mut: React.CSSProperties = { color: 'var(--mut)', fontSize: 12.5 };
+const rowBtn: React.CSSProperties = { display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 8 };
+
+async function alog(action: string, detail: any) {
+  try { await supabase.rpc('log_admin_action', { p_action: action, p_detail: JSON.stringify(detail) }); } catch {}
 }
 
-const ROLE_LABEL: Record<string, string> = { super_admin: '超级管理员', admin: '管理员', member: '成员' };
+function timeAgo(s: string) {
+  const d = (Date.now() - new Date(s).getTime()) / 1000;
+  if (d < 60) return '刚刚'; if (d < 3600) return Math.floor(d / 60) + ' 分钟前';
+  if (d < 86400) return Math.floor(d / 3600) + ' 小时前';
+  if (d < 86400 * 30) return Math.floor(d / 86400) + ' 天前';
+  return new Date(s).toLocaleDateString();
+}
 
 export default function Admin() {
   const me = useAuth().session!.user.id;
-  const [role, setRole] = useState<string | null>(null);
-  const [members, setMembers] = useState<Member[]>([]);
-  const [emails, setEmails] = useState<Record<string, string>>({});
-  const [logs, setLogs] = useState<Log[]>([]);
+  const [role, setRole] = useState('');
+  const [tab, setTab] = useState('overview');
+  const [msg, setMsg] = useState('');
+  const isSuper = role === 'super_admin';
+  const tabs = TABS_ALL.filter(([, , sup]) => !sup || isSuper);
+
+  useEffect(() => {
+    supabase.rpc('my_role').then(({ data }) => setRole(data ?? ''));
+  }, []);
+
+  function switchTab(id: string) {
+    setTab(id); setMsg('');
+    window.scrollTo({ top: 0 });
+  }
+
+  if (!role) return <div className="center" style={{ minHeight: '60vh' }}>加载中…</div>;
+
+  return (
+    <div className="page" style={{ paddingBottom: 110 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+        <div>
+          <h2 style={{ margin: 0, fontSize: 20 }}>管理控制中心</h2>
+          <span style={{ ...mut, background: '#ffd47933', padding: '2px 10px', borderRadius: 999, border: '1px solid #ffd47955' }}>
+            {isSuper ? '超级管理员' : '内容管理员'}
+          </span>
+        </div>
+        <button className="mini ghost" onClick={() => { location.hash = '#/admin'; }}>返回旧版</button>
+      </div>
+
+      {msg && <p className="priv-note" style={{ margin: '0 0 10px' }}>{msg}</p>}
+
+      {tab === 'overview' && <Overview setMsg={setMsg} />}
+      {tab === 'members' && <Members me={me} isSuper={isSuper} setMsg={setMsg} />}
+      {tab === 'moderate' && <Moderate setMsg={setMsg} />}
+      {tab === 'board' && <BoardMgr me={me} setMsg={setMsg} />}
+      {tab === 'logs' && <Logs />}
+      {tab === 'settings' && isSuper && <Settings me={me} setMsg={setMsg} />}
+      {tab === 'invite' && <InviteTab isSuper={isSuper} setMsg={setMsg} />}
+      {tab === 'feedback' && <FeedbackTab me={me} isSuper={isSuper} setMsg={setMsg} />}
+      {tab === 'game' && <GameTab setMsg={setMsg} />}
+      {tab === 'test' && isSuper && <TestTab setMsg={setMsg} />}
+
+      {/* 底部 dock */}
+      <div style={{
+        position: 'fixed', left: '50%', transform: 'translateX(-50%)', zIndex: 60,
+        bottom: 'calc(14px + env(safe-area-inset-bottom))',
+        width: 'max-content', maxWidth: 'calc(100vw - 28px)',
+        padding: 6, borderRadius: 999,
+        background: 'color-mix(in srgb,#1a1e30 42%,transparent)',
+        backdropFilter: 'blur(30px) saturate(1.8)', WebkitBackdropFilter: 'blur(30px) saturate(1.8)',
+        border: '1px solid #ffffff2e',
+        boxShadow: '0 14px 44px #000c,inset 0 1px 0 #ffffff2b',
+      }}>
+        <div className="row" style={{ gap: 2, overflowX: 'auto', flexWrap: 'nowrap', maxWidth: '100%' }}>
+          {tabs.map(([id, label]) => (
+            <button key={id} onClick={() => switchTab(id)} style={{
+              flexShrink: 0, whiteSpace: 'nowrap', padding: '9px 14px', borderRadius: 999, cursor: 'pointer',
+              fontSize: 13, border: 0, fontFamily: 'inherit',
+              background: tab === id ? 'linear-gradient(135deg,var(--a),var(--b))' : 'none',
+              color: tab === id ? '#1c2030' : 'var(--mut)',
+              fontWeight: tab === id ? 700 : 400,
+            }}>{label}</button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ---------------- 总览 ---------------- */
+function Overview({ setMsg }: { setMsg: (s: string) => void }) {
+  const [st, setSt] = useState<any>(null);
+  useEffect(() => {
+    (async () => {
+      try {
+        const [m, p, c, ph, r, nm] = await Promise.all([
+          supabase.from('profiles').select('id', { count: 'exact', head: true }),
+          supabase.from('posts').select('id', { count: 'exact', head: true }).is('deleted_at', null),
+          supabase.from('comments').select('id', { count: 'exact', head: true }).is('deleted_at', null),
+          supabase.from('album_photos').select('id', { count: 'exact', head: true }),
+          supabase.from('reports').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+          supabase.from('profiles').select('id, display_name, username, created_at')
+            .order('created_at', { ascending: false }).limit(5),
+        ]);
+        const week = new Date(Date.now() - 7 * 864e5).toISOString();
+        const { count: new7 } = await supabase.from('profiles').select('id', { count: 'exact', head: true }).gte('created_at', week);
+        const { data: logs } = await supabase.from('admin_audit_logs')
+          .select('id, action, created_at').order('created_at', { ascending: false }).limit(5);
+        // DB 连通性
+        const t0 = Date.now();
+        const { error: pingErr } = await supabase.from('profiles').select('id', { head: true }).limit(1);
+        setSt({
+          members: m.count ?? 0, posts: p.count ?? 0, comments: c.count ?? 0,
+          photos: ph.count ?? 0, pendingReports: r.count ?? 0, new7: new7 ?? 0,
+          newMembers: nm.data ?? [], recentLogs: logs ?? [],
+          dbOk: !pingErr, dbMs: Date.now() - t0,
+        });
+      } catch (e: any) { setMsg('总览加载失败：' + (e.message || '')); }
+    })();
+  }, []);
+  if (!st) return <div className="center">加载中…</div>;
+  const cells: [string, string][] = [
+    ['注册成员', String(st.members)], ['近7天新增', String(st.new7)],
+    ['动态', String(st.posts)], ['评论', String(st.comments)],
+    ['照片', String(st.photos)], ['待处理举报', String(st.pendingReports)],
+  ];
+  return (<>
+    <div style={{ ...card }}>
+      <h3 style={h3}>数据总览</h3>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 8 }}>
+        {cells.map(([k, v]) => (
+          <div key={k} style={{ background: '#ffffff08', borderRadius: 12, padding: '10px 6px', textAlign: 'center' }}>
+            <div style={{ fontSize: 20, fontWeight: 800 }}>{v}</div>
+            <div style={mut}>{k}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+    <div style={{ ...card }}>
+      <h3 style={h3}>系统状态</h3>
+      <div style={{ fontSize: 13.5, lineHeight: 2 }}>
+        <div>数据库：{st.dbOk ? <span style={{ color: '#7dff9e' }}>连接正常（{st.dbMs}ms）</span> : <span style={{ color: '#ff8080' }}>连接异常</span>}</div>
+      </div>
+    </div>
+    <div style={{ ...card }}>
+      <h3 style={h3}>最近加入</h3>
+      {(st.newMembers as any[]).map((m: any) => (
+        <div key={m.id} style={{ fontSize: 13.5, padding: '6px 0', borderBottom: '1px solid #ffffff0c' }}>
+          {m.display_name || m.username} <span style={mut}>· {timeAgo(m.created_at)}</span>
+        </div>
+      ))}
+      {st.newMembers.length === 0 && <p style={mut}>暂无</p>}
+    </div>
+    <div style={{ ...card }}>
+      <h3 style={h3}>最近管理操作</h3>
+      {(st.recentLogs as any[]).map((l: any) => (
+        <div key={l.id} style={{ fontSize: 12.5, padding: '6px 0', borderBottom: '1px solid #ffffff0c' }}>
+          <span style={mut}>{(l.created_at || '').slice(5, 16).replace('T', ' ')}</span> · {l.action}
+        </div>
+      ))}
+      {st.recentLogs.length === 0 && <p style={mut}>暂无</p>}
+    </div>
+  </>);
+}
+
+/* ---------------- 成员管理 ---------------- */
+function Members({ me, isSuper, setMsg }: { me: string; isSuper: boolean; setMsg: (s: string) => void }) {
+  const [list, setList] = useState<Member[]>([]);
+  const [q, setQ] = useState('');
+  const [fRole, setFRole] = useState('all');
+  const [fJoined, setFJoined] = useState('all');
+  const [sel, setSel] = useState<Set<string>>(new Set());
+  const [page, setPage] = useState(0);
+  const [detailId, setDetailId] = useState<string | null>(null);
+  const PER = 20;
+
+  async function load() {
+    const { data } = await supabase.from('profiles')
+      .select('id, username, display_name, real_name, role, joined, created_at')
+      .order('created_at', { ascending: false }).limit(500);
+    setList((data ?? []) as Member[]);
+  }
+  useEffect(() => { load(); }, []);
+
+  const filtered = list.filter(m => {
+    if (fRole !== 'all' && m.role !== fRole) return false;
+    if (fJoined === 'joined' && !m.joined) return false;
+    if (fJoined === 'unjoined' && m.joined) return false;
+    if (q) {
+      const s = (q || '').toLowerCase();
+      return (m.display_name || '').toLowerCase().includes(s) || m.username.toLowerCase().includes(s)
+        || (m.real_name || '').toLowerCase().includes(s);
+    }
+    return true;
+  });
+  const pages = Math.max(1, Math.ceil(filtered.length / PER));
+  const shown = filtered.slice(page * PER, (page + 1) * PER);
+
+  async function setJoined(ids: string[], joined: boolean) {
+    if (!confirm(`${joined ? '恢复' : '禁用'}选中的 ${ids.length} 个账号？`)) return;
+    for (const id of ids) {
+      const { error } = await supabase.rpc('set_joined', { target: id, joined });
+      if (!error) await alog(joined ? 'member_restore' : 'member_ban', { target: id });
+    }
+    setSel(new Set()); load(); setMsg('已处理');
+  }
+  async function setRole(id: string, newRole: string, name: string) {
+    if (id === me) return setMsg('不能修改自己的角色');
+    if (!confirm(`把 ${name} 设为${newRole === 'super_admin' ? '超级管理员' : newRole === 'admin' ? '内容管理员' : '普通成员'}？`)) return;
+    const { error } = await supabase.rpc('set_role', { target: id, new_role: newRole });
+    setMsg(error ? '失败：' + error.message : '角色已更新');
+    if (!error) load();
+  }
+
+  return (<>
+    <div style={{ ...card }}>
+      <h3 style={h3}>成员（{filtered.length}）</h3>
+      <input value={q} onChange={e => { setQ(e.target.value); setPage(0); }} placeholder="搜索名字 / 用户名 / 真实姓名" style={{ marginBottom: 8 }} />
+      <div className="row" style={{ gap: 6, marginBottom: 8 }}>
+        {([['all', '全部角色'], ['member', '成员'], ['admin', '内容管理员'], ['super_admin', '超级管理员']] as const).map(([k, l]) => (
+          <button key={k} className={'mini' + (fRole === k ? '' : ' ghost')} onClick={() => { setFRole(k); setPage(0); }}>{l}</button>
+        ))}
+      </div>
+      <div className="row" style={{ gap: 6, marginBottom: 4 }}>
+        {([['all', '全部状态'], ['joined', '正常'], ['unjoined', '已禁用']] as const).map(([k, l]) => (
+          <button key={k} className={'mini' + (fJoined === k ? '' : ' ghost')} onClick={() => { setFJoined(k); setPage(0); }}>{l}</button>
+        ))}
+      </div>
+      {sel.size > 0 && (
+        <div className="row" style={{ gap: 8, marginTop: 8 }}>
+          <button className="mini" onClick={() => setJoined([...sel], true)}>恢复选中（{sel.size}）</button>
+          <button className="mini danger" onClick={() => setJoined([...sel], false)}>禁用选中（{sel.size}）</button>
+          <button className="mini ghost" onClick={() => setSel(new Set())}>取消选择</button>
+        </div>
+      )}
+    </div>
+    {shown.map(m => (
+      <div key={m.id} style={{ ...card, opacity: m.joined ? 1 : 0.55 }}>
+        <div className="row" style={{ gap: 8, alignItems: 'center' }}>
+          <input type="checkbox" checked={sel.has(m.id)}
+            onChange={e => { const n = new Set(sel); e.target.checked ? n.add(m.id) : n.delete(m.id); setSel(n); }} />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 14, fontWeight: 700 }}>
+              <span onClick={() => setDetailId(m.id)} style={{ cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: 3 }}>{m.display_name || m.username}</span>
+              <span style={{ ...mut, marginLeft: 8 }}>{m.role === 'super_admin' ? '超级管理员' : m.role === 'admin' ? '内容管理员' : '成员'}</span>
+              {!m.joined && <span style={{ color: '#ff8080', fontSize: 12 }}> · 已禁用</span>}
+            </div>
+            <div style={mut}>@{m.username}{m.real_name ? ` · ${m.real_name}` : ''} · {timeAgo(m.created_at)}</div>
+          </div>
+        </div>
+        <div style={rowBtn}>
+          {m.joined
+            ? <button className="mini danger" disabled={m.id === me} onClick={() => setJoined([m.id], false)}>禁用</button>
+            : <button className="mini" onClick={() => setJoined([m.id], true)}>恢复</button>}
+          {isSuper && m.role !== 'super_admin' && (
+            <select value={m.role} onChange={e => setRole(m.id, e.target.value, m.display_name || m.username)}
+              style={{ width: 'auto', padding: '6px 8px', fontSize: 12.5 }} disabled={m.id === me}>
+              <option value="member">普通成员</option>
+              <option value="admin">内容管理员</option>
+              <option value="super_admin">超级管理员</option>
+            </select>
+          )}
+        </div>
+      </div>
+    ))}
+    {pages > 1 && (
+      <div className="row" style={{ gap: 8, justifyContent: 'center', marginTop: 4 }}>
+        <button className="mini ghost" disabled={page === 0} onClick={() => setPage(p => p - 1)}>上一页</button>
+        <span style={mut}>{page + 1} / {pages}</span>
+        <button className="mini ghost" disabled={page >= pages - 1} onClick={() => setPage(p => p + 1)}>下一页</button>
+      </div>
+    )}
+    {detailId && <AdminMemberModal memberId={detailId} onClose={() => setDetailId(null)} onChanged={load} />}
+  </>);
+}
+
+/* ---------------- 内容审核 ---------------- */
+function Moderate({ setMsg }: { setMsg: (s: string) => void }) {
+  const [sub, setSub] = useState<'posts' | 'comments' | 'reports'>('reports');
   const [posts, setPosts] = useState<Post[]>([]);
-  const [albums, setAlbums] = useState<Alb[]>([]);
+  const [cmts, setCmts] = useState<Cmt[]>([]);
+  const [reports, setReports] = useState<Report[]>([]);
+  const [names, setNames] = useState<Record<string, string>>({});
+
+  async function load() {
+    const [p, c, r] = await Promise.all([
+      supabase.from('posts').select('id, author_id, content, image_url, created_at, deleted_at').order('created_at', { ascending: false }).limit(50),
+      supabase.from('comments').select('id, post_id, author_id, content, created_at, deleted_at').order('created_at', { ascending: false }).limit(50),
+      supabase.from('reports').select('*').order('created_at', { ascending: false }).limit(50),
+    ]);
+    setPosts((p.data ?? []) as Post[]); setCmts((c.data ?? []) as Cmt[]); setReports((r.data ?? []) as Report[]);
+    const ids = new Set<string>();
+    (p.data ?? []).forEach((x: any) => ids.add(x.author_id));
+    (c.data ?? []).forEach((x: any) => ids.add(x.author_id));
+    if (ids.size) {
+      const { data: dir } = await supabase.rpc('member_directory', { q: '', lim: 200, skip: 0 });
+      const mp: Record<string, string> = {};
+      ((dir ?? []) as any[]).forEach((x: any) => { mp[x.id] = x.display_name ?? x.username; });
+      setNames(mp);
+    }
+  }
+  useEffect(() => { load(); }, []);
+
+  async function hidePost(p: Post, hide: boolean) {
+    if (!confirm(hide ? '隐藏这条动态？（进回收站，可恢复）' : '恢复这条动态？')) return;
+    const { error } = await supabase.from('posts').update({ deleted_at: hide ? new Date().toISOString() : null }).eq('id', p.id);
+    if (!error) { await alog(hide ? 'post_hide' : 'post_restore', { id: p.id }); load(); }
+    else setMsg('失败：' + error.message);
+  }
+  async function delPost(p: Post) {
+    if (!confirm('彻底删除这条动态？不可恢复！')) return;
+    if (!confirm('再次确认：真的彻底删除吗？')) return;
+    const { error } = await supabase.from('posts').delete().eq('id', p.id);
+    if (!error) { await alog('post_delete', { id: p.id }); load(); }
+    else setMsg('失败：' + error.message);
+  }
+  async function hideCmt(c: Cmt, hide: boolean) {
+    if (!confirm(hide ? '隐藏这条评论？' : '恢复这条评论？')) return;
+    const { error } = await supabase.from('comments').update({ deleted_at: hide ? new Date().toISOString() : null }).eq('id', c.id);
+    if (!error) { await alog(hide ? 'comment_hide' : 'comment_restore', { id: c.id }); load(); }
+    else setMsg('失败：' + error.message);
+  }
+  async function handleReport(r: Report, ok: boolean) {
+    const note = ok ? '' : (prompt('驳回原因（可选）：') ?? '');
+    if (!ok && note === null) return;
+    const { error } = await supabase.from('reports').update({
+      status: ok ? 'done' : 'rejected', handle_note: note || null, handled_at: new Date().toISOString(),
+    }).eq('id', r.id);
+    if (!error) { await alog('report_handle', { id: r.id, result: ok ? 'done' : 'rejected', note }); load(); setMsg('已处理'); }
+    else setMsg('失败：' + error.message);
+  }
+
+  const pending = reports.filter(r => r.status === 'pending').length;
+  return (<>
+    <div className="row" style={{ gap: 6, marginBottom: 12 }}>
+      <button className={'mini' + (sub === 'reports' ? '' : ' ghost')} onClick={() => setSub('reports')}>举报{pending ? `（${pending}）` : ''}</button>
+      <button className={'mini' + (sub === 'posts' ? '' : ' ghost')} onClick={() => setSub('posts')}>动态</button>
+      <button className={'mini' + (sub === 'comments' ? '' : ' ghost')} onClick={() => setSub('comments')}>评论</button>
+    </div>
+
+    {sub === 'reports' && (<>
+      {reports.length === 0 && <div style={card}><p style={mut}>暂无举报</p></div>}
+      {reports.map(r => (
+        <div key={r.id} style={{ ...card, opacity: r.status === 'pending' ? 1 : 0.6 }}>
+          <div style={{ fontSize: 13.5 }}>
+            <b>{r.target_type}</b> #{r.target_id} · {r.status === 'pending' ? '待处理' : r.status === 'done' ? '已处理' : '已驳回'}
+          </div>
+          <div style={{ fontSize: 13, marginTop: 4 }}>原因：{r.reason}</div>
+          {r.handle_note && <div style={mut}>处理备注：{r.handle_note}</div>}
+          <div style={mut}>{timeAgo(r.created_at)}</div>
+          {r.status === 'pending' && (
+            <div style={rowBtn}>
+              <button className="mini" onClick={() => handleReport(r, true)}>已处理</button>
+              <button className="mini ghost" onClick={() => handleReport(r, false)}>驳回</button>
+            </div>
+          )}
+        </div>
+      ))}
+    </>)}
+
+    {sub === 'posts' && (<>
+      {posts.map(p => (
+        <div key={p.id} style={{ ...card, opacity: p.deleted_at ? 0.55 : 1 }}>
+          <div style={{ fontSize: 13.5 }}>{(p.content || '').slice(0, 120)}</div>
+          <div style={mut}>{names[p.author_id] || '…'} · {timeAgo(p.created_at)}{p.deleted_at ? ' · 已隐藏' : ''}</div>
+          <div style={rowBtn}>
+            {p.deleted_at
+              ? <button className="mini" onClick={() => hidePost(p, false)}>恢复</button>
+              : <button className="mini ghost" onClick={() => hidePost(p, true)}>隐藏</button>}
+            <button className="mini danger" onClick={() => delPost(p)}>彻底删除</button>
+          </div>
+        </div>
+      ))}
+      {posts.length === 0 && <div style={card}><p style={mut}>暂无动态</p></div>}
+    </>)}
+
+    {sub === 'comments' && (<>
+      {cmts.map(c => (
+        <div key={c.id} style={{ ...card, opacity: c.deleted_at ? 0.55 : 1 }}>
+          <div style={{ fontSize: 13.5 }}>{(c.content || '').slice(0, 120)}</div>
+          <div style={mut}>{names[c.author_id] || '…'} · 动态 #{c.post_id} · {timeAgo(c.created_at)}{c.deleted_at ? ' · 已隐藏' : ''}</div>
+          <div style={rowBtn}>
+            {c.deleted_at
+              ? <button className="mini" onClick={() => hideCmt(c, false)}>恢复</button>
+              : <button className="mini ghost" onClick={() => hideCmt(c, true)}>隐藏</button>}
+          </div>
+        </div>
+      ))}
+      {cmts.length === 0 && <div style={card}><p style={mut}>暂无评论</p></div>}
+    </>)}
+  </>);
+}
+
+/* ---------------- 公告管理 ---------------- */
+function BoardMgr({ me, setMsg }: { me: string; setMsg: (s: string) => void }) {
+  const [text, setText] = useState('');
+  const [exp, setExp] = useState('0');
+  const [list, setList] = useState<any[]>([]);
+  async function load() {
+    const { data } = await supabase.from('board_messages')
+      .select('id, content, is_pinned, expires_at, created_at').eq('is_admin_msg', true)
+      .order('is_pinned', { ascending: false }).order('created_at', { ascending: false }).limit(20);
+    setList(data ?? []);
+  }
+  useEffect(() => { load(); }, []);
+  async function post() {
+    const c = text.trim(); if (!c) return setMsg('先写点公告内容');
+    const days = parseInt(exp, 10);
+    const { error } = await supabase.from('board_messages').insert({
+      author_id: me, content: c.slice(0, 500), is_admin_msg: true,
+      expires_at: days > 0 ? new Date(Date.now() + days * 864e5).toISOString() : null,
+    });
+    if (!error) { await alog('notice_post', { len: c.length }); setText(''); setExp('0'); load(); setMsg('公告已发布'); }
+    else setMsg('发布失败：' + error.message);
+  }
+  async function togglePin(n: any) {
+    const { error } = await supabase.from('board_messages').update({ is_pinned: !n.is_pinned }).eq('id', n.id);
+    if (!error) { await alog(n.is_pinned ? 'notice_unpin' : 'notice_pin', { id: n.id }); load(); }
+    else setMsg('失败：' + error.message);
+  }
+  async function del(id: number) {
+    if (!confirm('删除这条公告？')) return;
+    // 软删除进回收站
+    const { error } = await supabase.from('board_messages').update({ deleted_at: new Date().toISOString() }).eq('id', id);
+    if (!error) { await alog('notice_hide', { id }); load(); }
+    else setMsg('失败：' + error.message);
+  }
+  return (
+    <div style={card}>
+      <h3 style={h3}>公告管理</h3>
+      <textarea value={text} onChange={e => setText(e.target.value)} rows={3} maxLength={500} placeholder="写公告…" style={{ width: '100%' }} />
+      <div className="row" style={{ gap: 8, marginTop: 8, alignItems: 'center' }}>
+        <button className="pri" style={{ width: 'auto', padding: '10px 26px' }} onClick={post}>发布公告</button>
+        <span style={mut}>过期：</span>
+        <select value={exp} onChange={e => setExp(e.target.value)} style={{ width: 'auto', padding: '8px' }}>
+          <option value="0">不过期</option><option value="1">1 天</option>
+          <option value="3">3 天</option><option value="7">7 天</option><option value="30">30 天</option>
+        </select>
+      </div>
+      <div style={{ marginTop: 12 }}>
+        {list.map(n => (
+          <div key={n.id} style={{ padding: '8px 0', borderBottom: '1px solid #ffffff0c' }}>
+            <div style={{ fontSize: 13.5 }}>{n.is_pinned && '📌 '}{(n.content || '').slice(0, 80)}</div>
+            <div style={mut}>{(n.created_at || '').slice(0, 16).replace('T', ' ')}
+              {n.expires_at ? ` · 过期 ${n.expires_at.slice(0, 16).replace('T', ' ')}` : ' · 不过期'}</div>
+            <div style={rowBtn}>
+              <button className="mini ghost" onClick={() => togglePin(n)}>{n.is_pinned ? '取消置顶' : '置顶'}</button>
+              <button className="mini danger" onClick={() => del(n.id)}>撤下</button>
+            </div>
+          </div>
+        ))}
+        {list.length === 0 && <p style={mut}>暂无公告</p>}
+      </div>
+    </div>
+  );
+}
+
+/* ---------------- 日志 ---------------- */
+function Logs() {
+  const [logs, setLogs] = useState<Log[]>([]);
+  const [q, setQ] = useState('');
+  useEffect(() => {
+    supabase.from('admin_audit_logs').select('id, action, detail, created_at')
+      .order('created_at', { ascending: false }).limit(100)
+      .then(({ data }) => setLogs((data ?? []) as Log[]));
+  }, []);
+  const shown = logs.filter(l => !q || l.action.toLowerCase().includes(q.toLowerCase()));
+  return (
+    <div style={card}>
+      <h3 style={h3}>操作日志（{shown.length}）</h3>
+      <input value={q} onChange={e => setQ(e.target.value)} placeholder="筛选，如：member_ban" style={{ marginBottom: 10 }} />
+      {shown.map(l => (
+        <div key={l.id} style={{ fontSize: 12.5, padding: '7px 0', borderBottom: '1px solid #ffffff0c' }}>
+          <span style={mut}>{(l.created_at || '').slice(0, 16).replace('T', ' ')}</span>
+          <div><b>{l.action}</b></div>
+          <div style={mut}>{JSON.stringify(l.detail ?? {}).slice(0, 200)}</div>
+        </div>
+      ))}
+      {shown.length === 0 && <p style={mut}>暂无记录</p>}
+      <p style={{ ...mut, marginTop: 10 }}>日志仅管理员可见，不可删除或修改。</p>
+    </div>
+  );
+}
+
+/* ---------------- 系统设置（仅超管） ---------------- */
+function Settings({ me, setMsg }: { me: string; setMsg: (s: string) => void }) {
+  const [vals, setVals] = useState<Record<string, string>>({});
+  const [health, setHealth] = useState<any>(null);
+  const [backups, setBackups] = useState<any[]>([]);
+
+  async function load() {
+    const { data } = await supabase.from('site_settings').select('key, value');
+    const o: Record<string, string> = {};
+    (data ?? []).forEach((x: any) => { o[x.key] = x.value; });
+    setVals(o);
+    const { data: bl } = await supabase.from('backup_logs').select('*').order('created_at', { ascending: false }).limit(10);
+    setBackups(bl ?? []);
+  }
+  useEffect(() => { load(); }, []);
+
+  async function save(key: string, value: string) {
+    const { error } = await supabase.from('site_settings').upsert({ key, value }, { onConflict: 'key' });
+    if (!error) { await alog('setting_change', { key, value }); setMsg('已保存'); load(); }
+    else setMsg('保存失败：' + error.message);
+  }
+
+  async function checkHealth() {
+    const r: any = {};
+    try { const t0 = Date.now(); const { error } = await supabase.from('profiles').select('id', { head: true }).limit(1); r.db = error ? '异常' : `正常（${Date.now() - t0}ms）`; }
+    catch { r.db = '异常'; }
+    try { const { data } = await supabase.storage.listBuckets(); r.storage = (data ?? []).map((b: any) => b.name).join('、') || '无'; }
+    catch { r.storage = '异常'; }
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const resp = await fetch('https://wnddwkdfndrkxivvrxcy.supabase.co/functions/v1/notify', {
+        method: 'POST', headers: { 'Content-Type': 'application/json', 'apikey': 'sb_publishable_4dNtXkAYz6Q2KE0hZdZyKw_vF7b9T5q' }, body: '{}',
+      });
+      r.notify = resp.status === 401 ? '正常' : `异常（${resp.status}）`;
+    } catch { r.notify = '异常'; }
+    setHealth(r);
+    await alog('health_check', r);
+  }
+
+  async function backup() {
+    if (!confirm('导出全站数据备份？文件会直接下载到本机，不经过公开链接。')) return;
+    setMsg('正在备份…');
+    try {
+      const [p, po, cm, al, ap, bm, fb] = await Promise.all([
+        supabase.from('profiles').select('id, username, display_name, real_name, role, joined, created_at, age, personality, signature, bio, hobbies'),
+        supabase.from('posts').select('*').limit(2000),
+        supabase.from('comments').select('*').limit(5000),
+        supabase.from('albums').select('*').limit(500),
+        supabase.from('album_photos').select('id, album_id, photo_url, caption, created_at').limit(5000),
+        supabase.from('board_messages').select('*').limit(2000),
+        supabase.from('feedbacks').select('*').limit(2000),
+      ]);
+      const data = {
+        backup_at: new Date().toISOString(), scope: 'full',
+        profiles: p.data ?? [], posts: po.data ?? [], comments: cm.data ?? [],
+        albums: al.data ?? [], album_photos: ap.data ?? [], board: bm.data ?? [], feedbacks: fb.data ?? [],
+      };
+      const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `班级备份_${new Date().toISOString().slice(0, 10)}.json`;
+      a.click(); URL.revokeObjectURL(a.href);
+      await supabase.from('backup_logs').insert({ created_by: me, scope: 'full', status: 'ok', note: `成员${(p.data ?? []).length} 动态${(po.data ?? []).length}` });
+      await alog('backup', { scope: 'full' });
+      setMsg('备份完成，文件已下载'); load();
+    } catch (e: any) {
+      setMsg('备份失败：' + (e.message || ''));
+      try { await supabase.from('backup_logs').insert({ created_by: me, scope: 'full', status: 'fail', note: e.message || '' }); } catch {}
+    }
+  }
+
+  return (<>
+    <div style={card}>
+      <h3 style={h3}>全站设置</h3>
+      <label style={mut}>网站标题</label>
+      <div className="row" style={{ gap: 8, marginBottom: 10 }}>
+        <input value={vals.site_title ?? ''} onChange={e => setVals({ ...vals, site_title: e.target.value })} style={{ flex: 1 }} />
+        <button className="mini" onClick={() => save('site_title', vals.site_title ?? '')}>保存</button>
+      </div>
+      <label style={mut}>副标题</label>
+      <div className="row" style={{ gap: 8, marginBottom: 10 }}>
+        <input value={vals.site_subtitle ?? ''} onChange={e => setVals({ ...vals, site_subtitle: e.target.value })} style={{ flex: 1 }} />
+        <button className="mini" onClick={() => save('site_subtitle', vals.site_subtitle ?? '')}>保存</button>
+      </div>
+      <div className="row" style={{ gap: 8, alignItems: 'center', marginBottom: 10 }}>
+        <span style={{ fontSize: 13.5 }}>注册强制邀请码</span>
+        <button className={'mini' + (vals.require_invite === 'true' ? '' : ' ghost')}
+          onClick={() => save('require_invite', vals.require_invite === 'true' ? 'false' : 'true')}>
+          {vals.require_invite === 'true' ? '开' : '关'}
+        </button>
+      </div>
+      <div className="row" style={{ gap: 8, alignItems: 'center' }}>
+        <span style={{ fontSize: 13.5 }}>维护模式</span>
+        <button className={'mini' + (vals.maintenance === 'true' ? '' : ' ghost')}
+          onClick={() => {
+            if (vals.maintenance !== 'true' && !confirm('开启维护模式？普通成员将看到维护提示。')) return;
+            save('maintenance', vals.maintenance === 'true' ? 'false' : 'true');
+          }}>
+          {vals.maintenance === 'true' ? '开' : '关'}
+        </button>
+      </div>
+      {vals.maintenance === 'true' && (<>
+        <label style={{ ...mut, marginTop: 8 }}>维护提示语</label>
+        <div className="row" style={{ gap: 8 }}>
+          <input value={vals.maintenance_msg ?? ''} onChange={e => setVals({ ...vals, maintenance_msg: e.target.value })} style={{ flex: 1 }} />
+          <button className="mini" onClick={() => save('maintenance_msg', vals.maintenance_msg ?? '')}>保存</button>
+        </div>
+      </>)}
+    </div>
+
+    <div style={card}>
+      <h3 style={h3}>健康检查</h3>
+      <button className="pri" style={{ width: 'auto', padding: '10px 26px' }} onClick={checkHealth}>开始检查</button>
+      {health && (
+        <div style={{ fontSize: 13.5, lineHeight: 2, marginTop: 8 }}>
+          <div>数据库：{health.db}</div>
+          <div>存储桶：{health.storage}</div>
+          <div>邮件函数：{health.notify}</div>
+        </div>
+      )}
+    </div>
+
+    <div style={card}>
+      <h3 style={h3}>备份</h3>
+      <p style={mut}>备份文件直接下载到本机，不生成公开链接。恢复前请先确认，避免覆盖新数据。</p>
+      <button className="pri" style={{ width: 'auto', padding: '10px 26px' }} onClick={backup}>一键备份</button>
+      <div style={{ marginTop: 10 }}>
+        {backups.map(b => (
+          <div key={b.id} style={{ fontSize: 12.5, padding: '6px 0', borderBottom: '1px solid #ffffff0c' }}>
+            {(b.created_at || '').slice(0, 16).replace('T', ' ')} · {b.scope} · {b.status === 'ok' ? '成功' : '失败'}
+            {b.note ? ` · ${b.note}` : ''}
+          </div>
+        ))}
+        {backups.length === 0 && <p style={mut}>暂无备份记录</p>}
+      </div>
+    </div>
+  </>);
+}
+
+/* ---------------- 邀请码 ---------------- */
+type Ic = { id: number; code: string; nickname: string | null; active: boolean; created_at: string; expires_at: string | null };
+function InviteTab({ isSuper, setMsg }: { isSuper: boolean; setMsg: (s: string) => void }) {
   const [ics, setIcs] = useState<Ic[]>([]);
   const [newCode, setNewCode] = useState('');
   const [newNick, setNewNick] = useState('');
-  const [newExp, setNewExp] = useState('0'); // 邀请码过期：0=不过期
-  const [feedbacks, setFeedbacks] = useState<Fb[]>([]);
-  const [gpend, setGpend] = useState<Gp[]>([]);
-  const [gok, setGok] = useState<Gp[]>([]);
-  const [msg, setMsg] = useState('');
-  const [q, setQ] = useState('');
-  const [stats, setStats] = useState({ posts: 0, photos: 0 });
-  // 测试账号快切（仅超管）：账号存本机，一键切换登录方便测试
-  const [tas, setTas] = useState<TestAccount[]>(loadTAs);
-  const [taLabel, setTaLabel] = useState('');
-  const [taEmail, setTaEmail] = useState('');
-  const [taPw, setTaPw] = useState('');
-  const [taMsg, setTaMsg] = useState('');
-  // 给反馈提交人发消息
-  const [replyOpen, setReplyOpen] = useState<number | null>(null);
-  const [replyText, setReplyText] = useState<Record<number, string>>({});
-  const [replyBusy, setReplyBusy] = useState(false);
-  // 公告管理
-  const [notices, setNotices] = useState<Notice[]>([]);
-  const [noticeText, setNoticeText] = useState('');
-  const [noticeExp, setNoticeExp] = useState('0'); // 过期：0=不过期，1/3/7/30=天数
-  // 成员位置与设备
-  const [presence, setPresence] = useState<Record<string, { device: string | null; location: string | null; updated_at: string | null }>>({});
-  // 10 个新功能的状态
-  const [gq, setGq] = useState('');                       // 全站搜索
-  const [fbFilter, setFbFilter] = useState('all');        // 反馈筛选：all/open/done
-  const [logQ, setLogQ] = useState('');                   // 日志筛选
-  const [editId, setEditId] = useState<string | null>(null); // 正在编辑资料的成员
-  const [editForm, setEditForm] = useState({ display_name: '', signature: '' });
+  const [newExp, setNewExp] = useState('0');
   const [batchBusy, setBatchBusy] = useState(false);
-  const [tab, setTab] = useState('overview'); // 当前板块：必须放在提前返回之前，否则 hook 数量变化会崩（React #310）
-  const [detailId, setDetailId] = useState<string | null>(null); // 点进成员详情
-
-  useEffect(() => { supabase.rpc('my_role').then(({ data }) => setRole(data ?? '')); }, []);
-
-  async function refresh() {
-    const m = await supabase.from('profiles')
-      .select('id, username, display_name, real_name, role, joined, created_at').order('created_at');
-    if (!m.error) setMembers(m.data as Member[]);
-    const em = await supabase.from('profile_emails').select('profile_id, email');
-    if (!em.error) setEmails(Object.fromEntries((em.data ?? []).map((x: any) => [x.profile_id, x.email])));
-    const ic = await supabase.from('invite_codes').select('id, code, nickname, active, created_at, expires_at').order('created_at');
-    if (!ic.error) setIcs(ic.data as Ic[]);
-    const fb = await supabase.from('feedbacks').select('id, name, contact, content, kind, status, created_at, user_id')
-      .order('created_at', { ascending: false }).limit(50);
-    if (!fb.error) setFeedbacks(fb.data as Fb[]);
-    const gp = await supabase.from('game_profiles')
-      .select('profile_id, game_name, game_uid, rank, status, updated_at').order('updated_at', { ascending: false });
-    if (!gp.error) {
-      const list = gp.data as Gp[];
-      setGpend(list.filter(x => x.status === 'pending'));
-      setGok(list.filter(x => x.status === 'approved'));
-    }
-    const l = await supabase.from('admin_audit_logs')
-      .select('id, action, detail, created_at').order('created_at', { ascending: false }).limit(50);
-    if (!l.error) setLogs(l.data as Log[]);
-    const p = await supabase.from('posts').select('id, content, author_id, created_at')
-      .order('created_at', { ascending: false }).limit(30);
-    if (!p.error) setPosts(p.data as Post[]);
-    const a = await supabase.from('albums').select('id, title, category, created_at')
-      .order('created_at', { ascending: false }).limit(30);
-    if (!a.error) setAlbums(a.data as Alb[]);
-    const pc = await supabase.from('posts').select('id', { count: 'exact', head: true });
-    const hc = await supabase.from('album_photos').select('id', { count: 'exact', head: true });
-    setStats({ posts: pc.count ?? 0, photos: hc.count ?? 0 });
-    const nt = await supabase.from('board_messages').select('id, content, created_at, is_pinned')
-      .eq('is_admin_msg', true).order('is_pinned', { ascending: false }).order('created_at', { ascending: false }).limit(20);
-    if (!nt.error) setNotices(nt.data as Notice[]);
-    const mp = await supabase.from('member_presence').select('profile_id, device, location, updated_at');
-    if (!mp.error) setPresence(Object.fromEntries((mp.data ?? []).map((x: any) => [x.profile_id, x])));
+  async function load() {
+    const { data } = await supabase.from('invite_codes').select('id, code, nickname, active, created_at, expires_at').order('created_at');
+    setIcs((data ?? []) as Ic[]);
   }
-
-  useEffect(() => { if (role === 'admin' || role === 'super_admin') refresh(); }, [role]);
-
-  if (role === null) return <div className="page"><div className="center">加载中…</div></div>;
-  if (role !== 'admin' && role !== 'super_admin')
-    return <div className="page"><div className="center"><div className="card">无权访问管理后台</div></div></div>;
-  const isSuper = role === 'super_admin';
-  const nameOf = (id: string) => { const mb = members.find(x => x.id === id); return mb ? (mb.display_name || mb.username) : id.slice(0, 8); };
-
-  async function changeRole(id: string, newRole: string) {
-    setMsg('');
-    const { error } = await supabase.rpc('set_role', { target: id, new_role: newRole });
-    setMsg(error ? '操作失败：' + error.message : '已更新');
-    if (!error) refresh();
-  }
-  async function addIc() {
-    const c = newCode.trim();
-    if (!c) return setMsg('请填写邀请码');
-    setMsg('');
-    const { error } = await supabase.rpc('create_invite_code', { new_code: c, nick: newNick.trim() || null });
-    if (error) { setMsg('添加失败：' + error.message); return; }
-    const days = parseInt(newExp, 10);
-    if (days > 0) {
-      await supabase.from('invite_codes').update({ expires_at: new Date(Date.now() + days * 864e5).toISOString() }).eq('code', c);
-    }
-    setMsg('邀请码已添加 ✓' + (days > 0 ? `（${days} 天后过期）` : ''));
-    setNewCode(''); setNewNick(''); setNewExp('0'); refresh();
-  }
-  async function delIc(id: number) {
-    if (!confirm('删除这个邀请码？之前用它加入的成员不受影响。')) return;
-    const { error } = await supabase.rpc('delete_invite_code', { cid: id });
-    if (!error) refresh(); else setMsg('删除失败：' + error.message);
-  }
-  async function toggleIc(id: number, a: boolean) {
-    const { error } = await supabase.rpc('set_invite_code_active', { cid: id, active: !a });
-    if (!error) refresh(); else setMsg('操作失败：' + error.message);
-  }
-
-  function saveTAs(list: TestAccount[]) {
-    setTas(list);
-    try { localStorage.setItem(TA_KEY, JSON.stringify(list)); } catch {}
-  }
-  function addTa() {
-    const em = taEmail.trim();
-    if (!em || !taPw) return setTaMsg('邮箱和密码都要填');
-    saveTAs([...loadTAs(), { id: 'ta' + Date.now(), label: taLabel.trim(), email: em, password: taPw }]);
-    setTaLabel(''); setTaEmail(''); setTaPw(''); setTaMsg('已保存 ✓');
-  }
-  function delTa(id: string) { saveTAs(loadTAs().filter(a => a.id !== id)); }
-  async function switchTo(a: TestAccount) {
-    if (!confirm(`切换登录到 ${a.label || a.email}？当前账号会先退出。`)) return;
-    setTaMsg('');
-    const { data: { user } } = await supabase.auth.getUser();
-    const fromEmail = user?.email || '';
-    await supabase.auth.signOut();
-    const { error } = await supabase.auth.signInWithPassword({ email: a.email, password: a.password });
-    if (error) return; // 已退到登录页，手动登录即可
-    try {
-      sessionStorage.setItem('ca_testing_as', a.email);
-      sessionStorage.setItem('ca_testing_from', fromEmail);
-    } catch {}
-  }
-  async function markFb(id: number, done: boolean) {
-    const { error } = await supabase.from('feedbacks').update({ status: done ? 'done' : 'open' }).eq('id', id);
-    if (!error) refresh(); else setMsg('操作失败：' + error.message);
-  }
-  // 给反馈提交人发站内消息（对方在 好友-聊天 里能看到）
-  async function sendReply(fb: Fb) {
-    const text = (replyText[fb.id] || '').trim();
-    if (!text || !fb.user_id) return;
-    if (replyBusy) return;
-    setReplyBusy(true); setMsg('');
-    try {
-      const { data: cid, error: e1 } = await supabase.rpc('get_or_create_conversation', { other: fb.user_id });
-      if (e1) throw e1;
-      const { error: e2 } = await supabase.from('messages').insert({
-        conversation_id: Number(cid), sender_id: me, body: text.slice(0, 2000),
-      });
-      if (e2) throw e2;
-      setReplyText({ ...replyText, [fb.id]: '' });
-      setReplyOpen(null);
-      setMsg('消息已发送 ✓，对方在「好友 - 聊天」里能看到');
-    } catch (e: any) {
-      setMsg('发送失败：' + (e?.message || '网络错误'));
-    } finally { setReplyBusy(false); }
-  }
-  async function delFb(id: number) {
-    if (!confirm('删除这条反馈？')) return;
-    const { error } = await supabase.from('feedbacks').delete().eq('id', id);
-    if (!error) refresh(); else setMsg('删除失败：' + error.message);
-  }
-  async function reviewGp(pid: string, approve: boolean) {
-    setMsg('');
-    const { error } = await supabase.rpc('review_game_profile', { pid, approve });
-    setMsg(error ? '操作失败：' + error.message : approve ? '已通过 ✓' : '已驳回');
-    if (!error) refresh();
-  }
-  // 公告管理：只有管理员能发布，会置顶在公告板最上面
-  async function postNotice() {
-    const c = noticeText.trim();
-    if (!c) return setMsg('先写点公告内容');
-    setMsg('');
-    const days = parseInt(noticeExp, 10);
-    const exp = days > 0 ? new Date(Date.now() + days * 864e5).toISOString() : null;
-    const { error } = await supabase.from('board_messages')
-      .insert({ author_id: me, content: c.slice(0, 500), is_admin_msg: true, expires_at: exp });
-    setMsg(error ? '发布失败：' + error.message : '公告已发布 ✓（公告板最上面能看到）');
-    if (!error) { setNoticeText(''); setNoticeExp('0'); refresh(); }
-  }
-  async function delNotice(id: number) {
-    if (!confirm('删除这条公告？')) return;
-    await supabase.from('board_messages').delete().eq('id', id);
-    refresh();
-  }
-  async function togglePin(n: Notice) {
-    const { error } = await supabase.from('board_messages').update({ is_pinned: !n.is_pinned }).eq('id', n.id);
-    if (error) setMsg('操作失败：' + error.message);
-    else refresh();
-  }
-  // —— 10 个新功能 ——
-  // 1) 批量生成邀请码
+  useEffect(() => { load(); }, []);
   async function batchCodes(n: number) {
     if (!confirm(`一次生成 ${n} 个随机邀请码？`)) return;
-    setBatchBusy(true); setMsg('');
+    setBatchBusy(true);
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
     let ok = 0;
     for (let i = 0; i < n; i++) {
@@ -235,539 +685,243 @@ export default function Admin() {
       const { error } = await supabase.rpc('create_invite_code', { new_code: code, nick: null });
       if (!error) ok++;
     }
-    setBatchBusy(false);
-    setMsg(`已生成 ${ok} 个邀请码 ✓`);
-    refresh();
+    setBatchBusy(false); setMsg(`已生成 ${ok} 个邀请码`); load();
+    await alog('invite_batch', { n: ok });
   }
-  // 2) 通讯录导出 CSV
-  function exportCSV() {
-    const rows: string[][] = [['姓名', '用户名', '真实姓名', '邮箱', '角色', '已加入']];
-    members.forEach(m => rows.push([
-      m.display_name || '', m.username, m.real_name || '', emails[m.id] || '',
-      ROLE_LABEL[m.role] || m.role, m.joined ? '是' : '否',
-    ]));
-    const csv = '﻿' + rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
-    a.download = '班级通讯录.csv'; a.click();
-    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
-    setMsg('通讯录已导出 ✓');
+  async function addIc() {
+    const c = newCode.trim(); if (!c) return setMsg('请填写邀请码');
+    const { error } = await supabase.rpc('create_invite_code', { new_code: c, nick: newNick.trim() || null });
+    if (error) { setMsg('添加失败：' + error.message); return; }
+    const days = parseInt(newExp, 10);
+    if (days > 0) await supabase.from('invite_codes').update({ expires_at: new Date(Date.now() + days * 864e5).toISOString() }).eq('code', c);
+    await alog('invite_add', { code: c });
+    setMsg('邀请码已添加'); setNewCode(''); setNewNick(''); setNewExp('0'); load();
   }
-  // 3) 数据导出 JSON（动态/相册/留言/反馈/公告）
-  async function exportJSON() {
-    setMsg('正在打包数据…');
-    const [p, a, b, f] = await Promise.all([
-      supabase.from('posts').select('id, author_id, content, created_at').order('created_at', { ascending: false }).limit(500),
-      supabase.from('albums').select('id, title, category, created_at').order('created_at', { ascending: false }).limit(200),
-      supabase.from('board_messages').select('id, author_id, content, is_admin_msg, created_at').order('created_at', { ascending: false }).limit(500),
-      supabase.from('feedbacks').select('id, name, contact, content, kind, status, created_at').order('created_at', { ascending: false }).limit(500),
-    ]);
-    const data = { exported_at: new Date().toISOString(), posts: p.data ?? [], albums: a.data ?? [], board: b.data ?? [], feedbacks: f.data ?? [] };
-    const aEl = document.createElement('a');
-    aEl.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }));
-    aEl.download = '班级数据备份.json'; aEl.click();
-    setTimeout(() => URL.revokeObjectURL(aEl.href), 5000);
-    setMsg('数据已导出 ✓');
+  async function toggleIc(id: number, a: boolean) {
+    const { error } = await supabase.rpc('set_invite_code_active', { cid: id, active: !a });
+    if (!error) { await alog('invite_toggle', { id, active: !a }); load(); } else setMsg('操作失败：' + error.message);
   }
-  // 4) 编辑成员资料
-  function startEdit(mb: Member) {
-    setEditId(mb.id);
-    setEditForm({ display_name: mb.display_name || '', signature: '' });
-    const prof = supabase.from('profiles').select('signature').eq('id', mb.id).maybeSingle()
-      .then(({ data }) => { if (data) setEditForm(f => ({ ...f, signature: (data as any).signature || '' })); });
-    void prof;
+  async function delIc(id: number) {
+    if (!confirm('删除这个邀请码？')) return;
+    const { error } = await supabase.rpc('delete_invite_code', { cid: id });
+    if (!error) { await alog('invite_delete', { id }); load(); } else setMsg('删除失败：' + error.message);
   }
-  async function saveEdit() {
-    if (!editId) return;
-    setMsg('');
-    const { error } = await supabase.rpc('admin_update_profile', {
-      target: editId,
-      p_display_name: editForm.display_name.trim() || null,
-      p_signature: editForm.signature.trim() || null,
-    });
-    setMsg(error ? '保存失败：' + error.message : '已更新 ✓');
-    if (!error) { setEditId(null); refresh(); }
-  }
-  // 待办 / 在线 / 趋势（纯计算）
-  const todoFb = feedbacks.filter(f => f.status === 'open').length;
-  const todoGame = gpend.length;
-  const todoJoin = members.filter(m => !m.joined).length;
-  const onlineList = members.filter(m => {
-    const t = presence[m.id]?.updated_at;
-    return t && Date.now() - new Date(t).getTime() < 15 * 60 * 1000;
-  });
-  const trend = (() => {
-    const days: { k: string; label: string; n: number }[] = [];
-    for (let i = 13; i >= 0; i--) {
-      const d = new Date(); d.setDate(d.getDate() - i);
-      const k = d.toISOString().slice(0, 10);
-      days.push({ k, label: k.slice(5), n: 0 });
-    }
-    members.forEach(m => {
-      const k = (m.created_at || '').slice(0, 10);
-      const f = days.find(x => x.k === k);
-      if (f) f.n++;
-    });
-    return days;
-  })();
-  const trendMax = Math.max(1, ...trend.map(d => d.n));
-  // 全站搜索（基于已加载的数据）
-  const gqs = gq.trim().toLowerCase();
-  const searchRes = gqs ? {
-    members: members.filter(m => (m.display_name || '').toLowerCase().includes(gqs) || m.username.toLowerCase().includes(gqs) || (m.real_name || '').toLowerCase().includes(gqs)),
-    posts: posts.filter(p => (p.content || '').toLowerCase().includes(gqs)),
-    albums: albums.filter(a => (a.title || '').toLowerCase().includes(gqs)),
-    feedbacks: feedbacks.filter(f => (f.content || '').toLowerCase().includes(gqs) || (f.name || '').toLowerCase().includes(gqs)),
-    notices: notices.filter(n => n.content.toLowerCase().includes(gqs)),
-  } : null;
-  const fbShown = feedbacks.filter(f => fbFilter === 'all' ? true : f.status === fbFilter);
-  const logShown = logs.filter(l => {
-    const s = logQ.trim().toLowerCase(); if (!s) return true;
-    return (l.action || '').toLowerCase().includes(s) || JSON.stringify(l.detail ?? {}).toLowerCase().includes(s);
-  });
-  async function revokeGp(pid: string) {
-    if (!confirm('撤销该成员的段位认证？卡片标签会消失。')) return;
-    const { error } = await supabase.from('game_profiles').delete().eq('profile_id', pid);
-    if (!error) refresh(); else setMsg('操作失败：' + error.message);
-  }
-  async function delPost(id: number) {
-    if (!confirm('删除这条动态（含评论点赞）？')) return;
-    await supabase.from('posts').delete().eq('id', id); refresh();
-  }
-  async function delAlbum(id: number) {
-    if (!confirm('删除这个相册（含所有照片）？')) return;
-    await supabase.from('albums').delete().eq('id', id); refresh();
-  }
-  async function delMember(id: string, name: string) {
-    if (!confirm(`彻底删除成员 ${name}？他的账号、资料、动态、照片、好友等所有数据都会被删除，无法恢复！`)) return;
-    if (!confirm('再次确认：真的要彻底删除吗？')) return;
-    setMsg('');
-    const { error } = await supabase.rpc('delete_member', { target: id });
-    setMsg(error ? '删除失败：' + error.message : '已彻底删除');
-    if (!error) refresh();
-  }
-  async function toggleJoined(id: string, j: boolean) {
-    if (!confirm(j ? '恢复该成员加入班级？' : '将该成员移出班级？移出后他看不到成员内容，别人也看不到他。')) return;
-    setMsg('');
-    const { error } = await supabase.rpc('set_joined', { target: id, j });
-    setMsg(error ? '操作失败：' + error.message : '已更新');
-    if (!error) refresh();
-  }
-  const shown = members.filter(mb => {
-    const s = q.trim().toLowerCase(); if (!s) return true;
-    return (mb.display_name || '').toLowerCase().includes(s) || mb.username.toLowerCase().includes(s)
-      || (emails[mb.id] || '').toLowerCase().includes(s) || (mb.real_name || '').toLowerCase().includes(s);
-  });
-  // 分区：dock 点一下切换到独立板块（跟主站底栏一样），一次只显示一个
-  const TABS: [string, string][] = [
-    ['overview', '总览'], ['board', '公告'], ['members', '成员'],
-    ['invite', '邀请码'], ['feedback', '反馈'], ['game', '段位'],
-    ['content', '内容'], ['search', '搜索'], ['export', '导出'],
-    ...(isSuper ? [['test', '测试'] as [string, string]] : []),
-    ['logs', '日志'],
-  ];
-  function switchTab(id: string) { setTab(id); window.scrollTo({ top: 0 }); }
-
   return (
-    <div className="page" style={{ paddingBottom: 92 }}>
-      <div className="hero" style={{ paddingTop: 8 }}>
-        <h1 style={{ fontSize: 24 }}>管理后台</h1>
-        <p>{isSuper ? '超 级 管 理 员' : '管 理 员'}</p>
+    <div style={card}>
+      <h3 style={h3}>邀请码管理</h3>
+      <div className="row" style={{ gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
+        <span style={mut}>批量生成：</span>
+        <button className="mini" disabled={batchBusy} onClick={() => batchCodes(10)}>10 个</button>
+        <button className="mini" disabled={batchBusy} onClick={() => batchCodes(20)}>20 个</button>
+        <button className="mini" disabled={batchBusy} onClick={() => batchCodes(50)}>50 个</button>
       </div>
-      {msg && <p className="card" style={{ padding: 12 }}>{msg}</p>}
-
-      {tab === 'overview' && (<>
-      <div className="row" style={{ gap: 10 }}>
-        {[['成员', members.length], ['已加入', members.filter(x => x.joined).length],
-          ['动态', stats.posts], ['照片', stats.photos]].map(([l, n]) => (
-          <div key={l as string} className="card" style={{ flex: 1, textAlign: 'center', padding: '12px 4px', margin: 0 }}>
-            <div style={{ fontSize: 22, fontWeight: 700 }}>{n}</div>
-            <div className="mut" style={{ fontSize: 12 }}>{l}</div>
+      {isSuper ? (<>
+        {ics.map(ic => (
+          <div key={ic.id} style={{ padding: '8px 0', borderBottom: '1px solid #ffffff0c', opacity: ic.active ? 1 : 0.5 }}>
+            <div style={{ fontSize: 14.5, fontWeight: 700 }}>{ic.code}
+              {!ic.active && <span style={mut}>（已停用）</span>}</div>
+            <div style={mut}>
+              欢迎动画：「{ic.nickname || 'xxx'} — Welcome to Class 13!」
+              {ic.expires_at && <> · {new Date(ic.expires_at) < new Date() ? '已过期' : '过期：' + ic.expires_at.slice(0, 16).replace('T', ' ')}</>}
+            </div>
+            <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
+              <button className="mini ghost" onClick={() => toggleIc(ic.id, ic.active)}>{ic.active ? '停用' : '启用'}</button>
+              <button className="mini danger" onClick={() => delIc(ic.id)}>删除</button>
+            </div>
           </div>
         ))}
-      </div>
+        {ics.length === 0 && <p style={mut}>还没有邀请码，添加一个吧</p>}
+        <label style={{ marginTop: 10 }}>新邀请码</label>
+        <input value={newCode} onChange={e => setNewCode(e.target.value)} placeholder="如：zhangsan" maxLength={40} />
+        <label style={{ marginTop: 8 }}>欢迎昵称（这个码专属）</label>
+        <input value={newNick} onChange={e => setNewNick(e.target.value)} placeholder="如：张三" maxLength={30} style={{ maxWidth: 220 }} />
+        <label style={{ marginTop: 8 }}>有效期</label>
+        <select value={newExp} onChange={e => setNewExp(e.target.value)} style={{ maxWidth: 220 }}>
+          <option value="0">不过期</option><option value="1">1 天（一次性）</option>
+          <option value="3">3 天</option><option value="7">7 天</option>
+        </select>
+        <div style={{ marginTop: 8 }}>
+          <button className="pri" style={{ width: 'auto', padding: '10px 24px' }} onClick={addIc}>添加邀请码</button>
+        </div>
+      </>) : <p style={mut}>邀请码仅超级管理员可管理</p>}
+    </div>
+  );
+}
 
-      {(todoFb > 0 || todoGame > 0 || todoJoin > 0) && (
-        <div className="adm-sec card" style={{ borderColor: '#ffd47955' }}>
-          <h3>待办事项</h3>
-          <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
-            {todoFb > 0 && <button className="mini" onClick={() => switchTab('feedback')}>{todoFb} 条反馈未处理</button>}
-            {todoGame > 0 && <button className="mini" onClick={() => switchTab('game')}>{todoGame} 个段位待审核</button>}
-            {todoJoin > 0 && <button className="mini" onClick={() => switchTab('members')}>{todoJoin} 人未加入班级</button>}
-          </div>
-        </div>
-      )}
-
-      <div className="row" style={{ gap: 10, alignItems: 'stretch' }}>
-        <div className="adm-sec card" style={{ flex: 1, minWidth: 0 }}>
-          <h3>近14天注册</h3>
-          <div className="row" style={{ gap: 3, alignItems: 'flex-end', height: 64, flexWrap: 'nowrap' }}>
-            {trend.map(d => (
-              <div key={d.k} style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', height: '100%' }} title={`${d.k}：${d.n} 人`}>
-                <div style={{
-                  width: '70%', height: `${Math.max(4, (d.n / trendMax) * 44)}px`, borderRadius: 3,
-                  background: d.n > 0 ? 'linear-gradient(180deg,#ffffff,#d9deef)' : '#ffffff18',
-                }} />
-                <div className="mut" style={{ fontSize: 8.5, marginTop: 3 }}>{d.label.slice(3)}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-        <div className="adm-sec card" style={{ flex: 1, minWidth: 0 }}>
-          <h3>当前在线（{onlineList.length}）</h3>
-          {onlineList.length === 0
-            ? <p className="mut" style={{ fontSize: 12.5, margin: 0 }}>近15分钟没人活跃</p>
-            : <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-              {onlineList.map(m => (
-                <span key={m.id} className="mini ghost" style={{ fontSize: 12 }}>{m.display_name || m.username}</span>
-              ))}
-            </div>}
-        </div>
-      </div>
-      </>)}
-
-      {tab === 'board' && (<>
-      <div className="adm-sec card">
-        <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-          <h3 style={{ margin: 0 }}>公告管理</h3>
-          <button className="mini" style={{ border: '1px solid #ffd47988', color: '#ffd479' }}
-            onClick={() => { location.hash = '#/admin-v2'; }}>测试版</button>
-        </div>
-        <p className="priv-note" style={{ margin: '0 0 8px' }}>公告只有管理员能发布，会置顶显示在公告板最上面，普通成员只能看和留言。</p>
-        <textarea value={noticeText} onChange={e => setNoticeText(e.target.value)} rows={3} maxLength={500}
-          placeholder="写公告…" style={{ width: '100%' }} />
-        <div className="row" style={{ marginTop: 8, gap: 8, alignItems: 'center' }}>
-          <button className="pri" style={{ width: 'auto', padding: '10px 26px' }} onClick={postNotice}>发布公告</button>
-          <label className="mut" style={{ fontSize: 12.5 }}>过期：</label>
-          <select value={noticeExp} onChange={e => setNoticeExp(e.target.value)} style={{ width: 'auto', padding: '8px' }}>
-            <option value="0">不过期</option>
-            <option value="1">1 天后</option>
-            <option value="3">3 天后</option>
-            <option value="7">7 天后</option>
-            <option value="30">30 天后</option>
-          </select>
-        </div>
-        {notices.map(n => (
-          <div key={n.id} className="row" style={{ justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #ffffff0c' }}>
-            <span style={{ fontSize: 13.5, flex: 1, minWidth: 0 }}>{n.is_pinned && '📌 '}{n.content}
-              <br /><span className="mut" style={{ fontSize: 12 }}>{(n.created_at || '').slice(0, 16).replace('T', ' ')}</span></span>
-            <button className="mini" onClick={() => togglePin(n)}>{n.is_pinned ? '取消置顶' : '置顶'}</button>
-            <button className="mini danger" onClick={() => delNotice(n.id)}>删除</button>
-          </div>
+/* ---------------- 反馈 ---------------- */
+type Fb = { id: number; name: string | null; contact: string | null; content: string; kind: string; status: string; created_at: string; user_id: string | null };
+function FeedbackTab({ me, isSuper, setMsg }: { me: string; isSuper: boolean; setMsg: (s: string) => void }) {
+  const [list, setList] = useState<Fb[]>([]);
+  const [filter, setFilter] = useState('all');
+  const [replyOpen, setReplyOpen] = useState<number | null>(null);
+  const [replyText, setReplyText] = useState<Record<number, string>>({});
+  const [replyBusy, setReplyBusy] = useState(false);
+  async function load() {
+    const { data } = await supabase.from('feedbacks').select('id, name, contact, content, kind, status, created_at, user_id').order('created_at', { ascending: false }).limit(100);
+    setList((data ?? []) as Fb[]);
+  }
+  useEffect(() => { load(); }, []);
+  async function mark(id: number, done: boolean) {
+    const { error } = await supabase.from('feedbacks').update({ status: done ? 'done' : 'open' }).eq('id', id);
+    if (!error) { await alog('feedback_mark', { id, done }); load(); } else setMsg('操作失败：' + error.message);
+  }
+  async function del(id: number) {
+    if (!confirm('删除这条反馈？')) return;
+    const { error } = await supabase.from('feedbacks').delete().eq('id', id);
+    if (!error) { await alog('feedback_delete', { id }); load(); } else setMsg('删除失败：' + error.message);
+  }
+  async function sendReply(fb: Fb) {
+    const text = (replyText[fb.id] || '').trim();
+    if (!text || !fb.user_id || replyBusy) return;
+    setReplyBusy(true);
+    try {
+      const { data: cid, error: e1 } = await supabase.rpc('get_or_create_conversation', { other: fb.user_id });
+      if (e1) throw e1;
+      const { error: e2 } = await supabase.from('messages').insert({ conversation_id: Number(cid), sender_id: me, body: text.slice(0, 2000) });
+      if (e2) throw e2;
+      setReplyText({ ...replyText, [fb.id]: '' }); setReplyOpen(null);
+      await alog('feedback_reply', { id: fb.id });
+      setMsg('消息已发送，对方在「好友 - 聊天」里能看到');
+    } catch (e: any) { setMsg('发送失败：' + (e?.message || '')); }
+    finally { setReplyBusy(false); }
+  }
+  const shown = list.filter(f => filter === 'all' ? true : f.status === filter);
+  const todo = list.filter(f => f.status === 'open').length;
+  return (
+    <div style={card}>
+      <h3 style={h3}>反馈管理（{todo} 条未处理）</h3>
+      <div className="row" style={{ gap: 8, marginBottom: 8 }}>
+        {([['all', '全部'], ['open', '未处理'], ['done', '已处理']] as const).map(([k, l]) => (
+          <button key={k} className={'mini' + (filter === k ? '' : ' ghost')} onClick={() => setFilter(k)}>{l}</button>
         ))}
       </div>
-      </>)}
-
-      {tab === 'members' && (<>
-      <div className="adm-sec card">
-        <h3>成员管理（{shown.length} 人）</h3>
-        <div className="row" style={{ gap: 8, marginBottom: 10 }}>
-          <input placeholder="搜索名字 / 用户名 / 真实姓名 / 邮箱" value={q} onChange={e => setQ(e.target.value)}
-            style={{ flex: 1, minWidth: 0, marginBottom: 0 }} />
-          <button className="mini" onClick={exportCSV}>导出通讯录</button>
-        </div>
-        <table className="tbl"><thead><tr><th>成员</th><th>邮箱</th><th>角色</th><th>状态</th><th></th></tr></thead>
-          <tbody>{shown.map(mb => (
-            <tr key={mb.id}>
-              <td><a onClick={() => setDetailId(mb.id)} style={{ cursor: 'pointer', color: 'inherit', textDecoration: 'underline', textUnderlineOffset: 3 }}>{mb.display_name || mb.username}</a><br /><span className="mut" style={{ fontSize: 12 }}>@{mb.username}{mb.real_name ? ` · ${mb.real_name}` : ''}</span>
-                {presence[mb.id] && (presence[mb.id].location || presence[mb.id].device) && (
-                  <><br /><span className="mut" style={{ fontSize: 11 }}>
-                    {presence[mb.id].location ? presence[mb.id].location : ''}
-                    {presence[mb.id].location && presence[mb.id].device ? ' · ' : ''}
-                    {presence[mb.id].device ? presence[mb.id].device : ''}
-                  </span></>)}</td>
-              <td style={{ fontSize: 12 }}>{emails[mb.id] ?? '—'}</td>
-              <td><span className={`chip ${mb.role === 'super_admin' ? 'sa' : mb.role === 'admin' ? 'ad' : ''}`}>{ROLE_LABEL[mb.role] ?? mb.role}</span></td>
-              <td style={{ fontSize: 13 }}>{mb.joined ? '已加入' : '未加入'}</td>
-              <td>{isSuper && mb.id !== me && mb.role !== 'super_admin' && (
-                <span className="row" style={{ gap: 6, flexWrap: 'wrap' }}>
-                  <button className="mini" onClick={() => startEdit(mb)}>编辑资料</button>
-                  {mb.role === 'admin'
-                    ? <button className="mini" onClick={() => changeRole(mb.id, 'member')}>降为成员</button>
-                    : <button className="mini" onClick={() => changeRole(mb.id, 'admin')}>设为管理员</button>}
-                  <button className="mini" onClick={() => toggleJoined(mb.id, !mb.joined)}>{mb.joined ? '移出班级' : '恢复'}</button>
-                  {mb.id !== me && <button className="mini danger" onClick={() => delMember(mb.id, mb.display_name || mb.username)}>删除</button>}
-                </span>
-              )}
-              {editId === mb.id && (
-                <div style={{ marginTop: 8, padding: 10, border: '1px solid #ffffff22', borderRadius: 10, background: '#ffffff08' }}>
-                  <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
-                    <input placeholder="显示名" value={editForm.display_name} onChange={e => setEditForm(f => ({ ...f, display_name: e.target.value }))} style={{ flex: '1 1 100px', minWidth: 0 }} />
-                  </div>
-                  <input placeholder="个性签名" value={editForm.signature} onChange={e => setEditForm(f => ({ ...f, signature: e.target.value }))} style={{ marginTop: 8 }} />
-                  <div className="row" style={{ gap: 8, marginTop: 8 }}>
-                    <button className="mini" onClick={saveEdit}>保存</button>
-                    <button className="mini ghost" onClick={() => setEditId(null)}>取消</button>
-                  </div>
-                </div>
-              )}</td>
-            </tr>
-          ))}</tbody></table>
-      </div>
-      </>)}
-
-      {tab === 'invite' && (<>
-      <div className="adm-sec card">
-        <h3>邀请码管理</h3>
-        <div className="row" style={{ gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
-          <span className="mut" style={{ fontSize: 12.5 }}>批量生成：</span>
-          <button className="mini" disabled={batchBusy} onClick={() => batchCodes(10)}>10 个</button>
-          <button className="mini" disabled={batchBusy} onClick={() => batchCodes(20)}>20 个</button>
-          <button className="mini" disabled={batchBusy} onClick={() => batchCodes(50)}>50 个</button>
-        </div>
-        {isSuper ? (<>
-          {ics.map(ic => (
-            <div key={ic.id} style={{ padding: '8px 0', borderBottom: '1px solid #ffffff0c', opacity: ic.active ? 1 : 0.5 }}>
-              <div style={{ fontSize: 14.5, fontWeight: 700 }}>{ic.code}
-                {!ic.active && <span className="mut" style={{ fontSize: 12, fontWeight: 400 }}>（已停用）</span>}</div>
-              <div className="mut" style={{ fontSize: 12.5, marginTop: 2 }}>
-                欢迎动画：「{ic.nickname || 'xxx'} — Welcome to Class 13!」
-                {ic.expires_at && <> · {new Date(ic.expires_at) < new Date() ? '已过期' : '过期：' + ic.expires_at.slice(0, 16).replace('T', ' ')}</>}
-              </div>
+      {shown.length === 0 && <p style={mut}>暂无反馈</p>}
+      {shown.map(f => (
+        <div key={f.id} style={{ padding: '10px 0', borderBottom: '1px solid #ffffff0c', opacity: f.status === 'done' ? 0.55 : 1 }}>
+          <div style={{ fontSize: 12 }}>
+            <span style={mut}>{f.kind === 'login' ? '登录反馈' : '意见反馈'} · {(f.created_at || '').slice(0, 16).replace('T', ' ')}</span>
+            {(f.name || f.contact) && <span style={mut}> — {f.name ?? ''}{f.name && f.contact ? ' / ' : ''}{f.contact ?? ''}</span>}
+            {f.status === 'done' && <span style={{ color: '#7ee2a8', marginLeft: 6 }}>已处理</span>}
+          </div>
+          <div style={{ fontSize: 14, margin: '4px 0 8px' }}>{f.content}</div>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <button className="mini ghost" onClick={() => mark(f.id, f.status !== 'done')}>{f.status === 'done' ? '标为未处理' : '标为已处理'}</button>
+            {f.user_id && <button className="mini" onClick={() => setReplyOpen(replyOpen === f.id ? null : f.id)}>给提交人发消息</button>}
+            {isSuper && <button className="mini danger" onClick={() => del(f.id)}>删除</button>}
+          </div>
+          {replyOpen === f.id && (
+            <div style={{ marginTop: 8 }}>
+              <textarea value={replyText[f.id] || ''} onChange={e => setReplyText({ ...replyText, [f.id]: e.target.value })} rows={3} maxLength={2000} placeholder="告诉提交人处理结果…" style={{ width: '100%' }} />
               <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
-                <button className="mini ghost" onClick={() => toggleIc(ic.id, ic.active)}>{ic.active ? '停用' : '启用'}</button>
-                <button className="mini danger" onClick={() => delIc(ic.id)}>删除</button>
+                <button className="mini" disabled={replyBusy} onClick={() => sendReply(f)}>{replyBusy ? '发送中…' : '发送'}</button>
+                <button className="mini ghost" onClick={() => setReplyOpen(null)}>取消</button>
               </div>
             </div>
-          ))}
-          {ics.length === 0 && <p className="mut" style={{ fontSize: 13 }}>还没有邀请码，添加一个吧</p>}
-          <label style={{ marginTop: 10 }}>新邀请码</label>
-          <input value={newCode} onChange={e => setNewCode(e.target.value)} placeholder="如：zhangsan" maxLength={40} />
-          <label style={{ marginTop: 8 }}>欢迎昵称（这个码专属）</label>
-          <input value={newNick} onChange={e => setNewNick(e.target.value)} placeholder="如：张三" maxLength={30} style={{ maxWidth: 220 }} />
-          <label style={{ marginTop: 8 }}>有效期</label>
-          <select value={newExp} onChange={e => setNewExp(e.target.value)} style={{ maxWidth: 220 }}>
-            <option value="0">不过期</option>
-            <option value="1">1 天（一次性）</option>
-            <option value="3">3 天</option>
-            <option value="7">7 天</option>
-          </select>
-          <div style={{ marginTop: 8 }}>
-            <button className="pri" style={{ width: 'auto', padding: '10px 24px' }} onClick={addIc}>＋ 添加邀请码</button>
-          </div>
-          <p className="mut" style={{ fontSize: 12.5, margin: '6px 0 0' }}>
-            给不同同学发不同的邀请码，每个人加入时看到的欢迎动画就是他自己的名字
-          </p>
-        </>) : <p className="mut">邀请码仅超级管理员可管理</p>}
-      </div>
-      </>)}
-
-      {tab === 'feedback' && (<>
-      <div className="adm-sec card">
-        <h3>反馈管理（{todoFb} 条未处理）</h3>
-        <div className="row" style={{ gap: 8, marginBottom: 8 }}>
-          {([['all', '全部'], ['open', '未处理'], ['done', '已处理']] as [string, string][]).map(([k, l]) => (
-            <button key={k} className={'mini' + (fbFilter === k ? '' : ' ghost')} onClick={() => setFbFilter(k)}>{l}</button>
-          ))}
+          )}
         </div>
-        {fbShown.length === 0 && <p className="mut" style={{ fontSize: 13 }}>暂无反馈</p>}
-        {fbShown.map(f => (
-          <div key={f.id} style={{ padding: '10px 0', borderBottom: '1px solid #ffffff0c', opacity: f.status === 'done' ? 0.55 : 1 }}>
-            <div style={{ fontSize: 13.5 }}>
-              <span className="mut" style={{ fontSize: 11.5, marginRight: 6 }}>
-                {f.kind === 'login' ? '登录反馈' : '意见反馈'} · {(f.created_at || '').slice(0, 16).replace('T', ' ')}
-              </span>
-              {(f.name || f.contact) && <span className="mut" style={{ fontSize: 12 }}> — {f.name ?? ''}{f.name && f.contact ? ' / ' : ''}{f.contact ?? ''}</span>}
-              {f.status === 'done' && <span style={{ fontSize: 11.5, color: '#7ee2a8', marginLeft: 6 }}>✓ 已处理</span>}
+      ))}
+    </div>
+  );
+}
+
+/* ---------------- 段位审核 ---------------- */
+type Gp = { profile_id: string; game_name: string; rank: string | null; game_uid: string | null; status: string };
+function GameTab({ setMsg }: { setMsg: (s: string) => void }) {
+  const [pend, setPend] = useState<Gp[]>([]);
+  const [ok, setOk] = useState<Gp[]>([]);
+  const [names, setNames] = useState<Record<string, string>>({});
+  async function load() {
+    const { data } = await supabase.from('game_profiles').select('profile_id, game_name, rank, game_uid, status').order('created_at', { ascending: false });
+    const list = (data ?? []) as Gp[];
+    setPend(list.filter(x => x.status === 'pending')); setOk(list.filter(x => x.status === 'approved'));
+    const ids = [...new Set(list.map(x => x.profile_id))];
+    if (ids.length) {
+      const { data: dir } = await supabase.rpc('member_directory', { q: '', lim: 200, skip: 0 });
+      const mp: Record<string, string> = {};
+      ((dir ?? []) as any[]).forEach((x: any) => { if (ids.includes(x.id)) mp[x.id] = x.display_name ?? x.username; });
+      setNames(mp);
+    }
+  }
+  useEffect(() => { load(); }, []);
+  async function review(pid: string, approve: boolean) {
+    const { error } = await supabase.rpc('review_game_profile', { pid, approve });
+    if (!error) { await alog(approve ? 'game_approve' : 'game_reject', { pid }); load(); setMsg(approve ? '已通过' : '已驳回'); }
+    else setMsg('操作失败：' + error.message);
+  }
+  async function revoke(pid: string) {
+    if (!confirm('撤销这个段位认证？')) return;
+    const { error } = await supabase.rpc('review_game_profile', { pid, approve: false });
+    if (!error) { await alog('game_revoke', { pid }); load(); } else setMsg('操作失败：' + error.message);
+  }
+  return (
+    <div style={card}>
+      <h3 style={h3}>游戏段位审核</h3>
+      {pend.length === 0 && ok.length === 0 && <p style={mut}>暂无提交</p>}
+      {pend.length > 0 && <>
+        <p style={mut}>待审核（{pend.length}）</p>
+        {pend.map(g => (
+          <div key={g.profile_id} style={{ padding: '8px 0', borderBottom: '1px solid #ffffff0c' }}>
+            <div style={{ fontSize: 13.5 }}><b>{names[g.profile_id] || '…'}</b> · {g.game_name}
+              {g.rank ? <> · <span style={{ color: '#ffd9ec' }}>{g.rank}</span></> : <span style={mut}>（未填段位）</span>}
+              {g.game_uid && <span style={mut}> · ID: {g.game_uid}</span>}</div>
+            <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
+              <button className="mini" onClick={() => review(g.profile_id, true)}>通过</button>
+              <button className="mini ghost" onClick={() => review(g.profile_id, false)}>驳回</button>
             </div>
-            <div style={{ fontSize: 14, margin: '4px 0 8px' }}>{f.content}</div>
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              <button className="mini ghost" onClick={() => markFb(f.id, f.status !== 'done')}>
-                {f.status === 'done' ? '标为未处理' : '标为已处理'}</button>
-              {f.user_id && (
-                <button className="mini" onClick={() => {
-                  if (replyOpen === f.id) { setReplyOpen(null); return; }
-                  setReplyOpen(f.id);
-                  setReplyText(t => t[f.id] ? t : { ...t, [f.id]: `关于你的反馈「${(f.content || '').slice(0, 24)}${(f.content || '').length > 24 ? '…' : ''}」，处理结果：` });
-                }}>给提交人发消息</button>)}
-              {isSuper && <button className="mini danger" onClick={() => delFb(f.id)}>删除</button>}
-            </div>
-            {replyOpen === f.id && (
-              <div style={{ marginTop: 8 }}>
-                <textarea value={replyText[f.id] || ''} onChange={e => setReplyText({ ...replyText, [f.id]: e.target.value })}
-                  rows={3} maxLength={2000} placeholder="告诉提交人处理结果…" style={{ width: '100%' }} />
-                <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
-                  <button className="mini" disabled={replyBusy} onClick={() => sendReply(f)}>
-                    {replyBusy ? '发送中…' : '发送'}</button>
-                  <button className="mini ghost" onClick={() => setReplyOpen(null)}>取消</button>
-                </div>
-                <p className="mut" style={{ fontSize: 12, margin: '4px 0 0' }}>
-                  发给 {nameOf(f.user_id!)}，对方在「好友 - 聊天」里能看到
-                </p>
-              </div>
-            )}
           </div>
         ))}
-      </div>
-      </>)}
-
-      {tab === 'game' && (<>
-      <div className="adm-sec card">
-        <h3>游戏段位审核</h3>
-        {gpend.length === 0 && gok.length === 0 && <p className="mut" style={{ fontSize: 13 }}>暂无提交</p>}
-        {gpend.length > 0 && <>
-          <p className="mut" style={{ fontSize: 12.5 }}>待审核（{gpend.length}）</p>
-          {gpend.map(g => (
-            <div key={g.profile_id} style={{ padding: '8px 0', borderBottom: '1px solid #ffffff0c' }}>
-              <div style={{ fontSize: 13.5 }}><b>{nameOf(g.profile_id)}</b> · {g.game_name}
-                {g.rank ? <> · <span style={{ color: '#ffd9ec' }}>{g.rank}</span></> : <span className="mut">（未填段位）</span>}
-                {g.game_uid && <span className="mut"> · ID: {g.game_uid}</span>}
-              </div>
-              <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
-                <button className="mini pri" onClick={() => reviewGp(g.profile_id, true)}>✓ 通过</button>
-                <button className="mini ghost" onClick={() => reviewGp(g.profile_id, false)}>✕ 驳回</button>
-              </div>
-            </div>
-          ))}
-        </>}
-        {gok.length > 0 && <>
-          <p className="mut" style={{ fontSize: 12.5, marginTop: 10 }}>已通过（{gok.length}）</p>
-          {gok.map(g => (
-            <div key={g.profile_id} className="row" style={{ justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #ffffff0c' }}>
-              <span style={{ fontSize: 13 }}>{nameOf(g.profile_id)} · {g.game_name}{g.rank ? ` · ${g.rank}` : ''}</span>
-              <button className="mini danger" onClick={() => revokeGp(g.profile_id)}>撤销</button>
-            </div>
-          ))}
-        </>}
-      </div>
-      </>)}
-
-      {tab === 'content' && (<>
-      <div className="adm-sec card">
-        <h3>内容管理</h3>
-        <p className="mut" style={{ fontSize: 12.5, margin: '0 0 6px' }}>班级动态</p>
-        {posts.length === 0 && <p className="mut" style={{ fontSize: 13 }}>暂无动态</p>}
-        {posts.map(p => (
-          <div key={p.id} className="row" style={{ justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #ffffff0c' }}>
-            <span style={{ fontSize: 13.5 }}>{nameOf(p.author_id)}：{(p.content || '').slice(0, 40)}{(p.content || '').length > 40 ? '…' : ''}
-              <br /><span className="mut" style={{ fontSize: 12 }}>{(p.created_at || '').slice(0, 16).replace('T', ' ')}</span></span>
-            <button className="mini danger" onClick={() => delPost(p.id)}>删除</button>
+      </>}
+      {ok.length > 0 && <>
+        <p style={{ ...mut, marginTop: 10 }}>已通过（{ok.length}）</p>
+        {ok.map(g => (
+          <div key={g.profile_id} className="row" style={{ justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #ffffff0c' }}>
+            <span style={{ fontSize: 13 }}>{names[g.profile_id] || '…'} · {g.game_name}{g.rank ? ` · ${g.rank}` : ''}</span>
+            <button className="mini danger" onClick={() => revoke(g.profile_id)}>撤销</button>
           </div>
         ))}
-        <p className="mut" style={{ fontSize: 12.5, margin: '14px 0 6px' }}>班级相册</p>
-        {albums.length === 0 && <p className="mut" style={{ fontSize: 13 }}>暂无相册</p>}
-        {albums.map(a => (
-          <div key={a.id} className="row" style={{ justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #ffffff0c' }}>
-            <span style={{ fontSize: 13.5 }}>{a.title} · {a.category}</span>
-            <button className="mini danger" onClick={() => delAlbum(a.id)}>删除</button>
-          </div>
-        ))}
-      </div>
-      </>)}
+      </>}
+    </div>
+  );
+}
 
-      {tab === 'search' && (<>
-      <div className="adm-sec card">
-        <h3>全站搜索</h3>
-        <input placeholder="搜成员 / 动态 / 相册 / 反馈 / 公告…" value={gq} onChange={e => setGq(e.target.value)}
-          style={{ marginBottom: 10 }} />
-        {searchRes && (
-          <div style={{ fontSize: 13.5 }}>
-            {searchRes.members.length > 0 && (<>
-              <p className="mut" style={{ fontSize: 12.5, margin: '8px 0 4px' }}>成员（{searchRes.members.length}）</p>
-              {searchRes.members.map(m => <div key={m.id} style={{ padding: '4px 0' }}>{m.display_name || m.username} <span className="mut">@{m.username}</span></div>)}
-            </>)}
-            {searchRes.posts.length > 0 && (<>
-              <p className="mut" style={{ fontSize: 12.5, margin: '8px 0 4px' }}>动态（{searchRes.posts.length}）</p>
-              {searchRes.posts.slice(0, 10).map(p => <div key={p.id} style={{ padding: '4px 0' }}>{nameOf(p.author_id)}：{(p.content || '').slice(0, 40)}</div>)}
-            </>)}
-            {searchRes.albums.length > 0 && (<>
-              <p className="mut" style={{ fontSize: 12.5, margin: '8px 0 4px' }}>相册（{searchRes.albums.length}）</p>
-              {searchRes.albums.map(a => <div key={a.id} style={{ padding: '4px 0' }}>{a.title} · {a.category}</div>)}
-            </>)}
-            {searchRes.feedbacks.length > 0 && (<>
-              <p className="mut" style={{ fontSize: 12.5, margin: '8px 0 4px' }}>反馈（{searchRes.feedbacks.length}）</p>
-              {searchRes.feedbacks.slice(0, 10).map(f => <div key={f.id} style={{ padding: '4px 0' }}>{(f.content || '').slice(0, 40)}</div>)}
-            </>)}
-            {searchRes.notices.length > 0 && (<>
-              <p className="mut" style={{ fontSize: 12.5, margin: '8px 0 4px' }}>公告（{searchRes.notices.length}）</p>
-              {searchRes.notices.map(n => <div key={n.id} style={{ padding: '4px 0' }}>{n.content.slice(0, 40)}</div>)}
-            </>)}
-            {Object.values(searchRes).every(a => a.length === 0) && <p className="mut">没搜到相关内容</p>}
+/* ---------------- 测试工具 ---------------- */
+type TA = { id: string; label: string; email: string; password: string };
+function loadTAs(): TA[] {
+  try { return JSON.parse(localStorage.getItem('ca_test_accounts') || '[]'); } catch { return []; }
+}
+function TestTab({ setMsg }: { setMsg: (s: string) => void }) {
+  const [tas, setTas] = useState<TA[]>(loadTAs);
+  const [label, setLabel] = useState(''); const [email, setEmail] = useState(''); const [pw, setPw] = useState('');
+  function save(list: TA[]) { setTas(list); try { localStorage.setItem('ca_test_accounts', JSON.stringify(list)); } catch {} }
+  async function switchTo(a: TA) {
+    if (!confirm(`切换登录到 ${a.label || a.email}？`)) return;
+    const { error } = await supabase.auth.signInWithPassword({ email: a.email, password: a.password });
+    if (error) setMsg('切换失败：' + error.message);
+    else { try { sessionStorage.setItem('ca_testing_as', a.label || a.email); } catch {} location.reload(); }
+  }
+  return (
+    <div style={card}>
+      <h3 style={h3}>测试工具</h3>
+      <p style={mut}>测试账号快切：密码只存这台手机浏览器里。切出去后右下角有"结束测试"一键切回。</p>
+      {tas.map(a => (
+        <div key={a.id} className="row" style={{ alignItems: 'center', padding: '7px 0', borderBottom: '1px solid #ffffff0c' }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 14, fontWeight: 700 }}>{a.label || a.email}</div>
+            <div style={mut}>{a.email}</div>
           </div>
-        )}
-      </div>
-      </>)}
-
-      {tab === 'export' && (<>
-      <div className="adm-sec card">
-        <h3>数据导出</h3>
-        <p className="priv-note" style={{ margin: '0 0 8px' }}>把网站内容打包下载，留个备份。</p>
-        <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
-          <button className="mini" onClick={exportJSON}>导出内容备份（JSON）</button>
-          <button className="mini" onClick={exportCSV}>导出通讯录（CSV）</button>
+          <button className="mini" onClick={() => switchTo(a)}>切换登录</button>
+          <button className="mini danger" onClick={() => save(tas.filter(x => x.id !== a.id))}>删除</button>
         </div>
-      </div>
-      </>)}
-
-      {tab === 'test' && isSuper && (<>
-        <div className="adm-sec card">
-          <h3>测试工具</h3>
-          <p className="priv-note" style={{ margin: '0 0 8px' }}>测试账号快切：保存测试账号，一键切换登录，方便测试。密码只存这台手机的浏览器里。建议把管理号也存进来，切出去后右下角会有"结束测试"一键切回。</p>
-          {tas.map(a => (
-            <div key={a.id} className="row" style={{ alignItems: 'center', padding: '7px 0', borderBottom: '1px solid #ffffff0c' }}>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 14, fontWeight: 700 }}>{a.label || a.email}</div>
-                <div className="mut" style={{ fontSize: 12 }}>{a.email}</div>
-              </div>
-              <button className="mini" onClick={() => switchTo(a)}>切换登录</button>
-              <button className="mini danger" onClick={() => delTa(a.id)}>删除</button>
-            </div>
-          ))}
-          <div className="row" style={{ gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
-            <input placeholder="备注名（选填，如：测试号）" value={taLabel} onChange={e => setTaLabel(e.target.value)}
-              style={{ flex: '1 1 90px', minWidth: 0 }} />
-            <input placeholder="QQ 邮箱" value={taEmail} onChange={e => setTaEmail(e.target.value)} inputMode="email"
-              style={{ flex: '1 1 110px', minWidth: 0 }} />
-            <input type="password" placeholder="密码" value={taPw} onChange={e => setTaPw(e.target.value)}
-              style={{ flex: '1 1 90px', minWidth: 0 }} />
-            <button className="mini" onClick={addTa}>保存账号</button>
-          </div>
-          {taMsg && <p className="priv-note" style={{ marginTop: 6 }}>{taMsg}</p>}
-        </div>
-      </>)}
-
-      {tab === 'logs' && (<>
-      <div className="adm-sec card">
-        <h3>操作日志</h3>
-        <input placeholder="筛选操作，如：delete_member" value={logQ} onChange={e => setLogQ(e.target.value)}
-          style={{ marginBottom: 10 }} />
-        {logShown.length === 0 && <p className="mut" style={{ fontSize: 13 }}>暂无记录</p>}
-        {logShown.map(l => (
-          <div key={l.id} className="log">
-            {(l.created_at ?? '').slice(0, 16).replace('T', ' ')} · {l.action} · {JSON.stringify(l.detail ?? {})}
-          </div>
-        ))}
-      </div>
-      </>)}
-
-      {/* 点进成员详情 */}
-      {detailId && (
-        <AdminMemberModal memberId={detailId} onClose={() => setDetailId(null)} onChanged={refresh} />
-      )}
-
-      {/* 底部 dock：跟主站底栏一样，点一下切换到独立板块 */}
-      <div style={{
-        position: 'fixed', left: '50%', transform: 'translateX(-50%)', zIndex: 60,
-        bottom: 'calc(14px + env(safe-area-inset-bottom))',
-        width: 'max-content', maxWidth: 'calc(100vw - 28px)',
-        padding: 6, borderRadius: 999,
-        background: 'color-mix(in srgb,#1a1e30 38%,transparent)',
-        backdropFilter: 'blur(30px) saturate(1.8)', WebkitBackdropFilter: 'blur(30px) saturate(1.8)',
-        border: '1px solid #ffffff2e',
-        boxShadow: '0 14px 44px #000c,inset 0 1px 0 #ffffff2b',
-      }}>
-        <div className="row" style={{ gap: 2, overflowX: 'auto', flexWrap: 'nowrap', maxWidth: '100%' }}>
-          {TABS.map(([id, label]) => (
-            <button key={id} onClick={() => switchTab(id)} style={{
-              flexShrink: 0, whiteSpace: 'nowrap', padding: '9px 13px', borderRadius: 999, cursor: 'pointer',
-              fontSize: 13, border: 0, fontFamily: 'inherit',
-              background: tab === id ? 'linear-gradient(135deg,var(--a),var(--b))' : 'none',
-              color: tab === id ? '#1c2030' : 'var(--mut)',
-              fontWeight: tab === id ? 700 : 400,
-              boxShadow: tab === id ? '0 4px 16px #ffffff2e' : 'none',
-            }}>{label}</button>
-          ))}
-        </div>
+      ))}
+      <div className="row" style={{ gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
+        <input placeholder="备注名（选填）" value={label} onChange={e => setLabel(e.target.value)} style={{ flex: '1 1 90px', minWidth: 0 }} />
+        <input placeholder="QQ 邮箱" value={email} onChange={e => setEmail(e.target.value)} inputMode="email" style={{ flex: '1 1 110px', minWidth: 0 }} />
+        <input type="password" placeholder="密码" value={pw} onChange={e => setPw(e.target.value)} style={{ flex: '1 1 90px', minWidth: 0 }} />
+        <button className="mini" onClick={() => {
+          if (!email.trim() || !pw) return setMsg('邮箱和密码都要填');
+          save([...tas, { id: String(Date.now()), label: label.trim(), email: email.trim(), password: pw }]);
+          setLabel(''); setEmail(''); setPw(''); setMsg('已保存');
+        }}>保存账号</button>
       </div>
     </div>
   );

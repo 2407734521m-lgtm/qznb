@@ -177,6 +177,25 @@ function Shell() {
     window.addEventListener('board-read', h);
     return () => window.removeEventListener('board-read', h);
   }, []);
+  // 站内通知红点
+  const [notifUnread, setNotifUnread] = useState(false);
+  useEffect(() => {
+    if (!session) { setNotifUnread(false); return; }
+    let alive = true;
+    (async () => {
+      try {
+        const { count } = await supabase.from('notifications').select('id', { count: 'exact', head: true })
+          .eq('profile_id', session.user.id).eq('is_read', false);
+        if (alive) setNotifUnread((count ?? 0) > 0);
+      } catch {}
+    })();
+    return () => { alive = false; };
+  }, [session, loc.pathname]);
+  useEffect(() => {
+    const h = () => setNotifUnread(false);
+    window.addEventListener('notif-read', h);
+    return () => window.removeEventListener('notif-read', h);
+  }, []);
 
   // 全站壁纸（登录后的 onboarding 可改）
   const [wp, setWp] = useState(getWallpaper);
@@ -363,7 +382,7 @@ function Shell() {
                   background: 'linear-gradient(135deg,var(--a),var(--b))',
                   boxShadow: '0 4px 16px color-mix(in srgb,var(--a) 45%,transparent)' }} />}
               <span style={{ position: 'relative', zIndex: 1 }}>{t.label}
-                {t.to === '/board' && boardUnread && <span style={{
+                {((t.to === '/board' && boardUnread) || (t.to === '/me' && notifUnread)) && <span style={{
                   position: 'absolute', top: -2, right: -10, width: 8, height: 8,
                   borderRadius: '50%', background: '#ff4d4f',
                   boxShadow: '0 0 6px #ff4d4f' }} />}</span>

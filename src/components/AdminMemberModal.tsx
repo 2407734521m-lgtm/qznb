@@ -22,6 +22,8 @@ export default function AdminMemberModal({ memberId, onClose, onChanged }: Props
   const [email, setEmail] = useState('');
   const [game, setGame] = useState('');
   const [presence, setPresence] = useState('');
+  const [contact, setContact] = useState('');
+  const [stats, setStats] = useState('');
   const [edit, setEdit] = useState(false);
   const [form, setForm] = useState({ display_name: '', signature: '', bio: '', personality: '', hobbies: '', age: '' });
   const [msg, setMsg] = useState('');
@@ -48,6 +50,16 @@ export default function AdminMemberModal({ memberId, onClose, onChanged }: Props
       if (gp) setGame(`${(gp as any).game_name}${(gp as any).rank ? ' · ' + (gp as any).rank : ''}（${(gp as any).status === 'approved' ? '已通过' : (gp as any).status === 'pending' ? '待审核' : '已驳回'}）`);
       const { data: pr } = await supabase.from('member_presence').select('location, device, updated_at').eq('profile_id', memberId).maybeSingle();
       if (pr) setPresence(`${(pr as any).location || ''}${(pr as any).location && (pr as any).device ? ' · ' : ''}${(pr as any).device || ''}`);
+      const { data: ct } = await supabase.from('profile_contacts').select('contact, social').eq('profile_id', memberId).maybeSingle();
+      if (ct) {
+        const parts: string[] = [];
+        if ((ct as any).contact) parts.push((ct as any).contact);
+        if ((ct as any).social) parts.push((ct as any).social);
+        if (parts.length) setContact(parts.join('；'));
+      }
+      const pc = await supabase.from('posts').select('id', { count: 'exact', head: true }).eq('author_id', memberId);
+      const hc = await supabase.from('album_photos').select('id', { count: 'exact', head: true }).eq('uploaded_by', memberId);
+      setStats(`${pc.count ?? 0}条动态 · ${hc.count ?? 0}张照片`);
     })();
   }, [memberId]);
 
@@ -132,8 +144,11 @@ export default function AdminMemberModal({ memberId, onClose, onChanged }: Props
 
           <h4 style={{ margin: '0 0 6px', fontSize: 13 }}>基础信息</h4>
           <div style={{ fontSize: 13, lineHeight: 1.9, marginBottom: 12 }}>
+            <div>用户名：{f.username}</div>
             <div>邮箱：{email || '—'}</div>
             <div>真实姓名：{f.real_name || '—'}</div>
+            {contact && <div>联系方式：{contact}</div>}
+            <div>站内动态：{stats || '—'}</div>
             <div>角色：{f.role === 'super_admin' ? '超级管理员' : f.role === 'admin' ? '管理员' : '成员'}</div>
             <div>状态：{f.joined ? '已加入班级' : '未加入'}</div>
             <div>注册：{(f.created_at || '').slice(0, 16).replace('T', ' ')}</div>

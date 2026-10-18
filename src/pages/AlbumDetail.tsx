@@ -40,20 +40,26 @@ export default function AlbumDetail() {
   }
   useEffect(() => { load(); }, [id]);
 
+  const [upProg, setUpProg] = useState('');
   async function upload(files: FileList | null) {
-    const f = files?.[0]; if (!f) return;
-    if (!f.type.startsWith('image/')) return setErr('只能上传图片');
-    setBusy(true); setErr('');
+    const list = Array.from(files ?? []).filter(f => f.type.startsWith('image/'));
+    if (!list.length) { if (files?.length) setErr('只能上传图片'); return; }
+    setBusy(true); setErr(''); setUpProg('');
     try {
-      const small = await downscaleImage(f);
-      const path = await uploadMedia('media', small);
-      const { error } = await supabase.from('album_photos')
-        .insert({ album_id: Number(id), photo_url: path, caption: cap.trim() || null, uploaded_by: me });
-      if (error) throw error;
-      if (!album?.cover_url) await supabase.from('albums').update({ cover_url: path }).eq('id', Number(id));
-      setCap(''); load();
+      let firstPath: string | null = null;
+      for (let i = 0; i < list.length; i++) {
+        setUpProg(`上传中 ${i + 1}/${list.length}…`);
+        const small = await downscaleImage(list[i]);
+        const path = await uploadMedia('media', small);
+        if (!firstPath) firstPath = path;
+        const { error } = await supabase.from('album_photos')
+          .insert({ album_id: Number(id), photo_url: path, caption: i === 0 ? (cap.trim() || null) : null, uploaded_by: me });
+        if (error) throw error;
+      }
+      if (!album?.cover_url && firstPath) await supabase.from('albums').update({ cover_url: firstPath }).eq('id', Number(id));
+      setCap(''); setUpProg(''); load();
     } catch (e: any) { setErr('上传失败：' + (e.message || '网络错误')); }
-    finally { setBusy(false); }
+    finally { setBusy(false); setUpProg(''); }
   }
 
   async function del(p: P) {
@@ -75,8 +81,8 @@ export default function AlbumDetail() {
         <label>添加照片</label>
         <input value={cap} onChange={e => setCap(e.target.value)} placeholder="给照片写句话（可选）" maxLength={200} />
         <div className="row">
-          <button className="ghost" disabled={busy} onClick={() => fref.current?.click()}>{busy ? '上传中…' : '📷 选择照片'}</button>
-          <input ref={fref} type="file" accept="image/*" hidden onChange={e => { upload(e.target.files); e.target.value = ''; }} />
+          <button className="ghost" disabled={busy} onClick={() => fref.current?.click()}>{busy ? (upProg || '上传中…') : '📷 选择照片（可多选）'}</button>
+          <input ref={fref} type="file" accept="image/*" multiple hidden onChange={e => { upload(e.target.files); e.target.value = ''; }} />
         </div>
         {err && <p className="err">{err}</p>}
       </div>

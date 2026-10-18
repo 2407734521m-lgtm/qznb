@@ -2,12 +2,12 @@
 :root{--bg:#0b0d14;--fg:#eef0f6;--mut:#9aa0b4;--a:#ffffff;--b:#d9deef;--r:20px;--tab-h:64px}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;overflow-x:hidden}
-body{background:var(--bg);color:var(--fg);font:16px/1.6 system-ui,-apple-system,"Noto Sans SC","PingFang SC","Microsoft YaHei",sans-serif;min-height:100vh}
+body{background:var(--bg);color:var(--fg);font:14px/1.55 system-ui,-apple-system,"Noto Sans SC","PingFang SC","Microsoft YaHei",sans-serif;min-height:100vh}
 .glow{position:fixed;inset:0;z-index:-2;pointer-events:none;background:radial-gradient(600px 400px at 15% 0%,color-mix(in srgb,var(--a) 35%,transparent),transparent),radial-gradient(500px 400px at 100% 100%,color-mix(in srgb,var(--b) 30%,transparent),transparent)}
 /* 全站默认壁纸（樱花，微模糊） */
 .app-bg{position:fixed;inset:0;z-index:-1;pointer-events:none;background-size:cover;background-position:center;filter:blur(7px) brightness(42%);transform:scale(1.1)}
 a{color:var(--a)}
-.wrap{max-width:960px;margin:0 auto;padding:20px calc(20px + env(safe-area-inset-right)) calc(20px + var(--tab-h)) calc(20px + env(safe-area-inset-left))}
+.wrap{max-width:960px;margin:0 auto;padding:14px calc(14px + env(safe-area-inset-right)) calc(14px + var(--tab-h)) calc(14px + env(safe-area-inset-left))}
 @media(min-width:769px){.wrap{padding-bottom:40px}}
 
 /* ============ 导航：桌面顶栏 / 手机底栏 ============ */
@@ -47,7 +47,7 @@ a{color:var(--a)}
 }
 
 /* ============ 通用 ============ */
-.card{background:#ffffff0f;border:1px solid #ffffff1c;border-radius:var(--r);padding:20px;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:0 8px 30px #0006}
+.card{background:#ffffff0f;border:1px solid #ffffff1c;border-radius:var(--r);padding:14px;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:0 8px 30px #0006}
 .center{min-height:60vh;display:grid;place-items:center;text-align:center;color:var(--mut);padding:20px}
 input,textarea,select{width:100%;padding:12px;margin:6px 0 12px;border-radius:12px;border:1px solid #ffffff22;background:#ffffff0d;color:var(--fg);font:inherit}
 input:focus,textarea:focus{outline:none;border-color:var(--a);box-shadow:0 0 0 3px color-mix(in srgb,var(--a) 25%,transparent)}
@@ -73,8 +73,8 @@ button:disabled{opacity:.5}
   background:linear-gradient(135deg,#ffffff1a,#ffffff08);font-size:44px;color:#ffffff66;font-weight:600}
 
 /* ============ 成员墙 ============ */
-.hero{padding:28px 4px 8px}
-.hero h1{font-size:30px;margin:0 0 6px;letter-spacing:1px;font-weight:800;background:linear-gradient(120deg,#fff,var(--a));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.hero{padding:20px 4px 6px}
+.hero h1{font-size:24px;margin:0 0 6px;letter-spacing:1px;font-weight:800;background:linear-gradient(120deg,#fff,var(--a));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
 .hero p{margin:0;color:var(--mut);font-size:14px}
 .searchbar{position:sticky;top:60px;z-index:20;margin:14px 0}
 .searchbar input{margin:0;background:#ffffff12;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}

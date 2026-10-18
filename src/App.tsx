@@ -277,7 +277,7 @@ function Shell() {
         : { backgroundImage: `url(${wp.src === 'default' ? bgUrl : wp.src})`, filter: `blur(${wp.blur}px) brightness(${100 - wp.dark}%)` }} />
       {isAdminPage ? (
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', position: 'sticky', top: 0, zIndex: 40, background: 'rgba(10,12,20,.78)', backdropFilter: 'blur(12px)', borderBottom: '1px solid rgba(255,255,255,.08)' }}>
-          <b style={{ fontSize: 15 }}>🛠️ 管理后台</b>
+          <b style={{ fontSize: 15 }}>管理后台</b>
           <span style={{ flex: 1 }} />
           <NavLink to="/members" style={{ fontSize: 13, color: '#9db4ff', textDecoration: 'none' }}>← 回站点</NavLink>
           <button className="mini ghost" onClick={logout}>退出</button>

@@ -31,10 +31,15 @@ export default function Member() {
   const isMe = !!uid && uid === id;
   const photoRef = useRef<HTMLDivElement>(null);
   const imgUrl = useSignedUrl('avatars', m?.avatar_path);
+  const [videoPath, setVideoPath] = useState<string | null>(null);
+  const videoUrl = useSignedUrl('videos', videoPath);
 
   useEffect(() => {
     supabase.rpc('member_detail', { uid: id }).then(({ data, error }) => {
       if (error || !data?.length) setErr('无法加载该成员，可能尚未加入班级。'); else setM(data[0]);
+    });
+    supabase.rpc('member_video', { uid: id }).then(({ data }) => {
+      if (data?.length && data[0].path) setVideoPath(data[0].path);
     });
   }, [id]);
 
@@ -153,6 +158,12 @@ export default function Member() {
           {rows.map(([k, v], i) => k === '个性签名'
             ? <motion.p key={k} className="sig" {...itemProps(i + 1)}>{v}</motion.p>
             : <motion.div key={k} className="kv" {...itemProps(i + 1)}><b>{k}</b><div>{v}</div></motion.div>)}
+          {videoUrl && (
+            <motion.div {...itemProps(rows.length + 1)}>
+              <div className="kv"><b>自我介绍视频</b></div>
+              <video src={videoUrl} controls playsInline style={{ width: '100%', borderRadius: 10, background: '#000', marginTop: 6 }} />
+            </motion.div>
+          )}
           {(gbadge || m?.social) && (
             <motion.div {...itemProps(rows.length + 1)} className="xbtns">
               {gbadge && <button type="button" className={'xbtn' + (gx === 'game' ? ' on' : '')}

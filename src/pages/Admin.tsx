@@ -146,7 +146,11 @@ export default function Admin() {
   if (!role) return <div className="center" style={{ minHeight: '60vh' }}>加载中…</div>;
 
   return (
-    <div className="page" style={{ paddingBottom: 110, background: '#0a0f1e', minHeight: '100vh' }}>
+    <div className="page" style={{
+      background: '#0a0f1e', minHeight: '100vh',
+      margin: '-14px calc(-14px - env(safe-area-inset-right)) 0 calc(-14px - env(safe-area-inset-left))',
+      padding: '14px 14px 110px',
+    }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <div style={{

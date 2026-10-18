@@ -36,6 +36,7 @@ export default function Board() {
     const nowIso = new Date().toISOString();
     const { data } = await supabase.from('board_messages')
       .select('id, author_id, content, is_admin_msg, is_pinned, created_at')
+      .is('deleted_at', null)
       .or(`expires_at.is.null,expires_at.gt.${nowIso}`)
       .order('is_pinned', { ascending: false }).order('is_admin_msg', { ascending: false }).order('created_at', { ascending: false }).limit(100);
     const list = (data ?? []) as Msg[];

@@ -36,14 +36,82 @@ const TABS_ALL: [string, string, boolean][] = [
 ];
 
 const card: React.CSSProperties = {
-  background: 'color-mix(in srgb,#141824 72%,transparent)',
-  backdropFilter: 'blur(24px) saturate(1.6)', WebkitBackdropFilter: 'blur(24px) saturate(1.6)',
-  border: '1px solid #ffffff1c', borderRadius: 16, padding: 14, marginBottom: 12,
-  boxShadow: '0 8px 32px #0008,inset 0 1px 0 #ffffff14',
+  background: 'linear-gradient(160deg,#131a30,#0e1428)',
+  border: '1px solid #ffffff12', borderRadius: 14, padding: 14, marginBottom: 12,
+  boxShadow: '0 8px 32px #0008',
 };
 const h3: React.CSSProperties = { margin: '0 0 10px', fontSize: 15, fontWeight: 700 };
 const mut: React.CSSProperties = { color: 'var(--mut)', fontSize: 12.5 };
 const rowBtn: React.CSSProperties = { display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 8 };
+
+/* ---------- 仪表盘图表组件 ---------- */
+function Spark({ data, color }: { data: number[]; color: string }) {
+  const w = 100, h = 30;
+  const vs = data.length > 1 ? data : [0, data[0] ?? 0];
+  const max = Math.max(...vs, 1);
+  const line = 'M' + vs.map((v, i) => `${((i / (vs.length - 1)) * w).toFixed(1)},${(h - 4 - (v / max) * (h - 10)).toFixed(1)}`).join(' L');
+  const gid = 'sp' + color.replace(/[^0-9a-f]/gi, '');
+  return (
+    <svg viewBox={`0 0 ${w} ${h}`} style={{ width: '100%', height: 26, marginTop: 4, display: 'block' }}>
+      <defs><linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stopColor={color} stopOpacity=".4" />
+        <stop offset="1" stopColor={color} stopOpacity="0" />
+      </linearGradient></defs>
+      <path d={`${line} L${w},${h} L0,${h} Z`} fill={`url(#${gid})`} />
+      <path d={line} fill="none" stroke={color} strokeWidth="2" />
+    </svg>
+  );
+}
+function TrendChart({ data }: { data: number[] }) {
+  const w = 300, h = 90;
+  const max = Math.max(...data, 1);
+  const line = 'M' + data.map((v, i) => `${((i / (data.length - 1)) * w).toFixed(1)},${(h - 8 - (v / max) * (h - 20)).toFixed(1)}`).join(' L');
+  const ly = h - 8 - (data[data.length - 1] / max) * (h - 20);
+  return (
+    <svg viewBox={`0 0 ${w} ${h}`} style={{ width: '100%', height: 90, display: 'block' }}>
+      <defs><linearGradient id="dtrend" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stopColor="#5b8cff" stopOpacity=".45" />
+        <stop offset="1" stopColor="#5b8cff" stopOpacity="0" />
+      </linearGradient></defs>
+      <path d={`${line} L${w},${h} L0,${h} Z`} fill="url(#dtrend)" />
+      <path d={line} fill="none" stroke="#5b8cff" strokeWidth="2.5" />
+      <circle cx={w} cy={ly} r="7" fill="#5b8cff33" />
+      <circle cx={w} cy={ly} r="4" fill="#5b8cff" />
+    </svg>
+  );
+}
+function Donut({ segs }: { segs: { label: string; v: number; color: string }[] }) {
+  const C = 2 * Math.PI * 38;
+  const tot = segs.reduce((a, s) => a + s.v, 0) || 1;
+  let off = 0;
+  const arcs = segs.map(s => {
+    const len = (s.v / tot) * C;
+    const el = (
+      <circle key={s.label} cx="50" cy="50" r="38" fill="none" stroke={s.color}
+        strokeWidth="16" strokeDasharray={`${Math.max(len - 2.5, 0.1)} ${C}`}
+        strokeDashoffset={-off} strokeLinecap="round" transform="rotate(-90 50 50)" />
+    );
+    off += len;
+    return el;
+  });
+  return (
+    <svg viewBox="0 0 100 100" style={{ width: 96, height: 96, flex: '0 0 auto' }}>
+      <circle cx="50" cy="50" r="38" fill="none" stroke="#232b45" strokeWidth="16" />
+      {arcs}
+      <text x="50" y="56" textAnchor="middle" fill="#fff" fontSize="17" fontWeight="800">{tot}</text>
+    </svg>
+  );
+}
+function bucket14(rows: { created_at: string }[]) {
+  const days: number[] = Array(14).fill(0);
+  const start = new Date(); start.setHours(0, 0, 0, 0); start.setDate(start.getDate() - 13);
+  rows.forEach(r => {
+    const d = new Date(r.created_at); d.setHours(0, 0, 0, 0);
+    const i = Math.round((d.getTime() - start.getTime()) / 864e5);
+    if (i >= 0 && i < 14) days[i]++;
+  });
+  return days;
+}
 
 async function alog(action: string, detail: any) {
   try { await supabase.rpc('log_admin_action', { p_action: action, p_detail: JSON.stringify(detail) }); } catch {}
@@ -62,6 +130,7 @@ export default function Admin() {
   const [role, setRole] = useState('');
   const [tab, setTab] = useState('overview');
   const [msg, setMsg] = useState('');
+  const [q0, setQ0] = useState('');
   const isSuper = role === 'super_admin';
   const tabs = TABS_ALL.filter(([, , sup]) => !sup || isSuper);
 
@@ -77,21 +146,41 @@ export default function Admin() {
   if (!role) return <div className="center" style={{ minHeight: '60vh' }}>加载中…</div>;
 
   return (
-    <div className="page" style={{ paddingBottom: 110 }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-        <div>
-          <h2 style={{ margin: 0, fontSize: 20 }}>管理控制中心</h2>
-          <span style={{ ...mut, background: '#ffd47933', padding: '2px 10px', borderRadius: 999, border: '1px solid #ffd47955' }}>
-            {isSuper ? '超级管理员' : '内容管理员'}
-          </span>
+    <div className="page" style={{ paddingBottom: 110, background: '#0a0f1e', minHeight: '100vh' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{
+            width: 34, height: 34, borderRadius: 10, flexShrink: 0,
+            background: 'linear-gradient(135deg,#5b8cff,#8b5cf6)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontWeight: 800, fontSize: 16, color: '#fff',
+          }}>管</div>
+          <div>
+            <div style={{ fontWeight: 800, fontSize: 17 }}>管理控制中心</div>
+            <div style={{ fontSize: 11, color: '#8b93b0' }}>我们的班级 · 青春档案</div>
+          </div>
         </div>
-
+        <span style={{
+          fontSize: 11, color: '#c9d4f5', background: '#5b8cff2e',
+          padding: '3px 10px', borderRadius: 999, border: '1px solid #5b8cff55', whiteSpace: 'nowrap',
+        }}>
+          {isSuper ? '超级管理员' : '内容管理员'}
+        </span>
       </div>
+
+      <form onSubmit={e => { e.preventDefault(); switchTab('members'); }} style={{ marginBottom: 12 }}>
+        <input value={q0} onChange={e => setQ0(e.target.value)} placeholder="搜索成员姓名 / 用户名…"
+          style={{
+            width: '100%', boxSizing: 'border-box', background: '#ffffff0d',
+            border: '1px solid #ffffff14', borderRadius: 10, padding: '9px 12px',
+            color: '#fff', fontSize: 13, outline: 'none',
+          }} />
+      </form>
 
       {msg && <p className="priv-note" style={{ margin: '0 0 10px' }}>{msg}</p>}
 
       {tab === 'overview' && <Overview setMsg={setMsg} />}
-      {tab === 'members' && <Members me={me} isSuper={isSuper} setMsg={setMsg} />}
+      {tab === 'members' && <Members me={me} isSuper={isSuper} setMsg={setMsg} extQ={q0} />}
       {tab === 'moderate' && <Moderate setMsg={setMsg} />}
       {tab === 'board' && <BoardMgr me={me} setMsg={setMsg} />}
       {tab === 'events' && <EventTab me={me} setMsg={setMsg} />}
@@ -118,8 +207,8 @@ export default function Admin() {
             <button key={id} onClick={() => switchTab(id)} style={{
               flexShrink: 0, whiteSpace: 'nowrap', padding: '9px 14px', borderRadius: 999, cursor: 'pointer',
               fontSize: 13, border: 0, fontFamily: 'inherit',
-              background: tab === id ? 'linear-gradient(135deg,var(--a),var(--b))' : 'none',
-              color: tab === id ? '#1c2030' : 'var(--mut)',
+              background: tab === id ? 'linear-gradient(135deg,#5b8cff,#8b5cf6)' : 'none',
+              color: tab === id ? '#fff' : 'var(--mut)',
               fontWeight: tab === id ? 700 : 400,
             }}>{label}</button>
           ))}
@@ -129,13 +218,14 @@ export default function Admin() {
   );
 }
 
-/* ---------------- 总览 ---------------- */
+/* ---------------- 总览（仪表盘） ---------------- */
 function Overview({ setMsg }: { setMsg: (s: string) => void }) {
   const [st, setSt] = useState<any>(null);
   useEffect(() => {
     (async () => {
       try {
-        const [m, p, c, ph, r, nm] = await Promise.all([
+        const since14 = new Date(Date.now() - 14 * 864e5).toISOString();
+        const [m, p, c, ph, r, nm, pr, por, phr] = await Promise.all([
           supabase.from('profiles').select('id', { count: 'exact', head: true }),
           supabase.from('posts').select('id', { count: 'exact', head: true }).is('deleted_at', null),
           supabase.from('comments').select('id', { count: 'exact', head: true }).is('deleted_at', null),
@@ -143,72 +233,124 @@ function Overview({ setMsg }: { setMsg: (s: string) => void }) {
           supabase.from('reports').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
           supabase.from('profiles').select('id, display_name, username, created_at')
             .order('created_at', { ascending: false }).limit(5),
+          supabase.from('profiles').select('created_at').gte('created_at', since14),
+          supabase.from('posts').select('created_at').gte('created_at', since14).is('deleted_at', null),
+          supabase.from('album_photos').select('created_at').gte('created_at', since14),
         ]);
         const week = new Date(Date.now() - 7 * 864e5).toISOString();
         const { count: new7 } = await supabase.from('profiles').select('id', { count: 'exact', head: true }).gte('created_at', week);
         const { data: logs } = await supabase.from('admin_audit_logs')
           .select('id, action, created_at').order('created_at', { ascending: false }).limit(5);
-        // DB 连通性
         const t0 = Date.now();
         const { error: pingErr } = await supabase.from('profiles').select('id', { head: true }).limit(1);
+        const dPro = bucket14((pr.data ?? []) as any[]);
+        const dPost = bucket14((por.data ?? []) as any[]);
+        const dPhoto = bucket14((phr.data ?? []) as any[]);
+        let acc = (m.count ?? 0) - dPro.reduce((a, b) => a + b, 0);
+        const cum = dPro.map(v => (acc += v));
         setSt({
           members: m.count ?? 0, posts: p.count ?? 0, comments: c.count ?? 0,
           photos: ph.count ?? 0, pendingReports: r.count ?? 0, new7: new7 ?? 0,
           newMembers: nm.data ?? [], recentLogs: logs ?? [],
           dbOk: !pingErr, dbMs: Date.now() - t0,
+          dPro, dPost, dPhoto, cum,
         });
       } catch (e: any) { setMsg('总览加载失败：' + (e.message || '')); }
     })();
   }, []);
   if (!st) return <div className="center">加载中…</div>;
-  const cells: [string, string][] = [
-    ['注册成员', String(st.members)], ['近7天新增', String(st.new7)],
-    ['动态', String(st.posts)], ['评论', String(st.comments)],
-    ['照片', String(st.photos)], ['待处理举报', String(st.pendingReports)],
+  const segs = [
+    { label: '成员', v: st.members, color: '#5b8cff' },
+    { label: '动态', v: st.posts, color: '#8b5cf6' },
+    { label: '照片', v: st.photos, color: '#4ade80' },
+    { label: '评论', v: st.comments, color: '#f5a623' },
+  ];
+  const tot = segs.reduce((a, s) => a + s.v, 0);
+  const dlabels = [0, 3, 6, 10, 13].map(i => {
+    const d = new Date(); d.setDate(d.getDate() - (13 - i));
+    return `${d.getMonth() + 1}-${d.getDate()}`;
+  });
+  const statSub: Record<string, React.ReactNode> = {
+    '注册成员': <span style={{ color: '#4ade80' }}>较7天前 +{st.new7}</span>,
+    '近7天新增': <span style={{ color: '#4ade80' }}>新增注册</span>,
+    '班级动态': st.posts === 0 ? <span style={{ color: '#8b93b0' }}>暂无新动态</span> : <span style={{ color: '#4ade80' }}>持续更新中</span>,
+    '班级照片': st.photos === 0 ? <span style={{ color: '#8b93b0' }}>暂无新照片</span> : <span style={{ color: '#4ade80' }}>持续更新中</span>,
+  };
+  const stats: [string, number, number[], string][] = [
+    ['注册成员', st.members, st.cum, '#5b8cff'],
+    ['近7天新增', st.new7, st.dPro.slice(-7), '#8b5cf6'],
+    ['班级动态', st.posts, st.dPost, '#4ade80'],
+    ['班级照片', st.photos, st.dPhoto, '#f5a623'],
   ];
   return (<>
-    <div style={{ ...card }}>
-      <h3 style={h3}>数据总览</h3>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 8 }}>
-        {cells.map(([k, v]) => (
-          <div key={k} style={{ background: '#ffffff08', borderRadius: 12, padding: '10px 6px', textAlign: 'center' }}>
-            <div style={{ fontSize: 20, fontWeight: 800 }}>{v}</div>
-            <div style={mut}>{k}</div>
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
+      {stats.map(([k, v, d, col]) => (
+        <div key={k} style={{ ...card, marginBottom: 0, padding: 12 }}>
+          <div style={{ fontSize: 11, color: '#8b93b0' }}>{k}</div>
+          <div style={{ fontSize: 24, fontWeight: 800, margin: '4px 0', color: '#fff' }}>{v}</div>
+          <div style={{ fontSize: 10.5 }}>{statSub[k]}</div>
+          <Spark data={d} color={col} />
+        </div>
+      ))}
+    </div>
+    <div style={card}>
+      <div className="row" style={{ justifyContent: 'space-between', marginBottom: 6 }}>
+        <b style={{ fontSize: 13 }}>近14天注册趋势</b>
+        <span style={{ fontSize: 10.5, color: '#8b93b0', border: '1px solid #ffffff1c', borderRadius: 8, padding: '2px 8px' }}>近14天</span>
+      </div>
+      <TrendChart data={st.dPro} />
+      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: '#8b93b0' }}>
+        {dlabels.map(l => <span key={l}>{l}</span>)}
+      </div>
+    </div>
+    <div style={{ ...card, display: 'flex', alignItems: 'center', gap: 14 }}>
+      <Donut segs={segs} />
+      <div style={{ fontSize: 11.5, color: '#aeb7d4', lineHeight: 2.1 }}>
+        {segs.map(s => (
+          <div key={s.label}>
+            <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: s.color, marginRight: 6 }} />
+            {s.label} {s.v} <span style={{ color: '#8b93b0' }}>{tot ? Math.round((s.v / tot) * 100) : 0}%</span>
           </div>
         ))}
       </div>
     </div>
-    <div style={{ ...card }}>
-      <h3 style={h3}>系统状态</h3>
-      <div style={{ fontSize: 13.5, lineHeight: 2 }}>
-        <div>数据库：{st.dbOk ? <span style={{ color: '#7dff9e' }}>连接正常（{st.dbMs}ms）</span> : <span style={{ color: '#ff8080' }}>连接异常</span>}</div>
+    <div style={card}>
+      <div className="row" style={{ justifyContent: 'space-between', marginBottom: 8 }}>
+        <b style={{ fontSize: 13 }}>最近管理操作</b>
+        <span style={{ fontSize: 11, color: '#5b8cff' }}>共 {st.recentLogs.length} 条</span>
       </div>
+      {(st.recentLogs as any[]).map((l: any) => (
+        <div key={l.id} style={{ fontSize: 12.5, padding: '6px 0', borderBottom: '1px solid #ffffff0a', display: 'flex', justifyContent: 'space-between' }}>
+          <span style={{ color: '#c6cde6' }}>{l.action}</span>
+          <span style={{ color: '#8b93b0', fontSize: 10.5 }}>{(l.created_at || '').slice(5, 16).replace('T', ' ')}</span>
+        </div>
+      ))}
+      {st.recentLogs.length === 0 && <p style={mut}>暂无</p>}
     </div>
-    <div style={{ ...card }}>
+    <div style={card}>
       <h3 style={h3}>最近加入</h3>
       {(st.newMembers as any[]).map((m: any) => (
-        <div key={m.id} style={{ fontSize: 13.5, padding: '6px 0', borderBottom: '1px solid #ffffff0c' }}>
+        <div key={m.id} style={{ fontSize: 13.5, padding: '6px 0', borderBottom: '1px solid #ffffff0a' }}>
           {m.display_name || m.username} <span style={mut}>· {timeAgo(m.created_at)}</span>
         </div>
       ))}
       {st.newMembers.length === 0 && <p style={mut}>暂无</p>}
     </div>
-    <div style={{ ...card }}>
-      <h3 style={h3}>最近管理操作</h3>
-      {(st.recentLogs as any[]).map((l: any) => (
-        <div key={l.id} style={{ fontSize: 12.5, padding: '6px 0', borderBottom: '1px solid #ffffff0c' }}>
-          <span style={mut}>{(l.created_at || '').slice(5, 16).replace('T', ' ')}</span> · {l.action}
-        </div>
-      ))}
-      {st.recentLogs.length === 0 && <p style={mut}>暂无</p>}
+    <div style={card}>
+      <h3 style={h3}>系统状态</h3>
+      <div style={{ fontSize: 13.5, lineHeight: 2 }}>
+        <div>数据库：{st.dbOk ? <span style={{ color: '#4ade80' }}>连接正常（{st.dbMs}ms）</span> : <span style={{ color: '#ff8080' }}>连接异常</span>}</div>
+        {st.pendingReports > 0 && <div>待处理举报：<span style={{ color: '#f5a623' }}>{st.pendingReports} 条</span></div>}
+      </div>
     </div>
   </>);
 }
 
 /* ---------------- 成员管理 ---------------- */
-function Members({ me, isSuper, setMsg }: { me: string; isSuper: boolean; setMsg: (s: string) => void }) {
+function Members({ me, isSuper, setMsg, extQ }: { me: string; isSuper: boolean; setMsg: (s: string) => void; extQ: string }) {
   const [list, setList] = useState<Member[]>([]);
-  const [q, setQ] = useState('');
+  const [q, setQ] = useState(extQ);
+  useEffect(() => { if (extQ) setQ(extQ); }, [extQ]);
   const [fRole, setFRole] = useState('all');
   const [fJoined, setFJoined] = useState('all');
   const [sel, setSel] = useState<Set<string>>(new Set());

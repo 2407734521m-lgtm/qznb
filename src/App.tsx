@@ -17,11 +17,16 @@ import Discover from './pages/Discover';
 import Friends from './pages/Friends';
 import Chat from './pages/Chat';
 import Admin from './pages/Admin';
+import Home from './pages/Home';
+import Capsule from './pages/Capsule';
+import Wishes from './pages/Wishes';
+import Events from './pages/Events';
 import ErrorBoundary from './components/ErrorBoundary';
 import AdminLogin from './pages/AdminLogin';
 import Board from './pages/Board';
 
 const TABS = [
+  { to: '/home', label: '首页', ic: '🏠' },
   { to: '/board', label: '公告', ic: '📢' },
   { to: '/members', label: '成员', ic: '👥' },
   { to: '/feed', label: '动态', ic: '✨' },
@@ -359,8 +364,12 @@ function Shell() {
               <Route path="/timeline" element={<Timeline />} />
               <Route path="/timeline/:uid" element={<Timeline />} />
               <Route path="/me" element={<div className="me-compact"><MyProfile /></div>} />
+              <Route path="/home" element={<Home />} />
+              <Route path="/capsule" element={<Capsule />} />
+              <Route path="/wishes" element={<Wishes />} />
+              <Route path="/events" element={<Events />} />
               <Route path="/admin" element={<ErrorBoundary><AdminRoute /></ErrorBoundary>} />
-              <Route path="*" element={<Navigate to="/members" replace />} />
+              <Route path="*" element={<Navigate to="/home" replace />} />
             </Routes>
           </motion.div>
         </AnimatePresence>

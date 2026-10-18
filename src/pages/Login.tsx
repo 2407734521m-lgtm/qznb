@@ -141,6 +141,7 @@ export default function Login() {
     if (em !== sentEmail) return setErr('邮箱改动了，请重新获取验证码');
     if (pw.length < 8) return setErr('密码至少 8 位');
     if (pw !== pw2) return setErr('两次输入的密码不一致');
+    if (!invite.trim()) return setErr('请填写邀请码，没有的话问管理员要');
     const c = code.trim();
     if (!/^\d{6,10}$/.test(c)) return setErr('请输入邮箱收到的数字验证码');
     setBusy(true);
@@ -160,14 +161,12 @@ export default function Login() {
       supabase.from('profiles').update({ display_name: nm }).eq('id', uid).then(() => {});
       await uploadAvatar(uid);
       const iv = invite.trim();
-      if (iv) {
-        // 欢迎动画递给 App 层播（这里播会被登录跳转直接卸载）
-        const { data: nick, error: e3 } = await supabase.rpc('join_with_code', { code: iv });
-        if (!e3 && nick !== null && nick !== undefined) {
-          try { sessionStorage.setItem('ca_welcome_nick', (nick as string) || nm); } catch {}
-        } else {
-          try { sessionStorage.setItem('ca_invite_bad', '1'); } catch {}
-        }
+      // 欢迎动画递给 App 层播（这里播会被登录跳转直接卸载）
+      const { data: nick, error: e3 } = await supabase.rpc('join_with_code', { code: iv });
+      if (!e3 && nick !== null && nick !== undefined) {
+        try { sessionStorage.setItem('ca_welcome_nick', (nick as string) || nm); } catch {}
+      } else {
+        try { sessionStorage.setItem('ca_invite_bad', '1'); } catch {}
       }
       setCodeSent(false); setCode('');
     } catch (e: any) {
@@ -296,8 +295,8 @@ export default function Login() {
             <input type="password" value={pw} onChange={e => setPw(e.target.value)} placeholder="至少 8 位" autoComplete="new-password" />
             <label>确认密码</label>
             <input type="password" value={pw2} onChange={e => setPw2(e.target.value)} placeholder="再输一次" autoComplete="new-password" />
-            <label>邀请码（可选）</label>
-            <input value={invite} onChange={e => setInvite(e.target.value)} placeholder="有邀请码就填，可直接加入班级" />
+            <label>邀请码（必填）</label>
+            <input value={invite} onChange={e => setInvite(e.target.value)} placeholder="找管理员要邀请码" />
             {err && <p className="err">{err}</p>}
             <button className="pri" disabled={busy} onClick={doReg}>{busy ? '注册中…' : '注册并进入'}</button>
             <p className="login-switch">已有账号？<button onClick={() => { setMode('login'); setErr(''); setCodeSent(false); setCode(''); setInvite(''); setForgotSent(false); }}>去登录</button></p>

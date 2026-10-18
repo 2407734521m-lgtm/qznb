@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { supabase } from '../lib/supabase';
+import { supabase, supabaseBaseUrl } from '../lib/supabase';
 import { useSignedUrl } from '../lib/media';
 
 type Props = {
@@ -99,7 +99,7 @@ export default function AdminMemberModal({ memberId, onClose, onChanged }: Props
     if (email) {
       try {
         const { data: { session } } = await supabase.auth.getSession();
-        await fetch('https://wnddwkdfndrkxivvrxcy.supabase.co/functions/v1/notify', {
+        await fetch(`${supabaseBaseUrl}/functions/v1/notify`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

@@ -99,7 +99,19 @@ export default function Feed() {
     const t = (cmtText[p.id] || '').trim();
     if (!t) return;
     const { error } = await supabase.from('comments').insert({ post_id: p.id, author_id: me, content: t });
-    if (!error) { setCmtText({ ...cmtText, [p.id]: '' }); load(); }
+    if (!error) {
+      setCmtText({ ...cmtText, [p.id]: '' }); load();
+      // 通知动态作者（不是自己评论自己才发）
+      if (p.author_id !== me) {
+        const who = profiles[me];
+        supabase.from('notifications').insert({
+          profile_id: p.author_id, type: 'comment',
+          title: '有人评论了你的动态',
+          body: `${who ? (who.display_name ?? who.username) : '同学'}：${t.slice(0, 60)}`,
+          link: '/feed',
+        }).then(() => {});
+      }
+    }
   }
 
   async function delPost(p: Post) {

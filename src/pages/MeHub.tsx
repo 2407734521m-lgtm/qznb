@@ -35,40 +35,59 @@ export default function MeHub() {
     ['隐私设置', '/me/edit?sec=priv'],
   ];
 
+  const btn: React.CSSProperties = {
+    margin: 0, padding: '16px 4px', cursor: 'pointer', fontSize: 14, fontWeight: 700,
+    color: '#fff', textShadow: '0 1px 8px #000a',
+    background: 'linear-gradient(160deg,#1a2140,#0e1428)',
+    border: '1px solid #ffffff14', borderRadius: 14,
+    boxShadow: '0 6px 20px #0007, inset 0 1px 0 #ffffff14',
+    fontFamily: 'inherit',
+  };
+  const headCard: React.CSSProperties = {
+    background: 'linear-gradient(160deg,#1a2140,#0e1428)',
+    border: '1px solid #ffffff14', borderRadius: 16, padding: 14, marginBottom: 12,
+    boxShadow: '0 8px 28px #0008', display: 'flex', alignItems: 'center', gap: 12,
+  };
+
   return (
     <div className="page" style={{ paddingBottom: 110 }}>
-      <div className="card" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+      <div style={headCard}>
         <div style={{
-          width: 56, height: 56, borderRadius: '50%', flexShrink: 0,
-          background: avUrl ? `url(${avUrl}) center/cover` : 'linear-gradient(135deg,#5b8cff,#8b5cf6)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 22, fontWeight: 800, color: '#fff',
-        }}>{!avUrl && (name || '?').slice(0, 1)}</div>
+          width: 56, height: 56, borderRadius: '50%', flexShrink: 0, padding: 2,
+          background: 'linear-gradient(135deg,#5b8cff,#8b5cf6)',
+        }}>
+          <div style={{
+            width: '100%', height: '100%', borderRadius: '50%',
+            background: avUrl ? `url(${avUrl}) center/cover #141a30` : 'linear-gradient(135deg,#2a3560,#141a35)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 22, fontWeight: 800, color: '#fff',
+          }}>{!avUrl && (name || '我').slice(0, 1)}</div>
+        </div>
         <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 17, fontWeight: 800 }}>{name || '我'}</div>
-          <div style={{ fontSize: 12, color: 'var(--mut)' }}>个人中心</div>
+          <div style={{ fontSize: 17, fontWeight: 800, color: '#fff' }}>{name || '我'}</div>
+          <div style={{ fontSize: 12, color: '#8b93b0' }}>个人中心</div>
         </div>
         {unread > 0 && <span style={{
           fontSize: 11, color: '#fff', background: '#ff4d4f', borderRadius: 999,
-          padding: '3px 10px', fontWeight: 700,
+          padding: '3px 10px', fontWeight: 700, boxShadow: '0 0 10px #ff4d4f88',
         }}>{unread} 条未读</span>}
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 8 }}>
         {entries.map(([label, to]) => (
-          <button key={label} onClick={() => nav(to)} className="card"
-            style={{ margin: 0, padding: '18px 4px', cursor: 'pointer', fontSize: 14, fontWeight: 700, color: '#fff', position: 'relative' }}>
+          <button key={label} onClick={() => nav(to)} style={{ ...btn, position: 'relative' }}>
             {label}
             {label === '我的通知' && unread > 0 && <span style={{
               position: 'absolute', top: 8, right: 8, width: 8, height: 8,
-              borderRadius: '50%', background: '#ff4d4f',
+              borderRadius: '50%', background: '#ff4d4f', boxShadow: '0 0 6px #ff4d4f',
             }} />}
           </button>
         ))}
       </div>
-      <div className="card row" style={{ justifyContent: 'space-between', marginTop: 12, cursor: 'pointer' }}
-        onClick={() => nav('/me/account')}>
-        <span style={{ fontSize: 14, fontWeight: 700 }}>账号安全</span>
-        <span style={{ fontSize: 12.5, color: 'var(--mut)' }}>修改密码 · 退出登录 ›</span>
+      <div onClick={() => nav('/me/account')} style={{
+        ...headCard, marginTop: 12, marginBottom: 0, cursor: 'pointer', justifyContent: 'space-between',
+      }}>
+        <span style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>账号安全</span>
+        <span style={{ fontSize: 12.5, color: '#8b93b0' }}>修改密码 · 退出登录 ›</span>
       </div>
     </div>
   );

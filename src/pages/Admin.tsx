@@ -342,15 +342,16 @@ export default function Admin() {
     return (mb.display_name || '').toLowerCase().includes(s) || mb.username.toLowerCase().includes(s)
       || (emails[mb.id] || '').toLowerCase().includes(s) || (mb.real_name || '').toLowerCase().includes(s);
   });
-  // 分区导航
-  const NAV: [string, string][] = [
-    ['adm-overview', '📊 总览'], ['adm-board', '📢 公告'], ['adm-members', '👥 成员'],
-    ['adm-invite', '🎟️ 邀请码'], ['adm-feedback', '💬 反馈'], ['adm-game', '🎮 段位'],
-    ['adm-content', '🖼️ 内容'], ['adm-search', '🔍 搜索'], ['adm-export', '💾 导出'],
-    ...(isSuper ? [['adm-test', '🧪 测试'] as [string, string]] : []),
-    ['adm-logs', '📝 日志'],
+  // 分区：dock 点一下切换到独立板块（跟主站底栏一样），一次只显示一个
+  const TABS: [string, string][] = [
+    ['overview', '总览'], ['board', '公告'], ['members', '成员'],
+    ['invite', '邀请码'], ['feedback', '反馈'], ['game', '段位'],
+    ['content', '内容'], ['search', '搜索'], ['export', '导出'],
+    ...(isSuper ? [['test', '测试'] as [string, string]] : []),
+    ['logs', '日志'],
   ];
-  function go(id: string) { document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+  const [tab, setTab] = useState('overview');
+  function switchTab(id: string) { setTab(id); window.scrollTo({ top: 0 }); }
 
   return (
     <div className="page" style={{ paddingBottom: 92 }}>
@@ -360,7 +361,8 @@ export default function Admin() {
       </div>
       {msg && <p className="card" style={{ padding: 12 }}>{msg}</p>}
 
-      <div className="row" id="adm-overview" style={{ gap: 10, scrollMarginTop: 60 }}>
+      {tab === 'overview' && (<>
+      <div className="row" style={{ gap: 10 }}>
         {[['成员', members.length], ['已加入', members.filter(x => x.joined).length],
           ['动态', stats.posts], ['照片', stats.photos]].map(([l, n]) => (
           <div key={l as string} className="card" style={{ flex: 1, textAlign: 'center', padding: '12px 4px', margin: 0 }}>
@@ -372,18 +374,18 @@ export default function Admin() {
 
       {(todoFb > 0 || todoGame > 0 || todoJoin > 0) && (
         <div className="adm-sec card" style={{ borderColor: '#ffd47955' }}>
-          <h3>🔔 待办事项</h3>
+          <h3>待办事项</h3>
           <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
-            {todoFb > 0 && <button className="mini" onClick={() => go('adm-feedback')}>💬 {todoFb} 条反馈未处理</button>}
-            {todoGame > 0 && <button className="mini" onClick={() => go('adm-game')}>🎮 {todoGame} 个段位待审核</button>}
-            {todoJoin > 0 && <button className="mini" onClick={() => go('adm-members')}>👥 {todoJoin} 人未加入班级</button>}
+            {todoFb > 0 && <button className="mini" onClick={() => switchTab('feedback')}>{todoFb} 条反馈未处理</button>}
+            {todoGame > 0 && <button className="mini" onClick={() => switchTab('game')}>{todoGame} 个段位待审核</button>}
+            {todoJoin > 0 && <button className="mini" onClick={() => switchTab('members')}>{todoJoin} 人未加入班级</button>}
           </div>
         </div>
       )}
 
       <div className="row" style={{ gap: 10, alignItems: 'stretch' }}>
         <div className="adm-sec card" style={{ flex: 1, minWidth: 0 }}>
-          <h3>📈 近14天注册</h3>
+          <h3>近14天注册</h3>
           <div className="row" style={{ gap: 3, alignItems: 'flex-end', height: 64, flexWrap: 'nowrap' }}>
             {trend.map(d => (
               <div key={d.k} style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', height: '100%' }} title={`${d.k}：${d.n} 人`}>
@@ -397,7 +399,7 @@ export default function Admin() {
           </div>
         </div>
         <div className="adm-sec card" style={{ flex: 1, minWidth: 0 }}>
-          <h3>🟢 当前在线（{onlineList.length}）</h3>
+          <h3>当前在线（{onlineList.length}）</h3>
           {onlineList.length === 0
             ? <p className="mut" style={{ fontSize: 12.5, margin: 0 }}>近15分钟没人活跃</p>
             : <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
@@ -407,14 +409,16 @@ export default function Admin() {
             </div>}
         </div>
       </div>
+      </>)}
 
-      <div className="adm-sec card" id="adm-board" style={{ scrollMarginTop: 60 }}>
-        <h3>📢 公告管理</h3>
+      {tab === 'board' && (<>
+      <div className="adm-sec card">
+        <h3>公告管理</h3>
         <p className="priv-note" style={{ margin: '0 0 8px' }}>公告只有管理员能发布，会置顶显示在公告板最上面，普通成员只能看和留言。</p>
         <textarea value={noticeText} onChange={e => setNoticeText(e.target.value)} rows={3} maxLength={500}
           placeholder="写公告…" style={{ width: '100%' }} />
         <div style={{ marginTop: 8 }}>
-          <button className="pri" style={{ width: 'auto', padding: '10px 26px' }} onClick={postNotice}>📢 发布公告</button>
+          <button className="pri" style={{ width: 'auto', padding: '10px 26px' }} onClick={postNotice}>发布公告</button>
         </div>
         {notices.map(n => (
           <div key={n.id} className="row" style={{ justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #ffffff0c' }}>
@@ -424,13 +428,15 @@ export default function Admin() {
           </div>
         ))}
       </div>
+      </>)}
 
-      <div className="adm-sec card" id="adm-members" style={{ scrollMarginTop: 60 }}>
+      {tab === 'members' && (<>
+      <div className="adm-sec card">
         <h3>成员管理（{shown.length} 人）</h3>
         <div className="row" style={{ gap: 8, marginBottom: 10 }}>
-          <input placeholder="🔍 搜索名字 / 用户名 / 真实姓名 / 邮箱" value={q} onChange={e => setQ(e.target.value)}
+          <input placeholder="搜索名字 / 用户名 / 真实姓名 / 邮箱" value={q} onChange={e => setQ(e.target.value)}
             style={{ flex: 1, minWidth: 0, marginBottom: 0 }} />
-          <button className="mini" onClick={exportCSV}>📥 导出通讯录</button>
+          <button className="mini" onClick={exportCSV}>导出通讯录</button>
         </div>
         <table className="tbl"><thead><tr><th>成员</th><th>邮箱</th><th>角色</th><th>状态</th><th></th></tr></thead>
           <tbody>{shown.map(mb => (
@@ -438,9 +444,9 @@ export default function Admin() {
               <td>{mb.display_name || mb.username}<br /><span className="mut" style={{ fontSize: 12 }}>@{mb.username}{mb.real_name ? ` · ${mb.real_name}` : ''}</span>
                 {presence[mb.id] && (presence[mb.id].location || presence[mb.id].device) && (
                   <><br /><span className="mut" style={{ fontSize: 11 }}>
-                    {presence[mb.id].location ? `📍${presence[mb.id].location}` : ''}
+                    {presence[mb.id].location ? presence[mb.id].location : ''}
                     {presence[mb.id].location && presence[mb.id].device ? ' · ' : ''}
-                    {presence[mb.id].device ? `📱${presence[mb.id].device}` : ''}
+                    {presence[mb.id].device ? presence[mb.id].device : ''}
                   </span></>)}</td>
               <td style={{ fontSize: 12 }}>{emails[mb.id] ?? '—'}</td>
               <td><span className={`chip ${mb.role === 'super_admin' ? 'sa' : mb.role === 'admin' ? 'ad' : ''}`}>{ROLE_LABEL[mb.role] ?? mb.role}</span></td>
@@ -471,9 +477,11 @@ export default function Admin() {
             </tr>
           ))}</tbody></table>
       </div>
+      </>)}
 
-      <div className="adm-sec card" id="adm-invite" style={{ scrollMarginTop: 60 }}>
-        <h3>🎟️ 邀请码管理</h3>
+      {tab === 'invite' && (<>
+      <div className="adm-sec card">
+        <h3>邀请码管理</h3>
         <div className="row" style={{ gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
           <span className="mut" style={{ fontSize: 12.5 }}>批量生成：</span>
           <button className="mini" disabled={batchBusy} onClick={() => batchCodes(10)}>10 个</button>
@@ -507,9 +515,11 @@ export default function Admin() {
           </p>
         </>) : <p className="mut">邀请码仅超级管理员可管理</p>}
       </div>
+      </>)}
 
-      <div className="adm-sec card" id="adm-feedback" style={{ scrollMarginTop: 60 }}>
-        <h3>💬 反馈管理（{todoFb} 条未处理）</h3>
+      {tab === 'feedback' && (<>
+      <div className="adm-sec card">
+        <h3>反馈管理（{todoFb} 条未处理）</h3>
         <div className="row" style={{ gap: 8, marginBottom: 8 }}>
           {([['all', '全部'], ['open', '未处理'], ['done', '已处理']] as [string, string][]).map(([k, l]) => (
             <button key={k} className={'mini' + (fbFilter === k ? '' : ' ghost')} onClick={() => setFbFilter(k)}>{l}</button>
@@ -520,7 +530,7 @@ export default function Admin() {
           <div key={f.id} style={{ padding: '10px 0', borderBottom: '1px solid #ffffff0c', opacity: f.status === 'done' ? 0.55 : 1 }}>
             <div style={{ fontSize: 13.5 }}>
               <span className="mut" style={{ fontSize: 11.5, marginRight: 6 }}>
-                {f.kind === 'login' ? '🔑 登录反馈' : '💬 意见反馈'} · {(f.created_at || '').slice(0, 16).replace('T', ' ')}
+                {f.kind === 'login' ? '登录反馈' : '意见反馈'} · {(f.created_at || '').slice(0, 16).replace('T', ' ')}
               </span>
               {(f.name || f.contact) && <span className="mut" style={{ fontSize: 12 }}> — {f.name ?? ''}{f.name && f.contact ? ' / ' : ''}{f.contact ?? ''}</span>}
               {f.status === 'done' && <span style={{ fontSize: 11.5, color: '#7ee2a8', marginLeft: 6 }}>✓ 已处理</span>}
@@ -534,7 +544,7 @@ export default function Admin() {
                   if (replyOpen === f.id) { setReplyOpen(null); return; }
                   setReplyOpen(f.id);
                   setReplyText(t => t[f.id] ? t : { ...t, [f.id]: `关于你的反馈「${(f.content || '').slice(0, 24)}${(f.content || '').length > 24 ? '…' : ''}」，处理结果：` });
-                }}>💬 给提交人发消息</button>)}
+                }}>给提交人发消息</button>)}
               {isSuper && <button className="mini danger" onClick={() => delFb(f.id)}>删除</button>}
             </div>
             {replyOpen === f.id && (
@@ -554,9 +564,11 @@ export default function Admin() {
           </div>
         ))}
       </div>
+      </>)}
 
-      <div className="adm-sec card" id="adm-game" style={{ scrollMarginTop: 60 }}>
-        <h3>🎮 游戏段位审核</h3>
+      {tab === 'game' && (<>
+      <div className="adm-sec card">
+        <h3>游戏段位审核</h3>
         {gpend.length === 0 && gok.length === 0 && <p className="mut" style={{ fontSize: 13 }}>暂无提交</p>}
         {gpend.length > 0 && <>
           <p className="mut" style={{ fontSize: 12.5 }}>待审核（{gpend.length}）</p>
@@ -583,9 +595,11 @@ export default function Admin() {
           ))}
         </>}
       </div>
+      </>)}
 
-      <div className="adm-sec card" id="adm-content" style={{ scrollMarginTop: 60 }}>
-        <h3>🖼️ 内容管理</h3>
+      {tab === 'content' && (<>
+      <div className="adm-sec card">
+        <h3>内容管理</h3>
         <p className="mut" style={{ fontSize: 12.5, margin: '0 0 6px' }}>班级动态</p>
         {posts.length === 0 && <p className="mut" style={{ fontSize: 13 }}>暂无动态</p>}
         {posts.map(p => (
@@ -604,9 +618,11 @@ export default function Admin() {
           </div>
         ))}
       </div>
+      </>)}
 
-      <div className="adm-sec card" id="adm-search" style={{ scrollMarginTop: 60 }}>
-        <h3>🔍 全站搜索</h3>
+      {tab === 'search' && (<>
+      <div className="adm-sec card">
+        <h3>全站搜索</h3>
         <input placeholder="搜成员 / 动态 / 相册 / 反馈 / 公告…" value={gq} onChange={e => setGq(e.target.value)}
           style={{ marginBottom: 10 }} />
         {searchRes && (
@@ -635,19 +651,22 @@ export default function Admin() {
           </div>
         )}
       </div>
+      </>)}
 
-      <div className="adm-sec card" id="adm-export" style={{ scrollMarginTop: 60 }}>
-        <h3>💾 数据导出</h3>
+      {tab === 'export' && (<>
+      <div className="adm-sec card">
+        <h3>数据导出</h3>
         <p className="priv-note" style={{ margin: '0 0 8px' }}>把网站内容打包下载，留个备份。</p>
         <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
           <button className="mini" onClick={exportJSON}>导出内容备份（JSON）</button>
           <button className="mini" onClick={exportCSV}>导出通讯录（CSV）</button>
         </div>
       </div>
+      </>)}
 
-      {isSuper && (
-        <div className="adm-sec card" id="adm-test" style={{ scrollMarginTop: 60 }}>
-          <h3>🧪 测试工具</h3>
+      {tab === 'test' && isSuper && (<>
+        <div className="adm-sec card">
+          <h3>测试工具</h3>
           <p className="priv-note" style={{ margin: '0 0 8px' }}>测试账号快切：保存测试账号，一键切换登录，方便测试。密码只存这台手机的浏览器里。建议把管理号也存进来，切出去后右下角会有"结束测试"一键切回。</p>
           {tas.map(a => (
             <div key={a.id} className="row" style={{ alignItems: 'center', padding: '7px 0', borderBottom: '1px solid #ffffff0c' }}>
@@ -670,11 +689,12 @@ export default function Admin() {
           </div>
           {taMsg && <p className="priv-note" style={{ marginTop: 6 }}>{taMsg}</p>}
         </div>
-      )}
+      </>)}
 
-      <div className="adm-sec card" id="adm-logs" style={{ scrollMarginTop: 60 }}>
-        <h3>📝 操作日志</h3>
-        <input placeholder="🔍 筛选操作，如：delete_member" value={logQ} onChange={e => setLogQ(e.target.value)}
+      {tab === 'logs' && (<>
+      <div className="adm-sec card">
+        <h3>操作日志</h3>
+        <input placeholder="筛选操作，如：delete_member" value={logQ} onChange={e => setLogQ(e.target.value)}
           style={{ marginBottom: 10 }} />
         {logShown.length === 0 && <p className="mut" style={{ fontSize: 13 }}>暂无记录</p>}
         {logShown.map(l => (
@@ -683,8 +703,9 @@ export default function Admin() {
           </div>
         ))}
       </div>
+      </>)}
 
-      {/* 底部导航：悬浮小药丸，和主站底栏一样 */}
+      {/* 底部 dock：跟主站底栏一样，点一下切换到独立板块 */}
       <div style={{
         position: 'fixed', left: '50%', transform: 'translateX(-50%)', zIndex: 60,
         bottom: 'calc(14px + env(safe-area-inset-bottom))',
@@ -696,10 +717,14 @@ export default function Admin() {
         boxShadow: '0 14px 44px #000c,inset 0 1px 0 #ffffff2b',
       }}>
         <div className="row" style={{ gap: 2, overflowX: 'auto', flexWrap: 'nowrap', maxWidth: '100%' }}>
-          {NAV.map(([id, label]) => (
-            <button key={id} onClick={() => go(id)} style={{
-              flexShrink: 0, whiteSpace: 'nowrap', padding: '9px 13px', borderRadius: 999,
-              background: 'none', border: 0, color: 'var(--mut)', fontSize: 13, cursor: 'pointer',
+          {TABS.map(([id, label]) => (
+            <button key={id} onClick={() => switchTab(id)} style={{
+              flexShrink: 0, whiteSpace: 'nowrap', padding: '9px 13px', borderRadius: 999, cursor: 'pointer',
+              fontSize: 13, border: 0, fontFamily: 'inherit',
+              background: tab === id ? 'linear-gradient(135deg,var(--a),var(--b))' : 'none',
+              color: tab === id ? '#1c2030' : 'var(--mut)',
+              fontWeight: tab === id ? 700 : 400,
+              boxShadow: tab === id ? '0 4px 16px #ffffff2e' : 'none',
             }}>{label}</button>
           ))}
         </div>

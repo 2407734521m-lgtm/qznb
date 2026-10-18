@@ -23,7 +23,7 @@ export default function AdminMemberModal({ memberId, onClose, onChanged }: Props
   const [game, setGame] = useState('');
   const [presence, setPresence] = useState('');
   const [edit, setEdit] = useState(false);
-  const [form, setForm] = useState({ display_name: '', real_name: '', signature: '', bio: '', personality: '', hobbies: '', age: '' });
+  const [form, setForm] = useState({ display_name: '', signature: '', bio: '', personality: '', hobbies: '', age: '' });
   const [msg, setMsg] = useState('');
   const [busy, setBusy] = useState(false);
   const videoUrl = useSignedUrl('videos', f?.intro_video_path);
@@ -36,7 +36,7 @@ export default function AdminMemberModal({ memberId, onClose, onChanged }: Props
       if (data) {
         setF(data as Full);
         setForm({
-          display_name: data.display_name || '', real_name: data.real_name || '',
+          display_name: data.display_name || '',
           signature: data.signature || '', bio: data.bio || '',
           personality: data.personality || '', hobbies: data.hobbies || '',
           age: data.age != null ? String(data.age) : '',
@@ -57,7 +57,6 @@ export default function AdminMemberModal({ memberId, onClose, onChanged }: Props
     const { error } = await supabase.rpc('admin_update_profile', {
       target: memberId,
       p_display_name: form.display_name.trim() || null,
-      p_real_name: form.real_name.trim() || null,
       p_signature: form.signature.trim() || null,
       p_bio: form.bio.trim() || null,
       p_personality: form.personality.trim() || null,
@@ -134,6 +133,7 @@ export default function AdminMemberModal({ memberId, onClose, onChanged }: Props
           <h4 style={{ margin: '0 0 6px', fontSize: 13 }}>基础信息</h4>
           <div style={{ fontSize: 13, lineHeight: 1.9, marginBottom: 12 }}>
             <div>邮箱：{email || '—'}</div>
+            <div>真实姓名：{f.real_name || '—'}</div>
             <div>角色：{f.role === 'super_admin' ? '超级管理员' : f.role === 'admin' ? '管理员' : '成员'}</div>
             <div>状态：{f.joined ? '已加入班级' : '未加入'}</div>
             <div>注册：{(f.created_at || '').slice(0, 16).replace('T', ' ')}</div>
@@ -172,7 +172,7 @@ export default function AdminMemberModal({ memberId, onClose, onChanged }: Props
           </div>
           {edit && (
             <div style={{ marginBottom: 8 }}>
-              {[['display_name', '显示名'], ['real_name', '真实姓名'], ['age', '年龄'], ['personality', '性格'], ['signature', '签名'], ['bio', '个人简介'], ['hobbies', '兴趣爱好']].map(([k, label]) => (
+              {[['display_name', '显示名'], ['age', '年龄'], ['personality', '性格'], ['signature', '签名'], ['bio', '个人简介'], ['hobbies', '兴趣爱好']].map(([k, label]) => (
                 <div key={k} style={{ marginBottom: 8 }}>
                   <label style={{ fontSize: 12.5 }} className="mut">{label}</label>
                   {k === 'bio' || k === 'hobbies' ? (

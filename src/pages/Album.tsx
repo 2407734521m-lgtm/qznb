@@ -22,7 +22,7 @@ export default function Album() {
   const [err, setErr] = useState('');
 
   async function load() {
-    const { data: a } = await supabase.from('albums').select('*').order('created_at', { ascending: false });
+    const { data: a } = await supabase.from('albums').select('*').is('deleted_at', null).order('created_at', { ascending: false });
     const list = (a ?? []) as A[];
     if (list.length) {
       const { data: p } = await supabase.from('album_photos').select('album_id').in('album_id', list.map(x => x.id));

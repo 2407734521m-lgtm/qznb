@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { useSignedUrl } from '../lib/media';
+import { useSignedUrl, uploadMedia } from '../lib/media';
 import { useAuth } from '../auth';
 import AvatarCropper from '../components/AvatarCropper';
 import FeedbackModal from '../components/FeedbackModal';
@@ -88,6 +88,12 @@ export default function MyProfile() {
   const [role, setRole] = useState('');
   const fileRef = useRef<HTMLInputElement>(null);
   const avatarUrl = useSignedUrl('avatars', avatar);
+  const [videoPath, setVideoPath] = useState<string | null>(null);
+  const [videoStatus, setVideoStatus] = useState('none');
+  const videoUrl = useSignedUrl('videos', videoPath);
+  const [videoFile, setVideoFile] = useState<File | null>(null); // 待确认上传的视频（弹窗用）
+  const [videoBusy, setVideoBusy] = useState(false);
+  const videoInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => { supabase.rpc('my_role').then(({ data }) => setRole(data ?? '')); }, []);
   useEffect(() => { // 注册时邀请码无效：在这里提示（登录页的报错会被跳转吞掉）
@@ -110,6 +116,7 @@ export default function MyProfile() {
     const all: Record<string, any> = { ...p.data, ...(c.data ?? {}) };
     setV(Object.fromEntries(ALL_FIELDS.map(([k]) => [k, all[k] == null ? '' : String(all[k])])));
     setPriv(pr.data); setJoined(p.data.joined); setAvatar(p.data.avatar_path); setUname(p.data.username ?? '');
+    setVideoPath(p.data.intro_video_path ?? null); setVideoStatus(p.data.intro_video_status || 'none');
     setTheme(p.data.theme?.theme ?? 'aurora'); setLayout(p.data.theme?.layout ?? 'left');
     if (!g.error) setGprof((g.data as GameProfile) ?? null);
     loadedRef.current = true;
@@ -164,6 +171,30 @@ export default function MyProfile() {
     setCropSrc(URL.createObjectURL(f));
   }
   function closeCrop() { if (cropSrc) URL.revokeObjectURL(cropSrc); setCropSrc(null); }
+
+  // 自我介绍视频：选文件 → 弹窗提示 → 确认上传 → 待审核
+  function pickVideo(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0];
+    e.target.value = '';
+    if (!f) return;
+    if (!f.type.startsWith('video/')) return setMsg('请选择视频文件');
+    if (f.size > 200 * 1024 * 1024) return setMsg('视频不能超过 200MB');
+    setVideoFile(f); // 打开确认弹窗
+  }
+  async function confirmVideoUpload() {
+    if (!videoFile) return;
+    setVideoBusy(true); setMsg('视频上传中，请稍候…');
+    try {
+      const path = await uploadMedia('videos', videoFile);
+      const { error } = await supabase.rpc('submit_intro_video', { p_path: path });
+      if (error) throw error;
+      setVideoPath(path); setVideoStatus('pending'); setVideoFile(null);
+      setMsg('已提交，等待管理员审核');
+    } catch (err: any) {
+      setMsg('上传失败：' + (err?.message || '未知错误'));
+    }
+    setVideoBusy(false);
+  }
 
   async function uploadCropped(blob: Blob) {
     closeCrop(); setMsg('头像上传中…');
@@ -242,6 +273,24 @@ export default function MyProfile() {
 
       <Collapsible icon="📝" title="基本资料" open={baseOpen} onToggle={() => setBaseOpen(o => !o)}>
         {PROFILE_FIELDS.map(([k, label]) => fieldInput(k, label))}
+        {/* 自我介绍视频 */}
+        <div style={{ marginTop: 12 }}>
+          <label style={{ fontSize: 13, fontWeight: 700 }}>自我介绍视频</label>
+          {videoStatus === 'pending' && <p className="priv-note" style={{ margin: '6px 0' }}>视频已提交，等待管理员审核</p>}
+          {videoStatus === 'rejected' && <p className="priv-note" style={{ margin: '6px 0' }}>视频未通过审核，可以重新上传</p>}
+          {videoUrl && videoStatus === 'approved' && (
+            <video src={videoUrl} controls playsInline style={{ width: '100%', borderRadius: 10, background: '#000', marginTop: 6 }} />
+          )}
+          {videoUrl && videoStatus !== 'approved' && (
+            <video src={videoUrl} controls playsInline style={{ width: '100%', borderRadius: 10, background: '#000', marginTop: 6, opacity: 0.7 }} />
+          )}
+          <div className="row" style={{ gap: 8, marginTop: 8 }}>
+            <button type="button" className="ghost" onClick={() => videoInputRef.current?.click()}>
+              {videoPath ? '重新上传视频' : '上传自我介绍视频'}
+            </button>
+          </div>
+          <input ref={videoInputRef} type="file" hidden accept="video/*" onChange={pickVideo} />
+        </div>
       </Collapsible>
 
       <Collapsible icon="🎮" title="游戏与社交" open={gameOpen} onToggle={() => setGameOpen(o => !o)}>
@@ -339,6 +388,28 @@ export default function MyProfile() {
       {welcome !== null && <WelcomeOverlay nick={welcome} onDone={() => setWelcome(null)} />}
       {gpickOpen && <GamePicker initial={gprof} origin={gpickOrigin} onClose={() => setGpickOpen(false)}
         onDone={() => { setGpickOpen(false); reloadGame(); setMsg('已提交，等待管理员审核 ✓'); }} />}
+      {/* 上传视频确认弹窗 */}
+      {videoFile && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 300, background: '#000c', display: 'grid', placeItems: 'center', padding: 20 }}
+          onClick={() => !videoBusy && setVideoFile(null)}>
+          <div className="card" onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: 380 }}>
+            <h3 style={{ margin: '0 0 10px' }}>上传自我介绍视频</h3>
+            <p style={{ fontSize: 13.5, lineHeight: 1.7, margin: '0 0 6px' }}>
+              文件：{videoFile.name}<br />
+              大小：{(videoFile.size / 1024 / 1024).toFixed(1)} MB
+            </p>
+            <p className="priv-note" style={{ margin: '0 0 12px' }}>
+              由于服务器较小，视频将会进行审核，谢谢谅解。审核通过后才会显示在你的主页。
+            </p>
+            <div className="row" style={{ gap: 8 }}>
+              <button type="button" className="ghost" style={{ flex: 1 }} disabled={videoBusy}
+                onClick={() => setVideoFile(null)}>取消</button>
+              <button type="button" className="pri" style={{ flex: 1 }} disabled={videoBusy}
+                onClick={confirmVideoUpload}>{videoBusy ? '上传中…' : '确认上传'}</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

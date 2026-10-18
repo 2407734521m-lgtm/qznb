@@ -211,22 +211,28 @@ function Shell() {
     return () => window.removeEventListener('notif-read', h);
   }, []);
 
-  // 登录弹窗公告：管理员开了"登录弹窗"的公告，成员登录时弹一次
+  // 登录弹窗公告：按后台设置的次数弹出（1/2/3次或每次）
   const [loginPop, setLoginPop] = useState<any>(null);
   useEffect(() => {
     if (!session || loc.pathname === '/admin') { setLoginPop(null); return; }
     let alive = true;
     (async () => {
       try {
-        const seen: number[] = JSON.parse(localStorage.getItem('ca_popup_seen') || '[]');
+        // 兼容旧版 seen 数组
+        let counts: Record<string, number> = {};
+        try {
+          counts = JSON.parse(localStorage.getItem('ca_popup_counts') || '{}');
+          const oldSeen: number[] = JSON.parse(localStorage.getItem('ca_popup_seen') || '[]');
+          oldSeen.forEach(id => { if (!(String(id) in counts)) counts[String(id)] = 1; });
+        } catch {}
         const now = new Date().toISOString();
         const { data } = await supabase.from('board_messages')
-          .select('id, content, created_at')
+          .select('id, title, content, popup_times, created_at')
           .eq('is_admin_msg', true).eq('popup_on_login', true)
           .is('deleted_at', null)
           .or(`expires_at.is.null,expires_at.gt.${now}`)
           .order('created_at', { ascending: false }).limit(10);
-        const fresh = (data ?? []).filter(a => !seen.includes(a.id));
+        const fresh = (data ?? []).filter(a => (counts[String(a.id)] || 0) < (a.popup_times ?? 1));
         if (alive && fresh.length) setLoginPop(fresh[0]);
       } catch { /* 忽略 */ }
     })();
@@ -235,9 +241,9 @@ function Shell() {
   function closeLoginPop() {
     if (loginPop) {
       try {
-        const seen: number[] = JSON.parse(localStorage.getItem('ca_popup_seen') || '[]');
-        if (!seen.includes(loginPop.id)) seen.push(loginPop.id);
-        localStorage.setItem('ca_popup_seen', JSON.stringify(seen));
+        const counts: Record<string, number> = JSON.parse(localStorage.getItem('ca_popup_counts') || '{}');
+        counts[String(loginPop.id)] = Math.min((counts[String(loginPop.id)] || 0) + 1, 999);
+        localStorage.setItem('ca_popup_counts', JSON.stringify(counts));
       } catch {}
     }
     setLoginPop(null);
@@ -474,6 +480,7 @@ function Shell() {
             border: '1px solid #5b8cff44', boxShadow: '0 20px 60px #000d',
           }}>
             <div style={{ fontSize: 11, color: '#8b93b0', marginBottom: 6 }}>班级公告</div>
+            {loginPop.title && <div style={{ fontSize: 16, fontWeight: 800, color: '#fff', marginBottom: 8 }}>{loginPop.title}</div>}
             <div style={{ fontSize: 15, lineHeight: 1.8, whiteSpace: 'pre-wrap', color: '#fff' }}>{loginPop.content}</div>
             <div style={{ color: 'var(--mut)', fontSize: 11.5, marginTop: 10 }}>
               {(loginPop.created_at || '').slice(0, 16).replace('T', ' ')}

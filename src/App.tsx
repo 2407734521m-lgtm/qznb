@@ -21,6 +21,14 @@ import Home from './pages/Home';
 import Capsule from './pages/Capsule';
 import Wishes from './pages/Wishes';
 import Events from './pages/Events';
+import Greetings from './pages/Greetings';
+import MeHub from './pages/MeHub';
+import MePosts from './pages/MePosts';
+import MeFavorites from './pages/MeFavorites';
+import MeGreetings from './pages/MeGreetings';
+import MeNotifications from './pages/MeNotifications';
+import MeAccount from './pages/MeAccount';
+import Onboarding from './components/Onboarding';
 import ErrorBoundary from './components/ErrorBoundary';
 import AdminLogin from './pages/AdminLogin';
 import Board from './pages/Board';
@@ -235,6 +243,18 @@ function Shell() {
     setLoginPop(null);
   }
 
+  // 新用户 5 步引导（首次登录，未完成过则弹）
+  const [onboardUid, setOnboardUid] = useState<string | null>(null);
+  useEffect(() => {
+    if (!session || loc.pathname === '/admin') return;
+    try {
+      if (!localStorage.getItem('ca_onboard_done_' + session.user.id)) {
+        const t = setTimeout(() => setOnboardUid(session.user.id), 2500);
+        return () => clearTimeout(t);
+      }
+    } catch {}
+  }, [session]);
+
   // 全站壁纸（登录后的 onboarding 可改）
   const [wp, setWp] = useState(getWallpaper);
   useEffect(() => {
@@ -395,7 +415,14 @@ function Shell() {
               <Route path="/chat/:cid" element={<Chat />} />
               <Route path="/timeline" element={<Timeline />} />
               <Route path="/timeline/:uid" element={<Timeline />} />
-              <Route path="/me" element={<div className="me-compact"><MyProfile /></div>} />
+              <Route path="/me" element={<MeHub />} />
+              <Route path="/me/edit" element={<div className="me-compact"><MyProfile /></div>} />
+              <Route path="/me/posts" element={<MePosts />} />
+              <Route path="/me/favorites" element={<MeFavorites />} />
+              <Route path="/me/greetings" element={<MeGreetings />} />
+              <Route path="/me/notifications" element={<MeNotifications />} />
+              <Route path="/me/account" element={<MeAccount />} />
+              <Route path="/greetings" element={<Greetings />} />
               <Route path="/home" element={<Home />} />
               <Route path="/capsule" element={<Capsule />} />
               <Route path="/wishes" element={<Wishes />} />
@@ -434,6 +461,7 @@ function Shell() {
       </nav>}
       {showWp && <WallpaperOnboarding onDone={() => setShowWp(false)} />}
       {welcome !== null && <WelcomeOverlay nick={welcome} onDone={welcomeDone} />}
+      {onboardUid && <Onboarding uid={onboardUid} onDone={() => setOnboardUid(null)} />}
       {loginPop && (
         <div onClick={closeLoginPop} style={{
           position: 'fixed', inset: 0, zIndex: 300, background: '#000b',

@@ -428,7 +428,11 @@ export default function Admin() {
 
       {tab === 'board' && (<>
       <div className="adm-sec card">
-        <h3>公告管理</h3>
+        <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+          <h3 style={{ margin: 0 }}>公告管理</h3>
+          <button className="mini" style={{ border: '1px solid #ffd47988', color: '#ffd479' }}
+            onClick={() => { location.hash = '#/admin-v2'; }}>测试版</button>
+        </div>
         <p className="priv-note" style={{ margin: '0 0 8px' }}>公告只有管理员能发布，会置顶显示在公告板最上面，普通成员只能看和留言。</p>
         <textarea value={noticeText} onChange={e => setNoticeText(e.target.value)} rows={3} maxLength={500}
           placeholder="写公告…" style={{ width: '100%' }} />

@@ -34,8 +34,12 @@ a{color:var(--a)}
     border:1px solid #ffffff2e;border-radius:999px;
     box-shadow:0 14px 44px #000c,inset 0 1px 0 #ffffff2b;
   }
+  .tabbar{
+    overflow-x:auto;scrollbar-width:none;
+  }
+  .tabbar::-webkit-scrollbar{display:none}
   .tabbar a{
-    flex:1;display:flex;align-items:center;justify-content:center;
+    flex:0 0 auto;display:flex;align-items:center;justify-content:center;
     padding:9px 13px;border-radius:999px;
     color:var(--mut);text-decoration:none;font-size:13px;white-space:nowrap;
     transition:background .2s,color .2s;

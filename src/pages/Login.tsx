@@ -8,7 +8,7 @@ import bgDefault from '../assets/cow.jpg';
 const BG_KEY = 'ca_login_bg_v2';
 const DEFAULT_BG = bgDefault; // 默认壁纸（纯牛马）
 
-// 登录标识可以是：QQ 邮箱 / 用户名 / 真实姓名
+// 登录标识可以是：QQ 邮箱 / 用户名
 async function resolveEmail(ident: string): Promise<string> {
   const id = ident.trim();
   if (!id) throw new Error('empty');
@@ -71,7 +71,7 @@ export default function Login() {
         setVerifyEmail(em); setCode(''); setResendIn(0); setErr(''); setBusy(false);
         return;
       }
-      setErr(e?.message === 'notfound' ? '找不到这个账号，请检查用户名 / 真实姓名 / QQ 邮箱是否正确'
+      setErr(e?.message === 'notfound' ? '找不到这个账号，请检查用户名 / QQ 邮箱是否正确'
         : e?.message === 'empty' ? '请输入登录账号'
         : /Invalid login credentials/i.test(m) ? '账号或密码错误'
         : '登录失败：' + (m || '网络错误'));
@@ -198,7 +198,7 @@ export default function Login() {
             <p className="login-switch"><button onClick={() => { setVerifyEmail(null); setCode(''); setErr(''); }}>← 返回</button></p>
           </>) : mode === 'login' ? (<>
             <label>账号</label>
-            <input value={ident} onChange={e => setIdent(e.target.value)} placeholder="QQ 邮箱 / 用户名 / 真实姓名" autoComplete="username" />
+            <input value={ident} onChange={e => setIdent(e.target.value)} placeholder="QQ 邮箱 / 用户名" autoComplete="username" />
             <label>密码</label>
             <input type="password" value={pw} onChange={e => setPw(e.target.value)} placeholder="密码" autoComplete="current-password"
               onKeyDown={e => e.key === 'Enter' && doLogin()} />

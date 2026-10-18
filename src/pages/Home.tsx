@@ -46,7 +46,7 @@ export default function Home() {
       });
       const nowIso = new Date().toISOString();
       const [n, p, m, e, w] = await Promise.all([
-        supabase.from('board_messages').select('id, content, created_at')
+        supabase.from('board_messages').select('id, title, content, created_at')
           .eq('is_admin_msg', true).is('deleted_at', null)
           .or(`expires_at.is.null,expires_at.gt.${nowIso}`)
           .order('is_pinned', { ascending: false }).order('created_at', { ascending: false }).limit(3),
@@ -132,7 +132,7 @@ export default function Home() {
           </div>
           {notices.map(n => (
             <div key={n.id} onClick={() => setAnnPop(n)} style={{ fontSize: 13.5, padding: '7px 0', borderBottom: '1px solid #ffffff0c', cursor: 'pointer' }}>
-              {(n.content || '').slice(0, 60)}
+              {n.title && <b style={{ color: '#fff' }}>{n.title} </b>}{(n.content || '').slice(0, 60)}
               <div style={{ color: 'var(--mut)', fontSize: 11.5 }}>{timeAgo(n.created_at)}</div>
             </div>
           ))}
@@ -214,7 +214,7 @@ export default function Home() {
             padding: 18, position: 'relative',
           }}>
             <div className="row" style={{ justifyContent: 'space-between', marginBottom: 10 }}>
-              <b style={{ fontSize: 15 }}>班级公告</b>
+              <b style={{ fontSize: 15 }}>{annPop.title || '班级公告'}</b>
               <button className="mini ghost" onClick={() => setAnnPop(null)}>关闭</button>
             </div>
             {annPop.is_pinned && <span style={{

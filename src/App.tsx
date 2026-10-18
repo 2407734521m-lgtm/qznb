@@ -17,6 +17,7 @@ import Discover from './pages/Discover';
 import Friends from './pages/Friends';
 import Chat from './pages/Chat';
 import Admin from './pages/Admin';
+import ErrorBoundary from './components/ErrorBoundary';
 import AdminLogin from './pages/AdminLogin';
 import Board from './pages/Board';
 
@@ -101,7 +102,7 @@ function AdminRoute() {
   }, [session]);
   if (loading || (session && role === null)) return <div className="center" style={{ minHeight: '60vh' }}>加载中…</div>;
   const isAdmin = role === 'admin' || role === 'super_admin';
-  return isAdmin ? <Admin /> : <AdminLogin />;
+  return isAdmin ? <ErrorBoundary><Admin /></ErrorBoundary> : <AdminLogin />;
 }
 
 // 密码重置：从重置邮件点链接回来（URL 带 code），在这里设置新密码
@@ -291,7 +292,7 @@ function Shell() {
           {isAdmin && <NavLink to="/admin" className={loc.pathname === '/admin' ? 'on' : ''}>管理后台</NavLink>}
         </span>
         <span className="sp" />
-        {isAdmin && <a href="#/admin" title="管理后台" className="mob-admin" style={{ textDecoration: 'none', marginRight: 4 }}>⚙️</a>}
+        {isAdmin && <a href="#/admin" title="管理后台" className="mob-admin" style={{ textDecoration: 'none', marginRight: 4, fontSize: 13 }}>管理</a>}
         <button onClick={logout} title="退出登录">退出</button>
       </nav>
       )}
@@ -316,7 +317,7 @@ function Shell() {
               <Route path="/timeline" element={<Timeline />} />
               <Route path="/timeline/:uid" element={<Timeline />} />
               <Route path="/me" element={<div className="me-compact"><MyProfile /></div>} />
-              <Route path="/admin" element={<AdminRoute />} />
+              <Route path="/admin" element={<ErrorBoundary><AdminRoute /></ErrorBoundary>} />
               <Route path="*" element={<Navigate to="/members" replace />} />
             </Routes>
           </motion.div>

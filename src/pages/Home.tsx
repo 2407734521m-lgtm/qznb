@@ -34,6 +34,7 @@ export default function Home() {
   const [events, setEvents] = useState<any[]>([]);
   const [wishes, setWishes] = useState<any[]>([]);
   const [names, setNames] = useState<Record<string, string>>({});
+  const [annPop, setAnnPop] = useState<any>(null);
 
   useEffect(() => {
     (async () => {
@@ -129,7 +130,7 @@ export default function Home() {
             <button className="mini ghost" onClick={() => nav('/board')}>全部</button>
           </div>
           {notices.map(n => (
-            <div key={n.id} style={{ fontSize: 13.5, padding: '7px 0', borderBottom: '1px solid #ffffff0c' }}>
+            <div key={n.id} onClick={() => setAnnPop(n)} style={{ fontSize: 13.5, padding: '7px 0', borderBottom: '1px solid #ffffff0c', cursor: 'pointer' }}>
               {(n.content || '').slice(0, 60)}
               <div style={{ color: 'var(--mut)', fontSize: 11.5 }}>{timeAgo(n.created_at)}</div>
             </div>
@@ -198,6 +199,32 @@ export default function Home() {
               {(w.content || '').slice(0, 80)}
             </div>
           ))}
+        </div>
+      )}
+      {/* 公告弹窗 */}
+      {annPop && (
+        <div onClick={() => setAnnPop(null)} style={{
+          position: 'fixed', inset: 0, zIndex: 200, background: '#000a',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20,
+          backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)',
+        }}>
+          <div onClick={e => e.stopPropagation()} style={{
+            ...card, width: '100%', maxWidth: 420, maxHeight: '70vh', overflowY: 'auto',
+            padding: 18, position: 'relative',
+          }}>
+            <div className="row" style={{ justifyContent: 'space-between', marginBottom: 10 }}>
+              <b style={{ fontSize: 15 }}>班级公告</b>
+              <button className="mini ghost" onClick={() => setAnnPop(null)}>关闭</button>
+            </div>
+            {annPop.is_pinned && <span style={{
+              fontSize: 11, color: '#ffd98a', border: '1px solid #ffd98a55',
+              borderRadius: 999, padding: '2px 8px', display: 'inline-block', marginBottom: 8,
+            }}>📌 置顶</span>}
+            <div style={{ fontSize: 14, lineHeight: 1.7, whiteSpace: 'pre-wrap', color: '#fff' }}>
+              {annPop.content}
+            </div>
+            <div style={{ color: 'var(--mut)', fontSize: 11.5, marginTop: 12 }}>{timeAgo(annPop.created_at)}</div>
+          </div>
         </div>
       )}
     </div>

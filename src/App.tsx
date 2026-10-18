@@ -17,6 +17,7 @@ import Discover from './pages/Discover';
 import Friends from './pages/Friends';
 import Chat from './pages/Chat';
 import Admin from './pages/Admin';
+import AdminV2 from './pages/AdminV2';
 import ErrorBoundary from './components/ErrorBoundary';
 import AdminLogin from './pages/AdminLogin';
 import Board from './pages/Board';
@@ -91,6 +92,20 @@ function TestSwitchFab() {
 }
 
 // /admin 路由守卫：已是管理员直接进后台，否则显示独立的管理员登录页
+function AdminV2Route() {
+  const { session, loading } = useAuth();
+  const [role, setRole] = useState<string | null>(null);
+  useEffect(() => {
+    if (!session) { setRole(null); return; }
+    let live = true;
+    supabase.rpc('my_role').then(({ data }) => { if (live) setRole(data ?? ''); });
+    return () => { live = false; };
+  }, [session]);
+  if (loading || (session && role === null)) return <div className="center" style={{ minHeight: '60vh' }}>加载中…</div>;
+  const isAdmin = role === 'admin' || role === 'super_admin';
+  return isAdmin ? <ErrorBoundary><AdminV2 /></ErrorBoundary> : <AdminLogin />;
+}
+
 function AdminRoute() {
   const { session, loading } = useAuth();
   const [role, setRole] = useState<string | null>(null);
@@ -149,7 +164,7 @@ function Shell() {
   const loc = useLocation();
   const reduce = useReducedMotion();
   const isAdmin = role === 'admin' || role === 'super_admin';
-  const isAdminPage = loc.pathname === '/admin';
+  const isAdminPage = loc.pathname === '/admin' || loc.pathname === '/admin-v2';
   const nav = useNavigate();
   const touchX = useRef<number | null>(null);
   const barRef = useRef<HTMLElement>(null);
@@ -359,6 +374,7 @@ function Shell() {
               <Route path="/timeline/:uid" element={<Timeline />} />
               <Route path="/me" element={<div className="me-compact"><MyProfile /></div>} />
               <Route path="/admin" element={<ErrorBoundary><AdminRoute /></ErrorBoundary>} />
+              <Route path="/admin-v2" element={<ErrorBoundary><AdminV2Route /></ErrorBoundary>} />
               <Route path="*" element={<Navigate to="/members" replace />} />
             </Routes>
           </motion.div>

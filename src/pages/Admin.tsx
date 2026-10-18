@@ -59,6 +59,7 @@ export default function Admin() {
   const [editId, setEditId] = useState<string | null>(null); // 正在编辑资料的成员
   const [editForm, setEditForm] = useState({ display_name: '', real_name: '', signature: '' });
   const [batchBusy, setBatchBusy] = useState(false);
+  const [tab, setTab] = useState('overview'); // 当前板块：必须放在提前返回之前，否则 hook 数量变化会崩（React #310）
 
   useEffect(() => { supabase.rpc('my_role').then(({ data }) => setRole(data ?? '')); }, []);
 
@@ -350,7 +351,6 @@ export default function Admin() {
     ...(isSuper ? [['test', '测试'] as [string, string]] : []),
     ['logs', '日志'],
   ];
-  const [tab, setTab] = useState('overview');
   function switchTab(id: string) { setTab(id); window.scrollTo({ top: 0 }); }
 
   return (

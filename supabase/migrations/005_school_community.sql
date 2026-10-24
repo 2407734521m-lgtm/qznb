@@ -184,7 +184,7 @@ $$;
 
 create or replace function public.can_manage_school(target_school uuid)
 returns boolean language sql stable security definer set search_path = public as $$
-  select public.my_role() in ('admin','super_admin') or exists (
+  select coalesce(public.my_role() in ('admin','super_admin'), false) or exists (
     select 1 from public.school_memberships sm
     where sm.school_id = target_school and sm.profile_id = auth.uid()
       and sm.status = 'active' and sm.role in ('owner','school_admin')
@@ -193,7 +193,7 @@ $$;
 
 create or replace function public.can_manage_class(target_class uuid)
 returns boolean language sql stable security definer set search_path = public as $$
-  select public.my_role() in ('admin','super_admin') or exists (
+  select coalesce(public.my_role() in ('admin','super_admin'), false) or exists (
     select 1 from public.class_memberships cm
     where cm.class_id = target_class and cm.profile_id = auth.uid()
       and cm.status = 'active' and cm.role = 'class_admin'
@@ -210,7 +210,7 @@ create or replace function public.create_school(p_name text, p_slug text, p_desc
 returns uuid language plpgsql security definer set search_path = public as $
 declare school_id_value uuid;
 begin
-  if auth.uid() is null or public.my_role() not in ('admin','super_admin') then
+  if auth.uid() is null or coalesce(public.my_role(), '') not in ('admin','super_admin') then
     raise exception 'forbidden';
   end if;
   insert into public.schools(name, slug, description, created_by)
@@ -248,7 +248,7 @@ create or replace function public.create_class_invite(
 language plpgsql security definer set search_path = public, extensions as $$
 declare new_id uuid;
 begin
-  if auth.uid() is null or not public.can_manage_class(p_class_id) then raise exception 'forbidden'; end if;
+  if auth.uid() is null or not coalesce(public.can_manage_class(p_class_id), false) then raise exception 'forbidden'; end if;
   if p_code is null or char_length(trim(p_code)) < 6 or char_length(trim(p_code)) > 80 then
     raise exception 'invalid invite code';
   end if;
@@ -317,7 +317,7 @@ $$;
 create or replace function public.set_school_admin(p_school_id uuid, p_profile_id uuid, p_make_admin boolean)
 returns void language plpgsql security definer set search_path = public as $
 begin
-  if auth.uid() is null or public.my_role() <> 'super_admin' then raise exception 'forbidden'; end if;
+  if auth.uid() is null or coalesce(public.my_role(), '') <> 'super_admin' then raise exception 'forbidden'; end if;
   if not exists (select 1 from public.school_memberships
       where school_id = p_school_id and profile_id = p_profile_id and status = 'active') then
     raise exception 'target must be an active school member';
@@ -335,7 +335,7 @@ declare school_id_value uuid;
 begin
   if auth.uid() is null then raise exception 'not authenticated'; end if;
   select school_id into school_id_value from public.classes where id = p_class_id;
-  if school_id_value is null or not public.can_manage_school(school_id_value) then raise exception 'forbidden'; end if;
+  if school_id_value is null or not coalesce(public.can_manage_school(school_id_value), false) then raise exception 'forbidden'; end if;
   update public.class_memberships
   set role = case when p_make_admin then 'class_admin' else 'member' end
   where class_id = p_class_id and profile_id = p_profile_id and status = 'active';

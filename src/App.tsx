@@ -38,9 +38,9 @@ import Explore from './pages/Explore';
 
 const TABS = [
   { to: '/home', label: '首页', ic: '🏠' },
-  { to: '/members', label: '班级', ic: '👥' },
-  { to: '/explore', label: '互动', ic: '✦' },
-  { to: '/timeline', label: '回忆', ic: '🌟' },
+  { to: '/members', label: '档案', ic: '👥' },
+  { to: '/explore', label: '发现', ic: '✦' },
+  { to: '/timeline', label: '时光', ic: '🌟' },
   { to: '/me', label: '我的', ic: '🙂' },
 ];
 
@@ -148,7 +148,7 @@ function ResetPassword({ onDone }: { onDone: () => void }) {
         <p className="sub">设 置 新 密 码</p>
         {ok ? (<>
           <p className="priv-note">✓ 密码已重置，下次用新密码登录</p>
-          <button className="pri" onClick={onDone}>进入班级</button>
+          <button className="pri" onClick={onDone}>进入青春档案</button>
         </>) : (<>
           <label>新密码</label>
           <input type="password" value={pw} onChange={e => setPw(e.target.value)} placeholder="至少 8 位"
@@ -369,7 +369,7 @@ function Shell() {
             exit={reduce ? { opacity: 0 } : { opacity: 0, y: -10 }}
             transition={{ duration: reduce ? 0.12 : 0.28, ease: [0.22, 1, 0.36, 1] }}>
             <Routes location={loc}>
-              <Route path="/" element={<Navigate to="/members" replace />} />
+              <Route path="/" element={<Navigate to="/home" replace />} />
               <Route path="/board" element={<Board />} />
               <Route path="/explore" element={<Explore />} />
               <Route path="/love-wall" element={<LoveWall />} />
@@ -432,7 +432,7 @@ function Shell() {
             background: 'linear-gradient(160deg,#1a2140,#0e1428)',
             border: '1px solid #5b8cff44', boxShadow: '0 20px 60px #000d',
           }}>
-            <div style={{ fontSize: 11, color: '#8b93b0', marginBottom: 6 }}>班级公告</div>
+            <div style={{ fontSize: 11, color: '#8b93b0', marginBottom: 6 }}>校园公告</div>
             {loginPop.title && <div style={{ fontSize: 16, fontWeight: 800, color: '#fff', marginBottom: 8 }}>{loginPop.title}</div>}
             <div style={{ fontSize: 15, lineHeight: 1.8, whiteSpace: 'pre-wrap', color: '#fff' }}>{loginPop.content}</div>
             <div style={{ color: 'var(--mut)', fontSize: 11.5, marginTop: 10 }}>

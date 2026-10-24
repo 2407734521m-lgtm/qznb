@@ -205,6 +205,42 @@ returns boolean language sql stable security definer set search_path = public as
   )
 $$;
 
+-- School and class creation are server-validated; client roles cannot self-assign admin rights.
+create or replace function public.create_school(p_name text, p_slug text, p_description text default null)
+returns uuid language plpgsql security definer set search_path = public as $
+declare school_id_value uuid;
+begin
+  if auth.uid() is null or public.my_role() not in ('admin','super_admin') then
+    raise exception 'forbidden';
+  end if;
+  insert into public.schools(name, slug, description, created_by)
+  values (trim(p_name), lower(trim(p_slug)), nullif(trim(p_description), ''), auth.uid())
+  returning id into school_id_value;
+  insert into public.school_memberships(school_id, profile_id, role, status)
+  values (school_id_value, auth.uid(), 'owner', 'active')
+  on conflict (school_id, profile_id) do update set role = 'owner', status = 'active';
+  return school_id_value;
+end;
+$;
+
+create or replace function public.create_class(
+  p_school_id uuid, p_name text, p_grade_id uuid default null, p_description text default null
+) returns uuid language plpgsql security definer set search_path = public as $
+declare class_id_value uuid;
+begin
+  if auth.uid() is null or not public.can_manage_school(p_school_id) then
+    raise exception 'forbidden';
+  end if;
+  if p_grade_id is not null and not exists (
+    select 1 from public.grades g where g.id = p_grade_id and g.school_id = p_school_id
+  ) then raise exception 'grade does not belong to this school'; end if;
+  insert into public.classes(school_id, grade_id, name, description, created_by)
+  values (p_school_id, p_grade_id, trim(p_name), nullif(trim(p_description), ''), auth.uid())
+  returning id into class_id_value;
+  return class_id_value;
+end;
+$;
+
 -- Invitations are created through a manager-only RPC; raw codes are never stored.
 create or replace function public.create_class_invite(
   p_class_id uuid, p_code text, p_expires_at timestamptz default null, p_max_uses integer default null
@@ -376,11 +412,13 @@ create policy p_del on public.posts for delete to authenticated
 
 revoke all on function public.is_school_member(uuid), public.is_class_member(uuid),
   public.can_manage_school(uuid), public.can_manage_class(uuid),
+  public.create_school(text,text,text), public.create_class(uuid,text,uuid,text),
   public.create_class_invite(uuid,text,timestamptz,integer),
   public.request_class_join(text,text), public.review_class_join(uuid,boolean)
   from public, anon;
 grant execute on function public.is_school_member(uuid), public.is_class_member(uuid),
   public.can_manage_school(uuid), public.can_manage_class(uuid),
+  public.create_school(text,text,text), public.create_class(uuid,text,uuid,text),
   public.create_class_invite(uuid,text,timestamptz,integer),
   public.request_class_join(text,text), public.review_class_join(uuid,boolean)
   to authenticated;

@@ -33,15 +33,14 @@ import ErrorBoundary from './components/ErrorBoundary';
 import AdminLogin from './pages/AdminLogin';
 import Board from './pages/Board';
 import HotSnippets from './pages/HotSnippets';
+import LoveWall from './pages/LoveWall';
+import Explore from './pages/Explore';
 
 const TABS = [
   { to: '/home', label: '首页', ic: '🏠' },
-  { to: '/board', label: '公告', ic: '📢' },
-  { to: '/members', label: '成员', ic: '👥' },
-  { to: '/feed', label: '动态', ic: '✨' },
-  { to: '/friends', label: '好友', ic: '💌' },
-  { to: '/timeline', label: '时间线', ic: '🌟' },
-  { to: '/hot', label: '热门特效', ic: '🔥' },
+  { to: '/members', label: '班级', ic: '👥' },
+  { to: '/explore', label: '互动', ic: '✦' },
+  { to: '/timeline', label: '回忆', ic: '🌟' },
   { to: '/me', label: '我的', ic: '🙂' },
 ];
 
@@ -57,11 +56,11 @@ function parseDevice(ua: string): string {
   return '';
 }
 
-function isTabActive(tab: string, path: string) {  if (tab === '/board') return path.startsWith('/board');
+function isTabActive(tab: string, path: string) {
   if (tab === '/members') return path === '/' || path.startsWith('/members');
-  if (tab === '/feed') return path.startsWith('/feed') || path.startsWith('/albums');
-  if (tab === '/friends') return path.startsWith('/friends') || path.startsWith('/chat');
+  if (tab === '/explore') return ['/explore','/board','/feed','/albums','/friends','/chat','/hot','/greetings','/events','/capsule','/wishes','/love-wall'].some(p => path.startsWith(p));
   if (tab === '/timeline') return path.startsWith('/timeline');
+  if (tab === '/me') return path.startsWith('/me');
   return path === tab;
 }
 
@@ -374,6 +373,8 @@ function Shell() {
             <Routes location={loc}>
               <Route path="/" element={<Navigate to="/members" replace />} />
               <Route path="/board" element={<Board />} />
+              <Route path="/explore" element={<Explore />} />
+              <Route path="/love-wall" element={<LoveWall />} />
               <Route path="/members" element={<Members />} />
               <Route path="/members/:id" element={<Member />} />
               <Route path="/feed" element={<Discover />} />
@@ -411,7 +412,7 @@ function Shell() {
             <NavLink key={t.to} to={t.to} className={on ? 'on' : ''}
               ref={on ? (el: any) => { if (el) el.scrollIntoView({ inline: 'center', block: 'nearest' }); } : undefined}>
               <span style={{ position: 'relative', zIndex: 1 }}>{t.label}
-                {((t.to === '/board' && boardUnread) || (t.to === '/me' && notifUnread)) && <span style={{
+                {((t.to === '/explore' && boardUnread) || (t.to === '/me' && notifUnread)) && <span style={{
                   position: 'absolute', top: -2, right: -10, width: 8, height: 8,
                   borderRadius: '50%', background: '#ff4d4f',
                   boxShadow: '0 0 6px #ff4d4f' }} />}</span>

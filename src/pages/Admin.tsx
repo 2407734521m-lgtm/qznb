@@ -146,12 +146,12 @@ export default function Admin() {
   if (!role) return <div className="center" style={{ minHeight: '60vh' }}>加载中…</div>;
 
   return (
-    <div className="page" style={{
+    <div className="page admin-shell" style={{
       background: '#0a0f1e', minHeight: '100vh',
       margin: '-14px calc(-14px - env(safe-area-inset-right)) 0 calc(-14px - env(safe-area-inset-left))',
       padding: '14px 14px 110px',
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+      <div className="admin-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <div style={{
             width: 34, height: 34, borderRadius: 10, flexShrink: 0,
@@ -172,7 +172,7 @@ export default function Admin() {
         </span>
       </div>
 
-      <form onSubmit={e => { e.preventDefault(); switchTab('members'); }} style={{ marginBottom: 12 }}>
+      <form className="admin-search" onSubmit={e => { e.preventDefault(); switchTab('members'); }} style={{ marginBottom: 12 }}>
         <input value={q0} onChange={e => setQ0(e.target.value)} placeholder="搜索成员姓名 / 用户名…"
           style={{
             width: '100%', boxSizing: 'border-box', background: '#ffffff0d',
@@ -196,7 +196,7 @@ export default function Admin() {
       {tab === 'test' && isSuper && <TestTab setMsg={setMsg} />}
 
       {/* 底部 dock */}
-      <div style={{
+      <div className="admin-dock" style={{
         position: 'fixed', left: '50%', transform: 'translateX(-50%)', zIndex: 60,
         bottom: 'calc(14px + env(safe-area-inset-bottom))',
         width: 'max-content', maxWidth: 'calc(100vw - 28px)',

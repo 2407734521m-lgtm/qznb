@@ -16,16 +16,63 @@
 .admin-shell .admin-content button.danger{border-radius:10px}
 .admin-shell .admin-dock button{transition:background .2s ease,color .2s ease,transform .2s ease}
 .admin-shell .admin-dock button[aria-current="page"]{box-shadow:0 4px 16px rgba(91,140,255,.28)}
-@media(hover:hover){
- .admin-shell button:not(:disabled):hover{filter:brightness(1.1)}
- .admin-shell .admin-content button.mini:hover{transform:translateY(-1px)}
+@media(hover:hover){.admin-shell button:not(:disabled):hover{filter:brightness(1.1)}.admin-shell .admin-content button.mini:hover{transform:translateY(-1px)}}
+@media(max-width:520px){.admin-shell .admin-content{padding-bottom:8px}.admin-shell .admin-content input,.admin-shell .admin-content textarea,.admin-shell .admin-content select{font-size:16px}.admin-shell .admin-content .row>*{max-width:100%;min-width:0}}
+@media(prefers-reduced-motion:reduce){.admin-content,.admin-shell button{animation:none!important;transition:none!important}.admin-shell button:not(:disabled):active{transform:none}}
+
+.admin-shell{
+  color:#172033!important;
+  background:linear-gradient(180deg,#f7f8fc 0%,#eef2f8 100%)!important;
 }
+.admin-shell .admin-header{border-bottom:1px solid #e1e6ef!important;padding:12px 2px 16px!important}
+.admin-shell .admin-header>div>div:first-child{background:linear-gradient(145deg,#2563eb,#7c3aed)!important;box-shadow:0 6px 16px #4f46e533}
+.admin-shell .admin-header>div>div>div:first-child{color:#111827!important}
+.admin-shell .admin-header>div>div>div:nth-child(2){color:#6b7280!important}
+.admin-shell .admin-header>span{color:#1d4ed8!important;background:#dbeafe!important;border:1px solid #bfdbfe!important}
+.admin-shell .admin-search{top:8px!important}
+.admin-shell .admin-search input{
+  background:rgba(255,255,255,.92)!important;color:#111827!important;
+  border:1px solid #dbe2ee!important;border-radius:16px!important;
+  box-shadow:0 4px 16px rgba(30,41,59,.045);backdrop-filter:blur(16px);
+}
+.admin-shell .admin-search input::placeholder{color:#8b95a7!important}
+.admin-shell .admin-content{color:#172033!important}
+.admin-shell .admin-content [style*="linear-gradient(160deg"]{
+  background:rgba(255,255,255,.96)!important;color:#172033!important;
+  border:1px solid #e3e8f1!important;box-shadow:0 6px 22px rgba(15,23,42,.055)!important;
+}
+.admin-shell .admin-content [style*="background: rgb(19, 26, 48)"],
+.admin-shell .admin-content [style*="background: linear-gradient(160deg"]{color:#172033!important}
+.admin-shell .admin-content [style*="color: var(--mut)"],
+.admin-shell .admin-content [style*="color: rgb(139, 147, 176)"]{color:#697386!important}
+.admin-shell .admin-content input,.admin-shell .admin-content textarea,.admin-shell .admin-content select{
+  color:#172033!important;background:#fff!important;border:1px solid #d9e0eb!important;
+}
+.admin-shell .admin-content button.pri{
+  background:linear-gradient(135deg,#2563eb,#6d5ce8)!important;color:#fff!important;
+  box-shadow:0 5px 14px rgba(59,91,219,.18)
+}
+.admin-shell .admin-content button.mini,.admin-shell .admin-content button.ghost{
+  background:#f1f5f9!important;color:#334155!important;border:1px solid #dce3ed!important
+}
+.admin-shell .admin-content button.danger{background:#fff1f2!important;color:#be123c!important;border:1px solid #fecdd3!important}
+.admin-shell .admin-dock{
+  background:rgba(255,255,255,.9)!important;border:1px solid #dce3ee!important;
+  box-shadow:0 12px 38px rgba(15,23,42,.13),inset 0 1px 0 #fff!important;
+  backdrop-filter:blur(24px) saturate(160%)!important
+}
+.admin-shell .admin-dock button{color:#64748b!important}
+.admin-shell .admin-dock button[aria-current="page"]{background:#e8efff!important;color:#1d4ed8!important;box-shadow:none!important}
+.admin-shell .priv-note{background:#eff6ff!important;color:#1e40af!important;border:1px solid #dbeafe!important;border-radius:12px;padding:10px 12px}
+.admin-shell .center{color:#475569!important}
+.admin-shell .admin-content [style*="border-top: 1px solid"]{border-top-color:#e8edf4!important}
+.admin-shell .admin-content svg text{fill:#334155!important}
+.admin-shell .admin-content svg circle[fill="#232b45"]{stroke:#e2e8f0!important}
+.admin-shell .admin-content svg path{max-width:100%}
+.admin-shell [role="dialog"],.admin-shell .card{color:#172033}
 @media(max-width:520px){
- .admin-shell .admin-content{padding-bottom:8px}
- .admin-shell .admin-content input,.admin-shell .admin-content textarea,.admin-shell .admin-content select{font-size:16px}
- .admin-shell .admin-content .row>*{max-width:100%;min-width:0}
+ .admin-shell{padding-left:12px!important;padding-right:12px!important}
+ .admin-shell .admin-header{align-items:center!important}
+ .admin-shell .admin-dock{border-radius:18px!important}
 }
-@media(prefers-reduced-motion:reduce){
- .admin-content,.admin-shell button{animation:none!important;transition:none!important}
- .admin-shell button:not(:disabled):active{transform:none}
-}
+@media(prefers-reduced-motion:reduce){.admin-shell *{animation:none!important;transition:none!important}}

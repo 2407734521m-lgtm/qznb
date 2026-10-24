@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useSignedUrl, uploadMedia } from '../lib/media';
+import { withRetry } from '../lib/retry';
 import { useAuth } from '../auth';
 import AvatarCropper from '../components/AvatarCropper';
 import FeedbackModal from '../components/FeedbackModal';
@@ -167,11 +168,11 @@ export default function MyProfile() {
       savingRef.current = false; setSaveState('idle'); setMsg('年龄需在 5–120 之间'); return;
     }
     const r = await Promise.all([
-      supabase.from('profiles').update({ display_name: n(v.display_name), age: age ? Number(age) : null,
+      withRetry(() => supabase.from('profiles').update({ display_name: n(v.display_name), age: age ? Number(age) : null,
         personality: n(v.personality), signature: n(v.signature), bio: n(v.bio), hobbies: n(v.hobbies),
-        theme: { theme, layout } }).eq('id', uid),
-      supabase.from('profile_privacy').update(Object.fromEntries(Object.keys(priv).filter(k => k.startsWith('show_')).map(k => [k, !!priv[k]]))).eq('profile_id', uid),
-      supabase.from('profile_contacts').upsert({ profile_id: uid, contact: n(v.contact), social: n(v.social) }, { onConflict: 'profile_id' })]);
+        theme: { theme, layout } }).eq('id', uid)),
+      withRetry(() => supabase.from('profile_privacy').update(Object.fromEntries(Object.keys(priv).filter(k => k.startsWith('show_')).map(k => [k, !!priv[k]]))).eq('profile_id', uid)),
+      withRetry(() => supabase.from('profile_contacts').upsert({ profile_id: uid, contact: n(v.contact), social: n(v.social) }, { onConflict: 'profile_id' }))]);
     savingRef.current = false;
     const err = r.find(x => x.error);
     if (err) { setSaveState('error'); setMsg('保存失败：' + err.error!.message); }
@@ -221,9 +222,9 @@ export default function MyProfile() {
   async function uploadCropped(blob: Blob) {
     closeCrop(); setMsg('头像上传中…');
     const path = `${uid}/${crypto.randomUUID()}.jpg`;
-    const up = await supabase.storage.from('avatars').upload(path, blob, { contentType: 'image/jpeg' });
+    const up = await withRetry(() => supabase.storage.from('avatars').upload(path, blob, { contentType: 'image/jpeg' }));
     if (up.error) return setMsg('上传失败：' + up.error.message);
-    const { error } = await supabase.from('profiles').update({ avatar_path: path }).eq('id', uid);
+    const { error } = await withRetry(() => supabase.from('profiles').update({ avatar_path: path }).eq('id', uid));
     if (error) return setMsg('保存失败：' + error.message);
     if (avatar) await supabase.storage.from('avatars').remove([avatar]);
     setAvatar(path); setMsg('照片已更新 ✓');

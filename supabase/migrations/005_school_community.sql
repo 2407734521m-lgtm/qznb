@@ -388,7 +388,7 @@ create policy classes_manage on public.classes for all to authenticated
 
 drop policy if exists class_memberships_sel on public.class_memberships;
 create policy class_memberships_sel on public.class_memberships for select to authenticated
-  using (profile_id = auth.uid() or public.can_manage_class(class_id));
+  using (profile_id = auth.uid() or public.is_class_member(class_id) or public.can_manage_class(class_id));
 drop policy if exists class_invites_sel on public.class_invites;
 create policy class_invites_sel on public.class_invites for select to authenticated
   using (public.can_manage_class(class_id));

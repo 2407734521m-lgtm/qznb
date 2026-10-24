@@ -184,7 +184,7 @@ $$;
 
 create or replace function public.can_manage_school(target_school uuid)
 returns boolean language sql stable security definer set search_path = public as $$
-  select public.my_role() = 'super_admin' or exists (
+  select public.my_role() in ('admin','super_admin') or exists (
     select 1 from public.school_memberships sm
     where sm.school_id = target_school and sm.profile_id = auth.uid()
       and sm.status = 'active' and sm.role in ('owner','school_admin')

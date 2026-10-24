@@ -25,7 +25,7 @@ function Card({ m, i, badge, onOpen }: { m: M; i: number; badge?: string; onOpen
   const reduce = useReducedMotion();
   const url = useSignedUrl('avatars', m.avatar_path);
   const ref = useRef<HTMLDivElement>(null);
-  const name = m.display_name ?? m.username;
+  const name = m.display_name || m.username || '暂未填写';
   return (
     <motion.div ref={ref} className="mcard" data-member={m.id}
       initial={reduce ? {} : { opacity: 0, y: 26 }}

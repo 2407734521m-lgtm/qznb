@@ -152,7 +152,8 @@ create table if not exists public.topics (
   description text check (description is null or char_length(description) <= 300),
   created_by uuid references public.profiles(id) on delete set null,
   created_at timestamptz not null default now(),
-  unique (school_id, slug)
+  unique (school_id, slug),
+  unique (id, school_id)
 );
 
 alter table public.posts add column if not exists school_id uuid references public.schools(id) on delete cascade;
@@ -169,6 +170,18 @@ begin
       check (class_id is null or school_id is not null) not valid;
   end if;
 end $;
+do $
+begin
+  if not exists (
+    select 1 from pg_constraint
+    where conname = 'posts_topic_matches_school'
+      and conrelid = 'public.posts'::regclass
+  ) then
+    alter table public.posts add constraint posts_topic_matches_school
+      foreign key (topic_id, school_id) references public.topics(id, school_id) on delete restrict not valid;
+  end if;
+end $;
+
 create index if not exists posts_school_created_idx on public.posts(school_id, created_at desc);
 create index if not exists posts_class_created_idx on public.posts(class_id, created_at desc);
 create index if not exists class_memberships_profile_status_idx on public.class_memberships(profile_id, status);
@@ -370,8 +383,8 @@ revoke all on public.schools, public.school_memberships, public.grades, public.c
   public.class_memberships, public.class_invites, public.class_join_requests, public.topics from anon, authenticated;
 grant select on public.schools, public.grades, public.classes, public.class_memberships, public.class_join_requests, public.topics to authenticated;
 grant select on public.school_memberships to authenticated;
-grant update, delete on public.schools to authenticated;
-grant insert, update, delete on public.grades, public.classes, public.topics to authenticated;
+grant update on public.schools to authenticated;
+grant insert, update on public.grades, public.classes, public.topics to authenticated;
 grant select, insert, update, delete on public.posts to authenticated;
 
 drop policy if exists schools_sel on public.schools;

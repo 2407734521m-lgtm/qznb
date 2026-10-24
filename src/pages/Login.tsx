@@ -8,6 +8,16 @@ import bgDefault from '../assets/cow.jpg';
 const BG_KEY = 'ca_login_bg_v2';
 const DEFAULT_BG = bgDefault; // 默认壁纸（纯牛马）
 
+// 按钮里的加载小圈圈（等待动画）
+function Spin() {
+  return (
+    <motion.span aria-hidden
+      style={{ display: 'inline-block', width: 13, height: 13, marginRight: 8, borderRadius: '50%', border: '2px solid rgba(255,255,255,.35)', borderTopColor: '#fff', verticalAlign: -2 }}
+      animate={{ rotate: 360 }}
+      transition={{ repeat: Infinity, duration: 0.7, ease: 'linear' }} />
+  );
+}
+
 // 登录标识可以是：QQ 邮箱 / 用户名
 async function resolveEmail(ident: string): Promise<string> {
   const id = ident.trim();
@@ -35,6 +45,7 @@ export default function Login() {
   const [verifyEmail, setVerifyEmail] = useState<string | null>(null);
   const [code, setCode] = useState('');
   const [resendIn, setResendIn] = useState(0);
+  const [waitSec, setWaitSec] = useState(0); // 验证屏已等待秒数
   const [invite, setInvite] = useState(''); // 注册页邀请码
   const [forgotSent, setForgotSent] = useState(false); // 忘记密码：重置邮件是否已发送
   const [bg, setBg] = useState<string>(() => { try { return localStorage.getItem(BG_KEY) || DEFAULT_BG; } catch { return DEFAULT_BG; } });
@@ -49,6 +60,14 @@ export default function Login() {
     const t = setTimeout(() => setResendIn(v => v - 1), 1000);
     return () => clearTimeout(t);
   }, [resendIn]);
+
+  // 验证屏打开期间，每秒累加已等待时间，让用户心里有数
+  useEffect(() => {
+    if (!verifyEmail) { setWaitSec(0); return; }
+    setWaitSec(0);
+    const t = setInterval(() => setWaitSec(v => v + 1), 1000);
+    return () => clearInterval(t);
+  }, [verifyEmail]);
 
   function pickAvatar(f: File | undefined) {
     if (!f) return;
@@ -93,6 +112,23 @@ export default function Login() {
     if (!up.error) await supabase.from('profiles').update({ avatar_path: path }).eq('id', uid);
   }
 
+  // 注册/验证拿到 session 后补做的事：展示名、头像、用邀请码加入班级
+  // （欢迎动画递给 App 层播，这里播会被登录跳转直接卸载）
+  async function finishJoin(uid: string) {
+    const nm = name.trim();
+    // 注意：username / real_name 由注册触发器写入，列级权限不允许前端直接改，这里只更新展示名
+    if (nm) supabase.from('profiles').update({ display_name: nm }).eq('id', uid).then(() => {});
+    await uploadAvatar(uid);
+    const iv = invite.trim();
+    if (!iv) return;
+    const { data: nick, error: e3 } = await supabase.rpc('join_with_code', { code: iv });
+    if (!e3 && nick !== null && nick !== undefined) {
+      try { sessionStorage.setItem('ca_welcome_nick', (nick as string) || nm); } catch {}
+    } else {
+      try { sessionStorage.setItem('ca_invite_bad', '1'); } catch {}
+    }
+  }
+
   async function doReg() {
     setErr('');
     const nm = name.trim(), rl = real.trim(), em = email.trim();
@@ -109,20 +145,12 @@ export default function Login() {
         options: { data: { username: nm, real_name: rl } },
       });
       if (error) throw error;
-      const uid = data.session?.user?.id || data.user?.id;
-      if (!uid) throw new Error('no session');
-      // 注意：username / real_name 由注册触发器写入，列级权限不允许前端直接改，
-      // 这里只更新展示名
-      supabase.from('profiles').update({ display_name: nm }).eq('id', uid).then(() => {});
-      await uploadAvatar(uid);
-      const iv = invite.trim();
-      // 欢迎动画递给 App 层播（这里播会被登录跳转直接卸载）
-      const { data: nick, error: e3 } = await supabase.rpc('join_with_code', { code: iv });
-      if (!e3 && nick !== null && nick !== undefined) {
-        try { sessionStorage.setItem('ca_welcome_nick', (nick as string) || nm); } catch {}
-      } else {
-        try { sessionStorage.setItem('ca_invite_bad', '1'); } catch {}
+      if (!data.session) {
+        // 邮箱验证已打开：没有 session，先转到验证屏；头像和邀请码加入等验证成功后在 doVerify 里补做
+        setVerifyEmail(em); setCode(''); setResendIn(60);
+        return;
       }
+      await finishJoin(data.session.user.id);
     } catch (e: any) {
       const m = e?.message || '';
       setErr(/already registered|already exists/i.test(m) ? '这个 QQ 邮箱已经注册过，直接登录吧'
@@ -138,7 +166,7 @@ export default function Login() {
     try {
       const { data, error } = await supabase.auth.verifyOtp({ email: verifyEmail, token: c, type: 'signup' });
       if (error) throw error;
-      if (data.session) await uploadAvatar(data.session.user.id);
+      if (data.session) await finishJoin(data.session.user.id);
       setVerifyEmail(null); setCode('');
     } catch (e: any) {
       const m = e?.message || '';
@@ -185,16 +213,30 @@ export default function Login() {
           {verifyEmail ? (<>
             <h1 style={{ fontSize: 22 }}>📧 验证邮箱</h1>
             <p className="sub">注 册 验 证</p>
-            <p className="priv-note" style={{ margin: '0 0 4px' }}>验证码已发送到 <b style={{ color: '#fff' }}>{verifyEmail}</b><br />QQ 邮箱如果没收到，请检查垃圾箱</p>
-            <label>验证码</label>
+            <motion.div aria-hidden
+              animate={reduce ? {} : { y: [0, -7, 0], rotate: [0, -4, 4, 0] }}
+              transition={{ repeat: Infinity, duration: 1.8, ease: 'easeInOut' }}
+              style={{ fontSize: 44, lineHeight: 1.2, margin: '2px 0 6px' }}>✉️</motion.div>
+            <p className="priv-note" style={{ margin: '0 0 4px' }}>确认邮件已发送到 <b style={{ color: '#fff' }}>{verifyEmail}</b><br />
+              打开 QQ 邮箱，点邮件里的 <b style={{ color: '#fff' }}>Confirm email address</b> 按钮完成验证，然后回这里登录<br />
+              邮件标题是英文的，别当垃圾邮件删掉；没看到就翻一下垃圾箱</p>
+            <p className="priv-note" style={{ margin: '0 0 6px' }}>已等待 {waitSec} 秒 · 邮件通常 1 分钟内到达
+              <motion.span animate={reduce ? {} : { opacity: [0.2, 1, 0.2] }} transition={{ repeat: Infinity, duration: 1.2 }}>…</motion.span>
+            </p>
+            <label>邮件里有数字验证码的话，也可以直接输</label>
             <input value={code} onChange={e => setCode(e.target.value.replace(/\D/g, '').slice(0, 10))}
               placeholder="邮箱收到的数字码" inputMode="numeric" autoComplete="one-time-code"
               style={{ letterSpacing: 10, textAlign: 'center', fontSize: 22, fontWeight: 700 }}
               onKeyDown={e => e.key === 'Enter' && doVerify()} />
             {err && <p className="err">{err}</p>}
-            <button className="pri" disabled={busy} onClick={doVerify}>{busy ? '验证中…' : '验证并进入'}</button>
+            <button className="pri" disabled={busy} onClick={doVerify}>{busy ? <><Spin />验证中…</> : '用验证码验证并进入'}</button>
             <button className="ghost" style={{ width: '100%', marginTop: 8 }} disabled={busy || resendIn > 0} onClick={doResend}>
-              {resendIn > 0 ? `重新发送（${resendIn}s）` : '重新发送验证码'}</button>
+              {resendIn > 0 ? `重新发送确认邮件（${resendIn}s）` : '重新发送确认邮件'}</button>
+            {resendIn > 0 && (
+              <div style={{ height: 4, borderRadius: 2, background: 'rgba(255,255,255,.15)', marginTop: 8, overflow: 'hidden' }}>
+                <div style={{ height: '100%', width: `${(resendIn / 60) * 100}%`, background: 'rgba(255,255,255,.65)', transition: 'width 1s linear' }} />
+              </div>
+            )}
             <p className="login-switch"><button onClick={() => { setVerifyEmail(null); setCode(''); setErr(''); }}>← 返回</button></p>
           </>) : mode === 'login' ? (<>
             <label>账号</label>
@@ -203,7 +245,7 @@ export default function Login() {
             <input type="password" value={pw} onChange={e => setPw(e.target.value)} placeholder="密码" autoComplete="current-password"
               onKeyDown={e => e.key === 'Enter' && doLogin()} />
             {err && <p className="err">{err}</p>}
-            <button className="pri" disabled={busy} onClick={doLogin}>{busy ? '登录中…' : '进入班级'}</button>
+            <button className="pri" disabled={busy} onClick={doLogin}>{busy ? <><Spin />登录中…</> : '进入班级'}</button>
             <button className="ghost" style={{ width: '100%', marginTop: 8 }} disabled={busy} onClick={doPasskey}>🔑 使用通行密钥登录</button>
             <p className="login-switch">忘记密码了？<button onClick={() => { setMode('forgot'); setErr(''); setForgotSent(false); }}>点我重置</button></p>
             <p className="login-switch">还没有账号？<button onClick={() => { setMode('reg'); setErr(''); setCode(''); setInvite(''); setForgotSent(false); }}>去注册</button></p>
@@ -218,7 +260,7 @@ export default function Login() {
             {err && <p className="err">{err}</p>}
             {forgotSent
               ? <p className="priv-note">✓ 重置邮件已发送，去邮箱点链接吧<br />（没收到的话去垃圾箱看看）</p>
-              : <button className="pri" disabled={busy} onClick={doForgot}>{busy ? '发送中…' : '发送重置邮件'}</button>}
+              : <button className="pri" disabled={busy} onClick={doForgot}>{busy ? <><Spin />发送中…</> : '发送重置邮件'}</button>}
             <p className="login-switch"><button onClick={() => { setMode('login'); setErr(''); setForgotSent(false); }}>← 返回登录</button></p>
           </>) : (<>
             <label>用户名</label>
@@ -244,7 +286,7 @@ export default function Login() {
             <label>邀请码（必填）</label>
             <input value={invite} onChange={e => setInvite(e.target.value)} placeholder="找管理员要邀请码" />
             {err && <p className="err">{err}</p>}
-            <button className="pri" disabled={busy} onClick={doReg}>{busy ? '注册中…' : '注册并进入'}</button>
+            <button className="pri" disabled={busy} onClick={doReg}>{busy ? <><Spin />注册中…</> : '注册并进入'}</button>
             <p className="login-switch">已有账号？<button onClick={() => { setMode('login'); setErr(''); setCode(''); setInvite(''); setForgotSent(false); }}>去登录</button></p>
           </>)}
 

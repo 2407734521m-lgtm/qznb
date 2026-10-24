@@ -3,6 +3,7 @@ import AdminMemberModal from '../components/AdminMemberModal';
 import { supabase, supabaseBaseUrl } from '../lib/supabase';
 import { useAuth } from '../auth';
 import '../styles-admin-cinematic.css';
+import AdminSystemCenter from '../components/AdminSystemCenter';
 
 /**
  * 管理后台测试版（V2）：高级管理控制中心
@@ -32,6 +33,7 @@ const TABS_ALL: [string, string, boolean][] = [
   ['board', '公告', false],
   ['events', '活动', false],
   ['logs', '日志', false],
+  ['system', '安全与监控', true],
   ['settings', '设置', true], // 仅超管
   ['test', '测试', true], // 仅超管
 ];
@@ -191,6 +193,7 @@ export default function Admin() {
               {tab === 'board' && <BoardMgr me={me} setMsg={setMsg} />}
               {tab === 'events' && <EventTab me={me} setMsg={setMsg} />}
               {tab === 'logs' && <Logs />}
+              {tab === 'system' && isSuper && <AdminSystemCenter setMsg={setMsg} />}
               {tab === 'settings' && isSuper && <Settings me={me} setMsg={setMsg} />}
               {tab === 'invite' && <InviteTab isSuper={isSuper} setMsg={setMsg} />}
               {tab === 'feedback' && <FeedbackTab me={me} isSuper={isSuper} setMsg={setMsg} />}

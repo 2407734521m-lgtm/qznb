@@ -1062,30 +1062,56 @@ function GameTab({ setMsg }: { setMsg: (s: string) => void }) {
 }
 
 /* ---------------- 测试工具 ---------------- */
-type TA = { id: string; label: string; email: string; password: string };
+type TA = { id: string; label: string; email: string };
 function loadTAs(): TA[] {
-  try { return JSON.parse(localStorage.getItem('ca_test_accounts') || '[]'); } catch { return []; }
+  try {
+    const parsed = JSON.parse(localStorage.getItem('ca_test_accounts') || '[]');
+    const safe = Array.isArray(parsed)
+      ? parsed.filter((a: any) => a && typeof a.email === 'string')
+          .map((a: any) => ({ id: String(a.id || ''), label: String(a.label || ''), email: a.email }))
+      : [];
+    // 迁移旧版本数据：无论旧数据是否包含密码，都立即覆盖为不含密码的结构。
+    localStorage.setItem('ca_test_accounts', JSON.stringify(safe));
+    return safe;
+  } catch {
+    try { localStorage.removeItem('ca_test_accounts'); } catch {}
+    return [];
+  }
 }
 function TestTab({ setMsg }: { setMsg: (s: string) => void }) {
   const [tas, setTas] = useState<TA[]>(loadTAs);
-  const [label, setLabel] = useState(''); const [email, setEmail] = useState(''); const [pw, setPw] = useState('');
-  function save(list: TA[]) { setTas(list); try { localStorage.setItem('ca_test_accounts', JSON.stringify(list)); } catch {} }
+  const [label, setLabel] = useState('');
+  const [email, setEmail] = useState('');
+  const [passwords, setPasswords] = useState<Record<string, string>>({});
+  function save(list: TA[]) {
+    setTas(list);
+    try { localStorage.setItem('ca_test_accounts', JSON.stringify(list)); } catch {}
+  }
   async function switchTo(a: TA) {
+    const password = passwords[a.id] || '';
+    if (!password) return setMsg('请先输入该测试账号密码；密码不会保存到浏览器');
     if (!confirm(`切换登录到 ${a.label || a.email}？`)) return;
-    const { error } = await supabase.auth.signInWithPassword({ email: a.email, password: a.password });
+    const { error } = await supabase.auth.signInWithPassword({ email: a.email, password });
+    setPasswords(prev => ({ ...prev, [a.id]: '' }));
     if (error) setMsg('切换失败：' + error.message);
-    else { try { sessionStorage.setItem('ca_testing_as', a.label || a.email); } catch {} location.reload(); }
+    else {
+      try { sessionStorage.setItem('ca_testing_as', a.label || a.email); } catch {}
+      location.reload();
+    }
   }
   return (
     <div style={card}>
       <h3 style={h3}>测试工具</h3>
-      <p style={mut}>测试账号快切：密码只存这台手机浏览器里。切出去后右下角有"结束测试"一键切回。</p>
+      <p style={mut}>测试账号快切：只保存备注名和邮箱。切换时临时输入密码，密码不会保存；结束测试后需重新登录原账号。</p>
       {tas.map(a => (
-        <div key={a.id} className="row" style={{ alignItems: 'center', padding: '7px 0', borderBottom: '1px solid #ffffff0c' }}>
-          <div style={{ flex: 1, minWidth: 0 }}>
+        <div key={a.id} className="row" style={{ alignItems: 'center', padding: '7px 0', borderBottom: '1px solid #ffffff0c', flexWrap: 'wrap' }}>
+          <div style={{ flex: '1 1 120px', minWidth: 0 }}>
             <div style={{ fontSize: 14, fontWeight: 700 }}>{a.label || a.email}</div>
             <div style={mut}>{a.email}</div>
           </div>
+          <input type="password" autoComplete="off" placeholder="临时输入密码" value={passwords[a.id] || ''}
+            onChange={e => setPasswords(prev => ({ ...prev, [a.id]: e.target.value }))}
+            style={{ flex: '1 1 110px', minWidth: 0 }} />
           <button className="mini" onClick={() => switchTo(a)}>切换登录</button>
           <button className="mini danger" onClick={() => save(tas.filter(x => x.id !== a.id))}>删除</button>
         </div>
@@ -1093,11 +1119,10 @@ function TestTab({ setMsg }: { setMsg: (s: string) => void }) {
       <div className="row" style={{ gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
         <input placeholder="备注名（选填）" value={label} onChange={e => setLabel(e.target.value)} style={{ flex: '1 1 90px', minWidth: 0 }} />
         <input placeholder="QQ 邮箱" value={email} onChange={e => setEmail(e.target.value)} inputMode="email" style={{ flex: '1 1 110px', minWidth: 0 }} />
-        <input type="password" placeholder="密码" value={pw} onChange={e => setPw(e.target.value)} style={{ flex: '1 1 90px', minWidth: 0 }} />
         <button className="mini" onClick={() => {
-          if (!email.trim() || !pw) return setMsg('邮箱和密码都要填');
-          save([...tas, { id: String(Date.now()), label: label.trim(), email: email.trim(), password: pw }]);
-          setLabel(''); setEmail(''); setPw(''); setMsg('已保存');
+          if (!email.trim()) return setMsg('请填写 QQ 邮箱');
+          save([...tas, { id: String(Date.now()), label: label.trim(), email: email.trim() }]);
+          setLabel(''); setEmail(''); setMsg('账号已保存；仅保存备注名和邮箱，不保存密码');
         }}>保存账号</button>
       </div>
     </div>

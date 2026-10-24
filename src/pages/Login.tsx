@@ -85,9 +85,11 @@ export default function Login() {
     let em = '';
     try {
       em = await resolveEmail(ident);
+      try { sessionStorage.setItem('ca_login_success', '1'); } catch {}
       const { error } = await supabase.auth.signInWithPassword({ email: em, password: pw });
       if (error) throw error;
     } catch (e: any) {
+      try { sessionStorage.removeItem('ca_login_success'); } catch {}
       const m = e?.message || '';
       if (/email not confirmed/i.test(m) && em) {
         // 邮箱还没验证：转到验证码界面
@@ -103,8 +105,15 @@ export default function Login() {
 
   async function doPasskey() {
     setErr(''); setBusy(true);
-    try { const { error } = await supabase.auth.signInWithPasskey(); if (error) throw error; }
-    catch (e: any) { setErr('通行密钥登录失败：' + (e?.message || '未知错误')); }
+    try {
+      try { sessionStorage.setItem('ca_login_success', '1'); } catch {}
+      const { error } = await supabase.auth.signInWithPasskey();
+      if (error) throw error;
+    }
+    catch (e: any) {
+      try { sessionStorage.removeItem('ca_login_success'); } catch {}
+      setErr('通行密钥登录失败：' + (e?.message || '未知错误'));
+    }
     finally { setBusy(false); }
   }
 

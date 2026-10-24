@@ -1,4 +1,4 @@
--- 008_love_wall_profile_hide_name.sql（未执行，仅供审阅；配合分支 feature/love-wall-profile-hide-name）
+-- 008_love_wall_profile_hide_name.sql（已在线上新加坡项目执行并验证，见执行后回查；本文件保留作版本记录，切勿重跑，也不要通过 migrate.yml 重跑全部迁移）
 -- 目的：把表白墙匿名控制从“每次投稿单独选”改为“个人设置控制新帖子”，历史帖子保持原样（方案 A）。
 -- 1) profile_privacy 新增 hide_love_wall_name，默认 true（默认隐藏，与现有默认匿名一致）。
 --    已有用户的行会自动填 true，无需补数据；新用户的行由注册触发器建行时同样取默认值。

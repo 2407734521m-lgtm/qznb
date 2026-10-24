@@ -151,7 +151,7 @@ export default function Login() {
       } else {
         const { data, error } = await supabase.auth.signUp({
           email: em, password: pw,
-          options: { data: { username: nm, real_name: rl } },
+          options: { data: { username: nm, real_name: rl, first_profile_setup_pending: true } },
         });
         if (error) throw error;
         // 已注册过的邮箱：Supabase 为防枚举不报错、也不发码，返回的 identities 为空。
@@ -200,7 +200,7 @@ export default function Login() {
     try {
       const { data, error } = await supabase.auth.signUp({
         email: em, password: pw,
-        options: { data: { username: nm, real_name: rl } },
+        options: { data: { username: nm, real_name: rl, first_profile_setup_pending: true } },
       });
       if (error) throw error;
       if (data.user && Array.isArray((data.user as any).identities) && (data.user as any).identities.length === 0) {

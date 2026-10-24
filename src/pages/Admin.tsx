@@ -5,6 +5,8 @@ import { useAuth } from '../auth';
 import '../styles-admin-cinematic.css';
 import AdminSystemCenter from '../components/AdminSystemCenter';
 import AdminLoveWall from '../components/AdminLoveWall';
+import AdminSongWall from '../components/AdminSongWall';
+import AdminBulkEmail from '../components/AdminBulkEmail';
 
 /**
  * 管理后台测试版（V2）：高级管理控制中心
@@ -30,6 +32,8 @@ const TABS_ALL: [string, string, boolean][] = [
   ['invite', '邀请码', false],
   ['moderate', '审核', false],
   ['loveWall', '表白墙', false],
+  ['songWall', '歌声墙', false],
+  ['bulkEmail', '批量邮件', false],
   ['feedback', '反馈', false],
   ['game', '段位', false],
   ['board', '公告', false],
@@ -193,6 +197,8 @@ export default function Admin() {
               {tab === 'members' && <Members me={me} isSuper={isSuper} setMsg={setMsg} extQ={q0} />}
               {tab === 'moderate' && <Moderate setMsg={setMsg} />}
               {tab === 'loveWall' && <AdminLoveWall setMsg={setMsg} />}
+              {tab === 'songWall' && <AdminSongWall setMsg={setMsg} />}
+              {tab === 'bulkEmail' && <AdminBulkEmail setMsg={setMsg} />}
               {tab === 'board' && <BoardMgr me={me} setMsg={setMsg} />}
               {tab === 'events' && <EventTab me={me} setMsg={setMsg} />}
               {tab === 'logs' && <Logs />}

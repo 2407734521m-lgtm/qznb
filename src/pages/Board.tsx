@@ -83,7 +83,7 @@ export default function Board() {
         transition={{ duration: 0.4, delay: Math.min(i * 0.04, 0.25) }}>
         <div className="hd">
           <Avatar p={a} />
-          <div><div className="nm">{a ? (a.display_name ?? a.username) : '…'}
+          <div><div className="nm">{a ? (a.display_name || a.username || '暂未填写') : '…'}
             {m.is_admin_msg && <span className="chip ad" style={{ marginLeft: 8, fontSize: 11 }}>📢 公告</span>}
             {m.is_pinned && <span className="chip" style={{ marginLeft: 6, fontSize: 11 }}>📌 置顶</span>}</div>
             <div className="tm">{timeAgo(m.created_at)}</div></div>

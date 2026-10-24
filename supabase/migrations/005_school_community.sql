@@ -280,7 +280,7 @@ begin
   end if;
   if p_max_uses is not null and p_max_uses < 1 then raise exception 'invalid max uses'; end if;
   insert into public.class_invites(class_id, code_hash, created_by, expires_at, max_uses)
-  values (p_class_id, encode(digest(trim(p_code), 'sha256'), 'hex'), auth.uid(), p_expires_at, p_max_uses)
+  values (p_class_id, encode(digest(upper(trim(p_code)), 'sha256'), 'hex'), auth.uid(), p_expires_at, p_max_uses)
   returning id into new_id;
   return new_id;
 end;
@@ -294,7 +294,7 @@ begin
   if not public.is_member() then raise exception 'site membership required'; end if;
   if p_code is null or char_length(trim(p_code)) < 6 then return null; end if;
   select * into invite_row from public.class_invites
-  where code_hash = encode(digest(trim(p_code), 'sha256'), 'hex')
+  where code_hash = encode(digest(upper(trim(p_code)), 'sha256'), 'hex')
     and revoked_at is null
     and (expires_at is null or expires_at > now())
     and (max_uses is null or use_count < max_uses)
@@ -455,7 +455,8 @@ create policy p_mod on public.posts for update to authenticated
   using (author_id = auth.uid() or public.my_role() in ('admin','super_admin'))
   with check (
     (author_id = auth.uid() or public.my_role() in ('admin','super_admin')) and (
-      (school_id is null and class_id is null)
+      public.my_role() in ('admin','super_admin')
+      or (school_id is null and class_id is null)
       or (school_id is not null and class_id is null and public.is_school_member(school_id))
       or (school_id is not null and class_id is not null
           and exists (select 1 from public.classes c where c.id = posts.class_id and c.school_id = posts.school_id)

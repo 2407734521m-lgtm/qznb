@@ -104,7 +104,6 @@ export default function MyProfile() {
   const fileRef = useRef<HTMLInputElement>(null);
   const avatarUrl = useSignedUrl('avatars', avatar);
   const [videoPath, setVideoPath] = useState<string | null>(null);
-  const [videoStatus, setVideoStatus] = useState('none');
   const videoUrl = useSignedUrl('videos', videoPath);
   const [videoFile, setVideoFile] = useState<File | null>(null); // 待确认上传的视频（弹窗用）
   const [videoBusy, setVideoBusy] = useState(false);
@@ -139,7 +138,7 @@ export default function MyProfile() {
     const all: Record<string, any> = { ...p.data, ...(c.data ?? {}) };
     setV(Object.fromEntries(ALL_FIELDS.map(([k]) => [k, all[k] == null ? '' : String(all[k])])));
     setPriv(pr.data); setJoined(p.data.joined); setAvatar(p.data.avatar_path); setUname(p.data.username ?? '');
-    setVideoPath(p.data.intro_video_path ?? null); setVideoStatus(p.data.intro_video_status || 'none');
+    setVideoPath(p.data.intro_video_path ?? null);
     setTheme(p.data.theme?.theme ?? 'aurora'); setLayout(p.data.theme?.layout ?? 'left');
     if (!g.error) setGprof((g.data as GameProfile) ?? null);
     loadedRef.current = true;
@@ -195,7 +194,7 @@ export default function MyProfile() {
   }
   function closeCrop() { if (cropSrc) URL.revokeObjectURL(cropSrc); setCropSrc(null); }
 
-  // 自我介绍视频：选文件 → 弹窗提示 → 确认上传 → 待审核
+  // 自我介绍视频：选文件 → 弹窗提示 → 确认上传 → 直接显示（无需审核）
   function pickVideo(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
     e.target.value = '';
@@ -211,8 +210,8 @@ export default function MyProfile() {
       const path = await uploadMedia('videos', videoFile);
       const { error } = await supabase.rpc('submit_intro_video', { p_path: path });
       if (error) throw error;
-      setVideoPath(path); setVideoStatus('pending'); setVideoFile(null);
-      setMsg('已提交，等待管理员审核');
+      setVideoPath(path); setVideoFile(null);
+      setMsg('已上传');
     } catch (err: any) {
       setMsg('上传失败：' + (err?.message || '未知错误'));
     }
@@ -299,13 +298,8 @@ export default function MyProfile() {
         {/* 自我介绍视频 */}
         <div style={{ marginTop: 12 }}>
           <label style={{ fontSize: 13, fontWeight: 700 }}>自我介绍视频</label>
-          {videoStatus === 'pending' && <p className="priv-note" style={{ margin: '6px 0' }}>视频已提交，等待管理员审核</p>}
-          {videoStatus === 'rejected' && <p className="priv-note" style={{ margin: '6px 0' }}>视频未通过审核，可以重新上传</p>}
-          {videoUrl && videoStatus === 'approved' && (
+          {videoUrl && (
             <video src={videoUrl} controls playsInline style={{ width: '100%', borderRadius: 10, background: '#000', marginTop: 6 }} />
-          )}
-          {videoUrl && videoStatus !== 'approved' && (
-            <video src={videoUrl} controls playsInline style={{ width: '100%', borderRadius: 10, background: '#000', marginTop: 6, opacity: 0.7 }} />
           )}
           <div className="row" style={{ gap: 8, marginTop: 8 }}>
             <button type="button" className="ghost" onClick={() => videoInputRef.current?.click()}>
@@ -442,9 +436,6 @@ export default function MyProfile() {
             <p style={{ fontSize: 13.5, lineHeight: 1.7, margin: '0 0 6px' }}>
               文件：{videoFile.name}<br />
               大小：{(videoFile.size / 1024 / 1024).toFixed(1)} MB
-            </p>
-            <p className="priv-note" style={{ margin: '0 0 12px' }}>
-              由于服务器较小，视频将会进行审核，谢谢谅解。审核通过后才会显示在你的主页。
             </p>
             <div className="row" style={{ gap: 8 }}>
               <button type="button" className="ghost" style={{ flex: 1 }} disabled={videoBusy}

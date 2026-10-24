@@ -1096,9 +1096,12 @@ type TA = { id: string; label: string; email: string; password: string };
 function loadTAs(): TA[] {
   try {
     const current = sessionStorage.getItem('ca_test_accounts');
-    if (current) return JSON.parse(current);
-    // 兼容迁移旧版本：只把旧数据移入当前标签页会话，随后立即清除长期存储。
     const legacy = localStorage.getItem('ca_test_accounts');
+    // 旧版本可能在 localStorage 留有明文密码；即使会话副本已存在，也要清除旧副本。
+    if (current) {
+      if (legacy) localStorage.removeItem('ca_test_accounts');
+      return JSON.parse(current);
+    }
     if (!legacy) return [];
     const parsed = JSON.parse(legacy);
     sessionStorage.setItem('ca_test_accounts', JSON.stringify(parsed));

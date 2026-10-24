@@ -154,8 +154,17 @@ create table if not exists public.topics (
 alter table public.posts add column if not exists school_id uuid references public.schools(id) on delete cascade;
 alter table public.posts add column if not exists class_id uuid references public.classes(id) on delete cascade;
 alter table public.posts add column if not exists topic_id uuid references public.topics(id) on delete set null;
-alter table public.posts add constraint posts_class_requires_school
-  check (class_id is null or school_id is not null) not valid;
+do $
+begin
+  if not exists (
+    select 1 from pg_constraint
+    where conname = 'posts_class_requires_school'
+      and conrelid = 'public.posts'::regclass
+  ) then
+    alter table public.posts add constraint posts_class_requires_school
+      check (class_id is null or school_id is not null) not valid;
+  end if;
+end $;
 create index if not exists posts_school_created_idx on public.posts(school_id, created_at desc);
 create index if not exists posts_class_created_idx on public.posts(class_id, created_at desc);
 create index if not exists class_memberships_profile_status_idx on public.class_memberships(profile_id, status);

@@ -64,7 +64,7 @@ export default function Home() {
       if (ids.size) {
         const { data: dir } = await supabase.rpc('member_directory', { q: '', lim: 100, skip: 0 });
         const mp: Record<string, string> = {};
-        ((dir ?? []) as any[]).forEach((x: any) => { mp[x.id] = x.display_name ?? x.username; });
+        ((dir ?? []) as any[]).forEach((x: any) => { mp[x.id] = x.display_name || x.username || '暂未填写'; });
         setNames(mp);
       }
     })();
@@ -166,9 +166,9 @@ export default function Home() {
             {members.map(m => (
               <div key={m.id} onClick={() => nav(`/member/${m.id}`)}
                 style={{ cursor: 'pointer', textAlign: 'center', flexShrink: 0 }}>
-                <Av path={m.avatar_path} name={m.display_name || m.username} />
+                <Av path={m.avatar_path} name={m.display_name || m.username || '暂未填写'} />
                 <div style={{ fontSize: 11.5, marginTop: 4, maxWidth: 56, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {m.display_name || m.username}
+                  {m.display_name || m.username || '暂未填写'}
                 </div>
               </div>
             ))}

@@ -64,12 +64,13 @@ export default function Campus() {
         setEvents((eventResult.data || []) as EventItem[]);
         const ids = [...new Set((postResult.data || []).map((p: any) => p.author_id).filter(Boolean))];
         if (ids.length) {
-          const { data, error: profileError } = await supabase
-            .from('profiles').select('id, username, display_name, avatar_path').in('id', ids);
+          // Use the privacy-aware directory RPC instead of selecting profile rows directly.
+          const { data, error: profileError } = await supabase.rpc('member_directory', { q: '', lim: 50, skip: 0 });
           if (profileError) throw profileError;
           if (active) {
             const map: Record<string, Profile> = {};
-            ((data || []) as Profile[]).forEach(profile => { map[profile.id] = profile; });
+            ((data || []) as Profile[]).filter(profile => ids.includes(profile.id))
+              .forEach(profile => { map[profile.id] = profile; });
             setProfiles(map);
           }
         }

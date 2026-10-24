@@ -16,7 +16,15 @@ function AdminShell() {
   const [role, setRole] = useState<string | null>(null);
   useEffect(() => {
     if (!session) { setRole(null); return; }
-    supabase.rpc('my_role').then(({ data }) => setRole(data ?? ''));
+    // 修复：以前 my_role 一旦没回结果或报错，role 就永远是 null，
+    // 页面永远卡在「加载中…」。现在 8 秒没回结果或报错都按“未通过”处理，
+    // 显示登录页让用户重试，而不是无限等下去。
+    let live = true;
+    const timer = setTimeout(() => { if (live) setRole(''); }, 8000);
+    supabase.rpc('my_role').then(
+      ({ data, error }) => { clearTimeout(timer); if (live) setRole(error ? '' : (data ?? '')); },
+      () => { clearTimeout(timer); if (live) setRole(''); });
+    return () => { live = false; clearTimeout(timer); };
   }, [session]);
   if (loading || (session && role === null)) return <div className="center">加载中…</div>;
   const isAdmin = role === 'admin' || role === 'super_admin';

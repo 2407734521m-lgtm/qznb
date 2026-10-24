@@ -79,7 +79,7 @@ function TestSwitchFab() {
     let accounts: { email: string; password: string }[] = [];
     let fromEmail = '';
     try {
-      accounts = JSON.parse(localStorage.getItem('ca_test_accounts') || '[]');
+      accounts = JSON.parse(sessionStorage.getItem('ca_test_accounts') || '[]');
       fromEmail = sessionStorage.getItem('ca_testing_from') || '';
       sessionStorage.removeItem('ca_testing_as');
       sessionStorage.removeItem('ca_testing_from');
@@ -88,7 +88,9 @@ function TestSwitchFab() {
     await supabase.auth.signOut();
     if (acc) {
       const { error } = await supabase.auth.signInWithPassword({ email: acc.email, password: acc.password });
-      if (error) alert('切回失败，请手动登录：' + error.message);
+      if (error) alert('切回失败，请手动登录。');
+    } else {
+      alert('原账号未保存在本次浏览器会话中，请手动登录。');
     }
     setBusy(false);
   }

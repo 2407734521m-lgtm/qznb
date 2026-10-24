@@ -126,7 +126,8 @@ function timeAgo(s: string) {
 }
 
 export default function Admin() {
-  const me = useAuth().session!.user.id;
+  const { session } = useAuth();
+  const me = session?.user.id ?? '';
   const [role, setRole] = useState('');
   const [tab, setTab] = useState('overview');
   const [msg, setMsg] = useState('');
@@ -135,15 +136,34 @@ export default function Admin() {
   const tabs = TABS_ALL.filter(([, , sup]) => !sup || isSuper);
 
   useEffect(() => {
-    supabase.rpc('my_role').then(({ data }) => setRole(data ?? ''));
-  }, []);
+    let active = true;
+    if (!session) {
+      setRole('unauthorized');
+      return () => { active = false; };
+    }
+    supabase.rpc('my_role').then(({ data, error }) => {
+      if (!active) return;
+      setRole(!error && (data === 'admin' || data === 'super_admin') ? data : 'unauthorized');
+    }).catch(() => {
+      if (active) setRole('unauthorized');
+    });
+    return () => { active = false; };
+  }, [session?.user.id]);
 
   function switchTab(id: string) {
     setTab(id); setMsg('');
     window.scrollTo({ top: 0 });
   }
 
-  if (!role) return <div className="center" style={{ minHeight: '60vh' }}>加载中…</div>;
+  if (!role) return <div className="center" style={{ minHeight: '60vh' }}>正在验证管理员权限…</div>;
+  if (!session || (role !== 'admin' && role !== 'super_admin')) {
+    return (
+      <div className="center" style={{ minHeight: '60vh', padding: 24, textAlign: 'center' }}>
+        <p>管理员权限验证失败，后台内容已锁定。</p>
+        <button onClick={() => supabase.auth.signOut()}>退出登录</button>
+      </div>
+    );
+  }
 
   return (
     <div className="page" style={{
@@ -1064,17 +1084,48 @@ function GameTab({ setMsg }: { setMsg: (s: string) => void }) {
 /* ---------------- 测试工具 ---------------- */
 type TA = { id: string; label: string; email: string; password: string };
 function loadTAs(): TA[] {
-  try { return JSON.parse(localStorage.getItem('ca_test_accounts') || '[]'); } catch { return []; }
+  try {
+    const current = sessionStorage.getItem('ca_test_accounts');
+    if (current) return JSON.parse(current);
+    // 兼容迁移旧版本：只把旧数据移入当前标签页会话，随后立即清除长期存储。
+    const legacy = localStorage.getItem('ca_test_accounts');
+    if (!legacy) return [];
+    const parsed = JSON.parse(legacy);
+    sessionStorage.setItem('ca_test_accounts', JSON.stringify(parsed));
+    localStorage.removeItem('ca_test_accounts');
+    return parsed;
+  } catch { return []; }
 }
 function TestTab({ setMsg }: { setMsg: (s: string) => void }) {
+  const { session } = useAuth();
   const [tas, setTas] = useState<TA[]>(loadTAs);
   const [label, setLabel] = useState(''); const [email, setEmail] = useState(''); const [pw, setPw] = useState('');
-  function save(list: TA[]) { setTas(list); try { localStorage.setItem('ca_test_accounts', JSON.stringify(list)); } catch {} }
+  function save(list: TA[]) {
+    setTas(list);
+    try {
+      sessionStorage.setItem('ca_test_accounts', JSON.stringify(list));
+      localStorage.removeItem('ca_test_accounts');
+    } catch {}
+  }
   async function switchTo(a: TA) {
     if (!confirm(`切换登录到 ${a.label || a.email}？`)) return;
+    if (!session?.user.email) return setMsg('无法读取当前账号邮箱，请先重新登录。');
+    try {
+      sessionStorage.setItem('ca_testing_from', session.user.email);
+      sessionStorage.setItem('ca_testing_as', a.label || a.email);
+    } catch {
+      return setMsg('浏览器无法保存本次切换状态，请检查存储权限。');
+    }
     const { error } = await supabase.auth.signInWithPassword({ email: a.email, password: a.password });
-    if (error) setMsg('切换失败：' + error.message);
-    else { try { sessionStorage.setItem('ca_testing_as', a.label || a.email); } catch {} location.reload(); }
+    if (error) {
+      try {
+        sessionStorage.removeItem('ca_testing_as');
+        sessionStorage.removeItem('ca_testing_from');
+      } catch {}
+      setMsg('切换失败，请检查测试账号和密码。');
+    } else {
+      location.reload();
+    }
   }
   return (
     <div style={card}>

@@ -21,7 +21,7 @@ export default function MeGreetings() {
     if (ids.length) {
       const { data: ps } = await supabase.from('profiles').select('id, display_name, username').in('id', ids);
       const m: Record<string, string> = {};
-      (ps ?? []).forEach((p: any) => { m[p.id] = p.display_name || p.username; });
+      (ps ?? []).forEach((p: any) => { m[p.id] = p.display_name || p.username || '暂未填写'; });
       setNames(m);
     }
   }

@@ -78,17 +78,17 @@ export default function Chat() {
   return (
     <div className="im-page">
       <style>{`
-        .im-page{min-height:calc(100dvh - 76px);display:flex;flex-direction:column;max-width:850px;margin:0 auto;position:relative;overflow:hidden;border-radius:26px;background:linear-gradient(145deg,rgba(242,247,255,.94),rgba(248,242,255,.91));color:#172033;border:1px solid rgba(255,255,255,.72);box-shadow:0 18px 60px rgba(52,76,125,.12)}
-        .im-head{display:flex;align-items:center;gap:12px;padding:14px 16px;background:rgba(255,255,255,.72);backdrop-filter:blur(22px);border-bottom:1px solid rgba(115,135,175,.15);position:sticky;top:0;z-index:2}
+        .im-page{height:100dvh;min-height:100dvh;width:100%;max-width:none;margin:0;box-sizing:border-box;display:flex;flex-direction:column;position:relative;overflow:hidden;border-radius:0;background:linear-gradient(145deg,rgba(242,247,255,.98),rgba(248,242,255,.96));color:#172033;border:0;box-shadow:none}
+        .im-head{display:flex;align-items:center;gap:12px;padding:calc(10px + env(safe-area-inset-top)) 14px 10px;flex:none;background:rgba(255,255,255,.72);backdrop-filter:blur(22px);border-bottom:1px solid rgba(115,135,175,.15);position:sticky;top:0;z-index:2}
         .im-back,.im-icon{border:0;background:rgba(113,135,179,.10);color:#405579;border-radius:14px;min-width:42px;height:42px;font-size:22px;display:grid;place-items:center;cursor:pointer}
         .im-avatar{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;flex:none;background:linear-gradient(135deg,#8eb7ff,#c6a5ff);color:#fff;font-size:19px;font-weight:800;box-shadow:0 5px 16px #9ab8f044}
         .im-title{font-weight:750;font-size:16px;letter-spacing:.1px}.im-sub{font-size:11px;color:#7d8aa3;margin-top:3px}
-        .im-feed{flex:1;padding:18px 14px 24px;overflow-y:auto;overscroll-behavior:contain;min-height:220px;background-image:radial-gradient(ellipse at 8% 15%,rgba(158,193,255,.18),transparent 40%),radial-gradient(ellipse at 90% 65%,rgba(219,176,255,.18),transparent 38%)}
+        .im-feed{flex:1;min-height:0;padding:18px 14px 24px;overflow-y:auto;overscroll-behavior:contain;min-height:220px;background-image:radial-gradient(ellipse at 8% 15%,rgba(158,193,255,.18),transparent 40%),radial-gradient(ellipse at 90% 65%,rgba(219,176,255,.18),transparent 38%)}
         .im-day{text-align:center;margin:10px auto 18px;font-size:11px;color:#8a96aa;background:#ffffff9c;border:1px solid #fff;padding:6px 12px;border-radius:999px;width:max-content;max-width:90%}
         .im-row{display:flex;margin:9px 0;animation:im-arrive .24s ease-out both}.im-row.mine{justify-content:flex-end}.im-bubble{max-width:min(78%,480px);padding:11px 14px 7px;border-radius:20px;box-shadow:0 5px 16px rgba(51,70,112,.07);overflow-wrap:anywhere;white-space:pre-wrap;font-size:15px;line-height:1.48}
         .im-bubble.mine{color:white;background:linear-gradient(135deg,#478dff,#3478f6);border-bottom-right-radius:7px}.im-bubble.theirs{color:#26344d;background:rgba(255,255,255,.92);border:1px solid rgba(255,255,255,.9);border-bottom-left-radius:7px}
         .im-time{font-size:10px;opacity:.68;text-align:right;margin-top:4px}.im-empty{text-align:center;margin:10vh auto 0;max-width:260px;color:#8491a8}.im-empty-icon{width:76px;height:76px;border-radius:28px;background:linear-gradient(135deg,#e1edff,#f0e4ff);display:grid;place-items:center;font-size:32px;margin:0 auto 16px;box-shadow:0 10px 30px #8cafff26}
-        .im-composer{padding:12px;display:flex;align-items:flex-end;gap:9px;background:rgba(255,255,255,.8);backdrop-filter:blur(22px);border-top:1px solid rgba(115,135,175,.14);position:sticky;bottom:0}
+        .im-composer{flex:none;padding:10px 12px calc(10px + env(safe-area-inset-bottom));display:flex;align-items:flex-end;gap:9px;background:rgba(255,255,255,.8);backdrop-filter:blur(22px);border-top:1px solid rgba(115,135,175,.14);position:sticky;bottom:0}
         .im-plus{width:42px;height:42px;flex:none;border:0;border-radius:50%;background:#edf2fc;color:#6c83ad;font-size:24px;cursor:pointer}
         .im-input-wrap{display:flex;align-items:center;flex:1;min-width:0;background:#f4f6fb;border:1px solid #e5eaf4;border-radius:23px;padding:0 6px 0 15px;transition:border-color .2s,box-shadow .2s}
         .im-input-wrap:focus-within{border-color:#9abaff;box-shadow:0 0 0 3px #a8c6ff30}.im-input{width:100%;min-width:0;border:0!important;outline:0!important;background:transparent!important;padding:12px 0!important;color:#26344d!important;box-shadow:none!important;font-size:15px}
@@ -96,8 +96,8 @@ export default function Chat() {
         .im-error{padding:8px 14px;color:#b64c5b;background:#fff0f1;font-size:12px}
         .im-details{padding:12px 16px;background:#ffffffb8;border-bottom:1px solid #e8edf6;display:flex;gap:10px;flex-wrap:wrap;font-size:12px;color:#71809a}
         @keyframes im-arrive{from{opacity:0;transform:translateY(6px) scale(.99)}to{opacity:1;transform:translateY(0) scale(1)}}
-        @media(min-width:700px){.im-page{min-height:calc(100dvh - 100px);margin:12px auto}.im-feed{padding:24px 28px}.im-composer{padding:14px 20px}}
-        @media(prefers-reduced-motion:reduce){.im-row{animation:none}}
+        @media(min-width:700px){.im-page{height:100dvh;min-height:100dvh}.im-feed{padding:24px 28px}.im-composer{padding:14px 20px}}
+        @media(max-width:600px){.im-head{gap:10px}.im-avatar{width:40px;height:40px}.im-back,.im-icon{min-width:40px;height:40px}.im-feed{padding:14px 12px 18px}.im-bubble{max-width:84%;font-size:15px}.im-composer{gap:8px}.im-plus{width:40px;height:40px}}\n        @media(prefers-reduced-motion:reduce){.im-row{animation:none}}
       `}</style>
       <header className="im-head">
         <button className="im-back" aria-label="返回好友" onClick={() => nav('/friends')}>‹</button>

@@ -184,17 +184,19 @@ export default function Admin() {
 
       {msg && <p className="priv-note" style={{ margin: '0 0 10px' }}>{msg}</p>}
 
-      {tab === 'overview' && <Overview setMsg={setMsg} />}
-      {tab === 'members' && <Members me={me} isSuper={isSuper} setMsg={setMsg} extQ={q0} />}
-      {tab === 'moderate' && <Moderate setMsg={setMsg} />}
-      {tab === 'board' && <BoardMgr me={me} setMsg={setMsg} />}
-      {tab === 'events' && <EventTab me={me} setMsg={setMsg} />}
-      {tab === 'logs' && <Logs />}
-      {tab === 'settings' && isSuper && <Settings me={me} setMsg={setMsg} />}
-      {tab === 'invite' && <InviteTab isSuper={isSuper} setMsg={setMsg} />}
-      {tab === 'feedback' && <FeedbackTab me={me} isSuper={isSuper} setMsg={setMsg} />}
-      {tab === 'game' && <GameTab setMsg={setMsg} />}
-      {tab === 'test' && isSuper && <TestTab setMsg={setMsg} />}
+      <div className="admin-content" key={tab} aria-live="polite">
+        {tab === 'overview' && <Overview setMsg={setMsg} />}
+        {tab === 'members' && <Members me={me} isSuper={isSuper} setMsg={setMsg} extQ={q0} />}
+        {tab === 'moderate' && <Moderate setMsg={setMsg} />}
+        {tab === 'board' && <BoardMgr me={me} setMsg={setMsg} />}
+        {tab === 'events' && <EventTab me={me} setMsg={setMsg} />}
+        {tab === 'logs' && <Logs />}
+        {tab === 'settings' && isSuper && <Settings me={me} setMsg={setMsg} />}
+        {tab === 'invite' && <InviteTab isSuper={isSuper} setMsg={setMsg} />}
+        {tab === 'feedback' && <FeedbackTab me={me} isSuper={isSuper} setMsg={setMsg} />}
+        {tab === 'game' && <GameTab setMsg={setMsg} />}
+        {tab === 'test' && isSuper && <TestTab setMsg={setMsg} />}
+      </div>
 
       {/* 底部 dock */}
       <div className="admin-dock" style={{

@@ -371,3 +371,30 @@ input[type=file]::file-selector-button{
 
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important;animation:none!important}}
 @media (max-width:480px){.card{backdrop-filter:none;-webkit-backdrop-filter:none}}
+
+
+/* Mobile login compact layout: preserve desktop styling and all auth behavior. */
+@media (max-width: 480px) {
+  .login-wrap {
+    min-height: 100dvh;
+    padding: 12px 14px calc(12px + env(safe-area-inset-bottom));
+    align-items: center;
+  }
+  .login-card {
+    width: min(100%, 340px);
+    padding: 20px 18px;
+    border-radius: 20px;
+    max-height: calc(100dvh - 24px);
+    overflow-y: auto;
+  }
+  .login-card h1 { font-size: 19px; letter-spacing: 1.4px; }
+  .login-card .sub { font-size: 11px; margin-bottom: 13px; letter-spacing: 2.4px; }
+  .login-card label { font-size: 12px; }
+  .login-card input { font-size: 16px; padding: 10px 11px; min-height: 42px; }
+  .login-card button { min-height: 42px; }
+}
+@media (max-width: 360px) {
+  .login-wrap { padding: 8px 10px calc(8px + env(safe-area-inset-bottom)); }
+  .login-card { padding: 16px 14px; border-radius: 18px; }
+  .login-card .sub { margin-bottom: 10px; }
+}

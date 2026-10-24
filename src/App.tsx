@@ -32,15 +32,18 @@ import Onboarding from './components/Onboarding';
 import ErrorBoundary from './components/ErrorBoundary';
 import AdminLogin from './pages/AdminLogin';
 import Board from './pages/Board';
+import Campus from './pages/Campus';
+import Classes from './pages/Classes';
+import ClassDetail from './pages/ClassDetail';
 
 const TABS = [
-  { to: '/home', label: '首页', ic: '🏠' },
-  { to: '/board', label: '公告', ic: '📢' },
-  { to: '/members', label: '成员', ic: '👥' },
-  { to: '/feed', label: '动态', ic: '✨' },
-  { to: '/friends', label: '好友', ic: '💌' },
-  { to: '/timeline', label: '时间线', ic: '🌟' },
-  { to: '/me', label: '我的', ic: '🙂' },
+  { to: '/campus', label: '广场', ic: '✦' },
+  { to: '/classes', label: '班级', ic: '◎' },
+  { to: '/feed', label: '动态', ic: '↗' },
+  { to: '/board', label: '公告', ic: '▤' },
+  { to: '/events', label: '活动', ic: '▦' },
+  { to: '/friends', label: '消息', ic: '◌' },
+  { to: '/me', label: '我的', ic: '○' },
 ];
 
 // 从 UA 里提取设备型号（如 Android 的机型标识），供管理员在成员管理里查看
@@ -56,6 +59,7 @@ function parseDevice(ua: string): string {
 }
 
 function isTabActive(tab: string, path: string) {  if (tab === '/board') return path.startsWith('/board');
+  if (tab === '/classes') return path.startsWith('/classes');
   if (tab === '/members') return path === '/' || path.startsWith('/members');
   if (tab === '/feed') return path.startsWith('/feed') || path.startsWith('/albums');
   if (tab === '/friends') return path.startsWith('/friends') || path.startsWith('/chat');
@@ -70,26 +74,35 @@ function TestSwitchFab() {
   const [testingAs, setTestingAs] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   useEffect(() => {
+    // 清理旧版本可能保存的明文密码，只保留测试账号备注名和邮箱。
+    try {
+      const raw = localStorage.getItem('ca_test_accounts');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        const safe = Array.isArray(parsed)
+          ? parsed.filter((a: any) => a && typeof a.email === 'string')
+              .map((a: any) => ({ id: String(a.id || ''), label: String(a.label || ''), email: a.email }))
+          : [];
+        localStorage.setItem('ca_test_accounts', JSON.stringify(safe));
+      }
+    } catch {
+      try { localStorage.removeItem('ca_test_accounts'); } catch {}
+    }
+  }, []);
+  useEffect(() => {
     try { setTestingAs(sessionStorage.getItem('ca_testing_as')); } catch { setTestingAs(null); }
   }, [session]);
   if (!session || !testingAs) return null;
   async function back() {
     if (busy) return;
     setBusy(true);
-    let accounts: { email: string; password: string }[] = [];
-    let fromEmail = '';
     try {
-      accounts = JSON.parse(localStorage.getItem('ca_test_accounts') || '[]');
-      fromEmail = sessionStorage.getItem('ca_testing_from') || '';
       sessionStorage.removeItem('ca_testing_as');
       sessionStorage.removeItem('ca_testing_from');
     } catch {}
-    const acc = accounts.find(a => a.email === fromEmail);
-    await supabase.auth.signOut();
-    if (acc) {
-      const { error } = await supabase.auth.signInWithPassword({ email: acc.email, password: acc.password });
-      if (error) alert('切回失败，请手动登录：' + error.message);
-    }
+    const { error } = await supabase.auth.signOut();
+    if (error) alert('退出测试账号失败：' + error.message);
+    else alert('测试账号已退出。为保护账号安全，请重新登录原账号。');
     setBusy(false);
   }
   return (
@@ -410,7 +423,10 @@ function Shell() {
             exit={reduce ? { opacity: 0 } : { opacity: 0, y: -10 }}
             transition={{ duration: reduce ? 0.12 : 0.28, ease: [0.22, 1, 0.36, 1] }}>
             <Routes location={loc}>
-              <Route path="/" element={<Navigate to="/members" replace />} />
+              <Route path="/" element={<Navigate to="/campus" replace />} />
+              <Route path="/campus" element={<Campus />} />
+              <Route path="/classes" element={<Classes />} />
+              <Route path="/classes/:id" element={<ClassDetail />} />
               <Route path="/board" element={<Board />} />
               <Route path="/members" element={<Members />} />
               <Route path="/members/:id" element={<Member />} />

@@ -7,6 +7,7 @@ import FeedbackModal from '../components/FeedbackModal';
 import GamePicker, { type GameProfile, type Origin } from '../components/GamePicker';
 import SocialPicker from '../components/SocialPicker';
 import { badgeText } from '../data/games';
+import WelcomeOverlay from '../components/WelcomeOverlay';
 
 const PROFILE_FIELDS = [['display_name', '名字', 'show_name'], ['age', '年龄', 'show_age'],
   ['personality', '性格', 'show_personality'], ['signature', '个性签名', 'show_signature'],
@@ -259,7 +260,7 @@ export default function MyProfile() {
   }
 
   async function delKey(id: string) {
-    const { error } = await supabase.auth.passkey.delete({ id });
+    const { error } = await supabase.auth.passkey.delete({ passkeyId: id });
     setMsg(error ? '删除失败：' + error.message : '通行密钥已删除');
     loadKeys();
   }

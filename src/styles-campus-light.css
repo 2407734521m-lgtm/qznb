@@ -1,0 +1,137 @@
+/* Campus blue-white theme harmonization.
+   Loaded after styles.css so page-specific dark colors do not conflict with the light theme. */
+.campus-page,
+.classes-page,
+.class-detail-page {
+  color: var(--fg, #18243b);
+}
+.campus-hero,
+.classes-hero,
+.class-detail-hero {
+  color: #203553;
+  border-color: #e2eaf6;
+  background:
+    radial-gradient(circle at 92% 0%, rgba(121,151,255,.15), transparent 38%),
+    linear-gradient(135deg, rgba(255,255,255,.98), rgba(239,245,255,.96));
+  box-shadow: 0 12px 34px rgba(36,67,107,.08);
+}
+.campus-hero h1,
+.classes-hero h1,
+.class-detail-hero h1 { color: #203553; }
+.campus-hero-copy > p,
+.classes-hero > p,
+.class-detail-hero p { color: #63718a; }
+.campus-eyebrow,
+.campus-section-note,
+.campus-hero-kicker,
+.classes-eyebrow,
+.classes-kicker,
+.class-detail-eyebrow,
+.class-detail-composer-heading span,
+.class-detail-feed-heading span { color: #3978d8; }
+.campus-section-heading h2,
+.classes-panel-heading h2,
+.class-detail-feed-heading h2 { color: #203553; }
+.campus-shortcut,
+.campus-post,
+.campus-side-card,
+.classes-panel,
+.classes-card,
+.class-detail-composer,
+.class-detail-post,
+.class-detail-members {
+  color: #263650;
+  background: rgba(255,255,255,.92);
+  border-color: #e2eaf5;
+  box-shadow: 0 8px 26px rgba(36,67,107,.06);
+}
+.campus-shortcut b,
+.campus-post-author b,
+.classes-card-copy h3,
+.classes-request-copy > b,
+.class-detail-composer-heading b,
+.class-detail-post-author b,
+.class-detail-comment b,
+.class-detail-member b { color: #203553; }
+.campus-shortcut small,
+.campus-post-content,
+.campus-post-author small,
+.campus-empty,
+.campus-footer,
+.classes-helper,
+.classes-card-copy p,
+.classes-request-copy > span,
+.classes-request-copy p,
+.classes-footer,
+.class-detail-post-content,
+.class-detail-post-author small,
+.class-detail-comment p,
+.class-detail-member small,
+.class-detail-state {
+  color: #63718a;
+}
+.campus-hero-meta span,
+.classes-hero-meta span,
+.class-detail-meta span {
+  color: #435674;
+  border-color: #dfe7f3;
+  background: rgba(255,255,255,.72);
+}
+.classes-join-form label { color: #344762; }
+.classes-join-form input,
+.classes-join-form textarea,
+.class-detail-composer textarea,
+.class-detail-comment-form input,
+.feed-scope-select {
+  background: #f8faff;
+  color: #20304a;
+  border-color: #d9e2ef;
+}
+.classes-join-form input::placeholder,
+.classes-join-form textarea::placeholder,
+.class-detail-composer textarea::placeholder,
+.class-detail-comment-form input::placeholder { color: #91a0b6; }
+.classes-submit,
+.class-detail-composer-actions > button,
+.campus-primary-action {
+  background: linear-gradient(135deg,#4b86ff,#3471ed);
+  color: #fff;
+  box-shadow: 0 6px 16px rgba(57,120,246,.16);
+}
+.campus-secondary-action,
+.classes-request-actions button,
+.class-detail-feed-heading button,
+.class-detail-file-button,
+.class-detail-comment-toggle {
+  color: #3b5f9d;
+  border-color: #dfe7f2;
+  background: #f7f9fd;
+}
+.classes-notice.is-ok,
+.class-detail-notice { color: #18764b; background: #eaf8f0; border-color: #c9eed9; }
+.classes-notice.is-error,
+.class-detail-error { color: #a52e38; background: #fff0f1; border-color: #f5d0d3; }
+.classes-empty,
+.class-detail-state {
+  border-color: #d7e2f2;
+  background: rgba(255,255,255,.55);
+}
+.classes-empty b,
+.class-detail-state b { color: #203553; }
+.campus-footer { border-color: #e2eaf5; }
+.campus-footer > span:first-child { color: #203553; }
+.campus-footer a,
+.classes-small-link,
+.class-detail-back,
+.class-detail-state a { color: #326bd1; }
+.classes-card-mark,
+.class-detail-avatar { background: linear-gradient(145deg,#8bb2ff,#4777ce); color: #fff; border-color: #d5e4ff; }
+.classes-member-pill,
+.classes-count,
+.class-detail-members-heading span { color: #326bd1; background: #edf3ff; }
+.class-detail-post-content { color: #344762; }
+.class-detail-comment-toggle { border-top-color: #e9eef6; }
+.class-detail-comment-form button { color: #345f9d; background: #f7f9fd; border-color: #dfe7f2; }
+@media (max-width: 620px) {
+  .campus-hero, .classes-hero, .class-detail-hero { box-shadow: 0 8px 24px rgba(36,67,107,.06); }
+}

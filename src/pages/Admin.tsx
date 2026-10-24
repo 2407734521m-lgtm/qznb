@@ -24,6 +24,7 @@ type Log = { id: number; action: string; detail: unknown; created_at: string };
 const TABS_ALL: [string, string, boolean][] = [
   ['overview', '总览', false],
   ['members', '成员', false],
+  ['organization', '学校/班级', false],
   ['invite', '邀请码', false],
   ['moderate', '审核', false],
   ['feedback', '反馈', false],
@@ -185,6 +186,7 @@ export default function Admin() {
 
       {tab === 'overview' && <Overview setMsg={setMsg} />}
       {tab === 'members' && <Members me={me} isSuper={isSuper} setMsg={setMsg} extQ={q0} />}
+      {tab === 'organization' && <OrganizationTab me={me} setMsg={setMsg} />}
       {tab === 'moderate' && <Moderate setMsg={setMsg} />}
       {tab === 'board' && <BoardMgr me={me} setMsg={setMsg} />}
       {tab === 'events' && <EventTab me={me} setMsg={setMsg} />}
@@ -1062,30 +1064,56 @@ function GameTab({ setMsg }: { setMsg: (s: string) => void }) {
 }
 
 /* ---------------- 测试工具 ---------------- */
-type TA = { id: string; label: string; email: string; password: string };
+type TA = { id: string; label: string; email: string };
 function loadTAs(): TA[] {
-  try { return JSON.parse(localStorage.getItem('ca_test_accounts') || '[]'); } catch { return []; }
+  try {
+    const parsed = JSON.parse(localStorage.getItem('ca_test_accounts') || '[]');
+    const safe = Array.isArray(parsed)
+      ? parsed.filter((a: any) => a && typeof a.email === 'string')
+          .map((a: any) => ({ id: String(a.id || ''), label: String(a.label || ''), email: a.email }))
+      : [];
+    // 迁移旧版本数据：无论旧数据是否包含密码，都立即覆盖为不含密码的结构。
+    localStorage.setItem('ca_test_accounts', JSON.stringify(safe));
+    return safe;
+  } catch {
+    try { localStorage.removeItem('ca_test_accounts'); } catch {}
+    return [];
+  }
 }
 function TestTab({ setMsg }: { setMsg: (s: string) => void }) {
   const [tas, setTas] = useState<TA[]>(loadTAs);
-  const [label, setLabel] = useState(''); const [email, setEmail] = useState(''); const [pw, setPw] = useState('');
-  function save(list: TA[]) { setTas(list); try { localStorage.setItem('ca_test_accounts', JSON.stringify(list)); } catch {} }
+  const [label, setLabel] = useState('');
+  const [email, setEmail] = useState('');
+  const [passwords, setPasswords] = useState<Record<string, string>>({});
+  function save(list: TA[]) {
+    setTas(list);
+    try { localStorage.setItem('ca_test_accounts', JSON.stringify(list)); } catch {}
+  }
   async function switchTo(a: TA) {
+    const password = passwords[a.id] || '';
+    if (!password) return setMsg('请先输入该测试账号密码；密码不会保存到浏览器');
     if (!confirm(`切换登录到 ${a.label || a.email}？`)) return;
-    const { error } = await supabase.auth.signInWithPassword({ email: a.email, password: a.password });
+    const { error } = await supabase.auth.signInWithPassword({ email: a.email, password });
+    setPasswords(prev => ({ ...prev, [a.id]: '' }));
     if (error) setMsg('切换失败：' + error.message);
-    else { try { sessionStorage.setItem('ca_testing_as', a.label || a.email); } catch {} location.reload(); }
+    else {
+      try { sessionStorage.setItem('ca_testing_as', a.label || a.email); } catch {}
+      location.reload();
+    }
   }
   return (
     <div style={card}>
       <h3 style={h3}>测试工具</h3>
-      <p style={mut}>测试账号快切：密码只存这台手机浏览器里。切出去后右下角有"结束测试"一键切回。</p>
+      <p style={mut}>测试账号快切：只保存备注名和邮箱。切换时临时输入密码，密码不会保存；结束测试后需重新登录原账号。</p>
       {tas.map(a => (
-        <div key={a.id} className="row" style={{ alignItems: 'center', padding: '7px 0', borderBottom: '1px solid #ffffff0c' }}>
-          <div style={{ flex: 1, minWidth: 0 }}>
+        <div key={a.id} className="row" style={{ alignItems: 'center', padding: '7px 0', borderBottom: '1px solid #ffffff0c', flexWrap: 'wrap' }}>
+          <div style={{ flex: '1 1 120px', minWidth: 0 }}>
             <div style={{ fontSize: 14, fontWeight: 700 }}>{a.label || a.email}</div>
             <div style={mut}>{a.email}</div>
           </div>
+          <input type="password" autoComplete="off" placeholder="临时输入密码" value={passwords[a.id] || ''}
+            onChange={e => setPasswords(prev => ({ ...prev, [a.id]: e.target.value }))}
+            style={{ flex: '1 1 110px', minWidth: 0 }} />
           <button className="mini" onClick={() => switchTo(a)}>切换登录</button>
           <button className="mini danger" onClick={() => save(tas.filter(x => x.id !== a.id))}>删除</button>
         </div>
@@ -1093,11 +1121,10 @@ function TestTab({ setMsg }: { setMsg: (s: string) => void }) {
       <div className="row" style={{ gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
         <input placeholder="备注名（选填）" value={label} onChange={e => setLabel(e.target.value)} style={{ flex: '1 1 90px', minWidth: 0 }} />
         <input placeholder="QQ 邮箱" value={email} onChange={e => setEmail(e.target.value)} inputMode="email" style={{ flex: '1 1 110px', minWidth: 0 }} />
-        <input type="password" placeholder="密码" value={pw} onChange={e => setPw(e.target.value)} style={{ flex: '1 1 90px', minWidth: 0 }} />
         <button className="mini" onClick={() => {
-          if (!email.trim() || !pw) return setMsg('邮箱和密码都要填');
-          save([...tas, { id: String(Date.now()), label: label.trim(), email: email.trim(), password: pw }]);
-          setLabel(''); setEmail(''); setPw(''); setMsg('已保存');
+          if (!email.trim()) return setMsg('请填写 QQ 邮箱');
+          save([...tas, { id: String(Date.now()), label: label.trim(), email: email.trim() }]);
+          setLabel(''); setEmail(''); setMsg('账号已保存；仅保存备注名和邮箱，不保存密码');
         }}>保存账号</button>
       </div>
     </div>
@@ -1150,6 +1177,280 @@ function EventTab({ me, setMsg }: { me: string; setMsg: (s: string) => void }) {
         ))}
         {list.length === 0 && <p style={mut}>暂无活动</p>}
       </div>
+    </div>
+  );
+}
+
+
+/* ---------------- 学校与班级组织管理（依赖 005_school_community.sql） ---------------- */
+type OrgSchool = { id: string; name: string; slug: string; is_active: boolean };
+type OrgClass = { id: string; school_id: string; name: string; description: string | null; is_active: boolean };
+type OrgTopic = { id: string; school_id: string; name: string; slug: string; description: string | null };
+function OrganizationTab({ me, setMsg }: { me: string; setMsg: (s: string) => void }) {
+  const [schools, setSchools] = useState<OrgSchool[]>([]);
+  const [classes, setClasses] = useState<OrgClass[]>([]);
+  const [topics, setTopics] = useState<OrgTopic[]>([]);
+  const [topicName, setTopicName] = useState('');
+  const [topicSlug, setTopicSlug] = useState('');
+  const [topicDescription, setTopicDescription] = useState('');
+  const [schoolMembers, setSchoolMembers] = useState<{ school_id: string; profile_id: string; role: string; status: string }[]>([]);
+  const [classMembers, setClassMembers] = useState<{ class_id: string; profile_id: string; role: string; status: string }[]>([]);
+  const [memberNames, setMemberNames] = useState<Record<string, string>>({});
+  const [isSuper, setIsSuper] = useState(false);
+  const [schoolName, setSchoolName] = useState('');
+  const [schoolSlug, setSchoolSlug] = useState('');
+  const [schoolDescription, setSchoolDescription] = useState('');
+  const [selectedSchool, setSelectedSchool] = useState('');
+  const [className, setClassName] = useState('');
+  const [classDescription, setClassDescription] = useState('');
+  const [inviteClass, setInviteClass] = useState('');
+  const [inviteCode, setInviteCode] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [loadError, setLoadError] = useState('');
+
+  async function load() {
+    setLoadError('');
+    const [{ data, error }, { data: roleData }] = await Promise.all([
+      supabase.from('schools').select('id,name,slug,is_active').order('created_at', { ascending: false }),
+      supabase.rpc('my_role'),
+    ]);
+    setIsSuper(roleData === 'super_admin');
+    if (error) {
+      setLoadError(error.message);
+      setSchools([]);
+      setClasses([]);
+      setTopics([]);
+      setSchoolMembers([]);
+      setClassMembers([]);
+      return;
+    }
+    const list = (data || []) as OrgSchool[];
+    setSchools(list);
+    if ((!selectedSchool || !list.some(row => row.id === selectedSchool)) && list[0]) setSelectedSchool(list[0].id);
+    if (!list.length) {
+      setClasses([]);
+      setSchoolMembers([]);
+      setClassMembers([]);
+      return;
+    }
+    const ids = list.map(row => row.id);
+    const [classResult, topicResult, schoolMemberResult, classMemberResult, directoryResult] = await Promise.all([
+      supabase.from('classes').select('id,school_id,name,description,is_active')
+        .in('school_id', ids).order('created_at', { ascending: false }),
+      supabase.from('topics').select('id,school_id,name,slug,description')
+        .in('school_id', ids).order('created_at', { ascending: false }),
+      supabase.from('school_memberships').select('school_id,profile_id,role,status').in('school_id', ids),
+      supabase.from('class_memberships').select('class_id,profile_id,role,status'),
+      supabase.rpc('member_directory', { q: '', lim: 50, skip: 0 }),
+    ]);
+    if (classResult.error) setLoadError(classResult.error.message);
+    if (topicResult.error) setLoadError(topicResult.error.message);
+    setClasses((classResult.data || []) as OrgClass[]);
+    setTopics((topicResult.data || []) as OrgTopic[]);
+    setSchoolMembers((schoolMemberResult.data || []) as { school_id: string; profile_id: string; role: string; status: string }[]);
+    setClassMembers((classMemberResult.data || []) as { class_id: string; profile_id: string; role: string; status: string }[]);
+    const map: Record<string, string> = {};
+    ((directoryResult.data || []) as any[]).forEach(row => { map[row.id] = row.display_name || row.username || '同学'; });
+    setMemberNames(map);
+    if (schoolMemberResult.error) setLoadError(schoolMemberResult.error.message);
+    if (classMemberResult.error) setLoadError(classMemberResult.error.message);
+  }
+  useEffect(() => { load(); }, []);
+
+  async function createSchool() {
+    if (!schoolName.trim() || !/^[a-z0-9-]{2,60}$/.test(schoolSlug.trim().toLowerCase())) {
+      setMsg('请填写学校名称，并使用 2–60 位小写英文字母、数字或连字符作为学校标识。');
+      return;
+    }
+    setBusy(true);
+    const { error } = await supabase.rpc('create_school', {
+      p_name: schoolName.trim(), p_slug: schoolSlug.trim().toLowerCase(),
+      p_description: schoolDescription.trim() || null,
+    });
+    setBusy(false);
+    if (error) { setMsg('创建学校失败：' + error.message); return; }
+    setSchoolName(''); setSchoolSlug(''); setSchoolDescription('');
+    setMsg('学校已创建。接下来可以创建年级/班级，并生成班级邀请码。');
+    await load();
+  }
+
+  async function createClass() {
+    if (!selectedSchool || !className.trim()) { setMsg('请选择学校并填写班级名称。'); return; }
+    setBusy(true);
+    const { error } = await supabase.rpc('create_class', {
+      p_school_id: selectedSchool, p_name: className.trim(),
+      p_grade_id: null, p_description: classDescription.trim() || null,
+    });
+    setBusy(false);
+    if (error) { setMsg('创建班级失败：' + error.message); return; }
+    setClassName(''); setClassDescription('');
+    setMsg('班级已创建。可以在下方生成邀请码。');
+    await load();
+  }
+
+  async function createTopic() {
+    if (!selectedSchool || !topicName.trim() || !/^[a-z0-9-]{1,60}$/.test(topicSlug.trim().toLowerCase())) {
+      setMsg('请选择学校、填写话题名称，并使用小写英文、数字或连字符作为话题标识。');
+      return;
+    }
+    setBusy(true);
+    const { error } = await supabase.from('topics').insert({
+      school_id: selectedSchool, name: topicName.trim(), slug: topicSlug.trim().toLowerCase(),
+      description: topicDescription.trim() || null, created_by: me,
+    });
+    setBusy(false);
+    if (error) { setMsg('创建话题失败：' + error.message); return; }
+    setTopicName(''); setTopicSlug(''); setTopicDescription('');
+    setMsg('校园话题已创建。学生发布动态时可以选择该话题。');
+    await load();
+  }
+
+  async function generateInvite() {
+    if (!inviteClass) { setMsg('请先选择一个班级。'); return; }
+    const bytes = crypto.getRandomValues(new Uint8Array(8));
+    const code = Array.from(bytes, value => value.toString(16).padStart(2, '0')).join('').toUpperCase();
+    const expiresAt = new Date(Date.now() + 30 * 86400000).toISOString();
+    setBusy(true);
+    const { error } = await supabase.rpc('create_class_invite', {
+      p_class_id: inviteClass, p_code: code, p_expires_at: expiresAt, p_max_uses: 50,
+    });
+    setBusy(false);
+    if (error) { setMsg('生成邀请码失败：' + error.message); return; }
+    setInviteCode(code);
+    setMsg('邀请码已生成，有效期 30 天、最多使用 50 次。请安全地发给对应班级成员。');
+  }
+
+  async function copyInvite() {
+    if (!inviteCode) return;
+    try {
+      await navigator.clipboard.writeText(inviteCode);
+      setMsg('邀请码已复制。');
+    } catch {
+      setMsg('请长按邀请码文本并选择复制。');
+    }
+  }
+
+  async function toggleClassAdmin(row: { class_id: string; profile_id: string; role: string }) {
+    const makeAdmin = row.role !== 'class_admin';
+    setBusy(true);
+    const { error } = await supabase.rpc('set_class_admin', {
+      p_class_id: row.class_id, p_profile_id: row.profile_id, p_make_admin: makeAdmin,
+    });
+    setBusy(false);
+    if (error) setMsg('修改班级管理员失败：' + error.message);
+    else { setMsg(makeAdmin ? '已设置班级管理员。' : '已取消班级管理员权限。'); await load(); }
+  }
+
+  async function toggleSchoolAdmin(row: { school_id: string; profile_id: string; role: string }) {
+    if (!isSuper || row.role === 'owner') return;
+    const makeAdmin = row.role !== 'school_admin';
+    setBusy(true);
+    const { error } = await supabase.rpc('set_school_admin', {
+      p_school_id: row.school_id, p_profile_id: row.profile_id, p_make_admin: makeAdmin,
+    });
+    setBusy(false);
+    if (error) setMsg('修改学校管理员失败：' + error.message);
+    else { setMsg(makeAdmin ? '已设置学校管理员。' : '已取消学校管理员权限。'); await load(); }
+  }
+
+  const selectedClasses = classes.filter(row => row.school_id === selectedSchool && row.is_active);
+  return (
+    <div style={{ display: 'grid', gap: 12 }}>
+      <div style={card}>
+        <h3 style={h3}>学校与班级管理</h3>
+        <p style={mut}>创建学校、班级并生成邀请码。学生提交申请后，班级管理员可在「班级空间」审核。此模块依赖测试分支中的 005 数据库迁移；迁移尚未应用时，页面会显示数据库错误。</p>
+        {loadError && <div className="err" style={{ marginBottom: 10, overflowWrap: 'anywhere' }}>读取组织数据失败：{loadError}</div>}
+        <button className="mini ghost" onClick={load} disabled={busy}>重新加载</button>
+      </div>
+
+      <div style={card}>
+        <h3 style={h3}>创建学校</h3>
+        <input value={schoolName} onChange={e => setSchoolName(e.target.value)} placeholder="学校名称" maxLength={100} />
+        <input value={schoolSlug} onChange={e => setSchoolSlug(e.target.value)} placeholder="唯一标识，例如 my-school" maxLength={60} autoCapitalize="none" />
+        <textarea value={schoolDescription} onChange={e => setSchoolDescription(e.target.value)} placeholder="学校简介（选填）" maxLength={500} rows={2} style={{ width: '100%' }} />
+        <button className="pri" style={{ width: 'auto', padding: '10px 18px' }} onClick={createSchool} disabled={busy}>创建学校</button>
+      </div>
+
+      <div style={card}>
+        <h3 style={h3}>创建班级</h3>
+        {schools.length === 0 ? <p style={mut}>请先创建学校，或确认当前账号具有学校管理权限。</p> : <>
+          <label style={mut}>所属学校</label>
+          <select value={selectedSchool} onChange={e => setSelectedSchool(e.target.value)} style={{ width: '100%', margin: '6px 0 10px' }}>
+            {schools.map(row => <option key={row.id} value={row.id}>{row.name}</option>)}
+          </select>
+          <input value={className} onChange={e => setClassName(e.target.value)} placeholder="班级名称，例如 高一（3）班" maxLength={60} />
+          <textarea value={classDescription} onChange={e => setClassDescription(e.target.value)} placeholder="班级简介（选填）" maxLength={500} rows={2} style={{ width: '100%' }} />
+          <button className="pri" style={{ width: 'auto', padding: '10px 18px' }} onClick={createClass} disabled={busy}>创建班级</button>
+        </>}
+      </div>
+
+      <div style={card}>
+        <h3 style={h3}>创建校园话题</h3>
+        <p style={mut}>例如：校园日常、学习互助、音乐分享、社团活动。话题归属于所选学校。</p>
+        <input value={topicName} onChange={e => setTopicName(e.target.value)} placeholder="话题名称" maxLength={50} />
+        <input value={topicSlug} onChange={e => setTopicSlug(e.target.value)} placeholder="唯一标识，例如 campus-life" maxLength={60} autoCapitalize="none" />
+        <textarea value={topicDescription} onChange={e => setTopicDescription(e.target.value)} placeholder="话题简介（选填）" maxLength={300} rows={2} style={{ width: '100%' }} />
+        <button className="pri" style={{ width: 'auto', padding: '10px 18px' }} onClick={createTopic} disabled={busy || !selectedSchool}>创建话题</button>
+        <div style={{ marginTop: 10 }}>
+          {topics.filter(topic => topic.school_id === selectedSchool).map(topic => <div key={topic.id} style={{ padding: '7px 0', borderBottom: '1px solid #ffffff0c' }}>
+            <b style={{ fontSize: 12 }}>{topic.name}</b><span style={{ ...mut, marginLeft: 8 }}>#{topic.slug}</span>
+            {topic.description && <div style={mut}>{topic.description}</div>}
+          </div>)}
+        </div>
+      </div>
+
+      <div style={card}>
+        <h3 style={h3}>生成班级邀请码</h3>
+        {classes.filter(row => row.is_active).length === 0 ? <p style={mut}>创建班级后，这里会显示可用的班级。</p> : <>
+          <select value={inviteClass} onChange={e => { setInviteClass(e.target.value); setInviteCode(''); }} style={{ width: '100%', margin: '6px 0 10px' }}>
+            <option value="">选择班级</option>
+            {classes.filter(row => row.is_active).map(row => <option key={row.id} value={row.id}>{schools.find(school => school.id === row.school_id)?.name || '学校'} · {row.name}</option>)}
+          </select>
+          <button className="pri" style={{ width: 'auto', padding: '10px 18px' }} onClick={generateInvite} disabled={busy || !inviteClass}>生成邀请码</button>
+          {inviteCode && <div style={{ marginTop: 12, padding: 12, border: '1px solid #ffffff22', borderRadius: 12, background: '#ffffff08' }}>
+            <div style={{ ...mut, marginBottom: 6 }}>请复制并交给对应班级成员（只显示本次生成的原始码）</div>
+            <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: 2, overflowWrap: 'anywhere' }}>{inviteCode}</div>
+            <button className="mini" style={{ marginTop: 8 }} onClick={copyInvite}>复制邀请码</button>
+          </div>}
+        </>}
+      </div>
+
+      <div style={card}>
+        <h3 style={h3}>已创建的班级（{classes.length}）</h3>
+        {classes.map(row => <div key={row.id} style={{ padding: '9px 0', borderBottom: '1px solid #ffffff0c' }}>
+          <div style={{ fontSize: 13, fontWeight: 700 }}>{row.name}</div>
+          <div style={mut}>{schools.find(school => school.id === row.school_id)?.name || '学校'}{row.description ? ' · ' + row.description : ''}</div>
+        </div>)}
+        {!classes.length && <p style={mut}>暂无班级</p>}
+      </div>
+
+      <div style={card}>
+        <h3 style={h3}>成员与班级管理员</h3>
+        <p style={mut}>只有已通过审核的班级成员才能被设为班级管理员。</p>
+        {classes.map(cls => {
+          const members = classMembers.filter(row => row.class_id === cls.id && row.status === 'active');
+          return <div key={cls.id} style={{ padding: '10px 0', borderBottom: '1px solid #ffffff0c' }}>
+            <div style={{ fontSize: 13, fontWeight: 700 }}>{cls.name}</div>
+            {members.length ? members.map(member => <div key={member.profile_id} className="row" style={{ justifyContent: 'space-between', gap: 8, flexWrap: 'wrap', padding: '7px 0' }}>
+              <span style={{ fontSize: 12 }}>{memberNames[member.profile_id] || member.profile_id.slice(0, 8)} <span style={mut}>· {member.role === 'class_admin' ? '班级管理员' : '普通成员'}</span></span>
+              <button className="mini ghost" disabled={busy} onClick={() => toggleClassAdmin(member)}>{member.role === 'class_admin' ? '取消管理员' : '设为管理员'}</button>
+            </div>) : <p style={mut}>暂无已加入成员</p>}
+          </div>;
+        })}
+        {!classes.length && <p style={mut}>创建班级后可在这里管理成员权限。</p>}
+      </div>
+
+      {isSuper && <div style={card}>
+        <h3 style={h3}>学校管理员权限</h3>
+        <p style={mut}>超级管理员可以把已加入学校的成员设为学校管理员。学校所有者身份不能在这里移除。</p>
+        {schools.map(school => <div key={school.id} style={{ padding: '10px 0', borderBottom: '1px solid #ffffff0c' }}>
+          <div style={{ fontSize: 13, fontWeight: 700 }}>{school.name}</div>
+          {schoolMembers.filter(row => row.school_id === school.id && row.status === 'active').map(member => <div key={member.profile_id} className="row" style={{ justifyContent: 'space-between', gap: 8, flexWrap: 'wrap', padding: '7px 0' }}>
+            <span style={{ fontSize: 12 }}>{memberNames[member.profile_id] || member.profile_id.slice(0, 8)} <span style={mut}>· {member.role === 'owner' ? '所有者' : member.role === 'school_admin' ? '学校管理员' : '成员'}</span></span>
+            {member.role !== 'owner' && <button className="mini ghost" disabled={busy} onClick={() => toggleSchoolAdmin(member)}>{member.role === 'school_admin' ? '取消管理员' : '设为管理员'}</button>}
+          </div>)}
+        </div>)}
+      </div>}
     </div>
   );
 }

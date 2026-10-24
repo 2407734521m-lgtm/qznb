@@ -18,14 +18,12 @@ function Spin() {
   );
 }
 
-// 登录标识可以是：QQ 邮箱 / 用户名
+// 为保护成员 QQ 邮箱隐私，登录仅接受注册时的邮箱；不通过公开 RPC 查询用户名对应的邮箱。
 async function resolveEmail(ident: string): Promise<string> {
   const id = ident.trim();
   if (!id) throw new Error('empty');
-  if (id.includes('@')) return id; // 邮箱直接用
-  const { data, error } = await supabase.rpc('resolve_login_email', { ident: id });
-  if (error || !data) throw new Error('notfound');
-  return data as string;
+  if (!/^[1-9]\d{4,10}@qq\.com$/i.test(id)) throw new Error('emailrequired');
+  return id.toLowerCase();
 }
 
 export default function Login() {
@@ -90,8 +88,8 @@ export default function Login() {
         setVerifyEmail(em); setCode(''); setResendIn(0); setErr(''); setBusy(false);
         return;
       }
-      setErr(e?.message === 'notfound' ? '找不到这个账号，请检查用户名 / QQ 邮箱是否正确'
-        : e?.message === 'empty' ? '请输入登录账号'
+      setErr(e?.message === 'emailrequired' ? '请使用注册时的 QQ 邮箱登录；为保护邮箱隐私，暂不支持用户名登录'
+        : e?.message === 'empty' ? '请输入注册时的 QQ 邮箱'
         : /Invalid login credentials/i.test(m) ? '账号或密码错误'
         : '登录失败：' + (m || '网络错误'));
     } finally { setBusy(false); }
@@ -117,7 +115,10 @@ export default function Login() {
   async function finishJoin(uid: string) {
     const nm = name.trim();
     // 注意：username / real_name 由注册触发器写入，列级权限不允许前端直接改，这里只更新展示名
-    if (nm) supabase.from('profiles').update({ display_name: nm }).eq('id', uid).then(() => {});
+    if (nm) {
+      const { error } = await supabase.from('profiles').update({ display_name: nm }).eq('id', uid);
+      if (error) console.error('保存展示名失败：', error.message);
+    }
     await uploadAvatar(uid);
     const iv = invite.trim();
     if (!iv) return;
@@ -240,7 +241,7 @@ export default function Login() {
             <p className="login-switch"><button onClick={() => { setVerifyEmail(null); setCode(''); setErr(''); }}>← 返回</button></p>
           </>) : mode === 'login' ? (<>
             <label>账号</label>
-            <input value={ident} onChange={e => setIdent(e.target.value)} placeholder="QQ 邮箱 / 用户名" autoComplete="username" />
+            <input value={ident} onChange={e => setIdent(e.target.value)} placeholder="注册时的 QQ 邮箱" autoComplete="username" />
             <label>密码</label>
             <input type="password" value={pw} onChange={e => setPw(e.target.value)} placeholder="密码" autoComplete="current-password"
               onKeyDown={e => e.key === 'Enter' && doLogin()} />

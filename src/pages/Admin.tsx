@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import AdminMemberModal from '../components/AdminMemberModal';
 import { supabase, supabaseBaseUrl } from '../lib/supabase';
 import { useAuth } from '../auth';
+import '../styles-admin-cinematic.css';
 
 /**
  * 管理后台测试版（V2）：高级管理控制中心
@@ -146,12 +147,12 @@ export default function Admin() {
   if (!role) return <div className="center" style={{ minHeight: '60vh' }}>加载中…</div>;
 
   return (
-    <div className="page" style={{
+    <div className="page admin-shell" style={{
       background: '#0a0f1e', minHeight: '100vh',
       margin: '-14px calc(-14px - env(safe-area-inset-right)) 0 calc(-14px - env(safe-area-inset-left))',
       padding: '14px 14px 110px',
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+      <div className="admin-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <div style={{
             width: 34, height: 34, borderRadius: 10, flexShrink: 0,
@@ -172,7 +173,7 @@ export default function Admin() {
         </span>
       </div>
 
-      <form onSubmit={e => { e.preventDefault(); switchTab('members'); }} style={{ marginBottom: 12 }}>
+      <form className="admin-search" onSubmit={e => { e.preventDefault(); switchTab('members'); }} style={{ marginBottom: 12 }}>
         <input value={q0} onChange={e => setQ0(e.target.value)} placeholder="搜索成员姓名 / 用户名…"
           style={{
             width: '100%', boxSizing: 'border-box', background: '#ffffff0d',
@@ -183,20 +184,22 @@ export default function Admin() {
 
       {msg && <p className="priv-note" style={{ margin: '0 0 10px' }}>{msg}</p>}
 
-      {tab === 'overview' && <Overview setMsg={setMsg} />}
-      {tab === 'members' && <Members me={me} isSuper={isSuper} setMsg={setMsg} extQ={q0} />}
-      {tab === 'moderate' && <Moderate setMsg={setMsg} />}
-      {tab === 'board' && <BoardMgr me={me} setMsg={setMsg} />}
-      {tab === 'events' && <EventTab me={me} setMsg={setMsg} />}
-      {tab === 'logs' && <Logs />}
-      {tab === 'settings' && isSuper && <Settings me={me} setMsg={setMsg} />}
-      {tab === 'invite' && <InviteTab isSuper={isSuper} setMsg={setMsg} />}
-      {tab === 'feedback' && <FeedbackTab me={me} isSuper={isSuper} setMsg={setMsg} />}
-      {tab === 'game' && <GameTab setMsg={setMsg} />}
-      {tab === 'test' && isSuper && <TestTab setMsg={setMsg} />}
+      <div className="admin-content" key={tab} aria-live="polite">
+        {tab === 'overview' && <Overview setMsg={setMsg} />}
+              {tab === 'members' && <Members me={me} isSuper={isSuper} setMsg={setMsg} extQ={q0} />}
+              {tab === 'moderate' && <Moderate setMsg={setMsg} />}
+              {tab === 'board' && <BoardMgr me={me} setMsg={setMsg} />}
+              {tab === 'events' && <EventTab me={me} setMsg={setMsg} />}
+              {tab === 'logs' && <Logs />}
+              {tab === 'settings' && isSuper && <Settings me={me} setMsg={setMsg} />}
+              {tab === 'invite' && <InviteTab isSuper={isSuper} setMsg={setMsg} />}
+              {tab === 'feedback' && <FeedbackTab me={me} isSuper={isSuper} setMsg={setMsg} />}
+              {tab === 'game' && <GameTab setMsg={setMsg} />}
+              {tab === 'test' && isSuper && <TestTab setMsg={setMsg} />}
+      </div>
 
       {/* 底部 dock */}
-      <div style={{
+      <div className="admin-dock" style={{
         position: 'fixed', left: '50%', transform: 'translateX(-50%)', zIndex: 60,
         bottom: 'calc(14px + env(safe-area-inset-bottom))',
         width: 'max-content', maxWidth: 'calc(100vw - 28px)',
@@ -208,7 +211,7 @@ export default function Admin() {
       }}>
         <div className="row" style={{ gap: 2, overflowX: 'auto', flexWrap: 'nowrap', maxWidth: '100%' }}>
           {tabs.map(([id, label]) => (
-            <button key={id} onClick={() => switchTab(id)} style={{
+            <button key={id} aria-current={tab === id ? 'page' : undefined} onClick={() => switchTab(id)} style={{
               flexShrink: 0, whiteSpace: 'nowrap', padding: '9px 14px', borderRadius: 999, cursor: 'pointer',
               fontSize: 13, border: 0, fontFamily: 'inherit',
               background: tab === id ? 'linear-gradient(135deg,#5b8cff,#8b5cf6)' : 'none',

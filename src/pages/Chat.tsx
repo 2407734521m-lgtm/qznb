@@ -124,8 +124,9 @@ export default function Chat() {
         try {
           const blob = new Blob(chunksRef.current, { type: recorder.mimeType || 'audio/webm' });
           if (blob.size < 1000) { setError('录音时间太短，请重新录制。'); return; }
-          const ext = blob.type.includes('mp4') ? 'm4a' : blob.type.includes('ogg') ? 'ogg' : blob.type.includes('aac') ? 'aac' : 'webm';
-          const file = new File([blob], 'voice-' + Date.now() + '.' + ext, { type: blob.type || 'audio/webm' });
+          const mime = blob.type.includes('mp4') ? 'audio/mp4' : blob.type.includes('ogg') ? 'audio/ogg' : blob.type.includes('aac') ? 'audio/aac' : blob.type.includes('mpeg') ? 'audio/mpeg' : 'audio/webm';
+          const ext = mime === 'audio/mp4' ? 'm4a' : mime === 'audio/ogg' ? 'ogg' : mime === 'audio/aac' ? 'aac' : mime === 'audio/mpeg' ? 'mp3' : 'webm';
+          const file = new File([blob], 'voice-' + Date.now() + '.' + ext, { type: mime });
           const path = await uploadMedia('chat-media', file, Number(cid) + '/' + me);
           const { error: sendError } = await supabase.from('messages').insert({ conversation_id: Number(cid), sender_id: me, body: '[[im-audio:' + path + ']]' });
           if (sendError) throw sendError;

@@ -34,6 +34,7 @@ export default function Chat() {
   const imageRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState('');
   const [showDetails, setShowDetails] = useState(false);
+  const [showStickers, setShowStickers] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const firstRef = useRef(true);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -154,6 +155,17 @@ export default function Chat() {
     }
   }
 
+  async function sendSticker(sticker: string) {
+    if (sending || uploading || !cid) return;
+    setSending(true); setError('');
+    const { error: sendError } = await supabase.from('messages')
+      .insert({ conversation_id: Number(cid), sender_id: me, body: sticker });
+    setSending(false);
+    if (sendError) { setError('贴纸发送失败，请稍后重试。'); return; }
+    setShowStickers(false);
+    await load();
+  }
+
   async function send() {
     const b = text.trim();
     if (!b || sending) return;
@@ -191,7 +203,7 @@ export default function Chat() {
         .im-input-wrap{display:flex;align-items:center;flex:1;min-width:0;background:rgba(6,24,34,.42);border:1px solid rgba(255,255,255,.22);border-radius:23px;padding:0 6px 0 15px;transition:border-color .2s,box-shadow .2s}
         .im-input-wrap:focus-within{border-color:#9ed7ff;box-shadow:0 0 0 3px #a8e0ff26}.im-input{width:100%;min-width:0;border:0!important;outline:0!important;background:transparent!important;padding:12px 0!important;color:#fff!important;box-shadow:none!important;font-size:15px}.im-input::placeholder{color:rgba(237,248,255,.64)}
         .im-send{width:36px;height:36px;flex:none;border:0;border-radius:50%;background:linear-gradient(135deg,#5d9bff,#387bf5);color:white;font-size:19px;display:grid;place-items:center;cursor:pointer;box-shadow:0 4px 10px #4788f533}.im-send:disabled{opacity:.35;box-shadow:none}
-        .im-error{padding:8px 14px;color:#b64c5b;background:#fff0f1;font-size:12px}\n        .im-photo-link{display:block;max-width:min(68vw,320px);border-radius:14px;overflow:hidden;margin:1px 0 4px}.im-photo{display:block;width:100%;max-height:360px;object-fit:cover;border-radius:14px}.im-photo-loading{padding:18px 26px;color:#8390a6;font-size:12px;background:#f1f4fa;border-radius:12px}.im-audio-card{display:flex;align-items:center;gap:10px;min-width:min(60vw,280px);max-width:100%}.im-audio-symbol{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;flex:none;background:rgba(255,255,255,.22);font-size:13px}.im-audio-main{flex:1;min-width:0}.im-waveform{height:25px;display:flex;align-items:center;gap:3px;margin-bottom:4px}.im-waveform i{width:3px;flex:none;display:block;border-radius:4px;background:currentColor;opacity:.75}.im-audio-main audio{width:100%;height:28px;max-width:260px;filter:invert(.92) hue-rotate(175deg);opacity:.92}.im-mic{width:42px;height:42px;flex:none;border:1px solid rgba(255,255,255,.18);border-radius:50%;background:rgba(255,255,255,.14);color:#fff;font-size:18px;display:grid;place-items:center;cursor:pointer}.im-mic.recording{background:#f04455;border-color:#ffb1b9;animation:im-pulse 1.2s ease-in-out infinite}.im-mic:disabled{opacity:.45;cursor:wait}@keyframes im-pulse{50%{box-shadow:0 0 0 6px rgba(240,68,85,.2)}}
+        .im-error{padding:8px 14px;color:#b64c5b;background:#fff0f1;font-size:12px}\n        .im-photo-link{display:block;max-width:min(68vw,320px);border-radius:14px;overflow:hidden;margin:1px 0 4px}.im-photo{display:block;width:100%;max-height:360px;object-fit:cover;border-radius:14px}.im-photo-loading{padding:18px 26px;color:#8390a6;font-size:12px;background:#f1f4fa;border-radius:12px}.im-audio-card{display:flex;align-items:center;gap:10px;min-width:min(60vw,280px);max-width:100%}.im-audio-symbol{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;flex:none;background:rgba(255,255,255,.22);font-size:13px}.im-audio-main{flex:1;min-width:0}.im-waveform{height:25px;display:flex;align-items:center;gap:3px;margin-bottom:4px}.im-waveform i{width:3px;flex:none;display:block;border-radius:4px;background:currentColor;opacity:.75}.im-audio-main audio{width:100%;height:28px;max-width:260px;filter:invert(.92) hue-rotate(175deg);opacity:.92}.im-sticker-tray{display:flex;gap:10px;overflow-x:auto;padding:12px 14px;background:rgba(8,29,39,.78);backdrop-filter:blur(24px);border-top:1px solid rgba(255,255,255,.14)}.im-sticker-choice{border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.1);border-radius:18px;min-width:52px;height:52px;font-size:29px;cursor:pointer;transition:transform .16s,background .16s}.im-sticker-choice:active{transform:scale(.9);background:rgba(255,255,255,.22)}.im-mic{width:42px;height:42px;flex:none;border:1px solid rgba(255,255,255,.18);border-radius:50%;background:rgba(255,255,255,.14);color:#fff;font-size:18px;display:grid;place-items:center;cursor:pointer}.im-mic.recording{background:#f04455;border-color:#ffb1b9;animation:im-pulse 1.2s ease-in-out infinite}.im-mic:disabled{opacity:.45;cursor:wait}@keyframes im-pulse{50%{box-shadow:0 0 0 6px rgba(240,68,85,.2)}}
         .im-details{padding:12px 16px;background:rgba(8,29,39,.76);backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,.15);display:flex;gap:10px;flex-wrap:wrap;font-size:12px;color:rgba(242,250,255,.8)}
         @keyframes im-arrive{from{opacity:0;transform:translateY(6px) scale(.99)}to{opacity:1;transform:translateY(0) scale(1)}}
         @media(min-width:700px){.im-page{height:100dvh;min-height:100dvh}.im-feed{padding:24px 28px}.im-composer{padding:14px 20px}}
@@ -224,9 +236,10 @@ export default function Chat() {
         <div ref={bottomRef} />
       </main>
       {error && <div className="im-error">{error}</div>}
+      {showStickers && <div className="im-sticker-tray" role="group" aria-label="选择贴纸">{['🥹','😂','❤️','😍','🐱','🐻','✨','🎉','👍','😭','🫶','🌸','💖','😎'].map(sticker => <button key={sticker} type="button" className="im-sticker-choice" aria-label={'发送贴纸 ' + sticker} onClick={() => sendSticker(sticker)}>{sticker}</button>)}</div>}
       <form className="im-composer" onSubmit={e => { e.preventDefault(); send(); }}>
         <input ref={imageRef} type="file" accept="image/*" hidden onChange={e => sendImage(e.target.files?.[0])} />
-        <button type="button" className="im-plus" aria-label="发送图片" title="发送图片" disabled={uploading || recording} onClick={() => imageRef.current?.click()}>{uploading ? '…' : '＋'}</button>
+        <button type="button" className="im-plus" aria-label="打开贴纸和图片菜单" title="打开贴纸和图片菜单" disabled={uploading || recording} onClick={() => setShowStickers(v => !v)}>{showStickers ? '×' : '＋'}</button><button type="button" className="im-icon" aria-label="选择图片" title="选择图片" disabled={uploading || recording} onClick={() => imageRef.current?.click()} style={{fontSize:17,minWidth:38,width:38,height:38}}>▧</button>
         <button type="button" className={'im-mic' + (recording ? ' recording' : '')} aria-label={recording ? '结束录音并发送' : '录制语音'} title={recording ? '结束录音并发送' : '录制语音'} disabled={uploading} onClick={recording ? stopRecording : startRecording}>{recording ? '■' : '🎙'}</button>
         <div className="im-input-wrap">
           <input ref={inputRef} className="im-input" value={text} onChange={e => setText(e.target.value)}

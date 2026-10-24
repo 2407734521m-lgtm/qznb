@@ -140,7 +140,6 @@ export default function Login() {
     if (!/^[1-9]\d{4,10}@qq\.com$/i.test(em)) return setErr('请填写正确的 QQ 邮箱');
     if (pw.length < 8) return setErr('密码至少 8 位');
     if (pw !== pw2) return setErr('两次输入的密码不一致');
-    if (!invite.trim()) return setErr('请填写邀请码，没有的话问管理员要');
     setBusy(true);
     try {
       if (codeSent) {
@@ -188,7 +187,6 @@ export default function Login() {
     if (!/^[1-9]\d{4,10}@qq\.com$/i.test(em)) return setErr('请填写正确的 QQ 邮箱');
     if (pw.length < 8) return setErr('密码至少 8 位');
     if (pw !== pw2) return setErr('两次输入的密码不一致');
-    if (!invite.trim()) return setErr('请填写邀请码，没有的话问管理员要');
     setBusy(true);
     try {
       const { data, error } = await supabase.auth.signUp({
@@ -343,8 +341,8 @@ export default function Login() {
             <input type="password" value={pw} onChange={e => setPw(e.target.value)} placeholder="至少 8 位" autoComplete="new-password" />
             <label>确认密码</label>
             <input type="password" value={pw2} onChange={e => setPw2(e.target.value)} placeholder="再输一次" autoComplete="new-password" />
-            <label>邀请码（必填）</label>
-            <input value={invite} onChange={e => setInvite(e.target.value)} placeholder="找管理员要邀请码" />
+            <label>邀请码（选填）</label>
+            <input value={invite} onChange={e => setInvite(e.target.value)} placeholder="有就填，没有先不填，注册后在个人中心补填" />
             {err && <p className="err">{err}</p>}
             <button className="pri" disabled={busy} onClick={codeSent ? doVerifyReg : sendCode}>{busy ? <><Spin />{codeSent ? '验证中…' : '发送中…'}</> : codeSent ? '验证并进入' : '发送验证码并注册'}</button>
             <p className="login-switch">已有账号？<button onClick={() => { setMode('login'); setErr(''); setCode(''); setInvite(''); setForgotSent(false); }}>去登录</button></p>

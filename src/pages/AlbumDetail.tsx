@@ -4,6 +4,7 @@ import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../auth';
 import { useSignedUrl, uploadMedia, downscaleImage } from '../lib/media';
+import { withRetry } from '../lib/retry';
 
 type P = { id: number; photo_url: string; caption: string | null; uploaded_by: string | null };
 
@@ -52,11 +53,11 @@ export default function AlbumDetail() {
         const small = await downscaleImage(list[i]);
         const path = await uploadMedia('media', small);
         if (!firstPath) firstPath = path;
-        const { error } = await supabase.from('album_photos')
-          .insert({ album_id: Number(id), photo_url: path, caption: i === 0 ? (cap.trim() || null) : null, uploaded_by: me });
+        const { error } = await withRetry(() => supabase.from('album_photos')
+          .insert({ album_id: Number(id), photo_url: path, caption: i === 0 ? (cap.trim() || null) : null, uploaded_by: me }));
         if (error) throw error;
       }
-      if (!album?.cover_url && firstPath) await supabase.from('albums').update({ cover_url: firstPath }).eq('id', Number(id));
+      if (!album?.cover_url && firstPath) await withRetry(() => supabase.from('albums').update({ cover_url: firstPath }).eq('id', Number(id)));
       setCap(''); setUpProg(''); load();
     } catch (e: any) { setErr('上传失败：' + (e.message || '网络错误')); }
     finally { setBusy(false); setUpProg(''); }

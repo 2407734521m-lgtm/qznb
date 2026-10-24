@@ -33,10 +33,11 @@ import ErrorBoundary from './components/ErrorBoundary';
 import AdminLogin from './pages/AdminLogin';
 import Board from './pages/Board';
 import Campus from './pages/Campus';
+import Classes from './pages/Classes';
 
 const TABS = [
   { to: '/campus', label: '广场', ic: '✦' },
-  { to: '/members', label: '班级', ic: '◎' },
+  { to: '/classes', label: '班级', ic: '◎' },
   { to: '/feed', label: '动态', ic: '↗' },
   { to: '/board', label: '公告', ic: '▤' },
   { to: '/events', label: '活动', ic: '▦' },
@@ -422,6 +423,7 @@ function Shell() {
             <Routes location={loc}>
               <Route path="/" element={<Navigate to="/campus" replace />} />
               <Route path="/campus" element={<Campus />} />
+              <Route path="/classes" element={<Classes />} />
               <Route path="/board" element={<Board />} />
               <Route path="/members" element={<Members />} />
               <Route path="/members/:id" element={<Member />} />

@@ -6,6 +6,7 @@ import { useAuth } from './auth';
 import { getWallpaper } from './lib/wallpaper';
 import WallpaperOnboarding from './components/WallpaperOnboarding';
 import WelcomeOverlay from './components/WelcomeOverlay';
+import LoginSuccessOverlay from './components/LoginSuccessOverlay';
 import bgUrl from './assets/bg.jpg';
 import Login from './pages/Login';
 import Members from './pages/Members';
@@ -261,6 +262,7 @@ function Shell() {
 
   // 注册带邀请码：欢迎动画要在 App 层播（登录页验证通过会直接卸载，来不及播）
   const [welcome, setWelcome] = useState<string | null>(null);
+  const [loginSuccess, setLoginSuccess] = useState(false);
   const [pwReset, setPwReset] = useState(() => {
     try {
       return new URLSearchParams(window.location.search).has('code')
@@ -273,7 +275,17 @@ function Shell() {
     if (!session) return;
     let nick: string | null = null;
     try { nick = sessionStorage.getItem('ca_welcome_nick'); sessionStorage.removeItem('ca_welcome_nick'); } catch {}
-    if (nick !== null) setWelcome(nick);
+    if (nick !== null) {
+      setWelcome(nick);
+      setLoginSuccess(false);
+      return;
+    }
+    let shouldShowLoginSuccess = false;
+    try {
+      shouldShowLoginSuccess = sessionStorage.getItem('ca_login_success') === '1';
+      sessionStorage.removeItem('ca_login_success');
+    } catch {}
+    if (shouldShowLoginSuccess) setLoginSuccess(true);
   }, [session]);
   useEffect(() => {
     const open = () => setShowWp(true);
@@ -407,6 +419,7 @@ function Shell() {
         })}
       </nav>}
       {showWp && <WallpaperOnboarding onDone={() => setShowWp(false)} />}
+      {loginSuccess && <LoginSuccessOverlay onDone={() => setLoginSuccess(false)} />}
       {welcome !== null && <WelcomeOverlay nick={welcome} onDone={welcomeDone} />}
       {loginPop && (
         <div onClick={closeLoginPop} style={{

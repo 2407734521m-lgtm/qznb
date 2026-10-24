@@ -58,7 +58,7 @@ export default function Chat() {
           const { data: fs } = await supabase.rpc('my_friends');
           const f = (((fs ?? []) as Array<{ id: string; username: string; display_name: string | null }>))
             .find(x => x.id === other);
-          if (f) setName(f.display_name ?? f.username);
+          if (f) setName(f.display_name || f.username || '暂未填写');
         }
       })();
     }

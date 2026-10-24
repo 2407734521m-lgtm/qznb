@@ -433,3 +433,44 @@ input[type=file]::file-selector-button{
   .login-wrap { padding: 10px 12px calc(12px + env(safe-area-inset-bottom)); }
   .login-card { width: 100%; padding: 16px 14px; border-radius: 18px; }
 }
+
+
+/* Full-screen login experience on mobile. */
+@media (max-width: 600px) {
+  .login-wrap {
+    min-height: 100dvh;
+    width: 100%;
+    box-sizing: border-box;
+    align-items: stretch;
+    justify-content: stretch;
+    padding: 0;
+  }
+  .login-card {
+    width: 100%;
+    max-width: none;
+    min-height: 100dvh;
+    box-sizing: border-box;
+    margin: 0;
+    padding: max(28px, env(safe-area-inset-top)) 22px max(24px, env(safe-area-inset-bottom));
+    border-radius: 0;
+    border-left: 0;
+    border-right: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    max-height: none;
+    overflow: visible;
+  }
+  .login-card h1 { font-size: 22px; }
+  .login-card .sub { margin-bottom: 22px; }
+  .login-card input:not([type="checkbox"]):not([type="range"]):not([type="file"]) {
+    min-height: 48px;
+    font-size: 16px;
+    padding: 12px 14px;
+  }
+  .login-card button.pri { min-height: 52px; }
+  .login-card button { min-height: 46px; }
+}
+@media (max-width: 380px) {
+  .login-card { padding-left: 18px; padding-right: 18px; }
+}

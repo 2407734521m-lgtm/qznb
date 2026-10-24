@@ -120,8 +120,8 @@ export default function Campus() {
           <Link to="/feed" className="campus-shortcut campus-shortcut-blue">
             <span className="campus-shortcut-icon">↗</span><span><b>校园动态</b><small>分享日常与新鲜事</small></span><span className="campus-shortcut-arrow">→</span>
           </Link>
-          <Link to="/members" className="campus-shortcut campus-shortcut-green">
-            <span className="campus-shortcut-icon">◎</span><span><b>班级与同学</b><small>认识同学，回到班级</small></span><span className="campus-shortcut-arrow">→</span>
+          <Link to="/classes" className="campus-shortcut campus-shortcut-green">
+            <span className="campus-shortcut-icon">◎</span><span><b>班级空间</b><small>邀请码加入班级</small></span><span className="campus-shortcut-arrow">→</span>
           </Link>
           <Link to="/board" className="campus-shortcut campus-shortcut-amber">
             <span className="campus-shortcut-icon">✳</span><span><b>校园公告</b><small>查看重要通知</small></span><span className="campus-shortcut-arrow">→</span>

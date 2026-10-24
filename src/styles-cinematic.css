@@ -239,3 +239,25 @@ button:disabled{cursor:not-allowed;filter:saturate(.6)}
   .theme-chip,.priv-btn,.seg button,.post .ft button{transition:none!important}
   .theme-chip:active,.priv-btn:active,.seg button:active,.post .ft button:active{transform:none}
 }
+
+
+/* Dedicated login and registration polish */
+.login-wrap{position:relative;isolation:isolate;min-height:100svh;padding:clamp(18px,5vh,44px) 16px calc(24px + env(safe-area-inset-bottom))}
+.login-wrap::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;background:radial-gradient(ellipse at 50% 18%,rgba(99,145,255,.16),transparent 48%),linear-gradient(180deg,rgba(7,13,29,.18),rgba(7,13,29,.42))}
+.login-card{position:relative;width:min(420px,100%);padding:clamp(24px,6vw,34px) clamp(20px,5vw,30px) 24px;border-radius:28px;overflow:hidden;backdrop-filter:blur(24px) saturate(125%);-webkit-backdrop-filter:blur(24px) saturate(125%);border:1px solid rgba(255,255,255,.17);background:linear-gradient(145deg,rgba(21,32,57,.78),rgba(15,22,41,.68));box-shadow:0 28px 90px rgba(0,0,0,.42),inset 0 1px 0 rgba(255,255,255,.12)}
+.login-card::before{content:"";position:absolute;top:0;left:12%;right:12%;height:1px;background:linear-gradient(90deg,transparent,rgba(184,205,255,.8),transparent);pointer-events:none}
+.login-card h1{font-size:clamp(23px,6vw,28px);line-height:1.2;letter-spacing:-.035em;margin:0 0 7px;text-shadow:0 5px 28px rgba(125,159,255,.2)}
+.login-card .sub{margin:0 0 24px;font-size:11px;letter-spacing:.32em;opacity:.8}
+.login-card label{margin:14px 0 7px;font-size:12px;letter-spacing:.04em;color:rgba(226,234,255,.8)}
+.login-card input:not([type=file]):not([type=range]){box-sizing:border-box;width:100%;min-height:48px;margin:0 0 4px;padding:12px 14px;border-radius:14px;border:1px solid rgba(255,255,255,.14);background:rgba(4,10,24,.3);color:#f5f7ff;font-size:16px}
+.login-card input::placeholder{color:rgba(208,219,244,.45)}
+.login-card input:focus{border-color:rgba(140,174,255,.72);background:rgba(8,16,35,.48);box-shadow:0 0 0 4px rgba(108,156,255,.12)}
+.login-card button.pri{width:100%;min-height:48px;margin-top:14px;border:1px solid rgba(219,230,255,.34);border-radius:14px;color:#101a30;font-weight:750;letter-spacing:.035em;background:linear-gradient(115deg,#dce7ff,#a9c4ff 48%,#c7baff);box-shadow:0 10px 28px rgba(82,119,219,.25),inset 0 1px 0 rgba(255,255,255,.75)}
+.login-card button.pri:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 14px 32px rgba(82,119,219,.34)}
+.login-card button.ghost{min-height:46px;border-radius:14px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.045);color:#e1e9ff}
+.login-card .login-switch{margin:15px 0 0;line-height:1.65;font-size:12.5px;color:rgba(219,228,248,.7)}
+.login-card .login-switch button{padding:3px 4px;color:#b8ccff;font-weight:650}
+.login-card .login-switch button:hover{text-decoration:underline}
+.login-card .priv-note{line-height:1.7;color:rgba(220,229,248,.76)}
+.login-card .err{padding:10px 12px;border:1px solid rgba(255,126,145,.28);border-radius:12px;background:rgba(255,92,117,.08);color:#ffb4c0;font-size:12.5px;line-height:1.55}
+@media(max-width:480px){.login-wrap{padding:20px 14px calc(20px + env(safe-area-inset-bottom))}.login-card{border-radius:24px;padding:26px 20px 22px}.login-card .sub{margin-bottom:21px}}

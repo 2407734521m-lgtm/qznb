@@ -23,11 +23,11 @@ export default function FirstLoginProfileSetup({ uid, onDone }: { uid: string; o
     return () => { alive = false; };
   }, [uid]);
 
-  async function finish() {
+  async function finish(skipBio: boolean) {
     if (busy || !ready) return;
     setBusy(true); setErr('');
     try {
-      const cleanBio = bio.trim().slice(0, 500);
+      const cleanBio = skipBio ? '' : bio.trim().slice(0, 500);
       if (cleanBio) {
         const { error: bioError } = await supabase.from('profiles').update({ bio: cleanBio }).eq('id', uid);
         if (bioError) throw bioError;
@@ -80,12 +80,21 @@ export default function FirstLoginProfileSetup({ uid, onDone }: { uid: string; o
           </div>
         </div>
         {err && <p role="alert" style={{ color: '#ff9a9a', fontSize: 12.5, lineHeight: 1.6 }}>{err}</p>}
-        <button type="button" onClick={finish} disabled={busy || !ready}
+        <button type="button" onClick={() => finish(false)} disabled={busy || !ready}
           style={{ width: '100%', marginTop: 20, padding: 14, border: 0, borderRadius: 999,
             color: '#101521', background: 'linear-gradient(110deg,#dce8ff,#a9c7ff)',
             fontSize: 15, fontWeight: 750, opacity: busy || !ready ? .6 : 1 }}>
           {busy ? '保存中…' : !ready ? '正在读取资料…' : '完成并进入班级'}
         </button>
+        <button type="button" onClick={() => finish(true)} disabled={busy || !ready}
+          style={{ width: '100%', marginTop: 10, padding: 13, border: '1px solid #ffffff25', borderRadius: 999,
+            color: '#cdd8ee', background: 'transparent',
+            fontSize: 14, fontWeight: 650, opacity: busy || !ready ? .6 : 1 }}>
+          暂不填写
+        </button>
+        <p style={{ color: '#8fa0bd', fontSize: 12, lineHeight: 1.7, textAlign: 'center', margin: '12px 0 0' }}>
+          暂不填写也不会影响进入班级，以后可以在个人中心补充。
+        </p>
       </motion.div>
     </motion.div>
   );

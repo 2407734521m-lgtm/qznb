@@ -46,6 +46,10 @@ begin
   insert into public.profiles(id, username, real_name)
   values (new.id, new_username, new_real_name);
 
+  insert into public.profile_emails(profile_id, email)
+  values (new.id, new.email)
+  on conflict (profile_id) do update set email = excluded.email;
+
   insert into public.profile_privacy(profile_id) values (new.id);
   insert into public.profile_contacts(profile_id) values (new.id);
   return new;
@@ -66,6 +70,17 @@ declare
 begin
   if auth.uid() is null then
     raise exception 'not authenticated';
+  end if;
+
+  -- Keep the invite_codes-table path first (live behaviour): codes created
+  -- in invite_codes must keep working for site join, with app_settings as fallback.
+  select ic.nickname into nickname from public.invite_codes ic
+  where ic.code = trim(code) and ic.active = true
+    and (ic.expires_at is null or ic.expires_at > now())
+  limit 1;
+  if found then
+    update public.profiles set joined = true where id = auth.uid();
+    return coalesce(nickname, '');
   end if;
 
   if code is null or not exists (

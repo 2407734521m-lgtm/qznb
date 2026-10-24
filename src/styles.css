@@ -371,3 +371,148 @@ input[type=file]::file-selector-button{
 
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important;animation:none!important}}
 @media (max-width:480px){.card{backdrop-filter:none;-webkit-backdrop-filter:none}}
+
+/* ===== 用户端视觉统一：青春档案 · 深海军蓝电影感 ===== */
+.page{
+  animation:user-page-in .38s cubic-bezier(.2,.75,.25,1) both;
+}
+@keyframes user-page-in{
+  from{opacity:0;transform:translate3d(0,7px,0)}
+  to{opacity:1;transform:translate3d(0,0,0)}
+}
+.page .hero{
+  position:relative;
+  padding:28px 18px 22px!important;
+  margin:4px 0 16px;
+  overflow:hidden;
+  border:1px solid rgba(155,183,255,.13);
+  border-radius:24px;
+  background:
+    radial-gradient(ellipse at 12% 0%,rgba(96,145,255,.22),transparent 55%),
+    radial-gradient(ellipse at 95% 100%,rgba(132,100,238,.14),transparent 50%),
+    linear-gradient(145deg,rgba(20,31,57,.84),rgba(10,16,32,.7));
+  box-shadow:0 18px 44px rgba(0,0,0,.18),inset 0 1px 0 rgba(255,255,255,.055);
+}
+.page .hero:after{
+  content:"";position:absolute;right:-48px;top:-78px;width:170px;height:170px;
+  border:1px solid rgba(169,194,255,.13);border-radius:50%;
+  box-shadow:0 0 0 20px rgba(132,163,255,.025),0 0 0 42px rgba(132,163,255,.018);
+  pointer-events:none;
+}
+.page .hero h1{
+  position:relative;z-index:1;
+  letter-spacing:.035em;
+  text-shadow:0 5px 28px rgba(92,133,255,.18);
+}
+.page .hero p{
+  position:relative;z-index:1;
+  color:#aebcda;
+  letter-spacing:.12em;
+}
+.page .card,.page .mcard,.page .tl-item{
+  border-color:rgba(160,183,240,.13);
+  box-shadow:0 12px 32px rgba(0,0,0,.18),inset 0 1px 0 rgba(255,255,255,.025);
+}
+.page .card{
+  background:linear-gradient(145deg,rgba(23,32,55,.78),rgba(12,19,36,.76));
+}
+.page .searchbar{
+  border:1px solid rgba(156,181,245,.13);
+  border-radius:17px;
+  background:rgba(13,21,40,.82);
+  box-shadow:0 10px 28px rgba(0,0,0,.16);
+  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+}
+.page .searchbar input{
+  margin:0!important;
+  background:transparent!important;
+  border:0!important;
+  box-shadow:none!important;
+  min-height:48px;
+}
+.page .mtoolbar{
+  display:flex;align-items:center;justify-content:space-between;
+  gap:12px;margin:12px 0;
+}
+.page .mcard{
+  position:relative;overflow:hidden;
+  padding:9px 9px 12px;
+  border:1px solid rgba(160,183,240,.14);
+  border-radius:20px;
+  background:linear-gradient(160deg,rgba(24,34,58,.94),rgba(11,18,34,.94));
+  box-shadow:0 12px 30px rgba(0,0,0,.22);
+  cursor:pointer;
+  transition:transform .22s ease,border-color .22s ease,box-shadow .22s ease;
+}
+.page .mcard .photo{
+  border-radius:14px;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.08);
+}
+.page .mcard h3{
+  margin:11px 4px 3px;
+  font-size:15px;letter-spacing:.015em;
+}
+.page .mcard p{
+  margin:0 4px;
+  color:#9eaccb;font-size:12px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.page .mcard .gbadge{
+  border:1px solid rgba(133,167,255,.2);
+  background:rgba(91,140,255,.12);
+  color:#c4d5ff;border-radius:999px;
+}
+.page button.ghost,.page .lswitch>button{
+  border-color:rgba(157,181,239,.18);
+  background:rgba(255,255,255,.045);
+  transition:transform .16s ease,border-color .16s ease,background .16s ease;
+}
+.page button.pri{
+  background:linear-gradient(125deg,#6c9cff,#8c7bfa);
+  color:#0b1428;
+  box-shadow:0 8px 22px rgba(82,123,255,.19),inset 0 1px 0 rgba(255,255,255,.3);
+}
+.page input:focus,.page textarea:focus,.page select:focus{
+  border-color:rgba(133,170,255,.72);
+  box-shadow:0 0 0 3px rgba(91,140,255,.13);
+}
+.page .tl-year{
+  color:#b9ccff;
+  letter-spacing:.12em;
+}
+.page .tl-item{
+  background:linear-gradient(145deg,rgba(22,32,55,.9),rgba(12,18,34,.92));
+  border-radius:18px;
+}
+.page .tl-item img,.page .tl-item video{
+  border-radius:14px;max-width:100%;
+}
+.page .err{
+  border:1px solid rgba(255,120,140,.22);
+  background:rgba(255,90,120,.07);
+  border-radius:12px;padding:10px 12px;
+}
+.page :focus-visible{
+  outline:2px solid #9abaff;outline-offset:3px;
+}
+@media(hover:hover){
+  .page .mcard:hover{
+    transform:translateY(-3px);
+    border-color:rgba(139,174,255,.3);
+    box-shadow:0 18px 38px rgba(0,0,0,.28),0 0 24px rgba(91,140,255,.055);
+  }
+  .page button.ghost:hover{border-color:rgba(139,174,255,.35);background:rgba(91,140,255,.09)}
+}
+@media(max-width:520px){
+  .page .hero{padding:23px 15px 20px!important;border-radius:21px}
+  .page .mcard{padding:7px 7px 10px;border-radius:17px}
+  .page .mcard .photo{border-radius:12px}
+  .page .mcard h3{font-size:14px}
+  .page .card{border-radius:18px}
+}
+@media(prefers-reduced-motion:reduce){
+  .page{animation:none!important}
+  .page .mcard,.page button.ghost{transition:none!important}
+  .page .mcard:hover{transform:none}
+}
+

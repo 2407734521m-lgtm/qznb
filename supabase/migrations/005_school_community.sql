@@ -102,7 +102,7 @@ create table if not exists public.classes (
   created_at timestamptz not null default now(),
   unique (school_id, name),
   unique (id, school_id),
-  foreign key (grade_id) references public.grades(id) on delete set null
+  foreign key (grade_id, school_id) references public.grades(id, school_id) on delete restrict
 );
 
 create table if not exists public.class_memberships (

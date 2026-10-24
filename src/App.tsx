@@ -6,6 +6,7 @@ import { useAuth } from './auth';
 import { getWallpaper } from './lib/wallpaper';
 import WallpaperOnboarding from './components/WallpaperOnboarding';
 import WelcomeOverlay from './components/WelcomeOverlay';
+import FirstLoginProfileSetup from './components/FirstLoginProfileSetup';
 import bgUrl from './assets/bg.jpg';
 import Login from './pages/Login';
 import Members from './pages/Members';

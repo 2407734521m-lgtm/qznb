@@ -1,5 +1,7 @@
 -- 005: school-wide community, class membership and scoped forum posts.
 -- TEST BRANCH ONLY. Review and test against a disposable Supabase project before applying.
+-- Apply only after all existing SQL scripts, including 004_v2.sql, are reconciled.
+-- The repository has duplicate 003/004 prefixes, so verify actual execution order manually.
 -- This migration intentionally does not run automatically from the website.
 begin;
 

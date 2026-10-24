@@ -8,8 +8,9 @@
 --   admin_update_profile：把“my_role() NOT IN ('admin','super_admin')”改为 v_role 变量 + “v_role IS NULL OR v_role NOT IN (...)”。
 --   原有 uid 非空检查、角色范围、新角色白名单、禁改自己、禁动超管目标、目标不存在报错、审计写入、视频状态白名单全部不动。
 -- 刻意不动（需另行决定，不在本批范围）：
---   1) search_path：set_role/set_joined 保持 public（函数体用未限定表名 profiles/admin_audit_logs，改 '' 会破坏执行）；
---      admin_update_profile 保持 ''（已加固过）。搜索路径统一是后续加固项，不混进本批。
+--   1) search_path：三函数统一为 ''；set_role/set_joined 的表引用已全部限定为 public.（profiles×2、admin_audit_logs×1/函数），
+--      其余调用 public.my_role()/auth.uid() 原已限定，jsonb_build_object 走 pg_catalog 隐式搜索（与已上线 search_path='' 的 admin_update_profile 一致）；
+--      只改对象解析方式与搜索路径，不改业务逻辑。admin_update_profile 本轮未动（P1 版原样）。
 --   2) 授权：CREATE OR REPLACE 保留现有授权，本文件不增删任何授权；anon 撤销是后续决定项，不混进本批。
 --   3) 目标角色限制：admin_update_profile 不新增“禁改超管目标”限制（普通管理员能否改超管资料字段是否符合预期，待用户定）。
 --   4) set_joined 参数名：不改函数参数名（线上签名 target uuid, j boolean 保持不变）；前端调用侧改传 j，见 Admin.tsx 改动。
@@ -23,7 +24,7 @@ CREATE OR REPLACE FUNCTION public.set_role(target uuid, new_role text)
 RETURNS void
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = ''
 AS $$
 declare old text; v_role text;
 begin
@@ -31,10 +32,10 @@ begin
   if v_role is null or v_role <> 'super_admin' then raise exception 'forbidden'; end if;
   if new_role not in ('admin','member') then raise exception 'invalid role'; end if;
   if target = auth.uid() then raise exception 'cannot change own role'; end if;
-  select role into old from profiles where id = target;
+  select role into old from public.profiles where id = target;
   if old is null or old = 'super_admin' then raise exception 'invalid target'; end if;
-  update profiles set role = new_role where id = target;
-  insert into admin_audit_logs(actor, action, target, detail)
+  update public.profiles set role = new_role where id = target;
+  insert into public.admin_audit_logs(actor, action, target, detail)
     values (auth.uid(), 'set_role', target, jsonb_build_object('from', old, 'to', new_role));
 end
 $$;
@@ -43,17 +44,17 @@ CREATE OR REPLACE FUNCTION public.set_joined(target uuid, j boolean)
 RETURNS void
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = ''
 AS $$
 declare old boolean; v_role text;
 begin
   v_role := public.my_role();
   if v_role is null or v_role <> 'super_admin' then raise exception 'forbidden'; end if;
   if target = auth.uid() then raise exception 'cannot change self'; end if;
-  select joined into old from profiles where id = target;
+  select joined into old from public.profiles where id = target;
   if old is null then raise exception 'user not found'; end if;
-  update profiles set joined = j where id = target;
-  insert into admin_audit_logs(actor, action, target, detail)
+  update public.profiles set joined = j where id = target;
+  insert into public.admin_audit_logs(actor, action, target, detail)
     values (auth.uid(), 'set_joined', target, jsonb_build_object('from', old, 'to', j));
 end
 $$;

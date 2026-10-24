@@ -147,7 +147,7 @@ export default function Chat() {
             {dateLabel(m.created_at, msgs[i - 1]?.created_at) && <div className="im-day">{dateLabel(m.created_at, msgs[i - 1]?.created_at)}</div>}
             <div className={'im-row ' + (m.sender_id === me ? 'mine' : '')}>
               <div className={'im-bubble ' + (m.sender_id === me ? 'mine' : 'theirs')}>
-                {m.body}
+                <MessageContent body={m.body} />
                 <div className="im-time">{new Date(m.created_at).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}{m.sender_id === me ? ' · 已发送' : ''}</div>
               </div>
             </div>

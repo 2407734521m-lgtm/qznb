@@ -440,6 +440,46 @@ drop policy if exists p_del on public.posts;
 create policy p_del on public.posts for delete to authenticated
   using (author_id = auth.uid() or public.my_role() in ('admin','super_admin'));
 
+-- Comments and reactions must inherit visibility from their parent post.
+drop policy if exists c_sel on public.comments;
+create policy c_sel on public.comments for select to authenticated using (
+  public.is_member() and exists (select 1 from public.posts p where p.id = comments.post_id)
+);
+drop policy if exists c_ins on public.comments;
+create policy c_ins on public.comments for insert to authenticated with check (
+  public.is_member() and author_id = auth.uid()
+  and exists (select 1 from public.posts p where p.id = comments.post_id)
+);
+drop policy if exists l_sel on public.post_likes;
+create policy l_sel on public.post_likes for select to authenticated using (
+  public.is_member() and exists (select 1 from public.posts p where p.id = post_likes.post_id)
+);
+drop policy if exists l_ins on public.post_likes;
+create policy l_ins on public.post_likes for insert to authenticated with check (
+  public.is_member() and profile_id = auth.uid()
+  and exists (select 1 from public.posts p where p.id = post_likes.post_id)
+);
+drop policy if exists l_del on public.post_likes;
+create policy l_del on public.post_likes for delete to authenticated using (
+  profile_id = auth.uid() and exists (select 1 from public.posts p where p.id = post_likes.post_id)
+);
+
+-- Media objects are readable only when owned by the current user or referenced
+-- by a row that the caller is allowed to read. This prevents guessing a private
+-- class post's storage path from bypassing post-level RLS.
+drop policy if exists media_sel on storage.objects;
+create policy media_sel on storage.objects for select to authenticated using (
+  bucket_id = 'media' and (
+    (storage.foldername(name))[1] = auth.uid()::text
+    or exists (select 1 from public.posts p where p.image_url = name)
+    or exists (select 1 from public.album_photos ap where ap.photo_url = name)
+    or exists (select 1 from public.timelines t where t.media_url = name and
+      (t.profile_id = auth.uid() or (public.is_member() and exists (
+        select 1 from public.profiles pr where pr.id = t.profile_id and pr.joined
+      ))))
+  )
+);
+
 revoke all on function public.is_school_member(uuid), public.is_class_member(uuid),
   public.can_manage_school(uuid), public.can_manage_class(uuid),
   public.create_school(text,text,text), public.create_class(uuid,text,uuid,text),

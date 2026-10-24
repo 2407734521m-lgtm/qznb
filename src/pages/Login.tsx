@@ -217,19 +217,19 @@ export default function Login() {
               animate={reduce ? {} : { y: [0, -7, 0], rotate: [0, -4, 4, 0] }}
               transition={{ repeat: Infinity, duration: 1.8, ease: 'easeInOut' }}
               style={{ fontSize: 44, lineHeight: 1.2, margin: '2px 0 6px' }}>✉️</motion.div>
-            <p className="priv-note" style={{ margin: '0 0 4px' }}>确认邮件已发送到 <b style={{ color: '#fff' }}>{verifyEmail}</b><br />
-              打开 QQ 邮箱，点邮件里的 <b style={{ color: '#fff' }}>Confirm email address</b> 按钮完成验证，然后回这里登录<br />
-              邮件标题是英文的，别当垃圾邮件删掉；没看到就翻一下垃圾箱</p>
+            <p className="priv-note" style={{ margin: '0 0 4px' }}>验证码已发送到 <b style={{ color: '#fff' }}>{verifyEmail}</b><br />
+              打开 QQ 邮箱，找标题是「我们的班级 · 青春档案 — 你的验证码」的邮件，把里面的 <b style={{ color: '#fff' }}>6 位数字验证码</b> 填到下面<br />
+              没看到就翻一下垃圾箱；也可以点邮件里的「确认邮箱」链接直接完成验证</p>
             <p className="priv-note" style={{ margin: '0 0 6px' }}>已等待 {waitSec} 秒 · 邮件通常 1 分钟内到达
               <motion.span animate={reduce ? {} : { opacity: [0.2, 1, 0.2] }} transition={{ repeat: Infinity, duration: 1.2 }}>…</motion.span>
             </p>
-            <label>邮件里有数字验证码的话，也可以直接输</label>
+            <label>验证码</label>
             <input value={code} onChange={e => setCode(e.target.value.replace(/\D/g, '').slice(0, 10))}
               placeholder="邮箱收到的数字码" inputMode="numeric" autoComplete="one-time-code"
               style={{ letterSpacing: 10, textAlign: 'center', fontSize: 22, fontWeight: 700 }}
               onKeyDown={e => e.key === 'Enter' && doVerify()} />
             {err && <p className="err">{err}</p>}
-            <button className="pri" disabled={busy} onClick={doVerify}>{busy ? <><Spin />验证中…</> : '用验证码验证并进入'}</button>
+            <button className="pri" disabled={busy} onClick={doVerify}>{busy ? <><Spin />验证中…</> : '验证并进入'}</button>
             <button className="ghost" style={{ width: '100%', marginTop: 8 }} disabled={busy || resendIn > 0} onClick={doResend}>
               {resendIn > 0 ? `重新发送确认邮件（${resendIn}s）` : '重新发送确认邮件'}</button>
             {resendIn > 0 && (

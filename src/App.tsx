@@ -3,7 +3,7 @@ import { Routes, Route, NavLink, Navigate, useLocation, useNavigate } from 'reac
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { supabase } from './lib/supabase';
 import { useAuth } from './auth';
-import { getWallpaper, isOnboarded } from './lib/wallpaper';
+import { getWallpaper } from './lib/wallpaper';
 import WallpaperOnboarding from './components/WallpaperOnboarding';
 import WelcomeOverlay from './components/WelcomeOverlay';
 import bgUrl from './assets/bg.jpg';
@@ -28,7 +28,6 @@ import MeFavorites from './pages/MeFavorites';
 import MeGreetings from './pages/MeGreetings';
 import MeNotifications from './pages/MeNotifications';
 import MeAccount from './pages/MeAccount';
-import Onboarding from './components/Onboarding';
 import ErrorBoundary from './components/ErrorBoundary';
 import AdminLogin from './pages/AdminLogin';
 import Board from './pages/Board';
@@ -252,18 +251,6 @@ function Shell() {
     setLoginPop(null);
   }
 
-  // 新用户 5 步引导（首次登录，未完成过则弹）
-  const [onboardUid, setOnboardUid] = useState<string | null>(null);
-  useEffect(() => {
-    if (!session || loc.pathname === '/admin') return;
-    try {
-      if (!localStorage.getItem('ca_onboard_done_' + session.user.id)) {
-        const t = setTimeout(() => setOnboardUid(session.user.id), 2500);
-        return () => clearTimeout(t);
-      }
-    } catch {}
-  }, [session]);
-
   // 全站壁纸（登录后的 onboarding 可改）
   const [wp, setWp] = useState(getWallpaper);
   useEffect(() => {
@@ -280,21 +267,20 @@ function Shell() {
         || /[?&#]type=recovery/.test(window.location.search + window.location.hash);
     } catch { return false; }
   });
-  // 登录后首次：全屏过渡 + 选壁纸（有欢迎动画时等它播完再弹）
+  // 登录后首次：欢迎动画。壁纸不再登录后自动弹，改由「我的」换壁纸手动打开
   const [showWp, setShowWp] = useState(false);
   useEffect(() => {
     if (!session) return;
     let nick: string | null = null;
     try { nick = sessionStorage.getItem('ca_welcome_nick'); sessionStorage.removeItem('ca_welcome_nick'); } catch {}
     if (nick !== null) setWelcome(nick);
-    else if (!isOnboarded()) setShowWp(true);
   }, [session]);
   useEffect(() => {
     const open = () => setShowWp(true);
     window.addEventListener('ca:wallpaper:open', open);
     return () => window.removeEventListener('ca:wallpaper:open', open);
   }, []);
-  function welcomeDone() { setWelcome(null); if (!isOnboarded()) setShowWp(true); }
+  function welcomeDone() { setWelcome(null); }
 
 
   useEffect(() => {
@@ -422,7 +408,6 @@ function Shell() {
       </nav>}
       {showWp && <WallpaperOnboarding onDone={() => setShowWp(false)} />}
       {welcome !== null && <WelcomeOverlay nick={welcome} onDone={welcomeDone} />}
-      {onboardUid && <Onboarding uid={onboardUid} onDone={() => setOnboardUid(null)} />}
       {loginPop && (
         <div onClick={closeLoginPop} style={{
           position: 'fixed', inset: 0, zIndex: 300, background: '#000b',

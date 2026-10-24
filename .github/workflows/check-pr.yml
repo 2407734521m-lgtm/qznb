@@ -1,5 +1,7 @@
 name: Validate pull request
 on:
+  push:
+    branches: [permission-check-20261024-1155]
   pull_request:
     branches: [main]
   workflow_dispatch:

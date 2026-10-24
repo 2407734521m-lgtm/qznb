@@ -12,8 +12,11 @@
 --    依赖核查（执行前已查，见审查说明）：pg_depend 无依赖对象，其他函数体、视图定义、RLS 策略均未引用该函数，
 --    唯一调用方是前端 LoveWall.tsx 的 rpc 调用（非数据库对象），故 DROP 不会级联影响其他数据库对象。
 --    为避免 DROP 成功、CREATE 失败之间出现函数缺失的窗口，整份迁移包在 BEGIN/COMMIT 事务里执行。
--- 4) 授权：DROP 会清除旧函数的授权，因此重建后必须重新授权；顺序是先 GRANT 给 authenticated，
---    最后再 REVOKE anon（库里有默认授权会给新函数自动授 anon，必须显式撤掉，且撤权要放在最后一步）。
+-- 4) 授权：DROP 会清除旧函数的授权，因此重建后必须重新授权。
+--    顺序是先 REVOKE public 和 anon，再 GRANT 给 authenticated 和 service_role：
+--    只撤 anon 不够，因为 PUBLIC 的执行权会被所有角色继承，必须显式撤掉 PUBLIC 才干净；
+--    service_role 保留，是因为旧函数原来就有它的执行权（postgres/authenticated/service_role），这里是原样保留、不是新增；
+--    库里有默认授权会给新函数自动授 anon，必须显式撤掉。授权语句都在 CREATE 之后、COMMIT 之前。
 --    表、RLS 策略、管理员逻辑均不动。
 begin;
 
@@ -50,7 +53,10 @@ as $function$
   limit 100;
 $function$;
 
-grant execute on function public.love_wall_published() to authenticated;
+revoke execute on function public.love_wall_published() from public;
 revoke execute on function public.love_wall_published() from anon;
+
+grant execute on function public.love_wall_published() to authenticated;
+grant execute on function public.love_wall_published() to service_role;
 
 commit;

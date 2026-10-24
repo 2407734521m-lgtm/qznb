@@ -1180,3 +1180,159 @@ function EventTab({ me, setMsg }: { me: string; setMsg: (s: string) => void }) {
     </div>
   );
 }
+
+
+/* ---------------- 学校与班级组织管理（依赖 005_school_community.sql） ---------------- */
+type OrgSchool = { id: string; name: string; slug: string; is_active: boolean };
+type OrgClass = { id: string; school_id: string; name: string; description: string | null; is_active: boolean };
+function OrganizationTab({ me, setMsg }: { me: string; setMsg: (s: string) => void }) {
+  const [schools, setSchools] = useState<OrgSchool[]>([]);
+  const [classes, setClasses] = useState<OrgClass[]>([]);
+  const [schoolName, setSchoolName] = useState('');
+  const [schoolSlug, setSchoolSlug] = useState('');
+  const [schoolDescription, setSchoolDescription] = useState('');
+  const [selectedSchool, setSelectedSchool] = useState('');
+  const [className, setClassName] = useState('');
+  const [classDescription, setClassDescription] = useState('');
+  const [inviteClass, setInviteClass] = useState('');
+  const [inviteCode, setInviteCode] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [loadError, setLoadError] = useState('');
+
+  async function load() {
+    setLoadError('');
+    const { data, error } = await supabase.from('schools').select('id,name,slug,is_active').order('created_at', { ascending: false });
+    if (error) {
+      setLoadError(error.message);
+      setSchools([]);
+      setClasses([]);
+      return;
+    }
+    const list = (data || []) as OrgSchool[];
+    setSchools(list);
+    if (!selectedSchool && list[0]) setSelectedSchool(list[0].id);
+    if (!inviteClass && list[0]) setInviteClass('');
+    if (!list.length) { setClasses([]); return; }
+    const ids = list.map(row => row.id);
+    const { data: cs, error: classError } = await supabase.from('classes')
+      .select('id,school_id,name,description,is_active').in('school_id', ids)
+      .order('created_at', { ascending: false });
+    if (classError) { setLoadError(classError.message); setClasses([]); }
+    else setClasses((cs || []) as OrgClass[]);
+  }
+  useEffect(() => { load(); }, []);
+
+  async function createSchool() {
+    if (!schoolName.trim() || !/^[a-z0-9-]{2,60}$/.test(schoolSlug.trim().toLowerCase())) {
+      setMsg('请填写学校名称，并使用 2–60 位小写英文字母、数字或连字符作为学校标识。');
+      return;
+    }
+    setBusy(true);
+    const { error } = await supabase.rpc('create_school', {
+      p_name: schoolName.trim(), p_slug: schoolSlug.trim().toLowerCase(),
+      p_description: schoolDescription.trim() || null,
+    });
+    setBusy(false);
+    if (error) { setMsg('创建学校失败：' + error.message); return; }
+    setSchoolName(''); setSchoolSlug(''); setSchoolDescription('');
+    setMsg('学校已创建。接下来可以创建年级/班级，并生成班级邀请码。');
+    await load();
+  }
+
+  async function createClass() {
+    if (!selectedSchool || !className.trim()) { setMsg('请选择学校并填写班级名称。'); return; }
+    setBusy(true);
+    const { error } = await supabase.rpc('create_class', {
+      p_school_id: selectedSchool, p_name: className.trim(),
+      p_grade_id: null, p_description: classDescription.trim() || null,
+    });
+    setBusy(false);
+    if (error) { setMsg('创建班级失败：' + error.message); return; }
+    setClassName(''); setClassDescription('');
+    setMsg('班级已创建。可以在下方生成邀请码。');
+    await load();
+  }
+
+  async function generateInvite() {
+    if (!inviteClass) { setMsg('请先选择一个班级。'); return; }
+    const bytes = crypto.getRandomValues(new Uint8Array(8));
+    const code = Array.from(bytes, value => value.toString(16).padStart(2, '0')).join('').toUpperCase();
+    const expiresAt = new Date(Date.now() + 30 * 86400000).toISOString();
+    setBusy(true);
+    const { error } = await supabase.rpc('create_class_invite', {
+      p_class_id: inviteClass, p_code: code, p_expires_at: expiresAt, p_max_uses: 50,
+    });
+    setBusy(false);
+    if (error) { setMsg('生成邀请码失败：' + error.message); return; }
+    setInviteCode(code);
+    setMsg('邀请码已生成，有效期 30 天、最多使用 50 次。请安全地发给对应班级成员。');
+  }
+
+  async function copyInvite() {
+    if (!inviteCode) return;
+    try {
+      await navigator.clipboard.writeText(inviteCode);
+      setMsg('邀请码已复制。');
+    } catch {
+      setMsg('请长按邀请码文本并选择复制。');
+    }
+  }
+
+  const selectedClasses = classes.filter(row => row.school_id === selectedSchool && row.is_active);
+  return (
+    <div style={{ display: 'grid', gap: 12 }}>
+      <div style={card}>
+        <h3 style={h3}>学校与班级管理</h3>
+        <p style={mut}>创建学校、班级并生成邀请码。学生提交申请后，班级管理员可在「班级空间」审核。此模块依赖测试分支中的 005 数据库迁移；迁移尚未应用时，页面会显示数据库错误。</p>
+        {loadError && <div className="err" style={{ marginBottom: 10, overflowWrap: 'anywhere' }}>读取组织数据失败：{loadError}</div>}
+        <button className="mini ghost" onClick={load} disabled={busy}>重新加载</button>
+      </div>
+
+      <div style={card}>
+        <h3 style={h3}>创建学校</h3>
+        <input value={schoolName} onChange={e => setSchoolName(e.target.value)} placeholder="学校名称" maxLength={100} />
+        <input value={schoolSlug} onChange={e => setSchoolSlug(e.target.value)} placeholder="唯一标识，例如 my-school" maxLength={60} autoCapitalize="none" />
+        <textarea value={schoolDescription} onChange={e => setSchoolDescription(e.target.value)} placeholder="学校简介（选填）" maxLength={500} rows={2} style={{ width: '100%' }} />
+        <button className="pri" style={{ width: 'auto', padding: '10px 18px' }} onClick={createSchool} disabled={busy}>创建学校</button>
+      </div>
+
+      <div style={card}>
+        <h3 style={h3}>创建班级</h3>
+        {schools.length === 0 ? <p style={mut}>请先创建学校，或确认当前账号具有学校管理权限。</p> : <>
+          <label style={mut}>所属学校</label>
+          <select value={selectedSchool} onChange={e => setSelectedSchool(e.target.value)} style={{ width: '100%', margin: '6px 0 10px' }}>
+            {schools.map(row => <option key={row.id} value={row.id}>{row.name}</option>)}
+          </select>
+          <input value={className} onChange={e => setClassName(e.target.value)} placeholder="班级名称，例如 高一（3）班" maxLength={60} />
+          <textarea value={classDescription} onChange={e => setClassDescription(e.target.value)} placeholder="班级简介（选填）" maxLength={500} rows={2} style={{ width: '100%' }} />
+          <button className="pri" style={{ width: 'auto', padding: '10px 18px' }} onClick={createClass} disabled={busy}>创建班级</button>
+        </>}
+      </div>
+
+      <div style={card}>
+        <h3 style={h3}>生成班级邀请码</h3>
+        {classes.filter(row => row.is_active).length === 0 ? <p style={mut}>创建班级后，这里会显示可用的班级。</p> : <>
+          <select value={inviteClass} onChange={e => { setInviteClass(e.target.value); setInviteCode(''); }} style={{ width: '100%', margin: '6px 0 10px' }}>
+            <option value="">选择班级</option>
+            {classes.filter(row => row.is_active).map(row => <option key={row.id} value={row.id}>{schools.find(school => school.id === row.school_id)?.name || '学校'} · {row.name}</option>)}
+          </select>
+          <button className="pri" style={{ width: 'auto', padding: '10px 18px' }} onClick={generateInvite} disabled={busy || !inviteClass}>生成邀请码</button>
+          {inviteCode && <div style={{ marginTop: 12, padding: 12, border: '1px solid #ffffff22', borderRadius: 12, background: '#ffffff08' }}>
+            <div style={{ ...mut, marginBottom: 6 }}>请复制并交给对应班级成员（只显示本次生成的原始码）</div>
+            <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: 2, overflowWrap: 'anywhere' }}>{inviteCode}</div>
+            <button className="mini" style={{ marginTop: 8 }} onClick={copyInvite}>复制邀请码</button>
+          </div>}
+        </>}
+      </div>
+
+      <div style={card}>
+        <h3 style={h3}>已创建的班级（{classes.length}）</h3>
+        {classes.map(row => <div key={row.id} style={{ padding: '9px 0', borderBottom: '1px solid #ffffff0c' }}>
+          <div style={{ fontSize: 13, fontWeight: 700 }}>{row.name}</div>
+          <div style={mut}>{schools.find(school => school.id === row.school_id)?.name || '学校'}{row.description ? ' · ' + row.description : ''}</div>
+        </div>)}
+        {!classes.length && <p style={mut}>暂无班级</p>}
+      </div>
+    </div>
+  );
+}

@@ -516,3 +516,119 @@ input[type=file]::file-selector-button{
   .page .mcard:hover{transform:none}
 }
 
+
+
+/* ===== 登录页 · 与登录成功转场统一的冰蓝电影感 ===== */
+.login-bg{
+  background-color:#070b15;
+  background-position:center;
+  background-size:cover;
+  transition:filter .35s ease,background-image .35s ease;
+}
+.login-wrap{
+  position:relative;
+  isolation:isolate;
+  overflow:hidden;
+  padding:clamp(18px,5vw,36px);
+  background:
+    radial-gradient(ellipse at 50% 18%,rgba(77,111,190,.15),transparent 48%),
+    radial-gradient(ellipse at 8% 88%,rgba(85,112,194,.12),transparent 40%);
+}
+.login-wrap:before,.login-wrap:after{
+  content:"";
+  position:fixed;
+  z-index:-1;
+  width:min(68vw,420px);
+  aspect-ratio:1;
+  border-radius:50%;
+  border:1px solid rgba(169,199,255,.10);
+  pointer-events:none;
+  animation:login-orbit 22s linear infinite;
+}
+.login-wrap:before{top:-28%;right:-23%;box-shadow:0 0 0 28px rgba(169,199,255,.025),0 0 0 62px rgba(169,199,255,.018)}
+.login-wrap:after{bottom:-38%;left:-30%;width:min(58vw,340px);animation-direction:reverse;opacity:.65}
+@keyframes login-orbit{to{transform:rotate(360deg)}}
+.login-card.page{
+  position:relative;
+  width:min(420px,100%);
+  padding:clamp(25px,6vw,34px) clamp(20px,5vw,30px) 22px;
+  overflow:hidden;
+  border:1px solid rgba(178,202,255,.22);
+  border-radius:28px;
+  background:
+    radial-gradient(ellipse at 50% 0%,rgba(92,128,205,.16),transparent 52%),
+    linear-gradient(150deg,rgba(17,25,43,.88),rgba(8,13,24,.90));
+  box-shadow:0 28px 90px rgba(0,0,0,.48),0 0 55px rgba(91,130,220,.08),inset 0 1px 0 rgba(255,255,255,.08);
+  backdrop-filter:blur(26px) saturate(1.25);
+  -webkit-backdrop-filter:blur(26px) saturate(1.25);
+}
+.login-card.page:before{
+  content:"";
+  position:absolute;top:0;left:16%;right:16%;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(207,225,255,.68),transparent);
+  pointer-events:none;
+}
+.login-card h1{
+  color:#f4f7ff;
+  font-size:clamp(23px,6vw,27px);
+  letter-spacing:.09em;
+  text-shadow:0 5px 28px rgba(105,147,255,.2);
+}
+.login-card .sub{
+  margin-bottom:25px;
+  color:#a9bbdf;
+  letter-spacing:.32em;
+}
+.login-card label{color:#b5c2dc;font-size:12.5px;letter-spacing:.035em}
+.login-card input:not([type=range]):not([type=file]){
+  min-height:46px;
+  padding:12px 14px;
+  border-radius:14px;
+  border:1px solid rgba(169,192,239,.16);
+  background:rgba(3,8,18,.38);
+  color:#f4f7ff;
+  transition:border-color .2s,box-shadow .2s,background .2s;
+}
+.login-card input::placeholder{color:#7f8ca7}
+.login-card input:focus{
+  border-color:rgba(147,181,255,.72);
+  background:rgba(8,16,33,.78);
+  box-shadow:0 0 0 3px rgba(91,140,255,.13),0 0 22px rgba(91,140,255,.06);
+}
+.login-card button.pri{
+  min-height:47px;
+  margin-top:10px;
+  border:1px solid rgba(221,233,255,.3);
+  border-radius:15px;
+  background:linear-gradient(120deg,#dce8ff 0%,#a9c7ff 48%,#9eb5f6 100%);
+  color:#111a2c;
+  box-shadow:0 10px 28px rgba(91,140,255,.2),inset 0 1px 0 rgba(255,255,255,.75);
+  transition:transform .2s,box-shadow .2s,filter .2s;
+}
+.login-card button.pri:active{transform:scale(.985);box-shadow:0 4px 14px rgba(91,140,255,.18)}
+.login-card button.ghost{
+  min-height:43px;
+  border:1px solid rgba(169,192,239,.18);
+  border-radius:14px;
+  background:rgba(255,255,255,.045);
+  color:#dce6fb;
+  transition:background .2s,border-color .2s,transform .2s;
+}
+.login-card .login-switch{color:#9eacc8;line-height:1.8}
+.login-card .login-switch button{color:#c6d8ff;text-decoration:underline;text-decoration-color:rgba(198,216,255,.35);text-underline-offset:3px}
+.login-card .priv-note{color:#9eacc8;line-height:1.7}
+.login-card .err{color:#ffb5c0;background:rgba(255,90,120,.08);border:1px solid rgba(255,120,140,.2);border-radius:12px;padding:10px 12px}
+.login-card .bg-panel{border-top-color:rgba(169,192,239,.12)}
+.login-card .avatar-pick .prev{border:1px solid rgba(169,192,239,.22);background:rgba(255,255,255,.06)}
+@media(hover:hover){
+  .login-card button.pri:hover{filter:brightness(1.04);box-shadow:0 14px 34px rgba(91,140,255,.28),inset 0 1px 0 rgba(255,255,255,.8)}
+  .login-card button.ghost:hover{border-color:rgba(169,199,255,.38);background:rgba(91,140,255,.09)}
+}
+@media(max-width:480px){
+  .login-wrap{padding:18px 14px}
+  .login-card.page{border-radius:24px;padding:25px 19px 20px}
+}
+@media(prefers-reduced-motion:reduce){
+  .login-wrap:before,.login-wrap:after{animation:none!important}
+  .login-bg,.login-card input,.login-card button{transition:none!important}
+}

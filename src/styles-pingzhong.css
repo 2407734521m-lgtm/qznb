@@ -138,20 +138,3 @@ a{color:#b7f5dc}
 .pz-classic-entry .pz-secondary{white-space:nowrap;min-height:40px;padding:0 13px;font-size:11px}
 .pz-classic-entry .pz-secondary span{margin-left:7px}
 @media(max-width:560px){.pz-classic-entry{align-items:flex-start;flex-wrap:wrap;gap:12px;padding:15px}.pz-classic-copy{flex:1 1 calc(100% - 60px)}.pz-classic-entry .pz-secondary{margin-left:54px}}
-
-
-/* Compact mobile typography pass: explicit overrides fix earlier oversized inline headings. */
-.pz-hero{min-height:520px!important;margin-bottom:26px!important}
-.pz-hero-copy{padding:52px 0 42px!important}
-.pz-hero h1{font-size:clamp(36px,8vw,56px)!important;letter-spacing:-1.4px!important;margin:14px 0!important;line-height:1.08!important}
-.pz-tagline{font-size:clamp(16px,3.6vw,20px)!important;line-height:1.55!important}
-.pz-section{margin-bottom:26px!important}
-.pz-section-head{margin-bottom:11px!important}
-.pz-section-head h2{font-size:18px!important}
-.pz-feature{min-height:122px!important;padding:12px!important}
-.pz-feature h3{font-size:14px!important;margin:10px 0 4px!important}
-.pz-feature p{font-size:10px!important}
-.pz-classic-entry{padding:13px!important;margin-bottom:22px!important}
-.pz-modal h3{font-size:17px!important}
-.pz-modal-content{font-size:12px!important}
-@media(max-width:680px){.pz-hero{min-height:500px!important;padding:16px!important}.pz-hero-copy{padding:54px 0 48px!important}.pz-hero h1{font-size:clamp(34px,9vw,48px)!important}.pz-tagline{font-size:16px!important}.pz-feature{min-height:112px!important}.pz-section-head h2{font-size:17px!important}}

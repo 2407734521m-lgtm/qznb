@@ -2,15 +2,23 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 
 type Post = { id: string; author_id: string; recipient_name: string | null; category: string; content: string; is_anonymous: boolean; status: string; created_at: string };
+type Profile = { id: string; username: string | null; display_name: string | null; real_name: string | null };
 
 export default function AdminLoveWall({ setMsg }: { setMsg: (s: string) => void }) {
   const [rows, setRows] = useState<Post[]>([]);
+  const [profiles, setProfiles] = useState<Record<string, Profile>>({});
   const [filter, setFilter] = useState('pending');
   const [busy, setBusy] = useState<string | null>(null);
   async function load() {
     const { data, error } = await supabase.from('love_wall_posts').select('*').order('created_at', { ascending: false }).limit(200);
     if (error) { setMsg('表白墙管理暂不可用：请先执行 007_love_wall.sql 数据库迁移。'); return; }
-    setRows((data || []) as Post[]);
+    const nextRows = (data || []) as Post[];
+    setRows(nextRows);
+    const ids = [...new Set(nextRows.map(p => p.author_id))];
+    if (ids.length) {
+      const { data: people } = await supabase.from('profiles').select('id,username,display_name,real_name').in('id', ids);
+      setProfiles(Object.fromEntries(((people || []) as Profile[]).map(p => [p.id, p])));
+    } else setProfiles({});
   }
   useEffect(() => { void load(); }, []);
   async function setStatus(p: Post, status: string) {
@@ -32,7 +40,7 @@ export default function AdminLoveWall({ setMsg }: { setMsg: (s: string) => void 
     <div style={{ display: 'grid', gap: 10 }}>{shown.map(p => <article key={p.id} style={{ border: '1px solid #ffffff18', borderRadius: 15, background: '#11182b', padding: 14 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, fontSize: 11, color: '#b9a4ff' }}><span>{p.category} · {p.status}</span><span>{new Date(p.created_at).toLocaleString()}</span></div>
       <p style={{ whiteSpace: 'pre-wrap', lineHeight: 1.7, overflowWrap: 'anywhere' }}>{p.content}</p>
-      <div style={{ fontSize: 11, color: '#b8bfd7', lineHeight: 1.7 }}>投稿账号 ID：{p.author_id}<br/>展示方式：{p.is_anonymous?'匿名':'署名'} · 收件人：{p.recipient_name || '未填写'}</div>
+      <div style={{ fontSize: 11, color: '#b8bfd7', lineHeight: 1.7 }}>投稿者：{profiles[p.author_id]?.display_name || profiles[p.author_id]?.real_name || profiles[p.author_id]?.username || '未找到对应资料'}<br/>账号 ID：{p.author_id}<br/>展示方式：{p.is_anonymous?'匿名':'署名'} · 收件人：{p.recipient_name || '未填写'}</div>
       <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap', marginTop: 12 }}>
         {p.status!=='published' && <button disabled={busy===p.id} onClick={() => void setStatus(p,'published')} style={action}>审核通过并公开</button>}
         {p.status!=='hidden' && <button disabled={busy===p.id} onClick={() => void setStatus(p,'hidden')} style={action}>隐藏</button>}

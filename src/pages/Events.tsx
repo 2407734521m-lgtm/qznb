@@ -20,7 +20,7 @@ export default function Events() {
     if (ids.length) {
       const { data: dir } = await supabase.rpc('member_directory', { q: '', lim: 100, skip: 0 });
       const nm: Record<string, string> = {};
-      ((dir ?? []) as any[]).forEach((x: any) => { if (ids.includes(x.id)) nm[x.id] = x.display_name ?? x.username; });
+      ((dir ?? []) as any[]).forEach((x: any) => { if (ids.includes(x.id)) nm[x.id] = x.display_name || x.username || '暂未填写'; });
       setNames(nm);
     }
   }

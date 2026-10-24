@@ -134,6 +134,16 @@ export default function Home() {
         {wishes.length > 0 && <div><div className="pz-section-head"><div><div className="pz-kicker">LET YOUR DREAMS GLOW</div><h2>青春心愿</h2></div><button className="pz-text-button" onClick={() => nav('/wishes')}>写下心愿 ↗</button></div><div className="pz-list-card" style={glass}>{wishes.map(w => <div className="pz-mini-item" key={w.id}><p>“{(w.content || '').slice(0, 100)}”</p><small>{timeAgo(w.created_at)}</small></div>)}</div></div>}
       </section>}
 
+      <section className="pz-classic-entry" style={glass}>
+        <div className="pz-classic-symbol">↗</div>
+        <div className="pz-classic-copy">
+          <div className="pz-kicker">THE ORIGINAL EXPERIENCE</div>
+          <h3>想念原来的班级纪念站？</h3>
+          <p>之前设计的班级档案与回忆页面仍为你保留，可以随时切换体验。</p>
+        </div>
+        <button className="pz-secondary" onClick={() => nav('/classic')}>进入旧版网站 <span>↗</span></button>
+      </section>
+
       <footer className="pz-footer"><div className="pz-footer-mark">PZ<span>·</span>YOUTH</div><p>四川省平昌中学 · 青春记忆社区</p><small>追求真理，服务人群。记录青春，连接彼此。</small><span className="pz-footer-line" /></footer>
 
       {annPop && <div className="pz-modal-backdrop" onClick={() => setAnnPop(null)}><div className="pz-modal" style={glass} onClick={e => e.stopPropagation()}><div className="pz-modal-top"><span>校园公告 / NOTICE</span><button onClick={() => setAnnPop(null)}>关闭 ×</button></div><h3>{annPop.title || '校园公告'}</h3><div className="pz-modal-content">{annPop.content}</div><small>{timeAgo(annPop.created_at)}</small></div></div>}

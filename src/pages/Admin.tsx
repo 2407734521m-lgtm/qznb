@@ -396,7 +396,7 @@ function Members({ me, isSuper, setMsg, extQ }: { me: string; isSuper: boolean; 
   async function setJoined(ids: string[], joined: boolean) {
     if (!confirm(`${joined ? '恢复' : '禁用'}选中的 ${ids.length} 个账号？`)) return;
     for (const id of ids) {
-      const { error } = await supabase.rpc('set_joined', { target: id, joined });
+      const { error } = await supabase.rpc('set_joined', { target: id, j: joined });
       if (!error) await alog(joined ? 'member_restore' : 'member_ban', { target: id });
     }
     setSel(new Set()); load(); setMsg('已处理');

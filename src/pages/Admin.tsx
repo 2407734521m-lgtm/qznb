@@ -1188,6 +1188,10 @@ type OrgClass = { id: string; school_id: string; name: string; description: stri
 function OrganizationTab({ me, setMsg }: { me: string; setMsg: (s: string) => void }) {
   const [schools, setSchools] = useState<OrgSchool[]>([]);
   const [classes, setClasses] = useState<OrgClass[]>([]);
+  const [schoolMembers, setSchoolMembers] = useState<{ school_id: string; profile_id: string; role: string; status: string }[]>([]);
+  const [classMembers, setClassMembers] = useState<{ class_id: string; profile_id: string; role: string; status: string }[]>([]);
+  const [memberNames, setMemberNames] = useState<Record<string, string>>({});
+  const [isSuper, setIsSuper] = useState(false);
   const [schoolName, setSchoolName] = useState('');
   const [schoolSlug, setSchoolSlug] = useState('');
   const [schoolDescription, setSchoolDescription] = useState('');
@@ -1201,24 +1205,45 @@ function OrganizationTab({ me, setMsg }: { me: string; setMsg: (s: string) => vo
 
   async function load() {
     setLoadError('');
-    const { data, error } = await supabase.from('schools').select('id,name,slug,is_active').order('created_at', { ascending: false });
+    const [{ data, error }, { data: roleData }] = await Promise.all([
+      supabase.from('schools').select('id,name,slug,is_active').order('created_at', { ascending: false }),
+      supabase.rpc('my_role'),
+    ]);
+    setIsSuper(roleData === 'super_admin');
     if (error) {
       setLoadError(error.message);
       setSchools([]);
       setClasses([]);
+      setSchoolMembers([]);
+      setClassMembers([]);
       return;
     }
     const list = (data || []) as OrgSchool[];
     setSchools(list);
-    if (!selectedSchool && list[0]) setSelectedSchool(list[0].id);
-    if (!inviteClass && list[0]) setInviteClass('');
-    if (!list.length) { setClasses([]); return; }
+    if ((!selectedSchool || !list.some(row => row.id === selectedSchool)) && list[0]) setSelectedSchool(list[0].id);
+    if (!list.length) {
+      setClasses([]);
+      setSchoolMembers([]);
+      setClassMembers([]);
+      return;
+    }
     const ids = list.map(row => row.id);
-    const { data: cs, error: classError } = await supabase.from('classes')
-      .select('id,school_id,name,description,is_active').in('school_id', ids)
-      .order('created_at', { ascending: false });
-    if (classError) { setLoadError(classError.message); setClasses([]); }
-    else setClasses((cs || []) as OrgClass[]);
+    const [classResult, schoolMemberResult, classMemberResult, directoryResult] = await Promise.all([
+      supabase.from('classes').select('id,school_id,name,description,is_active')
+        .in('school_id', ids).order('created_at', { ascending: false }),
+      supabase.from('school_memberships').select('school_id,profile_id,role,status').in('school_id', ids),
+      supabase.from('class_memberships').select('class_id,profile_id,role,status'),
+      supabase.rpc('member_directory', { q: '', lim: 50, skip: 0 }),
+    ]);
+    if (classResult.error) setLoadError(classResult.error.message);
+    setClasses((classResult.data || []) as OrgClass[]);
+    setSchoolMembers((schoolMemberResult.data || []) as { school_id: string; profile_id: string; role: string; status: string }[]);
+    setClassMembers((classMemberResult.data || []) as { class_id: string; profile_id: string; role: string; status: string }[]);
+    const map: Record<string, string> = {};
+    ((directoryResult.data || []) as any[]).forEach(row => { map[row.id] = row.display_name || row.username || '同学'; });
+    setMemberNames(map);
+    if (schoolMemberResult.error) setLoadError(schoolMemberResult.error.message);
+    if (classMemberResult.error) setLoadError(classMemberResult.error.message);
   }
   useEffect(() => { load(); }, []);
 
@@ -1278,6 +1303,29 @@ function OrganizationTab({ me, setMsg }: { me: string; setMsg: (s: string) => vo
     }
   }
 
+  async function toggleClassAdmin(row: { class_id: string; profile_id: string; role: string }) {
+    const makeAdmin = row.role !== 'class_admin';
+    setBusy(true);
+    const { error } = await supabase.rpc('set_class_admin', {
+      p_class_id: row.class_id, p_profile_id: row.profile_id, p_make_admin: makeAdmin,
+    });
+    setBusy(false);
+    if (error) setMsg('修改班级管理员失败：' + error.message);
+    else { setMsg(makeAdmin ? '已设置班级管理员。' : '已取消班级管理员权限。'); await load(); }
+  }
+
+  async function toggleSchoolAdmin(row: { school_id: string; profile_id: string; role: string }) {
+    if (!isSuper || row.role === 'owner') return;
+    const makeAdmin = row.role !== 'school_admin';
+    setBusy(true);
+    const { error } = await supabase.rpc('set_school_admin', {
+      p_school_id: row.school_id, p_profile_id: row.profile_id, p_make_admin: makeAdmin,
+    });
+    setBusy(false);
+    if (error) setMsg('修改学校管理员失败：' + error.message);
+    else { setMsg(makeAdmin ? '已设置学校管理员。' : '已取消学校管理员权限。'); await load(); }
+  }
+
   const selectedClasses = classes.filter(row => row.school_id === selectedSchool && row.is_active);
   return (
     <div style={{ display: 'grid', gap: 12 }}>
@@ -1333,6 +1381,34 @@ function OrganizationTab({ me, setMsg }: { me: string; setMsg: (s: string) => vo
         </div>)}
         {!classes.length && <p style={mut}>暂无班级</p>}
       </div>
+
+      <div style={card}>
+        <h3 style={h3}>成员与班级管理员</h3>
+        <p style={mut}>只有已通过审核的班级成员才能被设为班级管理员。</p>
+        {classes.map(cls => {
+          const members = classMembers.filter(row => row.class_id === cls.id && row.status === 'active');
+          return <div key={cls.id} style={{ padding: '10px 0', borderBottom: '1px solid #ffffff0c' }}>
+            <div style={{ fontSize: 13, fontWeight: 700 }}>{cls.name}</div>
+            {members.length ? members.map(member => <div key={member.profile_id} className="row" style={{ justifyContent: 'space-between', gap: 8, flexWrap: 'wrap', padding: '7px 0' }}>
+              <span style={{ fontSize: 12 }}>{memberNames[member.profile_id] || member.profile_id.slice(0, 8)} <span style={mut}>· {member.role === 'class_admin' ? '班级管理员' : '普通成员'}</span></span>
+              <button className="mini ghost" disabled={busy} onClick={() => toggleClassAdmin(member)}>{member.role === 'class_admin' ? '取消管理员' : '设为管理员'}</button>
+            </div>) : <p style={mut}>暂无已加入成员</p>}
+          </div>;
+        })}
+        {!classes.length && <p style={mut}>创建班级后可在这里管理成员权限。</p>}
+      </div>
+
+      {isSuper && <div style={card}>
+        <h3 style={h3}>学校管理员权限</h3>
+        <p style={mut}>超级管理员可以把已加入学校的成员设为学校管理员。学校所有者身份不能在这里移除。</p>
+        {schools.map(school => <div key={school.id} style={{ padding: '10px 0', borderBottom: '1px solid #ffffff0c' }}>
+          <div style={{ fontSize: 13, fontWeight: 700 }}>{school.name}</div>
+          {schoolMembers.filter(row => row.school_id === school.id && row.status === 'active').map(member => <div key={member.profile_id} className="row" style={{ justifyContent: 'space-between', gap: 8, flexWrap: 'wrap', padding: '7px 0' }}>
+            <span style={{ fontSize: 12 }}>{memberNames[member.profile_id] || member.profile_id.slice(0, 8)} <span style={mut}>· {member.role === 'owner' ? '所有者' : member.role === 'school_admin' ? '学校管理员' : '成员'}</span></span>
+            {member.role !== 'owner' && <button className="mini ghost" disabled={busy} onClick={() => toggleSchoolAdmin(member)}>{member.role === 'school_admin' ? '取消管理员' : '设为管理员'}</button>}
+          </div>)}
+        </div>)}
+      </div>}
     </div>
   );
 }

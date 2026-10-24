@@ -44,10 +44,14 @@ export default function Login() {
   // 邮箱验证码
   const [verifyEmail, setVerifyEmail] = useState<string | null>(null);
   const [code, setCode] = useState('');
+  const [codeSent, setCodeSent] = useState(false); // 注册表单上已点过“发送验证码”
   const [resendIn, setResendIn] = useState(0);
   const [waitSec, setWaitSec] = useState(0); // 验证屏已等待秒数
   const [invite, setInvite] = useState(''); // 注册页邀请码
-  const [forgotSent, setForgotSent] = useState(false); // 忘记密码：重置邮件是否已发送
+  const [forgotSent, setForgotSent] = useState(false); // 忘记密码：重置验证码是否已发送
+  const [forgotCode, setForgotCode] = useState('');
+  const [forgotNewPw, setForgotNewPw] = useState('');
+  const [forgotNewPw2, setForgotNewPw2] = useState('');
   const [bg, setBg] = useState<string>(() => { try { return localStorage.getItem(BG_KEY) || DEFAULT_BG; } catch { return DEFAULT_BG; } });
   const [blur, setBlur] = useState(3); const [dark, setDark] = useState(45);
   const [showBg, setShowBg] = useState(false);
@@ -129,6 +133,61 @@ export default function Login() {
     }
   }
 
+  // 注册表单上的“发送验证码”：走 Supabase + Resend SMTP 发 6 位码。
+  // 第一次点 = signUp（建未验证账号并经 Resend 发码），已发送过且倒计时结束 = resend 重发。
+  async function sendCode() {
+    setErr('');
+    const nm = name.trim(), rl = real.trim(), em = email.trim();
+    if (nm.length < 1 || nm.length > 30) return setErr('用户名 1～30 个字');
+    if (!rl || rl.length > 30) return setErr('请填写真实姓名（仅管理员可见）');
+    if (!/^[1-9]\d{4,10}@qq\.com$/i.test(em)) return setErr('请填写正确的 QQ 邮箱');
+    if (pw.length < 8) return setErr('密码至少 8 位');
+    if (pw !== pw2) return setErr('两次输入的密码不一致');
+    setBusy(true);
+    try {
+      if (codeSent) {
+        const { error } = await supabase.auth.resend({ type: 'signup', email: em });
+        if (error) throw error;
+      } else {
+        const { data, error } = await supabase.auth.signUp({
+          email: em, password: pw,
+          options: { data: { username: nm, real_name: rl } },
+        });
+        if (error) throw error;
+        // 已注册过的邮箱：Supabase 为防枚举不报错、也不发码，返回的 identities 为空。
+        // 这时不能假装“已发送”，要直接告诉用户去登录。
+        if (data.user && Array.isArray((data.user as any).identities) && (data.user as any).identities.length === 0) {
+          setErr('这个 QQ 邮箱已经注册过，直接登录吧');
+          return;
+        }
+        if (data.session) { await finishJoin(data.session.user.id); return; }
+        setCodeSent(true);
+      }
+      setCode(''); setResendIn(60);
+    } catch (e: any) {
+      const m = e?.message || '';
+      setErr(/already registered|already exists/i.test(m) ? '这个 QQ 邮箱已经注册过，直接登录吧'
+        : /rate limit|429/i.test(m) ? '发得太频繁了，稍后再试'
+        : '发送失败：' + (m || '网络错误'));
+    } finally { setBusy(false); }
+  }
+
+  // 注册表单上填码后点“验证并进入”：核对 Resend 发来的 6 位码，通过后补做头像和邀请码加入。
+  async function doVerifyReg() {
+    const c = code.trim();
+    if (!/^\d{6,10}$/.test(c)) return setErr('请输入邮箱收到的数字验证码');
+    setErr(''); setBusy(true);
+    try {
+      const { data, error } = await supabase.auth.verifyOtp({ email: email.trim(), token: c, type: 'signup' });
+      if (error) throw error;
+      if (data.session) await finishJoin(data.session.user.id);
+      setCodeSent(false); setCode('');
+    } catch (e: any) {
+      const m = e?.message || '';
+      setErr(/expired|invalid/i.test(m) ? '验证码不正确或已过期，请核对后重试' : '验证失败：' + (m || '网络错误'));
+    } finally { setBusy(false); }
+  }
+
   async function doReg() {
     setErr('');
     const nm = name.trim(), rl = real.trim(), em = email.trim();
@@ -137,7 +196,6 @@ export default function Login() {
     if (!/^[1-9]\d{4,10}@qq\.com$/i.test(em)) return setErr('请填写正确的 QQ 邮箱');
     if (pw.length < 8) return setErr('密码至少 8 位');
     if (pw !== pw2) return setErr('两次输入的密码不一致');
-    if (!invite.trim()) return setErr('请填写邀请码，没有的话问管理员要');
     setBusy(true);
     try {
       const { data, error } = await supabase.auth.signUp({
@@ -145,6 +203,10 @@ export default function Login() {
         options: { data: { username: nm, real_name: rl } },
       });
       if (error) throw error;
+      if (data.user && Array.isArray((data.user as any).identities) && (data.user as any).identities.length === 0) {
+        setErr('这个 QQ 邮箱已经注册过，直接登录吧');
+        return;
+      }
       if (!data.session) {
         // 邮箱验证已打开：没有 session，先转到验证屏；头像和邀请码加入等验证成功后在 doVerify 里补做
         setVerifyEmail(em); setCode(''); setResendIn(60);
@@ -182,7 +244,7 @@ export default function Login() {
     setResendIn(60);
   }
 
-  // 忘记密码：发重置邮件，点邮件里的链接回来设新密码
+  // 忘记密码：发 6 位重置验证码（不用点链接，填码就能改密码）
   async function doForgot() {
     const em = email.trim();
     if (!/^[1-9]\d{4,10}@qq\.com$/i.test(em)) return setErr('请填写正确的 QQ 邮箱');
@@ -191,12 +253,38 @@ export default function Login() {
       const redirectTo = window.location.origin + window.location.pathname;
       const { error } = await supabase.auth.resetPasswordForEmail(em, { redirectTo });
       if (error) throw error;
-      setForgotSent(true);
+      setForgotSent(true); setForgotCode(''); setResendIn(60);
     } catch (e: any) {
       const m = e?.message || '';
       setErr(/rate limit|429/i.test(m) ? '发得太频繁了，稍后再试'
         : /redirect/i.test(m) ? '发送失败：跳转地址未在 Supabase 后台放行，请联系管理员'
         : '发送失败：' + (m || '网络错误'));
+    } finally { setBusy(false); }
+  }
+
+  // 忘记密码第二步：核对 6 位重置码，通过后直接改密码，再回登录页
+  async function doForgotVerify() {
+    const em = email.trim();
+    const c = forgotCode.trim();
+    if (!/^\d{6,10}$/.test(c)) return setErr('请输入邮箱收到的 6 位数字验证码');
+    if (forgotNewPw.length < 8) return setErr('新密码至少 8 位');
+    if (forgotNewPw !== forgotNewPw2) return setErr('两次输入的新密码不一致');
+    setErr(''); setBusy(true);
+    try {
+      const { data, error } = await supabase.auth.verifyOtp({ email: em, token: c, type: 'recovery' });
+      if (error) throw error;
+      if (!data.session) throw new Error('no session');
+      const { error: e2 } = await supabase.auth.updateUser({ password: forgotNewPw });
+      if (e2) throw e2;
+      await supabase.auth.signOut();
+      setMode('login'); setForgotSent(false); setForgotCode(''); setForgotNewPw(''); setForgotNewPw2('');
+      setPw(''); setPw2(''); setErr('');
+      alert('密码已重设成功，去登录吧');
+    } catch (e: any) {
+      const m = e?.message || '';
+      setErr(/expired|invalid/i.test(m) ? '验证码不正确或已过期，请核对后重试'
+        : /rate limit|429/i.test(m) ? '试得太频繁了，稍后再试'
+        : '重设失败：' + (m || '网络错误'));
     } finally { setBusy(false); }
   }
 
@@ -253,14 +341,25 @@ export default function Login() {
           </>) : mode === 'forgot' ? (<>
             <h1 style={{ fontSize: 22 }}>🔑 重置密码</h1>
             <p className="sub">找 回 密 码</p>
-            <p className="priv-note" style={{ margin: '0 0 4px' }}>输入注册时的 QQ 邮箱，我们会发一封重置邮件给你<br />点邮件里的链接，会自动跳回来设置新密码</p>
+            <p className="priv-note" style={{ margin: '0 0 4px' }}>输入注册时的 QQ 邮箱，我们会发一个 6 位重置验证码给你<br />不用点邮件里的链接，在下面填码、设新密码就行</p>
             <label>QQ 邮箱</label>
-            <input value={email} onChange={e => setEmail(e.target.value)} placeholder="123456@qq.com" inputMode="email"
+            <input value={email} onChange={e => { setEmail(e.target.value); if (forgotSent) { setForgotSent(false); setForgotCode(''); } }} placeholder="123456@qq.com" inputMode="email"
               onKeyDown={e => e.key === 'Enter' && doForgot()} />
+            <button className="ghost" style={{ width: '100%', marginTop: 8 }} disabled={busy || resendIn > 0} onClick={doForgot}>
+              {busy ? '发送中…' : resendIn > 0 ? `重新发送验证码（${resendIn}s）` : forgotSent ? '重新发送验证码' : '发送验证码'}
+            </button>
+            {forgotSent && <p className="priv-note" style={{ margin: '4px 0 0' }}>验证码已发到上面这个 QQ 邮箱，找标题是「我们的班级 · 青春档案 — 你的重置密码验证码」的邮件，没看到就翻一下垃圾箱；如果这个邮箱没注册过，是不会收到码的</p>}
+            {forgotSent && (<>
+              <label>邮箱验证码</label>
+              <input value={forgotCode} onChange={e => setForgotCode(e.target.value.replace(/\D/g, '').slice(0, 10))} placeholder="6 位数字验证码" inputMode="numeric" />
+              <label>新密码</label>
+              <input type="password" value={forgotNewPw} onChange={e => setForgotNewPw(e.target.value)} placeholder="至少 8 位" autoComplete="new-password" />
+              <label>确认新密码</label>
+              <input type="password" value={forgotNewPw2} onChange={e => setForgotNewPw2(e.target.value)} placeholder="再输一次" autoComplete="new-password"
+                onKeyDown={e => e.key === 'Enter' && doForgotVerify()} />
+            </>)}
             {err && <p className="err">{err}</p>}
-            {forgotSent
-              ? <p className="priv-note">✓ 重置邮件已发送，去邮箱点链接吧<br />（没收到的话去垃圾箱看看）</p>
-              : <button className="pri" disabled={busy} onClick={doForgot}>{busy ? <><Spin />发送中…</> : '发送重置邮件'}</button>}
+            {forgotSent && <button className="pri" disabled={busy} onClick={doForgotVerify}>{busy ? <><Spin />重设中…</> : '验证并重设密码'}</button>}
             <p className="login-switch"><button onClick={() => { setMode('login'); setErr(''); setForgotSent(false); }}>← 返回登录</button></p>
           </>) : (<>
             <label>用户名</label>
@@ -278,15 +377,24 @@ export default function Login() {
                 onChange={e => pickAvatar(e.target.files?.[0])} />
             </div>
             <label>QQ 邮箱</label>
-            <input value={email} onChange={e => setEmail(e.target.value)} placeholder="123456@qq.com" inputMode="email" />
+            <input value={email} onChange={e => { setEmail(e.target.value); if (codeSent) { setCodeSent(false); setCode(''); } }} placeholder="123456@qq.com" inputMode="email" />
+            <button className="ghost" style={{ width: '100%', marginTop: 8 }} disabled={busy || resendIn > 0} onClick={sendCode}>
+              {busy ? '发送中…' : resendIn > 0 ? `重新发送验证码（${resendIn}s）` : codeSent ? '重新发送验证码' : '发送验证码'}
+            </button>
+            {codeSent && <p className="priv-note" style={{ margin: '4px 0 0' }}>验证码已通过 Resend 发到上面这个 QQ 邮箱，找标题是「我们的班级 · 青春档案 — 你的验证码」的邮件，没看到就翻一下垃圾箱</p>}
+            {codeSent && (<>
+              <label>邮箱验证码</label>
+              <input value={code} onChange={e => setCode(e.target.value)} placeholder="6 位数字验证码" inputMode="numeric"
+                onKeyDown={e => e.key === 'Enter' && doVerifyReg()} />
+            </>)}
             <label>密码</label>
             <input type="password" value={pw} onChange={e => setPw(e.target.value)} placeholder="至少 8 位" autoComplete="new-password" />
             <label>确认密码</label>
             <input type="password" value={pw2} onChange={e => setPw2(e.target.value)} placeholder="再输一次" autoComplete="new-password" />
-            <label>邀请码（必填）</label>
-            <input value={invite} onChange={e => setInvite(e.target.value)} placeholder="找管理员要邀请码" />
+            <label>邀请码（选填）</label>
+            <input value={invite} onChange={e => setInvite(e.target.value)} placeholder="有就填，没有先不填，注册后在个人中心补填" />
             {err && <p className="err">{err}</p>}
-            <button className="pri" disabled={busy} onClick={doReg}>{busy ? <><Spin />注册中…</> : '注册并进入'}</button>
+            <button className="pri" disabled={busy} onClick={codeSent ? doVerifyReg : sendCode}>{busy ? <><Spin />{codeSent ? '验证中…' : '发送中…'}</> : codeSent ? '验证并进入' : '发送验证码并注册'}</button>
             <p className="login-switch">已有账号？<button onClick={() => { setMode('login'); setErr(''); setCode(''); setInvite(''); setForgotSent(false); }}>去登录</button></p>
           </>)}
 

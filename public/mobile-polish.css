@@ -1,0 +1,56 @@
+/* Mobile-first polish for every signed-in page. Keeps existing features and desktop layout intact. */
+@media (max-width: 768px) {
+  :root { --tab-h: 72px; }
+  html { -webkit-text-size-adjust: 100%; }
+  body { font-size: 14px; }
+  .wrap, .page { min-width: 0; }
+  .wrap { padding-left: max(12px, env(safe-area-inset-left)); padding-right: max(12px, env(safe-area-inset-right)); }
+  .page { width: 100%; min-width: 0; }
+  .card { padding: 12px; border-radius: 17px; }
+  input, textarea, select { font-size: 16px; max-width: 100%; }
+  button, a { touch-action: manipulation; }
+  button.pri { min-height: 44px; padding: 11px 14px; }
+  button.ghost { min-height: 40px; padding: 9px 12px; }
+  .row { min-width: 0; flex-wrap: wrap; }
+  .hero { padding: 14px 2px 5px; }
+  .hero h1 { font-size: clamp(20px, 6vw, 25px); line-height: 1.25; }
+  .hero p { font-size: 13px; }
+  .searchbar { margin: 10px 0; }
+  .mgrid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .mgrid.c3 { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px; }
+  .mgrid.c4 { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px; }
+  .mgrid.c6 { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px; }
+  .mcard { min-width: 0; padding: 8px; border-radius: 16px; }
+  .mcard:hover, .mcard:active { transform: none; }
+  .mcard h3 { font-size: 14px; overflow-wrap: anywhere; }
+  .mgrid.c3 .mcard h3, .mgrid.c4 .mcard h3, .mgrid.c6 .mcard h3 { font-size: 12px; }
+  .mgrid.c4 .mcard p, .mgrid.c6 .mcard p { display: block; font-size: 11px; }
+  .profile.compact { gap: 12px; }
+  .profile.compact .head-photo { width: clamp(104px, 34vw, 145px); }
+  .profile.compact .info h1 { font-size: clamp(19px, 5vw, 23px); overflow-wrap: anywhere; }
+  .photo { border-radius: 15px; }
+  .chat-list { min-height: 34vh; padding-bottom: 16px; }
+  .bubble { max-width: 86%; }
+  .chat-bar { bottom: calc(76px + env(safe-area-inset-bottom)); padding: 8px; gap: 6px; }
+  .chat-bar input { min-width: 0; margin: 0; font-size: 16px; }
+  .tabbar { bottom: calc(8px + env(safe-area-inset-bottom)); max-width: calc(100vw - 16px); }
+  .tabbar a { padding: 9px 10px; font-size: 12px; }
+  .crop-mask { padding: 14px; }
+  .welcome-nick { font-size: clamp(26px, 8vw, 34px); }
+  /* Keep dense data tables usable on narrow screens rather than squeezing columns. */
+  table { display: block; max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  img, video, canvas, iframe { max-width: 100%; }
+}
+@media (max-width: 380px) {
+  .wrap { padding-left: 10px; padding-right: 10px; }
+  .card { padding: 10px; }
+  .mgrid.c3, .mgrid.c4, .mgrid.c6 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .profile.compact { gap: 9px; }
+  .profile.compact .head-photo { width: 108px; }
+  .tabbar { gap: 1px; padding: 5px; }
+  .tabbar a { padding: 8px 9px; font-size: 11.5px; }
+}
+/* Respect device accessibility settings. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+}

@@ -35,13 +35,13 @@ a{color:var(--a)}
     box-shadow:0 14px 44px #000c,inset 0 1px 0 #ffffff2b;
   }
   .tabbar{
-    overflow-x:auto;scrollbar-width:none;
+    overflow-x:auto;scrollbar-width:none;scroll-behavior:smooth;
   }
   .tabbar::-webkit-scrollbar{display:none}
   .tabbar a{
     flex:0 0 auto;display:flex;align-items:center;justify-content:center;
-    padding:9px 13px;border-radius:999px;
-    color:var(--mut);text-decoration:none;font-size:13px;white-space:nowrap;
+    padding:9px 10px;border-radius:999px;
+    color:var(--mut);text-decoration:none;font-size:12.5px;white-space:nowrap;
     transition:background .2s,color .2s;
   }
   .tabbar a.on{

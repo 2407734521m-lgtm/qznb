@@ -8,6 +8,7 @@ import { AuthProvider, useAuth } from './auth';
 import { supabase } from './lib/supabase';
 import './styles.css';
 import './styles-cinematic.css';
+import './styles-editorial.css';
 
 // 管理员子域名（如 admin.xxx.com）：直达后台，不加载主站界面
 const isAdminHost = window.location.hostname.split('.')[0].toLowerCase() === 'admin';
@@ -17,7 +18,12 @@ function AdminShell() {
   const [role, setRole] = useState<string | null>(null);
   useEffect(() => {
     if (!session) { setRole(null); return; }
-    supabase.rpc('my_role').then(({ data }) => setRole(data ?? ''));
+    let live = true;
+    const timer = setTimeout(() => { if (live) setRole(''); }, 8000);
+    supabase.rpc('my_role').then(
+      ({ data, error }) => { clearTimeout(timer); if (live) setRole(error ? '' : (data ?? '')); },
+      () => { clearTimeout(timer); if (live) setRole(''); });
+    return () => { live = false; clearTimeout(timer); };
   }, [session]);
   if (loading || (session && role === null)) return <div className="center">加载中…</div>;
   const isAdmin = role === 'admin' || role === 'super_admin';

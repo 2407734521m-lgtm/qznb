@@ -23,7 +23,22 @@ export default function AdminLogin({ showBack = true }: { showBack?: boolean }) 
       }
       const { error } = await supabase.auth.signInWithPassword({ email: em, password: pw });
       if (error) throw error;
-      const { data: role } = await supabase.rpc('my_role');
+      // 修复：以前这里不看 rpc 的 error，my_role 请求本身失败时 data 是 null，
+      // 会被误报成“该账号没有管理权限”。现在分开处理：请求失败/超时是
+      // “校验没回结果，请重试”，只有明确返回非管理员角色时才是“没有管理权限”。
+      let role: string | null = null;
+      let roleFailed = false;
+      try {
+        const r = await Promise.race([
+          supabase.rpc('my_role'),
+          new Promise<never>((_res, rej) => setTimeout(() => rej(new Error('role_timeout')), 10000)),
+        ]);
+        if (r.error) roleFailed = true;
+        else role = r.data as string | null;
+      } catch {
+        roleFailed = true;
+      }
+      if (roleFailed) return setErr('权限校验没回结果，请重试一次');
       if (role !== 'admin' && role !== 'super_admin') return setErr('该账号没有管理权限');
       // 成功：父级检测到 session/role 变化后自动切进后台
     } catch (e: any) {

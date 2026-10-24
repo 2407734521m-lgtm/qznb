@@ -32,6 +32,7 @@ import Onboarding from './components/Onboarding';
 import ErrorBoundary from './components/ErrorBoundary';
 import AdminLogin from './pages/AdminLogin';
 import Board from './pages/Board';
+import HotSnippets from './pages/HotSnippets';
 
 const TABS = [
   { to: '/home', label: '首页', ic: '🏠' },
@@ -40,6 +41,7 @@ const TABS = [
   { to: '/feed', label: '动态', ic: '✨' },
   { to: '/friends', label: '好友', ic: '💌' },
   { to: '/timeline', label: '时间线', ic: '🌟' },
+  { to: '/hot', label: '热门特效', ic: '🔥' },
   { to: '/me', label: '我的', ic: '🙂' },
 ];
 
@@ -110,8 +112,13 @@ function AdminRoute() {
   useEffect(() => {
     if (!session) { setRole(null); return; }
     let live = true;
-    supabase.rpc('my_role').then(({ data }) => { if (live) setRole(data ?? ''); });
-    return () => { live = false; };
+    // 同 main.tsx 的 AdminShell：my_role 8 秒没回结果或报错都按“未通过”处理，
+    // 不再永远卡在「加载中…」，而是回到登录页让用户重试。
+    const timer = setTimeout(() => { if (live) setRole(''); }, 8000);
+    supabase.rpc('my_role').then(
+      ({ data, error }) => { clearTimeout(timer); if (live) setRole(error ? '' : (data ?? '')); },
+      () => { clearTimeout(timer); if (live) setRole(''); });
+    return () => { live = false; clearTimeout(timer); };
   }, [session]);
   if (loading || (session && role === null)) return <div className="center" style={{ minHeight: '60vh' }}>加载中…</div>;
   const isAdmin = role === 'admin' || role === 'super_admin';
@@ -165,10 +172,7 @@ function Shell() {
   const isAdmin = role === 'admin' || role === 'super_admin';
   const isAdminPage = loc.pathname === '/admin';
   const nav = useNavigate();
-  const touchX = useRef<number | null>(null);
   const barRef = useRef<HTMLElement>(null);
-  // 拖拽 scrub：手指按住底栏滑动时，高亮 pill 实时跟随
-  const [scrub, setScrub] = useState<number | null>(null);
   // 公告红点：有未读管理员公告时显示
   const [boardUnread, setBoardUnread] = useState(false);
   useEffect(() => {
@@ -293,51 +297,9 @@ function Shell() {
   }, []);
   function welcomeDone() { setWelcome(null); if (!isOnboarded()) setShowWp(true); }
 
-  // 按住底栏拖拽：高亮实时跟随手指，松手切换（像 iPhone 小横条 scrub）
-  function tabFromX(clientX: number): number | null {
-    const links = barRef.current?.querySelectorAll('a');
-    if (!links || links.length === 0) return null;
-    let best = -1, bestD = Infinity;
-    links.forEach((a, i) => {
-      const r = a.getBoundingClientRect();
-      if (clientX >= r.left - 8 && clientX <= r.right + 8) { best = i; bestD = -1; }
-      else if (bestD >= 0) {
-        const d = Math.abs(clientX - (r.left + r.width / 2));
-        if (d < bestD) { bestD = d; best = i; }
-      }
-    });
-    return best;
-  }
-  function tabTouchStart(e: React.TouchEvent) {
-    touchX.current = e.touches[0].clientX;
-    setScrub(tabFromX(e.touches[0].clientX));
-  }
-  function tabTouchMove(e: React.TouchEvent) {
-    if (touchX.current == null) return;
-    setScrub(tabFromX(e.touches[0].clientX));
-  }
-  function tabTouchEnd(e: React.TouchEvent) {
-    const sx = touchX.current;
-    const target = scrub;
-    touchX.current = null; setScrub(null);
-    if (sx == null) return;
-    let ni: number | null = target;
-    if (ni == null) { // 快滑：没有 move 事件时按位移方向切
-      const dx = e.changedTouches[0].clientX - sx;
-      if (Math.abs(dx) < 40) return;
-      const idx = TABS.findIndex(t => isTabActive(t.to, loc.pathname));
-      if (idx < 0) return;
-      ni = idx + (dx < 0 ? 1 : -1);
-    }
-    if (ni >= 0 && ni < TABS.length) {
-      const cur = TABS.findIndex(t => isTabActive(t.to, loc.pathname));
-      if (ni !== cur) nav(TABS[ni].to);
-    }
-  }
-  function tabTouchCancel() { touchX.current = null; setScrub(null); }
 
   useEffect(() => {
-    if (session) supabase.rpc('my_role').then(({ data }) => setRole(data ?? ''));
+    if (session) supabase.rpc('my_role').then(({ data }) => setRole(data ?? ''), () => setRole(''));
     else setRole('');
   }, [session]);
 
@@ -433,6 +395,7 @@ function Shell() {
               <Route path="/capsule" element={<Capsule />} />
               <Route path="/wishes" element={<Wishes />} />
               <Route path="/events" element={<Events />} />
+              <Route path="/hot" element={<HotSnippets />} />
               <Route path="/admin" element={<ErrorBoundary><AdminRoute /></ErrorBoundary>} />
               <Route path="*" element={<Navigate to="/home" replace />} />
             </Routes>
@@ -440,22 +403,13 @@ function Shell() {
         </AnimatePresence>
       </div>
 
-      {!isAdminPage && <nav ref={barRef} className="tabbar"
-        onTouchStart={tabTouchStart} onTouchMove={tabTouchMove}
-        onTouchEnd={tabTouchEnd} onTouchCancel={tabTouchCancel}
-        style={{ touchAction: 'pan-y' }}>
+      {!isAdminPage && <nav ref={barRef} className="tabbar" style={{ touchAction: 'pan-x pan-y' }}>
         {TABS.map((t, i) => {
           const activeIdx = TABS.findIndex(x => isTabActive(x.to, loc.pathname));
-          const pill = scrub ?? activeIdx;
           const on = i === activeIdx;
           return (
             <NavLink key={t.to} to={t.to} className={on ? 'on' : ''}
-              style={{ position: 'relative', ...(i === pill ? { background: 'transparent' } : {}) }}>
-              {i === pill && <motion.span layoutId="tab-glass"
-                transition={{ type: 'spring', stiffness: 550, damping: 38 }}
-                style={{ position: 'absolute', inset: 0, borderRadius: 999,
-                  background: 'linear-gradient(135deg,var(--a),var(--b))',
-                  boxShadow: '0 4px 16px color-mix(in srgb,var(--a) 45%,transparent)' }} />}
+              ref={on ? (el: any) => { if (el) el.scrollIntoView({ inline: 'center', block: 'nearest' }); } : undefined}>
               <span style={{ position: 'relative', zIndex: 1 }}>{t.label}
                 {((t.to === '/board' && boardUnread) || (t.to === '/me' && notifUnread)) && <span style={{
                   position: 'absolute', top: -2, right: -10, width: 8, height: 8,

@@ -110,8 +110,13 @@ function AdminRoute() {
   useEffect(() => {
     if (!session) { setRole(null); return; }
     let live = true;
-    supabase.rpc('my_role').then(({ data }) => { if (live) setRole(data ?? ''); });
-    return () => { live = false; };
+    // 同 main.tsx 的 AdminShell：my_role 8 秒没回结果或报错都按“未通过”处理，
+    // 不再永远卡在「加载中…」，而是回到登录页让用户重试。
+    const timer = setTimeout(() => { if (live) setRole(''); }, 8000);
+    supabase.rpc('my_role').then(
+      ({ data, error }) => { clearTimeout(timer); if (live) setRole(error ? '' : (data ?? '')); },
+      () => { clearTimeout(timer); if (live) setRole(''); });
+    return () => { live = false; clearTimeout(timer); };
   }, [session]);
   if (loading || (session && role === null)) return <div className="center" style={{ minHeight: '60vh' }}>加载中…</div>;
   const isAdmin = role === 'admin' || role === 'super_admin';
@@ -337,7 +342,7 @@ function Shell() {
   function tabTouchCancel() { touchX.current = null; setScrub(null); }
 
   useEffect(() => {
-    if (session) supabase.rpc('my_role').then(({ data }) => setRole(data ?? ''));
+    if (session) supabase.rpc('my_role').then(({ data }) => setRole(data ?? ''), () => setRole(''));
     else setRole('');
   }, [session]);
 

@@ -129,7 +129,7 @@ export default function Member() {
   }
 
   if (err) return <div className="page"><div className="center"><div className="card">{err}</div></div></div>;
-  const name = m?.display_name ?? m?.username ?? '';
+  const name = m ? (m.display_name || m.username || '暂未填写') : '';
   const layout = m?.theme?.layout ?? 'right'; // 默认照片在右
   const pcls = 'profile compact' + (layout === 'left' ? ' rev' : layout === 'center' ? ' center' : '');
   const rows = m ? ([['性格', m.personality], ['年龄', m.age], ['个性签名', m.signature],

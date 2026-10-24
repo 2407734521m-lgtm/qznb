@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { supabase, supabaseBaseUrl } from '../lib/supabase';
+import { supabase } from '../lib/supabase';
 import { useSignedUrl } from '../lib/media';
 
 type Props = {
@@ -16,7 +16,7 @@ type Full = {
   intro_video_path: string | null; intro_video_status: string;
 };
 
-/** 管理员点进成员的详情：看基础信息 + 高级修改 + 视频审核 */
+/** 管理员点进成员的详情：看基础信息 + 高级修改 + 视频查看 */
 export default function AdminMemberModal({ memberId, onClose, onChanged }: Props) {
   const [f, setF] = useState<Full | null>(null);
   const [email, setEmail] = useState('');
@@ -84,41 +84,7 @@ export default function AdminMemberModal({ memberId, onClose, onChanged }: Props
     setF(prev => prev ? { ...prev, display_name: form.display_name.trim() || prev.display_name } : prev);
   }
 
-  async function reviewVideo(ok: boolean) {
-    if (!confirm(ok ? '通过这个视频？通过后成员主页会显示它。' : '驳回这个视频？')) return;
-    setBusy(true); setMsg('');
-    const { error } = await supabase.rpc('admin_update_profile', {
-      target: memberId, p_video_status: ok ? 'approved' : 'rejected',
-    });
-    setBusy(false);
-    if (error) { setMsg('操作失败：' + error.message); return; }
-    setMsg(ok ? '已通过' : '已驳回');
-    setF(prev => prev ? { ...prev, intro_video_status: ok ? 'approved' : 'rejected' } : prev);
-    onChanged();
-    // 邮件通知上传者（Edge Function 发，失败不影响审核结果）
-    if (email) {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        await fetch(`${supabaseBaseUrl}/functions/v1/notify`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session?.access_token ?? ''}`,
-          },
-          body: JSON.stringify({
-            to: email,
-            subject: ok ? '你的自我介绍视频已通过审核' : '你的自我介绍视频未通过审核',
-            body: ok
-              ? `你好，你上传的自我介绍视频已通过管理员审核，现在可以在你的主页看到了。`
-              : `你好，你上传的自我介绍视频未通过管理员审核，可以修改后重新上传。`,
-          }),
-        });
-      } catch {}
-    }
-  }
-
   const vStatus = f?.intro_video_status || 'none';
-  const vLabel = vStatus === 'pending' ? '待审核' : vStatus === 'approved' ? '已通过' : vStatus === 'rejected' ? '已驳回' : '无';
 
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 200, background: '#000a', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }} onClick={onClose}>
@@ -167,17 +133,11 @@ export default function AdminMemberModal({ memberId, onClose, onChanged }: Props
 
           {(vStatus !== 'none' || f.intro_video_path) && (
             <>
-              <h4 style={{ margin: '0 0 6px', fontSize: 13 }}>自我介绍视频 · {vLabel}</h4>
+              <h4 style={{ margin: '0 0 6px', fontSize: 13 }}>自我介绍视频</h4>
               <div style={{ marginBottom: 12 }}>
                 {videoUrl ? (
                   <video src={videoUrl} controls playsInline style={{ width: '100%', borderRadius: 10, background: '#000' }} />
                 ) : <p className="mut" style={{ fontSize: 12.5 }}>视频加载中…</p>}
-                {vStatus === 'pending' && (
-                  <div className="row" style={{ gap: 8, marginTop: 8 }}>
-                    <button className="mini" disabled={busy} onClick={() => reviewVideo(true)}>通过</button>
-                    <button className="mini danger" disabled={busy} onClick={() => reviewVideo(false)}>驳回</button>
-                  </div>
-                )}
               </div>
             </>
           )}

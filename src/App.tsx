@@ -259,6 +259,17 @@ function Shell() {
     return () => window.removeEventListener('ca:wallpaper', h);
   }, []);
 
+  // 首次资料设置只认新注册时写入的 Auth user_metadata 标记；不以 profile_privacy 行是否存在判断。
+  const [profileSetupUid, setProfileSetupUid] = useState<string | null>(null);
+  useEffect(() => {
+    if (!session || loc.pathname === '/admin') { setProfileSetupUid(null); return; }
+    const pending = session.user.user_metadata?.first_profile_setup_pending === true;
+    let doneHere = false;
+    try { doneHere = localStorage.getItem('ca_profile_setup_done_' + session.user.id) === '1'; } catch {}
+    if (pending && !doneHere) setProfileSetupUid(session.user.id);
+    else setProfileSetupUid(null);
+  }, [session, loc.pathname]);
+
   // 注册带邀请码：欢迎动画要在 App 层播（登录页验证通过会直接卸载，来不及播）
   const [welcome, setWelcome] = useState<string | null>(null);
   const [pwReset, setPwReset] = useState(() => {
@@ -271,6 +282,11 @@ function Shell() {
   const [showWp, setShowWp] = useState(false);
   useEffect(() => {
     if (!session) return;
+    if (session.user.user_metadata?.first_profile_setup_pending === true) {
+      try { sessionStorage.removeItem('ca_welcome_nick'); } catch {}
+      setWelcome(null);
+      return;
+    }
     let nick: string | null = null;
     try { nick = sessionStorage.getItem('ca_welcome_nick'); sessionStorage.removeItem('ca_welcome_nick'); } catch {}
     if (nick !== null) setWelcome(nick);
@@ -406,9 +422,15 @@ function Shell() {
           );
         })}
       </nav>}
-      {showWp && <WallpaperOnboarding onDone={() => setShowWp(false)} />}
-      {welcome !== null && <WelcomeOverlay nick={welcome} onDone={welcomeDone} />}
-      {loginPop && (
+      {profileSetupUid && <FirstLoginProfileSetup uid={profileSetupUid} onDone={() => {
+        try { localStorage.setItem('ca_profile_setup_done_' + profileSetupUid, '1'); } catch {}
+        setProfileSetupUid(null);
+        setWelcome(null);
+        setLoginPop(null);
+      }} />}
+      {!profileSetupUid && showWp && <WallpaperOnboarding onDone={() => setShowWp(false)} />}
+      {!profileSetupUid && welcome !== null && <WelcomeOverlay nick={welcome} onDone={welcomeDone} />}
+      {!profileSetupUid && loginPop && (
         <div onClick={closeLoginPop} style={{
           position: 'fixed', inset: 0, zIndex: 300, background: '#000b',
           display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24,

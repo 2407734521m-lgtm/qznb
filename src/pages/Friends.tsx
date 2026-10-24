@@ -37,7 +37,7 @@ export default function Friends() {
   async function chat(f: Friend) {
     const { data, error } = await supabase.rpc('get_or_create_conversation', { other: f.id });
     if (error) return setMsg('打开聊天失败：' + error.message);
-    nav(`/chat/${data}`, { state: { name: f.display_name ?? f.username } });
+    nav(`/chat/${data}`, { state: { name: f.display_name || f.username || '暂未填写' } });
   }
 
   return (
@@ -62,7 +62,7 @@ export default function Friends() {
           {friends.map(f => (
             <div key={f.id} className="frow" onClick={() => chat(f)} style={{ cursor: 'pointer' }}>
               <FA p={f} />
-              <div><div className="nm">{f.display_name ?? f.username}</div>
+              <div><div className="nm">{f.display_name || f.username || '暂未填写'}</div>
                 <div className="sub">@{f.username}</div></div>
               <span className="go mut">💬</span>
             </div>
@@ -75,7 +75,7 @@ export default function Friends() {
           {reqs.map(f => (
             <div key={f.id} className="frow">
               <FA p={f} />
-              <div><div className="nm">{f.display_name ?? f.username}</div>
+              <div><div className="nm">{f.display_name || f.username || '暂未填写'}</div>
                 <div className="sub">@{f.username} 想加你为好友</div></div>
               <span className="go" style={{ display: 'flex', gap: 8 }}>
                 <button className="mini pri" onClick={() => respond(f.id, true)}>接受</button>

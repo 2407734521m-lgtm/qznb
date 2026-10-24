@@ -163,7 +163,10 @@ export default function Admin() {
     window.scrollTo({ top: 0 });
   }
 
-  if (!session || verifiedUid !== session.user.id || !role) {
+  if (!session) {
+    return <div className="center" style={{ minHeight: '60vh' }}>登录会话已失效，请返回管理员登录页重新登录。</div>;
+  }
+  if (verifiedUid !== session.user.id || !role) {
     return <div className="center" style={{ minHeight: '60vh' }}>正在验证管理员权限…</div>;
   }
   if (role !== 'admin' && role !== 'super_admin') {

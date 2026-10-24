@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import AdminMemberModal from '../components/AdminMemberModal';
 import { supabase, supabaseBaseUrl } from '../lib/supabase';
 import { useAuth } from '../auth';
+import '../styles-admin-cinematic.css';
 
 /**
  * 管理后台测试版（V2）：高级管理控制中心

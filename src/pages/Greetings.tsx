@@ -23,7 +23,7 @@ export default function Greetings() {
     if (ids.length) {
       const { data: ps } = await supabase.from('profiles').select('id, display_name, username').in('id', ids);
       const m: Record<string, string> = {};
-      (ps ?? []).forEach((p: any) => { m[p.id] = p.display_name || p.username; });
+      (ps ?? []).forEach((p: any) => { m[p.id] = p.display_name || p.username || '暂未填写'; });
       setNames(m);
     }
     const { data: ms } = await supabase.from('profiles')
@@ -82,7 +82,7 @@ export default function Greetings() {
             style={{ width: 'auto', padding: '8px', fontSize: 13 }}>
             <option value="">给全班</option>
             {members.filter(m => m.id !== me).map(m => (
-              <option key={m.id} value={m.id}>给 {m.display_name || m.username}</option>
+              <option key={m.id} value={m.id}>给 {m.display_name || m.username || '暂未填写'}</option>
             ))}
           </select>
           <button className="pri" style={{ width: 'auto', padding: '9px 26px' }} disabled={busy}

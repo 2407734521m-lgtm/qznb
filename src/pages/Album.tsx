@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, useReducedMotion } from 'framer-motion';
 import { supabase } from '../lib/supabase';
+import { withRetry } from '../lib/retry';
 import { useAuth } from '../auth';
 import { useSignedUrl } from '../lib/media';
 
@@ -38,7 +39,7 @@ export default function Album() {
     const t = title.trim(); const c = cat === '自定义' ? custom.trim() : cat;
     if (!t) return setErr('请填写相册名称');
     if (!c) return setErr('请填写分类');
-    const { error } = await supabase.from('albums').insert({ title: t, category: c.slice(0, 20), created_by: me });
+    const { error } = await withRetry(() => supabase.from('albums').insert({ title: t, category: c.slice(0, 20), created_by: me }));
     if (error) return setErr('创建失败：' + error.message);
     setTitle(''); setCustom(''); setShow(false); setErr(''); load();
   }

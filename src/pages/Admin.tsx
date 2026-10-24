@@ -211,7 +211,7 @@ export default function Admin() {
       }}>
         <div className="row" style={{ gap: 2, overflowX: 'auto', flexWrap: 'nowrap', maxWidth: '100%' }}>
           {tabs.map(([id, label]) => (
-            <button key={id} onClick={() => switchTab(id)} style={{
+            <button key={id} aria-current={tab === id ? 'page' : undefined} onClick={() => switchTab(id)} style={{
               flexShrink: 0, whiteSpace: 'nowrap', padding: '9px 14px', borderRadius: 999, cursor: 'pointer',
               fontSize: 13, border: 0, fontFamily: 'inherit',
               background: tab === id ? 'linear-gradient(135deg,#5b8cff,#8b5cf6)' : 'none',

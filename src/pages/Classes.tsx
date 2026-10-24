@@ -21,16 +21,22 @@ export default function Classes() {
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
   const [notice, setNotice] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null);
+  const [globalRole, setGlobalRole] = useState('');
 
   const load = useCallback(async () => {
     if (!me) return;
     setLoading(true);
-    const [schoolResult, requestResult] = await Promise.all([
+    const [schoolResult, requestResult, roleResult] = await Promise.all([
       supabase.from('school_memberships').select('school_id, role, status, schools(id,name,slug)')
         .eq('profile_id', me).eq('status', 'active'),
       supabase.from('class_join_requests').select('id,class_id,profile_id,status,message,created_at')
         .eq('status', 'pending').order('created_at', { ascending: false }).limit(50),
+      supabase.rpc('my_role'),
     ]);
+    setGlobalRole(roleResult.data || '');
+    if (schoolResult.error || requestResult.error) {
+      setNotice({ kind: 'error', text: '班级组织数据库尚未启用，或当前账号没有相应权限。请先完成测试分支中的数据库迁移审核。' });
+    }
     const schoolRows = ((schoolResult.data || []) as any[]).map(row => ({
       id: row.schools?.id || row.school_id,
       name: row.schools?.name || '我的学校',
@@ -102,7 +108,7 @@ export default function Classes() {
   const classMap = Object.fromEntries(classes.map(row => [row.id, row]));
   const myMemberships = memberships.filter(row => row.profile_id === me && row.status === 'active');
   const managedIds = new Set(memberships.filter(row => row.profile_id === me && row.status === 'active' && row.role === 'class_admin').map(row => row.class_id));
-  const manageable = requests.filter(row => managedIds.has(row.class_id) || schools.some(s => ['owner', 'school_admin'].includes(s.role)));
+  const manageable = requests.filter(row => managedIds.has(row.class_id) || globalRole === 'admin' || globalRole === 'super_admin' || schools.some(s => ['owner', 'school_admin'].includes(s.role)));
 
   return (
     <main className="classes-page">

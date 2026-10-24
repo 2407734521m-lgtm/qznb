@@ -314,6 +314,35 @@ begin
 end;
 $$;
 
+create or replace function public.set_school_admin(p_school_id uuid, p_profile_id uuid, p_make_admin boolean)
+returns void language plpgsql security definer set search_path = public as $
+begin
+  if auth.uid() is null or public.my_role() <> 'super_admin' then raise exception 'forbidden'; end if;
+  if not exists (select 1 from public.school_memberships
+      where school_id = p_school_id and profile_id = p_profile_id and status = 'active') then
+    raise exception 'target must be an active school member';
+  end if;
+  update public.school_memberships
+  set role = case when p_make_admin then 'school_admin' else 'member' end
+  where school_id = p_school_id and profile_id = p_profile_id and role <> 'owner';
+  if not found then raise exception 'owner role cannot be changed here'; end if;
+end;
+$;
+
+create or replace function public.set_class_admin(p_class_id uuid, p_profile_id uuid, p_make_admin boolean)
+returns void language plpgsql security definer set search_path = public as $
+declare school_id_value uuid;
+begin
+  if auth.uid() is null then raise exception 'not authenticated'; end if;
+  select school_id into school_id_value from public.classes where id = p_class_id;
+  if school_id_value is null or not public.can_manage_school(school_id_value) then raise exception 'forbidden'; end if;
+  update public.class_memberships
+  set role = case when p_make_admin then 'class_admin' else 'member' end
+  where class_id = p_class_id and profile_id = p_profile_id and status = 'active';
+  if not found then raise exception 'target must be an active class member'; end if;
+end;
+$;
+
 -- Enable RLS and grant only the operations that are checked by the policies.
 alter table public.schools enable row level security;
 alter table public.school_memberships enable row level security;
@@ -337,8 +366,8 @@ create policy schools_sel on public.schools for select to authenticated
   using (created_by = auth.uid() or public.is_school_member(id) or public.my_role() in ('admin','super_admin'));
 drop policy if exists schools_manage on public.schools;
 create policy schools_manage on public.schools for all to authenticated
-  using (public.my_role() = 'super_admin' or created_by = auth.uid())
-  with check (public.my_role() = 'super_admin' or created_by = auth.uid());
+  using (public.can_manage_school(id))
+  with check (public.can_manage_school(id));
 
 drop policy if exists school_memberships_sel on public.school_memberships;
 create policy school_memberships_sel on public.school_memberships for select to authenticated
@@ -415,13 +444,15 @@ revoke all on function public.is_school_member(uuid), public.is_class_member(uui
   public.can_manage_school(uuid), public.can_manage_class(uuid),
   public.create_school(text,text,text), public.create_class(uuid,text,uuid,text),
   public.create_class_invite(uuid,text,timestamptz,integer),
-  public.request_class_join(text,text), public.review_class_join(uuid,boolean)
+  public.request_class_join(text,text), public.review_class_join(uuid,boolean),
+  public.set_school_admin(uuid,uuid,boolean), public.set_class_admin(uuid,uuid,boolean)
   from public, anon;
 grant execute on function public.is_school_member(uuid), public.is_class_member(uuid),
   public.can_manage_school(uuid), public.can_manage_class(uuid),
   public.create_school(text,text,text), public.create_class(uuid,text,uuid,text),
   public.create_class_invite(uuid,text,timestamptz,integer),
-  public.request_class_join(text,text), public.review_class_join(uuid,boolean)
+  public.request_class_join(text,text), public.review_class_join(uuid,boolean),
+  public.set_school_admin(uuid,uuid,boolean), public.set_class_admin(uuid,uuid,boolean)
   to authenticated;
 
 commit;

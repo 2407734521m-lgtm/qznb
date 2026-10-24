@@ -502,7 +502,7 @@ function Moderate({ setMsg }: { setMsg: (s: string) => void }) {
 
   async function hidePost(p: Post, hide: boolean) {
     if (!confirm(hide ? '隐藏这条动态？（进回收站，可恢复）' : '恢复这条动态？')) return;
-    const { error } = await supabase.from('posts').update({ deleted_at: hide ? new Date().toISOString() : null }).eq('id', p.id);
+    const { error } = await supabase.rpc('admin_set_post_hidden', { p_id: p.id, p_hidden: hide });
     if (!error) { await alog(hide ? 'post_hide' : 'post_restore', { id: p.id }); load(); }
     else setMsg('失败：' + error.message);
   }
@@ -515,7 +515,7 @@ function Moderate({ setMsg }: { setMsg: (s: string) => void }) {
   }
   async function hideCmt(c: Cmt, hide: boolean) {
     if (!confirm(hide ? '隐藏这条评论？' : '恢复这条评论？')) return;
-    const { error } = await supabase.from('comments').update({ deleted_at: hide ? new Date().toISOString() : null }).eq('id', c.id);
+    const { error } = await supabase.rpc('admin_set_comment_hidden', { p_id: c.id, p_hidden: hide });
     if (!error) { await alog(hide ? 'comment_hide' : 'comment_restore', { id: c.id }); load(); }
     else setMsg('失败：' + error.message);
   }

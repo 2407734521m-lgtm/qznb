@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from './supabase';
+import { withRetry } from './retry';
 
 /** 私有 bucket 的 1 小时签名链接。path 为空或已是 http(s) 时直接返回。 */
 export function useSignedUrl(bucket: string, path?: string | null) {
@@ -22,12 +23,15 @@ export async function uploadMedia(bucket: string, file: File): Promise<string> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('未登录');
   const ext = (file.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
-  const path = `${user.id}/${Date.now()}.${ext}`;
-  const { error } = await supabase.storage.from(bucket).upload(path, file, {
-    contentType: file.type || undefined, upsert: false,
+  const r = await withRetry(async () => {
+    const path = `${user.id}/${Date.now()}.${ext}`;
+    const { error } = await supabase.storage.from(bucket).upload(path, file, {
+      contentType: file.type || undefined, upsert: false,
+    });
+    return { path, error };
   });
-  if (error) throw error;
-  return path;
+  if (r.error) throw r.error;
+  return r.path;
 }
 
 /** 把图片在前端压到合适尺寸再上传（省流量、省空间）。 */

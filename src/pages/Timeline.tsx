@@ -34,7 +34,7 @@ export default function Timeline() {
     setRows((data ?? []) as T[]);
     if (!mine) {
       const { data: d } = await supabase.rpc('member_detail', { uid: target });
-      setWho(d?.[0] ? (d[0].display_name ?? d[0].username) : '');
+      setWho(d?.[0] ? (d[0].display_name || d[0].username || '暂未填写') : '');
     }
   }
   useEffect(() => { load(); }, [target]);

@@ -342,7 +342,25 @@ export default function Login() {
             <input type="password" value={pw} onChange={e => setPw(e.target.value)} placeholder="密码" autoComplete="current-password"
               onKeyDown={e => e.key === 'Enter' && doLogin()} />
             {err && <p className="err">{err}</p>}
-            <button className="pri" disabled={busy} onClick={doLogin}>{busy ? <><Spin />登录中…</> : '进入班级'}</button>
+            <motion.button
+              className={`pri login-submit ${busy ? 'is-loading' : ''}`}
+              type="button"
+              disabled={busy}
+              onClick={doLogin}
+              initial={false}
+              animate={busy
+                ? { width: 54, height: 3, minHeight: 3, padding: 0, borderRadius: 999, color: 'rgba(0,0,0,0)', boxShadow: '0 0 28px rgba(151,190,255,.62)', scaleX: 1.04 }
+                : { width: '100%', height: 47, minHeight: 47, padding: '12px 16px', borderRadius: 15, color: '#111a2c', boxShadow: '0 10px 28px rgba(91,140,255,.2), inset 0 1px 0 rgba(255,255,255,.75)', scaleX: 1 }}
+              transition={{ duration: reduce ? 0.01 : 0.32, ease: [0.22, 1, 0.36, 1] }}
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginLeft: 'auto', marginRight: 'auto', overflow: 'hidden', whiteSpace: 'nowrap' }}
+              aria-label={busy ? '正在登录' : '进入班级'}
+            >
+              <motion.span
+                animate={busy ? { opacity: 0, y: -5, filter: 'blur(4px)' } : { opacity: 1, y: 0, filter: 'blur(0px)' }}
+                transition={{ duration: reduce ? 0.01 : 0.12 }}
+                style={{ display: 'inline-block' }}
+              >进入班级</motion.span>
+            </motion.button>
             <button className="ghost" style={{ width: '100%', marginTop: 8 }} disabled={busy} onClick={doPasskey}>🔑 使用通行密钥登录</button>
             <p className="login-switch">忘记密码了？<button onClick={() => { setMode('forgot'); setErr(''); setForgotSent(false); }}>点我重置</button></p>
             <p className="login-switch">还没有账号？<button onClick={() => { setMode('reg'); setErr(''); setCode(''); setInvite(''); setForgotSent(false); }}>去注册</button></p>

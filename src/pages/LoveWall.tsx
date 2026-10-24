@@ -2,13 +2,16 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../auth';
 
-type Post = { id: string; author_id: string; recipient_name: string | null; category: string; content: string; is_anonymous: boolean; status: string; created_at: string };
+// 公开列表来自 love_wall_published()，不含 author_id；自己的投稿来自表查询，只含自己的 author_id。
+type PublicPost = { id: string; recipient_name: string | null; category: string; content: string; is_anonymous: boolean; status: string; created_at: string };
+type MyPost = PublicPost & { author_id: string };
 
 const categories = ['暗恋心事', '认真表白', '感谢与祝福', '毕业寄语'];
 
 export default function LoveWall() {
   const { session } = useAuth();
-  const [posts, setPosts] = useState<Post[]>([]);
+  const [posts, setPosts] = useState<PublicPost[]>([]);
+  const [myPosts, setMyPosts] = useState<MyPost[]>([]);
   const [content, setContent] = useState('');
   const [recipient, setRecipient] = useState('');
   const [category, setCategory] = useState(categories[0]);
@@ -18,11 +21,18 @@ export default function LoveWall() {
   const [mine, setMine] = useState(false);
 
   async function load() {
-    const { data, error } = await supabase.from('love_wall_posts')
-      .select('id,author_id,recipient_name,category,content,is_anonymous,status,created_at')
-      .order('created_at', { ascending: false }).limit(100);
+    const { data, error } = await supabase.rpc('love_wall_published');
     if (error) { setNotice('暂时无法加载表白墙，请稍后再试。'); return; }
-    setPosts((data || []) as Post[]);
+    setPosts((data || []) as PublicPost[]);
+    if (session) {
+      const { data: mineData } = await supabase.from('love_wall_posts')
+        .select('id,author_id,recipient_name,category,content,is_anonymous,status,created_at')
+        .eq('author_id', session.user.id)
+        .order('created_at', { ascending: false }).limit(100);
+      setMyPosts((mineData || []) as MyPost[]);
+    } else {
+      setMyPosts([]);
+    }
   }
   useEffect(() => { void load(); }, []);
 
@@ -42,8 +52,7 @@ export default function LoveWall() {
     await load();
   }
 
-  const visible = posts.filter(p => p.status === 'published' || p.author_id === session?.user.id);
-  const shown = mine ? visible.filter(p => p.author_id === session?.user.id) : visible.filter(p => p.status === 'published');
+  const shown = mine ? myPosts : posts;
   return <main style={{ maxWidth: 760, margin: '0 auto', padding: '12px 0 28px', color: '#f5f6ff' }}>
     <section style={{ padding: 22, borderRadius: 24, border: '1px solid #ffffff20', background: 'linear-gradient(145deg,#241b39dd,#11182ddd)', boxShadow: '0 18px 60px #0005' }}>
       <div style={{ fontSize: 11, letterSpacing: 3, color: '#d7a9ff' }}>OUR CLASS · LITTLE FEELINGS</div>
@@ -83,4 +92,4 @@ export default function LoveWall() {
 
 const field: React.CSSProperties = { width: '100%', boxSizing: 'border-box', border: '1px solid #ffffff20', background: '#090e1ddd', color: '#f5f6ff', padding: '11px 12px', borderRadius: 12, outline: 'none', font: 'inherit', fontSize: 13 };
 const primary: React.CSSProperties = { border: 0, borderRadius: 999, padding: '11px 18px', background: 'linear-gradient(135deg,#d18bff,#738bff)', color: '#101225', fontWeight: 800, cursor: 'pointer' };
-const ghost: React.CSSProperties = { border: '1px solid #ffffff22', borderRadius: 999, padding: '7px 12px', background: '#ffffff0a', color: '#e4e7fa', cursor: 'pointer', fontSize: 12 };
+const ghost: React.CSSProperties = { border: '1px solid #ffffff20', borderRadius: 999, padding: '7px 12px', background: '#ffffff0a', color: '#e4e7fa', cursor: 'pointer', fontSize: 12 };

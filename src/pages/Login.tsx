@@ -151,6 +151,12 @@ export default function Login() {
           options: { data: { username: nm, real_name: rl } },
         });
         if (error) throw error;
+        // 已注册过的邮箱：Supabase 为防枚举不报错、也不发码，返回的 identities 为空。
+        // 这时不能假装“已发送”，要直接告诉用户去登录。
+        if (data.user && Array.isArray((data.user as any).identities) && (data.user as any).identities.length === 0) {
+          setErr('这个 QQ 邮箱已经注册过，直接登录吧');
+          return;
+        }
         if (data.session) { await finishJoin(data.session.user.id); return; }
         setCodeSent(true);
       }
@@ -194,6 +200,10 @@ export default function Login() {
         options: { data: { username: nm, real_name: rl } },
       });
       if (error) throw error;
+      if (data.user && Array.isArray((data.user as any).identities) && (data.user as any).identities.length === 0) {
+        setErr('这个 QQ 邮箱已经注册过，直接登录吧');
+        return;
+      }
       if (!data.session) {
         // 邮箱验证已打开：没有 session，先转到验证屏；头像和邀请码加入等验证成功后在 doVerify 里补做
         setVerifyEmail(em); setCode(''); setResendIn(60);

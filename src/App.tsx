@@ -19,6 +19,7 @@ import Friends from './pages/Friends';
 import Chat from './pages/Chat';
 import Admin from './pages/Admin';
 import Home from './pages/Home';
+import ClassicHome from './pages/ClassicHome';
 import Capsule from './pages/Capsule';
 import Wishes from './pages/Wishes';
 import Events from './pages/Events';
@@ -391,6 +392,7 @@ function Shell() {
               <Route path="/me/account" element={<MeAccount />} />
               <Route path="/greetings" element={<Greetings />} />
               <Route path="/home" element={<Home />} />
+              <Route path="/classic" element={<ClassicHome />} />
               <Route path="/capsule" element={<Capsule />} />
               <Route path="/wishes" element={<Wishes />} />
               <Route path="/events" element={<Events />} />

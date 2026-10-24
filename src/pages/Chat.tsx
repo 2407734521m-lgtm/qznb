@@ -141,7 +141,7 @@ export default function Chat() {
       {showDetails && <div className="im-details"><span>🔒 私密对话</span><span>💬 {msgs.length} 条消息</span><span>消息会同步刷新</span></div>}
       <main className="im-feed">
         {msgs.length === 0 ? (
-          <div className="im-empty"><div className="im-empty-icon">✉️</div><div style={{fontWeight:750,color:'#5c6d8a',fontSize:16}}>新的开始</div><p style={{fontSize:13,lineHeight:1.7}}>发出第一条消息，开启你们的对话吧。</p></div>
+          <div className="im-empty"><div className="im-empty-icon">✉️</div><div style={{fontWeight:750,color:'#f5fbff',fontSize:16}}>新的开始</div><p style={{fontSize:13,lineHeight:1.7}}>发出第一条消息，开启你们的对话吧。</p></div>
         ) : msgs.map((m, i) => (
           <div key={m.id}>
             {dateLabel(m.created_at, msgs[i - 1]?.created_at) && <div className="im-day">{dateLabel(m.created_at, msgs[i - 1]?.created_at)}</div>}

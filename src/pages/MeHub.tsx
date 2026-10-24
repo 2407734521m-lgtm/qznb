@@ -74,10 +74,6 @@ export default function MeHub() {
             background: 'none', border: 0, borderBottom: i === entries.length - 1 ? 0 : '1px solid rgba(255,255,255,.08)',
             padding: '13px 0', cursor: 'pointer', fontFamily: 'inherit', color: 'inherit',
           }}>
-            <span style={{
-              width: 38, height: 38, borderRadius: 12, flexShrink: 0, background: bg,
-              display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18,
-            }}>{ic}</span>
             <span style={{ flex: 1, minWidth: 0 }}>
               <span style={{ display: 'block', fontSize: 15, fontWeight: 700 }}>{label}</span>
               <span style={{ display: 'block', fontSize: 12, color: 'var(--mut)', marginTop: 1 }}>{sub}</span>
@@ -96,10 +92,6 @@ export default function MeHub() {
         background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.12)', borderRadius: 16,
         padding: '14px 16px', marginTop: 12, cursor: 'pointer', fontFamily: 'inherit', color: 'inherit',
       }}>
-        <span style={{
-          width: 38, height: 38, borderRadius: 12, flexShrink: 0, background: '#fee2e2',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18,
-        }}>🔐</span>
         <span style={{ flex: 1 }}>
           <span style={{ display: 'block', fontSize: 15, fontWeight: 700 }}>账号安全</span>
           <span style={{ display: 'block', fontSize: 12, color: 'var(--mut)', marginTop: 1 }}>修改密码 · 退出登录</span>

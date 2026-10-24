@@ -30,7 +30,7 @@ set search_path = ''
 as $function$
   select p.id, p.recipient_name, p.category, p.content, p.is_anonymous,
     case when p.is_anonymous then null
-      else coalesce(pr.display_name, pr.username::text)::text end,
+      else coalesce(nullif(btrim(pr.display_name), ''), pr.username::text)::text end,
     p.status, p.created_at
   from public.love_wall_posts p
   left join public.profiles pr on pr.id = p.author_id

@@ -32,15 +32,16 @@ import Onboarding from './components/Onboarding';
 import ErrorBoundary from './components/ErrorBoundary';
 import AdminLogin from './pages/AdminLogin';
 import Board from './pages/Board';
+import Campus from './pages/Campus';
 
 const TABS = [
-  { to: '/home', label: '首页', ic: '🏠' },
-  { to: '/board', label: '公告', ic: '📢' },
-  { to: '/members', label: '成员', ic: '👥' },
-  { to: '/feed', label: '动态', ic: '✨' },
-  { to: '/friends', label: '好友', ic: '💌' },
-  { to: '/timeline', label: '时间线', ic: '🌟' },
-  { to: '/me', label: '我的', ic: '🙂' },
+  { to: '/campus', label: '广场', ic: '✦' },
+  { to: '/members', label: '班级', ic: '◎' },
+  { to: '/feed', label: '动态', ic: '↗' },
+  { to: '/board', label: '公告', ic: '▤' },
+  { to: '/events', label: '活动', ic: '▦' },
+  { to: '/friends', label: '消息', ic: '◌' },
+  { to: '/me', label: '我的', ic: '○' },
 ];
 
 // 从 UA 里提取设备型号（如 Android 的机型标识），供管理员在成员管理里查看
@@ -419,7 +420,8 @@ function Shell() {
             exit={reduce ? { opacity: 0 } : { opacity: 0, y: -10 }}
             transition={{ duration: reduce ? 0.12 : 0.28, ease: [0.22, 1, 0.36, 1] }}>
             <Routes location={loc}>
-              <Route path="/" element={<Navigate to="/members" replace />} />
+              <Route path="/" element={<Navigate to="/campus" replace />} />
+              <Route path="/campus" element={<Campus />} />
               <Route path="/board" element={<Board />} />
               <Route path="/members" element={<Members />} />
               <Route path="/members/:id" element={<Member />} />

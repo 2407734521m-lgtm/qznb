@@ -4,6 +4,7 @@ import { supabase, supabaseBaseUrl } from '../lib/supabase';
 import { useAuth } from '../auth';
 import '../styles-admin-cinematic.css';
 import AdminSystemCenter from '../components/AdminSystemCenter';
+import AdminLoveWall from '../components/AdminLoveWall';
 
 /**
  * 管理后台测试版（V2）：高级管理控制中心
@@ -28,6 +29,7 @@ const TABS_ALL: [string, string, boolean][] = [
   ['members', '成员', false],
   ['invite', '邀请码', false],
   ['moderate', '审核', false],
+  ['loveWall', '表白墙', false],
   ['feedback', '反馈', false],
   ['game', '段位', false],
   ['board', '公告', false],
@@ -190,6 +192,7 @@ export default function Admin() {
         {tab === 'overview' && <Overview setMsg={setMsg} />}
               {tab === 'members' && <Members me={me} isSuper={isSuper} setMsg={setMsg} extQ={q0} />}
               {tab === 'moderate' && <Moderate setMsg={setMsg} />}
+              {tab === 'loveWall' && <AdminLoveWall setMsg={setMsg} />}
               {tab === 'board' && <BoardMgr me={me} setMsg={setMsg} />}
               {tab === 'events' && <EventTab me={me} setMsg={setMsg} />}
               {tab === 'logs' && <Logs />}

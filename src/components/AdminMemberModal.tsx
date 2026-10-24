@@ -103,7 +103,7 @@ export default function AdminMemberModal({ memberId, onClose, onChanged }: Props
               {(f.display_name || f.username || '?').slice(0, 1)}
             </div>
             <div>
-              <div style={{ fontSize: 16, fontWeight: 700 }}>{f.display_name || f.username}</div>
+              <div style={{ fontSize: 16, fontWeight: 700 }}>{f.display_name || f.username || '暂未填写'}</div>
               <div className="mut" style={{ fontSize: 12 }}>@{f.username}{f.real_name ? ` · ${f.real_name}` : ''}</div>
             </div>
           </div>

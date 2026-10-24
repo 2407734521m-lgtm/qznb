@@ -34,6 +34,7 @@ import AdminLogin from './pages/AdminLogin';
 import Board from './pages/Board';
 import Campus from './pages/Campus';
 import Classes from './pages/Classes';
+import ClassDetail from './pages/ClassDetail';
 
 const TABS = [
   { to: '/campus', label: '广场', ic: '✦' },
@@ -424,6 +425,7 @@ function Shell() {
               <Route path="/" element={<Navigate to="/campus" replace />} />
               <Route path="/campus" element={<Campus />} />
               <Route path="/classes" element={<Classes />} />
+              <Route path="/classes/:id" element={<ClassDetail />} />
               <Route path="/board" element={<Board />} />
               <Route path="/members" element={<Members />} />
               <Route path="/members/:id" element={<Member />} />

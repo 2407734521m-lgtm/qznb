@@ -60,7 +60,7 @@ function parseDevice(ua: string): string {
 
 function isTabActive(tab: string, path: string) {
   if (tab === '/feed') return path.startsWith('/feed');
-  if (tab === '/explore') return ['/explore','/board','/albums','/friends','/chat','/hot','/greetings','/events','/capsule','/wishes','/love-wall','/songs'].some(p => path.startsWith(p));
+  if (tab === '/explore') return ['/explore','/board','/members','/albums','/friends','/chat','/hot','/greetings','/events','/capsule','/wishes','/love-wall','/songs'].some(p => path.startsWith(p));
   if (tab === '/timeline') return path.startsWith('/timeline');
   if (tab === '/me') return path.startsWith('/me');
   return path === tab;

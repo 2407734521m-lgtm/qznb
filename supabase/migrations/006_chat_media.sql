@@ -4,7 +4,7 @@ insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_typ
 values ('chat-media', 'chat-media', false, 15728640, array['image/jpeg','image/png','image/webp','image/gif','image/heic','audio/webm','audio/mp4','audio/ogg','audio/aac','audio/mpeg','audio/x-m4a'])
 on conflict (id) do update
 set public = false, file_size_limit = 15728640,
-    allowed_mime_types = array['image/jpeg','image/png','image/webp','image/gif','image/heic'];
+    allowed_mime_types = array['image/jpeg','image/png','image/webp','image/gif','image/heic','audio/webm','audio/mp4','audio/ogg','audio/aac','audio/mpeg','audio/x-m4a'];
 
 drop policy if exists chat_media_insert on storage.objects;
 drop policy if exists chat_media_select on storage.objects;

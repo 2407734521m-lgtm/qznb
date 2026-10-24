@@ -161,7 +161,7 @@ export default function Feed() {
             transition={{ duration: 0.45, delay: Math.min(i * 0.05, 0.3) }}>
             <div className="hd">
               <Avatar p={a} />
-              <div><div className="nm">{a ? (a.display_name ?? a.username) : '…'}</div>
+              <div><div className="nm">{a ? (a.display_name || a.username || '暂未填写') : '…'}</div>
                 <div className="tm">{timeAgo(p.created_at)}</div></div>
             </div>
             <p className="bd">{p.content}</p>
@@ -179,7 +179,7 @@ export default function Feed() {
                 const ca = profiles[c.author_id];
                 return (
                   <div key={c.id} className="one">
-                    <b>{ca ? (ca.display_name ?? ca.username) : '…'}</b>
+                    <b>{ca ? (ca.display_name || ca.username || '暂未填写') : '…'}</b>
                     <span className="tm">{timeAgo(c.created_at)}</span>
                     {(c.author_id === me || isAdmin) &&
                       <button className="mini danger" style={{ marginLeft: 8 }} onClick={() => delCmt(c)}>删</button>}

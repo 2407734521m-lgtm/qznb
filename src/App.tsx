@@ -36,12 +36,13 @@ import Board from './pages/Board';
 import HotSnippets from './pages/HotSnippets';
 import LoveWall from './pages/LoveWall';
 import Explore from './pages/Explore';
+import SongWall from './pages/SongWall';
 
 const TABS = [
   { to: '/home', label: '首页', ic: '🏠' },
-  { to: '/members', label: '档案', ic: '👥' },
+  { to: '/feed', label: '贴吧', ic: '💬' },
   { to: '/explore', label: '发现', ic: '✦' },
-  { to: '/timeline', label: '时光', ic: '🌟' },
+  { to: '/timeline', label: '青春', ic: '🌟' },
   { to: '/me', label: '我的', ic: '🙂' },
 ];
 
@@ -58,8 +59,8 @@ function parseDevice(ua: string): string {
 }
 
 function isTabActive(tab: string, path: string) {
-  if (tab === '/members') return path === '/' || path.startsWith('/members');
-  if (tab === '/explore') return ['/explore','/board','/feed','/albums','/friends','/chat','/hot','/greetings','/events','/capsule','/wishes','/love-wall'].some(p => path.startsWith(p));
+  if (tab === '/feed') return path.startsWith('/feed');
+  if (tab === '/explore') return ['/explore','/board','/albums','/friends','/chat','/hot','/greetings','/events','/capsule','/wishes','/love-wall','/songs'].some(p => path.startsWith(p));
   if (tab === '/timeline') return path.startsWith('/timeline');
   if (tab === '/me') return path.startsWith('/me');
   return path === tab;
@@ -374,6 +375,7 @@ function Shell() {
               <Route path="/board" element={<Board />} />
               <Route path="/explore" element={<Explore />} />
               <Route path="/love-wall" element={<LoveWall />} />
+              <Route path="/songs" element={<SongWall />} />
               <Route path="/members" element={<Members />} />
               <Route path="/members/:id" element={<Member />} />
               <Route path="/feed" element={<Discover />} />

@@ -139,11 +139,11 @@ export default function Classes() {
             const item = classMap[member.class_id];
             if (!item) return null;
             const school = schools.find(s => s.id === item.school_id);
-            return <article className="classes-card" key={item.id}>
+            return <Link to={`/classes/${item.id}`} className="classes-card" key={item.id}>
               <div className="classes-card-mark">{item.name.slice(0, 1)}</div>
               <div className="classes-card-copy"><span>{school?.name || '校园社区'}</span><h3>{item.name}</h3><p>{item.description || '和同学一起分享日常、活动与班级回忆。'}</p></div>
               <span className="classes-member-pill">{member.role === 'class_admin' ? '班级管理员' : '已加入'}</span>
-            </article>;
+            </Link>;
           })}</div> :
           <div className="classes-empty"><span>◎</span><b>还没有加入班级</b><p>输入班级邀请码并通过审核后，班级空间会显示在这里。</p></div>}
       </section>

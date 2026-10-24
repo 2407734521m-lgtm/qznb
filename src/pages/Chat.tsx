@@ -2,8 +2,16 @@ import { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../auth';
+import { downscaleImage, uploadMedia, useSignedUrl } from '../lib/media';
 
 type M = { id: number; sender_id: string; body: string; created_at: string };
+
+function MessageContent({ body }: { body: string }) {
+  const imagePath = body.startsWith('[[im-image:') && body.endsWith(']]') ? body.slice(11, -2) : null;
+  const url = useSignedUrl('chat-media', imagePath);
+  if (imagePath) return url ? <a href={url} target="_blank" rel="noreferrer" className="im-photo-link"><img className="im-photo" src={url} alt="聊天图片" loading="lazy" /></a> : <div className="im-photo-loading">图片加载中…</div>;
+  return <>{body}</>;
+}
 
 export default function Chat() {
   const { cid } = useParams();
@@ -14,6 +22,8 @@ export default function Chat() {
   const [msgs, setMsgs] = useState<M[]>([]);
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const imageRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState('');
   const [showDetails, setShowDetails] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -56,6 +66,26 @@ export default function Chat() {
     firstRef.current = false;
   }, [msgs.length]);
 
+  async function sendImage(file?: File) {
+    if (!file || uploading || !cid) return;
+    if (!file.type.startsWith('image/')) { setError('请选择图片文件。'); return; }
+    if (file.size > 15 * 1024 * 1024) { setError('图片不能超过 15 MB。'); return; }
+    setUploading(true); setError('');
+    try {
+      const compact = await downscaleImage(file, 1440, 0.82);
+      const path = await uploadMedia('chat-media', compact, Number(cid) + '/' + me);
+      const { error: sendError } = await supabase.from('messages').insert({ conversation_id: Number(cid), sender_id: me, body: '[[im-image:' + path + ']]' });
+      if (sendError) throw sendError;
+      await load();
+    } catch (e) {
+      console.error('chat image upload failed', e);
+      setError('图片发送失败。请确认聊天媒体存储策略已启用，然后重试。');
+    } finally {
+      setUploading(false);
+      if (imageRef.current) imageRef.current.value = '';
+    }
+  }
+
   async function send() {
     const b = text.trim();
     if (!b || sending) return;
@@ -93,7 +123,7 @@ export default function Chat() {
         .im-input-wrap{display:flex;align-items:center;flex:1;min-width:0;background:#f4f6fb;border:1px solid #e5eaf4;border-radius:23px;padding:0 6px 0 15px;transition:border-color .2s,box-shadow .2s}
         .im-input-wrap:focus-within{border-color:#9abaff;box-shadow:0 0 0 3px #a8c6ff30}.im-input{width:100%;min-width:0;border:0!important;outline:0!important;background:transparent!important;padding:12px 0!important;color:#26344d!important;box-shadow:none!important;font-size:15px}
         .im-send{width:36px;height:36px;flex:none;border:0;border-radius:50%;background:linear-gradient(135deg,#5d9bff,#387bf5);color:white;font-size:19px;display:grid;place-items:center;cursor:pointer;box-shadow:0 4px 10px #4788f533}.im-send:disabled{opacity:.35;box-shadow:none}
-        .im-error{padding:8px 14px;color:#b64c5b;background:#fff0f1;font-size:12px}
+        .im-error{padding:8px 14px;color:#b64c5b;background:#fff0f1;font-size:12px}\n        .im-photo-link{display:block;max-width:min(68vw,320px);border-radius:14px;overflow:hidden;margin:1px 0 4px}.im-photo{display:block;width:100%;max-height:360px;object-fit:cover;border-radius:14px}.im-photo-loading{padding:18px 26px;color:#8390a6;font-size:12px;background:#f1f4fa;border-radius:12px}
         .im-details{padding:12px 16px;background:#ffffffb8;border-bottom:1px solid #e8edf6;display:flex;gap:10px;flex-wrap:wrap;font-size:12px;color:#71809a}
         @keyframes im-arrive{from{opacity:0;transform:translateY(6px) scale(.99)}to{opacity:1;transform:translateY(0) scale(1)}}
         @media(min-width:700px){.im-page{height:100dvh;min-height:100dvh}.im-feed{padding:24px 28px}.im-composer{padding:14px 20px}}
@@ -127,10 +157,11 @@ export default function Chat() {
       </main>
       {error && <div className="im-error">{error}</div>}
       <form className="im-composer" onSubmit={e => { e.preventDefault(); send(); }}>
-        <button type="button" className="im-plus" aria-label="更多功能" title="图片、贴纸和语音功能正在后续开发">＋</button>
+        <input ref={imageRef} type="file" accept="image/*" hidden onChange={e => sendImage(e.target.files?.[0])} />
+        <button type="button" className="im-plus" aria-label="发送图片" title="发送图片" disabled={uploading} onClick={() => imageRef.current?.click()}>{uploading ? '…' : '＋'}</button>
         <div className="im-input-wrap">
           <input ref={inputRef} className="im-input" value={text} onChange={e => setText(e.target.value)}
-            placeholder="发送信息…" maxLength={2000} autoComplete="off" aria-label="输入消息" />
+            placeholder={uploading ? '正在发送图片…' : '发送信息…'} maxLength={2000} autoComplete="off" aria-label="输入消息" />
           <button type="submit" className="im-send" aria-label="发送消息" disabled={sending || !text.trim()}>{sending ? '…' : '↑'}</button>
         </div>
       </form>

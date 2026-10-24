@@ -5,8 +5,9 @@
 -- 方案：两个专用 SECURITY DEFINER 函数，只改 deleted_at；原有 RLS 策略一律不动，不碰其他表或数据。
 -- 安全要点：
 --   1) SET search_path = ''，全部对象 schema 限定（public.my_role、public.posts、public.comments、auth.uid、pg_catalog.now）。
---   2) 不依赖前端传入的角色：函数内先验 auth.uid() 非空，再验 public.my_role() 为 admin/super_admin，否则抛 forbidden。
---      （若只写 NOT IN：my_role() 为 NULL 时因三值逻辑不触发 IF，会漏过检查，故必须先验 uid 非空。）
+--   2) 不依赖前端传入的角色：函数内先验 auth.uid() 非空，再把 public.my_role() 存入局部变量，验 v_role IS NULL OR v_role NOT IN (...) 否则抛 forbidden。
+--      （只写 NOT IN 不够：my_role() 为 NULL 时 NOT IN 的结果是 NULL 而非 TRUE，IF 不触发，会漏过检查；
+--       只验 uid 非空也不够：已登录但无资料行的用户同样会让 my_role() 返回 NULL，必须显式验角色空值。）
 --   3) 只 UPDATE deleted_at 一列；不存在的 id 抛 not found，不静默成功。
 --   4) 授权：撤销 PUBLIC 与 anon，并撤销 service_role（本项目无服务端调用方，前端只用 authenticated 会话调用），仅授予 authenticated。
 --      注意：数据库对新建函数有默认授权，上述撤销必须与创建写在同一迁移里，缺一不可；
@@ -22,11 +23,14 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = ''
 AS $$
+DECLARE
+  v_role text;
 BEGIN
   IF auth.uid() IS NULL THEN
     RAISE EXCEPTION 'not authenticated';
   END IF;
-  IF public.my_role() NOT IN ('admin', 'super_admin') THEN
+  v_role := public.my_role();
+  IF v_role IS NULL OR v_role NOT IN ('admin', 'super_admin') THEN
     RAISE EXCEPTION 'forbidden';
   END IF;
   UPDATE public.posts
@@ -44,11 +48,14 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = ''
 AS $$
+DECLARE
+  v_role text;
 BEGIN
   IF auth.uid() IS NULL THEN
     RAISE EXCEPTION 'not authenticated';
   END IF;
-  IF public.my_role() NOT IN ('admin', 'super_admin') THEN
+  v_role := public.my_role();
+  IF v_role IS NULL OR v_role NOT IN ('admin', 'super_admin') THEN
     RAISE EXCEPTION 'forbidden';
   END IF;
   UPDATE public.comments

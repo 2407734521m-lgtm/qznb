@@ -516,3 +516,7 @@ input[type=file]::file-selector-button{
   .page .mcard:hover{transform:none}
 }
 
+
+
+/* Mobile Dock density: smaller type and spacing on narrow screens. */
+@media(max-width:768px){.tabbar a{font-size:11px!important;padding:8px 11px!important;min-width:44px!important}.tabbar{gap:1px!important;padding:5px!important}.wrap{font-size:13px}.page h1{font-size:20px!important}.page h2{font-size:16px!important}.page h3{font-size:14px!important}.page p{font-size:13px}.page .hero h1{font-size:21px!important}.page .hero p{font-size:11px!important}}

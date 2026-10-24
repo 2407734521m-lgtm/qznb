@@ -7,6 +7,12 @@ alter table public.profiles
   add column if not exists real_name text;
 
 alter table public.profiles
+  drop constraint if exists profiles_real_name_length_check;
+alter table public.profiles
+  add constraint profiles_real_name_length_check
+  check (real_name is null or char_length(real_name) <= 30);
+
+alter table public.profiles
   drop constraint if exists profiles_username_check;
 
 alter table public.profiles

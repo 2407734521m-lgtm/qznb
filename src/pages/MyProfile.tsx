@@ -170,7 +170,7 @@ export default function MyProfile() {
       withRetry(() => supabase.from('profiles').update({ display_name: n(v.display_name), age: age ? Number(age) : null,
         personality: n(v.personality), signature: n(v.signature), bio: n(v.bio), hobbies: n(v.hobbies),
         theme: { theme, layout } }).eq('id', uid)),
-      withRetry(() => supabase.from('profile_privacy').update(Object.fromEntries(Object.keys(priv).filter(k => k.startsWith('show_')).map(k => [k, !!priv[k]]))).eq('profile_id', uid)),
+      withRetry(() => supabase.from('profile_privacy').update(Object.fromEntries(Object.keys(priv).filter(k => k.startsWith('show_') || k === 'hide_love_wall_name').map(k => [k, !!priv[k]]))).eq('profile_id', uid)),
       withRetry(() => supabase.from('profile_contacts').upsert({ profile_id: uid, contact: n(v.contact), social: n(v.social) }, { onConflict: 'profile_id' }))]);
     savingRef.current = false;
     const err = r.find(x => x.error);
@@ -348,6 +348,14 @@ export default function MyProfile() {
               <span className="sw"><span className="knob" /></span>
             </button>
           ))}
+        </div>
+        <p className="priv-note" style={{ marginTop: 12 }}>表白墙：开启后，新发布的表白默认匿名；关闭后，新帖子显示你的昵称。只影响新帖子，老帖子保持原样。</p>
+        <div className="priv-list">
+          <button type="button" className={'priv-btn' + (priv.hide_love_wall_name !== false ? ' on' : '')}
+            onClick={() => setPriv({ ...priv, hide_love_wall_name: !(priv.hide_love_wall_name !== false) })}>
+            <span>💌 表白墙隐藏姓名</span>
+            <span className="sw"><span className="knob" /></span>
+          </button>
         </div>
       </Collapsible>
 

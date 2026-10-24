@@ -4,7 +4,7 @@
 --    已有用户的行会自动填 true，无需补数据；新用户的行由注册触发器建行时同样取默认值。
 --    注意：该字段不以 show_ 开头，个人中心保存逻辑已同步改为包含它，否则开关存不进去。
 -- 2) love_wall_published() 改版：仍只返回已发布帖子，仍不返回 author_id，仍不返回真实姓名。
---    新增 author_display_name：帖子不匿名时取 profiles.display_name（没有则取 username），匿名时为 NULL。
+--    新增 author_display_name：帖子不匿名时取 profiles.display_name（为空、只有空白时回退到 username），匿名时为 NULL。
 --    该函数是 SECURITY DEFINER，因此能读到 display_name；这里用 love-wall 自己的隐藏设置决定是否展示，
 --    不受 profile_privacy.show_name（个人档案名字显示）影响，两者是不同场景，不混用。
 -- 3) 授权：CREATE OR REPLACE 不会改动现有授权；为确保 anon 执行权不恢复，末尾显式再撤一次 anon，

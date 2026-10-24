@@ -24,6 +24,7 @@ type Log = { id: number; action: string; detail: unknown; created_at: string };
 const TABS_ALL: [string, string, boolean][] = [
   ['overview', '总览', false],
   ['members', '成员', false],
+  ['organization', '学校/班级', false],
   ['invite', '邀请码', false],
   ['moderate', '审核', false],
   ['feedback', '反馈', false],
@@ -185,6 +186,7 @@ export default function Admin() {
 
       {tab === 'overview' && <Overview setMsg={setMsg} />}
       {tab === 'members' && <Members me={me} isSuper={isSuper} setMsg={setMsg} extQ={q0} />}
+      {tab === 'organization' && <OrganizationTab me={me} setMsg={setMsg} />}
       {tab === 'moderate' && <Moderate setMsg={setMsg} />}
       {tab === 'board' && <BoardMgr me={me} setMsg={setMsg} />}
       {tab === 'events' && <EventTab me={me} setMsg={setMsg} />}

@@ -4,7 +4,7 @@ import { useAuth } from '../auth';
 
 // 公开列表来自 love_wall_published()，不含 author_id；自己的投稿来自表查询，只含自己的 author_id。
 type PublicPost = { id: string; recipient_name: string | null; category: string; content: string; is_anonymous: boolean; author_display_name: string | null; status: string; created_at: string };
-type MyPost = PublicPost & { author_id: string };
+type MyPost = { id: string; author_id: string; recipient_name: string | null; category: string; content: string; is_anonymous: boolean; status: string; created_at: string };
 
 const categories = ['暗恋心事', '认真表白', '感谢与祝福', '毕业寄语'];
 
@@ -82,7 +82,7 @@ export default function LoveWall() {
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, fontSize: 11, color: '#c3a5ff' }}><span>{p.category}</span><span>{p.status === 'pending' ? '审核中' : p.status === 'rejected' ? '未通过' : p.status === 'hidden' ? '已隐藏' : new Date(p.created_at).toLocaleDateString()}</span></div>
         {p.recipient_name && <div style={{ marginTop: 10, fontSize: 12, color: '#c7c9dc' }}>TO · {p.recipient_name}</div>}
         <p style={{ whiteSpace: 'pre-wrap', lineHeight: 1.8, margin: '10px 0 12px', overflowWrap: 'anywhere' }}>{p.content}</p>
-        <div style={{ fontSize: 11, color: '#9299b4' }}>{p.is_anonymous ? '匿名同学' : (p.author_display_name || '班级同学')} · {p.status === 'pending' ? '仅你和管理员可见' : p.status === 'published' ? '已公开展示' : '未公开展示'}</div>
+        <div style={{ fontSize: 11, color: '#9299b4' }}>{p.is_anonymous ? '匿名同学' : (mine ? '我发布的' : ((p as PublicPost).author_display_name || '班级同学'))} · {p.status === 'pending' ? '仅你和管理员可见' : p.status === 'published' ? '已公开展示' : '未公开展示'}</div>
       </article>)}
     </div>
   </main>;

@@ -14,23 +14,28 @@ export default function AdminLogin({ showBack = true }: { showBack?: boolean }) 
     if (!id) return setErr('请输入管理员账号');
     if (!pw) return setErr('请输入密码');
     setErr(''); setBusy(true);
+    let authenticated = false;
     try {
       let em = id;
       if (!id.includes('@')) {
         const { data, error } = await supabase.rpc('resolve_login_email', { ident: id });
-        if (error || !data) throw new Error('notfound');
+        if (error || !data) throw new Error('invalid_login');
         em = data as string;
       }
-      const { error } = await supabase.auth.signInWithPassword({ email: em, password: pw });
-      if (error) throw error;
-      const { data: role } = await supabase.rpc('my_role');
-      if (role !== 'admin' && role !== 'super_admin') return setErr('该账号没有管理权限');
+      const { error: loginError } = await supabase.auth.signInWithPassword({ email: em, password: pw });
+      if (loginError) throw loginError;
+      authenticated = true;
+      const { data: role, error: roleError } = await supabase.rpc('my_role');
+      if (roleError || (role !== 'admin' && role !== 'super_admin')) {
+        await supabase.auth.signOut();
+        authenticated = false;
+        setErr('账号或密码错误');
+        return;
+      }
       // 成功：父级检测到 session/role 变化后自动切进后台
-    } catch (e: any) {
-      const m = e?.message || '';
-      setErr(m === 'notfound' ? '找不到这个账号'
-        : /Invalid login credentials/i.test(m) ? '账号或密码错误'
-        : '登录失败：' + (m || '网络错误'));
+    } catch {
+      if (authenticated) await supabase.auth.signOut();
+      setErr('账号或密码错误，或暂时无法登录，请检查后重试');
     } finally { setBusy(false); }
   }
 

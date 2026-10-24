@@ -32,6 +32,7 @@ import Onboarding from './components/Onboarding';
 import ErrorBoundary from './components/ErrorBoundary';
 import AdminLogin from './pages/AdminLogin';
 import Board from './pages/Board';
+import HotSnippets from './pages/HotSnippets';
 
 const TABS = [
   { to: '/home', label: '首页', ic: '🏠' },
@@ -40,6 +41,7 @@ const TABS = [
   { to: '/feed', label: '动态', ic: '✨' },
   { to: '/friends', label: '好友', ic: '💌' },
   { to: '/timeline', label: '时间线', ic: '🌟' },
+  { to: '/hot', label: '热门代码', ic: '🔥' },
   { to: '/me', label: '我的', ic: '🙂' },
 ];
 
@@ -438,6 +440,7 @@ function Shell() {
               <Route path="/capsule" element={<Capsule />} />
               <Route path="/wishes" element={<Wishes />} />
               <Route path="/events" element={<Events />} />
+              <Route path="/hot" element={<HotSnippets />} />
               <Route path="/admin" element={<ErrorBoundary><AdminRoute /></ErrorBoundary>} />
               <Route path="*" element={<Navigate to="/home" replace />} />
             </Routes>

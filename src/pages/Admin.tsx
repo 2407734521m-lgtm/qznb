@@ -1185,9 +1185,14 @@ function EventTab({ me, setMsg }: { me: string; setMsg: (s: string) => void }) {
 /* ---------------- 学校与班级组织管理（依赖 005_school_community.sql） ---------------- */
 type OrgSchool = { id: string; name: string; slug: string; is_active: boolean };
 type OrgClass = { id: string; school_id: string; name: string; description: string | null; is_active: boolean };
+type OrgTopic = { id: string; school_id: string; name: string; slug: string; description: string | null };
 function OrganizationTab({ me, setMsg }: { me: string; setMsg: (s: string) => void }) {
   const [schools, setSchools] = useState<OrgSchool[]>([]);
   const [classes, setClasses] = useState<OrgClass[]>([]);
+  const [topics, setTopics] = useState<OrgTopic[]>([]);
+  const [topicName, setTopicName] = useState('');
+  const [topicSlug, setTopicSlug] = useState('');
+  const [topicDescription, setTopicDescription] = useState('');
   const [schoolMembers, setSchoolMembers] = useState<{ school_id: string; profile_id: string; role: string; status: string }[]>([]);
   const [classMembers, setClassMembers] = useState<{ class_id: string; profile_id: string; role: string; status: string }[]>([]);
   const [memberNames, setMemberNames] = useState<Record<string, string>>({});
@@ -1214,6 +1219,7 @@ function OrganizationTab({ me, setMsg }: { me: string; setMsg: (s: string) => vo
       setLoadError(error.message);
       setSchools([]);
       setClasses([]);
+      setTopics([]);
       setSchoolMembers([]);
       setClassMembers([]);
       return;
@@ -1228,15 +1234,19 @@ function OrganizationTab({ me, setMsg }: { me: string; setMsg: (s: string) => vo
       return;
     }
     const ids = list.map(row => row.id);
-    const [classResult, schoolMemberResult, classMemberResult, directoryResult] = await Promise.all([
+    const [classResult, topicResult, schoolMemberResult, classMemberResult, directoryResult] = await Promise.all([
       supabase.from('classes').select('id,school_id,name,description,is_active')
+        .in('school_id', ids).order('created_at', { ascending: false }),
+      supabase.from('topics').select('id,school_id,name,slug,description')
         .in('school_id', ids).order('created_at', { ascending: false }),
       supabase.from('school_memberships').select('school_id,profile_id,role,status').in('school_id', ids),
       supabase.from('class_memberships').select('class_id,profile_id,role,status'),
       supabase.rpc('member_directory', { q: '', lim: 50, skip: 0 }),
     ]);
     if (classResult.error) setLoadError(classResult.error.message);
+    if (topicResult.error) setLoadError(topicResult.error.message);
     setClasses((classResult.data || []) as OrgClass[]);
+    setTopics((topicResult.data || []) as OrgTopic[]);
     setSchoolMembers((schoolMemberResult.data || []) as { school_id: string; profile_id: string; role: string; status: string }[]);
     setClassMembers((classMemberResult.data || []) as { class_id: string; profile_id: string; role: string; status: string }[]);
     const map: Record<string, string> = {};
@@ -1275,6 +1285,23 @@ function OrganizationTab({ me, setMsg }: { me: string; setMsg: (s: string) => vo
     if (error) { setMsg('创建班级失败：' + error.message); return; }
     setClassName(''); setClassDescription('');
     setMsg('班级已创建。可以在下方生成邀请码。');
+    await load();
+  }
+
+  async function createTopic() {
+    if (!selectedSchool || !topicName.trim() || !/^[a-z0-9-]{1,60}$/.test(topicSlug.trim().toLowerCase())) {
+      setMsg('请选择学校、填写话题名称，并使用小写英文、数字或连字符作为话题标识。');
+      return;
+    }
+    setBusy(true);
+    const { error } = await supabase.from('topics').insert({
+      school_id: selectedSchool, name: topicName.trim(), slug: topicSlug.trim().toLowerCase(),
+      description: topicDescription.trim() || null, created_by: me,
+    });
+    setBusy(false);
+    if (error) { setMsg('创建话题失败：' + error.message); return; }
+    setTopicName(''); setTopicSlug(''); setTopicDescription('');
+    setMsg('校园话题已创建。学生发布动态时可以选择该话题。');
     await load();
   }
 
@@ -1355,6 +1382,21 @@ function OrganizationTab({ me, setMsg }: { me: string; setMsg: (s: string) => vo
           <textarea value={classDescription} onChange={e => setClassDescription(e.target.value)} placeholder="班级简介（选填）" maxLength={500} rows={2} style={{ width: '100%' }} />
           <button className="pri" style={{ width: 'auto', padding: '10px 18px' }} onClick={createClass} disabled={busy}>创建班级</button>
         </>}
+      </div>
+
+      <div style={card}>
+        <h3 style={h3}>创建校园话题</h3>
+        <p style={mut}>例如：校园日常、学习互助、音乐分享、社团活动。话题归属于所选学校。</p>
+        <input value={topicName} onChange={e => setTopicName(e.target.value)} placeholder="话题名称" maxLength={50} />
+        <input value={topicSlug} onChange={e => setTopicSlug(e.target.value)} placeholder="唯一标识，例如 campus-life" maxLength={60} autoCapitalize="none" />
+        <textarea value={topicDescription} onChange={e => setTopicDescription(e.target.value)} placeholder="话题简介（选填）" maxLength={300} rows={2} style={{ width: '100%' }} />
+        <button className="pri" style={{ width: 'auto', padding: '10px 18px' }} onClick={createTopic} disabled={busy || !selectedSchool}>创建话题</button>
+        <div style={{ marginTop: 10 }}>
+          {topics.filter(topic => topic.school_id === selectedSchool).map(topic => <div key={topic.id} style={{ padding: '7px 0', borderBottom: '1px solid #ffffff0c' }}>
+            <b style={{ fontSize: 12 }}>{topic.name}</b><span style={{ ...mut, marginLeft: 8 }}>#{topic.slug}</span>
+            {topic.description && <div style={mut}>{topic.description}</div>}
+          </div>)}
+        </div>
       </div>
 
       <div style={card}>

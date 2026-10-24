@@ -19,12 +19,12 @@ export function useSignedUrl(bucket: string, path?: string | null) {
 }
 
 /** 上传文件到私有 bucket 的"自己的文件夹"，返回 storage path。 */
-export async function uploadMedia(bucket: string, file: File): Promise<string> {
+export async function uploadMedia(bucket: string, file: File, folder?: string): Promise<string> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('未登录');
   const ext = (file.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
   const r = await withRetry(async () => {
-    const path = `${user.id}/${Date.now()}.${ext}`;
+    const path = `${folder ? `${folder.replace(/^\/+|\/+$/g, '')}/` : `${user.id}/`}${Date.now()}.${ext}`;
     const { error } = await supabase.storage.from(bucket).upload(path, file, {
       contentType: file.type || undefined, upsert: false,
     });

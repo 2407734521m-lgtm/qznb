@@ -41,7 +41,7 @@ const TABS = [
   { to: '/feed', label: '动态', ic: '✨' },
   { to: '/friends', label: '好友', ic: '💌' },
   { to: '/timeline', label: '时间线', ic: '🌟' },
-  { to: '/hot', label: '热门代码', ic: '🔥' },
+  { to: '/hot', label: '热门特效', ic: '🔥' },
   { to: '/me', label: '我的', ic: '🙂' },
 ];
 

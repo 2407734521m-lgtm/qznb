@@ -16,7 +16,7 @@ export default function MeHub() {
   useEffect(() => {
     (async () => {
       const { data } = await supabase.from('profiles').select('display_name, username, avatar_path').eq('id', me).maybeSingle();
-      if (data) { setName((data as any).display_name || (data as any).username || ''); setAvatar((data as any).avatar_path ?? null); }
+      if (data) { setName((data as any).display_name || (data as any).username || '暂未填写'); setAvatar((data as any).avatar_path ?? null); }
       const { count } = await supabase.from('notifications').select('id', { count: 'exact', head: true })
         .eq('profile_id', me).eq('is_read', false);
       setUnread(count ?? 0);

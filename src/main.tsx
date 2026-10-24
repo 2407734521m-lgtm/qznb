@@ -8,6 +8,7 @@ import { AuthProvider, useAuth } from './auth';
 import { supabase } from './lib/supabase';
 import './styles.css';
 import './styles-cinematic.css';
+import './styles-editorial.css';
 
 // 管理员子域名（如 admin.xxx.com）：直达后台，不加载主站界面
 const isAdminHost = window.location.hostname.split('.')[0].toLowerCase() === 'admin';
@@ -17,9 +18,6 @@ function AdminShell() {
   const [role, setRole] = useState<string | null>(null);
   useEffect(() => {
     if (!session) { setRole(null); return; }
-    // 修复：以前 my_role 一旦没回结果或报错，role 就永远是 null，
-    // 页面永远卡在「加载中…」。现在 8 秒没回结果或报错都按“未通过”处理，
-    // 显示登录页让用户重试，而不是无限等下去。
     let live = true;
     const timer = setTimeout(() => { if (live) setRole(''); }, 8000);
     supabase.rpc('my_role').then(

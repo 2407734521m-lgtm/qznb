@@ -8,6 +8,7 @@ import { AuthProvider, useAuth } from './auth';
 import { supabase } from './lib/supabase';
 import './styles.css';
 import './styles-campus-light.css';
+import './styles-cinematic.css';
 
 // 管理员子域名（如 admin.xxx.com）：直达后台，不加载主站界面
 const isAdminHost = window.location.hostname.split('.')[0].toLowerCase() === 'admin';

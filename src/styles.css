@@ -576,3 +576,7 @@ input[type=file]::file-selector-button{
 @media(max-width:760px){.class-detail-layout{grid-template-columns:1fr}.class-detail-members{order:-1}.class-detail-members{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 10px}.class-detail-members-heading{grid-column:1/-1}.class-detail-member{min-width:0}.class-detail-member>div{min-width:0}}
 @media(max-width:430px){.class-detail-hero{padding:22px 18px;border-radius:20px}.class-detail-post,.class-detail-composer{padding:13px}.class-detail-members{grid-template-columns:1fr}.class-detail-member{padding:9px 0}}
 @media(prefers-reduced-motion:reduce){.class-detail-page *{transition-duration:.01ms!important;animation-duration:.01ms!important}}
+
+.feed-scope-label{font-size:11px;color:var(--mut);white-space:nowrap}
+.feed-scope-select{flex:1;min-width:0;margin:0;padding:8px 10px;border:1px solid #ffffff20;border-radius:10px;background:#111827;color:var(--fg);font:inherit;font-size:11px}
+.feed-scope-select option{background:#111827;color:#eef0f6}

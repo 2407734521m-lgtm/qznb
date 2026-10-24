@@ -53,7 +53,7 @@ export default function MeFavorites() {
             <div className="row" style={{ justifyContent: 'space-between' }}>
               <span style={{ fontSize: 14, fontWeight: 700, cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: 3 }}
                 onClick={() => nav(`/members/${r.target_id}`)}>
-                {r.info.display_name || r.info.username}
+                {r.info.display_name || r.info.username || '暂未填写'}
               </span>
               <button className="mini ghost" onClick={() => unFav(r.target_id)}>取消收藏</button>
             </div>

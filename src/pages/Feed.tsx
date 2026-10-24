@@ -3,6 +3,7 @@ import { motion, useReducedMotion } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../auth';
 import { useSignedUrl, uploadMedia, downscaleImage } from '../lib/media';
+import { withRetry } from '../lib/retry';
 
 type Post = { id: number; author_id: string; content: string; image_url: string | null; created_at: string };
 type Profile = { id: string; username: string; display_name: string | null; avatar_path: string | null };
@@ -79,7 +80,7 @@ export default function Feed() {
     try {
       let image_url: string | null = null;
       if (img) image_url = await uploadMedia('media', await downscaleImage(img));
-      const { error } = await supabase.from('posts').insert({ author_id: me, content: text.trim(), image_url });
+      const { error } = await withRetry(() => supabase.from('posts').insert({ author_id: me, content: text.trim(), image_url }));
       if (error) throw error;
       setText(''); setImg(null); load();
     } catch (e: any) { setErr('发布失败：' + (e.message || '网络错误')); }
@@ -98,7 +99,7 @@ export default function Feed() {
   async function addCmt(p: Post) {
     const t = (cmtText[p.id] || '').trim();
     if (!t) return;
-    const { error } = await supabase.from('comments').insert({ post_id: p.id, author_id: me, content: t });
+    const { error } = await withRetry(() => supabase.from('comments').insert({ post_id: p.id, author_id: me, content: t }));
     if (!error) {
       setCmtText({ ...cmtText, [p.id]: '' }); load();
       // 通知动态作者（不是自己评论自己才发）

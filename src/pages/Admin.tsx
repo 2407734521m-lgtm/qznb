@@ -344,7 +344,7 @@ function Overview({ setMsg }: { setMsg: (s: string) => void }) {
       <h3 style={h3}>最近加入</h3>
       {(st.newMembers as any[]).map((m: any) => (
         <div key={m.id} style={{ fontSize: 13.5, padding: '6px 0', borderBottom: '1px solid #ffffff0a' }}>
-          {m.display_name || m.username} <span style={mut}>· {timeAgo(m.created_at)}</span>
+          {m.display_name || m.username || '暂未填写'} <span style={mut}>· {timeAgo(m.created_at)}</span>
         </div>
       ))}
       {st.newMembers.length === 0 && <p style={mut}>暂无</p>}
@@ -440,7 +440,7 @@ function Members({ me, isSuper, setMsg, extQ }: { me: string; isSuper: boolean; 
             onChange={e => { const n = new Set(sel); e.target.checked ? n.add(m.id) : n.delete(m.id); setSel(n); }} />
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 14, fontWeight: 700 }}>
-              <span onClick={() => setDetailId(m.id)} style={{ cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: 3 }}>{m.display_name || m.username}</span>
+              <span onClick={() => setDetailId(m.id)} style={{ cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: 3 }}>{m.display_name || m.username || '暂未填写'}</span>
               <span style={{ ...mut, marginLeft: 8 }}>{m.role === 'super_admin' ? '超级管理员' : m.role === 'admin' ? '内容管理员' : '成员'}</span>
               {!m.joined && <span style={{ color: '#ff8080', fontSize: 12 }}> · 已禁用</span>}
             </div>
@@ -452,7 +452,7 @@ function Members({ me, isSuper, setMsg, extQ }: { me: string; isSuper: boolean; 
             ? <button className="mini danger" disabled={m.id === me} onClick={() => setJoined([m.id], false)}>禁用</button>
             : <button className="mini" onClick={() => setJoined([m.id], true)}>恢复</button>}
           {isSuper && m.role !== 'super_admin' && (
-            <select value={m.role} onChange={e => setRole(m.id, e.target.value, m.display_name || m.username)}
+            <select value={m.role} onChange={e => setRole(m.id, e.target.value, m.display_name || m.username || '暂未填写')}
               style={{ width: 'auto', padding: '6px 8px', fontSize: 12.5 }} disabled={m.id === me}>
               <option value="member">普通成员</option>
               <option value="admin">内容管理员</option>
@@ -494,7 +494,7 @@ function Moderate({ setMsg }: { setMsg: (s: string) => void }) {
     if (ids.size) {
       const { data: dir } = await supabase.rpc('member_directory', { q: '', lim: 200, skip: 0 });
       const mp: Record<string, string> = {};
-      ((dir ?? []) as any[]).forEach((x: any) => { mp[x.id] = x.display_name ?? x.username; });
+      ((dir ?? []) as any[]).forEach((x: any) => { mp[x.id] = x.display_name || x.username || '暂未填写'; });
       setNames(mp);
     }
   }
@@ -1024,7 +1024,7 @@ function GameTab({ setMsg }: { setMsg: (s: string) => void }) {
     if (ids.length) {
       const { data: dir } = await supabase.rpc('member_directory', { q: '', lim: 200, skip: 0 });
       const mp: Record<string, string> = {};
-      ((dir ?? []) as any[]).forEach((x: any) => { if (ids.includes(x.id)) mp[x.id] = x.display_name ?? x.username; });
+      ((dir ?? []) as any[]).forEach((x: any) => { if (ids.includes(x.id)) mp[x.id] = x.display_name || x.username || '暂未填写'; });
       setNames(mp);
     }
   }

@@ -27,6 +27,10 @@ select u.id, u.email from auth.users u
 where u.email is not null
 on conflict (profile_id) do update set email = excluded.email;
 
+-- The current login UI uses the registered email only. Disable the legacy
+-- username/real-name resolver because it can reveal account email addresses.
+revoke all on function public.resolve_login_email(text) from public, anon, authenticated;
+
 create or replace function public.handle_new_user()
 returns trigger
 language plpgsql

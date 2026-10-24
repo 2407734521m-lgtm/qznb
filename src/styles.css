@@ -580,3 +580,111 @@ input[type=file]::file-selector-button{
 .feed-scope-label{font-size:11px;color:var(--mut);white-space:nowrap}
 .feed-scope-select{flex:1;min-width:0;margin:0;padding:8px 10px;border:1px solid #ffffff20;border-radius:10px;background:#111827;color:var(--fg);font:inherit;font-size:11px}
 .feed-scope-select option{background:#111827;color:#eef0f6}
+
+
+/* ============ 轻量 UI 试验：校园蓝白（仅视觉，不改业务逻辑） ============ */
+:root{
+  --bg:#f3f6fc;
+  --fg:#18243b;
+  --mut:#6f7d95;
+  --a:#3978f6;
+  --b:#78b8ff;
+  --r:18px;
+}
+body{
+  background:var(--bg);
+  color:var(--fg);
+}
+.glow{
+  background:
+    radial-gradient(700px 440px at 8% 0%,#dbeafe 0%,transparent 72%),
+    radial-gradient(560px 440px at 100% 12%,#e9e5ff 0%,transparent 70%),
+    linear-gradient(180deg,#f8fbff,#f1f5fb);
+}
+.app-bg{filter:blur(10px) brightness(96%);opacity:.12}
+.topnav{
+  background:rgba(255,255,255,.86);
+  border-bottom:1px solid #dfe7f3;
+  box-shadow:0 4px 20px #24436b0a;
+}
+.topnav a,.topnav button{color:#63718a}
+.topnav a.on{color:#2159c7;background:#eaf1ff}
+.topnav .brand{color:#203553}
+.wrap{max-width:1080px}
+.card{
+  background:rgba(255,255,255,.84);
+  border:1px solid #e4ebf5;
+  box-shadow:0 10px 32px #24436b0d;
+  color:var(--fg);
+}
+input,textarea,select{
+  background:#fff;
+  color:#1b2940;
+  border-color:#d9e2ef;
+}
+input::placeholder,textarea::placeholder{color:#91a0b6}
+input:focus,textarea:focus,select:focus{
+  border-color:#7ba8ff;
+  box-shadow:0 0 0 3px #3978f61c;
+}
+button.pri,.cmt .box button{
+  background:linear-gradient(135deg,#4b86ff,#3471ed);
+  color:#fff;
+  box-shadow:0 6px 16px #3978f626;
+}
+button.ghost,.mini{
+  background:#f7f9fd;
+  color:#3b4d68;
+  border-color:#dfe7f2;
+}
+.hero h1{
+  background:linear-gradient(120deg,#1d3150,#3978f6);
+  -webkit-background-clip:text;background-clip:text;
+}
+.mcard,.acard,.composer,.post,.tl-item{
+  background:rgba(255,255,255,.9);
+  border-color:#e4ebf5;
+  box-shadow:0 8px 26px #24436b0a;
+  color:#1c2b44;
+}
+.mcard p,.post .hd .tm,.post .ft button,.adm-sec h3{color:#73819a}
+.mcard:hover,.mcard:active,.acard:hover{
+  box-shadow:0 16px 34px #24436b18;
+  border-color:#b9d0ff;
+}
+.frow,.post .ft,.cmt,.cmt .one,.tbl th,.tbl td,.log{
+  border-color:#e9eef6;
+}
+.bubble.them{background:#f2f6fd;border-color:#e2eaf5;color:#263650}
+.chat-bar{background:#ffffffed;border-color:#e3eaf5}
+.chat-bar input{background:#f8faff;border-color:#dfe7f2;color:#20304a}
+.grow,.gprof{background:#f7f9fd;border-color:#e2eaf5;color:#263650}
+.gexpand,.lpop{background:#fff;border-color:#e2eaf5;color:#263650;box-shadow:0 20px 55px #24436b24}
+.lpop button{color:#263650}
+.lpop button.on{background:#eaf1ff;color:#245fc9}
+.rankchip{background:#f6f8fd;border-color:#dfe7f2;color:#3b4d68}
+.rankchip.on,.xbtn.on{background:linear-gradient(135deg,#4b86ff,#3471ed);color:#fff}
+.xbtn{background:#f6f8fd;border-color:#dfe7f2;color:#3b4d68}
+.gbadge{background:#edf3ff;border-color:#d6e4ff;color:#386bd0;box-shadow:none}
+.chip{background:#eef3fb;color:#50627e}
+.chip.sa{background:#e8efff;color:#345fcb}.chip.ad{background:#e4f8ec;color:#24814a}
+.login-card{
+  background:rgba(255,255,255,.94);
+  border-color:#e1e9f5;
+  box-shadow:0 24px 70px #24436b18;
+  color:#1c2b44;
+}
+.login-card h1{color:#203553}
+.login-card label,.login-card .sub{color:#73819a}
+.tabbar{
+  background:rgba(255,255,255,.88);
+  border-color:#dfe7f3;
+  box-shadow:0 12px 36px #24436b20,inset 0 1px 0 #ffffff;
+}
+@media(max-width:768px){
+  .tabbar a{color:#64748b}
+  .tabbar a.on{background:linear-gradient(135deg,#4b86ff,#3471ed);color:#fff;box-shadow:0 4px 14px #3978f62e}
+}
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+}

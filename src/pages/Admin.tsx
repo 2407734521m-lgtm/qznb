@@ -129,6 +129,7 @@ export default function Admin() {
   const { session } = useAuth();
   const me = session?.user.id ?? '';
   const [role, setRole] = useState('');
+  const [verifiedUid, setVerifiedUid] = useState<string | null>(null);
   const [tab, setTab] = useState('overview');
   const [msg, setMsg] = useState('');
   const [q0, setQ0] = useState('');
@@ -137,15 +138,22 @@ export default function Admin() {
 
   useEffect(() => {
     let active = true;
+    setVerifiedUid(null);
+    setRole('');
     if (!session) {
       setRole('unauthorized');
       return () => { active = false; };
     }
+    const uid = session.user.id;
     supabase.rpc('my_role').then(({ data, error }) => {
       if (!active) return;
       setRole(!error && (data === 'admin' || data === 'super_admin') ? data : 'unauthorized');
+      setVerifiedUid(uid);
     }).catch(() => {
-      if (active) setRole('unauthorized');
+      if (active) {
+        setRole('unauthorized');
+        setVerifiedUid(uid);
+      }
     });
     return () => { active = false; };
   }, [session?.user.id]);
@@ -155,8 +163,10 @@ export default function Admin() {
     window.scrollTo({ top: 0 });
   }
 
-  if (!role) return <div className="center" style={{ minHeight: '60vh' }}>正在验证管理员权限…</div>;
-  if (!session || (role !== 'admin' && role !== 'super_admin')) {
+  if (!session || verifiedUid !== session.user.id || !role) {
+    return <div className="center" style={{ minHeight: '60vh' }}>正在验证管理员权限…</div>;
+  }
+  if (role !== 'admin' && role !== 'super_admin') {
     return (
       <div className="center" style={{ minHeight: '60vh', padding: 24, textAlign: 'center' }}>
         <p>管理员权限验证失败，后台内容已锁定。</p>

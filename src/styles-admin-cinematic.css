@@ -1,0 +1,31 @@
+.admin-shell{color:#edf2ff;background:radial-gradient(ellipse at 10% 0%,rgba(91,140,255,.11),transparent 38%),radial-gradient(ellipse at 92% 12%,rgba(139,92,246,.09),transparent 34%),#0a0f1e!important}.admin-header{padding:10px 2px 14px;border-bottom:1px solid rgba(255,255,255,.08);margin-bottom:16px!important}.admin-search{position:sticky;top:8px;z-index:30}.admin-search input{min-height:44px;border-radius:14px!important;background:rgba(18,27,49,.82)!important;border-color:rgba(255,255,255,.13)!important;backdrop-filter:blur(18px)}.admin-shell input,.admin-shell textarea,.admin-shell select{max-width:100%;min-height:42px;box-sizing:border-box;border-radius:12px;background-color:rgba(255,255,255,.045)}.admin-shell textarea{min-height:82px;padding:11px 12px}.admin-shell button.pri{min-height:42px;border-radius:12px;background-image:linear-gradient(125deg,#4f83ff,#8265ef)}.admin-shell button.mini,.admin-shell button.ghost{border-radius:10px}.admin-shell button:disabled{opacity:.45;cursor:not-allowed}.admin-shell .admin-dock{max-width:calc(100vw - 20px)!important;border-radius:20px!important;background:rgba(15,21,39,.82)!important;border-color:rgba(255,255,255,.14)!important;box-shadow:0 18px 54px rgba(0,0,0,.48),inset 0 1px 0 rgba(255,255,255,.08)!important}.admin-shell .admin-dock>div{scrollbar-width:none}.admin-shell .admin-dock>div::-webkit-scrollbar{display:none}.admin-shell .admin-dock button{min-height:40px}.admin-shell .center{min-height:30vh}@media(min-width:720px){.admin-shell{padding-left:max(20px,calc((100vw - 860px)/2))!important;padding-right:max(20px,calc((100vw - 860px)/2))!important}}@media(max-width:420px){.admin-shell{padding-left:10px!important;padding-right:10px!important}.admin-header{align-items:flex-start!important;gap:8px}.admin-header>span{margin-top:4px}.admin-shell .admin-dock{bottom:calc(8px + env(safe-area-inset-bottom))!important;padding:5px!important}.admin-shell .admin-dock button{padding:9px 11px!important;font-size:12px!important}}
+
+/* 管理后台：分区入场、层级与触控反馈 */
+.admin-content{animation:admin-panel-in .34s cubic-bezier(.2,.75,.25,1) both;transform-origin:50% 0}
+@keyframes admin-panel-in{from{opacity:0;transform:translate3d(0,9px,0) scale(.995);filter:blur(3px)}to{opacity:1;transform:translate3d(0,0,0) scale(1);filter:blur(0)}}
+.admin-content>div[style*="border-radius"]{transition:border-color .22s ease,box-shadow .22s ease}
+.admin-shell .row{min-width:0}
+.admin-shell button{transition:transform .16s ease,filter .16s ease,background-color .16s ease,border-color .16s ease}
+.admin-shell button:not(:disabled):active{transform:scale(.975)}
+.admin-shell button:focus-visible,.admin-shell input:focus-visible,.admin-shell textarea:focus-visible,.admin-shell select:focus-visible{outline:2px solid #8fb4ff;outline-offset:3px}
+.admin-shell input:focus,.admin-shell textarea:focus,.admin-shell select:focus{border-color:rgba(126,166,255,.65);box-shadow:0 0 0 3px rgba(91,140,255,.11)}
+.admin-shell label{display:block;color:#aebbd8;font-size:12px;margin-bottom:5px}
+.admin-shell h3{letter-spacing:.01em}
+.admin-shell .admin-content .row{row-gap:8px}
+.admin-shell .admin-content button.mini{min-height:36px;padding:7px 12px}
+.admin-shell .admin-content button.danger{border-radius:10px}
+.admin-shell .admin-dock button{transition:background .2s ease,color .2s ease,transform .2s ease}
+.admin-shell .admin-dock button[aria-current="page"]{box-shadow:0 4px 16px rgba(91,140,255,.28)}
+@media(hover:hover){
+ .admin-shell button:not(:disabled):hover{filter:brightness(1.1)}
+ .admin-shell .admin-content button.mini:hover{transform:translateY(-1px)}
+}
+@media(max-width:520px){
+ .admin-shell .admin-content{padding-bottom:8px}
+ .admin-shell .admin-content input,.admin-shell .admin-content textarea,.admin-shell .admin-content select{font-size:16px}
+ .admin-shell .admin-content .row>*{max-width:100%;min-width:0}
+}
+@media(prefers-reduced-motion:reduce){
+ .admin-content,.admin-shell button{animation:none!important;transition:none!important}
+ .admin-shell button:not(:disabled):active{transform:none}
+}

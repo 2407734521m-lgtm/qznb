@@ -8,6 +8,7 @@ type Post = { id: number; author_id: string; content: string; image_url: string 
 type Profile = { id: string; username: string; display_name: string | null; avatar_path: string | null };
 type Cmt = { id: number; post_id: number; author_id: string; content: string; created_at: string };
 type ScopeOption = { value: string; label: string; school_id: string | null; class_id: string | null };
+type TopicOption = { id: string; school_id: string; name: string; slug: string };
 
 function Avatar({ p, size = 42 }: { p?: Profile; size?: number }) {
   const url = useSignedUrl('avatars', p?.avatar_path);
@@ -43,6 +44,8 @@ export default function Feed() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [scopeOptions, setScopeOptions] = useState<ScopeOption[]>([{ value: 'legacy', label: '当前社区（兼容旧动态）', school_id: null, class_id: null }]);
   const [postScope, setPostScope] = useState('legacy');
+  const [topicOptions, setTopicOptions] = useState<TopicOption[]>([]);
+  const [selectedTopicId, setSelectedTopicId] = useState('');
   const fref = useRef<HTMLInputElement>(null);
 
   async function load() {
@@ -82,6 +85,8 @@ export default function Feed() {
     if (schoolError || !memberships?.length) {
       setScopeOptions([{ value: 'legacy', label: '当前社区（兼容旧动态）', school_id: null, class_id: null }]);
       setPostScope('legacy');
+      setTopicOptions([]);
+      setSelectedTopicId('');
       return;
     }
     const options: ScopeOption[] = [];
@@ -104,6 +109,9 @@ export default function Feed() {
     }
     setScopeOptions(options.length ? options : [{ value: 'legacy', label: '当前社区（兼容旧动态）', school_id: null, class_id: null }]);
     setPostScope(current => options.some(option => option.value === current) ? current : (options[0]?.value || 'legacy'));
+    const { data: topicRows } = await supabase.from('topics').select('id,school_id,name,slug')
+      .in('school_id', schoolIds).order('name');
+    setTopicOptions((topicRows || []) as TopicOption[]);
   }
   useEffect(() => { load(); loadScopes(); }, []);
 
@@ -118,6 +126,7 @@ export default function Feed() {
         author_id: me, content: text.trim(), image_url,
         school_id: selectedScope?.school_id ?? null,
         class_id: selectedScope?.class_id ?? null,
+        topic_id: selectedTopicId && topicOptions.some(topic => topic.id === selectedTopicId && topic.school_id === selectedScope?.school_id) ? selectedTopicId : null,
       });
       if (error) throw error;
       setText(''); setImg(null); load();
@@ -181,10 +190,17 @@ export default function Feed() {
         <textarea value={text} onChange={e => setText(e.target.value)} placeholder="分享校园里的新鲜事…" rows={3} maxLength={2000} />
         <div className="row" style={{ marginBottom: 8 }}>
           <label className="feed-scope-label" htmlFor="feed-post-scope">发布到</label>
-          <select id="feed-post-scope" className="feed-scope-select" value={postScope} onChange={e => setPostScope(e.target.value)}>
+          <select id="feed-post-scope" className="feed-scope-select" value={postScope} onChange={e => { setPostScope(e.target.value); setSelectedTopicId(""); }}>
             {scopeOptions.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
           </select>
         </div>
+        {topicOptions.filter(topic => topic.school_id === scopeOptions.find(option => option.value === postScope)?.school_id).length > 0 && <div className="row" style={{ marginBottom: 8 }}>
+          <label className="feed-scope-label" htmlFor="feed-post-topic">话题</label>
+          <select id="feed-post-topic" className="feed-scope-select" value={selectedTopicId} onChange={e => setSelectedTopicId(e.target.value)}>
+            <option value="">不添加话题</option>
+            {topicOptions.filter(topic => topic.school_id === scopeOptions.find(option => option.value === postScope)?.school_id).map(topic => <option key={topic.id} value={topic.id}>{topic.name}</option>)}
+          </select>
+        </div>}
         <div className="row">
           <button className="ghost" onClick={() => fref.current?.click()}>{img ? '已选图片 ✓' : '＋ 图片'}</button>
           <input ref={fref} type="file" accept="image/*" hidden onChange={e => setImg(e.target.files?.[0] ?? null)} />

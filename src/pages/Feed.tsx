@@ -52,9 +52,10 @@ export default function Feed() {
     if (!list.length) return;
     const ids = [...new Set(list.map(p => p.author_id))];
     const pids = list.map(p => p.id);
-    const { data: pr } = await supabase.from('profiles').select('id, username, display_name, avatar_path').in('id', ids);
+    const { data: pr } = await supabase.rpc('member_directory', { q: '', lim: 50, skip: 0 });
     const pm: Record<string, Profile> = {};
-    (pr ?? []).forEach((x: any) => { pm[x.id] = x; });
+    ((pr ?? []) as Profile[]).filter(profile => ids.includes(profile.id))
+      .forEach(profile => { pm[profile.id] = profile; });
     setProfiles(pm);
     const { data: lk } = await supabase.from('post_likes').select('post_id, profile_id').in('post_id', pids);
     const cnt: Record<number, number> = {}; const mine: Record<number, boolean> = {};
@@ -66,9 +67,10 @@ export default function Feed() {
     setCmts(cm);
     const missing = [...aids].filter(a => !pm[a]);
     if (missing.length) {
-      const { data: pr2 } = await supabase.from('profiles').select('id, username, display_name, avatar_path').in('id', missing);
+      const { data: pr2 } = await supabase.rpc('member_directory', { q: '', lim: 50, skip: 0 });
       const pm2 = { ...pm };
-      (pr2 ?? []).forEach((x: any) => { pm2[x.id] = x; });
+      ((pr2 ?? []) as Profile[]).filter(profile => missing.includes(profile.id))
+        .forEach(profile => { pm2[profile.id] = profile; });
       setProfiles(pm2);
     }
     const { data: r } = await supabase.rpc('my_role');

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { supabase, supabaseBaseUrl } from '../lib/supabase';
+import { supabase } from '../lib/supabase';
 
 type Person = { id: string; username: string | null; display_name: string | null; real_name: string | null };
 export default function AdminBulkEmail({ setMsg }: { setMsg: (s: string) => void }) {
@@ -41,13 +41,11 @@ export default function AdminBulkEmail({ setMsg }: { setMsg: (s: string) => void
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('登录状态已失效，请重新登录。');
-      const response = await fetch(`${supabaseBaseUrl}/functions/v1/admin-bulk-email`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}', apikey: (import.meta as any).env.VITE_SUPABASE_ANON_KEY || '' },
-        body: JSON.stringify({ userIds: selected, subject: subject.trim(), text: body.trim() }),
+      const { data: result, error: invokeError } = await supabase.functions.invoke('admin-bulk-email', {
+        body: { userIds: selected, subject: subject.trim(), text: body.trim() },
       });
-      const result = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(result.error || '发送失败。请检查邮件服务配置。');
+      if (invokeError) throw new Error(invokeError.message || '发送失败。请检查邮件服务配置。');
+      if (result?.error) throw new Error(result.error || '发送失败。请检查邮件服务配置。');
       setMsg(`发送任务完成：成功 ${result.sent || 0} 封，失败 ${result.failed || 0} 封。`);
       setSelected([]);
     } catch (e: any) { setMsg(e.message || '发送失败。'); }

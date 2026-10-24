@@ -29,9 +29,7 @@ select u.id, u.email from auth.users u
 where u.email is not null
 on conflict (profile_id) do update set email = excluded.email;
 
--- The current login UI uses the registered email only. Disable the legacy
--- username/real-name resolver because it can reveal account email addresses.
-revoke all on function public.resolve_login_email(text) from public, anon, authenticated;
+-- Preserve the existing login resolver and its permissions in this migration.
 
 create or replace function public.handle_new_user()
 returns trigger
@@ -161,7 +159,7 @@ create table if not exists public.topics (
 alter table public.posts add column if not exists school_id uuid references public.schools(id) on delete cascade;
 alter table public.posts add column if not exists class_id uuid references public.classes(id) on delete cascade;
 alter table public.posts add column if not exists topic_id uuid references public.topics(id) on delete restrict;
-do $
+do $$
 begin
   if not exists (
     select 1 from pg_constraint
@@ -171,8 +169,8 @@ begin
     alter table public.posts add constraint posts_class_requires_school
       check (class_id is null or school_id is not null) not valid;
   end if;
-end $;
-do $
+end $$;
+do $$
 begin
   if not exists (
     select 1 from pg_constraint
@@ -182,7 +180,7 @@ begin
     alter table public.posts add constraint posts_topic_matches_school
       foreign key (topic_id, school_id) references public.topics(id, school_id) on delete restrict not valid;
   end if;
-end $;
+end $$;
 
 create index if not exists posts_school_created_idx on public.posts(school_id, created_at desc);
 create index if not exists posts_class_created_idx on public.posts(class_id, created_at desc);
@@ -235,7 +233,7 @@ $$;
 
 -- School and class creation are server-validated; client roles cannot self-assign admin rights.
 create or replace function public.create_school(p_name text, p_slug text, p_description text default null)
-returns uuid language plpgsql security definer set search_path = public as $
+returns uuid language plpgsql security definer set search_path = public as $$
 declare school_id_value uuid;
 begin
   if auth.uid() is null or coalesce(public.my_role(), '') not in ('admin','super_admin') then
@@ -249,11 +247,11 @@ begin
   on conflict (school_id, profile_id) do update set role = 'owner', status = 'active';
   return school_id_value;
 end;
-$;
+$$;
 
 create or replace function public.create_class(
   p_school_id uuid, p_name text, p_grade_id uuid default null, p_description text default null
-) returns uuid language plpgsql security definer set search_path = public as $
+) returns uuid language plpgsql security definer set search_path = public as $$
 declare class_id_value uuid;
 begin
   if auth.uid() is null or not public.can_manage_school(p_school_id) then
@@ -267,7 +265,7 @@ begin
   returning id into class_id_value;
   return class_id_value;
 end;
-$;
+$$;
 
 -- Invitations are created through a manager-only RPC; raw codes are never stored.
 create or replace function public.create_class_invite(
@@ -343,7 +341,7 @@ end;
 $$;
 
 create or replace function public.set_school_admin(p_school_id uuid, p_profile_id uuid, p_make_admin boolean)
-returns void language plpgsql security definer set search_path = public as $
+returns void language plpgsql security definer set search_path = public as $$
 begin
   if auth.uid() is null or coalesce(public.my_role(), '') <> 'super_admin' then raise exception 'forbidden'; end if;
   if not exists (select 1 from public.school_memberships
@@ -355,10 +353,10 @@ begin
   where school_id = p_school_id and profile_id = p_profile_id and role <> 'owner';
   if not found then raise exception 'owner role cannot be changed here'; end if;
 end;
-$;
+$$;
 
 create or replace function public.set_class_admin(p_class_id uuid, p_profile_id uuid, p_make_admin boolean)
-returns void language plpgsql security definer set search_path = public as $
+returns void language plpgsql security definer set search_path = public as $$
 declare school_id_value uuid;
 begin
   if auth.uid() is null then raise exception 'not authenticated'; end if;
@@ -369,7 +367,7 @@ begin
   where class_id = p_class_id and profile_id = p_profile_id and status = 'active';
   if not found then raise exception 'target must be an active class member'; end if;
 end;
-$;
+$$;
 
 -- Enable RLS and grant only the operations that are checked by the policies.
 alter table public.schools enable row level security;

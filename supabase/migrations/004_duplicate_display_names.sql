@@ -39,6 +39,10 @@ begin
   insert into public.profiles(id, username, display_name, real_name)
   values (new.id, internal_username, display_name_value, real_name_value);
 
+  insert into public.profile_emails(profile_id, email)
+  values (new.id, new.email)
+  on conflict (profile_id) do update set email = excluded.email;
+
   insert into public.profile_privacy(profile_id) values (new.id);
   insert into public.profile_contacts(profile_id) values (new.id);
   return new;

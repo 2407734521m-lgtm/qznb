@@ -102,7 +102,7 @@ create table if not exists public.classes (
   created_at timestamptz not null default now(),
   unique (school_id, name),
   unique (id, school_id),
-  foreign key (grade_id, school_id) references public.grades(id, school_id) on delete set null
+  foreign key (grade_id) references public.grades(id) on delete set null
 );
 
 create table if not exists public.class_memberships (
@@ -218,7 +218,7 @@ begin
   end if;
   if p_max_uses is not null and p_max_uses < 1 then raise exception 'invalid max uses'; end if;
   insert into public.class_invites(class_id, code_hash, created_by, expires_at, max_uses)
-  values (p_class_id, encode(extensions.digest(trim(p_code), 'sha256'), 'hex'), auth.uid(), p_expires_at, p_max_uses)
+  values (p_class_id, encode(digest(trim(p_code), 'sha256'), 'hex'), auth.uid(), p_expires_at, p_max_uses)
   returning id into new_id;
   return new_id;
 end;
@@ -232,7 +232,7 @@ begin
   if not public.is_member() then raise exception 'site membership required'; end if;
   if p_code is null or char_length(trim(p_code)) < 6 then return null; end if;
   select * into invite_row from public.class_invites
-  where code_hash = encode(extensions.digest(trim(p_code), 'sha256'), 'hex')
+  where code_hash = encode(digest(trim(p_code), 'sha256'), 'hex')
     and revoked_at is null
     and (expires_at is null or expires_at > now())
     and (max_uses is null or use_count < max_uses)
@@ -292,11 +292,12 @@ revoke all on public.schools, public.school_memberships, public.grades, public.c
   public.class_memberships, public.class_invites, public.class_join_requests, public.topics from anon, authenticated;
 grant select on public.schools, public.grades, public.classes, public.class_memberships, public.class_join_requests, public.topics to authenticated;
 grant select on public.school_memberships to authenticated;
+grant insert, update, delete on public.schools, public.grades, public.classes, public.topics to authenticated;
 grant select, insert, update, delete on public.posts to authenticated;
 
 drop policy if exists schools_sel on public.schools;
 create policy schools_sel on public.schools for select to authenticated
-  using (public.is_school_member(id) or public.my_role() in ('admin','super_admin'));
+  using (created_by = auth.uid() or public.is_school_member(id) or public.my_role() in ('admin','super_admin'));
 drop policy if exists schools_manage on public.schools;
 create policy schools_manage on public.schools for all to authenticated
   using (public.my_role() = 'super_admin' or created_by = auth.uid())
@@ -360,7 +361,15 @@ create policy p_ins on public.posts for insert to authenticated with check (
 drop policy if exists p_mod on public.posts;
 create policy p_mod on public.posts for update to authenticated
   using (author_id = auth.uid() or public.my_role() in ('admin','super_admin'))
-  with check (author_id = auth.uid() or public.my_role() in ('admin','super_admin'));
+  with check (
+    (author_id = auth.uid() or public.my_role() in ('admin','super_admin')) and (
+      (school_id is null and class_id is null)
+      or (school_id is not null and class_id is null and public.is_school_member(school_id))
+      or (school_id is not null and class_id is not null
+          and exists (select 1 from public.classes c where c.id = posts.class_id and c.school_id = posts.school_id)
+          and public.is_school_member(school_id) and public.is_class_member(class_id))
+    )
+  );
 drop policy if exists p_del on public.posts;
 create policy p_del on public.posts for delete to authenticated
   using (author_id = auth.uid() or public.my_role() in ('admin','super_admin'));

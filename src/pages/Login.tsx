@@ -22,7 +22,7 @@ function Spin() {
 async function resolveEmail(ident: string): Promise<string> {
   const id = ident.trim();
   if (!id) throw new Error('empty');
-  if (!/^[1-9]\\d{4,10}@qq\\.com$/i.test(id)) throw new Error('emailrequired');
+  if (!/^[1-9]\d{4,10}@qq\.com$/i.test(id)) throw new Error('emailrequired');
   return id.toLowerCase();
 }
 

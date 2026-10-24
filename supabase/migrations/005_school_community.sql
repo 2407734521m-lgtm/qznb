@@ -328,7 +328,8 @@ revoke all on public.schools, public.school_memberships, public.grades, public.c
   public.class_memberships, public.class_invites, public.class_join_requests, public.topics from anon, authenticated;
 grant select on public.schools, public.grades, public.classes, public.class_memberships, public.class_join_requests, public.topics to authenticated;
 grant select on public.school_memberships to authenticated;
-grant insert, update, delete on public.schools, public.grades, public.classes, public.topics to authenticated;
+grant update, delete on public.schools to authenticated;
+grant insert, update, delete on public.grades, public.classes, public.topics to authenticated;
 grant select, insert, update, delete on public.posts to authenticated;
 
 drop policy if exists schools_sel on public.schools;

@@ -7,6 +7,7 @@ import { useSignedUrl, uploadMedia, downscaleImage } from '../lib/media';
 type Post = { id: number; author_id: string; content: string; image_url: string | null; created_at: string };
 type Profile = { id: string; username: string; display_name: string | null; avatar_path: string | null };
 type Cmt = { id: number; post_id: number; author_id: string; content: string; created_at: string };
+type ScopeOption = { value: string; label: string; school_id: string | null; class_id: string | null };
 
 function Avatar({ p, size = 42 }: { p?: Profile; size?: number }) {
   const url = useSignedUrl('avatars', p?.avatar_path);
@@ -40,6 +41,8 @@ export default function Feed() {
   const [text, setText] = useState(''); const [img, setImg] = useState<File | null>(null);
   const [busy, setBusy] = useState(false); const [err, setErr] = useState('');
   const [isAdmin, setIsAdmin] = useState(false);
+  const [scopeOptions, setScopeOptions] = useState<ScopeOption[]>([{ value: 'legacy', label: '当前社区（兼容旧动态）', school_id: null, class_id: null }]);
+  const [postScope, setPostScope] = useState('legacy');
   const fref = useRef<HTMLInputElement>(null);
 
   async function load() {
@@ -71,7 +74,36 @@ export default function Feed() {
     const { data: r } = await supabase.rpc('my_role');
     setIsAdmin(r === 'admin' || r === 'super_admin');
   }
-  useEffect(() => { load(); }, []);
+  async function loadScopes() {
+    const { data: memberships, error: schoolError } = await supabase.from('school_memberships')
+      .select('school_id,schools(id,name)').eq('profile_id', me).eq('status', 'active');
+    if (schoolError || !memberships?.length) {
+      setScopeOptions([{ value: 'legacy', label: '当前社区（兼容旧动态）', school_id: null, class_id: null }]);
+      setPostScope('legacy');
+      return;
+    }
+    const options: ScopeOption[] = [];
+    const schoolIds: string[] = [];
+    (memberships as any[]).forEach(row => {
+      const schoolId = row.schools?.id || row.school_id;
+      if (!schoolId) return;
+      schoolIds.push(schoolId);
+      options.push({ value: 'school:' + schoolId, label: (row.schools?.name || '学校') + ' · 全校广场', school_id: schoolId, class_id: null });
+    });
+    if (schoolIds.length) {
+      const { data: membershipsInClass } = await supabase.from('class_memberships')
+        .select('class_id,classes(id,name,school_id)').eq('profile_id', me).eq('status', 'active');
+      (membershipsInClass as any[] || []).forEach(row => {
+        const cls = row.classes;
+        if (cls && schoolIds.includes(cls.school_id)) {
+          options.push({ value: 'class:' + cls.id, label: cls.name + ' · 班级空间', school_id: cls.school_id, class_id: cls.id });
+        }
+      });
+    }
+    setScopeOptions(options.length ? options : [{ value: 'legacy', label: '当前社区（兼容旧动态）', school_id: null, class_id: null }]);
+    setPostScope(current => options.some(option => option.value === current) ? current : (options[0]?.value || 'legacy'));
+  }
+  useEffect(() => { load(); loadScopes(); }, []);
 
   async function publish() {
     if (!text.trim() && !img) return setErr('写点什么再发布吧');
@@ -79,7 +111,12 @@ export default function Feed() {
     try {
       let image_url: string | null = null;
       if (img) image_url = await uploadMedia('media', await downscaleImage(img));
-      const { error } = await supabase.from('posts').insert({ author_id: me, content: text.trim(), image_url });
+      const selectedScope = scopeOptions.find(option => option.value === postScope);
+      const { error } = await supabase.from('posts').insert({
+        author_id: me, content: text.trim(), image_url,
+        school_id: selectedScope?.school_id ?? null,
+        class_id: selectedScope?.class_id ?? null,
+      });
       if (error) throw error;
       setText(''); setImg(null); load();
     } catch (e: any) { setErr('发布失败：' + (e.message || '网络错误')); }
@@ -139,7 +176,13 @@ export default function Feed() {
         <p>分 享 此 刻 · 留 住 感 动</p>
       </div>
       <div className="composer">
-        <textarea value={text} onChange={e => setText(e.target.value)} placeholder="分享今天的班级故事…" rows={3} maxLength={2000} />
+        <textarea value={text} onChange={e => setText(e.target.value)} placeholder="分享校园里的新鲜事…" rows={3} maxLength={2000} />
+        <div className="row" style={{ marginBottom: 8 }}>
+          <label className="feed-scope-label" htmlFor="feed-post-scope">发布到</label>
+          <select id="feed-post-scope" className="feed-scope-select" value={postScope} onChange={e => setPostScope(e.target.value)}>
+            {scopeOptions.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
+          </select>
+        </div>
         <div className="row">
           <button className="ghost" onClick={() => fref.current?.click()}>{img ? '已选图片 ✓' : '＋ 图片'}</button>
           <input ref={fref} type="file" accept="image/*" hidden onChange={e => setImg(e.target.files?.[0] ?? null)} />

@@ -42,6 +42,7 @@ const TABS = [
   { to: '/members', label: '班级', ic: '👥' },
   { to: '/explore', label: '发现', ic: '✦' },
   { to: '/friends', label: '私聊', ic: '💬' },
+  { to: '/me/notifications', label: '消息', ic: '🔔' },
   { to: '/songs', label: '歌声墙', ic: '🎤' },
   { to: '/love-wall', label: '表白墙', ic: '💌' },
   { to: '/timeline', label: '回忆', ic: '🌟' },
@@ -67,7 +68,8 @@ function isTabActive(tab: string, path: string) {
   if (tab === '/songs') return path.startsWith('/songs');
   if (tab === '/love-wall') return path.startsWith('/love-wall');
   if (tab === '/timeline') return path.startsWith('/timeline');
-  if (tab === '/me') return path.startsWith('/me');
+  if (tab === '/me/notifications') return path.startsWith('/me/notifications');
+  if (tab === '/me') return path.startsWith('/me') && !path.startsWith('/me/notifications');
   return path === tab;
 }
 
@@ -418,7 +420,7 @@ function Shell() {
             <NavLink key={t.to} to={t.to} className={on ? 'on' : ''}
               ref={on ? (el: any) => { if (el) el.scrollIntoView({ inline: 'center', block: 'nearest' }); } : undefined}>
               <span style={{ position: 'relative', zIndex: 1 }}>{t.label}
-                {((t.to === '/explore' && boardUnread) || (t.to === '/me' && notifUnread)) && <span style={{
+                {((t.to === '/explore' && boardUnread) || (t.to === '/me/notifications' && notifUnread)) && <span style={{
                   position: 'absolute', top: -2, right: -10, width: 8, height: 8,
                   borderRadius: '50%', background: '#ff4d4f',
                   boxShadow: '0 0 6px #ff4d4f' }} />}</span>

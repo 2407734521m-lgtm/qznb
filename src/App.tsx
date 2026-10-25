@@ -400,10 +400,10 @@ function Shell() {
       <div className="wrap">
         <AnimatePresence mode="wait">
           <motion.div key={loc.pathname}
-            initial={reduce ? { opacity: 0 } : { opacity: 0, y: 16 }}
+            initial={reduce ? false : { opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={reduce ? { opacity: 0 } : { opacity: 0, y: -10 }}
-            transition={{ duration: reduce ? 0.12 : 0.28, ease: [0.22, 1, 0.36, 1] }}>
+            exit={reduce ? { opacity: 1, y: 0 } : { opacity: 0, y: -10 }}
+            transition={{ duration: reduce ? 0 : 0.28, ease: [0.22, 1, 0.36, 1] }}>
             <Routes location={loc}>
               <Route path="/" element={<Navigate to="/members" replace />} />
               <Route path="/board" element={<Board />} />

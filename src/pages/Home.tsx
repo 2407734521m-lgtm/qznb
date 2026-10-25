@@ -27,7 +27,9 @@ export default function Home() {
   const nav = useNavigate();
   const [title, setTitle] = useState('我们的班级');
   const [subtitle, setSubtitle] = useState('青春档案');
-  const [gradDate, setGradDate] = useState('');\n  const [bannerUrl, setBannerUrl] = useState('');\n  const [bannerText, setBannerText] = useState('把我们的青春，留在这里');
+  const [gradDate, setGradDate] = useState('');
+  const [bannerUrl, setBannerUrl] = useState('');
+  const [bannerText, setBannerText] = useState('把我们的青春，留在这里');
   const [notices, setNotices] = useState<any[]>([]);
   const [posts, setPosts] = useState<any[]>([]);
   const [members, setMembers] = useState<any[]>([]);
@@ -42,7 +44,9 @@ export default function Home() {
       (ss ?? []).forEach((x: any) => {
         if (x.key === 'site_title') setTitle(x.value || '我们的班级');
         if (x.key === 'site_subtitle') setSubtitle(x.value || '青春档案');
-        if (x.key === 'graduation_date') setGradDate(x.value || '');\n        if (x.key === 'home_banner_url') setBannerUrl(x.value || '');\n        if (x.key === 'home_banner_text') setBannerText(x.value || '把我们的青春，留在这里');
+        if (x.key === 'graduation_date') setGradDate(x.value || '');
+        if (x.key === 'home_banner_url') setBannerUrl(x.value || '');
+        if (x.key === 'home_banner_text') setBannerText(x.value || '把我们的青春，留在这里');
       });
       const nowIso = new Date().toISOString();
       const [n, p, m, e, w] = await Promise.all([

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../auth';
+import BackButton from '../components/BackButton';
 
 /** 账号安全：改密码 / 退出登录 */
 export default function MeAccount() {
@@ -30,6 +31,7 @@ export default function MeAccount() {
 
   return (
     <div className="page" style={{ paddingBottom: 110 }}>
+      <BackButton fallback="/me" />
       <h2 style={{ margin: '4px 0 12px', fontSize: 20 }}>账号安全</h2>
       <div className="card">
         <div style={{ fontSize: 13, color: 'var(--mut)', marginBottom: 4 }}>登录邮箱</div>

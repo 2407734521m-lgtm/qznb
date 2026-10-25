@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../auth';
+import BackButton from '../components/BackButton';
 
 /** 我的收藏：收藏的同学档案 + 动态 */
 export default function MeFavorites() {
@@ -39,6 +40,7 @@ export default function MeFavorites() {
 
   return (
     <div className="page" style={{ paddingBottom: 110 }}>
+      <BackButton fallback="/me" />
       <h2 style={{ margin: '4px 0 12px', fontSize: 20 }}>我的收藏</h2>
       <div className="row" style={{ gap: 8, marginBottom: 12 }}>
         {([['member', '同学档案'], ['post', '动态']] as const).map(([k, l]) => (

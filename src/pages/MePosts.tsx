@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../auth';
+import BackButton from '../components/BackButton';
 
 /** 我的动态 */
 export default function MePosts() {
@@ -24,6 +25,7 @@ export default function MePosts() {
 
   return (
     <div className="page" style={{ paddingBottom: 110 }}>
+      <BackButton fallback="/me" />
       <h2 style={{ margin: '4px 0 12px', fontSize: 20 }}>我的动态（{posts.length}）</h2>
       {msg && <p className="priv-note">{msg}</p>}
       {posts.length === 0 && <div className="card" style={{ textAlign: 'center', color: 'var(--mut)', padding: '36px 14px' }}>还没有发布过动态</div>}

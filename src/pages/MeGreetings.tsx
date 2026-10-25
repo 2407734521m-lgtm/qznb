@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../auth';
+import BackButton from '../components/BackButton';
 
 /** 我的留言 */
 export default function MeGreetings() {
@@ -35,6 +36,7 @@ export default function MeGreetings() {
 
   return (
     <div className="page" style={{ paddingBottom: 110 }}>
+      <BackButton fallback="/me" />
       <h2 style={{ margin: '4px 0 12px', fontSize: 20 }}>我的留言（{list.length}）</h2>
       {msg && <p className="priv-note">{msg}</p>}
       {list.length === 0 && (

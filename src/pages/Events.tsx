@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../auth';
+import BackButton from '../components/BackButton';
 
 /** 班级活动：查看 + 报名 */
 export default function Events() {
@@ -39,6 +40,7 @@ export default function Events() {
 
   return (
     <div className="page" style={{ paddingBottom: 100 }}>
+      <BackButton fallback="/explore" />
       <div className="hero"><h1>班级活动</h1><p>聚 会 · 出 游 · 纪 念 日</p></div>
       {list.map(e => {
         const joined = (regs[e.id] || []).includes(me);

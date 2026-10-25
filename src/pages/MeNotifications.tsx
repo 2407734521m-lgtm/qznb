@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../auth';
+import BackButton from '../components/BackButton';
 
 /** 我的通知 */
 export default function MeNotifications() {
@@ -28,6 +29,7 @@ export default function MeNotifications() {
 
   return (
     <div className="page" style={{ paddingBottom: 110 }}>
+      <BackButton fallback="/me" />
       <h2 style={{ margin: '4px 0 12px', fontSize: 20 }}>我的通知</h2>
       {list.length === 0 && <div className="card" style={{ textAlign: 'center', color: 'var(--mut)', padding: '36px 14px' }}>暂无通知</div>}
       {list.map(n => (

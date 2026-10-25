@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../auth';
+import BackButton from '../components/BackButton';
 
 /** 时光胶囊：写给未来的信，到期才能看 */
 export default function Capsule() {
@@ -37,6 +38,7 @@ export default function Capsule() {
   const today = new Date().toISOString().slice(0, 10);
   return (
     <div className="page" style={{ paddingBottom: 100 }}>
+      <BackButton fallback="/explore" />
       <div className="hero"><h1>时光胶囊</h1><p>写 给 未 来 的 信</p></div>
       <div className="card">
         <h3 style={{ margin: '0 0 10px', fontSize: 15 }}>埋下新的胶囊</h3>

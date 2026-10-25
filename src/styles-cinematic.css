@@ -261,3 +261,29 @@ button:disabled{cursor:not-allowed;filter:saturate(.6)}
 .login-card .priv-note{line-height:1.7;color:rgba(220,229,248,.76)}
 .login-card .err{padding:10px 12px;border:1px solid rgba(255,126,145,.28);border-radius:12px;background:rgba(255,92,117,.08);color:#ffb4c0;font-size:12.5px;line-height:1.55}
 @media(max-width:480px){.login-wrap{padding:20px 14px calc(20px + env(safe-area-inset-bottom))}.login-card{border-radius:24px;padding:26px 20px 22px}.login-card .sub{margin-bottom:21px}}
+
+/* ============ 动效升级第三步：Dock 单节奏 + 滚动区分离（仅 ≤768px） ============ */
+@media (max-width: 768px) {
+  /* Dock 收缩/展开只用一套节奏；宽/左右位置由浅色主题的 0.32s !important 统一接管，这里不再另起 0.62s */
+  .tabbar {
+    left: max(12px, env(safe-area-inset-left));
+    right: max(12px, env(safe-area-inset-right));
+    transform: none;
+    width: auto;
+    overflow: visible;
+    padding: 6px;
+    gap: 6px;
+    bottom: calc(10px + env(safe-area-inset-bottom));
+    transition: transform .32s cubic-bezier(.22,1,.36,1), padding .32s ease, background .32s ease;
+  }
+  .tabbar .dock-scroll {
+    display: flex; gap: 5px; align-items: center;
+    flex: 1; min-width: 0;
+    overflow-x: auto; scrollbar-width: none;
+    scroll-behavior: smooth;
+  }
+  .tabbar .dock-scroll::-webkit-scrollbar { display: none; }
+  .tabbar .dock-item > a { min-width: 48px; min-height: 44px; padding: 8px 11px; font-size: 12px; }
+  .tabbar .dock-tab-label { max-width: none; }
+  .tabbar.dock-collapsed .dock-scroll { display: none; }
+}

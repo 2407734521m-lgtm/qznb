@@ -7,7 +7,7 @@ begin;
 
 alter table public.member_presence enable row level security;
 
-revoke all on table public.member_presence from anon;
+revoke all on table public.member_presence from public, anon;
 grant select, insert, update on table public.member_presence to authenticated;
 
 drop policy if exists mp_sel on public.member_presence;

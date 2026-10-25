@@ -59,7 +59,7 @@ export function flyTo(shot: Shot, target: HTMLElement, opts?: { duration?: numbe
   const off = shot.dir === 'left' ? [-56, 0] : shot.dir === 'right' ? [56, 0] : [0, 56];
   const mx = dx * 0.55 + off[0], my = dy * 0.55 + off[1];
   const msx = 1 + (sx - 1) * 0.55, msy = 1 + (sy - 1) * 0.55;
-  try {
+  const start = () => { try {
     const anim = ghost.animate(
       [
         { transform: 'translate(0px,0px) scale(1,1)', borderRadius: shot.r + 'px', opacity: 1 },
@@ -74,5 +74,16 @@ export function flyTo(shot: Shot, target: HTMLElement, opts?: { duration?: numbe
   } catch {
     ghost.remove();
     opts?.onDone?.();
+  } };
+  // 先把图预载进缓存再飞，避免幽灵在飞行中途才出图；250ms 封顶，不拖慢转场。
+  if (shot.img) {
+    const pre = new Image();
+    let done = false;
+    const go = () => { if (!done) { done = true; start(); } };
+    pre.onload = pre.onerror = go;
+    pre.src = shot.img;
+    setTimeout(go, 250);
+  } else {
+    start();
   }
 }

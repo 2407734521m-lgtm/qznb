@@ -408,7 +408,7 @@ function Shell() {
 
   async function logout() { await supabase.auth.signOut(); }
 
-  if (loading) return <div className="center">加载中…</div>;
+  if (loading) return <div className="center"><motion.span animate={reduce ? undefined : { opacity: [0.35, 1, 0.35] }} transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut' }} style={{ fontSize: 22 }}>✦</motion.span><span style={{ marginLeft: 8 }}>加载中…</span></div>;
   if (!session) return isAdminPage
     ? (<><div className="glow" /><div style={{ position: 'fixed', inset: 0, background: '#fff' }} /><div style={{ position: 'relative' }}><AdminLogin /></div></>)
     : (<><div className="glow" /><Login /></>);
@@ -500,6 +500,7 @@ function Shell() {
           style={{ touchAction: 'pan-x pan-y' }}
           aria-label="主导航"
         >
+          <div className="dock-scroll">
           <AnimatePresence initial={false}>
             {!dockCollapsed && TABS.map((t, i) => {
               const activeIdx = TABS.findIndex(x => isTabActive(x.to, loc.pathname));
@@ -509,10 +510,10 @@ function Shell() {
                   initial={reduce ? false : { opacity: 0, scale: 0.8, x: dockSide === 'left' ? -18 : 18 }}
                   animate={{ opacity: 1, scale: 1, x: 0 }}
                   exit={reduce ? { opacity: 0 } : {
-                    opacity: 0, scale: 0.4, x: dockSide === 'left' ? -window.innerWidth : window.innerWidth,
-                    transition: { duration: 0.24, ease: [0.22, 1, 0.36, 1] }
+                    opacity: 0, scale: 0.4, x: dockSide === 'left' ? -40 : 40,
+                    transition: { duration: 0.24, ease: [0.22, 1, 0.36, 1], delay: dockSide === 'left' ? (TABS.length - 1 - i) * 0.02 : i * 0.02 }
                   }}
-                  transition={{ duration: reduce ? 0 : 0.22, ease: [0.22, 1, 0.36, 1] }}>
+                  transition={{ duration: reduce ? 0 : 0.22, ease: [0.22, 1, 0.36, 1], delay: reduce ? 0 : (dockSide === 'left' ? i * 0.02 : (TABS.length - 1 - i) * 0.02) }}>
                   <NavLink to={t.to} className={on ? 'on' : ''}
                     ref={on ? (el: any) => { if (el) el.scrollIntoView({ inline: 'center', block: 'nearest' }); } : undefined}>
                     <span className="dock-tab-label">{t.label}</span>
@@ -522,6 +523,7 @@ function Shell() {
               );
             })}
           </AnimatePresence>
+          </div>
           <button
             type="button"
             className="dock-action dock-toggle"

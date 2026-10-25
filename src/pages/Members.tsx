@@ -27,15 +27,11 @@ function Card({ m, i, badge, onOpen }: { m: M; i: number; badge?: string; onOpen
   const ref = useRef<HTMLDivElement>(null);
   const name = m.display_name ?? m.username;
   return (
-    <motion.div ref={ref} className="mcard" data-member={m.id} layout="position"
-      initial={reduce ? false : { opacity: 0, y: 20, scale: 0.985 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      whileTap={reduce ? undefined : { scale: 0.985 }}
-      transition={{ duration: reduce ? 0 : 0.42, delay: reduce ? 0 : Math.min(i * 0.035, 0.28), ease: [0.22, 1, 0.36, 1] }}
-      onClick={() => {
-        const photo = ref.current?.querySelector('.photo') as HTMLElement | null;
-        if (photo) onOpen(m, photo, url ?? '');
-      }}>
+    <motion.div ref={ref} className="mcard" data-member={m.id}
+      initial={reduce ? {} : { opacity: 0, y: 26 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, delay: reduce ? 0 : Math.min(i * 0.05, 0.5), ease: [0.22, 1, 0.36, 1] }}
+      onClick={() => ref.current && onOpen(m, ref.current.querySelector('.photo') as HTMLElement, url ?? '')}>
       <Photo id={m.id} path={m.avatar_path} name={name} />
       <h3>{name}</h3>
       <p>{m.signature ?? m.personality ?? '这个人很神秘'}</p>
@@ -77,14 +73,15 @@ export default function Members() {
   useEffect(() => {
     const s = takeShot();
     if (!s || reduce) return;
+    const sel = s.key ? `[data-member="${CSS.escape(s.key)}"] .photo` : '.mcard .photo';
+    const el = document.querySelector(sel) as HTMLElement | null;
+    if (!el) return;
+    // 先把目标卡片滚回视口再飞，避免幽灵飞向屏幕外的坐标。
+    el.scrollIntoView({ block: 'nearest', inline: 'nearest' });
     const t = setTimeout(() => {
-      const sel = s.key ? `[data-member="${CSS.escape(s.key)}"] .photo` : '.mcard .photo';
-      const el = document.querySelector(sel) as HTMLElement | null;
-      if (el) {
-        el.style.visibility = 'hidden';
-        flyTo(s, el, { duration: 520, onDone: () => { el.style.visibility = ''; } });
-      }
-    }, 80);
+      el.style.visibility = 'hidden';
+      flyTo(s, el, { duration: 520, onDone: () => { el.style.visibility = ''; } });
+    }, 120);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useSignedUrl } from '../lib/media';
+import Reveal from '../components/Reveal';
 
 /**
  * 班级首页：沉浸式入口，全部来自真实数据
@@ -91,6 +92,7 @@ export default function Home() {
 
   return (
     <div className="page" style={{ paddingBottom: 100 }}>
+      <Reveal enter>
       {/* 16:9 公告横幅：由管理员通过 site_settings 的 home_banner_url / home_banner_text 管理 */}
       <section className="home-banner" aria-label="班级公告横幅" onClick={() => nav('/board')}
         style={{ aspectRatio: '16 / 9', width: '100%', position: 'relative', overflow: 'hidden', borderRadius: 22, marginBottom: 18, background: bannerUrl ? '#f2f4f7' : 'linear-gradient(135deg,#f5f6f8,#e7eaf0)', border: '1px solid #e5e8ee', cursor: 'pointer', boxShadow: '0 12px 34px #202a3d0c' }}>
@@ -101,6 +103,8 @@ export default function Home() {
           <span style={{ fontSize: 12, marginTop: 10, color: bannerUrl ? '#ffffffd9' : '#687080' }}>查看班级公告　→</span>
         </div>
       </section>
+      </Reveal>
+      <Reveal enter delay={0.08}>
       {/* 头部 */}
       <div style={{ textAlign: 'center', padding: '28px 16px 18px' }}>
         <h1 style={{
@@ -116,9 +120,11 @@ export default function Home() {
           }}>{countdown}</div>
         )}
       </div>
+      </Reveal>
 
       {/* 公告 */}
       {notices.length > 0 && (
+        <Reveal>
         <div style={card}>
           <div className="row" style={{ justifyContent: 'space-between', marginBottom: 8 }}>
             <b style={{ fontSize: 14 }}>班级公告</b>
@@ -131,10 +137,12 @@ export default function Home() {
             </div>
           ))}
         </div>
+        </Reveal>
       )}
 
 
       {/* 公告优先：快捷入口保留在公告之后 */}
+      <Reveal enter delay={0.16}>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 8, marginBottom: 12 }}>
         {([
           ['/members', '同学档案'],
@@ -152,9 +160,11 @@ export default function Home() {
           </button>
         ))}
       </div>
+      </Reveal>
 
       {/* 最新动态 */}
       {posts.length > 0 && (
+        <Reveal>
         <div style={card}>
           <div className="row" style={{ justifyContent: 'space-between', marginBottom: 8 }}>
             <b style={{ fontSize: 14 }}>最新动态</b>
@@ -167,10 +177,12 @@ export default function Home() {
             </div>
           ))}
         </div>
+        </Reveal>
       )}
 
       {/* 新成员 */}
       {members.length > 0 && (
+        <Reveal>
         <div style={card}>
           <div className="row" style={{ justifyContent: 'space-between', marginBottom: 8 }}>
             <b style={{ fontSize: 14 }}>新加入的同学</b>
@@ -188,10 +200,12 @@ export default function Home() {
             ))}
           </div>
         </div>
+        </Reveal>
       )}
 
       {/* 活动 */}
       {events.length > 0 && (
+        <Reveal>
         <div style={card}>
           <b style={{ fontSize: 14 }}>近期活动</b>
           {events.map(e => (
@@ -203,10 +217,12 @@ export default function Home() {
             </div>
           ))}
         </div>
+        </Reveal>
       )}
 
       {/* 愿望墙 */}
       {wishes.length > 0 && (
+        <Reveal>
         <div style={card}>
           <b style={{ fontSize: 14 }}>愿望墙</b>
           {wishes.map(w => (
@@ -215,6 +231,7 @@ export default function Home() {
             </div>
           ))}
         </div>
+        </Reveal>
       )}
       {/* 公告弹窗 */}
       {annPop && (

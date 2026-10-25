@@ -39,16 +39,16 @@ import SongWall from './pages/SongWall';
 import Messages from './pages/Messages';
 
 const TABS = [
-  { to: '/home', label: '首页', ic: '🏠' },
-  { to: '/members', label: '班级', ic: '👥' },
-  { to: '/explore', label: '发现', ic: '✦' },
-  { to: '/friends', label: '私聊', ic: '💬' },
-  { to: '/messages', label: 'iMessage', ic: '✉️' },
-  { to: '/me/notifications', label: '消息', ic: '🔔' },
-  { to: '/songs', label: '歌声墙', ic: '🎤' },
-  { to: '/love-wall', label: '表白墙', ic: '💌' },
-  { to: '/timeline', label: '回忆', ic: '🌟' },
-  { to: '/me', label: '我的', ic: '🙂' },
+  { to: '/home', label: '首页' },
+  { to: '/members', label: '班级' },
+  { to: '/explore', label: '发现' },
+  { to: '/friends', label: '私聊' },
+  { to: '/messages', label: 'iMessage' },
+  { to: '/me/notifications', label: '消息' },
+  { to: '/songs', label: '歌声墙' },
+  { to: '/love-wall', label: '表白墙' },
+  { to: '/timeline', label: '回忆' },
+  { to: '/me', label: '我的' },
 ];
 
 // 从 UA 里提取设备型号（如 Android 的机型标识），供管理员在成员管理里查看
@@ -479,7 +479,6 @@ function Shell() {
                   transition={{ duration: reduce ? 0 : 0.22, ease: [0.22, 1, 0.36, 1] }}>
                   <NavLink to={t.to} className={on ? 'on' : ''}
                     ref={on ? (el: any) => { if (el) el.scrollIntoView({ inline: 'center', block: 'nearest' }); } : undefined}>
-                    <span className="dock-tab-icon" aria-hidden="true">{t.ic}</span>
                     <span className="dock-tab-label">{t.label}</span>
                     {((t.to === '/explore' && boardUnread) || (t.to === '/me/notifications' && notifUnread)) && <span className="dock-unread-dot" />}
                   </NavLink>
@@ -487,25 +486,16 @@ function Shell() {
               );
             })}
           </AnimatePresence>
-          {dockCollapsed ? (
-            <div className="dock-mini">
-              <button type="button" className="dock-action dock-expand" aria-label="展开导航栏" title="展开导航栏"
-                onClick={() => setDockCollapsed(false)}>{dockSide === 'left' ? '›' : '‹'}</button>
-              <button type="button" className="dock-action dock-side-toggle"
-                aria-label={dockSide === 'left' ? '改为靠右收起' : '改为靠左收起'}
-                title={dockSide === 'left' ? '改为靠右收起' : '改为靠左收起'}
-                onClick={() => setDockSide(side => side === 'left' ? 'right' : 'left')}>↔</button>
-            </div>
-          ) : (
-            <>
-              <button type="button" className="dock-action dock-collapse" aria-label="收起导航栏" title="收起导航栏"
-                onClick={() => setDockCollapsed(true)}>{dockSide === 'left' ? '‹' : '›'}</button>
-              <button type="button" className="dock-action dock-side-toggle"
-                aria-label={dockSide === 'left' ? '收起到右侧' : '收起到左侧'}
-                title={dockSide === 'left' ? '收起到右侧' : '收起到左侧'}
-                onClick={() => setDockSide(side => side === 'left' ? 'right' : 'left')}>↔</button>
-            </>
-          )}
+          <button
+            type="button"
+            className="dock-action dock-toggle"
+            aria-label={dockCollapsed ? "展开导航栏" : "收起导航栏"}
+            title={dockCollapsed ? "展开导航栏（双击切换收起侧）" : "收起导航栏（双击切换收起侧）"}
+            onClick={() => setDockCollapsed(value => !value)}
+            onDoubleClick={() => setDockSide(side => side === 'left' ? 'right' : 'left')}
+          >
+            {dockCollapsed ? (dockSide === 'left' ? '›' : '‹') : (dockSide === 'left' ? '‹' : '›')}
+          </button>
         </nav>
       )}
       {gpsOffer && !isAdminPage && (

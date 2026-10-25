@@ -12,7 +12,7 @@ function SongCard({ song, mine, author }: { song: Song; mine: boolean; author?: 
     <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'start' }}>
       <div style={{ minWidth: 0 }}>
         <div style={{ fontSize: 14, fontWeight: 700, overflowWrap: 'anywhere' }}>{song.title}</div>
-        <div style={{ color: '#9ab6ac', fontSize: 11, marginTop: 4 }}>{mine ? '我的投稿' : (author?.display_name || author?.username || '平中同学')} · {new Date(song.created_at).toLocaleDateString()}</div>
+        <div style={{ color: '#9ab6ac', fontSize: 11, marginTop: 4 }}>{mine ? '我的投稿' : (author?.display_name || author?.username || '班级同学')} · {new Date(song.created_at).toLocaleDateString()}</div>
       </div>
       {mine && <span style={{ flexShrink: 0, fontSize: 10, borderRadius: 999, padding: '4px 7px', background: song.status === 'published' ? '#9be8c522' : '#ffffff12', color: song.status === 'published' ? '#a6f5d5' : '#c0cbc6' }}>{song.status === 'pending' ? '审核中' : song.status === 'published' ? '已发布' : song.status === 'rejected' ? '未通过' : '已隐藏'}</span>}
     </div>

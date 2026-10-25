@@ -35,7 +35,7 @@ export default function AdminSystemCenter({ setMsg }: { setMsg: (s: string) => v
     setBusy(true); setMsg('');
     const started = Date.now();
     const next: Check[] = [];
-    const probes: [string, () => Promise<any>][] = [
+    const probes: [string, () => PromiseLike<any>][] = [
       ['成员资料表 profiles', () => supabase.from('profiles').select('id', { count: 'exact', head: true })],
       ['举报表 reports', () => supabase.from('reports').select('id', { count: 'exact', head: true })],
       ['资料隐私设置表 profile_privacy', () => supabase.from('profile_privacy').select('profile_id', { count: 'exact', head: true })],

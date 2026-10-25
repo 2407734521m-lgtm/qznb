@@ -287,3 +287,87 @@ button:disabled{cursor:not-allowed;filter:saturate(.6)}
   .tabbar .dock-tab-label { max-width: none; }
   .tabbar.dock-collapsed .dock-scroll { display: none; }
 }
+
+/* ============ 时光胶囊信封效果：米白纸感信封 + 开封阅读（参考视频的信封语言） ============ */
+/* 信封只改呈现：未到期不露标题/内容；删除、封存、查询逻辑全在 Capsule.tsx 原样。 */
+.capsule-stack { display: flex; flex-direction: column; gap: 14px; margin-top: 14px; }
+.capsule-envelope {
+  position: relative; display: block; width: 100%; box-sizing: border-box;
+  padding: 0; border: 1px solid #ddd2b8; border-radius: 14px; overflow: hidden;
+  background: #f7f2e5; color: #2a2620; text-align: left; cursor: pointer;
+  /* 下沿两层纸边，做出叠层纵深，但不吃布局、不挡点击 */
+  box-shadow: 0 10px 24px rgba(0, 0, 0, .35), 0 3px 0 #e9dfc7, 0 6px 0 #d9cdb0;
+}
+.capsule-envelope.is-sealed { opacity: 1; }
+.capsule-flap {
+  display: block; height: 38px; background: #efe7d1;
+  clip-path: polygon(0 0, 100% 0, 50% 100%);
+  border-bottom: 1px solid #ddd2b8;
+}
+.capsule-seal {
+  position: absolute; top: 26px; right: 16px; width: 30px; height: 30px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 50%; background: #b98a6a; color: #fff7ea;
+  font-size: 13px; font-weight: 700; box-shadow: 0 2px 6px rgba(0, 0, 0, .25);
+}
+.capsule-envelope.is-open .capsule-seal { background: #7d8a6a; }
+.capsule-face { display: flex; flex-direction: column; gap: 6px; padding: 8px 16px 16px; }
+.capsule-date { font-size: 12px; letter-spacing: .18em; color: #8a7d63; font-weight: 700; }
+.capsule-title { font-size: 16px; font-weight: 750; line-height: 1.4; word-break: break-word; }
+.capsule-meta { font-size: 12.5px; color: #8a7d63; }
+.capsule-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 4px 0; font-size: 12.5px; color: var(--mut);
+}
+/* 开封阅读：全屏模糊背景 + 居中信封 + 滑出信纸；只用 transform/opacity */
+.capsule-overlay {
+  position: fixed; inset: 0; z-index: 90; display: flex; align-items: center; justify-content: center;
+  padding: max(20px, env(safe-area-inset-top)) 16px calc(20px + env(safe-area-inset-bottom));
+  background: rgba(8, 12, 24, .55);
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+}
+.capsule-reading { position: relative; width: min(92vw, 520px); perspective: 900px; }
+.capsule-reading-flap {
+  position: absolute; top: 0; left: 12px; right: 12px; z-index: 2; height: 44px;
+  background: #efe7d1; border-radius: 10px 10px 0 0;
+  clip-path: polygon(0 0, 100% 0, 50% 100%);
+  transform-origin: top center; backface-visibility: hidden; -webkit-backface-visibility: hidden;
+}
+.capsule-letter {
+  position: relative; z-index: 1; margin-top: 18px; max-height: 70dvh; overflow-y: auto; box-sizing: border-box;
+  padding: 20px; border: 1px solid #ddd2b8; border-radius: 14px;
+  background: #fdfaf2; color: #2a2620; box-shadow: 0 18px 44px rgba(0, 0, 0, .45);
+}
+.capsule-letter-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.capsule-letter-title { font-size: 17px; font-weight: 800; line-height: 1.4; word-break: break-word; }
+.capsule-letter-meta { margin-top: 4px; font-size: 12px; letter-spacing: .12em; color: #8a7d63; }
+.capsule-letter-body { margin: 0; font-size: 14.5px; line-height: 1.85; white-space: pre-wrap; word-break: break-word; }
+@media (max-width: 480px) {
+  .capsule-flap { height: 32px; }
+  .capsule-face { padding: 6px 14px 14px; }
+  .capsule-letter { padding: 16px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .capsule-envelope, .capsule-letter { transition: none; }
+}
+
+/* ============ 时光胶囊信封效果第二版：照视频改成一摞 + 自动滚动 ============ */
+/* 信封面改居中（视频里的日期就是居中的），摞起来是左右依次内收、带多层纸边；删除仍在每封下面，不嵌进信封里，免得点删除误触打开。 */
+.capsule-stack { gap: 12px; }
+.capsule-face { text-align: center; }
+.capsule-toolbar {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  margin-top: 14px; padding: 0 4px;
+}
+.capsule-autoscroll { display: flex; align-items: center; gap: 6px; font-size: 13px; white-space: nowrap; }
+.capsule-autoscroll input { width: 18px; height: 18px; accent-color: #b98a6a; }
+.capsule-hint { font-size: 12px; color: var(--mut); text-align: right; line-height: 1.5; }
+.capsule-count { margin: 12px 0 0; font-size: 12.5px; color: var(--mut); text-align: center; }
+.capsule-reading-body {
+  position: relative; z-index: 0; height: 90px; margin-top: 10px;
+  border: 1px solid #ddd2b8; border-radius: 14px; background: #f7f2e5;
+}
+.capsule-reading .capsule-letter { margin-top: -50px; }
+@media (max-width: 480px) {
+  .capsule-hint { font-size: 11.5px; }
+}

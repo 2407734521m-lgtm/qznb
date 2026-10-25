@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../auth';
@@ -8,7 +8,8 @@ import { EASE, DUR } from '../lib/motion';
 /** 时光胶囊：写给未来的信，到期才能看。
  *  呈现照参考视频的信封收件箱来做：信封叠成一摞、日期居中、右上角火漆印、
  *  自动滚动每 3.5 秒翻一封、点下面一封把它翻到最上面、点最上面一封开封阅读
- *  （背景模糊 + 信封口翻开 + 信纸滑出）。查询、封存、删除、未到期不露内容均原样不动。 */
+ *  （背景模糊 + 信封口翻开 + 信纸滑出）、左滑或点删除进碎纸机（纸条飘落）再进回收站。
+ *  碎纸机动画播完才写 deleted_at，写失败信不删；回收站里可恢复，彻底删除仍要确认。 */
 const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
 
 // open_at 是日期（YYYY-MM-DD），按本地午夜算开启时刻，避免 UTC 午夜在 +8 时区差一天。
@@ -59,12 +60,19 @@ export default function Capsule() {
   const [readIds, setReadIds] = useState<number[]>(() => {
     try { return JSON.parse(localStorage.getItem('capsule-read-ids') || '[]'); } catch { return []; }
   });
-  const [filter, setFilter] = useState<'all' | 'inbox' | 'sent' | 'unread' | 'locked'>('all');
+  const [filter, setFilter] = useState<'all' | 'inbox' | 'sent' | 'unread' | 'locked' | 'trash'>('all');
   const [page, setPage] = useState(0);
+  const [trash, setTrash] = useState<any[]>([]);
+  const [shredding, setShredding] = useState<any>(null);
+  const swipedRef = useRef(false);
+  const touchXRef = useRef(0);
 
   async function load() {
-    const { data } = await supabase.from('time_capsules').select('*').order('open_at', { ascending: true }).limit(50);
+    // 主列表只显示没删的；回收站只显示本人的已删胶囊。
+    const { data } = await supabase.from('time_capsules').select('*').is('deleted_at', null).order('open_at', { ascending: true }).limit(50);
     setList(data ?? []);
+    const { data: trashData } = await supabase.from('time_capsules').select('*').eq('author_id', me).not('deleted_at', 'is', null).order('deleted_at', { ascending: false }).limit(50);
+    setTrash(trashData ?? []);
   }
   useEffect(() => { load(); }, []);
   const idsKey = useMemo(() => list.map(c => c.id).join(','), [list]);
@@ -74,12 +82,24 @@ export default function Capsule() {
     const t = setInterval(() => setNow(Date.now()), 60000);
     return () => clearInterval(t);
   }, []);
-  // 自动滚动：阅读时停下，免得信纸还没看完摞就翻走了。
+  // 自动滚动：阅读、碎纸、回收站时都停下，免得信纸还没看完摞就翻走了。
   useEffect(() => {
-    if (!autoScroll || reading || order.length < 2 || reduce) return;
+    if (!autoScroll || reading || shredding || filter === 'trash' || order.length < 2 || reduce) return;
     const t = setInterval(() => setOrder(o => (o.length < 2 ? o : [...o.slice(1), o[0]])), 3500);
     return () => clearInterval(t);
-  }, [autoScroll, reading, order.length, reduce]);
+  }, [autoScroll, reading, shredding, filter, order.length, reduce]);
+  // 碎纸机：动画播完（1.5 秒，减动效 0.4 秒）才真正写 deleted_at；写失败信不删、只报错。
+  useEffect(() => {
+    if (!shredding) return;
+    const t = setTimeout(async () => {
+      const { error } = await supabase.from('time_capsules').update({ deleted_at: new Date().toISOString() }).eq('id', shredding.id);
+      if (error) setMsg('放进回收站失败：' + error.message);
+      setShredding(null);
+      load();
+    }, reduce ? 400 : 1500);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shredding]);
   // 阅读页按 Esc 关闭；每次换一封信都回到第 1 页。
   useEffect(() => {
     if (!reading) return;
@@ -107,8 +127,13 @@ export default function Capsule() {
     if (error) setMsg('保存失败：' + error.message);
     else { setMsg('已封存，到期才能开启'); setTitle(''); setContent(''); setOpenAt(''); setIsPublic(false); load(); }
   }
-  async function del(id: number) {
-    if (!confirm('删除这个时光胶囊？')) return;
+  async function restore(id: number) {
+    const { error } = await supabase.from('time_capsules').update({ deleted_at: null }).eq('id', id);
+    if (error) setMsg('恢复失败：' + error.message);
+    load();
+  }
+  async function permDel(id: number) {
+    if (!confirm('彻底删除？删了就找不回来了')) return;
     await supabase.from('time_capsules').delete().eq('id', id);
     if (reading?.id === id) setReading(null);
     load();
@@ -118,6 +143,7 @@ export default function Capsule() {
   const byId = useMemo(() => new Map(list.map(c => [c.id, c])), [list]);
   const allOrdered = order.map(id => byId.get(id)).filter(Boolean);
   const ordered = allOrdered.filter(c => {
+    if (filter === 'trash') return false;
     if (filter === 'inbox') return c.author_id !== me;
     if (filter === 'sent') return c.author_id === me;
     if (filter === 'unread') return c.open_at <= today && !readIds.includes(c.id);
@@ -133,6 +159,7 @@ export default function Capsule() {
     sent: allOrdered.filter(c => c.author_id === me).length,
     unread: allOrdered.filter(c => c.open_at <= today && !readIds.includes(c.id)).length,
     locked: allOrdered.filter(c => c.open_at > today).length,
+    trash: trash.length,
   };
 
   return (
@@ -154,11 +181,11 @@ export default function Capsule() {
         {msg && <p className="priv-note" style={{ marginTop: 8 }}>{msg}</p>}
       </div>
 
-      {allOrdered.length > 0 && (
+      {(allOrdered.length > 0 || trash.length > 0) && (
         <>
           <div className="capsule-filters" role="tablist" aria-label="胶囊分类">
             {([
-              ['all', '全部'], ['inbox', '收件箱'], ['sent', '我发的'], ['unread', '未读'], ['locked', '未开启'],
+              ['all', '全部'], ['inbox', '收件箱'], ['sent', '我发的'], ['unread', '未读'], ['locked', '未开启'], ['trash', '最近删除'],
             ] as const).map(([key, label]) => (
               <button key={key} className={`mini ${filter === key ? 'pri' : 'ghost'}`} onClick={() => setFilter(key)}>
                 {label} {counts[key]}
@@ -170,7 +197,7 @@ export default function Capsule() {
               <input type="checkbox" checked={autoScroll} onChange={e => setAutoScroll(e.target.checked)} />
               自动滚动
             </label>
-            <span className="capsule-hint">点下面一封翻到最上面，点最上面一封打开它</span>
+            <span className="capsule-hint">点下面一封翻到最上面，点最上面一封打开它；左滑一封或点删除进碎纸机</span>
           </div>
           <div className="capsule-stack">
             {ordered.map((c, i) => {
@@ -190,7 +217,14 @@ export default function Capsule() {
                     animate={shaking && !reduce ? { x: [0, -6, 6, -4, 4, 0] } : { x: 0 }}
                     transition={{ duration: 0.4, ease: 'easeInOut' }}
                     whileTap={reduce ? undefined : { scale: 0.98 }}
+                    onTouchStart={e => { touchXRef.current = e.touches[0].clientX; }}
+                    onTouchEnd={e => {
+                      // 左滑超过 80 才进碎纸机；没滑够不删。不用 framer drag：弹性约束会把位移压到阈值以下，滑再远也触发不了。
+                      const dx = e.changedTouches[0].clientX - touchXRef.current;
+                      if (dx < -80 && mine) { swipedRef.current = true; setShredding(c); }
+                    }}
                     onClick={() => {
+                      if (swipedRef.current) { swipedRef.current = false; return; }
                       if (!isTop) { setOrder(o => [c.id, ...o.filter(x => x !== c.id)]); return; }
                       if (opened) { setReading(c); markRead(c.id); } else setShakeId(c.id);
                     }}
@@ -213,20 +247,45 @@ export default function Capsule() {
                   {mine && (
                     <div className="capsule-row">
                       <span>{isTop ? '最上面这封是你的' : '你的胶囊'}</span>
-                      <button className="mini ghost" onClick={e => { e.stopPropagation(); del(c.id); }}>删除</button>
+                      <button className="mini ghost" onClick={e => { e.stopPropagation(); setShredding(c); }}>删除</button>
                     </div>
                   )}
                 </motion.div>
               );
             })}
           </div>
-          {ordered.length === 0 && <div className="center"><div className="card">这个分类下还没有胶囊</div></div>}
-          {top && (
+          {filter === 'trash' && (
+            <div className="capsule-stack">
+              {trash.map(t => (
+                <div key={t.id} className="capsule-item">
+                  <div className="capsule-envelope is-sealed">
+                    <span className="capsule-flap" aria-hidden="true" />
+                    <span className="capsule-seal" aria-hidden="true">删</span>
+                    <span className="capsule-face">
+                      <span className="capsule-date">{fmtEnvelopeDate(t.open_at)}</span>
+                      <span className="capsule-title">{t.title}</span>
+                      <span className="capsule-meta">删除于 {new Date(t.deleted_at).toISOString().slice(0, 10)} · {t.is_public ? '公开' : '私密'}</span>
+                    </span>
+                  </div>
+                  <div className="capsule-row">
+                    <span>你的胶囊，可恢复</span>
+                    <span style={{ display: 'flex', gap: 8 }}>
+                      <button className="mini ghost" onClick={() => restore(t.id)}>恢复</button>
+                      <button className="mini danger" onClick={() => permDel(t.id)}>彻底删除</button>
+                    </span>
+                  </div>
+                </div>
+              ))}
+              {trash.length === 0 && <div className="center"><div className="card">回收站是空的</div></div>}
+            </div>
+          )}
+          {ordered.length === 0 && filter !== 'trash' && <div className="center"><div className="card">这个分类下还没有胶囊</div></div>}
+          {top && filter !== 'trash' && (
             <p className="capsule-count">共 {ordered.length} 封 · 最上面是 {fmtEnvelopeDate(top.open_at)} 的一封</p>
           )}
         </>
       )}
-      {list.length === 0 && <div className="center"><div className="card">还没有时光胶囊，埋下第一个吧</div></div>}
+      {list.length === 0 && trash.length === 0 && <div className="center"><div className="card">还没有时光胶囊，埋下第一个吧</div></div>}
 
       {/* 开封阅读：背景模糊 + 信封口翻开 + 信纸从信封里滑出；未到期永远进不了这里 */}
       <AnimatePresence>
@@ -259,6 +318,39 @@ export default function Capsule() {
                   <button className="mini ghost" disabled={safePage >= readingPages.length - 1} onClick={() => setPage(p => Math.min(readingPages.length - 1, p + 1))}>下一页 ›</button>
                 </div>
               </motion.div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* 碎纸机：信封先被吸进机器，再掉纸条；动画播完 useEffect 才写 deleted_at */}
+      <AnimatePresence>
+        {shredding && (
+          <motion.div className="capsule-overlay"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            transition={{ duration: DUR.base, ease: EASE }}>
+            <div className="capsule-shredder-wrap">
+              <div className="capsule-shredder" aria-hidden="true">
+                <div className="capsule-shredder-slot" />
+                <span>碎纸机</span>
+              </div>
+              <motion.div className="capsule-shred-envelope"
+                initial={reduce ? false : { y: 140, opacity: 1, scale: 1 }}
+                animate={{ y: reduce ? 0 : -30, opacity: reduce ? 1 : 0, scale: reduce ? 1 : 0.7 }}
+                transition={{ duration: reduce ? 0 : 0.7, ease: EASE }}>
+                <span className="capsule-date">{fmtEnvelopeDate(shredding.open_at)}</span>
+                <span className="capsule-title">{shredding.open_at <= today ? shredding.title : '未开启的胶囊'}</span>
+              </motion.div>
+              <div className="capsule-strips" aria-hidden="true">
+                {Array.from({ length: 14 }, (_, i) => (
+                  <motion.span key={i} className="capsule-strip"
+                    style={{ left: `${(i * 13) % 180}px`, width: `${8 + (i % 3) * 3}px` }}
+                    initial={reduce ? false : { y: 0, opacity: 0, rotate: 0 }}
+                    animate={{ y: reduce ? 0 : 180, opacity: reduce ? 1 : [0, 1, 0], rotate: ((i * 37) % 60) - 30 }}
+                    transition={{ duration: reduce ? 0 : 0.9, delay: reduce ? 0 : 0.6 + i * 0.05, ease: EASE }} />
+                ))}
+              </div>
+              <p className="capsule-shred-text">正在碎掉，放进回收站</p>
             </div>
           </motion.div>
         )}

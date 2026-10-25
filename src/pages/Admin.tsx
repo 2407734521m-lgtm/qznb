@@ -139,8 +139,10 @@ function timeAgo(s: string) {
 }
 
 export default function Admin() {
-  const me = useAuth().session!.user.id;
+  const { session } = useAuth();
+  const me = session?.user.id ?? '';
   const [role, setRole] = useState('');
+  const [verifiedUid, setVerifiedUid] = useState<string | null>(null);
   const [tab, setTab] = useState('overview');
   const [msg, setMsg] = useState('');
   const [q0, setQ0] = useState('');
@@ -148,15 +150,46 @@ export default function Admin() {
   const tabs = TABS_ALL.filter(([, , sup]) => !sup || isSuper);
 
   useEffect(() => {
-    supabase.rpc('my_role').then(({ data }) => setRole(data ?? ''));
-  }, []);
+    let active = true;
+    setVerifiedUid(null);
+    setRole('');
+    if (!session) {
+      setRole('unauthorized');
+      return () => { active = false; };
+    }
+    const uid = session.user.id;
+    supabase.rpc('my_role').then(({ data, error }) => {
+      if (!active) return;
+      setRole(!error && (data === 'admin' || data === 'super_admin') ? data : 'unauthorized');
+      setVerifiedUid(uid);
+    }).catch(() => {
+      if (active) {
+        setRole('unauthorized');
+        setVerifiedUid(uid);
+      }
+    });
+    return () => { active = false; };
+  }, [session?.user.id]);
 
   function switchTab(id: string) {
     setTab(id); setMsg('');
     window.scrollTo({ top: 0 });
   }
 
-  if (!role) return <div className="center" style={{ minHeight: '60vh' }}>加载中…</div>;
+  if (!session) {
+    return <div className="center" style={{ minHeight: '60vh' }}>登录会话已失效，请返回管理员登录页重新登录。</div>;
+  }
+  if (verifiedUid !== session.user.id || !role) {
+    return <div className="center" style={{ minHeight: '60vh' }}>正在验证管理员权限…</div>;
+  }
+  if (role !== 'admin' && role !== 'super_admin') {
+    return (
+      <div className="center" style={{ minHeight: '60vh', padding: 24, textAlign: 'center' }}>
+        <p>管理员权限验证失败，后台内容已锁定。</p>
+        <button onClick={() => { void supabase.auth.signOut(); }}>退出登录</button>
+      </div>
+    );
+  }
 
   return (
     <div className="page admin-shell" style={{

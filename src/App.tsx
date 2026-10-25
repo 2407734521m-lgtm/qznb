@@ -500,6 +500,7 @@ function Shell() {
           style={{ touchAction: 'pan-x pan-y' }}
           aria-label="主导航"
         >
+          <div className="dock-scroll">
           <AnimatePresence initial={false}>
             {!dockCollapsed && TABS.map((t, i) => {
               const activeIdx = TABS.findIndex(x => isTabActive(x.to, loc.pathname));
@@ -522,6 +523,7 @@ function Shell() {
               );
             })}
           </AnimatePresence>
+          </div>
           <button
             type="button"
             className="dock-action dock-toggle"

@@ -396,7 +396,7 @@ function Shell() {
         {isAdmin && <a href="#/admin" title="管理后台" className="mob-admin" style={{ textDecoration: 'none', marginRight: 4, fontSize: 13 }}>管理</a>}
         <button onClick={logout} title="退出登录">退出</button>
       </nav>
-      )}
+      ) : null}
 
       <div className={isChatPage ? "wrap chat-shell" : "wrap"}>
         <AnimatePresence mode="wait">

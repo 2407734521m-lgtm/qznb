@@ -205,3 +205,22 @@ input:focus,textarea:focus,select:focus{
 @media(prefers-reduced-motion:reduce){
   .tabbar a{transition:none!important}
 }
+
+
+/* Mobile glass dock refinement: prevent the active tab from becoming a large beige circle. */
+.tabbar{
+  background:rgba(4,18,32,.38)!important;
+  -webkit-backdrop-filter:blur(30px) saturate(175%)!important;
+  backdrop-filter:blur(30px) saturate(175%)!important;
+}
+.tabbar a,
+.tabbar a.on,
+.tabbar a[aria-current=page]{
+  border-radius:999px!important;
+}
+.tabbar a.on,.tabbar a[aria-current=page]{
+  background:linear-gradient(120deg,rgba(45,212,191,.20),rgba(59,130,246,.18))!important;
+  color:#eaffff!important;
+  box-shadow:inset 0 0 0 1px rgba(153,244,235,.22)!important;
+  transform:none!important;
+}

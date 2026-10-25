@@ -351,6 +351,13 @@ function Shell() {
     })();
   }, [session]);
 
+  function closeGpsOffer() {
+    setGpsOffer(false);
+    setGpsResult(null);
+    setGpsError('');
+    setGpsBusy(false);
+  }
+
   async function logout() { await supabase.auth.signOut(); }
 
   if (loading) return <div className="center">加载中…</div>;
@@ -449,7 +456,7 @@ function Shell() {
         })}
       </nav>}
       {gpsOffer && !isAdminPage && (
-        <div role="dialog" aria-modal="true" aria-labelledby="gps-consent-title" onClick={() => setGpsOffer(false)} style={{
+        <div role="dialog" aria-modal="true" aria-labelledby="gps-consent-title" onClick={closeGpsOffer} style={{
           position: 'fixed', inset: 0, zIndex: 700, background: 'rgba(0,0,0,.78)',
           display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 18,
           backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)',
@@ -509,13 +516,13 @@ function Shell() {
             }} style={{ width: '100%', marginTop: 14 }}>
               {gpsBusy ? '正在等待设备定位…' : gpsResult ? '已获取本页临时位置' : '同意并开启定位'}
             </button>
-            <button className="ghost" disabled={gpsBusy} onClick={() => setGpsOffer(false)} style={{ width: '100%', marginTop: 8 }}>
+            <button className="ghost" disabled={gpsBusy} onClick={closeGpsOffer} style={{ width: '100%', marginTop: 8 }}>
               {gpsResult ? '关闭并清除本页坐标' : '暂不授权，继续使用网站'}
             </button>
           </section>
         </div>
       )}
-            {showWp && <WallpaperOnboarding onDone={() => setShowWp(false)} />}
+      {showWp && <WallpaperOnboarding onDone={() => setShowWp(false)} />}
       {loginSuccess && <LoginSuccessOverlay onDone={() => setLoginSuccess(false)} />}
       {welcome !== null && <WelcomeOverlay nick={welcome} onDone={welcomeDone} />}
       {loginPop && (

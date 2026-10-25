@@ -40,7 +40,10 @@ import SongWall from './pages/SongWall';
 const TABS = [
   { to: '/home', label: '首页', ic: '🏠' },
   { to: '/members', label: '班级', ic: '👥' },
-  { to: '/explore', label: '互动', ic: '✦' },
+  { to: '/explore', label: '发现', ic: '✦' },
+  { to: '/friends', label: '私聊', ic: '💬' },
+  { to: '/songs', label: '歌声墙', ic: '🎤' },
+  { to: '/love-wall', label: '表白墙', ic: '💌' },
   { to: '/timeline', label: '回忆', ic: '🌟' },
   { to: '/me', label: '我的', ic: '🙂' },
 ];
@@ -58,8 +61,11 @@ function parseDevice(ua: string): string {
 }
 
 function isTabActive(tab: string, path: string) {
-    if (tab === '/members') return ['/members','/friends','/chat'].some(p => path.startsWith(p));
-  if (tab === '/explore') return ['/explore','/feed','/board','/albums','/hot','/greetings','/events','/capsule','/wishes','/love-wall','/songs'].some(p => path.startsWith(p));
+  if (tab === '/members') return path.startsWith('/members');
+  if (tab === '/explore') return ['/explore','/feed','/board','/albums','/hot','/greetings','/events','/capsule','/wishes'].some(p => path.startsWith(p));
+  if (tab === '/friends') return ['/friends','/chat'].some(p => path.startsWith(p));
+  if (tab === '/songs') return path.startsWith('/songs');
+  if (tab === '/love-wall') return path.startsWith('/love-wall');
   if (tab === '/timeline') return path.startsWith('/timeline');
   if (tab === '/me') return path.startsWith('/me');
   return path === tab;

@@ -44,14 +44,7 @@ export default function Greetings() {
     if (error) { setMsg('发送失败：' + error.message); }
     else {
       setText(''); setTarget(''); setMsg('已送出祝福');
-      // 给指定同学发通知
-      if (target && target !== me && data) {
-        const who = names[me] || '同学';
-        supabase.from('notifications').insert({
-          profile_id: target, type: 'greeting',
-          title: '有人给你留了言', body: `${who}：${c.slice(0, 60)}`, link: '/greetings',
-        }).then(() => {});
-      }
+      // 通知由数据库触发器在留言成功后创建，避免客户端伪造他人通知。
       load();
     }
     setBusy(false);

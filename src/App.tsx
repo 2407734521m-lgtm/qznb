@@ -39,7 +39,7 @@ import SongWall from './pages/SongWall';
 import Messages from './pages/Messages';
 
 const TABS = [
-  { to: '/home', label: '首页' },
+  { to: '/home', label: '公告' },
   { to: '/members', label: '班级' },
   { to: '/explore', label: '发现' },
   { to: '/friends', label: '私聊' },
@@ -110,7 +110,7 @@ function TestSwitchFab() {
     <button onClick={back} disabled={busy}
       style={{
         position: 'fixed', right: 14, bottom: 92, zIndex: 200, padding: '10px 15px', borderRadius: 999,
-        border: '1px solid #ffffff2e', color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer',
+        border: '1px solid #ffffff2e', color: '#202124', fontSize: 13, fontWeight: 700, cursor: 'pointer',
         background: 'color-mix(in srgb, #1a1e30 72%, transparent)', backdropFilter: 'blur(12px)',
         boxShadow: '0 8px 24px #000a', opacity: busy ? 0.6 : 1,
       }}>⇄ {busy ? '切换中…' : '结束测试'}</button>
@@ -410,7 +410,7 @@ function Shell() {
 
   if (loading) return <div className="center">加载中…</div>;
   if (!session) return isAdminPage
-    ? (<><div className="glow" /><div style={{ position: 'fixed', inset: 0, background: '#07090f' }} /><div style={{ position: 'relative' }}><AdminLogin /></div></>)
+    ? (<><div className="glow" /><div style={{ position: 'fixed', inset: 0, background: '#fff' }} /><div style={{ position: 'relative' }}><AdminLogin /></div></>)
     : (<><div className="glow" /><Login /></>);
   // 从重置密码邮件回来：优先显示设置新密码页
   if (pwReset) return (<><div className="glow" /><ResetPassword onDone={() => {
@@ -430,10 +430,10 @@ function Shell() {
         ? { background: wp.src, filter: `blur(${wp.blur}px) brightness(${100 - wp.dark}%)` }
         : { backgroundImage: `url(${wp.src === 'default' ? bgUrl : wp.src})`, filter: `blur(${wp.blur}px) brightness(${100 - wp.dark}%)` }} />
       {isAdminPage ? (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', position: 'sticky', top: 0, zIndex: 40, background: 'rgba(10,12,20,.78)', backdropFilter: 'blur(12px)', borderBottom: '1px solid rgba(255,255,255,.08)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', position: 'sticky', top: 0, zIndex: 40, background: 'rgba(255,255,255,.92)', backdropFilter: 'blur(12px)', borderBottom: '1px solid #e8eaf0' }}>
           <b style={{ fontSize: 15 }}>管理后台</b>
           <span style={{ flex: 1 }} />
-          <NavLink to="/members" style={{ fontSize: 13, color: '#9db4ff', textDecoration: 'none' }}>← 回站点</NavLink>
+          <NavLink to="/members" style={{ fontSize: 13, color: '#303642', textDecoration: 'none' }}>← 回站点</NavLink>
           <button className="mini ghost" onClick={logout}>退出</button>
         </div>
       ) : !isChatPage && !isMessagesPage ? (
@@ -458,7 +458,7 @@ function Shell() {
             exit={reduce ? { opacity: 1, y: 0 } : { opacity: 0, y: -10 }}
             transition={{ duration: reduce ? 0 : 0.28, ease: [0.22, 1, 0.36, 1] }}>
             <Routes location={loc}>
-              <Route path="/" element={<Navigate to="/members" replace />} />
+              <Route path="/" element={<Navigate to="/home" replace />} />
               <Route path="/board" element={<Board />} />
               <Route path="/explore" element={<Explore />} />
               <Route path="/love-wall" element={<LoveWall />} />

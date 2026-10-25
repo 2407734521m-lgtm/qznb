@@ -529,3 +529,48 @@ input[type=file]::file-selector-button{
   height:100%;
   min-height:0;
 }
+
+
+/* ============ 可收起的悬浮 Dock ============ */
+@media(max-width:768px){
+  .tabbar{
+    align-items:center;
+    gap:3px;
+    transition:left .38s cubic-bezier(.22,1,.36,1),right .38s cubic-bezier(.22,1,.36,1),transform .38s cubic-bezier(.22,1,.36,1),width .28s ease;
+  }
+  .tabbar .dock-item{flex:0 0 auto;display:flex;align-items:center;justify-content:center}
+  .tabbar .dock-item>a{
+    position:relative;min-width:52px;min-height:48px;padding:6px 8px;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+    border-radius:16px;font-size:10.5px;line-height:1.2;
+    transition:background .22s,color .22s,transform .22s;
+  }
+  .tabbar .dock-tab-icon{font-size:17px;line-height:1.1}
+  .tabbar .dock-tab-label{max-width:72px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .tabbar .dock-item>a.on{border-radius:16px}
+  .tabbar .dock-unread-dot{position:absolute;right:5px;top:4px;width:7px;height:7px;border-radius:50%;background:#ff4d67;box-shadow:0 0 8px #ff4d67}
+  .tabbar .dock-action{
+    flex:0 0 auto;width:34px;height:38px;padding:0;display:grid;place-items:center;
+    border:1px solid rgba(255,255,255,.2);border-radius:13px;
+    color:#f5f8ff;background:rgba(255,255,255,.09);
+    font:600 20px/1 system-ui,sans-serif;cursor:pointer;
+    transition:background .2s,transform .22s,border-color .2s;
+    backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
+  }
+  .tabbar .dock-action:active{transform:scale(.9);background:rgba(255,255,255,.18)}
+  .tabbar .dock-collapse,.tabbar .dock-side-toggle{position:sticky;right:0;z-index:4}
+  .tabbar .dock-side-toggle{font-size:15px;background:rgba(19,26,47,.94)}
+  .tabbar.dock-collapsed{
+    left:auto;right:14px;transform:none;width:auto;max-width:none;overflow:visible;
+    padding:6px;gap:5px;border-radius:18px;
+    background:color-mix(in srgb,#1a1e30 48%,transparent);
+  }
+  .tabbar.dock-collapsed.dock-side-left{left:14px;right:auto}
+  .tabbar.dock-collapsed.dock-side-right{left:auto;right:14px}
+  .dock-mini{display:flex;align-items:center;gap:5px}
+  .tabbar.dock-collapsed .dock-expand{width:40px;height:42px;border-radius:14px;font-size:25px}
+  .tabbar.dock-collapsed .dock-side-toggle{width:30px;height:34px;font-size:14px}
+}
+@media(prefers-reduced-motion:reduce){
+  .tabbar,.tabbar .dock-item>a,.tabbar .dock-action{transition:none!important}
+}

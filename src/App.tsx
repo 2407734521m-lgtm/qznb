@@ -80,26 +80,27 @@ function TestSwitchFab() {
   const [testingAs, setTestingAs] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   useEffect(() => {
-    try { setTestingAs(sessionStorage.getItem('ca_testing_as')); } catch { setTestingAs(null); }
+    try {
+      // 旧版本曾把测试账号密码写入 localStorage；迁移到仅当前标签页可用的 sessionStorage 后清除旧副本。
+      const legacy = localStorage.getItem('ca_test_accounts');
+      if (legacy) {
+        if (!sessionStorage.getItem('ca_test_accounts')) sessionStorage.setItem('ca_test_accounts', legacy);
+        localStorage.removeItem('ca_test_accounts');
+      }
+      setTestingAs(sessionStorage.getItem('ca_testing_as'));
+    } catch { setTestingAs(null); }
   }, [session]);
   if (!session || !testingAs) return null;
   async function back() {
     if (busy) return;
     setBusy(true);
-    let accounts: { email: string; password: string }[] = [];
-    let fromEmail = '';
     try {
-      accounts = JSON.parse(localStorage.getItem('ca_test_accounts') || '[]');
-      fromEmail = sessionStorage.getItem('ca_testing_from') || '';
       sessionStorage.removeItem('ca_testing_as');
       sessionStorage.removeItem('ca_testing_from');
     } catch {}
-    const acc = accounts.find(a => a.email === fromEmail);
-    await supabase.auth.signOut();
-    if (acc) {
-      const { error } = await supabase.auth.signInWithPassword({ email: acc.email, password: acc.password });
-      if (error) alert('切回失败，请手动登录：' + error.message);
-    }
+    const { error } = await supabase.auth.signOut();
+    if (error) alert('退出测试账号失败，请重试。');
+    else alert('测试账号已退出。为保护账号安全，请重新登录原账号。');
     setBusy(false);
   }
   return (

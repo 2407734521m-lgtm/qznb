@@ -8,6 +8,7 @@ import AdminLoveWall from '../components/AdminLoveWall';
 import AdminNotificationCenter from '../components/AdminNotificationCenter';
 import AdminSongWall from '../components/AdminSongWall';
 import AdminBulkEmail from '../components/AdminBulkEmail';
+import AdminAccountManagement from '../components/AdminAccountManagement';
 
 /**
  * 管理后台测试版（V2）：高级管理控制中心
@@ -30,6 +31,7 @@ type Log = { id: number; action: string; detail: unknown; created_at: string };
 const TABS_ALL: [string, string, boolean][] = [
   ['overview', '总览', false],
   ['members', '成员', false],
+  ['accounts', '账号管理', true],
   ['invite', '邀请码', false],
   ['moderate', '审核', false],
   ['loveWall', '表白墙', false],
@@ -197,6 +199,7 @@ export default function Admin() {
       <div className="admin-content" key={tab} aria-live="polite">
         {tab === 'overview' && <Overview setMsg={setMsg} />}
               {tab === 'members' && <Members me={me} isSuper={isSuper} setMsg={setMsg} extQ={q0} />}
+              {tab === 'accounts' && isSuper && <AdminAccountManagement me={me} isSuper={isSuper} setMsg={setMsg} />}
               {tab === 'moderate' && <Moderate setMsg={setMsg} />}
               {tab === 'loveWall' && <AdminLoveWall setMsg={setMsg} />}
               {tab === 'notifications' && <AdminNotificationCenter setMsg={setMsg} />}

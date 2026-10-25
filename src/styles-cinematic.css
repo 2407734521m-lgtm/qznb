@@ -402,3 +402,47 @@ button:disabled{cursor:not-allowed;filter:saturate(.6)}
 .capsule-strips { position: relative; width: 200px; height: 40px; overflow: visible; }
 .capsule-strip { position: absolute; top: 0; height: 40px; background: #f7f2e5; border: 1px solid #ddd2b8; border-radius: 2px; }
 .capsule-shred-text { margin: 0; font-size: 13px; color: #e1e9ff; }
+
+/* ============ 2026-10-25 motion/performance audit ============ */
+/* The member cards already animate through Framer Motion; avoid running a second
+   CSS entrance animation on the same transform/opacity properties. */
+.page .mcard { animation: none !important; }
+
+/* Avoid continuously animating filter/saturation on a full-screen fixed layer,
+   which can be expensive on mid-range Android GPUs. Keep the cinematic glow static. */
+.glow { animation: none; }
+
+/* A restrained spring-like response for the single Dock collapse control.
+   Only transform is animated on press; navigation width/position still use the
+   existing layout transition so the control remains reachable. */
+@media (max-width: 768px) and (prefers-reduced-motion: no-preference) {
+  .tabbar .dock-toggle {
+    transition:
+      transform 360ms cubic-bezier(.34, 1.56, .64, 1),
+      background-color 220ms ease,
+      box-shadow 260ms cubic-bezier(.22, 1, .36, 1) !important;
+    transform-origin: center;
+  }
+  .tabbar .dock-toggle:active {
+    transform: scale(.86) !important;
+  }
+  .tabbar {
+    transition:
+      width 380ms cubic-bezier(.34, 1.36, .64, 1),
+      left 380ms cubic-bezier(.22, 1, .36, 1),
+      right 380ms cubic-bezier(.22, 1, .36, 1),
+      border-radius 320ms cubic-bezier(.22, 1, .36, 1),
+      padding 320ms cubic-bezier(.22, 1, .36, 1) !important;
+  }
+}
+
+/* Keep motion accessible even when the operating system requests reduced motion. */
+@media (prefers-reduced-motion: reduce) {
+  .glow { animation: none !important; }
+  .page .mcard { animation: none !important; }
+  .tabbar, .tabbar .dock-item, .tabbar .dock-item > a,
+  .tabbar .dock-toggle {
+    transition: none !important;
+  }
+}
+

@@ -261,3 +261,55 @@ button:disabled{cursor:not-allowed;filter:saturate(.6)}
 .login-card .priv-note{line-height:1.7;color:rgba(220,229,248,.76)}
 .login-card .err{padding:10px 12px;border:1px solid rgba(255,126,145,.28);border-radius:12px;background:rgba(255,92,117,.08);color:#ffb4c0;font-size:12.5px;line-height:1.55}
 @media(max-width:480px){.login-wrap{padding:20px 14px calc(20px + env(safe-area-inset-bottom))}.login-card{border-radius:24px;padding:26px 20px 22px}.login-card .sub{margin-bottom:21px}}
+
+/* ============ 手机端比例修正（仅 ≤768px，桌面端不受影响） ============ */
+@media (max-width: 768px) {
+  /* 顶部安全区：内容不再贴住浏览器工具栏与刘海区 */
+  .wrap { padding-top: calc(14px + env(safe-area-inset-top)); }
+
+  /* 标题卡：收窄内边距与字号，卡片不再过高 */
+  .page .hero { padding: 18px 16px 14px !important; margin: 2px 0 12px; }
+  .page .hero h1 { font-size: clamp(22px, 6vw, 28px); line-height: 1.2; margin-bottom: 4px; }
+  .page .hero p { font-size: 13px; }
+
+  /* 成员搜索：固定 48px 高、左右内边距一致，与标题卡同宽 */
+  .page .searchbar { margin: 10px 0 12px; }
+  .page .searchbar input { min-height: 48px; padding: 12px 14px; font-size: 16px; line-height: 1.4; }
+
+  /* 数量行：文字与按钮同一高度、垂直居中，与卡片间距统一 */
+  .page .mtoolbar { margin: 6px 0 12px; align-items: center; }
+  .page .mtoolbar .lswitch > button { min-height: 38px; display: inline-flex; align-items: center; }
+
+  /* 成员卡：照片改方形，窄屏不再又窄又高；无头像的首字在浅色底上可见 */
+  .page .mgrid { gap: 10px; }
+  .mcard .photo { aspect-ratio: 1 / 1; }
+  .mcard .photo-fallback { color: #8a93a6; font-size: 36px; }
+  .page .mcard h3 { font-size: 14px; }
+  .page .mcard p { font-size: 12px; }
+
+  /* 底部 Dock：悬浮胶囊按左右安全边距定宽，永不超视口；
+     滚动区与收缩按钮分离，按钮独占空间、不再遮挡菜单 */
+  .tabbar {
+    left: max(12px, env(safe-area-inset-left));
+    right: max(12px, env(safe-area-inset-right));
+    transform: none;
+    width: auto;
+    overflow: visible;
+    padding: 6px;
+    gap: 6px;
+    bottom: calc(10px + env(safe-area-inset-bottom));
+  }
+  .tabbar .dock-scroll {
+    display: flex; gap: 5px; align-items: center;
+    flex: 1; min-width: 0;
+    overflow-x: auto; scrollbar-width: none;
+    scroll-behavior: smooth;
+  }
+  .tabbar .dock-scroll::-webkit-scrollbar { display: none; }
+  .tabbar .dock-item > a {
+    min-width: 48px; min-height: 44px;
+    padding: 8px 11px; font-size: 12px;
+  }
+  .tabbar .dock-tab-label { max-width: none; }
+  .tabbar.dock-collapsed .dock-scroll { display: none; }
+}

@@ -273,6 +273,10 @@ function Shell() {
   // 注册带邀请码：欢迎动画要在 App 层播（登录页验证通过会直接卸载，来不及播）
   const [welcome, setWelcome] = useState<string | null>(null);
   const [loginSuccess, setLoginSuccess] = useState(false);
+  const [gpsOffer, setGpsOffer] = useState(false);
+  const [gpsBusy, setGpsBusy] = useState(false);
+  const [gpsResult, setGpsResult] = useState<{ latitude: number; longitude: number; accuracy: number } | null>(null);
+  const [gpsError, setGpsError] = useState('');
   const [pwReset, setPwReset] = useState(() => {
     try {
       return new URLSearchParams(window.location.search).has('code')
@@ -296,13 +300,28 @@ function Shell() {
       sessionStorage.removeItem('ca_login_success');
     } catch {}
     if (shouldShowLoginSuccess) setLoginSuccess(true);
+    // 新注册后的 GPS 说明仅在用户主动选择时继续，不在登录时自动请求位置。
+    try {
+      if (sessionStorage.getItem('ca_gps_offer') === '1') {
+        sessionStorage.removeItem('ca_gps_offer');
+        setGpsOffer(true);
+      }
+    } catch {}
   }, [session]);
   useEffect(() => {
     const open = () => setShowWp(true);
     window.addEventListener('ca:wallpaper:open', open);
     return () => window.removeEventListener('ca:wallpaper:open', open);
   }, []);
-  function welcomeDone() { setWelcome(null); }
+  function welcomeDone() {
+    setWelcome(null);
+    try {
+      if (sessionStorage.getItem('ca_gps_offer') === '1') {
+        sessionStorage.removeItem('ca_gps_offer');
+        setGpsOffer(true);
+      }
+    } catch {}
+  }
 
 
   useEffect(() => {
@@ -331,6 +350,13 @@ function Shell() {
       } catch { /* 上报失败不打扰用户 */ }
     })();
   }, [session]);
+
+  function closeGpsOffer() {
+    setGpsOffer(false);
+    setGpsResult(null);
+    setGpsError('');
+    setGpsBusy(false);
+  }
 
   async function logout() { await supabase.auth.signOut(); }
 
@@ -429,6 +455,73 @@ function Shell() {
           );
         })}
       </nav>}
+      {gpsOffer && !isAdminPage && (
+        <div role="dialog" aria-modal="true" aria-labelledby="gps-consent-title" onClick={closeGpsOffer} style={{
+          position: 'fixed', inset: 0, zIndex: 700, background: 'rgba(0,0,0,.78)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 18,
+          backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)',
+        }}>
+          <section onClick={e => e.stopPropagation()} style={{
+            width: '100%', maxWidth: 520, maxHeight: '86vh', overflowY: 'auto',
+            padding: 24, borderRadius: 22, color: '#f4f6ff',
+            background: 'linear-gradient(155deg,#1a2340,#0b1020)',
+            border: '1px solid rgba(255,255,255,.16)', boxShadow: '0 24px 80px #000b',
+          }}>
+            <div aria-hidden style={{ fontSize: 34, marginBottom: 8 }}>📍</div>
+            <h2 id="gps-consent-title" style={{ margin: '0 0 10px', fontSize: 22 }}>精准位置授权（自愿）</h2>
+            <p style={{ lineHeight: 1.7, color: 'rgba(244,246,255,.82)' }}>
+              精准定位不是注册或登录的必需条件。只有你点击“同意并开启定位”后，浏览器才会请求设备的位置权限；你也可以直接跳过，不影响使用班级网站。
+            </p>
+            <ul style={{ paddingLeft: 20, lineHeight: 1.7, color: 'rgba(244,246,255,.82)' }}>
+              <li>定位由设备和浏览器提供，精度受 GPS、网络和设备环境影响。</li>
+              <li>本阶段只在当前页面临时显示坐标与精度，不上传服务器、不写入数据库，也不提供给管理员查看。</li>
+              <li>拒绝、关闭或浏览器不支持定位，都不会影响基本功能。</li>
+            </ul>
+            {gpsError && <p role="alert" style={{ color: '#ffb4b4', lineHeight: 1.6 }}>{gpsError}</p>}
+            {gpsResult && (
+              <div style={{ padding: 12, borderRadius: 12, background: 'rgba(255,255,255,.07)', lineHeight: 1.7, overflowWrap: 'anywhere' }}>
+                <b>本页临时定位结果</b><br />
+                纬度：{gpsResult.latitude.toFixed(6)}<br />
+                经度：{gpsResult.longitude.toFixed(6)}<br />
+                设备报告精度：约 {Math.round(gpsResult.accuracy)} 米<br />
+                <small>关闭此弹窗或离开页面后，不会保存到网站账户。</small>
+              </div>
+            )}
+            <button className="pri" disabled={gpsBusy || !!gpsResult} onClick={() => {
+              setGpsError('');
+              if (!navigator.geolocation) {
+                setGpsError('当前浏览器不支持定位。你可以跳过，不影响使用。');
+                return;
+              }
+              setGpsBusy(true);
+              navigator.geolocation.getCurrentPosition(
+                position => {
+                  setGpsResult({
+                    latitude: position.coords.latitude,
+                    longitude: position.coords.longitude,
+                    accuracy: position.coords.accuracy,
+                  });
+                  setGpsBusy(false);
+                },
+                error => {
+                  setGpsError(error.code === error.PERMISSION_DENIED
+                    ? '你拒绝了浏览器的位置权限。网站不会继续尝试定位，你可以直接跳过。'
+                    : error.code === error.TIMEOUT
+                      ? '定位超时，请检查设备定位设置后自愿重试，或直接跳过。'
+                      : '暂时无法获取位置。你可以检查浏览器权限，或直接跳过。');
+                  setGpsBusy(false);
+                },
+                { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+              );
+            }} style={{ width: '100%', marginTop: 14 }}>
+              {gpsBusy ? '正在等待设备定位…' : gpsResult ? '已获取本页临时位置' : '同意并开启定位'}
+            </button>
+            <button className="ghost" disabled={gpsBusy} onClick={closeGpsOffer} style={{ width: '100%', marginTop: 8 }}>
+              {gpsResult ? '关闭并清除本页坐标' : '暂不授权，继续使用网站'}
+            </button>
+          </section>
+        </div>
+      )}
       {showWp && <WallpaperOnboarding onDone={() => setShowWp(false)} />}
       {loginSuccess && <LoginSuccessOverlay onDone={() => setLoginSuccess(false)} />}
       {welcome !== null && <WelcomeOverlay nick={welcome} onDone={welcomeDone} />}

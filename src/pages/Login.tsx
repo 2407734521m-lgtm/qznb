@@ -31,6 +31,9 @@ async function resolveEmail(ident: string): Promise<string> {
 export default function Login() {
   const reduce = useReducedMotion();
   const [mode, setMode] = useState<'login' | 'reg' | 'forgot'>('login');
+  const [policyAccepted, setPolicyAccepted] = useState(false);
+  const [showPrivacyPolicy, setShowPrivacyPolicy] = useState(false);
+  const PRIVACY_POLICY_VERSION = '2026-10-25-v1';
   const [ident, setIdent] = useState(''); // 登录标识
   const [pw, setPw] = useState('');
   const [name, setName] = useState('');
@@ -146,6 +149,7 @@ export default function Login() {
   // 第一次点 = signUp（建未验证账号并经 Resend 发码），已发送过且倒计时结束 = resend 重发。
   async function sendCode() {
     setErr('');
+    if (!policyAccepted) return setErr('请先阅读并勾选同意《隐私政策与用户协议》');
     const nm = name.trim(), rl = real.trim(), em = email.trim();
     if (nm.length < 1 || nm.length > 30) return setErr('用户名 1～30 个字');
     if (!rl || rl.length > 30) return setErr('请填写真实姓名（仅管理员可见）');
@@ -160,7 +164,7 @@ export default function Login() {
       } else {
         const { data, error } = await supabase.auth.signUp({
           email: em, password: pw,
-          options: { data: { username: nm, real_name: rl } },
+          options: { data: { username: nm, real_name: rl, privacy_policy_version: PRIVACY_POLICY_VERSION, privacy_policy_accepted_at: new Date().toISOString() } },
         });
         if (error) throw error;
         // 已注册过的邮箱：Supabase 为防枚举不报错、也不发码，返回的 identities 为空。
@@ -199,6 +203,7 @@ export default function Login() {
 
   async function doReg() {
     setErr('');
+    if (!policyAccepted) return setErr('请先阅读并勾选同意《隐私政策与用户协议》');
     const nm = name.trim(), rl = real.trim(), em = email.trim();
     if (nm.length < 1 || nm.length > 30) return setErr('用户名 1～30 个字');
     if (!rl || rl.length > 30) return setErr('请填写真实姓名（仅管理员可见）');
@@ -209,7 +214,7 @@ export default function Login() {
     try {
       const { data, error } = await supabase.auth.signUp({
         email: em, password: pw,
-        options: { data: { username: nm, real_name: rl } },
+        options: { data: { username: nm, real_name: rl, privacy_policy_version: PRIVACY_POLICY_VERSION, privacy_policy_accepted_at: new Date().toISOString() } },
       });
       if (error) throw error;
       if (data.user && Array.isArray((data.user as any).identities) && (data.user as any).identities.length === 0) {
@@ -402,6 +407,13 @@ export default function Login() {
             <input type="password" value={pw2} onChange={e => setPw2(e.target.value)} placeholder="再输一次" autoComplete="new-password" />
             <label>邀请码（选填）</label>
             <input value={invite} onChange={e => setInvite(e.target.value)} placeholder="有就填，没有先不填，注册后在个人中心补填" />
+            <div style={{ margin: '14px 0 10px', padding: '12px 13px', borderRadius: 12, background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.12)' }}>
+              <label style={{ display: 'flex', alignItems: 'flex-start', gap: 9, lineHeight: 1.6, cursor: 'pointer' }}>
+                <input type="checkbox" checked={policyAccepted} onChange={e => setPolicyAccepted(e.target.checked)} style={{ width: 18, height: 18, marginTop: 3, flexShrink: 0 }} />
+                <span>我已阅读并同意 <button type="button" className="linklike" onClick={() => setShowPrivacyPolicy(true)} style={{ border: 0, padding: 0, background: 'none', color: '#a9c2ff', textDecoration: 'underline', cursor: 'pointer', font: 'inherit' }}>《隐私政策与用户协议》</button></span>
+              </label>
+              <p className="priv-note" style={{ margin: '7px 0 0', lineHeight: 1.65 }}>政策说明账号、设备信息及 IP 推算地区的处理方式。GPS 精确位置不会由本协议自动授权。</p>
+            </div>
             {err && <p className="err">{err}</p>}
             <button className="pri" disabled={busy} onClick={codeSent ? doVerifyReg : sendCode}>{busy ? <><Spin />{codeSent ? '验证中…' : '发送中…'}</> : codeSent ? '验证并进入' : '发送验证码并注册'}</button>
             <p className="login-switch">已有账号？<button onClick={() => { setMode('login'); setErr(''); setCode(''); setInvite(''); setForgotSent(false); }}>去登录</button></p>
@@ -436,6 +448,27 @@ export default function Login() {
           </div>
         </motion.div>
       </div>
+      {showPrivacyPolicy && <div role="dialog" aria-modal="true" aria-labelledby="privacy-policy-title" onClick={() => setShowPrivacyPolicy(false)} style={{ position: 'fixed', inset: 0, zIndex: 500, background: 'rgba(0,0,0,.78)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, backdropFilter: 'blur(8px)' }}>
+        <section onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: 620, maxHeight: '85vh', overflowY: 'auto', padding: 22, borderRadius: 18, color: '#f4f6ff', background: 'linear-gradient(160deg,#171d35,#0b1020)', border: '1px solid rgba(255,255,255,.16)', boxShadow: '0 24px 70px #000b' }}>
+          <h2 id="privacy-policy-title" style={{ margin: '0 0 8px', fontSize: 22 }}>隐私政策与用户协议</h2>
+          <p className="priv-note">版本：{PRIVACY_POLICY_VERSION} · 请认真阅读后再决定是否同意</p>
+          <h3>一、我们可能处理的信息</h3>
+          <p>为提供班级档案服务，网站会处理你注册时填写的用户名、真实姓名、QQ 邮箱、密码验证信息及你主动上传的头像和资料。密码由认证服务处理，网站不应以明文保存密码。</p>
+          <h3>二、登录设备与地区信息</h3>
+          <p>当前版本登录后会读取浏览器提供的设备标识信息，并通过第三方 IP 查询服务推算大致地区（例如国家、州/省或城市）。IP 推算地区可能不准确，不代表 GPS 定位或实时位置。设备和地区信息会更新到站点的成员状态记录，管理员可能在账号管理页面查看。</p>
+          <p>网站当前版本没有使用 GPS 精确定位接口。将来如提供 GPS 功能，应另行说明用途、查看权限和保存期限，并在用户主动发起且系统授权后才获取；拒绝 GPS 不应影响基本登录。</p>
+          <h3>三、查看权限与用途</h3>
+          <p>管理员仅应为账号安全、处理登录问题及维护班级网站而查看必要信息，不得将信息用于跟踪、骚扰、公开披露或与网站无关的用途。普通成员不应获得其他成员的私密登录记录。</p>
+          <h3>四、保存、共享与安全</h3>
+          <p>网站会尽量限制访问权限并采取合理措施保护信息。为完成 IP 地区推算，浏览器会向第三方查询服务发起请求；该服务可能接收到请求 IP。网络服务商、托管平台也可能按其规则处理技术日志。网站不应出售成员个人信息。</p>
+          <h3>五、你的选择与权利</h3>
+          <p>你可以选择不注册或不提供非必要资料，并可联系网站管理员申请查阅、更正或删除个人资料。不同意本政策将无法创建新账号，但不应因此被要求授权 GPS 精确定位。若你是未成年人，请在老师或监护人协助下阅读并决定是否提供个人信息。</p>
+          <h3>六、政策变更与联系</h3>
+          <p>如果收集的信息种类、用途或查看范围发生实质变化，网站应更新政策并在需要时重新征求同意。请通过网站公开的管理员联系方式提出隐私相关问题。</p>
+          <p style={{ marginTop: 14, fontSize: 12, opacity: .75 }}>提示：此文本是网站说明草案，不构成法律意见；上线前应由负责网站的成年人核对实际数据流、权限及适用规则。</p>
+          <button className="pri" onClick={() => setShowPrivacyPolicy(false)} style={{ width: '100%', marginTop: 12 }}>返回注册</button>
+        </section>
+      </div>}
       {fbOpen && <FeedbackModal kind="login" onClose={() => setFbOpen(false)} />}
     </>
   );

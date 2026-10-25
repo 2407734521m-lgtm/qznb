@@ -158,4 +158,28 @@ begin
 end;
 $function$;
 
+
+-- A submitted intro video must remain pending until an administrator reviews it.
+-- The previous implementation set the status to 'approved' on self-submission.
+revoke execute on function public.submit_intro_video(text) from public, anon;
+grant execute on function public.submit_intro_video(text) to authenticated, service_role;
+
+create or replace function public.submit_intro_video(p_path text)
+returns void
+language plpgsql
+security definer
+set search_path to ''
+as $function$
+begin
+  if auth.uid() is null then raise exception 'not authenticated'; end if;
+  if p_path is null or pg_catalog.btrim(p_path) = '' then
+    raise exception 'video path required';
+  end if;
+  update public.profiles
+  set intro_video_path = p_path, intro_video_status = 'pending'
+  where id = auth.uid();
+  if not found then raise exception 'profile not found'; end if;
+end;
+$function$;
+
 commit;

@@ -9,6 +9,7 @@ import GamePicker, { type GameProfile, type Origin } from '../components/GamePic
 import SocialPicker from '../components/SocialPicker';
 import { badgeText } from '../data/games';
 import WelcomeOverlay from '../components/WelcomeOverlay';
+import BackButton from '../components/BackButton';
 
 const PROFILE_FIELDS = [['display_name', '名字', 'show_name'], ['age', '年龄', 'show_age'],
   ['personality', '性格', 'show_personality'], ['signature', '个性签名', 'show_signature'],
@@ -46,6 +47,7 @@ function Collapsible({ icon, title, sub, open, onToggle, children, sid }: {
   icon: string; title: string; sub?: string; open: boolean; onToggle: () => void; children: React.ReactNode; sid?: string;
 }) {  return (
     <div className="card" id={sid} style={{ padding: 0, overflow: 'hidden' }}>
+      <BackButton fallback="/me" />
       <button type="button" onClick={onToggle}
         style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '16px 20px', background: 'none', border: 0, color: 'inherit', font: 'inherit', cursor: 'pointer', textAlign: 'left' }}>
         <span style={{ fontSize: 16, fontWeight: 700 }}>{icon} {title}</span>

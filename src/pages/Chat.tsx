@@ -3,6 +3,7 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../auth';
 import { downscaleImage, uploadMedia, useSignedUrl } from '../lib/media';
+import { goBackOr } from '../components/BackButton';
 
 type M = { id: number; sender_id: string; body: string; created_at: string };
 
@@ -231,7 +232,7 @@ export default function Chat() {
         @media(max-width:600px){.im-head{gap:10px}.im-avatar{width:40px;height:40px}.im-back,.im-icon{min-width:40px;height:40px}.im-feed{padding:14px 12px 18px}.im-bubble{max-width:84%;font-size:15px}.im-composer{gap:8px}.im-plus{width:40px;height:40px}}\n        @media(prefers-reduced-motion:reduce){.im-row{animation:none}}
       `}</style>
       <header className="im-head">
-        <button className="im-back" aria-label="返回好友" onClick={() => nav('/friends')}>‹</button>
+        <button className="im-back" aria-label="返回" onClick={() => goBackOr(nav, '/friends')}>‹</button>
         <div className="im-avatar">{name.trim().charAt(0).toUpperCase() || '友'}</div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div className="im-title">{name}</div>

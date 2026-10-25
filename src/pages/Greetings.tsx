@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../auth';
+import BackButton from '../components/BackButton';
 
 /** 留言祝福墙：给全班或某位同学留祝福 */
 export default function Greetings() {
@@ -73,6 +74,7 @@ export default function Greetings() {
 
   return (
     <div className="page" style={{ paddingBottom: 110 }}>
+      <BackButton fallback="/explore" />
       <h2 style={{ margin: '4px 0 12px', fontSize: 20 }}>留言祝福墙</h2>
       <div className="card">
         <textarea value={text} onChange={e => setText(e.target.value)} rows={3} maxLength={500}

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
+import BackButton from '../components/BackButton';
 
 type Snip = {
   id: number; title: string; language: string; code: string; summary: string;
@@ -36,6 +37,7 @@ export default function HotSnippets() {
 
   return (
     <div>
+      <BackButton fallback="/explore" />
       <h1 style={{ fontSize: 20 }}>🔥 热门特效</h1>
       <p className="sub">点开就能在站内直接预览和使用 · 每小时自动上新 1 个 · 最多保留 10 个 · 每 5 小时删掉最少人看的 1 个</p>
       {err && <p className="err">{err}</p>}

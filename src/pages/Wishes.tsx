@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../auth';
+import BackButton from '../components/BackButton';
 
 /** 愿望墙：班级共同愿望 */
 export default function Wishes() {
@@ -38,6 +39,7 @@ export default function Wishes() {
   // 瀑布流式愿望卡片
   return (
     <div className="page" style={{ paddingBottom: 100 }}>
+      <BackButton fallback="/explore" />
       <div className="hero"><h1>愿望墙</h1><p>写 下 共 同 的 愿 望</p></div>
       <div className="card">
         <textarea value={text} onChange={e => setText(e.target.value)} placeholder="我的愿望是…" rows={3} maxLength={300} style={{ width: '100%', marginBottom: 8 }} />

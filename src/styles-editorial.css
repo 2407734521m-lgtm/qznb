@@ -41,3 +41,36 @@ input:focus,textarea:focus,select:focus{border-color:rgba(217,194,154,.55)!impor
 @keyframes editorial-in{from{opacity:.65;transform:translateY(4px)}to{opacity:1;transform:none}}
 @media(max-width:600px){.wrap{padding-left:13px;padding-right:13px}.hero{padding-top:20px}.hero h1{font-size:30px}.mgrid{gap:9px}.mcard{padding:8px}.card{padding:13px}.tabbar{bottom:calc(9px + env(safe-area-inset-bottom))!important}}
 @media(prefers-reduced-motion:reduce){.page{animation:none!important}}
+
+
+/* Global deep-blue / teal ambient wallpaper refresh */
+:root{
+  --bg:#06101f;
+  --fg:#edf7ff;
+  --mut:#9fb4c8;
+  --a:#5eead4;
+  --b:#60a5fa;
+}
+body{
+  background:#06101f;
+  background-image:
+    radial-gradient(ellipse at 14% 12%,rgba(20,184,166,.14),transparent 38%),
+    radial-gradient(ellipse at 88% 20%,rgba(59,130,246,.13),transparent 42%),
+    linear-gradient(145deg,#06101f 0%,#09192c 52%,#071923 100%);
+  background-attachment:fixed;
+}
+.glow{
+  background:
+    radial-gradient(ellipse at 14% 12%,rgba(20,184,166,.18),transparent 38%),
+    radial-gradient(ellipse at 88% 20%,rgba(59,130,246,.16),transparent 42%),
+    radial-gradient(ellipse at 50% 100%,rgba(13,148,136,.09),transparent 50%) !important;
+  animation:none !important;
+}
+/* Keep the new gradient vivid enough beneath glass cards, including the editorial theme. */
+.app-bg{
+  filter:blur(1px) brightness(78%) saturate(1.18) !important;
+  transform:scale(1.03) !important;
+}
+@media(prefers-reduced-motion:reduce){
+  body{background-attachment:scroll}
+}

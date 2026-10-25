@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../auth';
@@ -6,8 +6,9 @@ import BackButton from '../components/BackButton';
 import { EASE, DUR } from '../lib/motion';
 
 /** 时光胶囊：写给未来的信，到期才能看。
- *  本次只改列表的呈现与开封交互：信封叠层 + 点开居中放大、背景模糊、
- *  信封口翻开、信纸滑出成阅读页。查询、封存、删除、未到期不露内容均原样不动。 */
+ *  呈现照参考视频的信封收件箱来做：信封叠成一摞、日期居中、右上角火漆印、
+ *  自动滚动每 3.5 秒翻一封、点下面一封把它翻到最上面、点最上面一封开封阅读
+ *  （背景模糊 + 信封口翻开 + 信纸滑出）。查询、封存、删除、未到期不露内容均原样不动。 */
 const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
 
 // open_at 是日期（YYYY-MM-DD），按本地午夜算开启时刻，避免 UTC 午夜在 +8 时区差一天。
@@ -42,17 +43,29 @@ export default function Capsule() {
   const [reading, setReading] = useState<any>(null);
   const [shakeId, setShakeId] = useState<number | null>(null);
   const [now, setNow] = useState(() => Date.now());
+  // 信封摞的顺序：初始按开启日期，自动滚动 / 点下面一封都会改这个顺序，不改数据库。
+  const [order, setOrder] = useState<number[]>([]);
+  // 视频里默认就是自动滚动：开着，每 3.5 秒翻一封；阅读时自动停。
+  const [autoScroll, setAutoScroll] = useState(true);
 
   async function load() {
     const { data } = await supabase.from('time_capsules').select('*').order('open_at', { ascending: true }).limit(50);
     setList(data ?? []);
   }
   useEffect(() => { load(); }, []);
+  const idsKey = useMemo(() => list.map(c => c.id).join(','), [list]);
+  useEffect(() => { setOrder(list.map(c => c.id)); }, [idsKey, list]);
   // 倒计时按分钟刷新一次即可，不必每秒重渲染。
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 60000);
     return () => clearInterval(t);
   }, []);
+  // 自动滚动：阅读时停下，免得信纸还没看完摞就翻走了。
+  useEffect(() => {
+    if (!autoScroll || reading || order.length < 2 || reduce) return;
+    const t = setInterval(() => setOrder(o => (o.length < 2 ? o : [...o.slice(1), o[0]])), 3500);
+    return () => clearInterval(t);
+  }, [autoScroll, reading, order.length, reduce]);
   // 阅读页按 Esc 关闭。
   useEffect(() => {
     if (!reading) return;
@@ -78,6 +91,10 @@ export default function Capsule() {
   }
 
   const today = new Date().toISOString().slice(0, 10);
+  const byId = useMemo(() => new Map(list.map(c => [c.id, c])), [list]);
+  const ordered = order.map(id => byId.get(id)).filter(Boolean);
+  const top = ordered[0];
+
   return (
     <div className="page" style={{ paddingBottom: 100 }}>
       <BackButton fallback="/explore" />
@@ -97,47 +114,70 @@ export default function Capsule() {
         {msg && <p className="priv-note" style={{ marginTop: 8 }}>{msg}</p>}
       </div>
 
-      <div className="capsule-stack">
-        {list.map((c, i) => {
-          const opened = c.open_at <= today;
-          const mine = c.author_id === me;
-          const shaking = shakeId === c.id;
-          return (
-            <motion.div key={c.id}
-              initial={reduce ? false : { opacity: 0, y: 18 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: DUR.slow, delay: Math.min(i, 8) * 0.05, ease: EASE }}>
-              <motion.button type="button"
-                className={`capsule-envelope ${opened ? 'is-open' : 'is-sealed'}`}
-                animate={shaking && !reduce ? { x: [0, -6, 6, -4, 4, 0] } : { x: 0 }}
-                transition={{ duration: 0.4, ease: 'easeInOut' }}
-                whileTap={reduce ? undefined : { scale: 0.98 }}
-                onClick={() => { if (opened) setReading(c); else setShakeId(c.id); }}
-                aria-label={opened ? `打开胶囊：${c.title}` : `未开启的胶囊，${countdown(c.open_at, now)}`}>
-                <span className="capsule-flap" aria-hidden="true" />
-                <span className="capsule-seal" aria-hidden="true">{opened ? '开' : '封'}</span>
-                <span className="capsule-face">
-                  <span className="capsule-date">{fmtEnvelopeDate(c.open_at)}</span>
-                  {/* 未到期绝不露标题与内容，只显示“未开启的胶囊”，与原来一致 */}
-                  <span className="capsule-title">{opened ? c.title : '未开启的胶囊'}</span>
-                  <span className="capsule-meta">
-                    {opened ? '点开读信' : countdown(c.open_at, now)} · {c.is_public ? '公开' : '私密'}
-                  </span>
-                </span>
-              </motion.button>
-              {mine && (
-                <div className="capsule-row">
-                  <span>{opened ? '已到期' : '未到期'}</span>
-                  <button className="mini ghost" onClick={() => del(c.id)}>删除</button>
-                </div>
-              )}
-            </motion.div>
-          );
-        })}
-      </div>
+      {ordered.length > 0 && (
+        <>
+          <div className="capsule-toolbar">
+            <label className="capsule-autoscroll">
+              <input type="checkbox" checked={autoScroll} onChange={e => setAutoScroll(e.target.checked)} />
+              自动滚动
+            </label>
+            <span className="capsule-hint">点下面一封翻到最上面，点最上面一封打开它</span>
+          </div>
+          <div className="capsule-stack">
+            {ordered.map((c, i) => {
+              const opened = c.open_at <= today;
+              const mine = c.author_id === me;
+              const shaking = shakeId === c.id;
+              const isTop = i === 0;
+              return (
+                <motion.div key={c.id} className="capsule-item" layout={!reduce}
+                  style={{ zIndex: ordered.length - i, marginLeft: Math.min(i * 6, 24), marginRight: Math.min(i * 6, 24) }}
+                  initial={reduce ? false : { opacity: 0, y: 18 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: DUR.slow, delay: Math.min(i, 8) * 0.05, ease: EASE }}>
+                  <motion.div
+                    className={`capsule-envelope ${opened ? 'is-open' : 'is-sealed'}`}
+                    role="button" tabIndex={0}
+                    animate={shaking && !reduce ? { x: [0, -6, 6, -4, 4, 0] } : { x: 0 }}
+                    transition={{ duration: 0.4, ease: 'easeInOut' }}
+                    whileTap={reduce ? undefined : { scale: 0.98 }}
+                    onClick={() => {
+                      if (!isTop) { setOrder(o => [c.id, ...o.filter(x => x !== c.id)]); return; }
+                      if (opened) setReading(c); else setShakeId(c.id);
+                    }}
+                    onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); (e.target as HTMLElement).click(); } }}
+                    aria-label={isTop
+                      ? (opened ? `打开胶囊：${c.title}` : `未开启的胶囊，${countdown(c.open_at, now)}`)
+                      : `把这封胶囊翻到最上面，开启日期 ${c.open_at}`}>
+                    <span className="capsule-flap" aria-hidden="true" />
+                    <span className="capsule-seal" aria-hidden="true">{opened ? '开' : '封'}</span>
+                    <span className="capsule-face">
+                      <span className="capsule-date">{fmtEnvelopeDate(c.open_at)}</span>
+                      {/* 未到期绝不露标题与内容，只显示“未开启的胶囊”，与原来一致 */}
+                      <span className="capsule-title">{opened ? c.title : '未开启的胶囊'}</span>
+                      <span className="capsule-meta">
+                        {opened ? '点开读信' : countdown(c.open_at, now)} · {c.is_public ? '公开' : '私密'}
+                      </span>
+                    </span>
+                  </motion.div>
+                  {mine && (
+                    <div className="capsule-row">
+                      <span>{isTop ? '最上面这封是你的' : '你的胶囊'}</span>
+                      <button className="mini ghost" onClick={e => { e.stopPropagation(); del(c.id); }}>删除</button>
+                    </div>
+                  )}
+                </motion.div>
+              );
+            })}
+          </div>
+          {top && (
+            <p className="capsule-count">共 {ordered.length} 封 · 最上面是 {fmtEnvelopeDate(top.open_at)} 的一封</p>
+          )}
+        </>
+      )}
       {list.length === 0 && <div className="center"><div className="card">还没有时光胶囊，埋下第一个吧</div></div>}
 
-      {/* 开封阅读：背景模糊 + 信封口翻开 + 信纸滑出；未到期永远进不了这里 */}
+      {/* 开封阅读：背景模糊 + 信封口翻开 + 信纸从信封里滑出；未到期永远进不了这里 */}
       <AnimatePresence>
         {reading && (
           <motion.div className="capsule-overlay"
@@ -149,6 +189,7 @@ export default function Capsule() {
                 initial={reduce ? false : { rotateX: 0 }}
                 animate={{ rotateX: reduce ? 0 : -180 }}
                 transition={{ duration: DUR.slow, ease: EASE }} />
+              <div className="capsule-reading-body" aria-hidden="true" />
               <motion.div className="capsule-letter"
                 initial={reduce ? false : { opacity: 0, y: 48, scale: 0.96 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}

@@ -94,7 +94,7 @@ export default function Greetings() {
       </div>
       {list.length === 0 ? (
         <div className="card" style={{ textAlign: 'center', color: 'var(--mut)', padding: '36px 14px' }}>
-          <div style={{ fontSize: 15, marginBottom: 6, color: '#fff' }}>还没有留言</div>
+          <div style={{ fontSize: 15, marginBottom: 6, color: '#202124' }}>还没有留言</div>
           写下第一条祝福吧
         </div>
       ) : (

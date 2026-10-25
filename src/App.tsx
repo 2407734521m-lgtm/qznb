@@ -180,6 +180,7 @@ function Shell() {
   const reduce = useReducedMotion();
   const isAdmin = role === 'admin' || role === 'super_admin';
   const isAdminPage = loc.pathname === '/admin';
+  const isChatPage = loc.pathname.startsWith('/chat/');
   const nav = useNavigate();
   const barRef = useRef<HTMLElement>(null);
   // 公告红点：有未读管理员公告时显示
@@ -383,7 +384,7 @@ function Shell() {
           <NavLink to="/members" style={{ fontSize: 13, color: '#9db4ff', textDecoration: 'none' }}>← 回站点</NavLink>
           <button className="mini ghost" onClick={logout}>退出</button>
         </div>
-      ) : (
+      ) : !isChatPage ? (
       <nav className="topnav">
         <span className="links">
           {TABS.map(t => (
@@ -395,15 +396,15 @@ function Shell() {
         {isAdmin && <a href="#/admin" title="管理后台" className="mob-admin" style={{ textDecoration: 'none', marginRight: 4, fontSize: 13 }}>管理</a>}
         <button onClick={logout} title="退出登录">退出</button>
       </nav>
-      )}
+      ) : null}
 
-      <div className="wrap">
+      <div className={isChatPage ? "wrap chat-shell" : "wrap"}>
         <AnimatePresence mode="wait">
           <motion.div key={loc.pathname}
-            initial={reduce ? { opacity: 0 } : { opacity: 0, y: 16 }}
+            initial={reduce ? false : { opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={reduce ? { opacity: 0 } : { opacity: 0, y: -10 }}
-            transition={{ duration: reduce ? 0.12 : 0.28, ease: [0.22, 1, 0.36, 1] }}>
+            exit={reduce ? { opacity: 1, y: 0 } : { opacity: 0, y: -10 }}
+            transition={{ duration: reduce ? 0 : 0.28, ease: [0.22, 1, 0.36, 1] }}>
             <Routes location={loc}>
               <Route path="/" element={<Navigate to="/members" replace />} />
               <Route path="/board" element={<Board />} />
@@ -439,7 +440,7 @@ function Shell() {
         </AnimatePresence>
       </div>
 
-      {!isAdminPage && <nav ref={barRef} className="tabbar" style={{ touchAction: 'pan-x pan-y' }}>
+      {!isAdminPage && !isChatPage && <nav ref={barRef} className="tabbar" style={{ touchAction: 'pan-x pan-y' }}>
         {TABS.map((t, i) => {
           const activeIdx = TABS.findIndex(x => isTabActive(x.to, loc.pathname));
           const on = i === activeIdx;

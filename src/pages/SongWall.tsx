@@ -8,16 +8,16 @@ type Profile = { id: string; display_name: string | null; username: string | nul
 
 function SongCard({ song, mine, author }: { song: Song; mine: boolean; author?: Profile }) {
   const url = useSignedUrl('song-audio', song.audio_path);
-  return <article style={{ border: '1px solid #ffffff18', background: 'rgba(13,31,27,.82)', borderRadius: 14, padding: 13 }}>
+  return <article style={{ border: '1px solid #e9ebf0', background: '#fff', borderRadius: 14, padding: 13 }}>
     <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'start' }}>
       <div style={{ minWidth: 0 }}>
         <div style={{ fontSize: 14, fontWeight: 700, overflowWrap: 'anywhere' }}>{song.title}</div>
-        <div style={{ color: '#9ab6ac', fontSize: 11, marginTop: 4 }}>{mine ? '我的投稿' : (author?.display_name || author?.username || '班级同学')} · {new Date(song.created_at).toLocaleDateString()}</div>
+        <div style={{ color: '#606673', fontSize: 11, marginTop: 4 }}>{mine ? '我的投稿' : (author?.display_name || author?.username || '班级同学')} · {new Date(song.created_at).toLocaleDateString()}</div>
       </div>
-      {mine && <span style={{ flexShrink: 0, fontSize: 10, borderRadius: 999, padding: '4px 7px', background: song.status === 'published' ? '#9be8c522' : '#ffffff12', color: song.status === 'published' ? '#a6f5d5' : '#c0cbc6' }}>{song.status === 'pending' ? '审核中' : song.status === 'published' ? '已发布' : song.status === 'rejected' ? '未通过' : '已隐藏'}</span>}
+      {mine && <span style={{ flexShrink: 0, fontSize: 10, borderRadius: 999, padding: '4px 7px', background: song.status === 'published' ? '#e6f4ea' : '#f1f3f6', color: song.status === 'published' ? '#1a7a4a' : '#606673' }}>{song.status === 'pending' ? '审核中' : song.status === 'published' ? '已发布' : song.status === 'rejected' ? '未通过' : '已隐藏'}</span>}
     </div>
-    {song.description && <p style={{ color: '#c2d5cd', fontSize: 12, lineHeight: 1.7, margin: '9px 0' }}>{song.description}</p>}
-    {url ? <audio controls preload="none" src={url} style={{ width: '100%', height: 36, marginTop: 8 }} /> : <div style={{ color: '#8ca69b', fontSize: 11, marginTop: 10 }}>音频链接加载中…</div>}
+    {song.description && <p style={{ color: '#333946', fontSize: 12, lineHeight: 1.7, margin: '9px 0' }}>{song.description}</p>}
+    {url ? <audio controls preload="none" src={url} style={{ width: '100%', height: 36, marginTop: 8 }} /> : <div style={{ color: '#606673', fontSize: 11, marginTop: 10 }}>音频链接加载中…</div>}
   </article>;
 }
 
@@ -74,23 +74,23 @@ export default function SongWall() {
   }
 
   const visible = songs.filter(s => mine ? s.author_id === session?.user.id : s.status === 'published');
-  return <main style={{ maxWidth: 720, margin: '0 auto', padding: '12px 0 30px', color: '#edf8f3' }}>
+  return <main style={{ maxWidth: 720, margin: '0 auto', padding: '12px 0 30px', color: '#202124' }}>
     <header style={{ padding: '10px 2px 16px' }}>
-      <div style={{ fontSize: 10, letterSpacing: 2, color: '#9fcdb8' }}>PINGCHANG · VOICE STAGE</div>
+      <div style={{ fontSize: 10, letterSpacing: 2, color: '#737b89' }}>PINGCHANG · VOICE STAGE</div>
       <h1 style={{ fontSize: 21, margin: '7px 0 5px' }}>歌声墙</h1>
-      <p style={{ color: '#9ab6ac', fontSize: 12, lineHeight: 1.7, margin: 0 }}>把自己的歌声留在校园里。只上传自己录制或拥有发布授权的音频。</p>
+      <p style={{ color: '#606673', fontSize: 12, lineHeight: 1.7, margin: 0 }}>把自己的歌声留在校园里。只上传自己录制或拥有发布授权的音频。</p>
     </header>
-    <section style={{ border: '1px solid #ffffff18', background: 'rgba(15,42,34,.78)', borderRadius: 16, padding: 14, marginBottom: 18 }}>
+    <section style={{ border: '1px solid #e9ebf0', background: '#fff', borderRadius: 16, padding: 14, marginBottom: 18 }}>
       <h2 style={{ fontSize: 15, margin: '0 0 10px' }}>发布一段歌声</h2>
       <label style={label}>歌名</label>
       <input value={title} onChange={e => setTitle(e.target.value)} maxLength={80} placeholder="给你的作品起个名字" style={field} />
       <label style={label}>作品介绍（选填）</label>
       <textarea value={description} onChange={e => setDescription(e.target.value)} maxLength={300} rows={2} placeholder="写几句关于这首歌的话" style={{ ...field, resize: 'vertical' }} />
       <label style={label}>音频文件（最大 20 MB）</label>
-      <input id="song-audio-picker" type="file" accept="audio/*,.mp3,.m4a,.aac,.ogg,.wav,.webm" onChange={e => setFile(e.target.files?.[0] || null)} style={{ width: '100%', color: '#c2d5cd', fontSize: 12, margin: '4px 0 12px' }} />
-      {file && <p style={{ fontSize: 11, color: '#9ab6ac', margin: '0 0 10px' }}>{file.name} · {(file.size / 1024 / 1024).toFixed(1)} MB</p>}
+      <input id="song-audio-picker" type="file" accept="audio/*,.mp3,.m4a,.aac,.ogg,.wav,.webm" onChange={e => setFile(e.target.files?.[0] || null)} style={{ width: '100%', color: '#333946', fontSize: 12, margin: '4px 0 12px' }} />
+      {file && <p style={{ fontSize: 11, color: '#606673', margin: '0 0 10px' }}>{file.name} · {(file.size / 1024 / 1024).toFixed(1)} MB</p>}
       <button onClick={() => void publish()} disabled={busy} style={primary}>{busy ? '上传中…' : '提交审核'}</button>
-      {notice && <p role="status" style={{ color: '#c3ded2', fontSize: 11, lineHeight: 1.6, marginBottom: 0 }}>{notice}</p>}
+      {notice && <p role="status" style={{ color: '#333946', fontSize: 11, lineHeight: 1.6, marginBottom: 0 }}>{notice}</p>}
     </section>
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 10 }}>
       <h2 style={{ fontSize: 15, margin: 0 }}>{mine ? '我的投稿' : '大家的歌声'}</h2>
@@ -98,12 +98,12 @@ export default function SongWall() {
     </div>
     <div style={{ display: 'grid', gap: 10 }}>
       {visible.map(song => <SongCard key={song.id} song={song} mine={song.author_id === session?.user.id} author={profiles[song.author_id]} />)}
-      {!visible.length && <div style={{ textAlign: 'center', padding: 24, border: '1px dashed #ffffff22', borderRadius: 14, color: '#9ab6ac', fontSize: 12 }}>{mine ? '你还没有投稿。' : '还没有公开作品，来发布第一段歌声吧。'}</div>}
+      {!visible.length && <div style={{ textAlign: 'center', padding: 24, border: '1px dashed #dfe3ea', borderRadius: 14, color: '#606673', fontSize: 12 }}>{mine ? '你还没有投稿。' : '还没有公开作品，来发布第一段歌声吧。'}</div>}
     </div>
   </main>;
 }
 
-const label: React.CSSProperties = { display: 'block', color: '#b8d2c6', fontSize: 11, margin: '10px 0 5px' };
-const field: React.CSSProperties = { width: '100%', boxSizing: 'border-box', border: '1px solid #ffffff20', background: '#081b16', color: '#edf8f3', padding: '9px 10px', borderRadius: 10, font: 'inherit', fontSize: 12 };
-const primary: React.CSSProperties = { border: 0, borderRadius: 999, padding: '9px 15px', background: 'linear-gradient(135deg,#a6f5d5,#d4e3aa)', color: '#10261e', fontWeight: 700, fontSize: 12, cursor: 'pointer' };
-const ghost: React.CSSProperties = { border: '1px solid #ffffff20', borderRadius: 999, padding: '7px 10px', background: '#ffffff0a', color: '#d5e7de', cursor: 'pointer', fontSize: 11 };
+const label: React.CSSProperties = { display: 'block', color: '#606673', fontSize: 11, margin: '10px 0 5px' };
+const field: React.CSSProperties = { width: '100%', boxSizing: 'border-box', border: '1px solid #dfe3ea', background: '#fff', color: '#202124', padding: '9px 10px', borderRadius: 10, font: 'inherit', fontSize: 12 };
+const primary: React.CSSProperties = { border: 0, borderRadius: 999, padding: '9px 15px', background: '#202632', color: '#fff', fontWeight: 700, fontSize: 12, cursor: 'pointer' };
+const ghost: React.CSSProperties = { border: '1px solid #dfe3ea', borderRadius: 999, padding: '7px 10px', background: '#fff', color: '#333946', cursor: 'pointer', fontSize: 11 };

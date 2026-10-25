@@ -43,7 +43,7 @@ const TABS = [
   { to: '/members', label: '班级', ic: '👥' },
   { to: '/explore', label: '发现', ic: '✦' },
   { to: '/friends', label: '私聊', ic: '💬' },
-  { to: '/messages', label: '信息', ic: '✉️' },
+  { to: '/messages', label: 'iMessage', ic: '✉️' },
   { to: '/me/notifications', label: '消息', ic: '🔔' },
   { to: '/songs', label: '歌声墙', ic: '🎤' },
   { to: '/love-wall', label: '表白墙', ic: '💌' },
@@ -184,8 +184,21 @@ function Shell() {
   const isAdmin = role === 'admin' || role === 'super_admin';
   const isAdminPage = loc.pathname === '/admin';
   const isChatPage = loc.pathname.startsWith('/chat/');
+  const isMessagesPage = loc.pathname === '/messages';
   const nav = useNavigate();
   const barRef = useRef<HTMLElement>(null);
+  const [dockCollapsed, setDockCollapsed] = useState(() => {
+    try { return localStorage.getItem('ca_dock_collapsed') === '1'; } catch { return false; }
+  });
+  const [dockSide, setDockSide] = useState<'left' | 'right'>(() => {
+    try { return localStorage.getItem('ca_dock_side') === 'left' ? 'left' : 'right'; } catch { return 'right'; }
+  });
+  useEffect(() => {
+    try {
+      localStorage.setItem('ca_dock_collapsed', dockCollapsed ? '1' : '0');
+      localStorage.setItem('ca_dock_side', dockSide);
+    } catch { /* 偏好保存失败不影响导航 */ }
+  }, [dockCollapsed, dockSide]);
   // 公告红点：有未读管理员公告时显示
   const [boardUnread, setBoardUnread] = useState(false);
   useEffect(() => {
@@ -387,7 +400,7 @@ function Shell() {
           <NavLink to="/members" style={{ fontSize: 13, color: '#9db4ff', textDecoration: 'none' }}>← 回站点</NavLink>
           <button className="mini ghost" onClick={logout}>退出</button>
         </div>
-      ) : !isChatPage ? (
+      ) : !isChatPage && !isMessagesPage ? (
       <nav className="topnav">
         <span className="links">
           {TABS.map(t => (
@@ -401,7 +414,7 @@ function Shell() {
       </nav>
       ) : null}
 
-      <div className={isChatPage ? "wrap chat-shell" : "wrap"}>
+      <div className={isChatPage ? "wrap chat-shell" : isMessagesPage ? "wrap im-list-shell" : "wrap"}>
         <AnimatePresence mode="wait">
           <motion.div key={loc.pathname}
             initial={reduce ? false : { opacity: 0, y: 16 }}
@@ -444,22 +457,57 @@ function Shell() {
         </AnimatePresence>
       </div>
 
-      {!isAdminPage && !isChatPage && <nav ref={barRef} className="tabbar" style={{ touchAction: 'pan-x pan-y' }}>
-        {TABS.map((t, i) => {
-          const activeIdx = TABS.findIndex(x => isTabActive(x.to, loc.pathname));
-          const on = i === activeIdx;
-          return (
-            <NavLink key={t.to} to={t.to} className={on ? 'on' : ''}
-              ref={on ? (el: any) => { if (el) el.scrollIntoView({ inline: 'center', block: 'nearest' }); } : undefined}>
-              <span style={{ position: 'relative', zIndex: 1 }}>{t.label}
-                {((t.to === '/explore' && boardUnread) || (t.to === '/me/notifications' && notifUnread)) && <span style={{
-                  position: 'absolute', top: -2, right: -10, width: 8, height: 8,
-                  borderRadius: '50%', background: '#ff4d4f',
-                  boxShadow: '0 0 6px #ff4d4f' }} />}</span>
-            </NavLink>
-          );
-        })}
-      </nav>}
+      {!isAdminPage && !isChatPage && !isMessagesPage && (
+        <nav
+          ref={barRef}
+          className={`tabbar ${dockCollapsed ? 'dock-collapsed dock-side-' + dockSide : ''}`}
+          style={{ touchAction: 'pan-x pan-y' }}
+          aria-label="主导航"
+        >
+          <AnimatePresence initial={false}>
+            {!dockCollapsed && TABS.map((t, i) => {
+              const activeIdx = TABS.findIndex(x => isTabActive(x.to, loc.pathname));
+              const on = i === activeIdx;
+              return (
+                <motion.div key={t.to} className="dock-item"
+                  initial={reduce ? false : { opacity: 0, scale: 0.8, x: dockSide === 'left' ? -18 : 18 }}
+                  animate={{ opacity: 1, scale: 1, x: 0 }}
+                  exit={reduce ? { opacity: 0 } : {
+                    opacity: 0, scale: 0.4, x: dockSide === 'left' ? -window.innerWidth : window.innerWidth,
+                    transition: { duration: 0.24, ease: [0.22, 1, 0.36, 1] }
+                  }}
+                  transition={{ duration: reduce ? 0 : 0.22, ease: [0.22, 1, 0.36, 1] }}>
+                  <NavLink to={t.to} className={on ? 'on' : ''}
+                    ref={on ? (el: any) => { if (el) el.scrollIntoView({ inline: 'center', block: 'nearest' }); } : undefined}>
+                    <span className="dock-tab-icon" aria-hidden="true">{t.ic}</span>
+                    <span className="dock-tab-label">{t.label}</span>
+                    {((t.to === '/explore' && boardUnread) || (t.to === '/me/notifications' && notifUnread)) && <span className="dock-unread-dot" />}
+                  </NavLink>
+                </motion.div>
+              );
+            })}
+          </AnimatePresence>
+          {dockCollapsed ? (
+            <div className="dock-mini">
+              <button type="button" className="dock-action dock-expand" aria-label="展开导航栏" title="展开导航栏"
+                onClick={() => setDockCollapsed(false)}>{dockSide === 'left' ? '›' : '‹'}</button>
+              <button type="button" className="dock-action dock-side-toggle"
+                aria-label={dockSide === 'left' ? '改为靠右收起' : '改为靠左收起'}
+                title={dockSide === 'left' ? '改为靠右收起' : '改为靠左收起'}
+                onClick={() => setDockSide(side => side === 'left' ? 'right' : 'left')}>↔</button>
+            </div>
+          ) : (
+            <>
+              <button type="button" className="dock-action dock-collapse" aria-label="收起导航栏" title="收起导航栏"
+                onClick={() => setDockCollapsed(true)}>{dockSide === 'left' ? '‹' : '›'}</button>
+              <button type="button" className="dock-action dock-side-toggle"
+                aria-label={dockSide === 'left' ? '收起到右侧' : '收起到左侧'}
+                title={dockSide === 'left' ? '收起到右侧' : '收起到左侧'}
+                onClick={() => setDockSide(side => side === 'left' ? 'right' : 'left')}>↔</button>
+            </>
+          )}
+        </nav>
+      )}
       {gpsOffer && !isAdminPage && (
         <div role="dialog" aria-modal="true" aria-labelledby="gps-consent-title" onClick={closeGpsOffer} style={{
           position: 'fixed', inset: 0, zIndex: 700, background: 'rgba(0,0,0,.78)',

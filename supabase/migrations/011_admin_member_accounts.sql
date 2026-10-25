@@ -4,6 +4,17 @@
 
 begin;
 
+-- Optional metadata table. Values remain empty until an explicit, consent-based
+-- feature records them; this migration does not collect IP addresses or device data.
+create table if not exists public.member_presence (
+  profile_id uuid primary key references public.profiles(id) on delete cascade,
+  location text,
+  device text,
+  updated_at timestamptz not null default now()
+);
+alter table public.member_presence enable row level security;
+revoke all on public.member_presence from anon, authenticated;
+
 create or replace function public.admin_member_accounts()
 returns table(
   id uuid,

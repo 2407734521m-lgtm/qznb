@@ -173,3 +173,35 @@ input:focus,textarea:focus,select:focus{
   html{scroll-behavior:auto!important}
   *,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important;animation-iteration-count:1!important}
 }
+
+
+/* Glass dock polish: translucent deep-sea glass with a teal edge and soft lift. */
+.tabbar{
+  background:rgba(5,18,32,.56)!important;
+  border:1px solid rgba(153,244,235,.22)!important;
+  box-shadow:0 14px 38px rgba(0,0,0,.38),inset 0 1px 0 rgba(255,255,255,.10),0 0 24px rgba(45,212,191,.06)!important;
+  -webkit-backdrop-filter:blur(28px) saturate(165%)!important;
+  backdrop-filter:blur(28px) saturate(165%)!important;
+}
+.tabbar a{background:transparent!important;transition:background .2s ease,color .2s ease,transform .2s ease}
+.tabbar a.on,.tabbar a[aria-current=page]{
+  background:linear-gradient(130deg,rgba(94,234,212,.24),rgba(96,165,250,.2))!important;
+  color:#eaffff!important;
+  box-shadow:inset 0 0 0 1px rgba(153,244,235,.2),0 4px 16px rgba(45,212,191,.08)!important;
+}
+.admin-shell .admin-dock{
+  background:rgba(5,18,32,.58)!important;
+  -webkit-backdrop-filter:blur(28px) saturate(165%)!important;
+  backdrop-filter:blur(28px) saturate(165%)!important;
+  box-shadow:0 14px 38px rgba(0,0,0,.38),inset 0 1px 0 rgba(255,255,255,.08)!important;
+}
+/* A conversation owns the full viewport; the global nav must not cover its composer. */
+.wrap.chat-shell{max-width:none!important;width:100%!important;height:100dvh!important;min-height:0!important;margin:0!important;padding:0!important;overflow:hidden!important}
+.wrap.chat-shell>div{height:100%!important;min-height:0!important}
+.wrap.chat-shell .im-page{height:100%!important;min-height:0!important}
+@media(max-width:600px){
+  .tabbar{border-radius:22px!important}
+}
+@media(prefers-reduced-motion:reduce){
+  .tabbar a{transition:none!important}
+}

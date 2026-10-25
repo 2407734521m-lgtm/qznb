@@ -131,6 +131,8 @@ export default function Login() {
   // 注册/验证拿到 session 后补做的事：展示名、头像、用邀请码加入班级
   // （欢迎动画递给 App 层播，这里播会被登录跳转直接卸载）
   async function finishJoin(uid: string) {
+    // 仅在新注册完成后安排一次自愿 GPS 说明；这里不请求位置，也不记录坐标。
+    try { sessionStorage.setItem('ca_gps_offer', '1'); } catch {}
     const nm = name.trim();
     // 注意：username / real_name 由注册触发器写入，列级权限不允许前端直接改，这里只更新展示名
     if (nm) supabase.from('profiles').update({ display_name: nm }).eq('id', uid).then(() => {});

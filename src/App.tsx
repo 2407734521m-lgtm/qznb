@@ -479,7 +479,6 @@ function Shell() {
                   transition={{ duration: reduce ? 0 : 0.22, ease: [0.22, 1, 0.36, 1] }}>
                   <NavLink to={t.to} className={on ? 'on' : ''}
                     ref={on ? (el: any) => { if (el) el.scrollIntoView({ inline: 'center', block: 'nearest' }); } : undefined}>
-                    <span className="dock-tab-icon" aria-hidden="true">{t.ic}</span>
                     <span className="dock-tab-label">{t.label}</span>
                     {((t.to === '/explore' && boardUnread) || (t.to === '/me/notifications' && notifUnread)) && <span className="dock-unread-dot" />}
                   </NavLink>

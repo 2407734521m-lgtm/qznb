@@ -36,12 +36,14 @@ import HotSnippets from './pages/HotSnippets';
 import LoveWall from './pages/LoveWall';
 import Explore from './pages/Explore';
 import SongWall from './pages/SongWall';
+import Messages from './pages/Messages';
 
 const TABS = [
   { to: '/home', label: '首页', ic: '🏠' },
   { to: '/members', label: '班级', ic: '👥' },
   { to: '/explore', label: '发现', ic: '✦' },
   { to: '/friends', label: '私聊', ic: '💬' },
+  { to: '/messages', label: '信息', ic: '✉️' },
   { to: '/me/notifications', label: '消息', ic: '🔔' },
   { to: '/songs', label: '歌声墙', ic: '🎤' },
   { to: '/love-wall', label: '表白墙', ic: '💌' },
@@ -65,6 +67,7 @@ function isTabActive(tab: string, path: string) {
   if (tab === '/members') return path.startsWith('/members');
   if (tab === '/explore') return ['/explore','/feed','/board','/albums','/hot','/greetings','/events','/capsule','/wishes'].some(p => path.startsWith(p));
   if (tab === '/friends') return ['/friends','/chat'].some(p => path.startsWith(p));
+  if (tab === '/messages') return path.startsWith('/messages');
   if (tab === '/songs') return path.startsWith('/songs');
   if (tab === '/love-wall') return path.startsWith('/love-wall');
   if (tab === '/timeline') return path.startsWith('/timeline');
@@ -417,6 +420,7 @@ function Shell() {
               <Route path="/albums" element={<Navigate to="/feed" replace />} />
               <Route path="/albums/:id" element={<AlbumDetail />} />
               <Route path="/friends" element={<Friends />} />
+              <Route path="/messages" element={<Messages />} />
               <Route path="/chat/:cid" element={<Chat />} />
               <Route path="/timeline" element={<Timeline />} />
               <Route path="/timeline/:uid" element={<Timeline />} />

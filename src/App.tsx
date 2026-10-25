@@ -464,6 +464,29 @@ function Shell() {
           style={{ touchAction: 'pan-x pan-y' }}
           aria-label="主导航"
         >
+          <AnimatePresence initial={false}>
+            {!dockCollapsed && TABS.map((t, i) => {
+              const activeIdx = TABS.findIndex(x => isTabActive(x.to, loc.pathname));
+              const on = i === activeIdx;
+              return (
+                <motion.div key={t.to} className="dock-item"
+                  initial={reduce ? false : { opacity: 0, scale: 0.8, x: dockSide === 'left' ? -18 : 18 }}
+                  animate={{ opacity: 1, scale: 1, x: 0 }}
+                  exit={reduce ? { opacity: 0 } : {
+                    opacity: 0, scale: 0.45, x: dockSide === 'left' ? -100 : 100,
+                    transition: { duration: 0.24, ease: [0.22, 1, 0.36, 1] }
+                  }}
+                  transition={{ duration: reduce ? 0 : 0.22, ease: [0.22, 1, 0.36, 1] }}>
+                  <NavLink to={t.to} className={on ? 'on' : ''}
+                    ref={on ? (el: any) => { if (el) el.scrollIntoView({ inline: 'center', block: 'nearest' }); } : undefined}>
+                    <span className="dock-tab-icon" aria-hidden="true">{t.ic}</span>
+                    <span className="dock-tab-label">{t.label}</span>
+                    {((t.to === '/explore' && boardUnread) || (t.to === '/me/notifications' && notifUnread)) && <span className="dock-unread-dot" />}
+                  </NavLink>
+                </motion.div>
+              );
+            })}
+          </AnimatePresence>
           {dockCollapsed ? (
             <div className="dock-mini">
               <button type="button" className="dock-action dock-expand" aria-label="展开导航栏" title="展开导航栏"
@@ -475,29 +498,6 @@ function Shell() {
             </div>
           ) : (
             <>
-              <AnimatePresence initial={false}>
-                {TABS.map((t, i) => {
-                  const activeIdx = TABS.findIndex(x => isTabActive(x.to, loc.pathname));
-                  const on = i === activeIdx;
-                  return (
-                    <motion.div key={t.to} className="dock-item"
-                      initial={reduce ? false : { opacity: 0, scale: 0.8, x: dockSide === 'left' ? -18 : 18 }}
-                      animate={{ opacity: 1, scale: 1, x: 0 }}
-                      exit={reduce ? { opacity: 0 } : {
-                        opacity: 0, scale: 0.45, x: dockSide === 'left' ? -100 : 100,
-                        transition: { duration: 0.24, ease: [0.22, 1, 0.36, 1] }
-                      }}
-                      transition={{ duration: reduce ? 0 : 0.22, ease: [0.22, 1, 0.36, 1] }}>
-                      <NavLink to={t.to} className={on ? 'on' : ''}
-                        ref={on ? (el: any) => { if (el) el.scrollIntoView({ inline: 'center', block: 'nearest' }); } : undefined}>
-                        <span className="dock-tab-icon" aria-hidden="true">{t.ic}</span>
-                        <span className="dock-tab-label">{t.label}</span>
-                        {((t.to === '/explore' && boardUnread) || (t.to === '/me/notifications' && notifUnread)) && <span className="dock-unread-dot" />}
-                      </NavLink>
-                    </motion.div>
-                  );
-                })}
-              </AnimatePresence>
               <button type="button" className="dock-action dock-collapse" aria-label="收起导航栏" title="收起导航栏"
                 onClick={() => setDockCollapsed(true)}>{dockSide === 'left' ? '‹' : '›'}</button>
               <button type="button" className="dock-action dock-side-toggle"

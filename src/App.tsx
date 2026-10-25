@@ -400,7 +400,7 @@ function Shell() {
           <NavLink to="/members" style={{ fontSize: 13, color: '#9db4ff', textDecoration: 'none' }}>← 回站点</NavLink>
           <button className="mini ghost" onClick={logout}>退出</button>
         </div>
-      ) : !isChatPage ? (
+      ) : !isChatPage && !isMessagesPage ? (
       <nav className="topnav">
         <span className="links">
           {TABS.map(t => (

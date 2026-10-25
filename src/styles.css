@@ -516,3 +516,16 @@ input[type=file]::file-selector-button{
   .page .mcard:hover{transform:none}
 }
 
+/* 聊天页使用独立视口，不继承普通页面为底部导航预留的留白。 */
+.wrap.chat-shell{
+  height:100dvh;
+  min-height:0;
+  padding:0!important;
+  max-width:none;
+  margin:0;
+  overflow:hidden;
+}
+.wrap.chat-shell>div{
+  height:100%;
+  min-height:0;
+}

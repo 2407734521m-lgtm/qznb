@@ -51,16 +51,16 @@ export default function AdminBulkEmail({ setMsg }: { setMsg: (s: string) => void
     } catch (e: any) { setMsg(e.message || '发送失败。'); }
     finally { setBusy(false); }
   }
-  return <section style={{ color: '#eef1ff' }}>
-    <div style={panel}>
-      <h2 style={{ fontSize: 15, margin: '0 0 5px' }}>批量发送邮件</h2>
+  return <section className="admin-email-glass" style={{ color: '#eef1ff' }}>
+    <div className="admin-email-panel" style={panel}>
+      <h2 style={{ fontSize: 14, margin: '0 0 4px' }}>批量发送邮件</h2>
       <p style={{ color: '#9da6c3', fontSize: 11, lineHeight: 1.65, margin: '0 0 12px' }}>搜索并勾选收件账号，再填写邮件标题和正文。系统会逐个发送，不会把其他收件人的邮箱地址暴露给彼此。每次最多 100 个账号。</p>
       <input value={query} onChange={e => setQuery(e.target.value)} placeholder="搜索昵称、姓名或用户名…" style={field} />
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '9px 0', gap: 8 }}>
         <span style={{ color: '#b9c2dd', fontSize: 11 }}>已选择 {selected.length} 个账号</span>
         <button onClick={toggleVisible} style={small}>{filtered.length && filtered.every(p => selected.includes(p.id)) ? '取消选择当前列表' : '选择当前列表'}</button>
       </div>
-      <div style={{ maxHeight: 230, overflowY: 'auto', border: '1px solid #ffffff12', borderRadius: 10, padding: '3px 9px' }}>
+      <div style={{ maxHeight: 190, overflowY: 'auto', border: '1px solid #ffffff12', borderRadius: 10, padding: '3px 9px' }}>
         {loading ? <p style={muted}>加载成员中…</p> : filtered.map(p => <label key={p.id} style={person}>
           <input type="checkbox" checked={selected.includes(p.id)} onChange={() => toggle(p.id)} />
           <span style={{ minWidth: 0, flex: 1 }}><b style={{ display: 'block', fontSize: 12 }}>{p.display_name || p.real_name || p.username || '未命名账号'}</b><small style={{ color: '#8994b2', fontSize: 10 }}>{p.username || p.id.slice(0,8)}</small></span>
@@ -68,7 +68,7 @@ export default function AdminBulkEmail({ setMsg }: { setMsg: (s: string) => void
         {!loading && !filtered.length && <p style={muted}>没有匹配的账号。</p>}
       </div>
       <label style={label}>邮件标题</label>
-      <input value={subject} onChange={e => setSubject(e.target.value)} maxLength={160} placeholder="例如：平中·青春纪校园社区通知" style={field} />
+      <input value={subject} onChange={e => setSubject(e.target.value)} maxLength={160} placeholder="例如：班级活动通知" style={field} />
       <label style={label}>邮件内容</label>
       <textarea value={body} onChange={e => setBody(e.target.value)} maxLength={10000} rows={6} placeholder="写下邮件正文…" style={{ ...field, resize: 'vertical' }} />
       <button disabled={busy} onClick={() => void send()} style={{ ...sendBtn, opacity: busy ? .6 : 1 }}>{busy ? '发送中…' : `发送给已选择的 ${selected.length} 个账号`}</button>
@@ -76,10 +76,10 @@ export default function AdminBulkEmail({ setMsg }: { setMsg: (s: string) => void
     </div>
   </section>;
 }
-const panel: React.CSSProperties = { background: 'linear-gradient(145deg,#171e33,#0d1222)', border: '1px solid #ffffff18', borderRadius: 14, padding: 13 };
-const field: React.CSSProperties = { width: '100%', boxSizing: 'border-box', background: '#080d1c', border: '1px solid #ffffff20', borderRadius: 9, padding: '9px 10px', color: '#fff', font: 'inherit', fontSize: 12, outline: 'none' };
-const label: React.CSSProperties = { display: 'block', color: '#b9c2dd', fontSize: 11, margin: '10px 0 5px' };
+const panel: React.CSSProperties = { background: 'linear-gradient(145deg,#171e33,#0d1222)', border: '1px solid #ffffff18', borderRadius: 20, padding: 12 };
+const field: React.CSSProperties = { width: '100%', boxSizing: 'border-box', background: '#080d1c', border: '1px solid #ffffff20', borderRadius: 12, padding: '8px 10px', color: '#fff', font: 'inherit', fontSize: 12, outline: 'none' };
+const label: React.CSSProperties = { display: 'block', color: '#b9c2dd', fontSize: 10.5, margin: '8px 0 4px' };
 const small: React.CSSProperties = { border: '1px solid #ffffff20', borderRadius: 999, padding: '6px 9px', background: '#ffffff0c', color: '#dfe4f7', fontSize: 10, cursor: 'pointer' };
-const sendBtn: React.CSSProperties = { width: '100%', marginTop: 12, border: 0, borderRadius: 999, padding: '10px 12px', background: 'linear-gradient(135deg,#5b8cff,#8b5cf6)', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer' };
-const person: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 9, padding: '8px 2px', borderBottom: '1px solid #ffffff0c', cursor: 'pointer' };
+const sendBtn: React.CSSProperties = { width: '100%', marginTop: 12, border: 0, borderRadius: 999, padding: '9px 12px', background: 'linear-gradient(135deg,#5b8cff,#8b5cf6)', color: '#fff', fontSize: 11.5, fontWeight: 700, cursor: 'pointer' };
+const person: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 8, padding: '6px 2px', borderBottom: '1px solid #ffffff0c', cursor: 'pointer' };
 const muted: React.CSSProperties = { color: '#9da6c3', fontSize: 11, textAlign: 'center', padding: 10 };

@@ -574,3 +574,18 @@ input[type=file]::file-selector-button{
 @media(prefers-reduced-motion:reduce){
   .tabbar,.tabbar .dock-item>a,.tabbar .dock-action{transition:none!important}
 }
+
+
+/* iMessage 对话列表与单聊一样占满可视屏幕，不继承普通页面的底栏留白。 */
+.wrap.im-list-shell{
+  height:100dvh;
+  min-height:0;
+  padding:0!important;
+  max-width:none;
+  margin:0;
+  overflow:hidden;
+}
+.wrap.im-list-shell>div{
+  height:100%;
+  min-height:0;
+}

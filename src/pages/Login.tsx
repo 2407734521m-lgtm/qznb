@@ -106,20 +106,6 @@ export default function Login() {
     } finally { setBusy(false); }
   }
 
-  async function doPasskey() {
-    setErr(''); setBusy(true);
-    try {
-      try { sessionStorage.setItem('ca_login_success', '1'); } catch {}
-      const { error } = await supabase.auth.signInWithPasskey();
-      if (error) throw error;
-    }
-    catch (e: any) {
-      try { sessionStorage.removeItem('ca_login_success'); } catch {}
-      setErr('通行密钥登录失败：' + (e?.message || '未知错误'));
-    }
-    finally { setBusy(false); }
-  }
-
   async function uploadAvatar(uid: string) {
     if (!avatar) return;
     const small = await downscaleImage(avatar);
@@ -350,7 +336,6 @@ export default function Login() {
               onKeyDown={e => e.key === 'Enter' && doLogin()} />
             {err && <p className="err">{err}</p>}
             <button className="pri" disabled={busy} onClick={doLogin}>{busy ? <><Spin />登录中…</> : '进入班级'}</button>
-            <button className="ghost" style={{ width: '100%', marginTop: 8 }} disabled={busy} onClick={doPasskey}>🔑 使用通行密钥登录</button>
             <p className="login-switch">忘记密码了？<button onClick={() => { setMode('forgot'); setErr(''); setForgotSent(false); }}>点我重置</button></p>
             <p className="login-switch">还没有账号？<button onClick={() => { setMode('reg'); setErr(''); setCode(''); setInvite(''); setForgotSent(false); }}>去注册</button></p>
             <p className="login-switch" style={{ marginTop: 2 }}>如果登录不上<button onClick={() => setFbOpen(true)}>点我反馈</button></p>

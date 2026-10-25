@@ -23,7 +23,8 @@ input:focus,textarea:focus,select:focus{border-color:rgba(217,194,154,.55)!impor
 .topnav a.on,.topnav a[aria-current=page]{background:rgba(217,194,154,.12)!important;color:#f4f0e8!important}
 .tabbar{background:rgba(24,26,30,.94)!important;border:1px solid rgba(255,255,255,.1)!important;box-shadow:0 10px 32px rgba(0,0,0,.38)!important;backdrop-filter:blur(22px)!important}
 .tabbar a.on,.tabbar a[aria-current=page]{background:#e4d1ad!important;color:#26231e!important;box-shadow:none!important}
-.page{animation:editorial-in .28s ease both!important}
+/* Route entry is owned by the Framer Motion wrapper; avoid a second CSS entrance. */
+.page{animation:none!important}
 .page :where(.mcard,.card,.tl-item,.classes-card,.class-detail-post,.campus-post){animation:none!important}
 .mcard::after{display:none!important}
 .campus-shortcut:hover,.classes-card:hover,.class-detail-post:hover,.tl-item:hover{transform:translateY(-1px);box-shadow:0 10px 24px rgba(0,0,0,.16)!important}
@@ -73,4 +74,102 @@ body{
 }
 @media(prefers-reduced-motion:reduce){
   body{background-attachment:scroll}
+}
+
+
+/* UI audit follow-up: unify the editorial layer with the deep-blue / teal wallpaper. */
+:root{
+  --bg:#06101f;
+  --fg:#edf7ff;
+  --mut:#9fb4c8;
+  --a:#5eead4;
+  --b:#60a5fa;
+  --ui-blue:#5eead4;
+  --ui-lilac:#60a5fa;
+}
+body{
+  color:#edf7ff!important;
+  background-color:#06101f!important;
+  background-image:
+    radial-gradient(ellipse at 14% 12%,rgba(20,184,166,.14),transparent 38%),
+    radial-gradient(ellipse at 88% 20%,rgba(59,130,246,.13),transparent 42%),
+    linear-gradient(145deg,#06101f 0%,#09192c 52%,#071923 100%)!important;
+}
+.glow{
+  background:
+    radial-gradient(ellipse at 14% 12%,rgba(20,184,166,.18),transparent 38%),
+    radial-gradient(ellipse at 88% 20%,rgba(59,130,246,.16),transparent 42%),
+    radial-gradient(ellipse at 50% 100%,rgba(13,148,136,.09),transparent 50%)!important;
+  animation:none!important;
+}
+.app-bg{filter:blur(1px) brightness(78%) saturate(1.18)!important}
+.card,.mcard,.post,.tl-item,.campus-hero,.classes-hero,.class-detail-hero{
+  color:#edf7ff!important;
+  background:rgba(9,27,42,.74)!important;
+  border-color:rgba(153,224,229,.14)!important;
+  box-shadow:0 10px 30px rgba(0,0,0,.22)!important;
+  backdrop-filter:blur(16px) saturate(120%)!important;
+  -webkit-backdrop-filter:blur(16px) saturate(120%)!important;
+}
+.mcard:hover,.mcard:active,.tl-item:hover{
+  border-color:rgba(94,234,212,.36)!important;
+  box-shadow:0 14px 34px rgba(0,0,0,.28)!important;
+}
+.hero h1{color:#edf7ff!important;-webkit-text-fill-color:#edf7ff!important}
+.hero p,.mcard p{color:#a9bfd0!important}
+button.pri,.login-card button.pri{
+  color:#06201f!important;
+  background:linear-gradient(125deg,#5eead4,#7dd3fc)!important;
+  border-color:rgba(190,255,249,.28)!important;
+  box-shadow:0 8px 24px rgba(20,184,166,.16)!important;
+}
+button.pri:hover:not(:disabled),.login-card button.pri:hover:not(:disabled){
+  box-shadow:0 12px 30px rgba(20,184,166,.24)!important;
+}
+button.ghost{
+  color:#eaf7ff!important;
+  background:rgba(255,255,255,.055)!important;
+  border-color:rgba(255,255,255,.15)!important;
+}
+input,textarea,select,.searchbar input,.login-card input:not([type=file]):not([type=range]){
+  color:#edf7ff!important;
+  background:rgba(3,14,27,.55)!important;
+  border-color:rgba(255,255,255,.15)!important;
+}
+input:focus,textarea:focus,select:focus{
+  border-color:rgba(94,234,212,.65)!important;
+  box-shadow:0 0 0 3px rgba(94,234,212,.12)!important;
+}
+.topnav{
+  background:rgba(6,16,31,.86)!important;
+  border-bottom-color:rgba(255,255,255,.09)!important;
+}
+.topnav a.on,.topnav a[aria-current=page]{
+  background:rgba(94,234,212,.14)!important;
+  color:#eafcff!important;
+}
+.tabbar{
+  background:rgba(7,22,36,.9)!important;
+  border-color:rgba(153,224,229,.16)!important;
+  box-shadow:0 12px 36px rgba(0,0,0,.42)!important;
+}
+.tabbar a.on,.tabbar a[aria-current=page]{
+  background:linear-gradient(125deg,#5eead4,#7dd3fc)!important;
+  color:#06201f!important;
+  box-shadow:none!important;
+}
+.login-card,.login-wrap .card{
+  color:#edf7ff!important;
+  background:linear-gradient(145deg,rgba(10,30,48,.94),rgba(6,16,31,.92))!important;
+  border-color:rgba(153,224,229,.18)!important;
+}
+.login-card label,.login-card .priv-note{color:#b9cbd8!important}
+.login-card .sub{color:#9fb4c8!important}
+.admin-shell{background:#06101f!important;color:#edf7ff!important}
+.admin-shell .admin-dock{background:rgba(7,22,36,.96)!important;border-color:rgba(153,224,229,.16)!important}
+.admin-shell .admin-dock button[aria-current=page]{background:#5eead4!important;color:#06201f!important}
+@media(prefers-reduced-motion:reduce){
+  .page,.glow{animation:none!important}
+  html{scroll-behavior:auto!important}
+  *,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important;animation-iteration-count:1!important}
 }

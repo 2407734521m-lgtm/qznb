@@ -814,3 +814,74 @@ button.pri{background:linear-gradient(135deg,#252b36,#555e6e)!important;color:#f
   .tabbar, .tabbar .dock-item, .tabbar .dock-item > a, .tabbar .dock-toggle,
   .page .mcard { transition: none !important; }
 }
+
+
+/* ============ Premium motion pass · mobile-first ============ */
+:root {
+  --motion-out: cubic-bezier(.22, 1, .36, 1);
+  --motion-soft: cubic-bezier(.2, .7, .2, 1);
+}
+html { scroll-behavior: smooth; }
+body { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
+button, a, [role="button"], .mcard, .card, .glass, .dock-item {
+  -webkit-tap-highlight-color: transparent;
+}
+button, [role="button"], .mcard, .card, .glass, .dock-item > a {
+  transition:
+    transform 260ms var(--motion-out),
+    box-shadow 260ms var(--motion-out),
+    border-color 260ms var(--motion-soft),
+    background-color 260ms var(--motion-soft),
+    opacity 220ms ease;
+}
+@media (hover: hover) and (pointer: fine) {
+  .mcard:hover, .card:hover, .glass:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 14px 38px rgba(0,0,0,.18);
+  }
+  button:hover, [role="button"]:hover { filter: brightness(1.06); }
+}
+button:active, [role="button"]:active, .dock-item > a:active {
+  transform: scale(.975);
+}
+a:focus-visible, button:focus-visible, [role="button"]:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--a, #fff) 76%, transparent);
+  outline-offset: 3px;
+}
+img { backface-visibility: hidden; }
+.page img, .mcard img, .member-card img, .avatar {
+  transition: transform 420ms var(--motion-out), filter 320ms ease;
+}
+@media (hover: hover) and (pointer: fine) {
+  .mcard:hover img, .member-card:hover img { transform: scale(1.025); }
+}
+/* Keep the bottom dock composed and stable on narrow Android screens. */
+.tabbar {
+  padding-bottom: max(6px, env(safe-area-inset-bottom));
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+.tabbar .dock-item, .tabbar .dock-item > a {
+  transform-origin: center bottom;
+  will-change: transform;
+}
+.page, .wrap, .mgrid, .mcard { min-width: 0; }
+.page, .wrap { overflow-wrap: anywhere; }
+@media (max-width: 480px) {
+  .wrap {
+    padding-left: max(12px, env(safe-area-inset-left));
+    padding-right: max(12px, env(safe-area-inset-right));
+  }
+  .mgrid { gap: 10px; }
+  .mcard { border-radius: min(var(--r, 20px), 18px); }
+  button, .button, [role="button"] { touch-action: manipulation; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: .01ms !important;
+  }
+}

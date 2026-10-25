@@ -2,35 +2,63 @@ name: Run DB migration
 on:
   workflow_dispatch:
     inputs:
-      invite_code:
-        description: 'Invite code to set in app_settings'
+      migration_file:
+        description: 'Single SQL migration file under supabase/migrations/'
         required: true
-        default: 'class13-2025'
-permissions: { contents: read }
-env:
-  PGHOST: aws-1-us-west-2.pooler.supabase.com
-  PGPORT: 6543
-  PGUSER: postgres.wnddwkdfndrkxivvrxcy
-  PGDATABASE: postgres
+        default: 'supabase/migrations/013_member_presence_access_hardening.sql'
+        type: string
+      invite_code:
+        description: 'Optional invite code to set in app_settings; leave empty to skip'
+        required: false
+        default: ''
+        type: string
+permissions:
+  contents: read
 jobs:
   migrate:
     runs-on: ubuntu-latest
+    env:
+      PGHOST: ${{ secrets.SUPABASE_DB_HOST }}
+      PGPORT: ${{ secrets.SUPABASE_DB_PORT }}
+      PGUSER: ${{ secrets.SUPABASE_DB_USER }}
+      PGDATABASE: ${{ secrets.SUPABASE_DB_NAME }}
+      PGPASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
     steps:
       - uses: actions/checkout@v4
+      - name: Validate target connection and migration path
+        env:
+          MIGRATION_FILE: ${{ inputs.migration_file }}
+        run: |
+          set -euo pipefail
+          for name in PGHOST PGPORT PGUSER PGDATABASE PGPASSWORD; do
+            if [ -z "${!name}" ]; then
+              echo "::error::Missing GitHub Actions secret for ${name}. Configure SUPABASE_DB_* for the intended project first."
+              exit 1
+            fi
+          done
+          case "$MIGRATION_FILE" in
+            supabase/migrations/[0-9]*_[a-zA-Z0-9_-]*.sql) ;;
+            *) echo "::error::Migration path must be a single SQL file under supabase/migrations/"; exit 1 ;;
+          esac
+          test -f "$MIGRATION_FILE"
+          printf 'Target host: %s; database: %s; migration: %s\n' "$PGHOST" "$PGDATABASE" "$MIGRATION_FILE"
       - name: Install postgresql-client
         run: sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client
-      - name: Run migration SQL
-        run: for f in supabase/migrations/*.sql; do echo "== $f =="; psql -v ON_ERROR_STOP=1 -f "$f"; done
+      - name: Apply only the selected migration
         env:
-          PGPASSWORD: ${{ secrets.DB_PASSWORD }}
-      - name: Set invite code
-        run: psql -v ON_ERROR_STOP=1 -c "insert into app_settings(id, invite_code) values (1,'${{ inputs.invite_code }}') on conflict (id) do update set invite_code = excluded.invite_code;"
-        env:
-          PGPASSWORD: ${{ secrets.DB_PASSWORD }}
-      - name: Verify tables and invite code
+          MIGRATION_FILE: ${{ inputs.migration_file }}
         run: |
-          psql -c "select table_name from information_schema.tables where table_schema='public' and table_name in ('profiles','profile_privacy','profile_contacts','app_settings','admin_audit_logs') order by 1;"
-          psql -t -c "select 'invite_code=' || invite_code from app_settings where id=1;"
-          psql -t -c "select 'bootstrap_fn=' || count(*) from pg_proc where pronamespace='public'::regnamespace and proname='bootstrap_super_admin';"
+          set -euo pipefail
+          psql -v ON_ERROR_STOP=1 -f "$MIGRATION_FILE"
+      - name: Optionally set invite code
+        if: ${{ inputs.invite_code != '' }}
         env:
-          PGPASSWORD: ${{ secrets.DB_PASSWORD }}
+          INVITE_CODE: ${{ inputs.invite_code }}
+        run: |
+          set -euo pipefail
+          psql -v ON_ERROR_STOP=1 -v invite_code="$INVITE_CODE" \
+            -c "insert into public.app_settings(id, invite_code) values (1, :'invite_code') on conflict (id) do update set invite_code = excluded.invite_code;"
+      - name: Verify member_presence security configuration
+        run: |
+          psql -v ON_ERROR_STOP=1 -c "select grantee, privilege_type from information_schema.role_table_grants where table_schema='public' and table_name='member_presence' and grantee in ('anon','authenticated') order by 1,2;"
+          psql -v ON_ERROR_STOP=1 -c "select policyname, roles, cmd, qual, with_check from pg_policies where schemaname='public' and tablename='member_presence' order by policyname;"

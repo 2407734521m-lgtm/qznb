@@ -529,8 +529,9 @@ function Moderate({ setMsg }: { setMsg: (s: string) => void }) {
     else setMsg('失败：' + error.message);
   }
   async function handleReport(r: Report, ok: boolean) {
-    const note = ok ? '' : (prompt('驳回原因（可选）：') ?? '');
-    if (!ok && note === null) return;
+    const answer = ok ? null : prompt('驳回原因（可选）：');
+    if (!ok && answer === null) return;
+    const note = answer ?? '';
     const { error } = await supabase.from('reports').update({
       status: ok ? 'done' : 'rejected', handle_note: note || null, handled_at: new Date().toISOString(),
     }).eq('id', r.id);

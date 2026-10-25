@@ -158,7 +158,7 @@ export default function Admin() {
       return () => { active = false; };
     }
     const uid = session.user.id;
-    supabase.rpc('my_role').then(({ data, error }) => {
+    Promise.resolve(supabase.rpc('my_role')).then(({ data, error }) => {
       if (!active) return;
       setRole(!error && (data === 'admin' || data === 'super_admin') ? data : 'unauthorized');
       setVerifiedUid(uid);

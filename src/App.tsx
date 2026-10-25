@@ -473,7 +473,7 @@ function Shell() {
                   initial={reduce ? false : { opacity: 0, scale: 0.8, x: dockSide === 'left' ? -18 : 18 }}
                   animate={{ opacity: 1, scale: 1, x: 0 }}
                   exit={reduce ? { opacity: 0 } : {
-                    opacity: 0, scale: 0.45, x: dockSide === 'left' ? -100 : 100,
+                    opacity: 0, scale: 0.4, x: dockSide === 'left' ? -window.innerWidth : window.innerWidth,
                     transition: { duration: 0.24, ease: [0.22, 1, 0.36, 1] }
                   }}
                   transition={{ duration: reduce ? 0 : 0.22, ease: [0.22, 1, 0.36, 1] }}>

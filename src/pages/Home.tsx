@@ -85,9 +85,8 @@ export default function Home() {
   }
 
   const card: React.CSSProperties = {
-    background: 'color-mix(in srgb,#141824 72%,transparent)',
-    backdropFilter: 'blur(24px) saturate(1.6)', WebkitBackdropFilter: 'blur(24px) saturate(1.6)',
-    border: '1px solid #ffffff1c', borderRadius: 16, padding: 14, marginBottom: 12,
+    background: '#fff', border: '1px solid #e9ebf0', borderRadius: 18, padding: 16, marginBottom: 12,
+    boxShadow: '0 8px 28px #202a3d0a',
   };
 
   return (
@@ -118,6 +117,23 @@ export default function Home() {
         )}
       </div>
 
+      {/* 公告 */}
+      {notices.length > 0 && (
+        <div style={card}>
+          <div className="row" style={{ justifyContent: 'space-between', marginBottom: 8 }}>
+            <b style={{ fontSize: 14 }}>班级公告</b>
+            <button className="mini ghost" onClick={() => nav('/board')}>全部</button>
+          </div>
+          {notices.map(n => (
+            <div key={n.id} onClick={() => setAnnPop(n)} style={{ fontSize: 13.5, padding: '7px 0', borderBottom: '1px solid #edf0f4', cursor: 'pointer' }}>
+              {n.title && <b style={{ color: '#252a33' }}>{n.title} </b>}{(n.content || '').slice(0, 60)}
+              <div style={{ color: 'var(--mut)', fontSize: 11.5 }}>{timeAgo(n.created_at)}</div>
+            </div>
+          ))}
+        </div>
+      )}
+
+
       {/* 公告优先：快捷入口保留在公告之后 */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 8, marginBottom: 12 }}>
         {([
@@ -136,22 +152,6 @@ export default function Home() {
           </button>
         ))}
       </div>
-
-      {/* 公告 */}
-      {notices.length > 0 && (
-        <div style={card}>
-          <div className="row" style={{ justifyContent: 'space-between', marginBottom: 8 }}>
-            <b style={{ fontSize: 14 }}>班级公告</b>
-            <button className="mini ghost" onClick={() => nav('/board')}>全部</button>
-          </div>
-          {notices.map(n => (
-            <div key={n.id} onClick={() => setAnnPop(n)} style={{ fontSize: 13.5, padding: '7px 0', borderBottom: '1px solid #edf0f4', cursor: 'pointer' }}>
-              {n.title && <b style={{ color: '#252a33' }}>{n.title} </b>}{(n.content || '').slice(0, 60)}
-              <div style={{ color: 'var(--mut)', fontSize: 11.5 }}>{timeAgo(n.created_at)}</div>
-            </div>
-          ))}
-        </div>
-      )}
 
       {/* 最新动态 */}
       {posts.length > 0 && (

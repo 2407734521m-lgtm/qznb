@@ -22,6 +22,13 @@ function fmtEnvelopeDate(s: string) {
   return `${String(d.getDate()).padStart(2, '0')} ${MONTHS[d.getMonth()]} ${d.getFullYear()}`;
 }
 
+// 信纸分页：按 260 字切页，页数是内容真实长度算出来的，不虚构 10 页。
+function chunkContent(content: string, size = 260) {
+  const pages: string[] = [];
+  for (let i = 0; i < content.length; i += size) pages.push(content.slice(i, i + size));
+  return pages.length ? pages : [''];
+}
+
 // 视频里的倒计时口径：还有 X 天 Y 小时开启；不足一天只说小时。
 function countdown(openAt: string, now: number) {
   const diff = parseLocalDate(openAt).getTime() - now;
@@ -47,6 +54,13 @@ export default function Capsule() {
   const [order, setOrder] = useState<number[]>([]);
   // 视频里默认就是自动滚动：开着，每 3.5 秒翻一封；阅读时自动停。
   const [autoScroll, setAutoScroll] = useState(true);
+  // 视频里的分类与未读：收件箱 = 别人的公开胶囊，我发的 = 自己的，未读 = 已到期但本机还没点开过的。
+  // 未读只记在本机 localStorage 里，表里没有已读字段，换设备不会同步，这一点下面和汇报里都会明说。
+  const [readIds, setReadIds] = useState<number[]>(() => {
+    try { return JSON.parse(localStorage.getItem('capsule-read-ids') || '[]'); } catch { return []; }
+  });
+  const [filter, setFilter] = useState<'all' | 'inbox' | 'sent' | 'unread' | 'locked'>('all');
+  const [page, setPage] = useState(0);
 
   async function load() {
     const { data } = await supabase.from('time_capsules').select('*').order('open_at', { ascending: true }).limit(50);
@@ -66,13 +80,23 @@ export default function Capsule() {
     const t = setInterval(() => setOrder(o => (o.length < 2 ? o : [...o.slice(1), o[0]])), 3500);
     return () => clearInterval(t);
   }, [autoScroll, reading, order.length, reduce]);
-  // 阅读页按 Esc 关闭。
+  // 阅读页按 Esc 关闭；每次换一封信都回到第 1 页。
   useEffect(() => {
     if (!reading) return;
+    setPage(0);
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setReading(null); };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [reading]);
+
+  function markRead(id: number) {
+    setReadIds(prev => {
+      if (prev.includes(id)) return prev;
+      const next = [...prev, id];
+      try { localStorage.setItem('capsule-read-ids', JSON.stringify(next)); } catch { /* 本机存不下也不影响读信 */ }
+      return next;
+    });
+  }
 
   async function save() {
     if (!title.trim() || !content.trim() || !openAt) return setMsg('标题、内容、开启日期都要填');
@@ -92,8 +116,24 @@ export default function Capsule() {
 
   const today = new Date().toISOString().slice(0, 10);
   const byId = useMemo(() => new Map(list.map(c => [c.id, c])), [list]);
-  const ordered = order.map(id => byId.get(id)).filter(Boolean);
+  const allOrdered = order.map(id => byId.get(id)).filter(Boolean);
+  const ordered = allOrdered.filter(c => {
+    if (filter === 'inbox') return c.author_id !== me;
+    if (filter === 'sent') return c.author_id === me;
+    if (filter === 'unread') return c.open_at <= today && !readIds.includes(c.id);
+    if (filter === 'locked') return c.open_at > today;
+    return true;
+  });
   const top = ordered[0];
+  const readingPages = reading ? chunkContent(String(reading.content || '')) : [''];
+  const safePage = Math.min(page, readingPages.length - 1);
+  const counts = {
+    all: allOrdered.length,
+    inbox: allOrdered.filter(c => c.author_id !== me).length,
+    sent: allOrdered.filter(c => c.author_id === me).length,
+    unread: allOrdered.filter(c => c.open_at <= today && !readIds.includes(c.id)).length,
+    locked: allOrdered.filter(c => c.open_at > today).length,
+  };
 
   return (
     <div className="page" style={{ paddingBottom: 100 }}>
@@ -114,8 +154,17 @@ export default function Capsule() {
         {msg && <p className="priv-note" style={{ marginTop: 8 }}>{msg}</p>}
       </div>
 
-      {ordered.length > 0 && (
+      {allOrdered.length > 0 && (
         <>
+          <div className="capsule-filters" role="tablist" aria-label="胶囊分类">
+            {([
+              ['all', '全部'], ['inbox', '收件箱'], ['sent', '我发的'], ['unread', '未读'], ['locked', '未开启'],
+            ] as const).map(([key, label]) => (
+              <button key={key} className={`mini ${filter === key ? 'pri' : 'ghost'}`} onClick={() => setFilter(key)}>
+                {label} {counts[key]}
+              </button>
+            ))}
+          </div>
           <div className="capsule-toolbar">
             <label className="capsule-autoscroll">
               <input type="checkbox" checked={autoScroll} onChange={e => setAutoScroll(e.target.checked)} />
@@ -143,13 +192,14 @@ export default function Capsule() {
                     whileTap={reduce ? undefined : { scale: 0.98 }}
                     onClick={() => {
                       if (!isTop) { setOrder(o => [c.id, ...o.filter(x => x !== c.id)]); return; }
-                      if (opened) setReading(c); else setShakeId(c.id);
+                      if (opened) { setReading(c); markRead(c.id); } else setShakeId(c.id);
                     }}
                     onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); (e.target as HTMLElement).click(); } }}
                     aria-label={isTop
                       ? (opened ? `打开胶囊：${c.title}` : `未开启的胶囊，${countdown(c.open_at, now)}`)
                       : `把这封胶囊翻到最上面，开启日期 ${c.open_at}`}>
                     <span className="capsule-flap" aria-hidden="true" />
+                    {opened && !readIds.includes(c.id) && <span className="capsule-paperclip" aria-hidden="true">📎</span>}
                     <span className="capsule-seal" aria-hidden="true">{opened ? '开' : '封'}</span>
                     <span className="capsule-face">
                       <span className="capsule-date">{fmtEnvelopeDate(c.open_at)}</span>
@@ -170,6 +220,7 @@ export default function Capsule() {
               );
             })}
           </div>
+          {ordered.length === 0 && <div className="center"><div className="card">这个分类下还没有胶囊</div></div>}
           {top && (
             <p className="capsule-count">共 {ordered.length} 封 · 最上面是 {fmtEnvelopeDate(top.open_at)} 的一封</p>
           )}
@@ -201,7 +252,12 @@ export default function Capsule() {
                   </div>
                   <button className="mini ghost" onClick={() => setReading(null)} aria-label="关闭">✕</button>
                 </div>
-                <p className="capsule-letter-body">{reading.content}</p>
+                <p className="capsule-letter-body">{readingPages[safePage]}</p>
+                <div className="capsule-page-nav">
+                  <button className="mini ghost" disabled={safePage <= 0} onClick={() => setPage(p => Math.max(0, p - 1))}>‹ 上一页</button>
+                  <span>{safePage + 1} / {readingPages.length}</span>
+                  <button className="mini ghost" disabled={safePage >= readingPages.length - 1} onClick={() => setPage(p => Math.min(readingPages.length - 1, p + 1))}>下一页 ›</button>
+                </div>
               </motion.div>
             </div>
           </motion.div>

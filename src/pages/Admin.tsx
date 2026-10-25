@@ -849,19 +849,22 @@ function Settings({ me, setMsg }: { me: string; setMsg: (s: string) => void }) {
         <span style={{ fontSize: 13.5 }}>维护模式</span>
         <button className={'mini' + (vals.maintenance === 'true' ? '' : ' ghost')}
           onClick={() => {
-            if (vals.maintenance !== 'true' && !confirm('开启维护模式？普通成员将看到维护提示。')) return;
+            if (vals.maintenance !== 'true' && !confirm('开启维护模式？所有人打开网站都只看到维护页（后台入口除外）。')) return;
             save('maintenance', vals.maintenance === 'true' ? 'false' : 'true');
           }}>
           {vals.maintenance === 'true' ? '开' : '关'}
         </button>
       </div>
-      {vals.maintenance === 'true' && (<>
-        <label style={{ ...mut, marginTop: 8 }}>维护提示语</label>
-        <div className="row" style={{ gap: 8 }}>
-          <input value={vals.maintenance_msg ?? ''} onChange={e => setVals({ ...vals, maintenance_msg: e.target.value })} style={{ flex: 1 }} />
-          <button className="mini" onClick={() => save('maintenance_msg', vals.maintenance_msg ?? '')}>保存</button>
-        </div>
-      </>)}
+      <label style={{ ...mut, marginTop: 8 }}>维护标题</label>
+      <div className="row" style={{ gap: 8, marginBottom: 10 }}>
+        <input value={vals.maintenance_title ?? ''} onChange={e => setVals({ ...vals, maintenance_title: e.target.value })} style={{ flex: 1 }} placeholder="默认：系统维护中" />
+        <button className="mini" onClick={() => save('maintenance_title', vals.maintenance_title ?? '')}>保存</button>
+      </div>
+      <label style={mut}>维护提示语</label>
+      <div className="row" style={{ gap: 8 }}>
+        <input value={vals.maintenance_msg ?? ''} onChange={e => setVals({ ...vals, maintenance_msg: e.target.value })} style={{ flex: 1 }} placeholder="默认：系统维护中，稍后再来" />
+        <button className="mini" onClick={() => save('maintenance_msg', vals.maintenance_msg ?? '')}>保存</button>
+      </div>
     </div>
 
     <div style={card}>

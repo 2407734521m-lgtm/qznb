@@ -177,6 +177,20 @@ function ResetPassword({ onDone }: { onDone: () => void }) {
   );
 }
 
+// 维护模式：后台开关 maintenance 打开时，主站所有人（包括管理员）都只看到这页。
+// 唯一出口是管理后台页（/admin）：管理员从维护页点「管理员入口」进后台把开关关掉，站就恢复了。
+function MaintenanceScreen({ title, msg, hasSession, onLogout, onAdmin }: { title: string; msg: string; hasSession: boolean; onLogout: () => void; onAdmin: () => void }) {
+  return (<><div className="glow" /><div style={{ minHeight: '72vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+    <div className="login-card" style={{ textAlign: 'center' }}>
+      <h1 style={{ fontSize: 22 }}>{title || '系统维护中'}</h1>
+      <p className="sub">我们的班级 · 青春档案</p>
+      <p style={{ fontSize: 15, lineHeight: 1.8, margin: '18px 0 22px' }}>{msg || '系统维护中，稍后再来'}</p>
+      <button className="pri" onClick={onAdmin}>管理员入口</button>
+      {hasSession && <button className="mini ghost" style={{ marginTop: 12 }} onClick={onLogout}>退出登录</button>}
+    </div>
+  </div></>);
+}
+
 function Shell() {
   const { session, loading } = useAuth();  const [role, setRole] = useState('');
   const loc = useLocation();
@@ -346,6 +360,23 @@ function Shell() {
     else setRole('');
   }, [session]);
 
+  // 维护模式门禁：读后台 site_settings（全员可读），开关打开时主站所有人只见维护页。
+  // 读失败默认当作没开，避免把全站锁死；每次切页重读一次，后台改完开关即生效。
+  const [maint, setMaint] = useState<{ on: boolean; title: string; msg: string } | null>(null);
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const { data } = await supabase.from('site_settings').select('key, value').in('key', ['maintenance', 'maintenance_title', 'maintenance_msg']);
+        if (!alive) return;
+        const m: Record<string, string> = {};
+        (data || []).forEach((r: any) => { m[r.key] = r.value ?? ''; });
+        setMaint({ on: m.maintenance === 'true', title: m.maintenance_title || '', msg: m.maintenance_msg || '' });
+      } catch { if (alive) setMaint(null); }
+    })();
+    return () => { alive = false; };
+  }, [loc.pathname]);
+
   // 上报设备与位置（管理员可见）：静默执行，失败不打扰用户
   useEffect(() => {
     if (!session) return;
@@ -386,6 +417,11 @@ function Shell() {
     setPwReset(false);
     try { window.history.replaceState(null, '', window.location.pathname + window.location.hash); } catch {}
   }} /></>);
+
+  // 维护模式：后台开关开着时，主站所有人只显示维护页（管理后台页本身不受影响，密码重置流程也不拦）。
+  if (maint?.on && !isAdminPage) {
+    return <MaintenanceScreen title={maint.title} msg={maint.msg} hasSession={!!session} onLogout={logout} onAdmin={() => nav('/admin')} />;
+  }
 
   return (
     <>

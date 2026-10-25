@@ -182,4 +182,55 @@ begin
 end;
 $function$;
 
+
+-- Keep join-code redemption signed-in only and pin both remaining flagged
+-- SECURITY DEFINER functions to an empty search_path.
+revoke execute on function public.join_with_code(text) from public, anon;
+grant execute on function public.join_with_code(text) to authenticated, service_role;
+
+create or replace function public.join_with_code(code text)
+returns text
+language plpgsql
+security definer
+set search_path to ''
+as $function$
+declare r record;
+begin
+  if auth.uid() is null then raise exception 'not authenticated'; end if;
+  select ic.nickname into r
+  from public.invite_codes ic
+  where ic.code = join_with_code.code
+    and ic.active = true
+    and (ic.expires_at is null or ic.expires_at > now())
+  limit 1;
+  if found then
+    update public.profiles set joined = true where id = auth.uid();
+    return coalesce(r.nickname, '');
+  end if;
+  select s.invite_code, s.invite_nickname into r
+  from public.app_settings s where s.id = 1;
+  if r.invite_code is not null and r.invite_code = join_with_code.code then
+    update public.profiles set joined = true where id = auth.uid();
+    return coalesce(r.invite_nickname, '');
+  end if;
+  return null;
+end;
+$function$;
+
+create or replace function public.member_video(uid uuid)
+returns table(path text, status text)
+language plpgsql
+security definer
+set search_path to ''
+as $function$
+begin
+  return query
+  select p.intro_video_path, p.intro_video_status
+  from public.profiles p
+  where p.id = uid
+    and p.intro_video_path is not null
+    and (p.id = auth.uid() or p.intro_video_status = 'approved');
+end;
+$function$;
+
 commit;

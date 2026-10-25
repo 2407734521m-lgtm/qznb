@@ -199,9 +199,13 @@ export default function Member() {
           )}
         </div>
         <div className="head-photo">
-          <div ref={photoRef} style={{ visibility: flying ? 'hidden' : 'visible' }}>
+          <motion.div ref={photoRef} layout="position"
+            initial={reduce ? false : { opacity: 0.72, scale: 0.985 }}
+            animate={{ opacity: flying ? 0 : 1, scale: 1 }}
+            transition={{ duration: reduce ? 0 : 0.38, ease: [0.22, 1, 0.36, 1] }}
+            style={{ visibility: flying ? 'hidden' : 'visible', transformOrigin: 'center' }}>
             <Photo id={id} path={m?.avatar_path} name={name || '?'} />
-          </div>
+          </motion.div>
           {isMe && <label className="ghost upbtn">📷 上传照片
             <input type="file" hidden accept="image/jpeg,image/png,image/webp"
               onChange={e => { pickPhoto(e.target.files?.[0]); e.target.value = ''; }} />

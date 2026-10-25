@@ -9,7 +9,6 @@ import { supabase } from './lib/supabase';
 import './styles.css';
 import './styles-cinematic.css';
 import './styles-editorial.css';
-import './styles-pingzhong.css';
 
 // 管理员子域名（如 admin.xxx.com）：直达后台，不加载主站界面
 const isAdminHost = window.location.hostname.split('.')[0].toLowerCase() === 'admin';

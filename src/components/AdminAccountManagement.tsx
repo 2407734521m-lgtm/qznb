@@ -89,6 +89,41 @@ export default function AdminAccountManagement({
     await load();
   }
 
+  async function deleteAccount(account: Account) {
+    if (!isSuper) {
+      setMsg('删除账号仅限超级管理员操作。');
+      return;
+    }
+    if (account.id === me) {
+      setMsg('不能删除自己的账号。');
+      return;
+    }
+    if (account.role !== 'member') {
+      setMsg('为防止误删管理员，只允许删除普通成员账号。');
+      return;
+    }
+    const label = account.display_name || account.username;
+    const confirmed = window.confirm(
+      `确定永久删除成员「${label}」？此操作不可撤销。该成员的个人资料和登录账号将被删除；其发布的帖子、评论、私信等关联内容也可能因数据库级联规则一并删除。其他成员的账号不会被删除。`
+    );
+    if (!confirmed) return;
+    setBusy(account.id);
+    const { error } = await supabase.rpc('admin_delete_member_account', { target: account.id });
+    setBusy(null);
+    if (error) {
+      setMsg(`删除失败：${error.message}`);
+      return;
+    }
+    setRows((old) => old.filter((r) => r.id !== account.id));
+    setExpanded((old) => {
+      const next = new Set(old);
+      next.delete(account.id);
+      return next;
+    });
+    setMsg(`已永久删除成员「${label}」。`);
+    await load();
+  }
+
   function toggleDetails(id: string) {
     setExpanded((old) => {
       const next = new Set(old);
@@ -175,6 +210,12 @@ export default function AdminAccountManagement({
           onClick={() => void toggleAccount(r)}>
           {busy === r.id ? '处理中…' : r.joined ? '禁用账号' : '恢复账号'}
         </button>
+        {isSuper && r.role === 'member' && <button
+          style={{ ...btn, borderColor: '#ff5d6c88', color: '#ff9da7', background: '#ff5d6c12' }}
+          disabled={r.id === me || busy === r.id}
+          onClick={() => void deleteAccount(r)}>
+          {busy === r.id ? '处理中…' : '永久删除'}
+        </button>}
         {!isSuper && <span style={muted}>账号管理操作仅超级管理员可用</span>}
       </div>
     </article>)}

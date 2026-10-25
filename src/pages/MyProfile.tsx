@@ -405,7 +405,7 @@ export default function MyProfile() {
       }}>
         {notifs.length === 0 ? <p className="mut" style={{ fontSize: 13 }}>暂无通知</p> :
           notifs.map(n => (
-            <div key={n.id} style={{ padding: '10px 0', borderBottom: '1px solid #ffffff0c', opacity: n.is_read ? 0.65 : 1 }}>
+            <div key={n.id} style={{ padding: '10px 0', borderBottom: '1px solid #edf0f4', opacity: n.is_read ? 0.65 : 1 }}>
               <div style={{ fontSize: 13.5, fontWeight: n.is_read ? 400 : 700 }}>
                 {!n.is_read && <span style={{ color: '#ff4d4f', marginRight: 6 }}>●</span>}{n.title}
               </div>
@@ -419,14 +419,14 @@ export default function MyProfile() {
         <div style={{ padding: '16px 20px 6px', fontSize: 16, fontWeight: 700 }}>⚙️ 账号</div>
         {(role === 'admin' || role === 'super_admin') &&
           <button type="button" onClick={() => { location.hash = '#/admin'; }}
-            style={{ width: '100%', display: 'flex', alignItems: 'center', padding: '13px 20px', background: 'none', border: 0, borderTop: '1px solid #ffffff10', color: 'inherit', font: 'inherit', fontSize: 14, cursor: 'pointer', textAlign: 'left' }}>
-            🛠️ 管理后台 <span style={{ flex: 1 }} /><span style={{ color: '#fff', opacity: 0.6 }}>›</span></button>}
+            style={{ width: '100%', display: 'flex', alignItems: 'center', padding: '13px 20px', background: 'none', border: 0, borderTop: '1px solid #edf0f4', color: 'inherit', font: 'inherit', fontSize: 14, cursor: 'pointer', textAlign: 'left' }}>
+            🛠️ 管理后台 <span style={{ flex: 1 }} /><span style={{ color: '#8a8f9a', opacity: 1 }}>›</span></button>}
         <button type="button" onClick={() => setFbOpen(true)}
-          style={{ width: '100%', display: 'flex', alignItems: 'center', padding: '13px 20px', background: 'none', border: 0, borderTop: '1px solid #ffffff10', color: 'inherit', font: 'inherit', fontSize: 14, cursor: 'pointer', textAlign: 'left' }}>
-          💬 意见反馈 <span style={{ flex: 1 }} /><span style={{ color: '#fff', opacity: 0.6 }}>›</span></button>
+          style={{ width: '100%', display: 'flex', alignItems: 'center', padding: '13px 20px', background: 'none', border: 0, borderTop: '1px solid #edf0f4', color: 'inherit', font: 'inherit', fontSize: 14, cursor: 'pointer', textAlign: 'left' }}>
+          💬 意见反馈 <span style={{ flex: 1 }} /><span style={{ color: '#8a8f9a', opacity: 1 }}>›</span></button>
         <button type="button" onClick={logout}
-          style={{ width: '100%', display: 'flex', alignItems: 'center', padding: '13px 20px', background: 'none', border: 0, borderTop: '1px solid #ffffff10', color: 'inherit', font: 'inherit', fontSize: 14, cursor: 'pointer', textAlign: 'left' }}>
-          退出登录 <span style={{ flex: 1 }} /><span style={{ color: '#fff', opacity: 0.6 }}>›</span></button>
+          style={{ width: '100%', display: 'flex', alignItems: 'center', padding: '13px 20px', background: 'none', border: 0, borderTop: '1px solid #edf0f4', color: 'inherit', font: 'inherit', fontSize: 14, cursor: 'pointer', textAlign: 'left' }}>
+          退出登录 <span style={{ flex: 1 }} /><span style={{ color: '#8a8f9a', opacity: 1 }}>›</span></button>
       </div>
 
       {msg && <p className="card me-msg">{msg}</p>}

@@ -55,39 +55,39 @@ export default function LoveWall() {
   }
 
   const shown = mine ? myPosts : posts;
-  return <main style={{ maxWidth: 760, margin: '0 auto', padding: '12px 0 28px', color: '#f5f6ff' }}>
-    <section style={{ padding: 22, borderRadius: 24, border: '1px solid #ffffff20', background: 'linear-gradient(145deg,#241b39dd,#11182ddd)', boxShadow: '0 18px 60px #0005' }}>
-      <div style={{ fontSize: 11, letterSpacing: 3, color: '#d7a9ff' }}>OUR CLASS · LITTLE FEELINGS</div>
+  return <main style={{ maxWidth: 760, margin: '0 auto', padding: '12px 0 28px', color: '#202124' }}>
+    <section style={{ padding: 22, borderRadius: 24, border: '1px solid #e9ebf0', background: '#fff', boxShadow: '0 8px 28px #202a3d0a' }}>
+      <div style={{ fontSize: 11, letterSpacing: 3, color: '#737b89' }}>OUR CLASS · LITTLE FEELINGS</div>
       <h1 style={{ fontSize: 27, margin: '10px 0 6px' }}>心动信箱</h1>
-      <p style={{ color: '#b8bdd3', lineHeight: 1.7, fontSize: 13, marginTop: 0 }}>把喜欢、感谢和没来得及说的话，留在青春档案里。</p>
-      <label style={{ display: 'block', fontSize: 12, color: '#c5c9df', margin: '14px 0 6px' }}>投稿类型</label>
+      <p style={{ color: '#606673', lineHeight: 1.7, fontSize: 13, marginTop: 0 }}>把喜欢、感谢和没来得及说的话，留在青春档案里。</p>
+      <label style={{ display: 'block', fontSize: 12, color: '#606673', margin: '14px 0 6px' }}>投稿类型</label>
       <select value={category} onChange={e => setCategory(e.target.value)} style={field}>
         {categories.map(c => <option key={c}>{c}</option>)}
       </select>
-      <label style={{ display: 'block', fontSize: 12, color: '#c5c9df', margin: '12px 0 6px' }}>写给谁（选填）</label>
+      <label style={{ display: 'block', fontSize: 12, color: '#606673', margin: '12px 0 6px' }}>写给谁（选填）</label>
       <input value={recipient} onChange={e => setRecipient(e.target.value)} maxLength={40} placeholder="可以留空" style={field} />
-      <label style={{ display: 'block', fontSize: 12, color: '#c5c9df', margin: '12px 0 6px' }}>写下你的心意</label>
+      <label style={{ display: 'block', fontSize: 12, color: '#606673', margin: '12px 0 6px' }}>写下你的心意</label>
       <textarea value={content} onChange={e => setContent(e.target.value)} maxLength={500} rows={4} placeholder="请尊重他人，不要发布联系方式、隐私或让对方不舒服的内容。" style={{ ...field, resize: 'vertical' }} />
-      <div style={{ margin: '12px 0', fontSize: 12, color: '#939ab6', lineHeight: 1.6 }}>是否隐藏姓名由个人设置控制（个人中心 → 隐私设置 → 表白墙隐藏姓名），只影响新帖子，老帖子保持原样；管理员仍可查看投稿账号。</div>
+      <div style={{ margin: '12px 0', fontSize: 12, color: '#606673', lineHeight: 1.6 }}>是否隐藏姓名由个人设置控制（个人中心 → 隐私设置 → 表白墙隐藏姓名），只影响新帖子，老帖子保持原样；管理员仍可查看投稿账号。</div>
       <button onClick={publish} disabled={busy} style={primary}>{busy ? '提交中…' : '提交审核'}</button>
-      {notice && <p role="status" style={{ color: '#d7d9f0', fontSize: 12, lineHeight: 1.6 }}>{notice}</p>}
+      {notice && <p role="status" style={{ color: '#333946', fontSize: 12, lineHeight: 1.6 }}>{notice}</p>}
     </section>
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '22px 2px 12px' }}>
       <h2 style={{ margin: 0, fontSize: 18 }}>墙上的心意</h2>
       <button onClick={() => setMine(v => !v)} style={ghost}>{mine ? '查看全部公开' : '我的投稿'}</button>
     </div>
-    {shown.length === 0 && <div style={{ padding: 24, textAlign: 'center', color: '#9ca3bd', border: '1px dashed #ffffff25', borderRadius: 18 }}>这里还没有内容，写下第一份温柔的心意吧。</div>}
+    {shown.length === 0 && <div style={{ padding: 24, textAlign: 'center', color: '#606673', border: '1px dashed #dfe3ea', borderRadius: 18 }}>这里还没有内容，写下第一份温柔的心意吧。</div>}
     <div style={{ display: 'grid', gap: 12 }}>
-      {shown.map(p => <article key={p.id} style={{ padding: 17, borderRadius: 18, border: '1px solid #ffffff18', background: '#11182bd9' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, fontSize: 11, color: '#c3a5ff' }}><span>{p.category}</span><span>{p.status === 'pending' ? '审核中' : p.status === 'rejected' ? '未通过' : p.status === 'hidden' ? '已隐藏' : new Date(p.created_at).toLocaleDateString()}</span></div>
-        {p.recipient_name && <div style={{ marginTop: 10, fontSize: 12, color: '#c7c9dc' }}>TO · {p.recipient_name}</div>}
+      {shown.map(p => <article key={p.id} style={{ padding: 17, borderRadius: 18, border: '1px solid #e9ebf0', background: '#fff' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, fontSize: 11, color: '#6d5bd0' }}><span>{p.category}</span><span>{p.status === 'pending' ? '审核中' : p.status === 'rejected' ? '未通过' : p.status === 'hidden' ? '已隐藏' : new Date(p.created_at).toLocaleDateString()}</span></div>
+        {p.recipient_name && <div style={{ marginTop: 10, fontSize: 12, color: '#333946' }}>TO · {p.recipient_name}</div>}
         <p style={{ whiteSpace: 'pre-wrap', lineHeight: 1.8, margin: '10px 0 12px', overflowWrap: 'anywhere' }}>{p.content}</p>
-        <div style={{ fontSize: 11, color: '#9299b4' }}>{p.is_anonymous ? '匿名同学' : (mine ? '我发布的' : ((p as PublicPost).author_display_name || '班级同学'))} · {p.status === 'pending' ? '仅你和管理员可见' : p.status === 'published' ? '已公开展示' : '未公开展示'}</div>
+        <div style={{ fontSize: 11, color: '#606673' }}>{p.is_anonymous ? '匿名同学' : (mine ? '我发布的' : ((p as PublicPost).author_display_name || '班级同学'))} · {p.status === 'pending' ? '仅你和管理员可见' : p.status === 'published' ? '已公开展示' : '未公开展示'}</div>
       </article>)}
     </div>
   </main>;
 }
 
-const field: React.CSSProperties = { width: '100%', boxSizing: 'border-box', border: '1px solid #ffffff20', background: '#090e1ddd', color: '#f5f6ff', padding: '11px 12px', borderRadius: 12, outline: 'none', font: 'inherit', fontSize: 13 };
-const primary: React.CSSProperties = { border: 0, borderRadius: 999, padding: '11px 18px', background: 'linear-gradient(135deg,#d18bff,#738bff)', color: '#101225', fontWeight: 800, cursor: 'pointer' };
-const ghost: React.CSSProperties = { border: '1px solid #ffffff20', borderRadius: 999, padding: '7px 12px', background: '#ffffff0a', color: '#e4e7fa', cursor: 'pointer', fontSize: 12 };
+const field: React.CSSProperties = { width: '100%', boxSizing: 'border-box', border: '1px solid #dfe3ea', background: '#fff', color: '#202124', padding: '11px 12px', borderRadius: 12, outline: 'none', font: 'inherit', fontSize: 13 };
+const primary: React.CSSProperties = { border: 0, borderRadius: 999, padding: '11px 18px', background: '#202632', color: '#fff', fontWeight: 800, cursor: 'pointer' };
+const ghost: React.CSSProperties = { border: '1px solid #dfe3ea', borderRadius: 999, padding: '7px 12px', background: '#fff', color: '#333946', cursor: 'pointer', fontSize: 12 };

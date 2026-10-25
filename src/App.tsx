@@ -19,7 +19,6 @@ import Friends from './pages/Friends';
 import Chat from './pages/Chat';
 import Admin from './pages/Admin';
 import Home from './pages/Home';
-import ClassicHome from './pages/ClassicHome';
 import Capsule from './pages/Capsule';
 import Wishes from './pages/Wishes';
 import Events from './pages/Events';
@@ -40,9 +39,9 @@ import SongWall from './pages/SongWall';
 
 const TABS = [
   { to: '/home', label: '首页', ic: '🏠' },
-  { to: '/feed', label: '贴吧', ic: '💬' },
-  { to: '/explore', label: '发现', ic: '✦' },
-  { to: '/timeline', label: '青春', ic: '🌟' },
+  { to: '/members', label: '班级', ic: '👥' },
+  { to: '/explore', label: '互动', ic: '✦' },
+  { to: '/timeline', label: '回忆', ic: '🌟' },
   { to: '/me', label: '我的', ic: '🙂' },
 ];
 
@@ -59,8 +58,8 @@ function parseDevice(ua: string): string {
 }
 
 function isTabActive(tab: string, path: string) {
-  if (tab === '/feed') return path.startsWith('/feed');
-  if (tab === '/explore') return ['/explore','/board','/members','/albums','/friends','/chat','/hot','/greetings','/events','/capsule','/wishes','/love-wall','/songs'].some(p => path.startsWith(p));
+    if (tab === '/members') return ['/members','/friends','/chat'].some(p => path.startsWith(p));
+  if (tab === '/explore') return ['/explore','/feed','/board','/albums','/hot','/greetings','/events','/capsule','/wishes','/love-wall','/songs'].some(p => path.startsWith(p));
   if (tab === '/timeline') return path.startsWith('/timeline');
   if (tab === '/me') return path.startsWith('/me');
   return path === tab;
@@ -371,7 +370,7 @@ function Shell() {
             exit={reduce ? { opacity: 0 } : { opacity: 0, y: -10 }}
             transition={{ duration: reduce ? 0.12 : 0.28, ease: [0.22, 1, 0.36, 1] }}>
             <Routes location={loc}>
-              <Route path="/" element={<Navigate to="/home" replace />} />
+              <Route path="/" element={<Navigate to="/members" replace />} />
               <Route path="/board" element={<Board />} />
               <Route path="/explore" element={<Explore />} />
               <Route path="/love-wall" element={<LoveWall />} />
@@ -394,8 +393,7 @@ function Shell() {
               <Route path="/me/account" element={<MeAccount />} />
               <Route path="/greetings" element={<Greetings />} />
               <Route path="/home" element={<Home />} />
-              <Route path="/classic" element={<ClassicHome />} />
-              <Route path="/capsule" element={<Capsule />} />
+                            <Route path="/capsule" element={<Capsule />} />
               <Route path="/wishes" element={<Wishes />} />
               <Route path="/events" element={<Events />} />
               <Route path="/hot" element={<HotSnippets />} />
@@ -436,7 +434,7 @@ function Shell() {
             background: 'linear-gradient(160deg,#1a2140,#0e1428)',
             border: '1px solid #5b8cff44', boxShadow: '0 20px 60px #000d',
           }}>
-            <div style={{ fontSize: 11, color: '#8b93b0', marginBottom: 6 }}>校园公告</div>
+            <div style={{ fontSize: 11, color: '#8b93b0', marginBottom: 6 }}>班级公告</div>
             {loginPop.title && <div style={{ fontSize: 16, fontWeight: 800, color: '#fff', marginBottom: 8 }}>{loginPop.title}</div>}
             <div style={{ fontSize: 15, lineHeight: 1.8, whiteSpace: 'pre-wrap', color: '#fff' }}>{loginPop.content}</div>
             <div style={{ color: 'var(--mut)', fontSize: 11.5, marginTop: 10 }}>

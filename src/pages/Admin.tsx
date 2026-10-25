@@ -638,6 +638,9 @@ function Moderate({ setMsg }: { setMsg: (s: string) => void }) {
 
 /* ---------------- 公告管理 ---------------- */
 function BoardMgr({ me, setMsg }: { me: string; setMsg: (s: string) => void }) {
+  const [bannerText, setBannerText] = useState('把我们的青春，留在这里');
+  const [bannerUrl, setBannerUrl] = useState('');
+  const [bannerBusy, setBannerBusy] = useState(false);
   const [title, setTitle] = useState('');
   const [text, setText] = useState('');
   const [exp, setExp] = useState('0');
@@ -651,7 +654,17 @@ function BoardMgr({ me, setMsg }: { me: string; setMsg: (s: string) => void }) {
       .order('is_pinned', { ascending: false }).order('created_at', { ascending: false }).limit(20);
     setList(data ?? []);
   }
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); supabase.from('site_settings').select('key,value').in('key',['home_banner_text','home_banner_url']).then(({data}) => { (data ?? []).forEach((x:any) => { if(x.key==='home_banner_text') setBannerText(x.value || '把我们的青春，留在这里'); if(x.key==='home_banner_url') setBannerUrl(x.value || ''); }); }); }, []);
+  async function saveBanner() {
+    setBannerBusy(true); let failure = '';
+    for (const item of [{key:'home_banner_text',value:bannerText.trim().slice(0,100) || '把我们的青春，留在这里'},{key:'home_banner_url',value:bannerUrl.trim()}]) {
+      const {data: found,error: readError} = await supabase.from('site_settings').select('key').eq('key',item.key).maybeSingle();
+      if(readError) { failure=readError.message; break; }
+      const result = found ? await supabase.from('site_settings').update({value:item.value}).eq('key',item.key) : await supabase.from('site_settings').insert(item);
+      if(result.error) { failure=result.error.message; break; }
+    }
+    setBannerBusy(false); setMsg(failure ? '横幅保存失败：'+failure : '首页横幅设置已保存');
+  }
   async function post() {
     const c = text.trim(); if (!c) return setMsg('先写点公告内容');
     const days = parseInt(exp, 10);
@@ -686,6 +699,12 @@ function BoardMgr({ me, setMsg }: { me: string; setMsg: (s: string) => void }) {
   }
   return (
     <div style={card}>
+      <h3 style={h3}>首页 16:9 横幅</h3>
+      <p style={mut}>在这里设置首页横幅文字和图片地址；图片建议使用横向 16:9 图片的 HTTPS 地址。</p>
+      <input value={bannerText} onChange={e=>setBannerText(e.target.value)} maxLength={100} placeholder="横幅标题文字" />
+      <input value={bannerUrl} onChange={e=>setBannerUrl(e.target.value)} placeholder="图片 HTTPS 地址（可留空）" />
+      <div style={rowBtn}><button className="pri" style={{width:'auto',padding:'10px 20px'}} disabled={bannerBusy} onClick={saveBanner}>{bannerBusy?'保存中…':'保存横幅'}</button><button className="mini ghost" disabled={bannerBusy} onClick={()=>setBannerUrl('')}>移除图片</button></div>
+      <hr style={{border:0,borderTop:'1px solid #e5e7eb',margin:'18px 0'}} />
       <h3 style={h3}>公告管理</h3>
       <input value={title} onChange={e => setTitle(e.target.value)} maxLength={60} placeholder="公告标题（可选）" style={{ marginBottom: 8 }} />
       <textarea value={text} onChange={e => setText(e.target.value)} rows={3} maxLength={500} placeholder="写公告…" style={{ width: '100%' }} />

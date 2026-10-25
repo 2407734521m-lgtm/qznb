@@ -5,6 +5,7 @@ import { useAuth } from '../auth';
 import '../styles-admin-cinematic.css';
 import AdminSystemCenter from '../components/AdminSystemCenter';
 import AdminLoveWall from '../components/AdminLoveWall';
+import AdminNotificationCenter from '../components/AdminNotificationCenter';
 import AdminSongWall from '../components/AdminSongWall';
 import AdminBulkEmail from '../components/AdminBulkEmail';
 
@@ -32,6 +33,7 @@ const TABS_ALL: [string, string, boolean][] = [
   ['invite', '邀请码', false],
   ['moderate', '审核', false],
   ['loveWall', '表白墙', false],
+  ['notifications', '通知中心', false],
   ['songWall', '歌声墙', false],
   ['bulkEmail', '批量邮件', false],
   ['feedback', '反馈', false],
@@ -197,6 +199,7 @@ export default function Admin() {
               {tab === 'members' && <Members me={me} isSuper={isSuper} setMsg={setMsg} extQ={q0} />}
               {tab === 'moderate' && <Moderate setMsg={setMsg} />}
               {tab === 'loveWall' && <AdminLoveWall setMsg={setMsg} />}
+              {tab === 'notifications' && <AdminNotificationCenter setMsg={setMsg} />}
               {tab === 'songWall' && <AdminSongWall setMsg={setMsg} />}
               {tab === 'bulkEmail' && <AdminBulkEmail setMsg={setMsg} />}
               {tab === 'board' && <BoardMgr me={me} setMsg={setMsg} />}

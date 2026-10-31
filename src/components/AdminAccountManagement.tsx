@@ -101,7 +101,7 @@ export default function AdminAccountManagement({
 
   async function batchSetJoined(joined: boolean) {
     if (!isSuper) return setMsg('批量账号操作仅限超级管理员。');
-    const targets = filtered.filter(account => selected.has(account.id) && account.id !== me && account.joined !== joined);
+    const targets = filtered.filter(account => selected.has(account.id) && account.role === 'member' && account.id !== me && account.joined !== joined);
     if (!targets.length) return setMsg('没有可执行的选中账号。');
     const verb = joined ? '恢复' : '禁用';
     if (!(await confirmDialog('确认' + verb + '选中的 ' + targets.length + ' 个账号？不会处理当前登录账号。', { danger: !joined }))) return;
@@ -110,7 +110,7 @@ export default function AdminAccountManagement({
     for (const account of targets) {
       const { error } = await supabase.rpc('set_joined', { target: account.id, j: joined });
       if (error) failed++;
-      else { success++; await alog(joined ? 'member_unban' : 'member_ban', { target: account.id, source: 'account_management_batch' }); }
+      else { success++; /* set_joined writes its own audit row in the database. */ }
     }
     setBatchBusy(false); setSelected(new Set()); await load();
     setMsg('批量' + verb + '完成：成功 ' + success + ' 个，失败 ' + failed + ' 个。');
@@ -206,7 +206,7 @@ export default function AdminAccountManagement({
       <p style={{ ...muted, margin: '8px 0 0' }}>当前 {filtered.length} 个账号 · 第 {page + 1}/{pageCount} 页。登录位置只显示用户在资料/设备功能中提供的记录，不会冒充 IP 定位。</p>
       <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap', marginTop: 9 }}>
         <button style={btn} onClick={exportFiltered}>导出当前筛选 CSV</button>
-        <button style={btn} onClick={() => setSelected(new Set(shown.map(account => account.id)))}>选择本页</button>
+        <button style={btn} onClick={() => setSelected(new Set(shown.filter(account => account.role === 'member' && account.id !== me).map(account => account.id)))}>选择本页</button>
         <button style={btn} onClick={() => setSelected(new Set())}>清空选择</button>
       </div>
       {selected.size > 0 && <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap', marginTop: 9 }}>
@@ -221,7 +221,7 @@ export default function AdminAccountManagement({
 
     {shown.map((r) => <article key={r.id} style={{ ...panel, opacity: r.joined ? 1 : .72 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'flex-start' }}>
-        <input type="checkbox" aria-label={'选择 ' + (r.display_name || r.username)} checked={selected.has(r.id)} onChange={event => setSelected(current => { const next = new Set(current); event.target.checked ? next.add(r.id) : next.delete(r.id); return next; })} disabled={r.id === me} />
+        <input type="checkbox" aria-label={'选择 ' + (r.display_name || r.username)} checked={selected.has(r.id)} onChange={event => setSelected(current => { const next = new Set(current); event.target.checked ? next.add(r.id) : next.delete(r.id); return next; })} disabled={r.id === me || r.role !== 'member'} />
         <div style={{ minWidth: 0, flex: 1 }}>
           <div style={{ fontSize: 14, fontWeight: 750, overflowWrap: 'anywhere' }}>{r.display_name || r.username}
             <span style={{ ...muted, marginLeft: 6 }}>{r.role === 'super_admin' ? '超级管理员' : r.role === 'admin' ? '内容管理员' : '成员'}</span>

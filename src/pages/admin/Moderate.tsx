@@ -153,7 +153,7 @@ export default function Moderate({ setMsg }: { setMsg: (s: string) => void }) {
       {cmts.map(c => (
         <div key={c.id} style={{ ...card, opacity: c.deleted_at ? 0.55 : 1 }}>
           <div style={{ fontSize: 13.5 }}>{(c.content || '').slice(0, 120)}</div>
-          <div style={mut}>{names[c.author_id] || '…'} · {postSections[c.post_id] === 'daily' ? '日常' : '动态'} #{c.post_id} · {timeAgo(c.created_at)}{c.deleted_at ? ' · 已隐藏' : ''}</div>
+          <div style={mut}>{names[c.author_id] || '…'} · {postSections[c.post_id] === 'daily' ? '日常' : postSections[c.post_id] === 'feed' ? '动态' : '帖子'} #{c.post_id} · {timeAgo(c.created_at)}{c.deleted_at ? ' · 已隐藏' : ''}</div>
           <div style={rowBtn}>
             {c.deleted_at
               ? <button className="mini" onClick={() => hideCmt(c, false)}>恢复</button>
@@ -193,7 +193,7 @@ export default function Moderate({ setMsg }: { setMsg: (s: string) => void }) {
       {trashC.map(c => (
         <div key={'c' + c.id} style={{ ...card, opacity: 0.75 }}>
           <div style={{ fontSize: 13.5 }}>{(c.content || '').slice(0, 120)}</div>
-          <div style={mut}>{names[c.author_id] || '…'} · {postSections[c.post_id] === 'daily' ? '日常' : '动态'} #{c.post_id} · 删除于 {timeAgo(c.deleted_at || c.created_at)}</div>
+          <div style={mut}>{names[c.author_id] || '…'} · {postSections[c.post_id] === 'daily' ? '日常' : postSections[c.post_id] === 'feed' ? '动态' : '帖子'} #{c.post_id} · 删除于 {timeAgo(c.deleted_at || c.created_at)}</div>
           <div style={rowBtn}>
             <button className="mini" onClick={() => hideCmt(c, false)}>恢复</button>
             <button className="mini danger" onClick={() => purgeCmt(c)}>彻底删除</button>

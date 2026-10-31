@@ -51,14 +51,6 @@ const TABS_ALL: [string, string, boolean][] = [
   ['test', '测试', true], // 仅超管
 ];
 
-const card: React.CSSProperties = {
-  background: 'linear-gradient(160deg,#131a30,#0e1428)',
-  border: '1px solid #ffffff12', borderRadius: 14, padding: 14, marginBottom: 12,
-  boxShadow: '0 8px 32px #0008',
-};
-const h3: React.CSSProperties = { margin: '0 0 10px', fontSize: 15, fontWeight: 700 };
-const mut: React.CSSProperties = { color: 'var(--mut)', fontSize: 12.5 };
-const rowBtn: React.CSSProperties = { display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 8 };
 
 function bucket14(rows: { created_at: string }[]) {
   const days: number[] = Array(14).fill(0);

@@ -1,6 +1,10 @@
 -- 021: 受限的访客首页数据接口
--- 仅返回公开站点文案、访客开关和管理员公告；不向 anon 暴露成员、动态或聊天表。
-create or replace function public.public_guest_landing()
+-- 内部读取函数放在非 Data API 暴露的 private schema；public RPC 仅作安全包装。
+create schema if not exists private;
+revoke all on schema private from public;
+grant usage on schema private to anon, authenticated;
+
+create or replace function private.public_guest_landing_data()
 returns jsonb
 language sql
 stable
@@ -33,6 +37,20 @@ as $$
       ) as n
     ), '[]'::jsonb)
   );
+$$;
+
+revoke all on function private.public_guest_landing_data() from public, anon, authenticated;
+grant execute on function private.public_guest_landing_data() to anon, authenticated;
+
+-- SECURITY INVOKER 包装函数不会自行绕过 RLS；它只调用 private 中的白名单数据函数。
+create or replace function public.public_guest_landing()
+returns jsonb
+language sql
+stable
+security invoker
+set search_path = public, private
+as $$
+  select private.public_guest_landing_data();
 $$;
 
 revoke all on function public.public_guest_landing() from public, anon, authenticated;

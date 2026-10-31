@@ -6,6 +6,9 @@ import { downscaleImage, uploadMedia, useSignedUrl } from '../lib/media';
 import { goBackOr } from '../components/BackButton';
 import type { ChatMessage } from '../types/message';
 
+type ChatReaction = { message_id: number; profile_id: string; reaction: string; created_at: string };
+const QUICK_REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '🙏'];
+
 
 function MessageContent({ body }: { body: string }) {
   const imagePath = body.startsWith('[[im-image:') && body.endsWith(']]') ? body.slice(11, -2) : null;
@@ -36,6 +39,12 @@ export default function Chat() {
   const [error, setError] = useState('');
   const [showDetails, setShowDetails] = useState(false);
   const [showStickers, setShowStickers] = useState(false);
+  const [replyTarget, setReplyTarget] = useState<ChatMessage | null>(null);
+  const [reactions, setReactions] = useState<ChatReaction[]>([]);
+  const [showReactionFor, setShowReactionFor] = useState<number | null>(null);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editingText, setEditingText] = useState('');
+  const [otherLastReadMessageId, setOtherLastReadMessageId] = useState<number | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const firstRef = useRef(true);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -63,10 +72,36 @@ export default function Chat() {
 
   async function load() {
     if (!cid || !Number.isFinite(Number(cid))) return;
+    const conversationId = Number(cid);
     const { data, error: loadError } = await supabase.from('messages').select('*')
-      .eq('conversation_id', Number(cid)).order('created_at');
-    if (data) { setMsgs(data); setError(''); }
-    else if (loadError) setError('消息加载失败，请检查网络后重试。');
+      .eq('conversation_id', conversationId).order('created_at');
+    if (data) {
+      setMsgs(data);
+      setError('');
+      const messageIds = data.map(message => message.id);
+      if (messageIds.length) {
+        const { data: reactionRows, error: reactionError } = await supabase
+          .from('message_reactions').select('message_id,profile_id,reaction,created_at')
+          .in('message_id', messageIds);
+        if (!reactionError) setReactions((reactionRows ?? []) as ChatReaction[]);
+      } else {
+        setReactions([]);
+      }
+    } else if (loadError) {
+      setError('消息加载失败，请检查网络后重试。');
+      return;
+    }
+
+    const { data: members } = await supabase.from('conversation_members')
+      .select('profile_id,last_read_message_id')
+      .eq('conversation_id', conversationId);
+    const otherMember = (members ?? []).find(member => member.profile_id !== me);
+    setOtherLastReadMessageId(otherMember?.last_read_message_id ?? null);
+
+    const { error: readError } = await supabase.rpc('mark_conversation_read', {
+      p_conversation_id: conversationId,
+    });
+    if (readError) console.error('mark conversation read failed', readError);
   }
 
   useEffect(() => {
@@ -86,6 +121,8 @@ export default function Chat() {
     }
     const channel = supabase.channel('chat-' + cid)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'messages', filter: 'conversation_id=eq.' + cid }, () => { load(); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'conversation_members', filter: 'conversation_id=eq.' + cid }, () => { load(); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'message_reactions' }, () => { load(); })
       .subscribe();
     const fallback = setInterval(load, 12000);
     return () => { clearInterval(fallback); supabase.removeChannel(channel); };
@@ -105,8 +142,9 @@ export default function Chat() {
     try {
       const compact = await downscaleImage(file, 1440, 0.82);
       const path = await uploadMedia('chat-media', compact, Number(cid) + '/' + me);
-      const { error: sendError } = await supabase.from('messages').insert({ conversation_id: Number(cid), sender_id: me, body: '[[im-image:' + path + ']]' });
+      const { error: sendError } = await supabase.from('messages').insert({ conversation_id: Number(cid), sender_id: me, body: '[[im-image:' + path + ']]', reply_to_id: replyTarget?.id ?? null });
       if (sendError) throw sendError;
+      setReplyTarget(null);
       await load();
     } catch (e) {
       console.error('chat image upload failed', e);
@@ -151,8 +189,9 @@ export default function Chat() {
           const ext = mime === 'audio/mp4' ? 'm4a' : mime === 'audio/ogg' ? 'ogg' : mime === 'audio/aac' ? 'aac' : mime === 'audio/mpeg' ? 'mp3' : 'webm';
           const file = new File([blob], 'voice-' + Date.now() + '.' + ext, { type: mime });
           const path = await uploadMedia('chat-media', file, Number(cid) + '/' + me);
-          const { error: sendError } = await supabase.from('messages').insert({ conversation_id: Number(cid), sender_id: me, body: '[[im-audio:' + path + ']]' });
+          const { error: sendError } = await supabase.from('messages').insert({ conversation_id: Number(cid), sender_id: me, body: '[[im-audio:' + path + ']]', reply_to_id: replyTarget?.id ?? null });
           if (sendError) throw sendError;
+          setReplyTarget(null);
           await load();
         } catch (e) {
           console.error('chat voice upload failed', e);
@@ -181,10 +220,11 @@ export default function Chat() {
     if (sending || uploading || !cid) return;
     setSending(true); setError('');
     const { error: sendError } = await supabase.from('messages')
-      .insert({ conversation_id: Number(cid), sender_id: me, body: sticker });
+      .insert({ conversation_id: Number(cid), sender_id: me, body: sticker, reply_to_id: replyTarget?.id ?? null });
     setSending(false);
     if (sendError) { setError('贴纸发送失败，请稍后重试。'); return; }
     setShowStickers(false);
+    setReplyTarget(null);
     await load();
   }
 
@@ -193,12 +233,70 @@ export default function Chat() {
     if (!b || sending) return;
     setSending(true); setError('');
     const { error: sendError } = await supabase.from('messages')
-      .insert({ conversation_id: Number(cid), sender_id: me, body: b.slice(0, 2000) });
+      .insert({ conversation_id: Number(cid), sender_id: me, body: b.slice(0, 2000), reply_to_id: replyTarget?.id ?? null });
     setSending(false);
     if (sendError) { setError('发送失败，请稍后重试。'); return; }
     setText('');
+    setReplyTarget(null);
     await load();
     inputRef.current?.focus();
+  }
+
+  async function toggleReaction(messageId: number, reaction: string) {
+    const existing = reactions.find(item => item.message_id === messageId && item.profile_id === me && item.reaction === reaction);
+    if (existing) {
+      const { error: removeError } = await supabase.from('message_reactions').delete()
+        .eq('message_id', messageId).eq('profile_id', me).eq('reaction', reaction);
+      if (removeError) { setError('取消回应失败，请重试。'); return; }
+    } else {
+      const { error: addError } = await supabase.from('message_reactions').insert({
+        message_id: messageId, profile_id: me, reaction,
+      });
+      if (addError) { setError('发送回应失败，请重试。'); return; }
+    }
+    setShowReactionFor(null);
+    await load();
+  }
+
+  async function saveEdit(messageId: number) {
+    const body = editingText.trim();
+    if (!body) { setError('消息内容不能为空。'); return; }
+    const { error: editError } = await supabase.rpc('edit_chat_message', {
+      p_message_id: messageId, p_body: body.slice(0, 2000),
+    });
+    if (editError) { setError('编辑失败：' + editError.message); return; }
+    setEditingId(null);
+    setEditingText('');
+    await load();
+  }
+
+  async function withdrawMessage(messageId: number) {
+    if (!window.confirm('确定撤回这条消息吗？撤回后对话双方都无法再查看原内容。')) return;
+    const { error: deleteError } = await supabase.rpc('delete_chat_message', {
+      p_message_id: messageId,
+    });
+    if (deleteError) { setError('撤回失败：' + deleteError.message); return; }
+    await load();
+  }
+
+  function beginReply(message: ChatMessage) {
+    setReplyTarget(message);
+    setShowReactionFor(null);
+    inputRef.current?.focus();
+  }
+
+  function messageSummary(message?: ChatMessage | null) {
+    if (!message || message.deleted_at) return '消息已撤回';
+    if (message.body.startsWith('[[im-image:')) return '图片';
+    if (message.body.startsWith('[[im-audio:')) return '语音';
+    return message.body;
+  }
+
+  function reactionGroups(messageId: number) {
+    return QUICK_REACTIONS.map(reaction => ({
+      reaction,
+      items: reactions.filter(item => item.message_id === messageId && item.reaction === reaction),
+    })).filter(group => group.items.length > 0);
   }
 
   const dateLabel = (value: string, previous?: string) => {
@@ -227,6 +325,20 @@ export default function Chat() {
         .im-send{width:36px;height:36px;flex:none;border:0;border-radius:50%;background:linear-gradient(135deg,#5d9bff,#387bf5);color:white;font-size:19px;display:grid;place-items:center;cursor:pointer;box-shadow:0 4px 10px #4788f533}.im-send:disabled{opacity:.35;box-shadow:none}
         .im-error{padding:8px 14px;color:#b64c5b;background:#fff0f1;font-size:12px}\n        .im-photo-link{display:block;max-width:min(68vw,320px);border-radius:14px;overflow:hidden;margin:1px 0 4px}.im-photo{display:block;width:100%;max-height:360px;object-fit:cover;border-radius:14px}.im-photo-loading{padding:18px 26px;color:#8390a6;font-size:12px;background:#f1f4fa;border-radius:12px}.im-audio-card{display:flex;align-items:center;gap:10px;min-width:min(60vw,280px);max-width:100%}.im-audio-symbol{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;flex:none;background:rgba(255,255,255,.22);font-size:13px}.im-audio-main{flex:1;min-width:0}.im-waveform{height:25px;display:flex;align-items:center;gap:3px;margin-bottom:4px}.im-waveform i{width:3px;flex:none;display:block;border-radius:4px;background:currentColor;opacity:.75}.im-audio-main audio{width:100%;height:28px;max-width:260px;filter:invert(.92) hue-rotate(175deg);opacity:.92}.im-sticker-tray{display:flex;gap:10px;overflow-x:auto;padding:12px 14px;background:rgba(8,29,39,.78);backdrop-filter:blur(24px);border-top:1px solid rgba(255,255,255,.14)}.im-sticker-choice{border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.1);border-radius:18px;min-width:52px;height:52px;font-size:29px;cursor:pointer;transition:transform .16s,background .16s}.im-sticker-choice:active{transform:scale(.9);background:rgba(255,255,255,.22)}.im-mic{width:42px;height:42px;flex:none;border:1px solid rgba(255,255,255,.18);border-radius:50%;background:rgba(255,255,255,.14);color:#fff;font-size:18px;display:grid;place-items:center;cursor:pointer}.im-mic.recording{background:#f04455;border-color:#ffb1b9;animation:im-pulse 1.2s ease-in-out infinite}.im-mic:disabled{opacity:.45;cursor:wait}@keyframes im-pulse{50%{box-shadow:0 0 0 6px rgba(240,68,85,.2)}}
         .im-details{padding:12px 16px;background:rgba(8,29,39,.76);backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,.15);display:flex;gap:10px;flex-wrap:wrap;font-size:12px;color:rgba(242,250,255,.8)}
+        .im-reply-banner{display:flex;align-items:center;gap:10px;padding:9px 14px;background:rgba(13,39,69,.82);border-top:1px solid rgba(203,229,255,.12);color:#e8f4ff;font-size:12px}
+        .im-reply-banner-main{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:rgba(232,244,255,.78)}
+        .im-reply-banner button{border:0;background:rgba(255,255,255,.12);color:white;border-radius:10px;padding:5px 9px}
+        .im-reply-quote{padding:7px 9px;margin:-2px 0 8px;border-left:3px solid rgba(216,238,255,.65);background:rgba(0,15,35,.16);border-radius:7px;font-size:11px;line-height:1.4;color:rgba(246,251,255,.82);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+        .im-message-tools{display:flex;flex-wrap:wrap;align-items:center;gap:4px;margin-top:7px}
+        .im-action-btn{border:1px solid rgba(255,255,255,.18);border-radius:9px;padding:4px 7px;background:rgba(255,255,255,.10);color:inherit;font-size:10px;cursor:pointer}
+        .im-reaction-picker{display:flex;gap:5px;flex-wrap:wrap;margin-top:7px;padding:6px;background:rgba(3,18,36,.22);border:1px solid rgba(255,255,255,.12);border-radius:12px}
+        .im-reaction-picker button{border:0;background:rgba(255,255,255,.13);border-radius:9px;padding:5px 8px;font-size:17px}
+        .im-reaction-groups{display:flex;gap:5px;flex-wrap:wrap;margin-top:6px}
+        .im-reaction-chip{border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.12);color:inherit;border-radius:999px;padding:3px 7px;font-size:11px}
+        .im-reaction-chip.mine{background:rgba(112,194,255,.28);border-color:rgba(170,221,255,.62)}
+        .im-edit-box{width:100%;min-width:180px;min-height:68px;resize:vertical;border-radius:10px;border:1px solid rgba(255,255,255,.28);background:rgba(0,18,40,.26);color:inherit;padding:8px;font:inherit}
+        .im-edit-actions{display:flex;gap:6px;margin-top:6px}
+        .im-read-status{font-size:10px;opacity:.78;margin-left:4px}
         @keyframes im-arrive{from{opacity:0;transform:translateY(6px) scale(.99)}to{opacity:1;transform:translateY(0) scale(1)}}
         @media(min-width:700px){.im-page{height:var(--im-viewport-height,100dvh);min-height:0}.im-feed{padding:24px 28px}.im-composer{padding:14px 20px}}
         @media(max-width:600px){.im-head{gap:10px}.im-avatar{width:40px;height:40px}.im-back,.im-icon{min-width:40px;height:40px}.im-feed{padding:14px 12px 18px}.im-bubble{max-width:84%;font-size:15px}.im-composer{gap:8px}.im-plus{width:40px;height:40px}}\n        @media(prefers-reduced-motion:reduce){.im-row{animation:none}}
@@ -244,21 +356,63 @@ export default function Chat() {
       <main className="im-feed">
         {msgs.length === 0 ? (
           <div className="im-empty"><div style={{fontWeight:750,color:'#f5fbff',fontSize:16}}>新的开始</div><p style={{fontSize:13,lineHeight:1.7}}>发出第一条消息，开启你们的对话吧。</p></div>
-        ) : msgs.map((m, i) => (
-          <div key={m.id}>
-            {dateLabel(m.created_at, msgs[i - 1]?.created_at) && <div className="im-day">{dateLabel(m.created_at, msgs[i - 1]?.created_at)}</div>}
-            <div className={'im-row ' + (m.sender_id === me ? 'mine' : '')}>
-              <div className={'im-bubble ' + (m.sender_id === me ? 'mine' : 'theirs')}>
-                <MessageContent body={m.body} />
-                <div className="im-time">{new Date(m.created_at).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}{m.sender_id === me ? ' · 已发送' : ''}</div>
+        ) : msgs.map((m, i) => {
+          const parent = m.reply_to_id ? msgs.find(item => item.id === m.reply_to_id) : null;
+          const groups = reactionGroups(m.id);
+          const mine = m.sender_id === me;
+          const deleted = Boolean(m.deleted_at);
+          const canEdit = mine && !deleted && !m.body.startsWith('[[im-image:') && !m.body.startsWith('[[im-audio:');
+          return (
+            <div key={m.id}>
+              {dateLabel(m.created_at, msgs[i - 1]?.created_at) && <div className="im-day">{dateLabel(m.created_at, msgs[i - 1]?.created_at)}</div>}
+              <div className={'im-row ' + (mine ? 'mine' : '')}>
+                <div className={'im-bubble ' + (mine ? 'mine' : 'theirs')}>
+                  {m.reply_to_id && <div className="im-reply-quote">回复：{messageSummary(parent)}</div>}
+                  {editingId === m.id ? (
+                    <>
+                      <textarea className="im-edit-box" value={editingText} maxLength={2000} onChange={event => setEditingText(event.target.value)} aria-label="编辑消息" />
+                      <div className="im-edit-actions">
+                        <button type="button" className="im-action-btn" onClick={() => saveEdit(m.id)}>保存</button>
+                        <button type="button" className="im-action-btn" onClick={() => { setEditingId(null); setEditingText(''); }}>取消</button>
+                      </div>
+                    </>
+                  ) : (
+                    <MessageContent body={deleted ? (mine ? '你撤回了一条消息' : '对方撤回了一条消息') : m.body} />
+                  )}
+                  <div className="im-time">
+                    {new Date(m.created_at).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}
+                    {mine ? <span className="im-read-status">{otherLastReadMessageId !== null && otherLastReadMessageId >= m.id ? '· 已读' : '· 已发送'}</span> : ''}
+                    {m.edited_at && !deleted ? <span className="im-read-status">· 已编辑</span> : ''}
+                  </div>
+                  {groups.length > 0 && <div className="im-reaction-groups">
+                    {groups.map(group => {
+                      const mineReacted = group.items.some(item => item.profile_id === me);
+                      return <button key={group.reaction} type="button" className={'im-reaction-chip' + (mineReacted ? ' mine' : '')} onClick={() => toggleReaction(m.id, group.reaction)}>{group.reaction} {group.items.length}</button>;
+                    })}
+                  </div>}
+                  {!deleted && editingId !== m.id && <div className="im-message-tools">
+                    <button type="button" className="im-action-btn" onClick={() => beginReply(m)}>回复</button>
+                    <button type="button" className="im-action-btn" onClick={() => setShowReactionFor(showReactionFor === m.id ? null : m.id)}>回应</button>
+                    {canEdit && <button type="button" className="im-action-btn" onClick={() => { setEditingId(m.id); setEditingText(m.body); }}>编辑</button>}
+                    {mine && <button type="button" className="im-action-btn" onClick={() => withdrawMessage(m.id)}>撤回</button>}
+                  </div>}
+                  {showReactionFor === m.id && !deleted && <div className="im-reaction-picker">
+                    {QUICK_REACTIONS.map(reaction => <button key={reaction} type="button" aria-label={'回应 ' + reaction} onClick={() => toggleReaction(m.id, reaction)}>{reaction}</button>)}
+                  </div>}
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
         <div ref={bottomRef} />
       </main>
       {error && <div className="im-error">{error}</div>}
       {showStickers && <div className="im-sticker-tray" role="group" aria-label="选择贴纸">{['🥹','😂','❤️','😍','🐱','🐻','✨','🎉','👍','😭','🫶','🌸','💖','😎'].map(sticker => <button key={sticker} type="button" className="im-sticker-choice" aria-label={'发送贴纸 ' + sticker} onClick={() => sendSticker(sticker)}>{sticker}</button>)}</div>}
+      {replyTarget && <div className="im-reply-banner">
+        <span>回复</span>
+        <span className="im-reply-banner-main">{messageSummary(replyTarget)}</span>
+        <button type="button" onClick={() => setReplyTarget(null)} aria-label="取消回复">取消</button>
+      </div>}
       <form className="im-composer" onSubmit={e => { e.preventDefault(); send(); }}>
         <input ref={imageRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif,image/heic" hidden onChange={e => sendImage(e.target.files?.[0])} />
         <button type="button" className="im-plus" aria-label="打开贴纸和图片菜单" title="打开贴纸和图片菜单" disabled={uploading || recording} onClick={() => setShowStickers(v => !v)}>{showStickers ? '×' : '＋'}</button><button type="button" className="im-icon" aria-label="选择图片" title="选择图片" disabled={uploading || recording} onClick={() => imageRef.current?.click()} style={{fontSize:17,minWidth:38,width:38,height:38}}>▧</button>

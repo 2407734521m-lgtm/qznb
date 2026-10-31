@@ -1,0 +1,83 @@
+-- 038_authorized_request_queue
+-- Queue for requests limited to the applicant's own data, explicitly authorized data,
+-- or lawful public information. No identity enrichment or reverse lookup is implemented.
+
+create table if not exists public.authorized_request_queue (
+  id uuid primary key default gen_random_uuid(),
+  profile_id uuid not null references public.profiles(id) on delete cascade,
+  request_date date not null default (timezone('Asia/Shanghai', now())::date),
+  request_type text not null check (request_type in ('本人资料核验','授权资料核验','公开资料整理')),
+  description text not null check (char_length(description) between 5 and 500),
+  contact text check (contact is null or char_length(contact) <= 100),
+  status text not null default 'pending' check (status in ('pending','selected','not_found','completed')),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create index if not exists authorized_request_queue_day_idx on public.authorized_request_queue(request_date, created_at, id);
+alter table public.authorized_request_queue enable row level security;
+revoke all on public.authorized_request_queue from anon, authenticated;
+grant select on public.authorized_request_queue to authenticated;
+drop policy if exists authorized_request_queue_read_own on public.authorized_request_queue;
+create policy authorized_request_queue_read_own on public.authorized_request_queue for select to authenticated
+using (profile_id = auth.uid() or public.my_role() in ('admin','super_admin'));
+
+create or replace function public.submit_authorized_request(p_request_type text, p_description text, p_contact text default null)
+returns jsonb language plpgsql security definer set search_path = public, pg_temp as $$
+declare
+  v_uid uuid := auth.uid();
+  v_day date := timezone('Asia/Shanghai', now())::date;
+  v_status text;
+  v_id uuid;
+begin
+  if v_uid is null then raise exception '请先登录'; end if;
+  if p_request_type not in ('本人资料核验','授权资料核验','公开资料整理') then raise exception '申请类型无效'; end if;
+  if char_length(trim(coalesce(p_description,''))) not between 5 and 500 then raise exception '申请说明长度须为 5 至 500 字'; end if;
+  if p_contact is not null and char_length(p_contact) > 100 then raise exception '联系方式过长'; end if;
+  perform pg_advisory_xact_lock(hashtext('authorized-request-' || v_day::text));
+  if exists (select 1 from public.authorized_request_queue where profile_id = v_uid and request_date = v_day) then
+    raise exception '你今天已经提交过申请，请查看申请进度';
+  end if;
+  if exists (select 1 from public.authorized_request_queue where request_date = v_day and status in ('selected','completed')) then
+    v_status := 'pending';
+  else
+    v_status := 'selected';
+  end if;
+  insert into public.authorized_request_queue(profile_id, request_date, request_type, description, contact, status)
+  values (v_uid, v_day, p_request_type, trim(p_description), nullif(trim(coalesce(p_contact,'')),''), v_status)
+  returning id into v_id;
+  return jsonb_build_object('ok',true,'id',v_id,'status',v_status,
+    'message',case when v_status = 'selected' then '已获得今日优先处理资格。' else '今日名额已有申请，已按提交时间加入候选队列。' end);
+end $$;
+
+create or replace function public.my_authorized_request_queue()
+returns table(id uuid, request_date date, request_type text, status text, created_at timestamptz)
+language sql stable security definer set search_path = public, pg_temp as $$
+  select q.id,q.request_date,q.request_type,q.status,q.created_at from public.authorized_request_queue q
+  where q.profile_id = auth.uid() order by q.created_at desc limit 20
+$$;
+
+create or replace function public.admin_resolve_authorized_request(p_request_id uuid, p_found boolean)
+returns jsonb language plpgsql security definer set search_path = public, pg_temp as $$
+declare v_day date; v_next uuid;
+begin
+  if public.my_role() not in ('admin','super_admin') then raise exception 'forbidden'; end if;
+  select request_date into v_day from public.authorized_request_queue where id = p_request_id for update;
+  if v_day is null then raise exception '申请不存在'; end if;
+  perform pg_advisory_xact_lock(hashtext('authorized-request-' || v_day::text));
+  update public.authorized_request_queue set status = case when p_found then 'completed' else 'not_found' end, updated_at = now()
+    where id = p_request_id and status = 'selected';
+  if not found then raise exception '该申请当前不是处理中状态'; end if;
+  if not p_found then
+    select id into v_next from public.authorized_request_queue where request_date = v_day and status = 'pending'
+      order by created_at,id limit 1 for update;
+    if v_next is not null then update public.authorized_request_queue set status = 'selected',updated_at = now() where id = v_next; end if;
+  end if;
+  return jsonb_build_object('ok',true,'next_request_id',v_next);
+end $$;
+
+revoke all on function public.submit_authorized_request(text,text,text) from public,anon;
+revoke all on function public.my_authorized_request_queue() from public,anon;
+revoke all on function public.admin_resolve_authorized_request(uuid,boolean) from public,anon;
+grant execute on function public.submit_authorized_request(text,text,text) to authenticated;
+grant execute on function public.my_authorized_request_queue() to authenticated;
+grant execute on function public.admin_resolve_authorized_request(uuid,boolean) to authenticated;

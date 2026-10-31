@@ -3,16 +3,37 @@ import { supabase, supabaseBaseUrl } from '../../lib/supabase';
 import { card, h3, mut, alog } from './shared';
 import MaintenanceAccessManager from './MaintenanceAccessManager';
 
+function toLocalDateTimeInput(value: string) {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  return new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+}
+
 export default function Settings({ me, setMsg }: { me: string; setMsg: (s: string) => void }) {
   const [vals, setVals] = useState<Record<string, string>>({});
   const [health, setHealth] = useState<any>(null);
   const [backups, setBackups] = useState<any[]>([]);
+  const [scheduleStart, setScheduleStart] = useState('');
+  const [scheduleEnd, setScheduleEnd] = useState('');
+  const [scheduleEnabled, setScheduleEnabled] = useState(false);
+  const [scheduleBusy, setScheduleBusy] = useState(false);
 
   async function load() {
     const { data } = await supabase.from('site_settings').select('key, value');
     const o: Record<string, string> = {};
     (data ?? []).forEach((x: any) => { o[x.key] = x.value; });
     setVals(o);
+    try {
+      const schedule = JSON.parse(o.maintenance_schedule || '{}');
+      setScheduleStart(toLocalDateTimeInput(schedule.start_at || ''));
+      setScheduleEnd(toLocalDateTimeInput(schedule.end_at || ''));
+      setScheduleEnabled(schedule.enabled === true);
+    } catch {
+      setScheduleStart('');
+      setScheduleEnd('');
+      setScheduleEnabled(false);
+    }
     const { data: bl } = await supabase.from('backup_logs').select('*').order('created_at', { ascending: false }).limit(10);
     setBackups(bl ?? []);
   }
@@ -22,6 +43,39 @@ export default function Settings({ me, setMsg }: { me: string; setMsg: (s: strin
     const { error } = await supabase.from('site_settings').upsert({ key, value }, { onConflict: 'key' });
     if (!error) { await alog('setting_change', { key, value }); setMsg('已保存'); load(); }
     else setMsg('保存失败：' + error.message);
+  }
+
+  async function saveMaintenanceSchedule() {
+    if (!scheduleStart || !scheduleEnd) return setMsg('请同时设置自动开启和自动关闭时间。');
+    const start = new Date(scheduleStart);
+    const end = new Date(scheduleEnd);
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return setMsg('时间格式无效，请重新选择。');
+    if (end <= start) return setMsg('自动关闭时间必须晚于自动开启时间。');
+    if (end <= new Date()) return setMsg('自动关闭时间必须晚于当前时间。');
+    const value = JSON.stringify({ enabled: true, start_at: start.toISOString(), end_at: end.toISOString() });
+    setScheduleBusy(true);
+    const { error } = await supabase.from('site_settings').upsert({ key: 'maintenance_schedule', value }, { onConflict: 'key' });
+    setScheduleBusy(false);
+    if (error) return setMsg('定时计划保存失败：' + error.message);
+    setScheduleEnabled(true);
+    setVals(current => ({ ...current, maintenance_schedule: value }));
+    await alog('maintenance_schedule_saved', { start_at: start.toISOString(), end_at: end.toISOString() });
+    setMsg('定时维护计划已启用。到达设定时间后会自动开启，并在结束时间自动关闭。');
+  }
+
+  async function clearMaintenanceSchedule() {
+    if (!confirm('取消当前定时维护计划？不会改变手动维护开关的设置。')) return;
+    setScheduleBusy(true);
+    const value = JSON.stringify({ enabled: false, start_at: null, end_at: null });
+    const { error } = await supabase.from('site_settings').upsert({ key: 'maintenance_schedule', value }, { onConflict: 'key' });
+    setScheduleBusy(false);
+    if (error) return setMsg('取消计划失败：' + error.message);
+    setScheduleEnabled(false);
+    setScheduleStart('');
+    setScheduleEnd('');
+    setVals(current => ({ ...current, maintenance_schedule: value }));
+    await alog('maintenance_schedule_cleared', {});
+    setMsg('定时维护计划已取消，维护模式恢复由手动开关控制。');
   }
 
   async function checkHealth() {
@@ -118,7 +172,7 @@ export default function Settings({ me, setMsg }: { me: string; setMsg: (s: strin
       </div>
       <p style={{ ...mut, margin: '0 0 12px' }}>访客仅能查看公开首页与管理员公告，不会获得成员身份，也不能写入内容。</p>
       <div className="row" style={{ gap: 8, alignItems: 'center' }}>
-        <span style={{ fontSize: 13.5 }}>维护模式</span>
+        <span style={{ fontSize: 13.5 }}>维护模式（手动开关）</span>
         <button className={'mini' + (vals.maintenance === 'true' ? '' : ' ghost')}
           onClick={() => {
             if (vals.maintenance !== 'true' && !confirm('开启维护模式？所有人打开网站都只看到维护页（后台入口除外）。')) return;
@@ -126,6 +180,19 @@ export default function Settings({ me, setMsg }: { me: string; setMsg: (s: strin
           }}>
           {vals.maintenance === 'true' ? '开' : '关'}
         </button>
+      </div>
+      <div style={{ marginTop: 14, padding: 12, borderRadius: 12, background: '#ffffff08', border: '1px solid #ffffff14' }}>
+        <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 5 }}>定时开启与关闭</div>
+        <p style={{ ...mut, margin: '0 0 10px' }}>按当前设备时区设置。计划启用后优先于手动开关：到开启时间自动进入维护模式，到关闭时间自动恢复网站；取消计划后恢复手动控制。</p>
+        <label style={mut}>自动开启时间</label>
+        <input type="datetime-local" value={scheduleStart} onChange={e => setScheduleStart(e.target.value)} style={{ margin: '5px 0 10px' }} />
+        <label style={mut}>自动关闭时间</label>
+        <input type="datetime-local" value={scheduleEnd} onChange={e => setScheduleEnd(e.target.value)} style={{ margin: '5px 0 10px' }} />
+        <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
+          <button className="pri" style={{ width: 'auto' }} disabled={scheduleBusy} onClick={() => void saveMaintenanceSchedule()}>{scheduleBusy ? '处理中…' : '保存并启用计划'}</button>
+          <button className="mini ghost" disabled={scheduleBusy || !scheduleEnabled} onClick={() => void clearMaintenanceSchedule()}>取消定时计划</button>
+        </div>
+        {scheduleEnabled && <p style={{ ...mut, margin: '9px 0 0', color: '#86efac' }}>定时计划已启用 · {scheduleStart ? new Date(scheduleStart).toLocaleString() : '未设置'} 至 {scheduleEnd ? new Date(scheduleEnd).toLocaleString() : '未设置'}</p>}
       </div>
       <label style={{ ...mut, marginTop: 8 }}>维护标题</label>
       <div className="row" style={{ gap: 8, marginBottom: 10 }}>

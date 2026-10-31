@@ -61,7 +61,8 @@ Deno.serve(async (req: Request) => {
         return response({ error: '维护计划时间无效，暂不能发送。' }, 503);
       }
       const now = Date.now();
-      maintenanceActive = start <= now && now < end;
+      // 手动维护与定时维护是并行条件：任一开启都必须阻止“恢复通知”发送。
+      maintenanceActive = maintenanceActive || (start <= now && now < end);
     }
   }
   if (maintenanceActive) {

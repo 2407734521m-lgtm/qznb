@@ -261,7 +261,7 @@ function PublicLanding({ data, onLogin }: { data: any; onLogin: () => void }) {
   const bannerText = data?.home_banner_text || '把我们的青春，留在这里';
   const bannerUrl = typeof data?.home_banner_url === 'string' && (data.home_banner_url.startsWith('https://') || data.home_banner_url.startsWith('http://')) ? data.home_banner_url : '';
   return (<><div className="glow" /><img src={emblemUrl} alt="" aria-hidden draggable={false}
-      style={{ position: 'absolute', top: 60, right: 10, width: 92, opacity: 0.32, pointerEvents: 'none', userSelect: 'none', zIndex: 30 }} /><main style={{ width: 'min(100% - 28px, 820px)', margin: '0 auto', padding: '22px 0 48px', color: '#202632' }}>
+      style={{ position: 'absolute', top: 68, right: 12, width: 88, opacity: 0.32, pointerEvents: 'none', userSelect: 'none', zIndex: 30 }} /><main style={{ width: 'min(100% - 28px, 820px)', margin: '0 auto', padding: '22px 0 48px', color: '#202632' }}>
     <header style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 18 }}>
       <div style={{ flex: 1 }}><div style={{ fontSize: 11, letterSpacing: 3, color: '#7b8492' }}>OUR CLASS · PUBLIC SPACE</div><h1 style={{ margin: '6px 0 0', fontSize: 24 }}>{title}</h1><p style={{ margin: '4px 0 0', color: '#737b89', fontSize: 13 }}><ShinyText text={subtitle} /></p></div>
       {data?.close_login_entry !== 'true' && <button className="pri" style={{ width: 'auto', padding: '10px 16px', whiteSpace: 'nowrap' }} onClick={onLogin}>登录 / 注册</button>}
@@ -289,9 +289,26 @@ function PublicLanding({ data, onLogin }: { data: any; onLogin: () => void }) {
   </main></>);
 }
 
+// 校徽位置按页面设计：锚在页面顶部随内容滚动（absolute），每页按页头版式给不同的位置与大小；
+// 聊天对话页不放，保持对话界面干净。返回 null 表示该页不显示。
+function emblemSpot(path: string): { top: number; right: number; width: number; opacity: number } | null {
+  if (path.startsWith('/chat')) return null;
+  if (path.startsWith('/love-wall')) return { top: 54, right: 12, width: 118, opacity: 0.32 };
+  if (path.startsWith('/songs')) return { top: 58, right: 12, width: 98, opacity: 0.32 };
+  if (path.startsWith('/explore')) return { top: 96, right: 16, width: 106, opacity: 0.30 };
+  if (path.startsWith('/home')) return { top: 62, right: 14, width: 104, opacity: 0.30 };
+  if (path.startsWith('/me/notifications')) return { top: 56, right: 12, width: 76, opacity: 0.28 };
+  if (path.startsWith('/me')) return { top: 68, right: 14, width: 82, opacity: 0.34 };
+  if (path.startsWith('/friends')) return { top: 54, right: 12, width: 72, opacity: 0.26 };
+  if (path.startsWith('/members')) return { top: 54, right: 12, width: 80, opacity: 0.30 };
+  if (path.startsWith('/board')) return { top: 54, right: 12, width: 84, opacity: 0.30 };
+  return { top: 58, right: 12, width: 88, opacity: 0.30 };
+}
+
 function Shell() {
   const { session, loading } = useAuth();  const [role, setRole] = useState('');
   const loc = useLocation();
+  const emblem = emblemSpot(loc.pathname);
   const reduce = useReducedMotion();
   const isAdmin = role === 'admin' || role === 'super_admin';
   const isAdminPage = loc.pathname === '/admin';
@@ -606,8 +623,8 @@ function Shell() {
       <div className="app-bg" style={wp.kind === 'grad'
         ? { background: wp.src, filter: `blur(${wp.blur}px) brightness(${100 - wp.dark}%)` }
         : { backgroundImage: `url(${wp.src === 'default' ? bgUrl : wp.src})`, filter: `blur(${wp.blur}px) brightness(${100 - wp.dark}%)` }} />
-      <img src={emblemUrl} alt="" aria-hidden draggable={false}
-        style={{ position: 'absolute', top: 60, right: 10, width: 92, opacity: 0.32, pointerEvents: 'none', userSelect: 'none', zIndex: 30 }} />
+      {emblem && <img src={emblemUrl} alt="" aria-hidden draggable={false}
+        style={{ position: 'absolute', top: emblem.top, right: emblem.right, width: emblem.width, opacity: emblem.opacity, pointerEvents: 'none', userSelect: 'none', zIndex: 30 }} />}
       {isAdminPage ? (
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', position: 'sticky', top: 0, zIndex: 40, background: 'rgba(255,255,255,.92)', backdropFilter: 'blur(12px)', borderBottom: '1px solid #e8eaf0' }}>
           <b style={{ fontSize: 15 }}>管理后台</b>

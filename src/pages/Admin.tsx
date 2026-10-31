@@ -219,7 +219,7 @@ export default function Admin() {
               {tab === 'board' && <BoardMgr me={me} setMsg={setMsg} />}
               {tab === 'events' && <EventTab me={me} setMsg={setMsg} />}
               {tab === 'logs' && <Logs />}
-              {tab === 'system' && isSuper && <AdminSystemCenter setMsg={setMsg} />}
+              {tab === 'system' && isSuper && <AdminSystemCenter setMsg={setMsg} go={switchTab} />}
               {tab === 'settings' && isSuper && <Settings me={me} setMsg={setMsg} />}
               {tab === 'invite' && <InviteTab isSuper={isSuper} setMsg={setMsg} />}
               {tab === 'feedback' && <FeedbackTab me={me} isSuper={isSuper} setMsg={setMsg} />}

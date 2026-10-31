@@ -1409,6 +1409,14 @@ export type Database = {
         Args: { p_days?: number }
         Returns: Json
       }
+      admin_backup_overview: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
+      admin_record_manual_backup: {
+        Args: { p_scope: string; p_note: string }
+        Returns: number
+      }
       admin_request_sensitive_action: {
         Args: { p_action_type: string; p_target_user_id: string; p_requested_role: string | null; p_reason: string }
         Returns: string

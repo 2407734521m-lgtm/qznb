@@ -40,12 +40,6 @@ Deno.serve(async (req: Request) => {
   const admin = createClient(url, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
   const identifierHash = await hashIdentifier(username);
 
-  const { data: allowed, error: limitError } = await admin.rpc('consume_username_login_attempt', {
-    p_identifier_hash: identifierHash,
-  });
-  if (limitError) return response({ ok: false, code: 'unavailable' }, 503);
-  if (allowed !== true) return response({ ok: false, code: 'rate_limited' });
-
   // Resolve the private email only inside this server function. Never include it
   // in an error response or return it to the browser.
   const { data: profiles, error: profileError } = await admin
@@ -65,6 +59,14 @@ Deno.serve(async (req: Request) => {
   if (!emails || emails.length !== 1 || !emails[0].email) {
     return response({ ok: false, code: 'invalid_credentials' });
   }
+
+  // Only persist attempts for real account identifiers. Unknown usernames do
+  // not create unbounded rows in the private rate-limit table.
+  const { data: allowed, error: limitError } = await admin.rpc('consume_username_login_attempt', {
+    p_identifier_hash: identifierHash,
+  });
+  if (limitError) return response({ ok: false, code: 'unavailable' }, 503);
+  if (allowed !== true) return response({ ok: false, code: 'rate_limited' });
 
   const auth = createClient(url, anonKey, { auth: { persistSession: false, autoRefreshToken: false } });
   const { data, error } = await auth.auth.signInWithPassword({

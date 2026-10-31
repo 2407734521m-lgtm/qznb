@@ -366,20 +366,12 @@ input[type=file]::file-selector-button{
 .priv-note{font-size:11.5px;color:var(--mut);margin:-8px 0 10px}
 
 /* 页面转场 */
-.page{animation:pagein .32s cubic-bezier(.2,.7,.3,1)}
 @keyframes pagein{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
 
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important;animation:none!important}}
 @media (max-width:480px){.card{backdrop-filter:none;-webkit-backdrop-filter:none}}
 
 /* ===== 用户端视觉统一：青春档案 · 深海军蓝电影感 ===== */
-.page{
-  animation:user-page-in .38s cubic-bezier(.2,.75,.25,1) both;
-}
-@keyframes user-page-in{
-  from{opacity:0;transform:translate3d(0,7px,0)}
-  to{opacity:1;transform:translate3d(0,0,0)}
-}
 .page .hero{
   position:relative;
   padding:28px 18px 22px!important;

@@ -39,7 +39,6 @@ input:focus,textarea:focus,select:focus{border-color:rgba(217,194,154,.55)!impor
 .admin-shell button.pri{background:#e4d1ad!important;color:#26231e!important}
 .admin-shell .admin-dock{background:rgba(24,26,30,.96)!important;border-color:rgba(255,255,255,.1)!important;box-shadow:0 10px 32px rgba(0,0,0,.38)!important}
 .admin-shell .admin-dock button[aria-current=page]{background:#e4d1ad!important;color:#26231e!important;box-shadow:none!important}
-@keyframes editorial-in{from{opacity:.65;transform:translateY(4px)}to{opacity:1;transform:none}}
 @media(max-width:600px){.wrap{padding-left:13px;padding-right:13px}.hero{padding-top:20px}.hero h1{font-size:30px}.mgrid{gap:9px}.mcard{padding:8px}.card{padding:13px}.tabbar{bottom:calc(9px + env(safe-area-inset-bottom))!important}}
 @media(prefers-reduced-motion:reduce){.page{animation:none!important}}
 

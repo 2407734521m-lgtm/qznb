@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Routes, Route, NavLink, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
+import { DUR, EASE } from './lib/motion';
 import { supabase } from './lib/supabase';
 import { useAuth } from './auth';
 import { getWallpaper } from './lib/wallpaper';
@@ -456,7 +457,7 @@ function Shell() {
             initial={reduce ? false : { opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             exit={reduce ? { opacity: 1, y: 0 } : { opacity: 0, y: -10 }}
-            transition={{ duration: reduce ? 0 : 0.28, ease: [0.22, 1, 0.36, 1] }}>
+            transition={{ duration: reduce ? 0 : DUR.base, ease: EASE }}>
             <Routes location={loc}>
               <Route path="/" element={<Navigate to="/home" replace />} />
               <Route path="/board" element={<Board />} />
@@ -511,9 +512,9 @@ function Shell() {
                   animate={{ opacity: 1, scale: 1, x: 0 }}
                   exit={reduce ? { opacity: 0 } : {
                     opacity: 0, scale: 0.4, x: dockSide === 'left' ? -40 : 40,
-                    transition: { duration: 0.24, ease: [0.22, 1, 0.36, 1], delay: dockSide === 'left' ? (TABS.length - 1 - i) * 0.02 : i * 0.02 }
+                    transition: { duration: DUR.fast, ease: EASE, delay: dockSide === 'left' ? (TABS.length - 1 - i) * 0.02 : i * 0.02 }
                   }}
-                  transition={{ duration: reduce ? 0 : 0.22, ease: [0.22, 1, 0.36, 1], delay: reduce ? 0 : (dockSide === 'left' ? i * 0.02 : (TABS.length - 1 - i) * 0.02) }}>
+                  transition={{ duration: reduce ? 0 : DUR.fast, ease: EASE, delay: reduce ? 0 : (dockSide === 'left' ? i * 0.02 : (TABS.length - 1 - i) * 0.02) }}>
                   <NavLink to={t.to} className={on ? 'on' : ''}
                     ref={on ? (el: any) => { if (el) el.scrollIntoView({ inline: 'center', block: 'nearest' }); } : undefined}>
                     <span className="dock-tab-label">{t.label}</span>

@@ -63,6 +63,10 @@ run_case() {
   mkdir -p "$dir/scripts" "$dir/src/lib"
   cp "$SCRIPT_DIR/gen-types.sh" "$dir/scripts/"
   cp "$SCRIPT_DIR/normalize-database-types.mjs" "$dir/scripts/"
+  if [ -n "$ref" ]; then
+    mkdir -p "$dir/supabase/.temp"
+    printf '%s\n' "$ref" > "$dir/supabase/.temp/project-ref"
+  fi
   printf '// ORIGINAL SENTINEL\n' > "$dir/src/lib/database.types.ts"
 
   local code=0

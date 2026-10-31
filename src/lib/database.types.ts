@@ -978,6 +978,7 @@ export type Database = {
           image_url: string | null
           created_at: string
           deleted_at: string | null
+          section: string
         }
         Insert: {
           id?: number
@@ -986,6 +987,7 @@ export type Database = {
           image_url?: string | null
           created_at?: string
           deleted_at?: string | null
+          section?: string
         }
         Update: {
           id?: number
@@ -994,6 +996,7 @@ export type Database = {
           image_url?: string | null
           created_at?: string
           deleted_at?: string | null
+          section?: string
         }
         Relationships: [
           {

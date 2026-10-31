@@ -14,7 +14,8 @@
 | `.github/workflows/deploy.yml` | `npm install` → `npm ci`；setup-node 增加 `cache: 'npm'` | 部署构建可复现；缓存加速 |
 | `.github/workflows/verify-pr.yml` | 同上 | PR 检查与部署使用同一安装方式 |
 | `package.json` | 新增脚本 `types:gen`（指向 `scripts/gen-types.sh`） | Database Types 再生入口，带 Project B 项目保护（见 §3 末小节） |
-| `scripts/gen-types.sh` | 新增 | 生成前的守卫脚本：校验当前关联项目必须是 Project B，不符立即终止，绝不生成 Project A 的类型（逻辑已在本地三种情形下实测） |
+| `scripts/gen-types.sh` | 新增 | 类型生成的守卫脚本：CLI v2 版本检查 + 关联项目必须是 Project B 的校验 + 临时文件生成成功才原子替换正式文件（失败保原文件） |
+| `scripts/gen-types.test.sh` | 新增 | 上述脚本的失败路径测试（桩 CLI 模拟六种情形，无需真实连接；本地 6/6 通过） |
 | `src/lib/database.types.ts` | 新增（1724 行） | 由 Project B 生产库 `public` 结构实时导出生成：35 张表（Row/Insert/Update + 外键 Relationships）、91 个 RPC 函数名与参数、标准辅助类型。**本阶段仅落地文件，尚未把 `createClient<Database>` 接入 `src/lib/supabase.ts`**（见 §3 路线） |
 | `.github/dependabot.yml` | 新增 | npm 与 GitHub Actions 依赖每周自动检查、开 PR 提醒（替代人工跑 `npm audit`） |
 | `docs/phase1-foundation.md` | 新增（本文件） | 审计结论与后续阶段方案 |
@@ -53,7 +54,8 @@
   1. 安装 Supabase CLI **v2**：macOS 用 `brew install supabase/tap/supabase`；Windows 用 Scoop 或官方 Releases 的二进制；Linux 下载官方 Releases 的二进制包解压到 PATH。统一用 v2，不要用来源不明的旧版。
   2. 登录：运行 `supabase login` 粘贴 Supabase 账号的 Personal Access Token，或设置环境变量 `SUPABASE_ACCESS_TOKEN`。令牌只留本机，**不要写进仓库任何文件**。
   3. 在仓库根目录关联项目：`supabase link --project-ref ldypnxxxgscibopgiaso`。关联结果记录在本机 `supabase/.temp/project-ref`（该目录不入库）。
-- **生成方法**：`npm run types:gen`，实际执行 `scripts/gen-types.sh`。守卫逻辑：先检查 CLI 已安装，再读取 `supabase/.temp/project-ref` 校验关联项目——未关联则终止并提示关联命令；关联的不是 B 则立即终止并打印当前 ref；校验通过后，生成命令仍显式带 `--project-id ldypnxxxgscibopgiaso`，双重锁定 Project B。
+- **生成方法**：`npm run types:gen`，实际执行 `scripts/gen-types.sh`。守卫与安全逻辑依次为：① 检查 CLI 已安装且**主版本必须为 v2**（读 `supabase --version`，v1 或无法识别一律终止，避免旧版参数/关联格式不兼容）；② 读取 `supabase/.temp/project-ref` 校验关联项目——未关联则终止并提示关联命令，关联的不是 B 则立即终止并打印当前 ref；③ 生成命令显式带 `--project-id ldypnxxxgscibopgiaso`，与关联校验双重锁定 Project B；④ **原子替换**：先生成到同目录临时文件（文件名不以 `.ts` 结尾，残留也不会被 tsc/vite 误收），命令成功且文件非空后才 `mv` 覆盖正式文件——绝不直接用 `>` 写正式文件（Shell 会先清空目标，生成中途失败将毁掉旧类型）；任何一步失败都保留原有 `database.types.ts`、清理临时文件并以非零码退出。
+- **失败路径测试**：`bash scripts/gen-types.test.sh`（随仓库提交）用桩 CLI 模拟六种情形并断言：生成成功→正式文件被替换；生成命令报错、生成结果为空、CLI 为 v1、关联到 Project A、未关联——五种失败情形下正式文件内容不变、无临时文件残留、退出码非零。本地实测 6/6 通过。
 - **生成后检查（每次再生必做）**：
   1. `npm run typecheck` 必须通过；
   2. 抽查已知列：`profiles.username: string`、`profiles.theme: Json`，表总数应与后台一致（当前 35）；

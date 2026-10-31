@@ -2,23 +2,21 @@ import { useEffect, useRef, useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../auth';
-import { useSignedUrl, uploadMedia, downscaleImage } from '../lib/media';
+import { useSignedUrls, uploadMedia, downscaleImage } from '../lib/media';
 import { withRetry } from '../lib/retry';
 
 type Post = { id: number; author_id: string; content: string; image_url: string | null; created_at: string };
 type Profile = { id: string; username: string; display_name: string | null; avatar_path: string | null };
 type Cmt = { id: number; post_id: number; author_id: string; content: string; created_at: string };
 
-function Avatar({ p, size = 42 }: { p?: Profile; size?: number }) {
-  const url = useSignedUrl('avatars', p?.avatar_path);
+function Avatar({ p, url, size = 42 }: { p?: Profile; url?: string; size?: number }) {
   return (
     <div className="av" style={{ width: size, height: size }}>
       {url ? <img src={url} alt="" /> : <span>{(p?.display_name ?? p?.username ?? '?').slice(0, 1)}</span>}
     </div>
   );
 }
-function PostImg({ path }: { path: string }) {
-  const url = useSignedUrl('media', path);
+function PostImg({ url }: { url?: string }) {
   return url ? <img className="bdimg" src={url} alt="" loading="lazy" /> : null;
 }
 function timeAgo(s: string) {
@@ -33,6 +31,8 @@ export default function Feed() {
   const me = useAuth().session!.user.id; const reduce = useReducedMotion();
   const [posts, setPosts] = useState<Post[]>([]);
   const [profiles, setProfiles] = useState<Record<string, Profile>>({});
+  const avatarUrls = useSignedUrls('avatars', Object.values(profiles).map(p => p.avatar_path));
+  const postImageUrls = useSignedUrls('media', posts.map(p => p.image_url));
   const [likes, setLikes] = useState<Record<number, number>>({});
   const [liked, setLiked] = useState<Record<number, boolean>>({});
   const [cmts, setCmts] = useState<Record<number, Cmt[]>>({});
@@ -160,12 +160,12 @@ export default function Feed() {
             initial={reduce ? {} : { opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.45, delay: Math.min(i * 0.05, 0.3) }}>
             <div className="hd">
-              <Avatar p={a} />
+              <Avatar p={a} url={a?.avatar_path ? avatarUrls[a.avatar_path] : undefined} />
               <div><div className="nm">{a ? (a.display_name ?? a.username) : '…'}</div>
                 <div className="tm">{timeAgo(p.created_at)}</div></div>
             </div>
             <p className="bd">{p.content}</p>
-            {p.image_url && <PostImg path={p.image_url} />}
+            {p.image_url && <PostImg url={postImageUrls[p.image_url]} />}
             <div className="ft">
               <button className={liked[p.id] ? 'liked' : ''} onClick={() => toggleLike(p)}>
                 {liked[p.id] ? '❤️' : '🤍'} {likes[p.id] || ''}

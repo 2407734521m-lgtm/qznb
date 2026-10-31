@@ -32,7 +32,7 @@ begin
   if v_uid is null then raise exception '请先登录'; end if;
   if p_request_type not in ('本人资料核验','授权资料核验','公开资料整理') then raise exception '申请类型无效'; end if;
   if char_length(trim(coalesce(p_description,''))) not between 5 and 500 then raise exception '申请说明长度须为 5 至 500 字'; end if;
-  if p_description ~ '([0-9]{11}|[0-9]{17}[0-9Xx])' then raise exception '请勿在申请说明中填写身份证号或完整手机号'; end if;
+  if p_description ~ '([0-9]{11}|[0-9]{15}|[0-9]{17}[0-9Xx])' then raise exception '请勿在申请说明中填写身份证号或完整手机号'; end if;
   if p_contact is not null and char_length(p_contact) > 100 then raise exception '联系方式过长'; end if;
   perform pg_advisory_xact_lock(hashtext('authorized-request-' || v_day::text));
   if exists (select 1 from public.authorized_request_queue where profile_id = v_uid and request_date = v_day) then
@@ -43,8 +43,8 @@ begin
   else
     v_status := 'selected';
   end if;
-  insert into public.authorized_request_queue(profile_id, request_date, request_type, description, contact, status)
-  values (v_uid, v_day, p_request_type, trim(p_description), nullif(trim(coalesce(p_contact,'')),''), v_status)
+  insert into public.authorized_request_queue(profile_id, request_date, request_type, description, contact, status, created_at)
+  values (v_uid, v_day, p_request_type, trim(p_description), nullif(trim(coalesce(p_contact,'')),''), v_status, clock_timestamp())
   returning id into v_id;
   return jsonb_build_object('ok',true,'id',v_id,'status',v_status,
     'message',case when v_status = 'selected' then '已获得今日优先处理资格。' else '今日名额已有申请，已按提交时间加入候选队列。' end);

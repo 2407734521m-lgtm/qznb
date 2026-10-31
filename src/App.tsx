@@ -754,13 +754,15 @@ function Shell() {
             })}
           </AnimatePresence>
           </div>
-          <button
-            type="button"
-            className="dock-action dock-search"
-            aria-label="搜索全站内容"
-            title="搜索全站内容"
-            onClick={() => setSearchOpen(true)}
-          >⌕</button>
+          {!dockCollapsed && (
+            <button
+              type="button"
+              className="dock-action dock-search"
+              aria-label="搜索全站内容"
+              title="搜索全站内容"
+              onClick={() => setSearchOpen(true)}
+            >⌕</button>
+          )}
           <button
             type="button"
             className="dock-action dock-toggle"

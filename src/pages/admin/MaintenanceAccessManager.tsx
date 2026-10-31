@@ -22,6 +22,32 @@ export default function MaintenanceAccessManager({ setMsg }: { setMsg: (s: strin
     await alog('maintenance_code_created', { valid_minutes: Number(minutes), max_uses: Number(maxUses) });
   }
 
+  async function copyCode() {
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(code);
+        setMsg('验证码已复制。');
+        return;
+      }
+      throw new Error('clipboard api unavailable');
+    } catch {
+      // 内置浏览器常没有 Clipboard API：用临时 textarea + execCommand 回退
+      try {
+        const ta = document.createElement('textarea');
+        ta.value = code;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        const ok = document.execCommand('copy');
+        document.body.removeChild(ta);
+        setMsg(ok ? '验证码已复制。' : '复制失败，请照着数字手动输入。');
+      } catch {
+        setMsg('复制失败，请照着数字手动输入。');
+      }
+    }
+  }
+
   async function revoke() {
     if (!confirm('立即撤销当前所有临时通行码？已通过该码进入的访问会话也会失效。')) return;
     setBusy(true);
@@ -52,13 +78,13 @@ export default function MaintenanceAccessManager({ setMsg }: { setMsg: (s: strin
       <button className="pri" style={{ width: 'auto' }} disabled={busy} onClick={() => void generate()}>{busy ? '处理中…' : '生成六位数验证码'}</button>
       <button className="mini ghost" disabled={busy} onClick={() => void revoke()}>立即撤销</button>
     </div>
-    {code && <div style={{ marginTop: 14, padding: 14, borderRadius: 12, background: '#ffffff0b', border: '1px solid #ffffff1c' }}>
-      <div style={{ ...mut, marginBottom: 6 }}>新验证码（仅本次显示）</div>
+    {code && <div style={{ marginTop: 14, padding: 14, borderRadius: 12, background: '#202632', border: '1px solid #202632' }}>
+      <div style={{ fontSize: 12.5, color: '#ffffffa6', marginBottom: 6 }}>新验证码（仅本次显示）</div>
       <div className="row" style={{ alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
         <strong style={{ fontSize: 30, letterSpacing: 8, color: '#fff', fontVariantNumeric: 'tabular-nums' }}>{code}</strong>
-        <button className="mini" onClick={() => { void navigator.clipboard?.writeText(code).then(() => setMsg('验证码已复制。')).catch(() => setMsg('复制失败，请手动复制。')); }}>复制</button>
+        <button className="mini" onClick={() => void copyCode()}>复制</button>
       </div>
-      {expiresAt && <p style={{ ...mut, margin: '8px 0 0' }}>有效期至：{new Date(expiresAt).toLocaleString()}</p>}
+      {expiresAt && <p style={{ fontSize: 12.5, color: '#ffffffa6', margin: '8px 0 0' }}>有效期至：{new Date(expiresAt).toLocaleString()}</p>}
     </div>}
   </div>;
 }

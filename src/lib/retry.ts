@@ -5,18 +5,15 @@ const HINT = '网络不稳定，没存上——换个 Wi-Fi 或用流量再试�
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-function asRecord(value: unknown): Record<string, unknown> | null {
-  return typeof value === 'object' && value !== null
-    ? value as Record<string, unknown>
-    : null;
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
 }
 
 function isTransient(error: unknown): boolean {
-  const details = asRecord(error);
-  if (!details) return false;
+  if (!isRecord(error)) return false;
 
-  const status = details.status ?? details.statusCode;
-  if (typeof status === 'number' && Number.isFinite(status)) {
+  const status = error.status ?? error.statusCode;
+  if (typeof status === 'number' && !Number.isNaN(status)) {
     return status >= 500 || status === 408 || status === 429;
   }
   if (typeof status === 'string' && /^\d+$/.test(status)) {
@@ -25,8 +22,8 @@ function isTransient(error: unknown): boolean {
   }
 
   // 带 Postgres/PostgREST 业务错误码的，是业务错误，不重试。
-  if (typeof details.code === 'string' && details.code.length > 0) return false;
-  const message = typeof details.message === 'string' ? details.message : '';
+  if (typeof error.code === 'string' && error.code.length > 0) return false;
+  const message = typeof error.message === 'string' ? error.message : '';
   return /fetch|network|timeout|timed out|abort|load failed/i.test(message);
 }
 
@@ -35,8 +32,7 @@ function applyNetworkHint(error: unknown): void {
     error.message = HINT;
     return;
   }
-  const details = asRecord(error);
-  if (details) details.message = HINT;
+  if (isRecord(error)) error.message = HINT;
 }
 
 export async function withRetry<T extends { error?: unknown }>(

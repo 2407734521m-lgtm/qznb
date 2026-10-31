@@ -30,6 +30,7 @@ import Wishes from './pages/Wishes';
 import Events from './pages/Events';
 import Greetings from './pages/Greetings';
 import MeHub from './pages/MeHub';
+import MeContent from './pages/MeContent';
 import MePosts from './pages/MePosts';
 import MeFavorites from './pages/MeFavorites';
 import MeGreetings from './pages/MeGreetings';
@@ -716,6 +717,7 @@ function Shell() {
               <Route path="/timeline" element={<Timeline />} />
               <Route path="/timeline/:uid" element={<Timeline />} />
               <Route path="/me" element={<MeHub />} />
+              <Route path="/me/content" element={<MeContent />} />
               <Route path="/me/edit" element={<div className="me-compact"><MyProfile /></div>} />
               <Route path="/me/posts" element={<MePosts />} />
               <Route path="/me/favorites" element={<MeFavorites />} />

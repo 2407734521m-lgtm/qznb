@@ -74,6 +74,13 @@ function formatTime(value: string | null | undefined) {
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? '时间未知' : date.toLocaleString();
 }
+
+function formatExportScope(scope: string) {
+  if (scope === 'database') return '数据库导出';
+  if (scope === 'storage') return 'Storage 对象导出';
+  if (scope === 'full') return '数据库 + Storage 完整备份';
+  return scope || '—';
+}
 function parseMaintenance(settings: Map<string, string>) {
   const manual = settings.get('maintenance') === 'true';
   const raw = settings.get('maintenance_schedule');
@@ -409,7 +416,7 @@ export default function AdminSystemCenter({ setMsg, go }: {
         <div style={{ fontSize: 13, fontWeight: 700 }}>
           最近一次记录：{dashboard.latestExport.status === 'ok' ? '导出完成' : dashboard.latestExport.status === 'fail' ? '导出失败' : dashboard.latestExport.status === 'manual_verified' ? '人工备份已登记（非自动备份）' : dashboard.latestExport.status}
         </div>
-        <div style={{ ...muted, marginTop: 4 }}>{formatTime(dashboard.latestExport.created_at)} · {{ database: '数据库导出', storage: 'Storage 对象导出', full: '数据库 + Storage 完整备份' }[dashboard.latestExport.scope] ?? dashboard.latestExport.scope}</div>
+        <div style={{ ...muted, marginTop: 4 }}>{formatTime(dashboard.latestExport.created_at)} · formatExportScope(dashboard.latestExport.scope)</div>
         {dashboard.latestExport.note && <div style={{ ...muted, marginTop: 4, overflowWrap: 'anywhere' }}>{dashboard.latestExport.note}</div>}
       </> : <p style={muted}>暂未读取到数据导出记录。</p>}
       <p style={{ ...muted, margin: '10px 0 0' }}>

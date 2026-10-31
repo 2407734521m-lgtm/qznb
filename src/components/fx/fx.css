@@ -1,0 +1,36 @@
+/* fx 组件样式：ShinyText 光泽扫过 + Uiverse 风格加载环 */
+
+.fx-shiny {
+  background: linear-gradient(110deg, var(--fx-shine-base) 40%, var(--fx-shine-hi) 50%, var(--fx-shine-base) 60%);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation-name: fx-shine-move;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
+@keyframes fx-shine-move {
+  0% { background-position: 130% 0; }
+  100% { background-position: -90% 0; }
+}
+
+.fx-loader {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: 3px solid #e4e8ef;
+  border-top-color: #6b7686;
+  border-right-color: #9aa5b5;
+  animation: fx-spin 0.85s linear infinite;
+}
+
+@keyframes fx-spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fx-shiny { animation: none; }
+  .fx-loader { animation-duration: 2.6s; }
+}

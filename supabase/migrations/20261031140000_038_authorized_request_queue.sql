@@ -9,7 +9,7 @@ create table if not exists public.authorized_request_queue (
   request_type text not null check (request_type in ('本人资料核验','授权资料核验','公开资料整理')),
   description text not null check (char_length(description) between 5 and 500),
   contact text check (contact is null or char_length(contact) <= 100),
-  status text not null default 'pending' check (status in ('pending','selected','not_found','completed')),
+  status text not null default 'pending' check (status in ('pending','selected','not_found','completed','closed')),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   consent_confirmed_at timestamptz not null default now()
@@ -94,6 +94,11 @@ begin
     insert into public.notifications(profile_id,type,title,body,link)
       select profile_id,'authorized_request','申请已完成','你的申请已完成处理。','/board'
       from public.authorized_request_queue where id = p_request_id;
+    insert into public.notifications(profile_id,type,title,body,link)
+      select profile_id,'authorized_request','今日名额已用完','今日优先名额已完成处理，你的候选申请已结束。','/board'
+      from public.authorized_request_queue where request_date = v_day and status = 'pending';
+    update public.authorized_request_queue set status = 'closed', updated_at = now()
+      where request_date = v_day and status = 'pending';
   end if;
   return jsonb_build_object('ok',true,'next_request_id',v_next);
 end $$;

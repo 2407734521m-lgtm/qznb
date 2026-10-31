@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+import PasswordField from '../components/PasswordField';
 
 // 独立的管理员登录门：和站点登录区分开，输管理员账号+密码才能进后台
 export default function AdminLogin({ showBack = true }: { showBack?: boolean }) {
@@ -48,7 +49,7 @@ export default function AdminLogin({ showBack = true }: { showBack?: boolean }) 
         <input value={ident} onChange={e => setIdent(e.target.value)} placeholder="QQ 邮箱 / 用户名"
           autoComplete="username" onKeyDown={e => e.key === 'Enter' && doLogin()} />
         <label>密码</label>
-        <input type="password" value={pw} onChange={e => setPw(e.target.value)} placeholder="密码"
+        <PasswordField value={pw} onChange={setPw} placeholder="密码"
           autoComplete="current-password" onKeyDown={e => e.key === 'Enter' && doLogin()} />
         {err && <p className="err">{err}</p>}
         <button className="pri" disabled={busy} onClick={doLogin}>{busy ? '验证中…' : '进入后台'}</button>

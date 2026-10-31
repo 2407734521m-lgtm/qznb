@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../auth';
 import { getSignedUrls, downscaleImage } from '../lib/media';
+import { fetchReviewEstimates, estimateText, type ReviewEstimates } from '../lib/reviewEstimate';
 
 // 公开列表来自 love_wall_published()，不含 author_id；自己的投稿来自表查询，只含自己的 author_id。
 type PublicPost = { id: string; recipient_name: string | null; category: string; content: string; is_anonymous: boolean; author_display_name: string | null; status: string; created_at: string };
@@ -55,6 +56,7 @@ export default function LoveWall() {
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [cBusy, setCBusy] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [estimates, setEstimates] = useState<ReviewEstimates | null>(null);
   const [pick, setPick] = useState<{ file: File; kind: 'image' | 'video'; url: string }[]>([]);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -71,8 +73,11 @@ export default function LoveWall() {
         .order('created_at', { ascending: false }).limit(100);
       mineList = (mineData || []) as MyPost[];
       setMyPosts(mineList);
+      if (mineList.some(x => x.status === 'pending')) setEstimates(await fetchReviewEstimates());
+      else setEstimates(null);
     } else {
       setMyPosts([]);
+      setEstimates(null);
     }
     const ids = [...pubList.map(x => x.id), ...mineList.map(x => x.id)];
     if (ids.length) {
@@ -252,6 +257,7 @@ export default function LoveWall() {
       {shown.map(p => {
         const cc = catColor[p.category] || { bg: '#eef1f6', fg: '#5a6472' };
         const statusText = p.status === 'pending' ? '审核中' : p.status === 'rejected' ? '未通过' : p.status === 'hidden' ? '已隐藏' : timeAgo(p.created_at);
+        const est = mine && p.status === 'pending' ? estimates?.byId.get(p.id) : undefined;
         return <article key={p.id} style={{ padding: 17, borderRadius: 18, border: '1px solid #e9ebf0', background: '#fff', boxShadow: '0 8px 28px #202a3d0a' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
             <span style={{ fontSize: 11, fontWeight: 700, background: cc.bg, color: cc.fg, borderRadius: 999, padding: '4px 10px' }}>{p.category}</span>
@@ -261,6 +267,7 @@ export default function LoveWall() {
           <p style={{ whiteSpace: 'pre-wrap', lineHeight: 1.8, margin: '10px 0 12px', overflowWrap: 'anywhere', fontSize: 14.5 }}>{p.content}</p>
           {(mediaByPost[p.id] || []).length > 0 && <LoveMediaGrid items={mediaByPost[p.id]} />}
           <div style={{ fontSize: 11, color: '#606673' }}>{p.is_anonymous ? '匿名同学' : (mine ? '我发布的' : ((p as PublicPost).author_display_name || '班级同学'))} · {p.status === 'pending' ? '审核通过后公开展示' : p.status === 'published' ? '已公开展示' : '未公开展示'}</div>
+          {est && <div style={{ fontSize: 11, color: '#606673', marginTop: 4 }}>⏳ {estimateText(est, estimates?.adminActive ?? false)}</div>}
           {p.status === 'published' && (
             <div style={{ marginTop: 10, borderTop: '1px solid #f0f2f6', paddingTop: 10 }}>
               <button onClick={() => void toggleComments(p.id)} style={{ border: 0, background: 'transparent', color: '#5a6472', fontSize: 12.5, cursor: 'pointer', padding: 0 }}>

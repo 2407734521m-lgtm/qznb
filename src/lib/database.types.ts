@@ -1610,6 +1610,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string | null
       }
+      my_review_estimates: {
+        Args: Record<PropertyKey, never>
+        Returns: { admin_active: boolean; items: { kind: string; id: string; created_at: string; ahead: number; total: number }[]; sampled_at: string }
+      }
       notify_greeting_recipient: {
         Args: Record<PropertyKey, never>
         Returns: unknown

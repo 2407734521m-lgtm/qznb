@@ -42,6 +42,7 @@ export default function MeHub() {
   const [name, setName] = useState('');
   const [avatar, setAvatar] = useState<string | null>(null);
   const [unread, setUnread] = useState(0);
+  const [stats, setStats] = useState({ posts: 0, comments: 0, photos: 0, likes: 0, loading: true });
   const [fbOpen, setFbOpen] = useState(false);
   const [sponsorOpen, setSponsorOpen] = useState(false);
   const avUrl = useSignedUrl('avatars', avatar);
@@ -55,9 +56,23 @@ export default function MeHub() {
         setName((data as any).display_name || (data as any).username || '');
         setAvatar((data as any).avatar_path ?? null);
       }
-      const { count } = await supabase.from('notifications').select('id', { count: 'exact', head: true })
-        .eq('profile_id', me).eq('is_read', false);
-      if (alive) setUnread(count ?? 0);
+      const [{ count }, postRows, commentCount, photoCount] = await Promise.all([
+        supabase.from('notifications').select('id', { count: 'exact', head: true })
+          .eq('profile_id', me).eq('is_read', false),
+        supabase.from('posts').select('id').eq('author_id', me).is('deleted_at', null),
+        supabase.from('comments').select('id', { count: 'exact', head: true }).eq('author_id', me).is('deleted_at', null),
+        supabase.from('album_photos').select('id', { count: 'exact', head: true }).eq('uploaded_by', me),
+      ]);
+      const ownPostIds = (postRows.data ?? []).map((post: any) => post.id);
+      let likes = 0;
+      if (ownPostIds.length) {
+        const { count: likeCount } = await supabase.from('post_likes').select('id', { count: 'exact', head: true }).in('post_id', ownPostIds);
+        likes = likeCount ?? 0;
+      }
+      if (alive) {
+        setUnread(count ?? 0);
+        setStats({ posts: ownPostIds.length, comments: commentCount.count ?? 0, photos: photoCount.count ?? 0, likes, loading: false });
+      }
     })();
     return () => { alive = false; };
   }, [me]);
@@ -89,6 +104,16 @@ export default function MeHub() {
             <span>个人中心</span>
           </div>
           {unread > 0 && <button className="me-hub-unread" onClick={() => nav('/me/notifications')}>{unread} 条未读</button>}
+        </div>
+      </section>
+
+      <section className="me-footprint" aria-label="我的社区足迹">
+        <div className="me-footprint-head"><div><h2>我的足迹</h2><p>你为青春档案留下的记录</p></div><span>{stats.loading ? '统计中…' : '持续累积'}</span></div>
+        <div className="me-footprint-grid">
+          <div><strong>{stats.loading ? '—' : stats.posts}</strong><span>发布动态</span></div>
+          <div><strong>{stats.loading ? '—' : stats.comments}</strong><span>参与评论</span></div>
+          <div><strong>{stats.loading ? '—' : stats.photos}</strong><span>上传照片</span></div>
+          <div><strong>{stats.loading ? '—' : stats.likes}</strong><span>收到点赞</span></div>
         </div>
       </section>
 

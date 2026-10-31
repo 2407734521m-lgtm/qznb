@@ -57,6 +57,7 @@ export default function Overview({ setMsg, go }: { setMsg: (s: string) => void; 
   const [st, setSt] = useState<any>(null);
   const [presence, setPresence] = useState<{ online: number; active: number; sampledAt: string; error: boolean } | null>(null);
   const [loadTimedOut, setLoadTimedOut] = useState(false);
+  const [refreshSeq, setRefreshSeq] = useState(0);
 
   // 在线人数只向服务器请求聚合计数（admin_presence_summary），管理端不订阅
   // 任何成员级 Presence 或明细数据，因此拿不到在线名单和账号 ID。
@@ -102,6 +103,7 @@ export default function Overview({ setMsg, go }: { setMsg: (s: string) => void; 
     };
   }, []);
   useEffect(() => {
+    let active = true;
     (async () => {
       try {
         const since14 = new Date(Date.now() - 14 * 864e5).toISOString();
@@ -131,23 +133,26 @@ export default function Overview({ setMsg, go }: { setMsg: (s: string) => void; 
         const dDailyPost = bucket14((pdr.data ?? []) as any[]);
         let acc = (m.count ?? 0) - dPro.reduce((a, b) => a + b, 0);
         const cum = dPro.map(v => (acc += v));
+        if (!active) return;
         setSt({
+          loadedAt: new Date().toISOString(),
           members: m.count ?? 0, posts: p.count ?? 0, dailyPosts: pd.count ?? 0, comments: c.count ?? 0,
           photos: ph.count ?? 0, pendingReports: r.count ?? 0, new7: new7 ?? 0,
           newMembers: nm.data ?? [], recentLogs: logs ?? [],
           dbOk: !pingErr, dbMs: Date.now() - t0,
           dPro, dPost, dDailyPost, dPhoto, cum,
         });
-      } catch (e: any) { setMsg('总览加载失败：' + (e.message || '')); }
+      } catch (e: any) { if (active) setMsg('总览加载失败：' + (e.message || '')); }
     })();
-  }, []);
+    return () => { active = false; };
+  }, [refreshSeq]);
   useEffect(() => {
     if (st) return;
     const timer = window.setTimeout(() => setLoadTimedOut(true), 12000);
     return () => window.clearTimeout(timer);
-  }, [st]);
+  }, [st, refreshSeq]);
   if (!st && !loadTimedOut) return <div className="admin-overview-loading" role="status"><span className="admin-loading-pulse" />正在整理总览数据…</div>;
-  if (!st) return <div className="admin-overview-timeout"><strong>总览数据暂时没有响应</strong><p>后台其他功能仍可使用。请检查网络后重试。</p><button type="button" onClick={() => window.location.reload()}>刷新重试</button></div>;
+  if (!st) return <div className="admin-overview-timeout"><strong>总览数据暂时没有响应</strong><p>后台其他功能仍可使用。请检查网络后重试。</p><button type="button" onClick={() => { setLoadTimedOut(false); setRefreshSeq(value => value + 1); }}>重新加载</button></div>;
   const segs = [
     { label: '成员', v: st.members, color: '#5b8cff' },
     { label: '动态', v: st.posts, color: '#8b5cf6' },
@@ -175,6 +180,19 @@ export default function Overview({ setMsg, go }: { setMsg: (s: string) => void; 
     ['班级照片', st.photos, st.dPhoto, '#f5a623'],
   ];
   return (<>
+    <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+      <div>
+        <h2 style={{ margin: 0, fontSize: 18, color: '#eef2f8' }}>运营总览</h2>
+        <div style={{ marginTop: 4, fontSize: 10.5, color: '#8b93b0' }}>
+          数据更新于 {new Date(st.loadedAt).toLocaleString()}
+        </div>
+      </div>
+      <button className="mini ghost" type="button" onClick={() => {
+        setSt(null);
+        setLoadTimedOut(false);
+        setRefreshSeq(value => value + 1);
+      }}>刷新数据</button>
+    </div>
     <TodoCenter go={go} />
     <div className="admin-stats-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
       {stats.map(([k, v, d, col]) => (

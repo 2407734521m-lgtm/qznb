@@ -1401,6 +1401,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: Json
       }
+      record_auth_login_failure: {
+        Args: { p_method: string; p_failure_class: string }
+        Returns: undefined
+      }
       admin_create_maintenance_code: {
         Args: { p_valid_minutes: number; p_max_uses: number }
         Returns: { code: string; expires_at: string; max_uses: number }

@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../auth';
 import BackButton from '../components/BackButton';
 
-/** 我的收藏：收藏的同学档案 + 动态 */
+/** 我的收藏：收藏的同学档案 + 动态 / 日常帖子 */
 export default function MeFavorites() {
   const nav = useNavigate();
   const me = useAuth().session!.user.id;

@@ -3,6 +3,7 @@ import AdminMemberModal from '../components/AdminMemberModal';
 import { supabase, supabaseBaseUrl } from '../lib/supabase';
 import { useAuth } from '../auth';
 import '../styles-admin-cinematic.css';
+import '../styles-admin-unified.css';
 import AdminSystemCenter from '../components/AdminSystemCenter';
 import AdminLoveWall from '../components/AdminLoveWall';
 import AdminNotificationCenter from '../components/AdminNotificationCenter';

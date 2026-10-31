@@ -3,7 +3,7 @@ import { supabase } from '../../lib/supabase';
 import { card, h3, mut, timeAgo, bucket14 } from './shared';
 import { Spark, TrendChart, Donut } from './charts';
 
-export default function Overview({ setMsg, go }: { setMsg: (s: string) => void; go: (tab: string) => void }) {
+export default function Overview({ setMsg }: { setMsg: (s: string) => void }) {
   const [st, setSt] = useState<any>(null);
   const [presence, setPresence] = useState<{ online: number; active: number; sampledAt: string; error: boolean } | null>(null);
   const [loadTimedOut, setLoadTimedOut] = useState(false);

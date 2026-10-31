@@ -315,14 +315,17 @@ export type Database = {
         Row: {
           conversation_id: number
           profile_id: string
+          last_read_message_id: number | null
         }
         Insert: {
           conversation_id: number
           profile_id: string
+          last_read_message_id?: number | null
         }
         Update: {
           conversation_id?: number
           profile_id?: string
+          last_read_message_id?: number | null
         }
         Relationships: [
           {
@@ -337,6 +340,13 @@ export type Database = {
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_members_last_read_message_id_fkey"
+            columns: ["last_read_message_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
             referencedColumns: ["id"]
           },
         ]
@@ -873,6 +883,9 @@ export type Database = {
           sender_id: string
           body: string
           created_at: string
+          reply_to_id: number | null
+          edited_at: string | null
+          deleted_at: string | null
         }
         Insert: {
           id?: number
@@ -880,6 +893,9 @@ export type Database = {
           sender_id: string
           body: string
           created_at?: string
+          reply_to_id?: number | null
+          edited_at?: string | null
+          deleted_at?: string | null
         }
         Update: {
           id?: number
@@ -887,6 +903,9 @@ export type Database = {
           sender_id?: string
           body?: string
           created_at?: string
+          reply_to_id?: number | null
+          edited_at?: string | null
+          deleted_at?: string | null
         }
         Relationships: [
           {
@@ -901,6 +920,49 @@ export type Database = {
             columns: ["conversation_id"]
             isOneToOne: false
             referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_reply_to_id_fkey"
+            columns: ["reply_to_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      message_reactions: {
+        Row: {
+          message_id: number
+          profile_id: string
+          reaction: string
+          created_at: string
+        }
+        Insert: {
+          message_id: number
+          profile_id: string
+          reaction: string
+          created_at?: string
+        }
+        Update: {
+          message_id?: number
+          profile_id?: string
+          reaction?: string
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "message_reactions_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "message_reactions_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -1609,6 +1671,36 @@ export type Database = {
       get_or_create_conversation: {
         Args: { other: string }
         Returns: unknown
+      }
+      my_conversations: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          conversation_id: number
+          conversation_created_at: string
+          other_profile_id: string
+          username: string
+          display_name: string | null
+          avatar_path: string | null
+          last_message_id: number | null
+          last_message_body: string | null
+          last_message_at: string | null
+          last_message_sender_id: string | null
+          last_message_deleted: boolean
+          unread_count: number
+          other_last_read_message_id: number | null
+        }[]
+      }
+      mark_conversation_read: {
+        Args: { p_conversation_id: number }
+        Returns: number | null
+      }
+      edit_chat_message: {
+        Args: { p_message_id: number; p_body: string }
+        Returns: undefined
+      }
+      delete_chat_message: {
+        Args: { p_message_id: number }
+        Returns: undefined
       }
       handle_new_user: {
         Args: Record<PropertyKey, never>

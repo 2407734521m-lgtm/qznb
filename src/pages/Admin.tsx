@@ -367,7 +367,10 @@ function Overview({ setMsg }: { setMsg: (s: string) => void }) {
       const { data, error } = await supabase.rpc('admin_presence_summary');
       if (!alive) return;
       if (error || !data) {
-        setPresence(prev => prev ? { ...prev, error: true } : { online: 0, active: 0, sampledAt: '', error: true });
+        // 实时推送正常时，RPC 只是备用采样，单次失败不遮住实时人数。
+        if (!realtimeReady) {
+          setPresence(prev => prev ? { ...prev, error: true } : { online: 0, active: 0, sampledAt: '', error: true });
+        }
         return;
       }
       setPresence(prev => ({
@@ -537,7 +540,7 @@ function Overview({ setMsg }: { setMsg: (s: string) => void }) {
           <div style={{ fontSize: 30, lineHeight: 1.2, fontWeight: 850, color: '#4ade80', marginTop: 4 }}>
             {presence && !presence.error ? presence.online : '—'}
           </div>
-          <div style={{ fontSize: 10.5, color: '#8b93b0', marginTop: 4 }}>近 5 分钟有活动</div>
+          <div style={{ fontSize: 10.5, color: '#8b93b0', marginTop: 4 }}>{realtimeReady ? '此刻保持连接' : '近 5 分钟有活动'}</div>
         </div>
         <div style={{ background: '#ffffff0a', border: '1px solid #ffffff12', borderRadius: 12, padding: 12 }}>
           <div style={{ fontSize: 11, color: '#8b93b0' }}>最近活跃</div>

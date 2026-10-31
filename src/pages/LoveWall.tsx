@@ -92,7 +92,7 @@ export default function LoveWall() {
       setCounts(cc);
     }
   }
-  useEffect(() => { void load(); }, []);
+  useEffect(() => { void load(); }, [session?.user.id]);
 
   useEffect(() => {
     if (!composing || !session) return;

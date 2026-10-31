@@ -357,25 +357,48 @@ function Overview({ setMsg }: { setMsg: (s: string) => void }) {
   const [st, setSt] = useState<any>(null);
   const [presence, setPresence] = useState<{ online: number; active: number; sampledAt: string; error: boolean } | null>(null);
 
+  // 在线人数只向服务器请求聚合计数（admin_presence_summary），管理端不订阅
+  // 任何成员级 Presence 或明细数据，因此拿不到在线名单和账号 ID。
   useEffect(() => {
     let alive = true;
+    let inFlight = false;
+    let requestSeq = 0;
     const refreshPresence = async () => {
-      const { data, error } = await supabase.rpc('admin_presence_summary');
-      if (!alive) return;
-      if (error || !data) {
-        setPresence(prev => prev ? { ...prev, error: true } : { online: 0, active: 0, sampledAt: '', error: true });
-        return;
+      if (document.visibilityState !== 'visible') return;
+      // 去重：visibilitychange、focus 与定时器可能同时触发，已有请求在飞时跳过。
+      if (inFlight) return;
+      inFlight = true;
+      const seq = ++requestSeq;
+      try {
+        const { data, error } = await supabase.rpc('admin_presence_summary');
+        // 只接受最新一次请求的结果，避免较早返回的结果覆盖较新的数据。
+        if (!alive || seq !== requestSeq) return;
+        if (error || !data) {
+          // 保留上次成功的人数并标记为可能过期，不用错误状态遮住已有数字。
+          setPresence(prev => prev ? { ...prev, error: true } : { online: 0, active: 0, sampledAt: '', error: true });
+          return;
+        }
+        setPresence({
+          online: Number(data.online_count ?? 0),
+          active: Number(data.active_count ?? 0),
+          sampledAt: data.sampled_at ?? new Date().toISOString(),
+          error: false,
+        });
+      } finally {
+        inFlight = false;
       }
-      setPresence({
-        online: Number(data.online_count ?? 0),
-        active: Number(data.active_count ?? 0),
-        sampledAt: data.sampled_at ?? new Date().toISOString(),
-        error: false,
-      });
     };
     void refreshPresence();
-    const timer = window.setInterval(() => { void refreshPresence(); }, 30 * 1000);
-    return () => { alive = false; window.clearInterval(timer); };
+    const timer = window.setInterval(() => { void refreshPresence(); }, 15 * 1000);
+    const onVisible = () => { if (document.visibilityState === 'visible') void refreshPresence(); };
+    document.addEventListener('visibilitychange', onVisible);
+    window.addEventListener('focus', onVisible);
+    return () => {
+      alive = false;
+      window.clearInterval(timer);
+      document.removeEventListener('visibilitychange', onVisible);
+      window.removeEventListener('focus', onVisible);
+    };
   }, []);
   useEffect(() => {
     (async () => {
@@ -494,29 +517,29 @@ function Overview({ setMsg }: { setMsg: (s: string) => void }) {
     </div>
     <div style={card}>
       <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-        <h3 style={{ ...h3, margin: 0 }}>实时在线</h3>
+        <h3 style={{ ...h3, margin: 0 }}>在线统计</h3>
         <span style={{ fontSize: 10.5, color: presence?.error ? '#ffb4b4' : '#4ade80' }}>
-          {presence?.error ? '数据暂不可用' : '自动刷新 · 30 秒'}
+          {presence?.error ? (presence.sampledAt ? '刷新失败 · 显示上次结果' : '数据暂不可用') : '自动刷新 · 15 秒'}
         </span>
       </div>
       <div className="admin-stats-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
         <div style={{ background: '#ffffff0a', border: '1px solid #ffffff12', borderRadius: 12, padding: 12 }}>
-          <div style={{ fontSize: 11, color: '#8b93b0' }}>当前在线</div>
+          <div style={{ fontSize: 11, color: '#8b93b0' }}>近 5 分钟活跃</div>
           <div style={{ fontSize: 30, lineHeight: 1.2, fontWeight: 850, color: '#4ade80', marginTop: 4 }}>
-            {presence && !presence.error ? presence.online : '—'}
+            {presence && presence.sampledAt ? presence.online : '—'}
           </div>
-          <div style={{ fontSize: 10.5, color: '#8b93b0', marginTop: 4 }}>近 5 分钟有活动</div>
+          <div style={{ fontSize: 10.5, color: '#8b93b0', marginTop: 4 }}>5 分钟内有活动即计入</div>
         </div>
         <div style={{ background: '#ffffff0a', border: '1px solid #ffffff12', borderRadius: 12, padding: 12 }}>
-          <div style={{ fontSize: 11, color: '#8b93b0' }}>最近活跃</div>
+          <div style={{ fontSize: 11, color: '#8b93b0' }}>近 30 分钟活跃</div>
           <div style={{ fontSize: 30, lineHeight: 1.2, fontWeight: 850, color: '#8bb5ff', marginTop: 4 }}>
-            {presence && !presence.error ? presence.active : '—'}
+            {presence && presence.sampledAt ? presence.active : '—'}
           </div>
-          <div style={{ fontSize: 10.5, color: '#8b93b0', marginTop: 4 }}>近 30 分钟有活动</div>
+          <div style={{ fontSize: 10.5, color: '#8b93b0', marginTop: 4 }}>30 分钟内有活动即计入</div>
         </div>
       </div>
       <div style={{ fontSize: 10.5, color: '#8b93b0', marginTop: 10, lineHeight: 1.6 }}>
-        按不同账号去重；同一账号多设备只计 1 人。{presence?.sampledAt ? `最近采样：${new Date(presence.sampledAt).toLocaleTimeString()}` : '等待首次采样…'}
+        这是活动窗口统计，不是即时连接人数：关掉页面的人在窗口结束前仍会计入，满窗口无活动后自动移出。按不同账号去重；同一账号多设备只计 1 人。人数由服务器聚合统计，管理端只收到总人数，不接收在线名单。{presence?.sampledAt ? `最近采样：${new Date(presence.sampledAt).toLocaleTimeString()}` : '等待首次采样…'}
       </div>
     </div>
     <div style={card}>

@@ -21,6 +21,9 @@ const groups: { title: string; note: string; entries: Entry[] }[] = [
     { mark: '活动', title: '班级活动', note: '查看近期活动与安排', to: '/events' },
     { mark: '特效', title: '热门特效', note: '探索互动效果', to: '/hot' },
   ]},
+  { title: '成长与荣誉', note: '记录你的社区参与和青春足迹', entries: [
+    { mark: '成长', title: '成长档案', note: '活跃天数、贡献记录与纪念徽章', to: '/me/growth' },
+  ]},
   { title: '互动消息', note: '查看来自同学的互动', entries: [
     { mark: '留言', title: '我的留言', note: '收到的留言', to: '/me/greetings' },
     { mark: '通知', title: '我的通知', note: '消息与系统提醒', to: '/me/notifications', badge: 'unread' },
@@ -28,6 +31,7 @@ const groups: { title: string; note: string; entries: Entry[] }[] = [
   { title: '账号设置', note: '管理隐私与账号安全', entries: [
     { mark: '隐私', title: '隐私设置', note: '谁可以看到你的资料', to: 'privacy' },
     { mark: '安全', title: '账号安全', note: '密码与登录状态', to: '/me/account' },
+    { mark: '设置', title: '设置中心', note: '通知偏好、设备与动画', to: '/me/settings' },
   ]},
   { title: '支持', note: '遇到问题，或想支持一下网站', entries: [
     { mark: '反馈', title: '联系开发者与反馈', note: '提交问题或意见', to: '', act: 'feedback' },

@@ -186,7 +186,7 @@ function MaintenanceScreen({ title, msg, hasSession, onLogout, onAdmin, onAccess
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   async function redeem() {
-    if (!/^\\d{6}$/.test(code)) { setError('请输入完整的六位数验证码'); return; }
+    if (code.length !== 6 || [...code].some(ch => ch < '0' || ch > '9')) { setError('请输入完整的六位数验证码'); return; }
     setBusy(true); setError('');
     try {
       const { data, error: rpcError } = await supabase.rpc('maintenance_redeem_code', { p_code: code });
@@ -206,7 +206,7 @@ function MaintenanceScreen({ title, msg, hasSession, onLogout, onAdmin, onAccess
       <p style={{ fontSize: 15, lineHeight: 1.8, margin: '18px 0 22px' }}>{msg || '系统维护中，稍后再来'}</p>
       <label style={{ display: 'block', textAlign: 'left', marginBottom: 7 }}>临时访问验证码</label>
       <input inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={code}
-        onChange={e => { setCode(e.target.value.replace(/\\D/g, '').slice(0, 6)); setError(''); }}
+        onChange={e => { setCode(e.target.value.replace(/[^0-9]/g, '').slice(0, 6)); setError(''); }}
         onKeyDown={e => { if (e.key === 'Enter') void redeem(); }}
         placeholder="请输入六位数验证码" style={{ textAlign: 'center', letterSpacing: 8, fontSize: 22 }} />
       {error && <p className="err" role="alert">{error}</p>}

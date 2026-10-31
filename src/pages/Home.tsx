@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useSignedUrl } from '../lib/media';
 import Reveal from '../components/Reveal';
+import BlurText from '../components/fx/BlurText';
+import ShinyText from '../components/fx/ShinyText';
 
 /**
  * 班级首页：沉浸式入口，全部来自真实数据
@@ -99,7 +101,7 @@ export default function Home() {
         {bannerUrl && <img src={bannerUrl} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />}
         <div style={{ position: 'absolute', inset: 0, background: bannerUrl ? 'linear-gradient(90deg,#101828a8,transparent)' : 'linear-gradient(120deg,#ffffff00,#dfe4ec66)', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', padding: 'clamp(18px,5vw,30px)' }}>
           <span style={{ fontSize: 11, letterSpacing: 3, color: bannerUrl ? '#fff' : '#737b89', marginBottom: 8 }}>OUR CLASS · ANNOUNCEMENTS</span>
-          <h2 style={{ margin: 0, fontSize: 'clamp(21px,5vw,32px)', lineHeight: 1.25, color: bannerUrl ? '#fff' : '#202632', fontWeight: 800 }}>{bannerText}</h2>
+          <h2 style={{ margin: 0, fontSize: 'clamp(21px,5vw,32px)', lineHeight: 1.25, color: bannerUrl ? '#fff' : '#202632', fontWeight: 800 }}><BlurText key={bannerText} text={bannerText} /></h2>
           <span style={{ fontSize: 12, marginTop: 10, color: bannerUrl ? '#ffffffd9' : '#687080' }}>查看班级公告　→</span>
         </div>
       </section>
@@ -112,7 +114,7 @@ export default function Home() {
           background: 'linear-gradient(135deg,#303642,#737b8a)',
           WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent',
         }}>{title}</h1>
-        <p style={{ margin: '6px 0 0', color: 'var(--mut)', fontSize: 14, letterSpacing: 4 }}>{subtitle}</p>
+        <p style={{ margin: '6px 0 0', color: 'var(--mut)', fontSize: 14, letterSpacing: 4 }}><ShinyText text={subtitle} /></p>
         {countdown && (
           <div style={{
             display: 'inline-block', marginTop: 12, padding: '8px 20px', borderRadius: 999,

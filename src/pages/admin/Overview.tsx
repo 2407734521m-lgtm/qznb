@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { supabase } from '../../lib/supabase';
+import { startSitePresence, type SitePresenceSnapshot } from '../../lib/sitePresence';
 import { card, h3, mut, timeAgo, bucket14 } from './shared';
 import { Spark, TrendChart, Donut } from './charts';
 
@@ -56,42 +57,65 @@ function TodoCenter({ go }: { go: (tab: string) => void }) {
 export default function Overview({ setMsg, go }: { setMsg: (s: string) => void; go: (tab: string) => void }) {
   const [st, setSt] = useState<any>(null);
   const [presence, setPresence] = useState<{ online: number; active: number; sampledAt: string; error: boolean } | null>(null);
+  const [realtimeReady, setRealtimeReady] = useState(false);
+  const [realtimeFailed, setRealtimeFailed] = useState(false);
+  const realtimeRef = useRef<SitePresenceSnapshot>({
+    status: 'connecting', online: null, updatedAt: null,
+  });
   const [loadTimedOut, setLoadTimedOut] = useState(false);
   const [refreshSeq, setRefreshSeq] = useState(0);
 
-  // 在线人数只向服务器请求聚合计数（admin_presence_summary），管理端不订阅
-  // 任何成员级 Presence 或明细数据，因此拿不到在线名单和账号 ID。
+  // 管理总览复用站点唯一 Presence 连接，避免监听器再创建一条自计数连接。
+  useEffect(() => startSitePresence(next => {
+    realtimeRef.current = next;
+    const ready = next.status === 'connected';
+    setRealtimeReady(ready);
+    setRealtimeFailed(next.status === 'error' || next.status === 'closed');
+    if (ready && next.online !== null) {
+      setPresence(prev => ({
+        online: next.online as number,
+        active: prev?.active ?? 0,
+        sampledAt: next.updatedAt ?? prev?.sampledAt ?? new Date().toISOString(),
+        error: false,
+      }));
+    }
+  }), []);
+
+  // Realtime 不可用时回退到原有服务端活动窗口统计；Realtime 正常时仍更新 30 分钟活跃账号数。
   useEffect(() => {
     let alive = true;
     let inFlight = false;
-    let requestSeq = 0;
     const refreshPresence = async () => {
-      if (document.visibilityState !== 'visible') return;
-      // 去重：visibilitychange、focus 与定时器可能同时触发，已有请求在飞时跳过。
-      if (inFlight) return;
+      if (!alive || document.visibilityState !== 'visible' || inFlight) return;
       inFlight = true;
-      const seq = ++requestSeq;
       try {
         const { data, error } = await supabase.rpc('admin_presence_summary');
-        // 只接受最新一次请求的结果，避免较早返回的结果覆盖较新的数据。
-        if (!alive || seq !== requestSeq) return;
+        if (!alive) return;
         if (error || !data) {
-          // 保留上次成功的人数并标记为可能过期，不用错误状态遮住已有数字。
-          setPresence(prev => prev ? { ...prev, error: true } : { online: 0, active: 0, sampledAt: '', error: true });
+          if (realtimeRef.current.status !== 'connected') {
+            setPresence(prev => prev
+              ? { ...prev, error: true }
+              : { online: 0, active: 0, sampledAt: '', error: true });
+          }
           return;
         }
-        setPresence({
-          online: Number(data.online_count ?? 0),
+        const live = realtimeRef.current;
+        setPresence(prev => ({
+          online: live.status === 'connected' && live.online !== null
+            ? live.online
+            : Number(data.online_count ?? 0),
           active: Number(data.active_count ?? 0),
-          sampledAt: data.sampled_at ?? new Date().toISOString(),
+          sampledAt: live.status === 'connected'
+            ? (live.updatedAt ?? prev?.sampledAt ?? data.sampled_at ?? new Date().toISOString())
+            : (data.sampled_at ?? new Date().toISOString()),
           error: false,
-        });
+        }));
       } finally {
         inFlight = false;
       }
     };
     void refreshPresence();
-    const timer = window.setInterval(() => { void refreshPresence(); }, 5 * 1000);
+    const timer = window.setInterval(() => { void refreshPresence(); }, 15 * 1000);
     const onVisible = () => { if (document.visibilityState === 'visible') void refreshPresence(); };
     document.addEventListener('visibilitychange', onVisible);
     window.addEventListener('focus', onVisible);
@@ -250,20 +274,20 @@ export default function Overview({ setMsg, go }: { setMsg: (s: string) => void; 
     <div style={card}>
       <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
         <h3 style={{ ...h3, margin: 0 }}>在线统计</h3>
-        <span style={{ fontSize: 10.5, color: presence?.error ? '#ffb4b4' : '#4ade80' }}>
-          {presence?.error ? (presence.sampledAt ? '刷新失败 · 显示上次结果' : '数据暂不可用') : '自动刷新 · 5 秒'}
+        <span style={{ fontSize: 10.5, color: realtimeReady ? '#4ade80' : (presence?.error || realtimeFailed ? '#ffb4b4' : '#f5c26b') }}>
+          {realtimeReady ? '实时推送 · 私有频道' : realtimeFailed ? '实时不可用 · 活动统计回退' : presence?.error ? '刷新失败 · 显示上次结果' : '连接中 · 活动统计回退'}
         </span>
       </div>
       <div className="admin-stats-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
         <div style={{ background: '#ffffff0a', border: '1px solid #ffffff12', borderRadius: 12, padding: 12 }}>
-          <div style={{ fontSize: 11, color: '#8b93b0' }}>近 5 分钟活跃</div>
+          <div style={{ fontSize: 11, color: '#8b93b0' }}>{realtimeReady ? '实时在线连接（已登录）' : '近 5 分钟活跃账号'}</div>
           <div style={{ fontSize: 30, lineHeight: 1.2, fontWeight: 850, color: '#4ade80', marginTop: 4 }}>
             {presence && presence.sampledAt ? presence.online : '—'}
           </div>
-          <div style={{ fontSize: 10.5, color: '#8b93b0', marginTop: 4 }}>5 分钟内有活动即计入</div>
+          <div style={{ fontSize: 10.5, color: '#8b93b0', marginTop: 4 }}>{realtimeReady ? '连接变化即时推送' : '5 分钟内有活动即计入'}</div>
         </div>
         <div style={{ background: '#ffffff0a', border: '1px solid #ffffff12', borderRadius: 12, padding: 12 }}>
-          <div style={{ fontSize: 11, color: '#8b93b0' }}>近 30 分钟活跃</div>
+          <div style={{ fontSize: 11, color: '#8b93b0' }}>近 30 分钟活跃账号</div>
           <div style={{ fontSize: 30, lineHeight: 1.2, fontWeight: 850, color: '#8bb5ff', marginTop: 4 }}>
             {presence && presence.sampledAt ? presence.active : '—'}
           </div>
@@ -271,7 +295,10 @@ export default function Overview({ setMsg, go }: { setMsg: (s: string) => void; 
         </div>
       </div>
       <div style={{ fontSize: 10.5, color: '#8b93b0', marginTop: 10, lineHeight: 1.6 }}>
-        这是活动窗口统计，不是即时连接人数：关掉页面的人在窗口结束前仍会计入，满窗口无活动后自动移出。按不同账号去重；同一账号多设备只计 1 人。人数由服务器聚合统计，管理端只收到总人数，不接收在线名单。{presence?.sampledAt ? `最近采样：${new Date(presence.sampledAt).toLocaleTimeString()}` : '等待首次采样…'}
+        {realtimeReady
+          ? '实时模式只发布匿名在线标记，不传递账号 ID、昵称或邮箱；只统计已登录且已连接的浏览器会话。同一账号的多个标签页或设备会分别计数。'
+          : '备用模式由服务器按活动窗口统计账号：近 5 分钟有活动计入在线，超过窗口后自动移出；同一账号去重。'}
+        {presence?.sampledAt ? `最近更新：${new Date(presence.sampledAt).toLocaleTimeString()}` : '等待首次采样…'}
       </div>
     </div>
     <div style={card}>

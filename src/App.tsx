@@ -3,6 +3,7 @@ import { Routes, Route, NavLink, Navigate, useLocation, useNavigate } from 'reac
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { DUR, EASE } from './lib/motion';
 import { supabase } from './lib/supabase';
+import { startSitePresence } from './lib/sitePresence';
 import { useAuth } from './auth';
 import { getWallpaper } from './lib/wallpaper';
 import WallpaperOnboarding from './components/WallpaperOnboarding';
@@ -545,6 +546,13 @@ function Shell() {
     return () => { alive = false; window.clearInterval(timer); };
   }, [loc.pathname]);
   useEffect(() => { setShowLogin(false); }, [session]);
+
+  // 每个已登录站点会话仅持有一个匿名 Presence 连接。
+  useEffect(() => {
+    if (!session?.user.id) return;
+    return startSitePresence();
+  }, [session?.user.id]);
+
 
   // 浏览器标签/阅读模式标题跟随后台「网站标题/副标题」设置（site_settings）：
   // 公共配置一到手就同步 document.title；index.html 里的静态标题只作首屏兜底。

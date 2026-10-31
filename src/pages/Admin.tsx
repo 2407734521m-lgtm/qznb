@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import AdminMemberModal from '../components/AdminMemberModal';
 import { supabase, supabaseBaseUrl } from '../lib/supabase';
+import { startSitePresence } from '../lib/sitePresence';
 import { useAuth } from '../auth';
 import '../styles-admin-cinematic.css';
 import '../styles-admin-unified.css';
@@ -65,6 +66,13 @@ export default function Admin() {
   const isDedicatedAdminHost = window.location.hostname.split('.')[0].toLowerCase() === 'admin';
 
   // 独立 admin 子域名不会加载主站 App，因此在此补充管理员后台的在线心跳。
+  // 与总览监听器共享同一 Presence channel，避免管理员自身重复计数。
+  useEffect(() => {
+    if (!isDedicatedAdminHost || !session?.user.id) return;
+    return startSitePresence();
+  }, [isDedicatedAdminHost, session?.user.id]);
+
+
   useEffect(() => {
     if (!isDedicatedAdminHost || !session) return;
     const uid = session.user.id;

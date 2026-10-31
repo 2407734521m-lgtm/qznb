@@ -43,6 +43,12 @@ Deno.serve(async (req: Request) => {
   if (!content) return response({ error: '反馈内容不能为空。' }, 400);
 
   const admin = createClient(url, serviceKey, { auth: { persistSession: false } });
+  const { data: feedbackAllowed, error: feedbackLimitError } = await admin.rpc('consume_dev_feedback_attempt', {
+    p_profile_id: userData.user.id,
+  });
+  if (feedbackLimitError) return response({ error: '反馈服务暂不可用，请稍后重试。' }, 503);
+  if (feedbackAllowed !== true) return response({ error: '每个账号每小时最多提交 3 次反馈，请稍后再试。' }, 429);
+
   const { data: profile } = await admin
     .from('profiles')
     .select('username, display_name')

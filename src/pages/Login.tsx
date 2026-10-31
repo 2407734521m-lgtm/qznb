@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import FeedbackModal from '../components/FeedbackModal';
+import PasswordField from '../components/PasswordField';
 import { downscaleImage } from '../lib/media';
 import bgDefault from '../assets/cow.jpg';
 import { alertDialog } from '../lib/dialog';
@@ -340,7 +341,7 @@ export default function Login() {
             <label>账号</label>
             <input value={ident} onChange={e => setIdent(e.target.value)} placeholder="QQ 邮箱 / 用户名" autoComplete="username" />
             <label>密码</label>
-            <input type="password" value={pw} onChange={e => setPw(e.target.value)} placeholder="密码" autoComplete="current-password"
+            <PasswordField value={pw} onChange={setPw} placeholder="密码" autoComplete="current-password"
               onKeyDown={e => e.key === 'Enter' && doLogin()} />
             {err && <p className="err">{err}</p>}
             <button className="pri" disabled={busy} onClick={doLogin}>{busy ? <><Spin />登录中…</> : '进入班级'}</button>
@@ -362,9 +363,9 @@ export default function Login() {
               <label>邮箱验证码</label>
               <input value={forgotCode} onChange={e => setForgotCode(e.target.value.replace(/\D/g, '').slice(0, 10))} placeholder="6 位数字验证码" inputMode="numeric" />
               <label>新密码</label>
-              <input type="password" value={forgotNewPw} onChange={e => setForgotNewPw(e.target.value)} placeholder="至少 8 位" autoComplete="new-password" />
+              <PasswordField value={forgotNewPw} onChange={setForgotNewPw} placeholder="至少 8 位" autoComplete="new-password" />
               <label>确认新密码</label>
-              <input type="password" value={forgotNewPw2} onChange={e => setForgotNewPw2(e.target.value)} placeholder="再输一次" autoComplete="new-password"
+              <PasswordField value={forgotNewPw2} onChange={setForgotNewPw2} placeholder="再输一次" autoComplete="new-password"
                 onKeyDown={e => e.key === 'Enter' && doForgotVerify()} />
             </>)}
             {err && <p className="err">{err}</p>}
@@ -397,9 +398,9 @@ export default function Login() {
                 onKeyDown={e => e.key === 'Enter' && doVerifyReg()} />
             </>)}
             <label>密码</label>
-            <input type="password" value={pw} onChange={e => setPw(e.target.value)} placeholder="至少 8 位" autoComplete="new-password" />
+            <PasswordField value={pw} onChange={setPw} placeholder="至少 8 位" autoComplete="new-password" />
             <label>确认密码</label>
-            <input type="password" value={pw2} onChange={e => setPw2(e.target.value)} placeholder="再输一次" autoComplete="new-password" />
+            <PasswordField value={pw2} onChange={setPw2} placeholder="再输一次" autoComplete="new-password" />
             <label>邀请码（选填）</label>
             <input value={invite} onChange={e => setInvite(e.target.value)} placeholder="有就填，没有先不填，注册后在个人中心补填" />
             <div style={{ margin: '14px 0 10px', padding: '12px 13px', borderRadius: 12, background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.12)' }}>

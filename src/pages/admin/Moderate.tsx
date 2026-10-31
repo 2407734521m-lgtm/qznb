@@ -53,13 +53,13 @@ export default function Moderate({ setMsg }: { setMsg: (s: string) => void }) {
   useEffect(() => { load(); }, []);
 
   async function hidePost(p: Post, hide: boolean) {
-    if (!(await confirmDialog(hide ? '隐藏这条动态？（进回收站，可恢复）' : '恢复这条动态？'))) return;
+    if (!(await confirmDialog(hide ? '隐藏这条帖子？（进回收站，可恢复）' : '恢复这条帖子？'))) return;
     const { error } = await supabase.rpc('admin_set_post_hidden', { p_id: p.id, p_hidden: hide });
     if (!error) { await alog(hide ? 'post_hide' : 'post_restore', { id: p.id }); load(); }
     else setMsg('失败：' + error.message);
   }
   async function delPost(p: Post) {
-    if (!(await confirmDialog('彻底删除这条动态？不可恢复！', { danger: true }))) return;
+    if (!(await confirmDialog('彻底删除这条帖子？不可恢复！', { danger: true }))) return;
     if (!(await confirmDialog('再次确认：真的彻底删除吗？', { danger: true }))) return;
     const { error } = await supabase.from('posts').delete().eq('id', p.id);
     if (!error) { await alog('post_delete', { id: p.id }); load(); }

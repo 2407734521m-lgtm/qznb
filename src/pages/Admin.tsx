@@ -382,17 +382,19 @@ function Overview({ setMsg, go }: { setMsg: (s: string) => void; go: (tab: strin
     (async () => {
       try {
         const since14 = new Date(Date.now() - 14 * 864e5).toISOString();
-        const [m, p, c, ph, r, nm, pr, por, phr] = await Promise.all([
+        const [m, p, c, ph, r, nm, pr, por, phr, pd, pdr] = await Promise.all([
           supabase.from('profiles').select('id', { count: 'exact', head: true }),
-          supabase.from('posts').select('id', { count: 'exact', head: true }).is('deleted_at', null),
+          supabase.from('posts').select('id', { count: 'exact', head: true }).eq('section', 'feed').is('deleted_at', null),
           supabase.from('comments').select('id', { count: 'exact', head: true }).is('deleted_at', null),
           supabase.from('album_photos').select('id', { count: 'exact', head: true }),
           supabase.from('reports').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
           supabase.from('profiles').select('id, display_name, username, created_at')
             .order('created_at', { ascending: false }).limit(5),
           supabase.from('profiles').select('created_at').gte('created_at', since14),
-          supabase.from('posts').select('created_at').gte('created_at', since14).is('deleted_at', null),
+          supabase.from('posts').select('created_at').eq('section', 'feed').gte('created_at', since14).is('deleted_at', null),
           supabase.from('album_photos').select('created_at').gte('created_at', since14),
+          supabase.from('posts').select('id', { count: 'exact', head: true }).eq('section', 'daily').is('deleted_at', null),
+          supabase.from('posts').select('created_at').eq('section', 'daily').gte('created_at', since14).is('deleted_at', null),
         ]);
         const week = new Date(Date.now() - 7 * 864e5).toISOString();
         const { count: new7 } = await supabase.from('profiles').select('id', { count: 'exact', head: true }).gte('created_at', week);
@@ -403,14 +405,15 @@ function Overview({ setMsg, go }: { setMsg: (s: string) => void; go: (tab: strin
         const dPro = bucket14((pr.data ?? []) as any[]);
         const dPost = bucket14((por.data ?? []) as any[]);
         const dPhoto = bucket14((phr.data ?? []) as any[]);
+        const dDailyPost = bucket14((pdr.data ?? []) as any[]);
         let acc = (m.count ?? 0) - dPro.reduce((a, b) => a + b, 0);
         const cum = dPro.map(v => (acc += v));
         setSt({
-          members: m.count ?? 0, posts: p.count ?? 0, comments: c.count ?? 0,
+          members: m.count ?? 0, posts: p.count ?? 0, dailyPosts: pd.count ?? 0, comments: c.count ?? 0,
           photos: ph.count ?? 0, pendingReports: r.count ?? 0, new7: new7 ?? 0,
           newMembers: nm.data ?? [], recentLogs: logs ?? [],
           dbOk: !pingErr, dbMs: Date.now() - t0,
-          dPro, dPost, dPhoto, cum,
+          dPro, dPost, dDailyPost, dPhoto, cum,
         });
       } catch (e: any) { setMsg('总览加载失败：' + (e.message || '')); }
     })();
@@ -425,6 +428,7 @@ function Overview({ setMsg, go }: { setMsg: (s: string) => void; go: (tab: strin
   const segs = [
     { label: '成员', v: st.members, color: '#5b8cff' },
     { label: '动态', v: st.posts, color: '#8b5cf6' },
+    { label: '日常', v: st.dailyPosts, color: '#38bdf8' },
     { label: '照片', v: st.photos, color: '#4ade80' },
     { label: '评论', v: st.comments, color: '#f5a623' },
   ];
@@ -437,12 +441,14 @@ function Overview({ setMsg, go }: { setMsg: (s: string) => void; go: (tab: strin
     '注册成员': <span style={{ color: '#4ade80' }}>较7天前 +{st.new7}</span>,
     '近7天新增': <span style={{ color: '#4ade80' }}>新增注册</span>,
     '班级动态': st.posts === 0 ? <span style={{ color: '#8b93b0' }}>暂无新动态</span> : <span style={{ color: '#4ade80' }}>持续更新中</span>,
+    '日常帖子': st.dailyPosts === 0 ? <span style={{ color: '#8b93b0' }}>暂无日常</span> : <span style={{ color: '#4ade80' }}>持续更新中</span>,
     '班级照片': st.photos === 0 ? <span style={{ color: '#8b93b0' }}>暂无新照片</span> : <span style={{ color: '#4ade80' }}>持续更新中</span>,
   };
   const stats: [string, number, number[], string][] = [
     ['注册成员', st.members, st.cum, '#5b8cff'],
     ['近7天新增', st.new7, st.dPro.slice(-7), '#8b5cf6'],
     ['班级动态', st.posts, st.dPost, '#4ade80'],
+    ['日常帖子', st.dailyPosts, st.dDailyPost, '#38bdf8'],
     ['班级照片', st.photos, st.dPhoto, '#f5a623'],
   ];
   return (<>

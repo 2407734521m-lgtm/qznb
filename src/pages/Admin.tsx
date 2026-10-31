@@ -201,7 +201,7 @@ export default function Admin() {
       {msg && <p className="priv-note" style={{ margin: '0 0 10px' }}>{msg}</p>}
 
       <div className="admin-content" key={tab} aria-live="polite">
-        {tab === 'overview' && <Overview setMsg={setMsg} />}
+        {tab === 'overview' && <Overview setMsg={setMsg} go={setTab} />}
               {tab === 'members' && <Members me={me} isSuper={isSuper} setMsg={setMsg} extQ={q0} />}
               {tab === 'accounts' && isSuper && <AdminAccountManagement me={me} isSuper={isSuper} setMsg={setMsg} />}
               {tab === 'moderate' && <Moderate setMsg={setMsg} />}
@@ -281,7 +281,56 @@ export default function Admin() {
 }
 
 /* ---------------- 总览（仪表盘） ---------------- */
-function Overview({ setMsg }: { setMsg: (s: string) => void }) {
+// 总览顶部待办中心：五个待处理队列的计数汇总在一处，点一行直达对应页签处理。
+function TodoCenter({ go }: { go: (tab: string) => void }) {
+  const [counts, setCounts] = useState<Record<string, number> | null>(null);
+  const [err, setErr] = useState(false);
+
+  async function load() {
+    const queries = [
+      supabase.from('love_wall_posts').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+      supabase.from('song_posts').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+      supabase.from('game_profiles').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+      supabase.from('reports').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+      supabase.from('feedbacks').select('id', { count: 'exact', head: true }).eq('status', 'open'),
+    ];
+    const res = await Promise.all(queries);
+    if (res.some(r => r.error)) { setErr(true); return; }
+    setErr(false);
+    setCounts({ love: res[0].count ?? 0, song: res[1].count ?? 0, game: res[2].count ?? 0, report: res[3].count ?? 0, feedback: res[4].count ?? 0 });
+  }
+  useEffect(() => { void load(); }, []);
+
+  const items: [string, string, string][] = [
+    ['love', '表白待审核', 'loveWall'],
+    ['song', '歌曲待审核', 'songWall'],
+    ['game', '段位待审核', 'game'],
+    ['report', '举报待处理', 'moderate'],
+    ['feedback', '反馈未处理', 'feedback'],
+  ];
+  const total = counts ? items.reduce((a, [k]) => a + (counts[k] || 0), 0) : 0;
+  return <div style={card}>
+    <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+      <h3 style={{ ...h3, margin: 0 }}>待处理{counts && total > 0 ? `（共 ${total} 件）` : ''}</h3>
+      <button className="mini ghost" onClick={() => void load()}>刷新</button>
+    </div>
+    {err && <p style={mut}>待办计数读取失败，点刷新重试。</p>}
+    {!counts && !err && <p style={mut}>正在统计…</p>}
+    {counts && total === 0 && !err && <p style={{ fontSize: 13.5, color: '#7ee2a8', margin: '6px 0 2px' }}>全部处理完了，没有积压。</p>}
+    {counts && items.map(([k, label, tab]) => (
+      <button key={k} onClick={() => go(tab)}
+        style={{ display: 'flex', width: '100%', alignItems: 'center', gap: 8, padding: '9px 2px', background: 'transparent', border: 0, borderBottom: '1px solid #ffffff0a', cursor: 'pointer', textAlign: 'left' }}>
+        <span style={{ flex: 1, fontSize: 13.5, color: (counts[k] || 0) === 0 ? '#8b93b0' : '#eef0ff' }}>{label}</span>
+        {(counts[k] || 0) > 0
+          ? <span style={{ background: '#f5c26b', color: '#231a04', fontWeight: 800, fontSize: 12, borderRadius: 999, padding: '2px 9px' }}>{counts[k]}</span>
+          : <span style={{ fontSize: 12, color: '#69718c' }}>无</span>}
+        <span style={{ color: '#8b93b0', fontSize: 13 }}>›</span>
+      </button>
+    ))}
+  </div>;
+}
+
+function Overview({ setMsg, go }: { setMsg: (s: string) => void; go: (tab: string) => void }) {
   const [st, setSt] = useState<any>(null);
   const [presence, setPresence] = useState<{ online: number; active: number; sampledAt: string; error: boolean } | null>(null);
   const [loadTimedOut, setLoadTimedOut] = useState(false);
@@ -397,6 +446,7 @@ function Overview({ setMsg }: { setMsg: (s: string) => void }) {
     ['班级照片', st.photos, st.dPhoto, '#f5a623'],
   ];
   return (<>
+    <TodoCenter go={go} />
     <div className="admin-stats-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
       {stats.map(([k, v, d, col]) => (
         <div key={k} style={{ ...card, marginBottom: 0, padding: 12 }}>

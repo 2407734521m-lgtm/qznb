@@ -192,6 +192,53 @@ function MaintenanceScreen({ title, msg, hasSession, onLogout, onAdmin }: { titl
   </div></>);
 }
 
+function LoginClosedScreen() {
+  const nav = useNavigate();
+  return (<><div className="glow" /><div style={{ minHeight: '78vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+    <section className="login-card" style={{ width: '100%', maxWidth: 430, textAlign: 'center' }}>
+      <div style={{ fontSize: 11, letterSpacing: 3, color: '#7a8494' }}>ACCESS NOTICE</div>
+      <h1 style={{ fontSize: 23, margin: '12px 0' }}>登录入口暂未开放</h1>
+      <p style={{ color: 'var(--mut)', lineHeight: 1.8, fontSize: 14 }}>管理员暂时关闭了登录与注册入口，请稍后再来。</p>
+      <button className="mini ghost" style={{ marginTop: 12 }} onClick={() => nav('/admin')}>管理员入口</button>
+    </section>
+  </div></>);
+}
+
+function PublicLanding({ data, onLogin }: { data: any; onLogin: () => void }) {
+  const nav = useNavigate();
+  const notices = Array.isArray(data?.notices) ? data.notices : [];
+  const title = data?.site_title || '我们的班级';
+  const subtitle = data?.site_subtitle || '青春档案';
+  const bannerText = data?.home_banner_text || '把我们的青春，留在这里';
+  const bannerUrl = typeof data?.home_banner_url === 'string' && /^https?:\\/\\//i.test(data.home_banner_url) ? data.home_banner_url : '';
+  return (<><div className="glow" /><main style={{ width: 'min(100% - 28px, 820px)', margin: '0 auto', padding: '22px 0 48px', color: '#202632' }}>
+    <header style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 18 }}>
+      <div style={{ flex: 1 }}><div style={{ fontSize: 11, letterSpacing: 3, color: '#7b8492' }}>OUR CLASS · PUBLIC SPACE</div><h1 style={{ margin: '6px 0 0', fontSize: 24 }}>{title}</h1><p style={{ margin: '4px 0 0', color: '#737b89', fontSize: 13 }}>{subtitle}</p></div>
+      {data?.close_login_entry !== 'true' && <button className="pri" style={{ width: 'auto', padding: '10px 16px', whiteSpace: 'nowrap' }} onClick={onLogin}>登录 / 注册</button>}
+    </header>
+    <section style={{ aspectRatio: '16 / 9', width: '100%', position: 'relative', overflow: 'hidden', borderRadius: 22, marginBottom: 18, background: bannerUrl ? '#e9edf3' : 'linear-gradient(135deg,#f5f7fa,#e4e9f1)', border: '1px solid #e5e8ee', boxShadow: '0 12px 34px #202a3d0c' }}>
+      {bannerUrl && <img src={bannerUrl} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />}
+      <div style={{ position: 'absolute', inset: 0, padding: 'clamp(18px,5vw,30px)', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', background: bannerUrl ? 'linear-gradient(90deg,#10182899,transparent)' : 'linear-gradient(120deg,#ffffff00,#dfe4ec55)' }}>
+        <div style={{ fontSize: 10, letterSpacing: 2, color: bannerUrl ? '#fff' : '#737b89' }}>ANNOUNCEMENTS</div>
+        <h2 style={{ margin: '8px 0 0', color: bannerUrl ? '#fff' : '#202632', fontSize: 'clamp(20px,5vw,30px)', lineHeight: 1.3 }}>{bannerText}</h2>
+      </div>
+    </section>
+    <section style={{ background: '#fff', border: '1px solid #e9ebf0', borderRadius: 20, padding: '18px clamp(14px,4vw,22px)', boxShadow: '0 8px 28px #202a3d0a' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 12 }}><h2 style={{ margin: 0, fontSize: 18 }}>校园公告</h2><span style={{ fontSize: 11, color: '#87909d' }}>公开内容</span></div>
+      {notices.length ? notices.map((n: any, i: number) => <article key={n.id ?? i} style={{ padding: '13px 0', borderTop: '1px solid #edf0f4' }}>
+        {n.title && <h3 style={{ margin: '0 0 6px', fontSize: 15 }}>{n.title}</h3>}
+        <p style={{ margin: 0, whiteSpace: 'pre-wrap', lineHeight: 1.8, fontSize: 14, color: '#4b5563' }}>{n.content}</p>
+        {n.created_at && <div style={{ marginTop: 7, color: '#9aa2ae', fontSize: 11 }}>{new Date(n.created_at).toLocaleString()}</div>}
+      </article>) : <p style={{ color: '#87909d', fontSize: 13 }}>暂时没有公开公告。</p>}
+    </section>
+    <footer style={{ textAlign: 'center', padding: '22px 0 0', color: '#929aa6', fontSize: 12 }}>访客浏览模式 · 登录后可使用完整社区功能</footer>
+    <div style={{ display: 'flex', justifyContent: 'center', gap: 10, marginTop: 14 }}>
+      <button className="mini ghost" onClick={() => nav('/admin')}>管理员入口</button>
+      {data?.close_login_entry !== 'true' && <button className="mini ghost" onClick={onLogin}>进入账号</button>}
+    </div>
+  </main></>);
+}
+
 function Shell() {
   const { session, loading } = useAuth();  const [role, setRole] = useState('');
   const loc = useLocation();
@@ -361,22 +408,23 @@ function Shell() {
     else setRole('');
   }, [session]);
 
-  // 维护模式门禁：读后台 site_settings（全员可读），开关打开时主站所有人只见维护页。
-  // 读失败默认当作没开，避免把全站锁死；每次切页重读一次，后台改完开关即生效。
-  const [maint, setMaint] = useState<{ on: boolean; title: string; msg: string } | null>(null);
+  // 公共站点配置由受限 RPC 返回：只暴露访客首页所需字段，不开放成员表读取。
+  const [siteConfig, setSiteConfig] = useState<any>(null);
+  const [siteConfigLoading, setSiteConfigLoading] = useState(true);
+  const [showLogin, setShowLogin] = useState(false);
   useEffect(() => {
     let alive = true;
-    (async () => {
-      try {
-        const { data } = await supabase.from('site_settings').select('key, value').in('key', ['maintenance', 'maintenance_title', 'maintenance_msg']);
-        if (!alive) return;
-        const m: Record<string, string> = {};
-        (data || []).forEach((r: any) => { m[r.key] = r.value ?? ''; });
-        setMaint({ on: m.maintenance === 'true', title: m.maintenance_title || '', msg: m.maintenance_msg || '' });
-      } catch { if (alive) setMaint(null); }
-    })();
+    setSiteConfigLoading(true);
+    supabase.rpc('public_guest_landing').then(({ data, error }) => {
+      if (!alive) return;
+      setSiteConfig(error ? null : (data ?? null));
+      setSiteConfigLoading(false);
+    }, () => {
+      if (alive) { setSiteConfig(null); setSiteConfigLoading(false); }
+    });
     return () => { alive = false; };
   }, [loc.pathname]);
+  useEffect(() => { setShowLogin(false); }, [session]);
 
   // 在线心跳：仅在页面可见且近 5 分钟内有交互时续期；管理员只读取聚合人数。
   useEffect(() => {
@@ -435,18 +483,23 @@ function Shell() {
   async function logout() { await supabase.auth.signOut(); }
 
   if (loading) return <div className="center"><motion.span animate={reduce ? undefined : { opacity: [0.35, 1, 0.35] }} transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut' }} style={{ fontSize: 22 }}>✦</motion.span><span style={{ marginLeft: 8 }}>加载中…</span></div>;
-  if (!session) return isAdminPage
-    ? (<><div className="glow" /><div style={{ position: 'fixed', inset: 0, background: '#fff' }} /><div style={{ position: 'relative' }}><AdminLogin /></div></>)
-    : (<><div className="glow" /><Login /></>);
-  // 从重置密码邮件回来：优先显示设置新密码页
+  if (!session && isAdminPage) return (<><div className="glow" /><div style={{ position: 'fixed', inset: 0, background: '#fff' }} /><div style={{ position: 'relative' }}><AdminLogin /></div></>);
+  // 从重置密码邮件回来：优先显示设置新密码页。
   if (pwReset) return (<><div className="glow" /><ResetPassword onDone={() => {
     setPwReset(false);
     try { window.history.replaceState(null, '', window.location.pathname + window.location.hash); } catch {}
   }} /></>);
-
-  // 维护模式：后台开关开着时，主站所有人只显示维护页（管理后台页本身不受影响，密码重置流程也不拦）。
-  if (maint?.on && !isAdminPage) {
-    return <MaintenanceScreen title={maint.title} msg={maint.msg} hasSession={!!session} onLogout={logout} onAdmin={() => nav('/admin')} />;
+  if (!session) {
+    if (siteConfigLoading) return <div className="center" style={{ minHeight: '60vh' }}>正在加载公开内容…</div>;
+    if (siteConfig?.maintenance === 'true') return <MaintenanceScreen title={siteConfig.maintenance_title || ''} msg={siteConfig.maintenance_msg || ''} hasSession={false} onLogout={logout} onAdmin={() => nav('/admin')} />;
+    if (showLogin && siteConfig?.close_login_entry !== 'true') return <><div className="glow" /><Login /></>;
+    if (siteConfig?.skip_login_screen === 'true') return <PublicLanding data={siteConfig} onLogin={() => setShowLogin(true)} />;
+    if (siteConfig?.close_login_entry === 'true') return <LoginClosedScreen />;
+    return <><div className="glow" /><Login /></>;
+  }
+  // 维护模式：后台开关开着时，主站所有人只显示维护页（管理后台页本身不受影响）。
+  if (siteConfig?.maintenance === 'true' && !isAdminPage) {
+    return <MaintenanceScreen title={siteConfig.maintenance_title || ''} msg={siteConfig.maintenance_msg || ''} hasSession={!!session} onLogout={logout} onAdmin={() => nav('/admin')} />;
   }
 
   return (

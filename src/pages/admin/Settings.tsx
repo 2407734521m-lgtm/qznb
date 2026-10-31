@@ -140,6 +140,18 @@ export default function Settings({ me, setMsg }: { me: string; setMsg: (s: strin
       'song_posts', 'song_audio_uploads', 'member_presence', 'time_capsules',
       'maintenance_notify_emails',
     ];
+    const primaryKeys: Record<string, string[]> = {
+      profiles: ['id'], profile_emails: ['profile_id'], profile_privacy: ['profile_id'], profile_contacts: ['profile_id'],
+      posts: ['id'], comments: ['id'], post_likes: ['post_id', 'profile_id'], favorites: ['profile_id', 'target_type', 'target_id'],
+      timelines: ['id'], albums: ['id'], album_photos: ['id'], board_messages: ['id'], board_reads: ['profile_id'],
+      friendships: ['id'], conversations: ['id'], conversation_members: ['conversation_id', 'profile_id'], messages: ['id'],
+      notifications: ['id'], reports: ['id'], feedbacks: ['id'], invite_codes: ['id'], admin_audit_logs: ['id'],
+      backup_logs: ['id'], site_settings: ['key'], app_settings: ['id'], hot_snippets: ['id'], greetings: ['id'],
+      wishes: ['id'], events: ['id'], event_regs: ['event_id', 'profile_id'], game_profiles: ['id'],
+      love_wall_posts: ['id'], love_wall_media: ['id'], love_wall_comments: ['id'], song_posts: ['id'],
+      song_audio_uploads: ['path'], member_presence: ['profile_id'], time_capsules: ['id'],
+      maintenance_notify_emails: ['id'],
+    };
     const pageSize = 500;
     const tables: Record<string, { expected_rows: number; exported_rows: number; rows: any[] }> = {};
     try {
@@ -147,11 +159,9 @@ export default function Settings({ me, setMsg }: { me: string; setMsg: (s: strin
         const rows: any[] = [];
         let expected: number | null = null;
         for (let offset = 0; ; offset += pageSize) {
-          const { data, error, count } = await supabase
-            .from(table as any)
-            .select('*', { count: 'exact' })
-            .order('id', { ascending: true })
-            .range(offset, offset + pageSize - 1);
+          let request = supabase.from(table as any).select('*', { count: 'exact' });
+          for (const key of primaryKeys[table]) request = request.order(key, { ascending: true });
+          const { data, error, count } = await request.range(offset, offset + pageSize - 1);
           if (error) throw new Error(table + ' 导出失败：' + error.message);
           if (expected === null) {
             if (count === null) throw new Error(table + ' 无法取得总行数，不能验证完整性。');

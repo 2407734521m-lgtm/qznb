@@ -32,6 +32,7 @@ begin
   if v_uid is null then raise exception '请先登录'; end if;
   if p_request_type not in ('本人资料核验','授权资料核验','公开资料整理') then raise exception '申请类型无效'; end if;
   if char_length(trim(coalesce(p_description,''))) not between 5 and 500 then raise exception '申请说明长度须为 5 至 500 字'; end if;
+  if p_description ~ '([0-9]{11}|[0-9]{17}[0-9Xx])' then raise exception '请勿在申请说明中填写身份证号或完整手机号'; end if;
   if p_contact is not null and char_length(p_contact) > 100 then raise exception '联系方式过长'; end if;
   perform pg_advisory_xact_lock(hashtext('authorized-request-' || v_day::text));
   if exists (select 1 from public.authorized_request_queue where profile_id = v_uid and request_date = v_day) then
@@ -60,7 +61,7 @@ create or replace function public.admin_resolve_authorized_request(p_request_id 
 returns jsonb language plpgsql security definer set search_path = public, pg_temp as $$
 declare v_day date; v_next uuid;
 begin
-  if public.my_role() not in ('admin','super_admin') then raise exception 'forbidden'; end if;
+  if coalesce(public.my_role(),'') not in ('admin','super_admin') then raise exception 'forbidden'; end if;
   select request_date into v_day from public.authorized_request_queue where id = p_request_id for update;
   if v_day is null then raise exception '申请不存在'; end if;
   perform pg_advisory_xact_lock(hashtext('authorized-request-' || v_day::text));

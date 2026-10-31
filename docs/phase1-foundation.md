@@ -13,8 +13,9 @@
 | `package-lock.json` | 新增（由 `npm install` 按现有 `package.json` 范围生成） | 锁定依赖解析结果，使本地、CI、部署三处装出同一棵依赖树；`npm ci` 的前提 |
 | `.github/workflows/deploy.yml` | `npm install` → `npm ci`；setup-node 增加 `cache: 'npm'` | 部署构建可复现；缓存加速 |
 | `.github/workflows/verify-pr.yml` | 同上 | PR 检查与部署使用同一安装方式 |
-| `package.json` | 新增脚本 `types:gen` | Supabase Database Types 的官方再生流程（先 `supabase link` 再运行） |
-| `src/lib/database.types.ts` | 新增（1724 行） | 由生产库 `public` 结构实时导出生成：35 张表（Row/Insert/Update + 外键 Relationships）、91 个 RPC 函数名与参数、标准辅助类型。**本阶段仅落地文件，尚未把 `createClient<Database>` 接入 `src/lib/supabase.ts`**（见 §3 路线） |
+| `package.json` | 新增脚本 `types:gen`（指向 `scripts/gen-types.sh`） | Database Types 再生入口，带 Project B 项目保护（见 §3 末小节） |
+| `scripts/gen-types.sh` | 新增 | 生成前的守卫脚本：校验当前关联项目必须是 Project B，不符立即终止，绝不生成 Project A 的类型（逻辑已在本地三种情形下实测） |
+| `src/lib/database.types.ts` | 新增（1724 行） | 由 Project B 生产库 `public` 结构实时导出生成：35 张表（Row/Insert/Update + 外键 Relationships）、91 个 RPC 函数名与参数、标准辅助类型。**本阶段仅落地文件，尚未把 `createClient<Database>` 接入 `src/lib/supabase.ts`**（见 §3 路线） |
 | `.github/dependabot.yml` | 新增 | npm 与 GitHub Actions 依赖每周自动检查、开 PR 提醒（替代人工跑 `npm audit`） |
 | `docs/phase1-foundation.md` | 新增（本文件） | 审计结论与后续阶段方案 |
 
@@ -43,6 +44,21 @@
 1. `createClient<Database>` 接入（改动集中在 `supabase.ts` 一行 + 随之暴露的类型错误逐个修，预计主要落在 Admin/Login 两文件）。
 2. 各页面手写 `Profile`/`Post` 等改为引用 `Tables<'profiles'>` 等生成类型，删重复定义。
 3. 按文件清零 `any`：顺序 retry.ts → Feed/Home → Login → Admin（Admin 结合 §4 拆分一起做）。
+
+### database.types.ts 的来源、项目保护与再生规程
+
+- **来源**：本文件初版于 2026-10-31 由 **Project B** 生产库 `public` 结构的实时导出生成（经 Supabase Management API 读取 `information_schema` / `pg_catalog`：35 张表、221 列、37 个外键、91 个函数；本项目无视图、无枚举类型），按官方 `supabase gen types` 的输出格式组织，生成后已在仓库内通过 `tsc --noEmit` 校验。一个细节：`profiles.username` 是 `citext` 类型，已映射为 `string`。
+- **项目 ref（写死在此处以防混淆）**：Project B = `ldypnxxxgscibopgiaso`（class-youth-archive2，新加坡，现生产）。Project A 是另一个旧项目（美西、回滚用途，结构停留在早期版本），**严禁用 A 生成类型**——会把旧结构误当成现状，污染后续所有开发。
+- **Supabase CLI 前提（新环境照此复现）**：
+  1. 安装 Supabase CLI **v2**：macOS 用 `brew install supabase/tap/supabase`；Windows 用 Scoop 或官方 Releases 的二进制；Linux 下载官方 Releases 的二进制包解压到 PATH。统一用 v2，不要用来源不明的旧版。
+  2. 登录：运行 `supabase login` 粘贴 Supabase 账号的 Personal Access Token，或设置环境变量 `SUPABASE_ACCESS_TOKEN`。令牌只留本机，**不要写进仓库任何文件**。
+  3. 在仓库根目录关联项目：`supabase link --project-ref ldypnxxxgscibopgiaso`。关联结果记录在本机 `supabase/.temp/project-ref`（该目录不入库）。
+- **生成方法**：`npm run types:gen`，实际执行 `scripts/gen-types.sh`。守卫逻辑：先检查 CLI 已安装，再读取 `supabase/.temp/project-ref` 校验关联项目——未关联则终止并提示关联命令；关联的不是 B 则立即终止并打印当前 ref；校验通过后，生成命令仍显式带 `--project-id ldypnxxxgscibopgiaso`，双重锁定 Project B。
+- **生成后检查（每次再生必做）**：
+  1. `npm run typecheck` 必须通过；
+  2. 抽查已知列：`profiles.username: string`、`profiles.theme: Json`，表总数应与后台一致（当前 35）；
+  3. `git diff src/lib/database.types.ts` 过一眼：表与列的增减必须与本次数据库变更对得上；若出现整表消失，先停下查原因，不要提交；
+  4. 本文件目前只落地、未接入客户端，再生不改变任何线上行为。
 
 ## 4. 前端架构分析与拆分方案（本阶段只定方案，不动代码）
 

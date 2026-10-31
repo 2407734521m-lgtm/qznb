@@ -8,7 +8,7 @@
     "build": "vite build",
     "typecheck": "tsc --noEmit",
     "preview": "vite preview",
-    "types:gen": "supabase gen types typescript --linked --schema public > src/lib/database.types.ts"
+    "types:gen": "bash scripts/gen-types.sh"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.118.0",

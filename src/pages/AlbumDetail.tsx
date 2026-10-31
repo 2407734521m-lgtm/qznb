@@ -84,7 +84,7 @@ export default function AlbumDetail() {
         <input value={cap} onChange={e => setCap(e.target.value)} placeholder="给照片写句话（可选）" maxLength={200} />
         <div className="row">
           <button className="ghost" disabled={busy} onClick={() => fref.current?.click()}>{busy ? (upProg || '上传中…') : '选择照片（可多选）'}</button>
-          <input ref={fref} type="file" accept="image/*" multiple hidden onChange={e => { upload(e.target.files); e.target.value = ''; }} />
+          <input ref={fref} type="file" accept="image/jpeg,image/png,image/webp,image/gif,image/heic,image/avif" multiple hidden onChange={e => { upload(e.target.files); e.target.value = ''; }} />
         </div>
         {err && <p className="err">{err}</p>}
       </div>

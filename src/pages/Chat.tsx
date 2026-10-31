@@ -49,6 +49,7 @@ export default function Chat() {
   const firstRef = useRef(true);
   const inputRef = useRef<HTMLInputElement>(null);
   const pageRef = useRef<HTMLDivElement>(null);
+  const mountedRef = useRef(true);
 
   // Android 虚拟键盘打开时，可视视口会缩小；用它同步聊天容器高度。
   useEffect(() => {
@@ -67,6 +68,29 @@ export default function Chat() {
       viewport?.removeEventListener('resize', updateHeight);
       viewport?.removeEventListener('scroll', updateHeight);
       window.removeEventListener('resize', updateHeight);
+    };
+  }, []);
+
+  // Leaving the chat must release microphone resources immediately.
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      if (recordTimerRef.current !== null) {
+        window.clearInterval(recordTimerRef.current);
+        recordTimerRef.current = null;
+      }
+      const recorder = recorderRef.current;
+      if (recorder) {
+        recorder.ondataavailable = null;
+        recorder.onstop = null;
+        if (recorder.state !== 'inactive') {
+          try { recorder.stop(); } catch { /* Tracks are stopped below. */ }
+        }
+        recorderRef.current = null;
+      }
+      streamRef.current?.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
     };
   }, []);
 
@@ -184,6 +208,11 @@ export default function Chat() {
     try {
       setError('');
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      // Permission prompts may resolve after the user has already left this page.
+      if (!mountedRef.current) {
+        stream.getTracks().forEach(track => track.stop());
+        return;
+      }
       streamRef.current = stream;
       const recorder = new MediaRecorder(stream);
       recorderRef.current = recorder;
@@ -222,7 +251,23 @@ export default function Chat() {
       }, 1000);
     } catch (e) {
       console.error('microphone permission failed', e);
-      setError('无法使用麦克风。请允许浏览器访问麦克风后重试。');
+      const recorder = recorderRef.current;
+      if (recorder) {
+        recorder.ondataavailable = null;
+        recorder.onstop = null;
+        if (recorder.state !== 'inactive') {
+          try { recorder.stop(); } catch { /* Tracks are stopped below. */ }
+        }
+      }
+      streamRef.current?.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+      recorderRef.current = null;
+      if (recordTimerRef.current !== null) window.clearInterval(recordTimerRef.current);
+      recordTimerRef.current = null;
+      if (mountedRef.current) {
+        setRecording(false);
+        setError('无法使用麦克风。请允许浏览器访问麦克风后重试。');
+      }
     }
   }
 

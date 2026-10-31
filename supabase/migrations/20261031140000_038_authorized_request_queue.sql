@@ -11,7 +11,8 @@ create table if not exists public.authorized_request_queue (
   contact text check (contact is null or char_length(contact) <= 100),
   status text not null default 'pending' check (status in ('pending','selected','not_found','completed')),
   created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
+  updated_at timestamptz not null default now(),
+  consent_confirmed_at timestamptz not null default now()
 );
 create index if not exists authorized_request_queue_day_idx on public.authorized_request_queue(request_date, created_at, id);
 create index if not exists authorized_request_queue_owner_idx on public.authorized_request_queue(profile_id, created_at desc);
@@ -24,20 +25,26 @@ drop policy if exists authorized_request_queue_read_own on public.authorized_req
 create policy authorized_request_queue_read_own on public.authorized_request_queue for select to authenticated
 using (profile_id = (select auth.uid()) or (select public.my_role()) in ('admin','super_admin'));
 
-create or replace function public.submit_authorized_request(p_request_type text, p_description text, p_contact text default null)
+create or replace function public.submit_authorized_request(p_request_type text, p_description text, p_contact text default null, p_confirmed boolean default false)
 returns jsonb language plpgsql security definer set search_path = public, pg_temp as $$
 declare
   v_uid uuid := auth.uid();
-  v_day date := timezone('Asia/Shanghai', now())::date;
+  v_lock_day date := timezone('Asia/Shanghai', clock_timestamp())::date;
+  v_day date;
   v_status text;
   v_id uuid;
 begin
   if v_uid is null then raise exception '请先登录'; end if;
+  if p_confirmed is distinct from true then raise exception '请先确认资料归属或授权情况'; end if;
   if p_request_type not in ('本人资料核验','授权资料核验','公开资料整理') then raise exception '申请类型无效'; end if;
   if char_length(trim(coalesce(p_description,''))) not between 5 and 500 then raise exception '申请说明长度须为 5 至 500 字'; end if;
   if p_description ~ '([0-9]{11}|[0-9]{15}|[0-9]{17}[0-9Xx])' then raise exception '请勿在申请说明中填写身份证号或完整手机号'; end if;
   if p_contact is not null and char_length(p_contact) > 100 then raise exception '联系方式过长'; end if;
-  perform pg_advisory_xact_lock(hashtext('authorized-request-' || v_day::text));
+  perform pg_advisory_xact_lock(hashtext('authorized-request-' || v_lock_day::text));
+  v_day := timezone('Asia/Shanghai', clock_timestamp())::date;
+  if v_day <> v_lock_day then
+    perform pg_advisory_xact_lock(hashtext('authorized-request-' || v_day::text));
+  end if;
   if exists (select 1 from public.authorized_request_queue where profile_id = v_uid and request_date = v_day) then
     raise exception '你今天已经提交过申请，请查看申请进度';
   end if;
@@ -91,9 +98,9 @@ begin
   return jsonb_build_object('ok',true,'next_request_id',v_next);
 end $$;
 
-revoke all on function public.submit_authorized_request(text,text,text) from public,anon;
+revoke all on function public.submit_authorized_request(text,text,text,boolean) from public,anon;
 revoke all on function public.my_authorized_request_queue() from public,anon;
 revoke all on function public.admin_resolve_authorized_request(uuid,boolean) from public,anon;
-grant execute on function public.submit_authorized_request(text,text,text) to authenticated;
+grant execute on function public.submit_authorized_request(text,text,text,boolean) to authenticated;
 grant execute on function public.my_authorized_request_queue() to authenticated;
 grant execute on function public.admin_resolve_authorized_request(uuid,boolean) to authenticated;

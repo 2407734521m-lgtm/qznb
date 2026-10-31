@@ -4,13 +4,13 @@ import { supabase } from '../lib/supabase';
 type Check = { label: string; status: 'ok' | 'warn' | 'error'; detail: string };
 
 const panel: React.CSSProperties = {
-  background: '#fff', border: '1px solid #e5e7eb', borderRadius: 20,
-  padding: 16, marginBottom: 14, boxShadow: '0 4px 18px rgba(15,23,42,.045)', color: '#111827',
+  background: 'rgba(255,255,255,.07)', border: '1px solid rgba(255,255,255,.12)', borderRadius: 20,
+  padding: 16, marginBottom: 14, boxShadow: '0 4px 18px rgba(0,0,0,.25)', color: '#e8edf5',
 };
-const muted: React.CSSProperties = { color: '#6b7280', fontSize: 13, lineHeight: 1.55 };
+const muted: React.CSSProperties = { color: '#9aa7ba', fontSize: 13, lineHeight: 1.55 };
 const button: React.CSSProperties = {
-  border: 0, borderRadius: 12, padding: '11px 14px', minHeight: 42,
-  background: '#111827', color: '#fff', fontWeight: 650, cursor: 'pointer',
+  border: '1px solid rgba(255,255,255,.16)', borderRadius: 12, padding: '11px 14px', minHeight: 42,
+  background: 'rgba(255,255,255,.10)', color: '#fff', fontWeight: 650, cursor: 'pointer',
 };
 
 function csvCell(value: unknown) {

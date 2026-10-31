@@ -10,6 +10,7 @@ type MediaRow = { id: string; post_id: string; path: string; kind: string; sort:
 type MediaItem = MediaRow & { url?: string };
 type CommentRow = { id: string; post_id: string; author_id: string; content: string; created_at: string; deleted_at: string | null };
 type CommentItem = CommentRow & { name: string };
+type RecipientOption = { id: string; username: string; display_name: string | null };
 
 const MAX_IMAGES = 9;
 const MAX_VIDEOS = 3;
@@ -36,7 +37,10 @@ export default function LoveWall() {
   const [posts, setPosts] = useState<PublicPost[]>([]);
   const [myPosts, setMyPosts] = useState<MyPost[]>([]);
   const [content, setContent] = useState('');
-  const [recipient, setRecipient] = useState('');
+  const [recipientId, setRecipientId] = useState('');
+  const [recipientLabel, setRecipientLabel] = useState('');
+  const [recipientSearch, setRecipientSearch] = useState('');
+  const [recipientOptions, setRecipientOptions] = useState<RecipientOption[]>([]);
   const [category, setCategory] = useState(categories[0]);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState('');
@@ -91,6 +95,19 @@ export default function LoveWall() {
   useEffect(() => { void load(); }, []);
 
   useEffect(() => {
+    if (!composing || !session) return;
+    let active = true;
+    const timer = window.setTimeout(async () => {
+      const { data } = await supabase.rpc('member_directory', {
+        q: recipientSearch.trim(), lim: 50, skip: 0,
+      });
+      if (!active) return;
+      setRecipientOptions(((data || []) as RecipientOption[]).filter(p => p.id !== session.user.id));
+    }, 220);
+    return () => { active = false; window.clearTimeout(timer); };
+  }, [composing, recipientSearch, session?.user.id]);
+
+  useEffect(() => {
     if (!session) { setIsAdmin(false); return; }
     supabase.rpc('my_role').then(({ data }) => setIsAdmin(data === 'admin' || data === 'super_admin'));
   }, [session]);
@@ -102,6 +119,7 @@ export default function LoveWall() {
       const { data: privRow } = await supabase.from('profile_privacy').select('hide_love_wall_name').eq('profile_id', session.user.id).single();
       setAnon(privRow?.hide_love_wall_name !== false);
     }
+    setRecipientId(''); setRecipientLabel(''); setRecipientSearch('');
     setComposing(true);
   }
 
@@ -187,7 +205,8 @@ export default function LoveWall() {
       }
       // 匿名与否由发布表单里的开关决定（打开表单时按个人隐私设置初始化默认值）；历史帖子不受影响。
       const { data: post, error } = await supabase.from('love_wall_posts').insert({
-        author_id: session.user.id, recipient_name: recipient.trim() || null,
+        author_id: session.user.id, recipient_id: recipientId || null,
+        recipient_name: recipientLabel || null,
         category, content: text, is_anonymous: anon, status: 'pending'
       }).select('id').single();
       if (error || !post) throw new Error('发布失败：请确认网站数据库迁移已执行。');
@@ -200,10 +219,10 @@ export default function LoveWall() {
       }
       pick.forEach(x => URL.revokeObjectURL(x.url));
       setPick([]);
-      setContent(''); setRecipient('');
+      setContent(''); setRecipientId(''); setRecipientLabel(''); setRecipientSearch('');
       setComposing(false);
       setMine(true);
-      setNotice(attachFailed ? '投稿已提交，但附件没有保存成功，请重新发布或联系管理员。' : '投稿已提交，审核通过后会展示在表白墙。');
+      setNotice(attachFailed ? '投稿已提交，但附件没有保存成功，请联系管理员。' : recipientId ? '投稿已提交；审核通过后公开展示，收件人会收到匿名通知。' : '投稿已提交，审核通过后会展示在表白墙。');
       await load();
     } catch (err) {
       setFormErr(err instanceof Error ? err.message : '发布失败，请稍后再试。');
@@ -291,8 +310,17 @@ export default function LoveWall() {
           <select value={category} onChange={e => setCategory(e.target.value)} style={field}>
             {categories.map(c => <option key={c}>{c}</option>)}
           </select>
-          <label style={{ display: 'block', fontSize: 12, color: '#606673', margin: '12px 0 6px' }}>写给谁（选填）</label>
-          <input value={recipient} onChange={e => setRecipient(e.target.value)} maxLength={40} placeholder="可以留空" style={field} />
+          <label style={{ display: 'block', fontSize: 12, color: '#606673', margin: '12px 0 6px' }}>收件人（选填）</label>
+          <input value={recipientSearch} onChange={e => setRecipientSearch(e.target.value)} maxLength={40} placeholder="搜索班级成员姓名或用户名" style={field} />
+          <select value={recipientId} onChange={e => {
+            const selected = recipientOptions.find(p => p.id === e.target.value);
+            setRecipientId(e.target.value);
+            setRecipientLabel(selected ? (selected.display_name || selected.username) : '');
+          }} style={{ ...field, marginTop: 8 }}>
+            <option value="">不指定收件人</option>
+            {recipientOptions.map(p => <option key={p.id} value={p.id}>{p.display_name || p.username}</option>)}
+          </select>
+          {recipientId && <div style={{ fontSize: 11, color: '#606673', marginTop: 5 }}>收件人会在投稿审核通过后收到通知；投稿者身份仍只对管理员可见。</div>}
           <label style={{ display: 'block', fontSize: 12, color: '#606673', margin: '12px 0 6px' }}>写下你的心意</label>
           <textarea value={content} onChange={e => setContent(e.target.value)} maxLength={500} rows={4} placeholder="请尊重他人，不要发布联系方式、隐私或让对方不舒服的内容。" style={{ ...field, resize: 'vertical' }} />
           <label style={{ display: 'block', fontSize: 12, color: '#606673', margin: '12px 0 6px' }}>添加照片 / 视频（选填）</label>

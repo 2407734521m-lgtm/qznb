@@ -46,15 +46,16 @@ begin
   end if;
 
   if p_recipient_ids is null then
-    select array_agg(x.id order by x.created_at desc)
+    select count(*)::integer into v_count
+      from public.profiles p
+     where p.joined = true;
+    if v_count > 1000 then
+      raise exception 'joined member count exceeds 1000; use selected batches';
+    end if;
+    select array_agg(p.id order by p.created_at desc)
       into v_ids
-      from (
-        select p.id, p.created_at
-        from public.profiles p
-        where p.joined = true
-        order by p.created_at desc
-        limit 1000
-      ) x;
+      from public.profiles p
+     where p.joined = true;
   else
     if cardinality(p_recipient_ids) < 1 or cardinality(p_recipient_ids) > 100 then
       raise exception 'selected recipient count must be 1 to 100';

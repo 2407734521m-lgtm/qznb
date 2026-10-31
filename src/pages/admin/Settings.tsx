@@ -18,6 +18,28 @@ export default function Settings({ me, setMsg }: { me: string; setMsg: (s: strin
   const [scheduleEnd, setScheduleEnd] = useState('');
   const [scheduleEnabled, setScheduleEnabled] = useState(false);
   const [scheduleBusy, setScheduleBusy] = useState(false);
+  const [notifyCount, setNotifyCount] = useState(0);
+  const [notifyBusy, setNotifyBusy] = useState(false);
+  const [notifyConfirm, setNotifyConfirm] = useState(false);
+
+  async function loadNotifyCount() {
+    const { count } = await supabase.from('maintenance_notify_emails').select('id', { count: 'exact', head: true });
+    setNotifyCount(count ?? 0);
+  }
+  useEffect(() => { void loadNotifyCount(); }, []);
+
+  async function sendNotify() {
+    if (!notifyConfirm) { setNotifyConfirm(true); return; }
+    setNotifyConfirm(false);
+    setNotifyBusy(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('maintenance-notify', { body: {} });
+      if (error) { setMsg('发送失败：' + error.message); return; }
+      if (data?.error) { setMsg('发送失败：' + data.error); return; }
+      setMsg(`恢复通知已发送：成功 ${data?.sent ?? 0} 人，失败 ${data?.failed ?? 0} 人。${data?.detail ? '失败原因：' + data.detail : ''}`);
+      void loadNotifyCount();
+    } finally { setNotifyBusy(false); }
+  }
 
   async function load() {
     const { data } = await supabase.from('site_settings').select('key, value');
@@ -203,6 +225,13 @@ export default function Settings({ me, setMsg }: { me: string; setMsg: (s: strin
       <div className="row" style={{ gap: 8 }}>
         <input value={vals.maintenance_msg ?? ''} onChange={e => setVals({ ...vals, maintenance_msg: e.target.value })} style={{ flex: 1 }} placeholder="默认：系统维护中，稍后再来" />
         <button className="mini" onClick={() => save('maintenance_msg', vals.maintenance_msg ?? '')}>保存</button>
+      </div>
+      <div style={{ marginTop: 14, padding: 12, borderRadius: 12, background: '#ffffff08', border: '1px solid #ffffff14' }}>
+        <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 5 }}>恢复邮件通知</div>
+        <p style={{ ...mut, margin: '0 0 10px' }}>维护期间在维护页登记邮箱的访客（当前 {notifyCount} 人）。关闭维护后点发送，系统会给他们每人发一封「网站已恢复」邮件；发送成功的人会自动从名单移除，失败的保留待重试。</p>
+        <button className="pri" style={{ width: 'auto' }} disabled={notifyBusy || notifyCount === 0} onClick={() => void sendNotify()}>
+          {notifyBusy ? '发送中…' : notifyConfirm ? `确认发送给 ${notifyCount} 人？` : `发送恢复通知（${notifyCount} 人）`}
+        </button>
       </div>
     </div>
 

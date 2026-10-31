@@ -34,7 +34,15 @@ export default function Settings({ me, setMsg }: { me: string; setMsg: (s: strin
     setNotifyBusy(true);
     try {
       const { data, error } = await supabase.functions.invoke('maintenance-notify', { body: {} });
-      if (error) { setMsg('发送失败：' + error.message); return; }
+      if (error) {
+        let detail = error.message;
+        try {
+          const payload = await (error as any).context?.clone().json();
+          if (payload?.error) detail = payload.error;
+        } catch { /* Keep the original Functions error message. */ }
+        setMsg('发送失败：' + detail);
+        return;
+      }
       if (data?.error) { setMsg('发送失败：' + data.error); return; }
       setMsg(`恢复通知已发送：成功 ${data?.sent ?? 0} 人，失败 ${data?.failed ?? 0} 人。${data?.detail ? '失败原因：' + data.detail : ''}`);
       void loadNotifyCount();

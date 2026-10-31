@@ -15,17 +15,21 @@ for delete
 to authenticated
 using ((select auth.uid()) = author_id);
 
--- Preserve the upload registry until the matching Storage object is removed.
--- An author can then remove only their own upload-registration row.
-revoke delete on table public.song_audio_uploads from public, anon;
-grant delete on table public.song_audio_uploads to authenticated;
-
-drop policy if exists song_audio_uploads_delete_own on public.song_audio_uploads;
-create policy song_audio_uploads_delete_own
-on public.song_audio_uploads
+-- Published uploads consume their one-time upload token during insert. Permit
+-- removal only while the audio path is still attached to the caller's own post.
+create policy song_audio_delete_own_submission
+on storage.objects
 for delete
 to authenticated
-using ((select auth.uid()) = profile_id);
+using (
+  bucket_id = 'song-audio'
+  and exists (
+    select 1
+    from public.song_posts s
+    where s.audio_path = objects.name
+      and s.author_id = (select auth.uid())
+  )
+);
 
 -- Comment editing is limited to the body column and to the original author.
 -- Do not let a client rewrite author_id, post_id or moderation timestamps.

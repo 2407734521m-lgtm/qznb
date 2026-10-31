@@ -29,6 +29,16 @@ function timeAgo(s: string) {
 }
 
 /** 日常板块：普通日常帖子，与动态共用 posts 表，以 section='daily' 区分 */
+async function removeOwnedMedia(path: string | null | undefined, ownerId: string): Promise<string | null> {
+  if (!path || path.startsWith('http://') || path.startsWith('https://') || !path.startsWith(`${ownerId}/`)) return null;
+  try {
+    const { error } = await supabase.storage.from('media').remove([path]);
+    return error?.message ?? null;
+  } catch (error) {
+    return error instanceof Error ? error.message : '存储服务暂时不可用';
+  }
+}
+
 export default function Daily({ searchQuery = '' }: { searchQuery?: string }) {
   const nav = useNavigate();
   const me = useAuth().session!.user.id; const reduce = useReducedMotion();
@@ -44,6 +54,14 @@ export default function Daily({ searchQuery = '' }: { searchQuery?: string }) {
   const [text, setText] = useState(''); const [img, setImg] = useState<File | null>(null);
   const [busy, setBusy] = useState(false); const [err, setErr] = useState('');
   const [isAdmin, setIsAdmin] = useState(false);
+  const [editPostId, setEditPostId] = useState<number | null>(null);
+  const [editPostText, setEditPostText] = useState('');
+  const [editPostImage, setEditPostImage] = useState<File | null>(null);
+  const [removePostImage, setRemovePostImage] = useState(false);
+  const [editPostBusy, setEditPostBusy] = useState(false);
+  const [editCommentId, setEditCommentId] = useState<number | null>(null);
+  const [editCommentText, setEditCommentText] = useState('');
+  const [editCommentBusy, setEditCommentBusy] = useState(false);
   const fref = useRef<HTMLInputElement>(null);
 
   async function load() {
@@ -121,11 +139,60 @@ export default function Daily({ searchQuery = '' }: { searchQuery?: string }) {
     }
   }
 
+  function beginEditPost(p: Post) {
+    setEditPostId(p.id);
+    setEditPostText(p.content);
+    setEditPostImage(null);
+    setRemovePostImage(false);
+  }
+
+  async function savePost(p: Post) {
+    const content = editPostText.trim();
+    if (!content) { alertDialog('内容不能为空。'); return; }
+    setEditPostBusy(true);
+    let uploadedPath: string | null = null;
+    const imageUrl = removePostImage ? null : (p.image_url ?? null);
+    let nextImageUrl = imageUrl;
+    try {
+      if (editPostImage) {
+        const image = await downscaleImage(editPostImage);
+        if (image.size > 10 * 1024 * 1024) throw new Error('图片处理后仍超过 10 MB。');
+        uploadedPath = await uploadMedia('media', image);
+        nextImageUrl = uploadedPath;
+      }
+      const { data, error } = await supabase.from('posts')
+        .update({ content, image_url: nextImageUrl })
+        .eq('id', p.id).eq('author_id', me).eq('section', 'daily')
+        .select('id').maybeSingle();
+      if (error) throw error;
+      if (!data) throw new Error('内容不存在或当前账号没有编辑权限。');
+
+      setEditPostId(null); setEditPostText(''); setEditPostImage(null); setRemovePostImage(false);
+      await load();
+      if (p.image_url && p.image_url !== nextImageUrl) {
+        const cleanupError = await removeOwnedMedia(p.image_url, me);
+        if (cleanupError) alertDialog('内容已保存，但旧图片清理失败：' + cleanupError);
+      }
+    } catch (error) {
+      if (uploadedPath) await removeOwnedMedia(uploadedPath, me);
+      alertDialog('保存失败：' + (error instanceof Error ? error.message : '请稍后重试。'));
+    } finally {
+      setEditPostBusy(false);
+    }
+  }
+
   async function delPost(p: Post) {
     if (!(await confirmDialog('删除这条日常？评论和点赞会一起删除。', { danger: true }))) return;
-    await supabase.from('posts').delete().eq('id', p.id);
-    load();
+    const { data, error } = await supabase.from('posts').delete()
+      .eq('id', p.id).eq('author_id', p.author_id).eq('section', 'daily')
+      .select('id').maybeSingle();
+    if (error) { alertDialog('删除失败：' + error.message); return; }
+    if (!data) { alertDialog('删除未完成：内容不存在或当前账号没有权限。'); return; }
+    const cleanupError = await removeOwnedMedia(p.image_url, p.author_id);
+    await load();
+    if (cleanupError) alertDialog('内容已删除，但原配图清理失败：' + cleanupError);
   }
+
   async function reportPost(p: Post) {
     const reason = await promptDialog('举报这条日常，请输入原因：');
     if (!reason || !reason.trim()) return;
@@ -134,9 +201,32 @@ export default function Daily({ searchQuery = '' }: { searchQuery?: string }) {
     });
     alertDialog(error ? '举报失败：' + error.message : '已举报，管理员会处理');
   }
+
   async function delCmt(c: Cmt) {
-    await supabase.from('comments').delete().eq('id', c.id);
-    load();
+    if (!(await confirmDialog('删除这条评论？', { danger: true }))) return;
+    const { data, error } = await supabase.from('comments').delete()
+      .eq('id', c.id).eq('author_id', c.author_id).select('id').maybeSingle();
+    if (error) { alertDialog('评论删除失败：' + error.message); return; }
+    if (!data) { alertDialog('评论未删除：内容不存在或当前账号没有权限。'); return; }
+    await load();
+  }
+
+  async function saveComment(c: Cmt) {
+    const content = editCommentText.trim();
+    if (!content) { alertDialog('评论内容不能为空。'); return; }
+    setEditCommentBusy(true);
+    try {
+      const { data, error } = await supabase.from('comments').update({ content })
+        .eq('id', c.id).eq('author_id', me).select('id').maybeSingle();
+      if (error) throw error;
+      if (!data) throw new Error('评论不存在或当前账号没有编辑权限。');
+      setEditCommentId(null); setEditCommentText('');
+      await load();
+    } catch (error) {
+      alertDialog('评论保存失败：' + (error instanceof Error ? error.message : '请稍后重试。'));
+    } finally {
+      setEditCommentBusy(false);
+    }
   }
 
   return (
@@ -171,13 +261,25 @@ export default function Daily({ searchQuery = '' }: { searchQuery?: string }) {
               <div><div className="nm">{a ? (a.display_name ?? a.username) : '…'}</div>
                 <div className="tm">{timeAgo(p.created_at)}</div></div>
             </div>
-            <p className="bd">{p.content}</p>
-            {p.image_url && <PostImg url={postImageUrls[p.image_url]} />}
+            {editPostId === p.id ? (
+              <div className="card" style={{ margin: '10px 0', padding: 12 }}>
+                <textarea value={editPostText} onChange={e => setEditPostText(e.target.value)} rows={3} maxLength={2000} />
+                <label style={{ display: 'block', fontSize: 11, margin: '8px 0' }}>替换配图（不选择则保留原图）
+                  <input type="file" accept="image/*" onChange={e => { setEditPostImage(e.target.files?.[0] ?? null); if (e.target.files?.[0]) setRemovePostImage(false); }} />
+                </label>
+                {p.image_url && <label style={{ display: 'block', fontSize: 11, margin: '8px 0' }}><input type="checkbox" checked={removePostImage} onChange={e => setRemovePostImage(e.target.checked)} /> 移除原配图</label>}
+                <div className="row" style={{ gap: 8 }}>
+                  <button className="pri" disabled={editPostBusy} onClick={() => void savePost(p)}>{editPostBusy ? '保存中…' : '保存修改'}</button>
+                  <button className="ghost" disabled={editPostBusy} onClick={() => { setEditPostId(null); setEditPostText(''); setEditPostImage(null); setRemovePostImage(false); }}>取消</button>
+                </div>
+              </div>
+            ) : <><p className="bd">{p.content}</p>{p.image_url && <PostImg url={postImageUrls[p.image_url]} />}</>}
             <div className="ft">
               <button className={liked[p.id] ? 'liked' : ''} onClick={() => toggleLike(p)}>
                 {liked[p.id] ? '♥' : '♡'} {likes[p.id] || ''}
               </button>
               <button onClick={() => setOpenCmt({ ...openCmt, [p.id]: !open })}>{list.length || ''} 评论</button>
+              {p.author_id === me && <button className="mini ghost" onClick={() => beginEditPost(p)}>编辑</button>}
               {p.author_id !== me && <button className="mini ghost" onClick={() => reportPost(p)}>举报</button>}
               {(p.author_id === me || isAdmin) && <button className="del" onClick={() => delPost(p)}>删除</button>}
             </div>
@@ -188,9 +290,9 @@ export default function Daily({ searchQuery = '' }: { searchQuery?: string }) {
                   <div key={c.id} className="one">
                     <b>{ca ? (ca.display_name ?? ca.username) : '…'}</b>
                     <span className="tm">{timeAgo(c.created_at)}</span>
-                    {(c.author_id === me || isAdmin) &&
-                      <button className="mini danger" style={{ marginLeft: 8 }} onClick={() => delCmt(c)}>删</button>}
-                    <div>{c.content}</div>
+                    {c.author_id === me && <button className="mini ghost" style={{ marginLeft: 8 }} onClick={() => { setEditCommentId(c.id); setEditCommentText(c.content); }}>编辑</button>}
+                    {(c.author_id === me || isAdmin) && <button className="mini danger" style={{ marginLeft: 8 }} onClick={() => delCmt(c)}>删</button>}
+                    {editCommentId === c.id ? <div style={{ marginTop: 7 }}><textarea value={editCommentText} onChange={e => setEditCommentText(e.target.value)} rows={2} maxLength={500} /><div className="row" style={{ gap: 7 }}><button disabled={editCommentBusy} onClick={() => void saveComment(c)}>{editCommentBusy ? '保存中…' : '保存'}</button><button disabled={editCommentBusy} onClick={() => { setEditCommentId(null); setEditCommentText(''); }}>取消</button></div></div> : <div>{c.content}</div>}
                   </div>
                 );
               })}

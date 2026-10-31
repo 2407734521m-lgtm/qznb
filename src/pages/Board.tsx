@@ -149,7 +149,6 @@ export default function Board() {
           {err && <p className="err" style={{ margin: '6px 0 0', fontSize: 12.5 }}>{err}</p>}
         </div>
       </div>
-      {showKaibox && <KaiboxDialog onClose={() => setShowKaibox(false)} />} 
     </div>
   );
 }

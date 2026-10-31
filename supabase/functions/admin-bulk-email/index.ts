@@ -47,28 +47,102 @@ Deno.serve(async (req: Request) => {
     for (const u of data.users) if (wanted.has(u.id) && u.email) recipients.push({ id: u.id, email: u.email });
     if (recipients.length >= wanted.size || data.users.length < 1000) break;
   }
-  if (!recipients.length) return response({ error: '所选账号没有可用邮箱。' }, 400);
+
+  // Create a metadata-only campaign record before any provider request.
+  const { data: campaign, error: campaignError } = await admin
+    .from('admin_email_campaigns')
+    .insert({
+      actor_id: userData.user.id,
+      subject,
+      selected_count: userIds.length,
+      status: 'processing',
+    })
+    .select('id')
+    .single();
+  if (campaignError || !campaign) {
+    console.error('bulk-email campaign record could not be created');
+    return response({ error: '无法建立邮件发送记录，邮件未发送。' }, 500);
+  }
+
+  const emailById = new Map(recipients.map(item => [item.id, item.email]));
+  const recipientRows = userIds.map(id => ({
+    campaign_id: campaign.id,
+    profile_id: id,
+    status: emailById.has(id) ? 'queued' : 'no_email',
+    error_code: emailById.has(id) ? null : 'missing_email_or_account',
+  }));
+  const { error: recipientLogError } = await admin
+    .from('admin_email_campaign_recipients')
+    .insert(recipientRows);
+  if (recipientLogError) {
+    await admin.from('admin_email_campaigns')
+      .update({ status: 'failed', failed_count: userIds.length, completed_at: new Date().toISOString() })
+      .eq('id', campaign.id);
+    console.error('bulk-email recipient log could not be created');
+    return response({ error: '无法建立收件记录，邮件未发送。' }, 500);
+  }
 
   let sent = 0;
-  let firstError = '';
-  const failed = userIds.length - recipients.length;
+  let providerFailed = 0;
   for (const recipient of recipients) {
+    let status: 'sent' | 'failed' = 'failed';
+    let errorCode: string | null = null;
+    let providerMessageId: string | null = null;
+
     try {
       const r = await fetch('https://api.resend.com/emails', {
         method: 'POST',
         headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ from, to: [recipient.email], subject, text: bodyText }),
       });
-      if (r.ok) sent++;
-      else if (!firstError) {
-        const t = await r.text().catch(() => '');
-        firstError = `Resend 返回 ${r.status}：${t.slice(0, 200)}`;
+      if (r.ok) {
+        status = 'sent';
+        sent++;
+        try {
+          const result = await r.json();
+          if (typeof result?.id === 'string') providerMessageId = result.id;
+        } catch { /* Provider accepted the request; message id is optional. */ }
+      } else {
+        providerFailed++;
+        errorCode = `resend_http_${r.status}`;
       }
-    } catch (e) {
-      if (!firstError) firstError = '调用 Resend 失败：' + (e instanceof Error ? e.message : String(e));
+    } catch {
+      providerFailed++;
+      errorCode = 'network_error';
     }
+
+    const { error: updateError } = await admin
+      .from('admin_email_campaign_recipients')
+      .update({
+        status,
+        error_code: errorCode,
+        provider_message_id: providerMessageId,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('campaign_id', campaign.id)
+      .eq('profile_id', recipient.id);
+    if (updateError) console.error('bulk-email recipient status could not be recorded');
   }
-  if (firstError) console.error('bulk-email send failed:', firstError);
-  const attempted = recipients.length;
-  return response({ sent, failed: failed + attempted - sent, selected: userIds.length, ...(firstError ? { detail: firstError } : {}) });
+
+  const noEmail = userIds.length - recipients.length;
+  const failed = noEmail + providerFailed;
+  const finalStatus = failed === 0 ? 'completed' : sent > 0 ? 'partial' : 'failed';
+  const { error: campaignUpdateError } = await admin
+    .from('admin_email_campaigns')
+    .update({
+      sent_count: sent,
+      failed_count: failed,
+      status: finalStatus,
+      completed_at: new Date().toISOString(),
+    })
+    .eq('id', campaign.id);
+  if (campaignUpdateError) console.error('bulk-email campaign summary could not be updated');
+
+  return response({
+    campaignId: campaign.id,
+    sent,
+    failed,
+    selected: userIds.length,
+    ...(failed ? { detail: '部分收件人发送失败或没有可用邮箱，请在邮件记录中查看失败分类。' } : {}),
+  });
 });

@@ -6,10 +6,10 @@ import BackButton from '../components/BackButton';
 import { confirmDialog } from '../lib/dialog';
 
 type MotionPreference = 'system' | 'reduce' | 'full';
-type NotificationKey = 'comment' | 'like' | 'greeting' | 'notice' | 'feedback';
+type NotificationKey = 'comment' | 'like' | 'greeting' | 'notice' | 'feedback' | 'love_wall';
 type Preferences = { motion: MotionPreference; notifications: Record<NotificationKey, boolean> };
-const DEFAULTS: Preferences = { motion: 'system', notifications: { comment: true, like: true, greeting: true, notice: true, feedback: true } };
-const LABELS: Record<NotificationKey, string> = { comment: '评论与回复', like: '点赞提醒', greeting: '留言提醒', notice: '公告提醒', feedback: '反馈处理进度' };
+const DEFAULTS: Preferences = { motion: 'system', notifications: { comment: true, like: true, greeting: true, notice: true, feedback: true, love_wall: true } };
+const LABELS: Record<NotificationKey, string> = { comment: '评论与回复', like: '点赞提醒', greeting: '留言提醒', notice: '公告提醒', feedback: '反馈处理进度', love_wall: '表白墙提醒' };
 function deviceLabel(ua: string) {
   if (/Android/i.test(ua)) return 'Android 设备';
   if (/iPhone|iPad/i.test(ua)) return /iPad/i.test(ua) ? 'iPad' : 'iPhone';
@@ -28,14 +28,66 @@ export default function MeSettings() {
   const { session } = useAuth();
   const uid = session!.user.id;
   const [prefs, setPrefs] = useState<Preferences>(() => readPreferences(uid));
+  const [prefsReady, setPrefsReady] = useState(false);
+  const [syncState, setSyncState] = useState<'loading' | 'saved' | 'error'>('loading');
   const [deviceBusy, setDeviceBusy] = useState(false);
   const [message, setMessage] = useState('');
   const currentDevice = useMemo(() => deviceLabel(navigator.userAgent || ''), []);
   useEffect(() => {
+    let active = true;
+    async function loadCloudPreferences() {
+      const localPreferences = readPreferences(uid);
+      const { data, error } = await (supabase as any)
+        .from('profile_notification_preferences')
+        .select('preferences')
+        .eq('profile_id', uid)
+        .maybeSingle();
+
+      if (!active) return;
+      if (error) {
+        setPrefs(localPreferences);
+        setSyncState('error');
+        setPrefsReady(true);
+        return;
+      }
+
+      if (data?.preferences && typeof data.preferences === 'object') {
+        const remote = data.preferences as Partial<Preferences>;
+        setPrefs({
+          motion: ['system', 'reduce', 'full'].includes(String(remote.motion)) ? remote.motion as MotionPreference : localPreferences.motion,
+          notifications: { ...DEFAULTS.notifications, ...localPreferences.notifications, ...(remote.notifications || {}) },
+        });
+        setSyncState('saved');
+      } else {
+        // 首次使用云端偏好时，保留当前浏览器已有的设置，避免升级后开关全部重置。
+        const { error: insertError } = await (supabase as any)
+          .from('profile_notification_preferences')
+          .upsert({ profile_id: uid, preferences: localPreferences }, { onConflict: 'profile_id' });
+        if (!active) return;
+        setPrefs(localPreferences);
+        setSyncState(insertError ? 'error' : 'saved');
+      }
+      setPrefsReady(true);
+    }
+    void loadCloudPreferences();
+    return () => { active = false; };
+  }, [uid]);
+
+  useEffect(() => {
+    if (!prefsReady) return;
     try { localStorage.setItem('qznb_user_preferences_v1:' + uid, JSON.stringify(prefs)); } catch {}
     try { localStorage.setItem('qznb_motion_preference_v1', prefs.motion); } catch {}
     window.dispatchEvent(new Event('qznb-settings-changed'));
-  }, [prefs, uid]);
+
+    let active = true;
+    const timer = window.setTimeout(async () => {
+      const { error } = await (supabase as any)
+        .from('profile_notification_preferences')
+        .upsert({ profile_id: uid, preferences: prefs }, { onConflict: 'profile_id' });
+      if (active) setSyncState(error ? 'error' : 'saved');
+    }, 300);
+    return () => { active = false; window.clearTimeout(timer); };
+  }, [prefs, uid, prefsReady]);
   function toggle(key: NotificationKey, checked: boolean) {
     setPrefs(old => ({ ...old, notifications: { ...old.notifications, [key]: checked } }));
   }
@@ -69,7 +121,10 @@ export default function MeSettings() {
             <span>{LABELS[key]}</span><input type="checkbox" checked={prefs.notifications[key]} onChange={e => toggle(key, e.target.checked)} />
           </label>
         ))}
-        <p style={{ fontSize: 11, color: 'var(--mut)', margin: '8px 0 0' }}>偏好保存在当前设备浏览器中；目前不会阻止服务器生成通知，也不会关闭私信未读计数。</p>
+        <p style={{ fontSize: 11, color: 'var(--mut)', margin: '8px 0 0' }}>
+          {syncState === 'loading' ? '正在读取账号级偏好…' : syncState === 'saved' ? '已同步到账号，可在其他设备登录后继续使用。' : '云端偏好暂不可用；当前设备仍保留本地设置，请稍后重试。'}
+          {' '}这些开关只控制通知中心分类显示，不会删除历史通知，也不会关闭私信未读计数。
+        </p>
       </section>
       <section className="card" style={{ marginBottom: 12 }}>
         <h2 style={{ fontSize: 15, margin: '0 0 4px' }}>主题与动画</h2>

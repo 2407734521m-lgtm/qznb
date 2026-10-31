@@ -47,3 +47,137 @@
 .me-hub-unread{background:#e8f3f4!important;border-color:#c8e5e4!important;color:#176477!important}
 .me-hub-dot{background:#d35d68!important;box-shadow:0 0 0 3px #d35d681a!important}
 @media(hover:hover){.me-hub-tile:hover{border-color:#a9d2d3!important;box-shadow:0 8px 18px rgba(22,100,117,.09)!important}}
+
+
+/* ============ 我的空间 · 信息架构与移动端整理 ============ */
+.me-hub {
+  width: 100%;
+  max-width: 1080px;
+  margin: 0 auto;
+  padding-bottom: 36px !important;
+}
+.me-hub-hero {
+  padding: 23px 25px !important;
+  border-radius: 25px !important;
+  background:
+    radial-gradient(ellipse at 92% 0%, rgba(112, 220, 204, .22), transparent 42%),
+    linear-gradient(125deg, #123e55 0%, #176779 58%, #248c91 100%) !important;
+  box-shadow: 0 16px 38px rgba(14, 75, 91, .18) !important;
+}
+.me-hub-hero h1 {
+  font-size: 28px !important;
+  letter-spacing: -.045em !important;
+}
+.me-hub-profile {
+  margin-top: 19px !important;
+}
+.me-hub-edit {
+  flex: 0 0 auto;
+  padding: 8px 13px;
+  border: 1px solid rgba(255,255,255,.48);
+  border-radius: 999px;
+  background: rgba(255,255,255,.14);
+  color: #fff;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.me-hub-groups {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+  gap: 14px;
+}
+.me-hub-group {
+  min-width: 0;
+  padding: 16px 17px !important;
+  border-radius: 20px !important;
+  background: rgba(255,255,255,.97) !important;
+}
+.me-hub-group-head {
+  margin-bottom: 8px !important;
+}
+.me-hub-group-head h2 {
+  font-size: 15px !important;
+}
+.me-hub-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 2px;
+}
+.me-hub-tile {
+  min-height: 62px !important;
+  padding: 8px 3px !important;
+  border: 0 !important;
+  border-top: 1px solid #edf2f3 !important;
+  border-radius: 11px !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+.me-hub-tile:first-child {
+  border-top: 0 !important;
+}
+.me-hub-mark {
+  flex-basis: 37px !important;
+  width: 37px !important;
+  height: 37px !important;
+  border-radius: 12px !important;
+  background: #e8f3f3 !important;
+  color: #1b7480 !important;
+}
+.me-hub-tile-copy {
+  gap: 2px !important;
+}
+.me-hub-tile-copy strong {
+  font-size: 12.5px !important;
+}
+.me-hub-tile-copy small {
+  display: block;
+  overflow: hidden;
+  color: #7c9097 !important;
+  font-size: 10.5px !important;
+  line-height: 1.4;
+  white-space: normal !important;
+}
+.me-hub-arrow {
+  flex: 0 0 auto;
+  margin-left: 2px;
+}
+@media (max-width: 720px) {
+  .me-hub-groups {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  .me-hub-group {
+    padding: 14px 16px !important;
+  }
+  .me-hub-hero {
+    padding: 19px !important;
+  }
+}
+@media (max-width: 420px) {
+  .me-hub-hero {
+    border-radius: 21px !important;
+  }
+  .me-hub-profile {
+    gap: 9px !important;
+  }
+  .me-hub-edit {
+    padding: 7px 9px;
+    font-size: 10px;
+  }
+  .me-hub-unread {
+    padding: 6px 8px !important;
+    font-size: 10px !important;
+  }
+  .me-hub-tile {
+    min-height: 58px !important;
+  }
+  .me-hub-tile-copy small {
+    font-size: 10px !important;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .me-hub-tile { transition: none !important; }
+}

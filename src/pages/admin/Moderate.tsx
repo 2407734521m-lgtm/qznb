@@ -165,7 +165,7 @@ export default function Moderate({ setMsg }: { setMsg: (s: string) => void }) {
     </>)}
 
     {sub === 'trash' && (<>
-      {trashCount === 0 && <div style={card}><p style={mut}>回收站是空的。撤下的公告、隐藏的动态和评论会先来到这里，可以恢复。</p></div>}
+      {trashCount === 0 && <div style={card}><p style={mut}>回收站是空的。撤下的公告、隐藏的帖子和评论会先来到这里，可以恢复。</p></div>}
       {trashB.length > 0 && <p style={{ ...mut, margin: '4px 0 8px' }}>公告（{trashB.length}）</p>}
       {trashB.map(b => (
         <div key={'b' + b.id} style={{ ...card, opacity: 0.75 }}>

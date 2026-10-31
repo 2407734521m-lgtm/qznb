@@ -7,7 +7,7 @@ type Item = {
   description: string; contact: string | null; status: string; created_at: string;
 };
 const LABEL: Record<string, string> = {
-  selected: '今日处理中', pending: '候选中', not_found: '未找到', completed: '已完成',
+  selected: '今日处理中', pending: '候选中', not_found: '未找到', completed: '已完成', closed: '今日名额已用完',
 };
 
 export default function AdminAuthorizedRequests({ setMsg }: { setMsg: (s: string) => void }) {

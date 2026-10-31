@@ -356,6 +356,7 @@ export default function Admin() {
 function Overview({ setMsg }: { setMsg: (s: string) => void }) {
   const [st, setSt] = useState<any>(null);
   const [presence, setPresence] = useState<{ online: number; active: number; sampledAt: string; error: boolean } | null>(null);
+  const [loadTimedOut, setLoadTimedOut] = useState(false);
 
   // 在线人数只向服务器请求聚合计数（admin_presence_summary），管理端不订阅
   // 任何成员级 Presence 或明细数据，因此拿不到在线名单和账号 ID。
@@ -437,7 +438,13 @@ function Overview({ setMsg }: { setMsg: (s: string) => void }) {
       } catch (e: any) { setMsg('总览加载失败：' + (e.message || '')); }
     })();
   }, []);
-  if (!st) return <div className="center">加载中…</div>;
+  useEffect(() => {
+    if (st) return;
+    const timer = window.setTimeout(() => setLoadTimedOut(true), 12000);
+    return () => window.clearTimeout(timer);
+  }, [st]);
+  if (!st && !loadTimedOut) return <div className="admin-overview-loading" role="status"><span className="admin-loading-pulse" />正在整理总览数据…</div>;
+  if (!st) return <div className="admin-overview-timeout"><strong>总览数据暂时没有响应</strong><p>后台其他功能仍可使用。请检查网络后重试。</p><button type="button" onClick={() => window.location.reload()}>刷新重试</button></div>;
   const segs = [
     { label: '成员', v: st.members, color: '#5b8cff' },
     { label: '动态', v: st.posts, color: '#8b5cf6' },

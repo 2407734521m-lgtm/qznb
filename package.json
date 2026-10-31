@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "vite build",
     "typecheck": "tsc --noEmit",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "types:gen": "bash scripts/gen-types.sh"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.118.0",

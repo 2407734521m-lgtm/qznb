@@ -337,7 +337,7 @@ function Members({ me, isSuper, setMsg, extQ }: { me: string; isSuper: boolean; 
         ))}
       </div>
       <div className="row" style={{ gap: 6, marginBottom: 4, flexWrap: 'nowrap', overflowX: 'auto', scrollbarWidth: 'none' }}>
-        {([['all', '全部状态'], ['joined', '正常'], ['unjoined', '已禁用']] as const).map(([k, l]) => (
+        {([['all', '全部状态'], ['joined', '正常'], ['unjoined', '班级权限已暂停']] as const).map(([k, l]) => (
           <button key={k} className={'mini' + (fJoined === k ? '' : ' ghost')} style={{ whiteSpace: 'nowrap', flexShrink: 0 }}
             onClick={() => { setFJoined(k); setPage(0); }}>{l}</button>
         ))}
@@ -366,8 +366,8 @@ function Members({ me, isSuper, setMsg, extQ }: { me: string; isSuper: boolean; 
         </div>
         <div style={rowBtn}>
           {m.joined
-            ? <button className="mini danger" disabled={m.id === me} onClick={() => setJoined([m.id], false)}>禁用</button>
-            : <button className="mini" onClick={() => setJoined([m.id], true)}>恢复</button>}
+            ? <button className="mini danger" disabled={m.id === me} onClick={() => setJoined([m.id], false)}>暂停班级权限</button>
+            : <button className="mini" onClick={() => setJoined([m.id], true)}>恢复班级权限</button>}
           {isSuper && m.role !== 'super_admin' && (
             <select value={m.role} onChange={e => setRole(m.id, e.target.value, m.display_name || m.username)}
               style={{ width: 'auto', padding: '6px 8px', fontSize: 12.5 }} disabled={m.id === me}>

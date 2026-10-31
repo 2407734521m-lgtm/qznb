@@ -1005,6 +1005,13 @@ function Settings({ me, setMsg }: { me: string; setMsg: (s: string) => void }) {
         <input value={vals.site_subtitle ?? ''} onChange={e => setVals({ ...vals, site_subtitle: e.target.value })} style={{ flex: 1 }} />
         <button className="mini" onClick={() => save('site_subtitle', vals.site_subtitle ?? '')}>保存</button>
       </div>
+      <div className="row" style={{ gap: 8, alignItems: 'center', marginBottom: 10 }}>
+        <span style={{ fontSize: 13.5 }}>注册强制邀请码</span>
+        <button className={'mini' + (vals.require_invite === 'true' ? '' : ' ghost')}
+          onClick={() => save('require_invite', vals.require_invite === 'true' ? 'false' : 'true')}>
+          {vals.require_invite === 'true' ? '开' : '关'}
+        </button>
+      </div>
       <div className="row" style={{ gap: 8, alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', marginBottom: 4 }}>
         <span style={{ fontSize: 13.5, fontWeight: 650 }}>关闭登录入口</span>
         <button className={'mini' + (vals.close_login_entry === 'true' ? '' : ' ghost')}

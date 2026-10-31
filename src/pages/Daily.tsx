@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, useReducedMotion } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../auth';
@@ -29,6 +30,7 @@ function timeAgo(s: string) {
 
 /** 日常板块：普通日常帖子，与动态共用 posts 表，以 section='daily' 区分 */
 export default function Daily({ searchQuery = '' }: { searchQuery?: string }) {
+  const nav = useNavigate();
   const me = useAuth().session!.user.id; const reduce = useReducedMotion();
   const [posts, setPosts] = useState<Post[]>([]);
   const [profiles, setProfiles] = useState<Record<string, Profile>>({});
@@ -143,7 +145,7 @@ export default function Daily({ searchQuery = '' }: { searchQuery?: string }) {
         <h1>日常</h1>
         <p>记 录 生 活 · 分 享 点 滴</p>
       </div>
-      {searchQuery.trim() && <div className="feed-search-banner">搜索日常：{searchQuery}<button type="button" onClick={() => window.history.replaceState({}, '', window.location.pathname + window.location.hash)}>清除搜索</button></div>}
+      {searchQuery.trim() && <div className="feed-search-banner">搜索日常：{searchQuery}<button type="button" onClick={() => nav('/daily', { replace: true })}>清除搜索</button></div>}
       <div className="composer">
         <textarea value={text} onChange={e => setText(e.target.value)} placeholder="分享今天的小日常…" rows={3} maxLength={2000} />
         <div className="row">

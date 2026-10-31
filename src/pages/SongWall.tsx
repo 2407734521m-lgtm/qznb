@@ -3,8 +3,8 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../auth';
 import { useSignedUrl } from '../lib/media';
 import type { ProfileLabel as Profile } from '../types/profile';
+import type { SongWallPost as Song } from '../types/song';
 
-type Song = { id: string; author_id: string; title: string; description: string | null; audio_path: string; status: string; duration_seconds: number | null; created_at: string };
 
 function SongCard({ song, mine, author }: { song: Song; mine: boolean; author?: Profile }) {
   const url = useSignedUrl('song-audio', song.audio_path);
@@ -35,7 +35,7 @@ export default function SongWall() {
   async function load() {
     const { data, error } = await supabase.from('song_posts').select('id,author_id,title,description,audio_path,status,duration_seconds,created_at').order('created_at', { ascending: false }).limit(100);
     if (error) { setNotice('歌声墙数据库尚未启用。需要先执行项目中的 010_song_wall.sql 迁移。'); return; }
-    const rows = (data || []) as Song[];
+    const rows = data ?? [];
     setSongs(rows);
     const ids = [...new Set(rows.map(s => s.author_id))];
     if (ids.length) {

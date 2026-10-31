@@ -492,7 +492,7 @@ function Shell() {
   if (!session) {
     if (siteConfigLoading) return <div className="center" style={{ minHeight: '60vh' }}>正在加载公开内容…</div>;
     if (siteConfig?.maintenance === 'true') return <MaintenanceScreen title={siteConfig.maintenance_title || ''} msg={siteConfig.maintenance_msg || ''} hasSession={false} onLogout={logout} onAdmin={() => nav('/admin')} />;
-    if (showLogin && siteConfig?.close_login_entry !== 'true') return <><div className="glow" /><Login /></>;
+    if (showLogin && siteConfig?.close_login_entry !== 'true') return <><div className="glow" /><Login /><button className="mini ghost" style={{ position: 'fixed', top: 'calc(env(safe-area-inset-top) + 12px)', right: 14, zIndex: 900 }} onClick={() => setShowLogin(false)}>返回公开首页</button></>;
     if (siteConfig?.skip_login_screen === 'true') return <PublicLanding data={siteConfig} onLogin={() => setShowLogin(true)} />;
     if (siteConfig?.close_login_entry === 'true') return <LoginClosedScreen />;
     return <><div className="glow" /><Login /></>;

@@ -1405,6 +1405,10 @@ export type Database = {
         Args: { p_target: string }
         Returns: Json
       }
+      admin_analytics_overview: {
+        Args: { p_days?: number }
+        Returns: Json
+      }
       admin_request_sensitive_action: {
         Args: { p_action_type: string; p_target_user_id: string; p_requested_role: string | null; p_reason: string }
         Returns: string

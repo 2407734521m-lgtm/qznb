@@ -23,6 +23,7 @@ import Overview from './admin/Overview';
 import BoardMgr from './admin/BoardMgr';
 import Moderate from './admin/Moderate';
 import Settings from './admin/Settings';
+import { confirmDialog } from '../lib/dialog';
 
 /**
  * 管理后台测试版（V2）：高级管理控制中心
@@ -191,7 +192,7 @@ export default function Admin() {
       {msg && <p className="priv-note" style={{ margin: '0 0 10px' }}>{msg}</p>}
 
       <div className="admin-content" key={tab} aria-live="polite">
-        {tab === 'overview' && <Overview setMsg={setMsg} go={setTab} />}
+        {tab === 'overview' && <Overview setMsg={setMsg} />}
               {tab === 'members' && <Members me={me} isSuper={isSuper} setMsg={setMsg} extQ={q0} />}
               {tab === 'accounts' && isSuper && <AdminAccountManagement me={me} isSuper={isSuper} setMsg={setMsg} />}
               {tab === 'moderate' && <Moderate setMsg={setMsg} />}

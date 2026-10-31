@@ -24,10 +24,14 @@ IDENTITY_TABLES=(
     printf '      %s: {\n        Row: { id: number }\n        Insert: {\n          id: number\n        }\n        Update: { id?: number }\n      }\n' "$table"
   done
   echo '    }'
+  echo '    Views: {'
+  echo '    }'
   echo '    Functions: {'
   for fn in admin_presence_summary public_guest_landing member_directory member_detail my_role; do
     printf '      %s: {\n        Args: Record<PropertyKey, never>\n        Returns: unknown\n      }\n' "$fn"
   done
+  echo '    }'
+  echo '    Enums: {'
   echo '    }'
   echo '  }'
   echo '}'

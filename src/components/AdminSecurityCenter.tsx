@@ -11,6 +11,10 @@ type SecurityData = {
     attempts_24h?: number;
     currently_rate_limited?: number;
     latest_window_at?: string | null;
+    auth_failures_24h?: number;
+    email_failures_24h?: number;
+    username_failures_24h?: number;
+    failure_latest_at?: string | null;
   };
   recent_admin_actions?: Array<{
     id: number;
@@ -100,9 +104,12 @@ export default function AdminSecurityCenter({ session, setMsg }: { session: Sess
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(135px,1fr))', gap: 9 }}>
         <Metric label="24 小时识别对象" value={login.active_identifiers_24h ?? '—'} hint="按匿名哈希聚合，不显示身份" />
         <Metric label="24 小时累计尝试" value={login.attempts_24h ?? '—'} hint="用户名登录限流记录" />
+        <Metric label="24 小时登录失败" value={login.auth_failures_24h ?? '—'} hint="网站端匿名聚合计数" warn={(login.auth_failures_24h ?? 0) > 0} />
+        <Metric label="邮箱登录失败" value={login.email_failures_24h ?? '—'} hint="仅统计网站登录表单" />
+        <Metric label="用户名登录失败" value={login.username_failures_24h ?? '—'} hint="仅统计网站登录表单" />
         <Metric label="当前限流对象" value={login.currently_rate_limited ?? '—'} hint="15 分钟窗口内超过 8 次" warn={(login.currently_rate_limited ?? 0) > 0} />
       </div>
-      <p style={mut}>统计范围受登录限流表的保留记录限制；这不是所有登录失败事件的完整日志，也不包含 Supabase 邮箱登录失败明细。</p>
+      <p style={mut}>失败计数仅记录登录方式、固定失败类别和分钟时间桶，不保存邮箱、用户名、密码、验证码、IP 或设备标识。它统计网站登录表单捕获的失败，不等于 Supabase 全平台认证日志；客户端未能上报的失败不会计入。</p>
     </section>
 
     <section style={card}>

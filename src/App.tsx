@@ -378,27 +378,52 @@ function Shell() {
     return () => { alive = false; };
   }, [loc.pathname]);
 
-  // 上报设备与位置（管理员可见）：静默执行，失败不打扰用户
+  // 在线心跳：仅在页面可见且近 5 分钟内有交互时续期；管理员只读取聚合人数。
   useEffect(() => {
     if (!session) return;
     const uid = session.user.id;
-    (async () => {
+    const device = parseDevice(navigator.userAgent || '');
+    let alive = true;
+    let lastActivity = Date.now();
+    let inFlight = false;
+
+    const markActivity = () => { lastActivity = Date.now(); };
+    const heartbeat = async () => {
+      if (!alive || inFlight || document.visibilityState !== 'visible') return;
+      if (Date.now() - lastActivity > 5 * 60 * 1000) return;
+      inFlight = true;
       try {
-        const device = parseDevice(navigator.userAgent || '');
-        let location = '';
-        try {
-          const ctl = new AbortController();
-          const t = setTimeout(() => ctl.abort(), 6000);
-          const r = await fetch('https://ipapi.co/json/', { signal: ctl.signal }).then(x => x.json());
-          clearTimeout(t);
-          location = [r.region, r.city].filter(Boolean).join(' ') || (r.country_name || '');
-        } catch { /* 位置解析失败就只记设备 */ }
         await supabase.from('member_presence').upsert(
-          { profile_id: uid, device: device || null, location: location || null, updated_at: new Date().toISOString() },
+          { profile_id: uid, device: device || null, updated_at: new Date().toISOString() },
           { onConflict: 'profile_id' });
-      } catch { /* 上报失败不打扰用户 */ }
-    })();
-  }, [session]);
+      } catch { /* 心跳失败不影响正常使用 */ }
+      finally { inFlight = false; }
+    };
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        markActivity();
+        void heartbeat();
+      }
+    };
+
+    void heartbeat();
+    const timer = window.setInterval(() => { void heartbeat(); }, 60 * 1000);
+    window.addEventListener('pointerdown', markActivity, { passive: true });
+    window.addEventListener('keydown', markActivity);
+    window.addEventListener('touchstart', markActivity, { passive: true });
+    window.addEventListener('scroll', markActivity, { passive: true });
+    document.addEventListener('visibilitychange', onVisibility);
+
+    return () => {
+      alive = false;
+      window.clearInterval(timer);
+      window.removeEventListener('pointerdown', markActivity);
+      window.removeEventListener('keydown', markActivity);
+      window.removeEventListener('touchstart', markActivity);
+      window.removeEventListener('scroll', markActivity);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
+  }, [session?.user.id]);
 
   function closeGpsOffer() {
     setGpsOffer(false);

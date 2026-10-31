@@ -43,6 +43,7 @@ import SongWall from './pages/SongWall';
 import Messages from './pages/Messages';
 
 const TABS = [
+  { to: '/home', label: '首页' },
   { to: '/board', label: '公告' },
   { to: '/members', label: '班级' },
   { to: '/explore', label: '发现' },

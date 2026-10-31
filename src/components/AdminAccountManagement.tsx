@@ -86,8 +86,8 @@ export default function AdminAccountManagement({
       return;
     }
     const next = !account.joined;
-    const verb = next ? '恢复' : '禁用';
-    if (!(await confirmDialog(`${verb}账号「${account.display_name || account.username}」？${next ? '' : '禁用后将失去班级成员权限。'}`))) return;
+    const verb = next ? '恢复班级权限' : '暂停班级权限';
+    if (!(await confirmDialog(`${verb}账号「${account.display_name || account.username}」？${next ? '' : '暂停后将失去班级成员权限，但不会阻止其登录认证。'}`))) return;
     setBusy(account.id);
     const { error } = await supabase.rpc('set_joined', { target: account.id, j: next });
     setBusy(null);
@@ -103,7 +103,7 @@ export default function AdminAccountManagement({
     if (!isSuper) return setMsg('批量账号操作仅限超级管理员。');
     const targets = filtered.filter(account => selected.has(account.id) && account.role === 'member' && account.id !== me && account.joined !== joined);
     if (!targets.length) return setMsg('没有可执行的选中账号。');
-    const verb = joined ? '恢复' : '禁用';
+    const verb = joined ? '恢复班级权限' : '暂停班级权限';
     if (!(await confirmDialog('确认' + verb + '选中的 ' + targets.length + ' 个账号？不会处理当前登录账号。', { danger: !joined }))) return;
     setBatchBusy(true);
     let success = 0; let failed = 0;
@@ -117,7 +117,7 @@ export default function AdminAccountManagement({
   }
 
   function exportFiltered() {
-    const rows = [['显示名称', '用户名', '角色', '账号状态', '注册时间', '最近登录'], ...filtered.map(account => [account.display_name || account.username, account.username, account.role, account.joined ? '正常' : '已禁用', account.created_at, account.last_sign_in_at || ''])];
+    const rows = [['显示名称', '用户名', '角色', '账号状态', '注册时间', '最近登录'], ...filtered.map(account => [account.display_name || account.username, account.username, account.role, account.joined ? '权限正常' : '班级权限已暂停', account.created_at, account.last_sign_in_at || ''])];
     const csv = '\uFEFF' + rows.map(row => row.map(value => '"' + String(value ?? '').replace(/"/g, '""') + '"').join(',')).join('\r\n');
     const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
     const link = document.createElement('a'); link.href = url;
@@ -278,7 +278,7 @@ export default function AdminAccountManagement({
     </div>}
     <div style={{ ...panel, ...muted }}>
       <strong style={{ color: '#dce5ff' }}>管理边界说明</strong>
-      <div>本版的“禁用账号”沿用现有 set_joined 权限函数。它限制班级成员权限，不等同于撤销 Supabase 登录会话。</div>
+      <div>本版的““暂停班级权限”沿用现有 set_joined 权限函数，只限制班级成员权限，不会阻止 Supabase 登录，也不等同于远程撤销会话。</div>
       <div>禁言需要单独的发言限制和数据库策略；本版不会把禁用账号伪装成禁言，也不会假装已经采集到真实 IP 定位。</div>
     </div>
   </section>;

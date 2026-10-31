@@ -10,6 +10,7 @@ import AdminNotificationCenter from '../components/AdminNotificationCenter';
 import AdminSongWall from '../components/AdminSongWall';
 import AdminBulkEmail from '../components/AdminBulkEmail';
 import AdminAccountManagement from '../components/AdminAccountManagement';
+import type { AdminPost as Post, AdminComment as Cmt } from '../types/content';
 
 /**
  * 管理后台测试版（V2）：高级管理控制中心
@@ -21,8 +22,6 @@ type Member = {
   id: string; username: string; display_name: string | null; real_name: string | null;
   role: string; joined: boolean; created_at: string;
 };
-type Post = { id: number; author_id: string; content: string; image_url: string | null; created_at: string; deleted_at: string | null };
-type Cmt = { id: number; post_id: number; author_id: string; content: string; created_at: string; deleted_at: string | null };
 type Report = {
   id: number; reporter_id: string | null; target_type: string; target_id: string;
   reason: string; status: string; handle_note: string | null; created_at: string;
@@ -688,7 +687,7 @@ function Moderate({ setMsg }: { setMsg: (s: string) => void }) {
       supabase.from('comments').select('id, post_id, author_id, content, created_at, deleted_at').order('created_at', { ascending: false }).limit(50),
       supabase.from('reports').select('*').order('created_at', { ascending: false }).limit(50),
     ]);
-    setPosts((p.data ?? []) as Post[]); setCmts((c.data ?? []) as Cmt[]); setReports((r.data ?? []) as Report[]);
+    setPosts(p.data ?? []); setCmts(c.data ?? []); setReports((r.data ?? []) as Report[]);
     const ids = new Set<string>();
     (p.data ?? []).forEach((x: any) => ids.add(x.author_id));
     (c.data ?? []).forEach((x: any) => ids.add(x.author_id));

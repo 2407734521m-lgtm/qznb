@@ -5,9 +5,8 @@ import { useAuth } from '../auth';
 import { useSignedUrls, uploadMedia, downscaleImage } from '../lib/media';
 import { withRetry } from '../lib/retry';
 import type { ProfileSummary as Profile } from '../types/profile';
+import type { FeedPost as Post, FeedComment as Cmt } from '../types/content';
 
-type Post = { id: number; author_id: string; content: string; image_url: string | null; created_at: string };
-type Cmt = { id: number; post_id: number; author_id: string; content: string; created_at: string };
 
 function Avatar({ p, url, size = 42 }: { p?: Profile; url?: string; size?: number }) {
   return (
@@ -45,7 +44,7 @@ export default function Feed() {
 
   async function load() {
     const { data: ps } = await supabase.from('posts').select('*').is('deleted_at', null).order('created_at', { ascending: false }).limit(30);
-    const list = (ps ?? []) as Post[];
+    const list = ps ?? [];
     setPosts(list);
     if (!list.length) return;
     const ids = [...new Set(list.map(p => p.author_id))];

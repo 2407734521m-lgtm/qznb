@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../auth';
 import { useSignedUrl } from '../lib/media';
-import type { ProfileLabel as Profile } from '../types/profile';
 import type { SongWallPost as Song } from '../types/song';
 import type { PublicSongWallPost } from '../types/song';
 
@@ -58,7 +57,7 @@ export default function SongWall() {
     let uploadedPath = '';
     try {
       const ext = (file.name.split('.').pop() || 'mp3').toLowerCase().replace(/[^a-z0-9]/g, '') || 'mp3';
-      uploadedPath = `${session.user.id}/songs/${Date.now()}.${ext}`;
+      uploadedPath = `songs/${crypto.randomUUID()}.${ext}`;
       const { error: uploadError } = await supabase.storage.from('song-audio').upload(uploadedPath, file, { contentType: file.type || 'audio/mpeg', upsert: false });
       if (uploadError) throw uploadError;
       const { error } = await supabase.from('song_posts').insert({
@@ -72,7 +71,9 @@ export default function SongWall() {
       setNotice('已匿名发布，作品现在就会出现在歌声墙。管理员可对违规投稿进行隐藏或处理。');
       await load();
     } catch {
-      if (uploadedPath) await supabase.storage.from('song-audio').remove([uploadedPath]).catch(() => ({ data: null, error: null }));
+      if (uploadedPath) {
+        try { await supabase.storage.from('song-audio').remove([uploadedPath]); } catch { /* best-effort cleanup */ }
+      }
       setNotice('提交失败：请稍后重试；如果持续失败，请联系管理员。');
     } finally { setBusy(false); }
   }

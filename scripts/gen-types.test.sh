@@ -46,7 +46,7 @@ if [ "$1" = "--version" ]; then
 fi
 if [ "$1" = "gen" ]; then
   case "${STUB_GEN:-ok}" in
-    ok)    cat "$STUB_TYPES_FIXTURE"; exit 0 ;;
+    ok)    [ -s "$STUB_TYPES_FIXTURE" ] || { echo "fixture missing: $STUB_TYPES_FIXTURE" >&2; exit 4; }; cat "$STUB_TYPES_FIXTURE" || exit 4; exit 0 ;;
     fail)  echo "// partial garbage"; exit 3 ;;
     empty) exit 0 ;;
   esac

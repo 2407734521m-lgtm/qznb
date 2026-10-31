@@ -12,7 +12,7 @@ import AdminBulkEmail from '../components/AdminBulkEmail';
 import AdminAccountManagement from '../components/AdminAccountManagement';
 import type { AdminPost as Post, AdminComment as Cmt } from '../types/content';
 import { Spark, TrendChart, Donut } from './admin/charts';
-import { card, h3, mut, rowBtn, alog, timeAgo } from './admin/shared';
+import { card, h3, mut, rowBtn, alog, timeAgo, bucket14 } from './admin/shared';
 import Logs from './admin/Logs';
 import MaintenanceAccessManager from './admin/MaintenanceAccessManager';
 import InviteTab from './admin/InviteTab';
@@ -20,6 +20,8 @@ import FeedbackTab from './admin/FeedbackTab';
 import GameTab from './admin/GameTab';
 import TestTab from './admin/TestTab';
 import EventTab from './admin/EventTab';
+import Overview from './admin/Overview';
+import BoardMgr from './admin/BoardMgr';
 import Moderate from './admin/Moderate';
 import Settings from './admin/Settings';
 import { confirmDialog } from '../lib/dialog';
@@ -55,17 +57,6 @@ const TABS_ALL: [string, string, boolean][] = [
   ['test', '测试', true], // 仅超管
 ];
 
-
-function bucket14(rows: { created_at: string }[]) {
-  const days: number[] = Array(14).fill(0);
-  const start = new Date(); start.setHours(0, 0, 0, 0); start.setDate(start.getDate() - 13);
-  rows.forEach(r => {
-    const d = new Date(r.created_at); d.setHours(0, 0, 0, 0);
-    const i = Math.round((d.getTime() - start.getTime()) / 864e5);
-    if (i >= 0 && i < 14) days[i]++;
-  });
-  return days;
-}
 
 export default function Admin() {
   const { session } = useAuth();
@@ -767,6 +758,3 @@ function BoardMgr({ me, setMsg }: { me: string; setMsg: (s: string) => void }) {
     </div>
   );
 }
-
-/* ---------------- 日志 ---------------- */
-/* ---------------- 系统设置（仅超管） ---------------- */

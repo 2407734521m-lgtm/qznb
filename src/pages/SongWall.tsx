@@ -2,8 +2,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../auth';
 import { useSignedUrl } from '../lib/media';
-import type { SongWallPost as Song } from '../types/song';
-import type { PublicSongWallPost } from '../types/song';
+import type { SongWallPost as Song, PublicSongWallPost } from '../types/song';
 
 function SongCard({ song, mine }: { song: Song | PublicSongWallPost; mine: boolean }) {
   const url = useSignedUrl('song-audio', song.audio_path);
@@ -56,7 +55,7 @@ export default function SongWall() {
     setBusy(true); setNotice('');
     let uploadedPath = '';
     try {
-      const ext = (file.name.split('.').pop() || 'mp3').toLowerCase().replace(/[^a-z0-9]/g, '') || 'mp3';
+      const ext = (file.name.split('.').pop() || 'mp3').toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 10) || 'mp3';
       uploadedPath = `songs/${crypto.randomUUID()}.${ext}`;
       const { error: uploadError } = await supabase.storage.from('song-audio').upload(uploadedPath, file, { contentType: file.type || 'audio/mpeg', upsert: false });
       if (uploadError) throw uploadError;

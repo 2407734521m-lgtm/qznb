@@ -429,16 +429,7 @@ export default function MyProfile() {
         ))}
       </Collapsible>
 
-      <Collapsible title={`站内通知${notifUnread ? `（${notifUnread} 条未读）` : ''}`} open={notifOpen} onToggle={() => {
-        const n = !notifOpen; setNotifOpen(n);
-        if (n && notifUnread > 0) {
-          supabase.from('notifications').update({ is_read: true }).eq('profile_id', uid).eq('is_read', false).then(() => {
-            setNotifUnread(0);
-            setNotifs(prev => prev.map(x => ({ ...x, is_read: true })));
-            window.dispatchEvent(new Event('notif-read'));
-          });
-        }
-      }}>
+      <Collapsible title={`站内通知${notifUnread ? `（${notifUnread} 条未读）` : ''}`} open={notifOpen} onToggle={() => setNotifOpen(o => !o)}>
         {notifs.length === 0 ? <p className="mut" style={{ fontSize: 13 }}>暂无通知</p> :
           notifs.map(n => (
             <div key={n.id} style={{ padding: '10px 0', borderBottom: '1px solid #edf0f4', opacity: n.is_read ? 0.65 : 1 }}>
@@ -449,6 +440,10 @@ export default function MyProfile() {
               <div className="mut" style={{ fontSize: 11.5, marginTop: 2 }}>{(n.created_at || '').slice(0, 16).replace('T', ' ')}</div>
             </div>
           ))}
+        <button type="button" className="mini ghost" style={{ marginTop: 10, width: '100%' }}
+          onClick={() => { window.location.hash = '#/me/notifications'; }}>
+          查看与管理全部通知
+        </button>
       </Collapsible>
 
       <div className="card" style={{ padding: 0, overflow: 'hidden' }}>

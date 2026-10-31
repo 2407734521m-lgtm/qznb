@@ -364,10 +364,24 @@ function Shell() {
     return () => { alive = false; };
   }, [session, loc.pathname]);
   useEffect(() => {
-    const h = () => setNotifUnread(false);
+    let alive = true;
+    const h = async () => {
+      if (!session) { setNotifUnread(false); return; }
+      try {
+        const { count, error } = await supabase.from('notifications')
+          .select('id', { count: 'exact', head: true })
+          .eq('profile_id', session.user.id).eq('is_read', false);
+        if (alive && !error) setNotifUnread((count ?? 0) > 0);
+      } catch {
+        // 请求失败时保留上次红点状态。
+      }
+    };
     window.addEventListener('notif-read', h);
-    return () => window.removeEventListener('notif-read', h);
-  }, []);
+    return () => {
+      alive = false;
+      window.removeEventListener('notif-read', h);
+    };
+  }, [session]);
 
   // 登录弹窗公告：按后台设置的次数弹出（1/2/3次或每次）
   const [loginPop, setLoginPop] = useState<any>(null);

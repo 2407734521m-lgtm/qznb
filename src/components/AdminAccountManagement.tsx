@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { confirmDialog } from '../lib/dialog';
+import { confirmDialog, promptDialog } from '../lib/dialog';
 import { alog } from '../pages/admin/shared';
 
 type Account = {
@@ -145,21 +145,24 @@ export default function AdminAccountManagement({
       { danger: true }
     );
     if (!confirmed) return;
-    setBusy(account.id);
-    const { error } = await supabase.rpc('admin_delete_member_account', { target: account.id });
-    setBusy(null);
-    if (error) {
-      setMsg(`删除失败：${error.message}`);
+    const reason = await promptDialog('填写永久删除原因（至少 8 个字）', { placeholder: '说明删除原因及必要性' });
+    if (!reason || reason.trim().length < 8) {
+      setMsg('未提交：请填写至少 8 个字的审批原因。');
       return;
     }
-    setRows((old) => old.filter((r) => r.id !== account.id));
-    setExpanded((old) => {
-      const next = new Set(old);
-      next.delete(account.id);
-      return next;
+    setBusy(account.id);
+    const { data, error } = await supabase.rpc('admin_request_sensitive_action', {
+      p_action_type: 'delete_member_account',
+      p_target_user_id: account.id,
+      p_requested_role: null,
+      p_reason: reason.trim(),
     });
-    setMsg(`已永久删除成员「${label}」。`);
-    await load();
+    setBusy(null);
+    if (error) {
+      setMsg(`提交删除审批失败：${error.message}`);
+      return;
+    }
+    setMsg(`已提交「${label}」的永久删除审批（${String(data).slice(0, 8)}）。另一位超级管理员批准后才会真正删除账号。`);
   }
 
   function toggleDetails(id: string) {

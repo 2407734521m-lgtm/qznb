@@ -71,10 +71,6 @@ function bucket14(rows: { created_at: string }[]) {
   return days;
 }
 
-async function alog(action: string, detail: any) {
-  try { await supabase.rpc('log_admin_action', { p_action: action, p_detail: JSON.stringify(detail) }); } catch {}
-}
-
 function timeAgo(s: string) {
   const d = (Date.now() - new Date(s).getTime()) / 1000;
   if (d < 60) return '刚刚'; if (d < 3600) return Math.floor(d / 60) + ' 分钟前';

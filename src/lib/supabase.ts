@@ -11,7 +11,7 @@ const sameOriginApi =
   host === 'qianzhi.pw' || host === 'www.qianzhi.pw' || host === 'admin.qianzhi.pw'
     ? window.location.origin + '/api'
     : undefined;
-export const supabaseBaseUrl = (window as any).__SUPABASE_URL || sameOriginApi || envUrl;
+export const supabaseBaseUrl = window.__SUPABASE_URL || sameOriginApi || envUrl;
 const key = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
 export const configured = Boolean(supabaseBaseUrl && key);
 export const supabase = createClient<Database>(supabaseBaseUrl ?? 'http://localhost', key ?? 'missing', {

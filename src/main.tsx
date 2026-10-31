@@ -10,15 +10,14 @@ import './styles.css';
 import './styles-cinematic.css';
 import './styles-editorial.css';
 
-// 管理员子域名（如 admin.xxx.com）：直达后台，不加载主站界面
-const isAdminHost = window.location.hostname.split('.')[0].toLowerCase() === 'admin';
+// 只有精确匹配的管理员域名可以挂载后台；其他任何域名都不能加载 AdminShell。
+const isAdminHost = window.location.hostname.toLowerCase() === 'admin.qianzhi.pw';
 
-// 主站不再承载 /admin 后台界面；旧入口统一跳转到独立管理员子域名。
-// 同时兼容 HashRouter 的 #/admin 入口，以及历史上直接访问的 /admin 路径。
+// 主站不承载后台界面；历史入口只负责跳转到唯一管理员域名。
 function redirectLegacyAdminEntry() {
   if (isAdminHost) return;
-  const isLegacyPath = window.location.pathname.replace(/\/+$/, '') === '/admin';
-  const isLegacyHash = /^#\/admin(?:\/|$|[?])/.test(window.location.hash);
+  const isLegacyPath = window.location.pathname.replace(/\\/+$/, '') === '/admin';
+  const isLegacyHash = /^#\\/admin(?:\\/|$|[?])/.test(window.location.hash);
   if (isLegacyPath || isLegacyHash) {
     window.location.replace('https://admin.qianzhi.pw/');
   }

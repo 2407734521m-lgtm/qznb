@@ -467,15 +467,25 @@ function Shell() {
   }, [siteConfig?.maintenance, loc.pathname]);
   useEffect(() => {
     let alive = true;
+    let inFlight = false;
     setSiteConfigLoading(true);
-    supabase.rpc('public_guest_landing').then(({ data, error }) => {
-      if (!alive) return;
-      setSiteConfig(error ? null : (data ?? null));
-      setSiteConfigLoading(false);
-    }, () => {
-      if (alive) { setSiteConfig(null); setSiteConfigLoading(false); }
-    });
-    return () => { alive = false; };
+    const refreshSiteConfig = async (initial = false) => {
+      if (inFlight) return;
+      inFlight = true;
+      try {
+        const { data, error } = await supabase.rpc('public_guest_landing');
+        if (alive && !error) setSiteConfig(data ?? null);
+      } catch {
+        // 保留上一次成功配置；短暂网络故障不应让维护页闪烁。
+      } finally {
+        inFlight = false;
+        if (alive && initial) setSiteConfigLoading(false);
+      }
+    };
+    void refreshSiteConfig(true);
+    // 定时维护由数据库按当前时间计算；每 15 秒刷新，使已打开页面也能准时切换。
+    const timer = window.setInterval(() => { void refreshSiteConfig(false); }, 15_000);
+    return () => { alive = false; window.clearInterval(timer); };
   }, [loc.pathname]);
   useEffect(() => { setShowLogin(false); }, [session]);
 

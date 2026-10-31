@@ -33,6 +33,10 @@ begin
     return;
   end if;
 
+  -- Retain only 30 days of coarse aggregate telemetry.
+  delete from login_private.auth_login_failure_rollups
+   where bucket_minute < now() - interval '30 days';
+
   -- A single global minute bucket prevents an unauthenticated caller from
   -- creating unbounded rows or inflating counts without limit.
   perform pg_advisory_xact_lock(hashtextextended('auth-login-failure-rollup:' || v_bucket::text, 0));

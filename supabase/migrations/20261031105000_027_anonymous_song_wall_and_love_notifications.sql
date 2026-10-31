@@ -54,7 +54,71 @@ using (author_id = auth.uid() or public.my_role() in ('admin', 'super_admin'));
 -- Opaque random audio paths prevent the public feed from exposing the uploader's profile ID.
 alter table public.song_posts drop constraint if exists song_audio_path_owner;
 alter table public.song_posts
-  add constraint song_audio_path_opaque check (audio_path like 'songs/%');
+  add constraint song_audio_path_opaque check (audio_path ~ '^songs/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}[.][a-z0-9]{1,10}
+
+drop policy if exists song_audio_insert_own on storage.objects;
+create policy song_audio_insert_own on storage.objects
+for insert to authenticated
+with check (bucket_id = 'song-audio' and owner = auth.uid());
+
+-- Allow both legacy pending submissions and the new immediate-publish client
+-- during rollout. The current client writes status='published'.
+drop policy if exists song_posts_insert on public.song_posts;
+create policy song_posts_insert on public.song_posts
+for insert to authenticated
+with check (author_id = auth.uid() and status in ('pending', 'published'));
+
+create or replace function public.song_wall_audio_readable(p_path text)
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $function$
+  select exists (
+    select 1
+    from public.song_posts s
+    where s.audio_path = p_path
+      and (
+        s.status = 'published'
+        or s.author_id = auth.uid()
+        or public.my_role() in ('admin', 'super_admin')
+      )
+  );
+$function$;
+revoke all on function public.song_wall_audio_readable(text) from public;
+grant execute on function public.song_wall_audio_readable(text) to authenticated;
+
+drop policy if exists song_audio_read_allowed on storage.objects;
+create policy song_audio_read_allowed on storage.objects
+for select to authenticated
+using (bucket_id = 'song-audio' and public.song_wall_audio_readable(name));
+
+create or replace function public.song_wall_published()
+returns table (
+  id uuid,
+  title text,
+  description text,
+  audio_path text,
+  duration_seconds integer,
+  created_at timestamptz
+)
+language sql
+stable
+security definer
+set search_path = ''
+as $function$
+  select s.id, s.title, s.description, s.audio_path, s.duration_seconds, s.created_at
+  from public.song_posts s
+  where auth.uid() is not null
+    and s.status = 'published'
+  order by s.created_at desc
+  limit 100;
+$function$;
+
+revoke all on function public.song_wall_published() from public;
+grant execute on function public.song_wall_published() to authenticated;
+);
 
 drop policy if exists song_audio_insert_own on storage.objects;
 create policy song_audio_insert_own on storage.objects

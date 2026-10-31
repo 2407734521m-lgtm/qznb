@@ -1,0 +1,119 @@
+
+/* ===== Unified white + deep-sea teal palette ===== */
+.admin-shell{
+  color:#203449!important;
+  background:
+    radial-gradient(ellipse at 8% 0%,rgba(24,137,151,.08),transparent 38%),
+    radial-gradient(ellipse at 96% 12%,rgba(49,112,157,.07),transparent 34%),
+    #f7fafc!important;
+}
+.admin-shell .admin-header{border-bottom-color:#dce7ec!important}
+.admin-shell .admin-header-title{color:#17384c!important}
+.admin-shell .admin-header>div:first-child>div:first-child{
+  background:linear-gradient(135deg,#164e63,#278b91)!important;
+  box-shadow:0 7px 20px rgba(25,104,123,.18)!important;
+}
+.admin-shell .admin-header>div:first-child>div:nth-child(2)>div:last-child{color:#718391!important}
+.admin-shell .admin-header>span{
+  color:#176477!important;background:#e6f4f4!important;border-color:#c8e5e4!important;
+}
+.admin-shell .admin-search input{
+  color:#203449!important;background:rgba(255,255,255,.96)!important;
+  border:1px solid #d8e4e9!important;box-shadow:0 5px 18px rgba(22,58,77,.045)!important;
+}
+.admin-shell .admin-search input::placeholder{color:#8b9ba5!important}
+.admin-shell .admin-content{color:#203449!important}
+.admin-shell .admin-content>div[style*="linear-gradient(160deg"],
+.admin-shell .admin-content>div[style*="border-radius"]{
+  color:#203449!important;background:#fff!important;border:1px solid #e0e9ed!important;
+  box-shadow:0 8px 24px rgba(25,59,77,.055)!important;
+}
+.admin-shell .admin-content h3,
+.admin-shell .admin-content h2,
+.admin-shell .admin-content strong,
+.admin-shell .admin-content b{color:#17384c}
+.admin-shell .admin-content p,
+.admin-shell .admin-content label{color:#718391!important}
+.admin-shell .admin-content input,
+.admin-shell .admin-content textarea,
+.admin-shell .admin-content select{
+  color:#203449!important;background:#fff!important;border:1px solid #d7e3e8!important;
+}
+.admin-shell .admin-content input::placeholder,
+.admin-shell .admin-content textarea::placeholder{color:#91a0a9!important}
+.admin-shell .admin-content input:focus,
+.admin-shell .admin-content textarea:focus,
+.admin-shell .admin-content select:focus{
+  border-color:#278b91!important;box-shadow:0 0 0 3px rgba(39,139,145,.12)!important;
+}
+.admin-shell .admin-content button.pri,
+.admin-shell .admin-dock button[aria-current="page"],
+.admin-shell .admin-mobile-dock button[aria-current="page"],
+.admin-shell .admin-mobile-dock button.active{
+  color:#fff!important;background:linear-gradient(135deg,#164e63,#278b91)!important;
+  border-color:transparent!important;box-shadow:0 6px 16px rgba(22,100,117,.16)!important;
+}
+.admin-shell .admin-content button.mini,
+.admin-shell .admin-content button.ghost{
+  color:#245365!important;background:#f3f8fa!important;border:1px solid #d9e7eb!important;
+}
+.admin-shell .admin-content button.danger{
+  color:#b64a55!important;background:#fff5f5!important;border:1px solid #f1d8da!important;
+}
+.admin-shell .admin-content .priv-note{
+  color:#245d6a!important;background:#edf7f7!important;border-color:#cce7e6!important;
+}
+.admin-shell .admin-overview-loading{color:#547381!important}
+.admin-shell .admin-loading-pulse{background:#278b91!important;box-shadow:0 0 0 0 rgba(39,139,145,.3);animation-name:admin-pulse}
+.admin-shell .admin-overview-timeout{color:#294b5b!important;background:#fff8f1!important;border-color:#f0dfcb!important}
+.admin-shell .admin-overview-timeout p{color:#7e8c94!important}
+.admin-shell .admin-overview-timeout button{color:#fff!important;background:#176477!important;border-color:#176477!important}
+.admin-shell .admin-dock{
+  background:rgba(255,255,255,.88)!important;border:1px solid #dce7ec!important;
+  box-shadow:0 12px 34px rgba(20,54,72,.13),inset 0 1px 0 #fff!important;
+}
+.admin-shell .admin-dock button{color:#617785!important}
+.admin-shell .admin-dock button[aria-current="page"]{color:#fff!important}
+.admin-shell .admin-mobile-dock{
+  background:rgba(255,255,255,.9)!important;border-color:#dce7ec!important;
+  box-shadow:0 12px 34px rgba(20,54,72,.14),inset 0 1px 0 #fff!important;
+}
+.admin-shell .admin-mobile-dock button{color:#708591!important}
+.admin-shell .admin-mobile-dock button[aria-current="page"],
+.admin-shell .admin-mobile-dock button.active{color:#fff!important}
+.admin-shell .admin-mobile-dock-dot{background:#278b91!important;box-shadow:0 0 8px rgba(39,139,145,.25)!important}
+.admin-shell .admin-mobile-more-backdrop{background:rgba(21,47,61,.25)!important}
+.admin-shell .admin-mobile-more{
+  color:#203449!important;background:#fff!important;border:1px solid #dce7ec!important;
+  box-shadow:0 18px 48px rgba(20,54,72,.16)!important;
+}
+.admin-shell .admin-mobile-more button{color:#245365!important;background:#f3f8fa!important;border-color:#d9e7eb!important}
+.admin-shell .admin-email-glass{color:#203449!important}
+.admin-shell .admin-email-glass .admin-email-panel{
+  color:#203449!important;background:linear-gradient(145deg,#fff,#f4f9fa)!important;
+  border-color:#dce7ec!important;box-shadow:0 12px 30px rgba(20,54,72,.08)!important;
+}
+.admin-shell .admin-email-glass input:not([type=checkbox]),
+.admin-shell .admin-email-glass textarea{
+  color:#203449!important;background:#fff!important;border-color:#d7e3e8!important;
+}
+.admin-shell .admin-email-glass input::placeholder,
+.admin-shell .admin-email-glass textarea::placeholder{color:#91a0a9!important}
+.admin-shell .admin-email-glass label{color:#617785!important}
+.admin-shell svg text{fill:#24485a!important}
+.admin-shell svg circle[stroke="#232b45"]{stroke:#dce8eb!important}
+@media(max-width:899px){
+  .admin-shell{
+    background:
+      radial-gradient(ellipse at 8% -5%,rgba(24,137,151,.08),transparent 36%),
+      radial-gradient(ellipse at 100% 18%,rgba(49,112,157,.06),transparent 34%),
+      #f7fafc!important;
+    color:#203449!important;
+  }
+  .admin-shell .admin-content>div[style*="linear-gradient(160deg"]{
+    background:#fff!important;border-color:#e0e9ed!important;
+    box-shadow:0 8px 24px rgba(25,59,77,.055)!important;
+  }
+  .admin-shell .admin-mobile-dock button[aria-current="page"] .admin-mobile-dock-dot{background:#fff!important}
+}
+@media(prefers-reduced-motion:reduce){.admin-shell .admin-loading-pulse{animation:none!important}}

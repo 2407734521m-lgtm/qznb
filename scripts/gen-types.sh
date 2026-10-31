@@ -75,6 +75,13 @@ if [ ! -s "$TMP_FILE" ]; then
   exit 1
 fi
 
+# 规范化已确认的 IDENTITY 主键 Insert 字段与高频 RPC 返回类型。
+# 处理失败时不替换正式文件，确保类型生成仍是原子操作。
+if ! node scripts/normalize-database-types.mjs "$TMP_FILE"; then
+  echo "✗ 类型规范化失败，已保留原有 $TARGET 不变。" >&2
+  exit 1
+fi
+
 mv "$TMP_FILE" "$TARGET"
 trap - EXIT
 echo "✓ 已生成并替换 $TARGET，请接着运行：npm run typecheck"

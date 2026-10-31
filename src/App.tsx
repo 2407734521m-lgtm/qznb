@@ -4,6 +4,7 @@ import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { DUR, EASE } from './lib/motion';
 import { supabase } from './lib/supabase';
 import { useAuth } from './auth';
+import { startSitePresence } from './lib/sitePresence';
 import { getWallpaper } from './lib/wallpaper';
 import WallpaperOnboarding from './components/WallpaperOnboarding';
 import WelcomeOverlay from './components/WelcomeOverlay';
@@ -377,6 +378,12 @@ function Shell() {
     })();
     return () => { alive = false; };
   }, [loc.pathname]);
+
+  // Realtime Presence：使用账号 ID 作为 presence key，多标签页/多设备按账号去重。
+  useEffect(() => {
+    if (!session?.user.id) return;
+    return startSitePresence(session.user.id);
+  }, [session?.user.id]);
 
   // 在线心跳：仅在页面可见且近 5 分钟内有交互时续期；管理员只读取聚合人数。
   useEffect(() => {

@@ -61,7 +61,7 @@ export default function GlobalSearch({ open, onClose }: { open: boolean; onClose
         const [members, posts, albums, notices] = await Promise.all([
           supabase.rpc('member_directory', { q: term, lim: 6, skip: 0 }),
           supabase.from('posts').select('id, content, section, created_at')
-            .is('deleted_at', null).ilike('content', pattern)
+            .in('section', ['feed', 'daily']).is('deleted_at', null).ilike('content', pattern)
             .order('created_at', { ascending: false }).limit(6),
           supabase.from('albums').select('id, title, category')
             .is('deleted_at', null).ilike('title', pattern)
@@ -88,7 +88,7 @@ export default function GlobalSearch({ open, onClose }: { open: boolean; onClose
             title: String(post.content || '图片动态').slice(0, 66),
             subtitle: section === 'daily' ? '日常动态' : '班级动态',
             target: section === 'daily' ? '/daily' : '/feed',
-            state: section === 'feed' ? { openTab: 'feed', searchQuery: term } : undefined,
+            state: { openTab: 'feed', searchQuery: term },
           });
         });
         (albums.data ?? []).forEach((album: any) => {

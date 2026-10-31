@@ -87,7 +87,7 @@ function TrendChart({ data }: { data: DailyPoint[] }) {
         return <polyline key={line.key} points={points} fill="none" stroke={line.color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />;
       })}
       {labelIndexes.map(index => <text key={index} x={x(index)} y={height - 10} fill="#8292af" fontSize="9" textAnchor="middle">
-        {new Date(data[index].day).toLocaleDateString(undefined, { month: 'numeric', day: 'numeric' })}
+        {formatDay(data[index].day)}
       </text>)}
     </svg>
     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, padding: '0 4px' }}>
@@ -96,6 +96,11 @@ function TrendChart({ data }: { data: DailyPoint[] }) {
       </span>)}
     </div>
   </div>;
+}
+
+function formatDay(value: string) {
+  const [year, month, day] = value.slice(0, 10).split('-').map(Number);
+  return new Date(year, month - 1, day).toLocaleDateString();
 }
 
 const countItems: Array<[keyof Totals, string]> = [
@@ -180,7 +185,7 @@ export default function AdminAnalyticsCenter({ setMsg }: { setMsg: (message: str
         <div style={{ fontSize: 14, fontWeight: 750, marginBottom: 8 }}>最近 7 天每日明细</div>
         <div style={{ display: 'grid', gap: 0 }}>
           {recentDays.map(day => <div key={day.day} style={{ display: 'flex', justifyContent: 'space-between', gap: 8, padding: '8px 0', borderBottom: '1px solid #ffffff0d' }}>
-            <span style={{ ...muted, minWidth: 74 }}>{new Date(day.day).toLocaleDateString()}</span>
+            <span style={{ ...muted, minWidth: 74 }}>{formatDay(day.day)}</span>
             <span style={{ fontSize: 11.5, color: '#dce7ff', textAlign: 'right' }}>
               {day.signups} 注册 · {day.posts + day.comments + day.photos + day.chat_messages} 次内容活动 · {day.content_active_members} 位活跃成员
             </span>

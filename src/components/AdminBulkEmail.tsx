@@ -109,7 +109,7 @@ export default function AdminBulkEmail({ setMsg }: { setMsg: (s: string) => void
       {historyLoading && !history.length && <p style={muted}>正在读取发送记录…</p>}
       {!historyLoading && !history.length && <p style={muted}>暂无邮件发送记录。</p>}
       {history.map(item => {
-        const statusText = item.status === 'completed' ? '全部提交成功' : item.status === 'partial' ? '部分失败' : item.status === 'failed' ? '发送失败' : '处理中';
+        const statusText = item.status === 'completed' ? '全部已提交给服务商' : item.status === 'partial' ? '部分提交失败' : item.status === 'failed' ? '发送失败' : '处理中';
         const statusColor = item.status === 'completed' ? '#7ed9b0' : item.status === 'processing' ? '#f5c26b' : '#ff9da7';
         return <div key={item.id} style={{ padding: '10px 0', borderBottom: '1px solid #ffffff10' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'flex-start' }}>
@@ -121,7 +121,7 @@ export default function AdminBulkEmail({ setMsg }: { setMsg: (s: string) => void
           </div>
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', color: '#c6d0e9', fontSize: 11, marginTop: 6 }}>
             <span>选中 {item.selected_count}</span>
-            <span style={{ color: '#7ed9b0' }}>成功 {item.sent_count}</span>
+            <span style={{ color: '#7ed9b0' }}>已提交 {item.sent_count}</span>
             <span style={{ color: item.failed_count ? '#ff9da7' : '#9da6c3' }}>失败 {item.failed_count}</span>
             {item.no_email_count > 0 && <span>无邮箱 {item.no_email_count}</span>}
             {item.provider_failure_count > 0 && <span>服务商失败 {item.provider_failure_count}</span>}

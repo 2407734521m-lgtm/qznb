@@ -46,7 +46,7 @@ export default function AdminBulkEmail({ setMsg }: { setMsg: (s: string) => void
       });
       if (invokeError) throw new Error(invokeError.message || '发送失败。请检查邮件服务配置。');
       if (result?.error) throw new Error(result.error || '发送失败。请检查邮件服务配置。');
-      setMsg(`发送任务完成：成功 ${result.sent || 0} 封，失败 ${result.failed || 0} 封。`);
+      setMsg(`发送任务完成：成功 ${result.sent || 0} 封，失败 ${result.failed || 0} 封。${result.detail ? '失败原因：' + result.detail : ''}`);
       setSelected([]);
     } catch (e: any) { setMsg(e.message || '发送失败。'); }
     finally { setBusy(false); }

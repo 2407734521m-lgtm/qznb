@@ -4,9 +4,9 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../auth';
 import { useSignedUrls, uploadMedia, downscaleImage } from '../lib/media';
 import { withRetry } from '../lib/retry';
+import type { ProfileSummary as Profile } from '../types/profile';
 
 type Post = { id: number; author_id: string; content: string; image_url: string | null; created_at: string };
-type Profile = { id: string; username: string; display_name: string | null; avatar_path: string | null };
 type Cmt = { id: number; post_id: number; author_id: string; content: string; created_at: string };
 
 function Avatar({ p, url, size = 42 }: { p?: Profile; url?: string; size?: number }) {
@@ -52,7 +52,7 @@ export default function Feed() {
     const pids = list.map(p => p.id);
     const { data: pr } = await supabase.from('profiles').select('id, username, display_name, avatar_path').in('id', ids);
     const pm: Record<string, Profile> = {};
-    (pr ?? []).forEach((x: any) => { pm[x.id] = x; });
+    (pr ?? []).forEach((x) => { pm[x.id] = x; });
     setProfiles(pm);
     const { data: lk } = await supabase.from('post_likes').select('post_id, profile_id').in('post_id', pids);
     const cnt: Record<number, number> = {}; const mine: Record<number, boolean> = {};
@@ -66,7 +66,7 @@ export default function Feed() {
     if (missing.length) {
       const { data: pr2 } = await supabase.from('profiles').select('id, username, display_name, avatar_path').in('id', missing);
       const pm2 = { ...pm };
-      (pr2 ?? []).forEach((x: any) => { pm2[x.id] = x; });
+      (pr2 ?? []).forEach((x) => { pm2[x.id] = x; });
       setProfiles(pm2);
     }
     const { data: r } = await supabase.rpc('my_role');

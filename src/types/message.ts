@@ -1,9 +1,6 @@
-export interface Profile {
-  id: string; // uuid
-  display_name: string | null;
-  username: string | null;
-  avatar_path: string | null;
-}
+import type { ProfileSummary } from './profile';
+
+export type Profile = ProfileSummary;
 
 export interface Message {
   id: number; // bigint

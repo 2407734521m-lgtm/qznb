@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import Feed from './Feed';
 import Album from './Album';
@@ -9,6 +9,10 @@ export default function Discover() {
   const routeState = location.state as { openTab?: string; searchQuery?: string } | null;
   const searchQuery = typeof routeState?.searchQuery === 'string' ? routeState.searchQuery : '';
   const [tab, setTab] = useState<'feed' | 'albums'>(() => routeState?.openTab === 'albums' && !searchQuery ? 'albums' : 'feed');
+  useEffect(() => {
+    if (searchQuery) setTab('feed');
+    else if (routeState?.openTab === 'albums') setTab('albums');
+  }, [location.state]);
   return (
     <div>
       <div className="seg" style={{ margin: '2px 0 2px' }}>

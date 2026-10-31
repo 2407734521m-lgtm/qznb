@@ -72,7 +72,7 @@ export default function Home() {
           .eq('is_admin_msg', true).is('deleted_at', null)
           .or(`expires_at.is.null,expires_at.gt.${nowIso}`)
           .order('is_pinned', { ascending: false }).order('created_at', { ascending: false }).limit(3),
-        supabase.from('posts').select('id, author_id, content, created_at').is('deleted_at', null)
+        supabase.from('posts').select('id, author_id, content, created_at').eq('section', 'feed').is('deleted_at', null)
           .order('created_at', { ascending: false }).limit(3),
         supabase.from('profiles').select('id, username, display_name, avatar_path, created_at')
           .eq('joined', true).order('created_at', { ascending: false }).limit(6),

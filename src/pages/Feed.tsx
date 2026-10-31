@@ -43,7 +43,7 @@ export default function Feed() {
   const fref = useRef<HTMLInputElement>(null);
 
   async function load() {
-    const { data: ps } = await supabase.from('posts').select('*').is('deleted_at', null).order('created_at', { ascending: false }).limit(30);
+    const { data: ps } = await supabase.from('posts').select('*').eq('section', 'feed').is('deleted_at', null).order('created_at', { ascending: false }).limit(30);
     const list = ps ?? [];
     setPosts(list);
     if (!list.length) return;

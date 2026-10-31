@@ -6,6 +6,13 @@ type Props = {
   memberId: string;
   onClose: () => void;
   onChanged: () => void; // 改完后刷新列表
+  isSuper: boolean;
+};
+
+type ActivityData = {
+  sessions?: { active_count?: number; latest_activity_at?: string | null };
+  counts?: { posts?: number; comments?: number; photos?: number; board_messages?: number; reports_submitted?: number; moderation_actions?: number };
+  timeline?: Array<{ event_type: string; happened_at: string; summary: string }>;
 };
 
 type Full = {
@@ -17,13 +24,16 @@ type Full = {
 };
 
 /** 管理员点进成员的详情：看基础信息 + 高级修改 + 视频查看 */
-export default function AdminMemberModal({ memberId, onClose, onChanged }: Props) {
+export default function AdminMemberModal({ memberId, onClose, onChanged, isSuper }: Props) {
   const [f, setF] = useState<Full | null>(null);
   const [email, setEmail] = useState('');
   const [game, setGame] = useState('');
   const [presence, setPresence] = useState('');
   const [contact, setContact] = useState('');
   const [stats, setStats] = useState('');
+  const [activity, setActivity] = useState<ActivityData | null>(null);
+  const [activityError, setActivityError] = useState('');
+  const [activityLoading, setActivityLoading] = useState(false);
   const [edit, setEdit] = useState(false);
   const [form, setForm] = useState({ display_name: '', signature: '', bio: '', personality: '', hobbies: '', age: '' });
   const [msg, setMsg] = useState('');
@@ -60,8 +70,15 @@ export default function AdminMemberModal({ memberId, onClose, onChanged }: Props
       const pc = await supabase.from('posts').select('id', { count: 'exact', head: true }).eq('author_id', memberId);
       const hc = await supabase.from('album_photos').select('id', { count: 'exact', head: true }).eq('uploaded_by', memberId);
       setStats(`${pc.count ?? 0}条动态 · ${hc.count ?? 0}张照片`);
+      if (isSuper) {
+        setActivityLoading(true);
+        const { data: activityData, error: activityRpcError } = await supabase.rpc('admin_member_activity', { p_target: memberId });
+        if (activityRpcError) setActivityError(activityRpcError.message);
+        else setActivity(activityData as ActivityData);
+        setActivityLoading(false);
+      }
     })();
-  }, [memberId]);
+  }, [memberId, isSuper]);
 
   async function save() {
     setBusy(true); setMsg('');
@@ -121,6 +138,41 @@ export default function AdminMemberModal({ memberId, onClose, onChanged }: Props
             {presence && <div>位置设备：{presence}</div>}
             {game && <div>游戏：{game}</div>}
           </div>
+
+          {isSuper && (
+            <section style={{ marginBottom: 14, padding: 12, borderRadius: 12, border: '1px solid #ffffff16', background: '#ffffff06' }}>
+              <h4 style={{ margin: '0 0 8px', fontSize: 13 }}>账号活动与会话概览</h4>
+              {activityLoading ? <p className="mut">正在读取活动记录…</p> : activityError
+                ? <p style={{ color: '#ffaaaa', fontSize: 12 }}>读取失败：{activityError}</p>
+                : <>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 8 }}>
+                    {[
+                      ['未过期会话', activity?.sessions?.active_count ?? 0],
+                      ['动态', activity?.counts?.posts ?? 0],
+                      ['评论', activity?.counts?.comments ?? 0],
+                      ['照片', activity?.counts?.photos ?? 0],
+                      ['普通留言', activity?.counts?.board_messages ?? 0],
+                      ['提交举报', activity?.counts?.reports_submitted ?? 0],
+                    ].map(([label, value]) => <div key={String(label)} style={{ padding: 9, borderRadius: 9, background: '#ffffff08' }}>
+                      <div className="mut" style={{ fontSize: 11 }}>{label}</div>
+                      <strong style={{ fontSize: 19 }}>{value}</strong>
+                    </div>)}
+                  </div>
+                  <div className="mut" style={{ marginTop: 8 }}>最近会话活动：{activity?.sessions?.latest_activity_at ? new Date(activity.sessions.latest_activity_at).toLocaleString() : '暂无记录'}</div>
+                  <h5 style={{ margin: '12px 0 6px', fontSize: 12 }}>最近活动时间线</h5>
+                  {!activity?.timeline?.length ? <p className="mut">暂无活动记录。</p> : <div style={{ display: 'grid', gap: 7 }}>
+                    {activity.timeline.map((event, index) => <div key={event.event_type + event.happened_at + index} style={{ display: 'flex', gap: 9, borderTop: '1px solid #ffffff10', paddingTop: 7 }}>
+                      <div style={{ minWidth: 68, color: '#c8d5f5', fontSize: 11, fontWeight: 700 }}>{event.event_type}</div>
+                      <div style={{ minWidth: 0, flex: 1 }}>
+                        <div style={{ fontSize: 12 }}>{event.summary}</div>
+                        <div className="mut" style={{ fontSize: 10.5 }}>{new Date(event.happened_at).toLocaleString()}</div>
+                      </div>
+                    </div>)}
+                  </div>}
+                  <p className="mut" style={{ margin: '9px 0 0' }}>仅超级管理员可查看。会话仅显示未过期数量与最近活动时间，不显示 IP、设备标识、令牌或内容正文。</p>
+                </>}
+            </section>
+          )}
 
           <h4 style={{ margin: '0 0 6px', fontSize: 13 }}>详细资料</h4>
           <div style={{ fontSize: 13, lineHeight: 1.9, marginBottom: 12 }}>

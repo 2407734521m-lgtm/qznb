@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase';
 type RequestRow = {
   id: string;
   request_date: string;
-  status: 'selected' | 'pending' | 'not_found' | 'completed';
+  status: 'selected' | 'pending' | 'not_found' | 'completed' | 'closed';
   created_at: string;
   request_type: string;
 };

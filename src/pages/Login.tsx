@@ -106,6 +106,22 @@ export default function Login() {
     } catch (e: any) {
       try { sessionStorage.removeItem('ca_login_success'); } catch {}
       const m = e?.message || '';
+      const method = em ? 'email' : 'username';
+      const failureClass = /invalid login credentials|invalid_credentials/i.test(m)
+        ? 'invalid_credentials'
+        : /email not confirmed|USERNAME_EMAIL_NOT_CONFIRMED/i.test(m)
+          ? 'email_not_confirmed'
+          : /rate.?limit|USERNAME_LOGIN_RATE_LIMITED/i.test(m)
+            ? 'rate_limited'
+            : /network|fetch|timeout|failed to fetch/i.test(m)
+              ? 'network'
+              : 'other';
+      // Record only the method and a fixed failure category. Never send the
+      // entered email, username, password, OTP, or raw error message.
+      void supabase.rpc('record_auth_login_failure', {
+        p_method: method,
+        p_failure_class: failureClass,
+      });
       if (/email not confirmed/i.test(m) && em) {
         setVerifyEmail(em); setCode(''); setResendIn(0); setErr('');
         return;

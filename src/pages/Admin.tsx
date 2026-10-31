@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import AdminMemberModal from '../components/AdminMemberModal';
 import { supabase, supabaseBaseUrl } from '../lib/supabase';
+import { startSitePresence } from '../lib/sitePresence';
 import { useAuth } from '../auth';
 import '../styles-admin-cinematic.css';
 import AdminSystemCenter from '../components/AdminSystemCenter';
@@ -147,6 +148,7 @@ export default function Admin() {
   useEffect(() => {
     if (!isDedicatedAdminHost || !session) return;
     const uid = session.user.id;
+    const stopPresence = startSitePresence(uid);
     const device = /Android/.test(navigator.userAgent) ? 'Android' : /iPhone|iPad/.test(navigator.userAgent) ? 'iOS' : 'Desktop';
     let alive = true;
     let lastActivity = Date.now();
@@ -175,6 +177,7 @@ export default function Admin() {
     document.addEventListener('visibilitychange', onVisibility);
     return () => {
       alive = false;
+      stopPresence();
       window.clearInterval(timer);
       window.removeEventListener('pointerdown', markActivity);
       window.removeEventListener('keydown', markActivity);
@@ -356,6 +359,7 @@ export default function Admin() {
 function Overview({ setMsg }: { setMsg: (s: string) => void }) {
   const [st, setSt] = useState<any>(null);
   const [presence, setPresence] = useState<{ online: number; active: number; sampledAt: string; error: boolean } | null>(null);
+  const [realtimeReady, setRealtimeReady] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -366,16 +370,44 @@ function Overview({ setMsg }: { setMsg: (s: string) => void }) {
         setPresence(prev => prev ? { ...prev, error: true } : { online: 0, active: 0, sampledAt: '', error: true });
         return;
       }
-      setPresence({
-        online: Number(data.online_count ?? 0),
+      setPresence(prev => ({
+        online: realtimeReady && prev ? prev.online : Number(data.online_count ?? 0),
         active: Number(data.active_count ?? 0),
         sampledAt: data.sampled_at ?? new Date().toISOString(),
         error: false,
-      });
+      }));
     };
     void refreshPresence();
     const timer = window.setInterval(() => { void refreshPresence(); }, 30 * 1000);
     return () => { alive = false; window.clearInterval(timer); };
+  }, [realtimeReady]);
+  // 管理员通过私有 Realtime Presence 频道接收实时在线变化。
+  // 普通用户只有 INSERT 权限用于 track；只有管理员拥有 SELECT 权限读取在线状态。
+  useEffect(() => {
+    let alive = true;
+    const channel = supabase.channel('site-presence', {
+      config: { private: true },
+    });
+    channel.on('presence', { event: 'sync' }, () => {
+      if (!alive) return;
+      const online = Object.keys(channel.presenceState()).length;
+      setPresence(prev => ({
+        online,
+        active: prev?.active ?? 0,
+        sampledAt: new Date().toISOString(),
+        error: false,
+      }));
+    });
+    channel.subscribe(status => {
+      if (!alive) return;
+      if (status === 'SUBSCRIBED') setRealtimeReady(true);
+      else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') setRealtimeReady(false);
+    });
+    return () => {
+      alive = false;
+      setRealtimeReady(false);
+      void supabase.removeChannel(channel);
+    };
   }, []);
   useEffect(() => {
     (async () => {
@@ -496,7 +528,7 @@ function Overview({ setMsg }: { setMsg: (s: string) => void }) {
       <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
         <h3 style={{ ...h3, margin: 0 }}>实时在线</h3>
         <span style={{ fontSize: 10.5, color: presence?.error ? '#ffb4b4' : '#4ade80' }}>
-          {presence?.error ? '数据暂不可用' : '自动刷新 · 30 秒'}
+          {presence?.error ? '数据暂不可用' : realtimeReady ? '实时推送' : '轮询备用 · 30 秒'}
         </span>
       </div>
       <div className="admin-stats-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>

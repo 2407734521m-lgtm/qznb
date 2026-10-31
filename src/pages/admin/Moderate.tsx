@@ -18,6 +18,10 @@ export default function Moderate({ setMsg }: { setMsg: (s: string) => void }) {
   const [trashB, setTrashB] = useState<BoardRow[]>([]);
   const [names, setNames] = useState<Record<string, string>>({});
   const [postSections, setPostSections] = useState<Record<number, string>>({});
+  const [query, setQuery] = useState('');
+  const [contentStatus, setContentStatus] = useState<'all' | 'visible' | 'hidden'>('all');
+  const [reportStatus, setReportStatus] = useState<'all' | 'pending' | 'done' | 'rejected'>('all');
+  const [refreshing, setRefreshing] = useState(false);
 
   async function load() {
     const [p, c, r, tp, tc, tb] = await Promise.all([
@@ -51,6 +55,12 @@ export default function Moderate({ setMsg }: { setMsg: (s: string) => void }) {
     }
   }
   useEffect(() => { load(); }, []);
+
+  async function refresh() {
+    setRefreshing(true);
+    await load();
+    setRefreshing(false);
+  }
 
   async function hidePost(p: Post, hide: boolean) {
     if (!(await confirmDialog(hide ? '隐藏这条帖子？（进回收站，可恢复）' : '恢复这条帖子？'))) return;
@@ -103,6 +113,23 @@ export default function Moderate({ setMsg }: { setMsg: (s: string) => void }) {
     else setMsg('失败：' + error.message);
   }
 
+  const needle = query.trim().toLocaleLowerCase();
+  const matches = (value: unknown) => !needle || String(value ?? '').toLocaleLowerCase().includes(needle);
+  const filteredPosts = posts.filter(p =>
+    (contentStatus === 'all' || (contentStatus === 'hidden' ? !!p.deleted_at : !p.deleted_at))
+    && (matches(p.content) || matches(names[p.author_id]) || matches(String(p.id)))
+  );
+  const filteredComments = cmts.filter(comment =>
+    (contentStatus === 'all' || (contentStatus === 'hidden' ? !!comment.deleted_at : !comment.deleted_at))
+    && (matches(comment.content) || matches(names[comment.author_id]) || matches(String(comment.post_id)))
+  );
+  const filteredReports = reports.filter(report =>
+    (reportStatus === 'all' || report.status === reportStatus)
+    && (matches(report.reason) || matches(report.target_type) || matches(String(report.target_id)) || matches(report.status))
+  );
+  const filteredTrashP = trashP.filter(p => matches(p.content) || matches(names[p.author_id]) || matches(String(p.id)));
+  const filteredTrashC = trashC.filter(comment => matches(comment.content) || matches(names[comment.author_id]) || matches(String(comment.post_id)));
+  const filteredTrashB = trashB.filter(b => matches(b.title) || matches(b.content) || matches(names[b.author_id || '']));
   const pending = reports.filter(r => r.status === 'pending').length;
   const trashCount = trashP.length + trashC.length + trashB.length;
   return (<>
@@ -112,10 +139,27 @@ export default function Moderate({ setMsg }: { setMsg: (s: string) => void }) {
       <button className={'mini' + (sub === 'comments' ? '' : ' ghost')} onClick={() => setSub('comments')}>评论</button>
       <button className={'mini' + (sub === 'trash' ? '' : ' ghost')} onClick={() => setSub('trash')}>回收站{trashCount ? `（${trashCount}）` : ''}</button>
     </div>
+    <div style={{ ...card, marginBottom: 12 }}>
+      <div className="row" style={{ gap: 8, alignItems: 'center' }}>
+        <input value={query} onChange={event => setQuery(event.target.value)} placeholder="搜索内容、发布者、帖子编号或举报原因…" style={{ flex: 1, minWidth: 0 }} />
+        <button className="mini ghost" disabled={refreshing} onClick={() => void refresh()}>{refreshing ? '刷新中…' : '刷新'}</button>
+      </div>
+      {sub === 'posts' || sub === 'comments' ? <div className="row" style={{ gap: 6, marginTop: 9 }}>
+        {([['all', '全部'], ['visible', '正常'], ['hidden', '已隐藏']] as const).map(([value, label]) =>
+          <button key={value} className={'mini' + (contentStatus === value ? '' : ' ghost')} onClick={() => setContentStatus(value)}>{label}</button>
+        )}
+      </div> : null}
+      {sub === 'reports' ? <div className="row" style={{ gap: 6, marginTop: 9 }}>
+        {([['all', '全部状态'], ['pending', '待处理'], ['done', '已处理'], ['rejected', '已驳回']] as const).map(([value, label]) =>
+          <button key={value} className={'mini' + (reportStatus === value ? '' : ' ghost')} onClick={() => setReportStatus(value)}>{label}</button>
+        )}
+      </div> : null}
+      <p style={{ ...mut, margin: '8px 0 0' }}>搜索范围会随当前分类变化；隐藏与永久删除仍保留二次确认。</p>
+    </div>
 
     {sub === 'reports' && (<>
-      {reports.length === 0 && <div style={card}><p style={mut}>暂无举报</p></div>}
-      {reports.map(r => (
+      {filteredReports.length === 0 && <div style={card}><p style={mut}>没有符合条件的举报</p></div>}
+      {filteredReports.map(r => (
         <div key={r.id} style={{ ...card, opacity: r.status === 'pending' ? 1 : 0.6 }}>
           <div style={{ fontSize: 13.5 }}>
             <b>{r.target_type}</b> #{r.target_id} · {r.status === 'pending' ? '待处理' : r.status === 'done' ? '已处理' : '已驳回'}
@@ -134,7 +178,7 @@ export default function Moderate({ setMsg }: { setMsg: (s: string) => void }) {
     </>)}
 
     {sub === 'posts' && (<>
-      {posts.map(p => (
+      {filteredPosts.map(p => (
         <div key={p.id} style={{ ...card, opacity: p.deleted_at ? 0.55 : 1 }}>
           <div style={{ fontSize: 11.5, color: '#9aa4c7', marginBottom: 4 }}>{p.section === 'daily' ? '日常' : '动态'}</div>
           <div style={{ fontSize: 13.5 }}>{(p.content || '').slice(0, 120)}</div>
@@ -147,11 +191,11 @@ export default function Moderate({ setMsg }: { setMsg: (s: string) => void }) {
           </div>
         </div>
       ))}
-      {posts.length === 0 && <div style={card}><p style={mut}>暂无帖子</p></div>}
+      {filteredPosts.length === 0 && <div style={card}><p style={mut}>没有符合条件的帖子</p></div>}
     </>)}
 
     {sub === 'comments' && (<>
-      {cmts.map(c => (
+      {filteredComments.map(c => (
         <div key={c.id} style={{ ...card, opacity: c.deleted_at ? 0.55 : 1 }}>
           <div style={{ fontSize: 13.5 }}>{(c.content || '').slice(0, 120)}</div>
           <div style={mut}>{names[c.author_id] || '…'} · {postSections[c.post_id] === 'daily' ? '日常' : postSections[c.post_id] === 'feed' ? '动态' : '帖子'} #{c.post_id} · {timeAgo(c.created_at)}{c.deleted_at ? ' · 已隐藏' : ''}</div>
@@ -162,13 +206,13 @@ export default function Moderate({ setMsg }: { setMsg: (s: string) => void }) {
           </div>
         </div>
       ))}
-      {cmts.length === 0 && <div style={card}><p style={mut}>暂无评论</p></div>}
+      {filteredComments.length === 0 && <div style={card}><p style={mut}>没有符合条件的评论</p></div>}
     </>)}
 
     {sub === 'trash' && (<>
       {trashCount === 0 && <div style={card}><p style={mut}>回收站是空的。撤下的公告、隐藏的帖子和评论会先来到这里，可以恢复。</p></div>}
-      {trashB.length > 0 && <p style={{ ...mut, margin: '4px 0 8px' }}>公告（{trashB.length}）</p>}
-      {trashB.map(b => (
+      {filteredTrashB.length > 0 && <p style={{ ...mut, margin: '4px 0 8px' }}>公告（{filteredTrashB.length}）</p>}
+      {filteredTrashB.map(b => (
         <div key={'b' + b.id} style={{ ...card, opacity: 0.75 }}>
           <div style={{ fontSize: 13.5 }}>{b.title && <b>{b.title} </b>}{(b.content || '').slice(0, 120)}</div>
           <div style={mut}>{names[b.author_id || ''] || '…'} · 删除于 {timeAgo(b.deleted_at || b.created_at)}</div>
@@ -178,8 +222,8 @@ export default function Moderate({ setMsg }: { setMsg: (s: string) => void }) {
           </div>
         </div>
       ))}
-      {trashP.length > 0 && <p style={{ ...mut, margin: '12px 0 8px' }}>帖子（{trashP.length}）</p>}
-      {trashP.map(p => (
+      {filteredTrashP.length > 0 && <p style={{ ...mut, margin: '12px 0 8px' }}>帖子（{filteredTrashP.length}）</p>}
+      {filteredTrashP.map(p => (
         <div key={'p' + p.id} style={{ ...card, opacity: 0.75 }}>
           <div style={{ fontSize: 11.5, color: '#9aa4c7', marginBottom: 4 }}>{p.section === 'daily' ? '日常' : '动态'}</div>
           <div style={{ fontSize: 13.5 }}>{(p.content || '').slice(0, 120)}</div>
@@ -190,8 +234,8 @@ export default function Moderate({ setMsg }: { setMsg: (s: string) => void }) {
           </div>
         </div>
       ))}
-      {trashC.length > 0 && <p style={{ ...mut, margin: '12px 0 8px' }}>评论（{trashC.length}）</p>}
-      {trashC.map(c => (
+      {filteredTrashC.length > 0 && <p style={{ ...mut, margin: '12px 0 8px' }}>评论（{filteredTrashC.length}）</p>}
+      {filteredTrashC.map(c => (
         <div key={'c' + c.id} style={{ ...card, opacity: 0.75 }}>
           <div style={{ fontSize: 13.5 }}>{(c.content || '').slice(0, 120)}</div>
           <div style={mut}>{names[c.author_id] || '…'} · {postSections[c.post_id] === 'daily' ? '日常' : postSections[c.post_id] === 'feed' ? '动态' : '帖子'} #{c.post_id} · 删除于 {timeAgo(c.deleted_at || c.created_at)}</div>

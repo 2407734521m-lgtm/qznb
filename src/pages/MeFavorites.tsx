@@ -25,10 +25,10 @@ export default function MeFavorites() {
       (ps ?? []).forEach((p: any) => { m[p.id] = p; });
       setItems(rows.map(r => ({ ...r, info: m[r.target_id] })).filter(r => r.info));
     } else {
-      const { data: ps } = await supabase.from('posts').select('id, content, author_id, created_at, section').in('id', rows.map(r => Number(r.target_id))).eq('section', postSection);
+      const { data: ps } = await supabase.from('posts').select('id, content, author_id, created_at, section').in('id', rows.map(r => Number(r.target_id))).eq('section', postSection).is('deleted_at', null);
       const m: Record<string, any> = {};
       (ps ?? []).forEach((p: any) => { m[String(p.id)] = p; });
-      setItems(rows.map(r => ({ ...r, info: m[r.target_id] })).filter(r => r.info));
+      setItems(rows.map(r => ({ ...r, info: m[r.target_id] ?? null })));
     }
   }
   useEffect(() => { load(tab); }, [tab, postSection]);
@@ -66,12 +66,20 @@ export default function MeFavorites() {
             </div>
           ) : (
             <>
-              <div style={{ fontSize: 11.5, color: 'var(--mut)', marginBottom: 4 }}>{r.info.section === 'daily' ? '日常' : '动态'}</div>
-              <div style={{ fontSize: 13.5, lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>{(r.info.content || '').slice(0, 120)}</div>
-              <div className="row" style={{ justifyContent: 'space-between', marginTop: 8 }}>
-                <span style={{ fontSize: 11.5, color: 'var(--mut)' }}>{(r.info.created_at || '').slice(0, 16).replace('T', ' ')}</span>
-                <button className="mini ghost" onClick={() => unFav(r.target_id)}>取消收藏</button>
-              </div>
+              {r.info ? <>
+                <div style={{ fontSize: 11.5, color: 'var(--mut)', marginBottom: 4 }}>{r.info.section === 'daily' ? '日常' : '动态'}</div>
+                <div style={{ fontSize: 13.5, lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>{(r.info.content || '').slice(0, 120)}</div>
+                <div className="row" style={{ justifyContent: 'space-between', marginTop: 8 }}>
+                  <span style={{ fontSize: 11.5, color: 'var(--mut)' }}>{(r.info.created_at || '').slice(0, 16).replace('T', ' ')}</span>
+                  <div className="row" style={{ gap: 6 }}>
+                    <button className="mini ghost" onClick={() => nav(r.info.section === 'daily' ? '/daily' : '/feed', { state: { searchQuery: String(r.info.content || '').slice(0, 32) } })}>查看原帖</button>
+                    <button className="mini ghost" onClick={() => unFav(r.target_id)}>取消收藏</button>
+                  </div>
+                </div>
+              </> : <>
+                <p style={{ fontSize: 13, color: 'var(--mut)', margin: '0 0 8px' }}>原帖已删除、设为不可见或当前无权查看。</p>
+                <button className="mini ghost" onClick={() => unFav(r.target_id)}>移除失效收藏</button>
+              </>}
             </>
           )}
         </div>

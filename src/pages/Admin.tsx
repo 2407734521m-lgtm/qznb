@@ -206,7 +206,7 @@ export default function Admin() {
             fontWeight: 800, fontSize: 16, color: '#fff',
           }}>管</div>
           <div>
-            <div style={{ fontWeight: 800, fontSize: 17 }}>管理控制中心</div>
+            <div className="admin-header-title" style={{ fontWeight: 800, fontSize: 17 }}>管理控制中心</div>
             <div style={{ fontSize: 11, color: '#8b93b0' }}>我们的班级 · 青春档案</div>
           </div>
         </div>
@@ -341,7 +341,7 @@ function Overview({ setMsg }: { setMsg: (s: string) => void }) {
     ['班级照片', st.photos, st.dPhoto, '#f5a623'],
   ];
   return (<>
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
+    <div className="admin-stats-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
       {stats.map(([k, v, d, col]) => (
         <div key={k} style={{ ...card, marginBottom: 0, padding: 12 }}>
           <div style={{ fontSize: 11, color: '#8b93b0' }}>{k}</div>

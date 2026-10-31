@@ -87,8 +87,8 @@ export default function AdminMemberModal({ memberId, onClose, onChanged }: Props
   const vStatus = f?.intro_video_status || 'none';
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 200, background: '#000a', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }} onClick={onClose}>
-      <div className="card" onClick={e => e.stopPropagation()}
+    <div className="admin-modal-overlay" style={{ position: 'fixed', inset: 0, zIndex: 200, background: '#000a', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }} onClick={onClose}>
+      <div className="card admin-modal-card" onClick={e => e.stopPropagation()}
         style={{ width: '100%', maxWidth: 560, maxHeight: '88vh', overflowY: 'auto', borderRadius: '18px 18px 0 0', margin: 0 }}>
         <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
           <h3 style={{ margin: 0 }}>成员详情</h3>

@@ -141,6 +141,48 @@ function timeAgo(s: string) {
 export default function Admin() {
   const { session } = useAuth();
   const me = session?.user.id ?? '';
+  const isDedicatedAdminHost = window.location.hostname.split('.')[0].toLowerCase() === 'admin';
+
+  // 独立 admin 子域名不会加载主站 App，因此在此补充管理员后台的在线心跳。
+  useEffect(() => {
+    if (!isDedicatedAdminHost || !session) return;
+    const uid = session.user.id;
+    const device = /Android/.test(navigator.userAgent) ? 'Android' : /iPhone|iPad/.test(navigator.userAgent) ? 'iOS' : 'Desktop';
+    let alive = true;
+    let lastActivity = Date.now();
+    let inFlight = false;
+    const markActivity = () => { lastActivity = Date.now(); };
+    const heartbeat = async () => {
+      if (!alive || inFlight || document.visibilityState !== 'visible' || Date.now() - lastActivity > 5 * 60 * 1000) return;
+      inFlight = true;
+      try {
+        await supabase.from('member_presence').upsert(
+          { profile_id: uid, device, updated_at: new Date().toISOString() },
+          { onConflict: 'profile_id' }
+        );
+      } catch { /* 在线统计失败不影响后台操作 */ }
+      finally { inFlight = false; }
+    };
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') { markActivity(); void heartbeat(); }
+    };
+    void heartbeat();
+    const timer = window.setInterval(() => { void heartbeat(); }, 60 * 1000);
+    window.addEventListener('pointerdown', markActivity, { passive: true });
+    window.addEventListener('keydown', markActivity);
+    window.addEventListener('touchstart', markActivity, { passive: true });
+    window.addEventListener('scroll', markActivity, { passive: true });
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      alive = false;
+      window.clearInterval(timer);
+      window.removeEventListener('pointerdown', markActivity);
+      window.removeEventListener('keydown', markActivity);
+      window.removeEventListener('touchstart', markActivity);
+      window.removeEventListener('scroll', markActivity);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
+  }, [isDedicatedAdminHost, session?.user.id]);
   const [role, setRole] = useState('');
   const [verifiedUid, setVerifiedUid] = useState<string | null>(null);
   const [tab, setTab] = useState('overview');

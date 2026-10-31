@@ -9,34 +9,33 @@ import SponsorModal from '../components/SponsorModal';
 
 type Entry = { mark: string; title: string; note: string; to: string; badge?: string; act?: 'feedback' | 'sponsor' };
 const groups: { title: string; note: string; entries: Entry[] }[] = [
-  { title: '个人主页', note: '整理你的个人形象', entries: [
-    { mark: '主页', title: '我的主页', note: '别人看到的你的样子', to: 'profile' },
-    { mark: '资料', title: '编辑资料', note: '名字、签名与爱好', to: 'edit' },
-    { mark: '装扮', title: '主页装修', note: '背景、主题与排版', to: 'look' },
+  { title: '个人资料', note: '管理你的主页形象与个人信息', entries: [
+    { mark: '主页', title: '我的主页', note: '查看同学看到的个人主页', to: 'profile' },
+    { mark: '资料', title: '编辑资料', note: '修改昵称、签名与兴趣爱好', to: 'edit' },
+    { mark: '装扮', title: '主页装扮', note: '调整背景、主题与页面布局', to: 'look' },
   ]},
-  { title: '我的内容', note: '回看你在青春档案留下的记录', entries: [
-    { mark: '动态', title: '我的动态', note: '发布过的所有动态', to: '/me/posts' },
-    { mark: '收藏', title: '我的收藏', note: '保存起来的内容', to: '/me/favorites' },
+  { title: '我的内容', note: '管理你发布、收藏和分享的内容', entries: [
+    { mark: '动态', title: '我的动态', note: '查看和管理已发布的动态', to: '/me/posts' },
+    { mark: '收藏', title: '我的收藏', note: '找回保存过的精彩内容', to: '/me/favorites' },
+    { mark: '投稿', title: '我的表白投稿', note: '查看投稿状态或删除自己的投稿', to: '/love-wall?mine=1' },
+  ]},
+  { title: '青春记录', note: '回看共同留下的照片与成长足迹', entries: [
     { mark: '相册', title: '班级相册', note: '按分类浏览照片与影像', to: '/albums' },
     { mark: '活动', title: '班级活动', note: '查看近期活动与安排', to: '/events' },
-    { mark: '特效', title: '热门特效', note: '探索互动效果', to: '/hot' },
-  ]},
-  { title: '成长与荣誉', note: '记录你的社区参与和青春足迹', entries: [
+    { mark: '特效', title: '热门特效', note: '探索有趣的互动效果', to: '/hot' },
     { mark: '成长', title: '成长档案', note: '活跃天数、贡献记录与纪念徽章', to: '/me/growth' },
   ]},
-  { title: '互动消息', note: '查看来自同学的互动', entries: [
-    { mark: '留言', title: '我的留言', note: '收到的留言', to: '/me/greetings' },
-    { mark: '通知', title: '我的通知', note: '消息与系统提醒', to: '/me/notifications', badge: 'unread' },
+  { title: '消息互动', note: '查看同学留言与网站通知', entries: [
+    { mark: '留言', title: '我的留言', note: '查看收到的留言', to: '/me/greetings' },
+    { mark: '通知', title: '我的通知', note: '互动消息与系统提醒', to: '/me/notifications', badge: 'unread' },
   ]},
-  { title: '账号设置', note: '管理隐私与账号安全', entries: [
-    { mark: '隐私', title: '隐私设置', note: '谁可以看到你的资料', to: 'privacy' },
-    { mark: '安全', title: '账号安全', note: '密码与登录状态', to: '/me/account' },
-    { mark: '设置', title: '设置中心', note: '通知偏好、设备与动画', to: '/me/settings' },
-  ]},
-  { title: '支持', note: '遇到问题，或想支持一下网站', entries: [
-    { mark: '反馈', title: '联系开发者与反馈', note: '提交问题或意见', to: '', act: 'feedback' },
-    { mark: '进度', title: '我的反馈', note: '查看处理状态和管理员回复', to: '/me/feedback' },
-    { mark: '赞助', title: '赞助', note: '自愿支持网站维护', to: '', act: 'sponsor' },
+  { title: '账号与支持', note: '管理账号安全、隐私和网站服务', entries: [
+    { mark: '隐私', title: '隐私设置', note: '管理资料可见范围与匿名偏好', to: 'privacy' },
+    { mark: '安全', title: '账号安全', note: '管理密码与登录状态', to: '/me/account' },
+    { mark: '设置', title: '设置中心', note: '通知偏好、登录设备与动画', to: '/me/settings' },
+    { mark: '反馈', title: '联系开发者与反馈', note: '提交问题或功能建议', to: '', act: 'feedback' },
+    { mark: '进度', title: '我的反馈', note: '查看处理进度和管理员回复', to: '/me/feedback' },
+    { mark: '支持', title: '赞助网站', note: '自愿支持网站长期维护', to: '', act: 'sponsor' },
   ]},
 ];
 
@@ -107,6 +106,7 @@ export default function MeHub() {
             <strong>{name || '我的账号'}</strong>
             <span>个人中心</span>
           </div>
+          <button className="me-hub-edit" onClick={() => nav('/me/edit?sec=base')}>编辑资料</button>
           {unread > 0 && <button className="me-hub-unread" onClick={() => nav('/me/notifications')}>{unread} 条未读</button>}
         </div>
       </section>

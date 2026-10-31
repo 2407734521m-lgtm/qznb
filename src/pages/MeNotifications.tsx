@@ -86,7 +86,7 @@ export default function MeNotifications() {
   const unreadCount = list.filter(item => !item.is_read).length;
   const visibleList = filter === 'unread' ? list.filter(item => !item.is_read) : list;
   const typeLabel: Record<string, string> = {
-    comment: '评论', like: '点赞', greeting: '留言', notice: '公告', love_wall: '表白墙',
+    comment: '评论', like: '点赞', greeting: '留言', notice: '公告', love_wall: '表白墙', feedback: '反馈进度',
   };
 
   return (

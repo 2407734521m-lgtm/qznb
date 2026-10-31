@@ -41,7 +41,7 @@ export default function FeedbackModal({ kind, onClose }: { kind: 'login' | 'gene
         {done ? (
           <>
             <h3 style={{ marginTop: 0 }}>✓ 已收到</h3>
-            <p className="mut">感谢反馈，已经发给开发者了。留了联系方式的话，处理后会回复你。</p>
+            <p className="mut">感谢反馈，提交记录已保存。登录账号可以在「我的空间 → 我的反馈」查看处理进度和管理员说明；未登录提交的反馈无法关联到个人记录。</p>
             <button className="pri" onClick={onClose}>好的</button>
           </>
         ) : (

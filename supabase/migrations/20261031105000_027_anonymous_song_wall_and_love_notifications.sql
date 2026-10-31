@@ -9,6 +9,12 @@ create index if not exists love_wall_posts_recipient_id_idx
   on public.love_wall_posts(recipient_id)
   where recipient_id is not null;
 
+-- Clients cannot pre-mark a recipient as already notified.
+drop policy if exists love_wall_insert on public.love_wall_posts;
+create policy love_wall_insert on public.love_wall_posts
+for insert to authenticated
+with check (author_id = auth.uid() and status = 'pending' and recipient_notified_at is null);
+
 create or replace function public.notify_love_wall_recipient()
 returns trigger
 language plpgsql

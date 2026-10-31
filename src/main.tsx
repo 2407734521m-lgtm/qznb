@@ -16,8 +16,8 @@ const isAdminHost = window.location.hostname.toLowerCase() === 'admin.qianzhi.pw
 // 主站不承载后台界面；历史入口只负责跳转到唯一管理员域名。
 function redirectLegacyAdminEntry() {
   if (isAdminHost) return;
-  const isLegacyPath = window.location.pathname.replace(/\\/+$/, '') === '/admin';
-  const isLegacyHash = /^#\\/admin(?:\\/|$|[?])/.test(window.location.hash);
+  const isLegacyPath = window.location.pathname.replace(/\/+$/, '') === '/admin';
+  const isLegacyHash = /^#\/admin(?:\/|$|[?])/.test(window.location.hash);
   if (isLegacyPath || isLegacyHash) {
     window.location.replace('https://admin.qianzhi.pw/');
   }

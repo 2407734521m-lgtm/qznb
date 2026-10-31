@@ -56,7 +56,9 @@ export default function SongWall() {
     let uploadedPath = '';
     try {
       const ext = (file.name.split('.').pop() || 'mp3').toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 10) || 'mp3';
-      uploadedPath = `songs/${crypto.randomUUID()}.${ext}`;
+      const { data: pathData, error: pathError } = await supabase.rpc('create_song_audio_upload', { p_ext: ext });
+      if (pathError || typeof pathData !== 'string') throw new Error('无法创建音频上传凭证，请稍后重试。');
+      uploadedPath = pathData;
       const { error: uploadError } = await supabase.storage.from('song-audio').upload(uploadedPath, file, { contentType: file.type || 'audio/mpeg', upsert: false });
       if (uploadError) throw uploadError;
       const { error } = await supabase.from('song_posts').insert({

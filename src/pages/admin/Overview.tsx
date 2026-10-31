@@ -90,7 +90,7 @@ export default function Overview({ setMsg, go }: { setMsg: (s: string) => void; 
       }
     };
     void refreshPresence();
-    const timer = window.setInterval(() => { void refreshPresence(); }, 15 * 1000);
+    const timer = window.setInterval(() => { void refreshPresence(); }, 5 * 1000);
     const onVisible = () => { if (document.visibilityState === 'visible') void refreshPresence(); };
     document.addEventListener('visibilitychange', onVisible);
     window.addEventListener('focus', onVisible);
@@ -233,7 +233,7 @@ export default function Overview({ setMsg, go }: { setMsg: (s: string) => void; 
       <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
         <h3 style={{ ...h3, margin: 0 }}>在线统计</h3>
         <span style={{ fontSize: 10.5, color: presence?.error ? '#ffb4b4' : '#4ade80' }}>
-          {presence?.error ? (presence.sampledAt ? '刷新失败 · 显示上次结果' : '数据暂不可用') : '自动刷新 · 15 秒'}
+          {presence?.error ? (presence.sampledAt ? '刷新失败 · 显示上次结果' : '数据暂不可用') : '自动刷新 · 5 秒'}
         </span>
       </div>
       <div className="admin-stats-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>

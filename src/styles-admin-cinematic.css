@@ -372,6 +372,9 @@
     padding:7px 12px;border:0;border-radius:999px;background:transparent;
     color:#9eabc5;font-family:inherit;font-size:12px;font-weight:600;line-height:1.15;white-space:nowrap;
   }
+  .admin-mobile-dock button.admin-dock-exit{
+    margin-left:6px;background:rgba(255,107,107,.12);color:#ff9d9d;
+  }
   .admin-mobile-dock button[aria-current="page"],
   .admin-mobile-dock button.active{
     color:#fff;background:linear-gradient(145deg,rgba(100,145,235,.27),rgba(133,111,214,.2));

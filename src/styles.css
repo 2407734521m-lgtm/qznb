@@ -921,7 +921,7 @@ img { backface-visibility: hidden; }
 :root {
   --bg: #071b2a;
   --fg: #eaf4f6;
-  --mut: #a9bbc2;
+  --mut: #788e97;
   --a: #278f98;
   --b: #77d1c4;
   --r: 20px;
@@ -942,6 +942,10 @@ body {
   background: rgba(255, 255, 255, .94) !important;
   border-color: rgba(218, 232, 235, .96) !important;
   color: #203b4b !important;
+  --fg: #203b4b;
+  --mut: #788e97;
+  --a: #287f8c;
+  --b: #83d2c5;
   box-shadow: 0 10px 28px rgba(7, 35, 49, .075) !important;
 }
 .card .mut, .post .tm, .post .ft button, .post .one .tm,

@@ -2,9 +2,9 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../auth';
 import { useSignedUrl } from '../lib/media';
+import type { ProfileLabel as Profile } from '../types/profile';
 
 type Song = { id: string; author_id: string; title: string; description: string | null; audio_path: string; status: string; duration_seconds: number | null; created_at: string };
-type Profile = { id: string; display_name: string | null; username: string | null };
 
 function SongCard({ song, mine, author }: { song: Song; mine: boolean; author?: Profile }) {
   const url = useSignedUrl('song-audio', song.audio_path);
@@ -40,7 +40,7 @@ export default function SongWall() {
     const ids = [...new Set(rows.map(s => s.author_id))];
     if (ids.length) {
       const { data: people } = await supabase.from('profiles').select('id,display_name,username').in('id', ids);
-      setProfiles(Object.fromEntries(((people || []) as Profile[]).map(p => [p.id, p])));
+      setProfiles(Object.fromEntries((people || []).map(p => [p.id, p])));
     }
   }
   useEffect(() => { void load(); }, []);

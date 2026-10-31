@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { supabase } from '../lib/supabase';
+import type { ProfileAdminIdentity as Profile } from '../types/profile';
 
 type Post = {
   id: string;
@@ -11,13 +12,6 @@ type Post = {
   status: string;
   created_at: string;
 };
-type Profile = {
-  id: string;
-  username: string | null;
-  display_name: string | null;
-  real_name: string | null;
-};
-
 const FILTERS = [
   ['pending', '待审核'],
   ['published', '已发布'],
@@ -62,7 +56,7 @@ export default function AdminLoveWall({ setMsg }: { setMsg: (s: string) => void 
         .select('id,username,display_name,real_name')
         .in('id', ids);
       if (!peopleError) {
-        setProfiles(Object.fromEntries(((people || []) as Profile[]).map(p => [p.id, p])));
+        setProfiles(Object.fromEntries((people || []).map(p => [p.id, p])));
       }
     } else {
       setProfiles({});

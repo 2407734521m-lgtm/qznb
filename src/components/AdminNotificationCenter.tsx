@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { supabase } from '../lib/supabase';
+import type { ProfileAdminIdentity as Profile } from '../types/profile';
 
 type Notice = {
   id: string | number;
@@ -11,7 +12,6 @@ type Notice = {
   is_read: boolean;
   created_at: string;
 };
-type Profile = { id: string; username: string | null; display_name: string | null; real_name: string | null };
 
 const panel: React.CSSProperties = {
   background: 'linear-gradient(145deg,#171e33,#0d1222)',
@@ -57,7 +57,7 @@ export default function AdminNotificationCenter({ setMsg }: { setMsg: (s: string
         .select('id,username,display_name,real_name')
         .in('id', ids);
       if (!peopleError) {
-        setProfiles(Object.fromEntries(((people || []) as Profile[]).map(p => [p.id, p])));
+        setProfiles(Object.fromEntries((people || []).map(p => [p.id, p])));
       }
     } else setProfiles({});
     setLoading(false);

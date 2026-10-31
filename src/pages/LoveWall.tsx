@@ -35,6 +35,7 @@ export default function LoveWall() {
   const [formErr, setFormErr] = useState('');
   const [mine, setMine] = useState(false);
   const [composing, setComposing] = useState(false);
+  const [anon, setAnon] = useState(true);
 
   async function load() {
     const { data, error } = await supabase.rpc('love_wall_published');
@@ -52,17 +53,25 @@ export default function LoveWall() {
   }
   useEffect(() => { void load(); }, []);
 
+  async function openCompose() {
+    setFormErr('');
+    // 匿名开关的默认值取个人隐私设置（表白墙隐藏姓名）：读取失败或设置缺失时默认匿名。
+    if (session) {
+      const { data: privRow } = await supabase.from('profile_privacy').select('hide_love_wall_name').eq('profile_id', session.user.id).single();
+      setAnon(privRow?.hide_love_wall_name !== false);
+    }
+    setComposing(true);
+  }
+
   async function publish() {
     if (!session) return;
     const text = content.trim();
     if (text.length < 2 || text.length > 500) { setFormErr('内容请填写 2–500 个字。'); return; }
     setBusy(true); setFormErr('');
-    // 个人设置控制：读取失败或设置缺失时默认匿名；历史帖子不受此影响。
-    const { data: privRow } = await supabase.from('profile_privacy').select('hide_love_wall_name').eq('profile_id', session.user.id).single();
-    const isAnon = privRow?.hide_love_wall_name !== false;
+    // 匿名与否由发布表单里的开关决定（打开表单时按个人隐私设置初始化默认值）；历史帖子不受影响。
     const { error } = await supabase.from('love_wall_posts').insert({
       author_id: session.user.id, recipient_name: recipient.trim() || null,
-      category, content: text, is_anonymous: isAnon, status: 'pending'
+      category, content: text, is_anonymous: anon, status: 'pending'
     });
     setBusy(false);
     if (error) { setFormErr('发布失败：请确认网站数据库迁移已执行。'); return; }
@@ -108,7 +117,7 @@ export default function LoveWall() {
     </div>
 
     {/* 唯一的发布入口：悬浮按钮（避开底部 Dock） */}
-    <button onClick={() => { setFormErr(''); setComposing(true); }} aria-label="写表白"
+    <button onClick={() => { void openCompose(); }} aria-label="写表白"
       style={{ position: 'fixed', right: 18, bottom: 'calc(92px + env(safe-area-inset-bottom))', zIndex: 60, border: 0, borderRadius: 999, padding: '13px 20px', background: 'linear-gradient(135deg,#e0567a,#c22f3d)', color: '#fff', fontWeight: 800, fontSize: 14, boxShadow: '0 12px 28px rgba(194,47,61,.35)', cursor: 'pointer' }}>
       ✎ 写表白
     </button>
@@ -132,7 +141,17 @@ export default function LoveWall() {
           <input value={recipient} onChange={e => setRecipient(e.target.value)} maxLength={40} placeholder="可以留空" style={field} />
           <label style={{ display: 'block', fontSize: 12, color: '#606673', margin: '12px 0 6px' }}>写下你的心意</label>
           <textarea value={content} onChange={e => setContent(e.target.value)} maxLength={500} rows={4} placeholder="请尊重他人，不要发布联系方式、隐私或让对方不舒服的内容。" style={{ ...field, resize: 'vertical' }} />
-          <div style={{ margin: '12px 0', fontSize: 12, color: '#606673', lineHeight: 1.6 }}>是否隐藏姓名由个人设置控制（个人中心 → 隐私设置 → 表白墙隐藏姓名），只影响新帖子，老帖子保持原样；管理员仍可查看投稿账号。</div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, margin: '14px 0 4px' }}>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: '#202632' }}>匿名发布</div>
+              <div style={{ fontSize: 12, color: '#606673', marginTop: 2, lineHeight: 1.5 }}>{anon ? '开启：墙上显示为「匿名同学」，不显示你的名字' : '关闭：墙上会显示你的名字'}</div>
+            </div>
+            <button type="button" role="switch" aria-checked={anon} aria-label="匿名发布" onClick={() => setAnon(v => !v)}
+              style={{ flex: '0 0 auto', width: 46, height: 26, borderRadius: 999, border: 0, padding: 2, cursor: 'pointer', background: anon ? '#202632' : '#d8dde6', transition: 'background .15s' }}>
+              <span style={{ display: 'block', width: 22, height: 22, borderRadius: '50%', background: '#fff', transform: anon ? 'translateX(20px)' : 'translateX(0)', transition: 'transform .15s' }} />
+            </button>
+          </div>
+          <div style={{ margin: '6px 0 12px', fontSize: 12, color: '#606673', lineHeight: 1.6 }}>开关默认按个人中心的隐私设置（表白墙隐藏姓名），每次发帖都能单独改；只影响新帖子，管理员仍可查看投稿账号。</div>
           {formErr && <p role="status" style={{ color: '#b3261e', fontSize: 12, lineHeight: 1.6 }}>{formErr}</p>}
           <button onClick={publish} disabled={busy} style={{ ...primary, width: '100%' }}>{busy ? '提交中…' : '提交审核'}</button>
         </section>

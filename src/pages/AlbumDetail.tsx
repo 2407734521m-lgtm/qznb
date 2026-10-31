@@ -117,8 +117,18 @@ export default function AlbumDetail() {
 
   async function del(p: P) {
     if (!isAdmin && p.uploaded_by !== me) return;
+    if (album.cover_url === p.photo_url && album.created_by !== me && !isAdmin) {
+      alertDialog('这张照片是相册封面，请先联系相册创建者更换封面，再删除这张照片。');
+      return;
+    }
     if (!(await confirmDialog('删除这张照片？文件也会从相册存储中移除。', { danger: true }))) return;
     try {
+      if (album.cover_url === p.photo_url) {
+        const nextCover = photos.find(photo => photo.id !== p.id)?.photo_url ?? null;
+        const { error: coverError } = await supabase.from('albums').update({ cover_url: nextCover })
+          .eq('id', Number(id));
+        if (coverError) throw new Error('无法先更新相册封面：' + coverError.message);
+      }
       if (p.photo_url && !p.photo_url.startsWith('http://') && !p.photo_url.startsWith('https://')) {
         if (!isAdmin && !p.photo_url.startsWith(`${me}/`)) throw new Error('无法确认这张照片属于当前账号，已停止删除。');
         const { error: storageError } = await supabase.storage.from('media').remove([p.photo_url]);

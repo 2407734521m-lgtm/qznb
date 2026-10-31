@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import type { ProfileAdminIdentity as Profile } from '../types/profile';
+import { confirmDialog } from '../lib/dialog';
 
 type Notice = {
   id: string | number;
@@ -33,6 +34,15 @@ export default function AdminNotificationCenter({ setMsg }: { setMsg: (s: string
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(false);
   const [loaded, setLoaded] = useState(false);
+  const [people, setPeople] = useState<Profile[]>([]);
+  const [composeOpen, setComposeOpen] = useState(false);
+  const [allRecipients, setAllRecipients] = useState(true);
+  const [selectedRecipients, setSelectedRecipients] = useState<string[]>([]);
+  const [recipientQuery, setRecipientQuery] = useState('');
+  const [noticeTitle, setNoticeTitle] = useState('');
+  const [noticeBody, setNoticeBody] = useState('');
+  const [noticeLink, setNoticeLink] = useState('/me/notifications');
+  const [sending, setSending] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -50,6 +60,13 @@ export default function AdminNotificationCenter({ setMsg }: { setMsg: (s: string
     }
     const next = (data || []) as Notice[];
     setRows(next);
+    const { data: joinedPeople, error: peopleListError } = await supabase
+      .from('profiles')
+      .select('id,username,display_name,real_name')
+      .eq('joined', true)
+      .order('created_at', { ascending: false })
+      .limit(1000);
+    if (!peopleListError) setPeople((joinedPeople || []) as Profile[]);
     const ids = [...new Set(next.map(n => n.profile_id).filter(Boolean))];
     if (ids.length) {
       const { data: people, error: peopleError } = await supabase
@@ -72,6 +89,58 @@ export default function AdminNotificationCenter({ setMsg }: { setMsg: (s: string
     read: rows.filter(n => n.is_read).length,
   }), [rows]);
 
+  const filteredPeople = useMemo(() => {
+    const q = recipientQuery.trim().toLocaleLowerCase();
+    return people.filter(p => !q || [p.username, p.display_name, p.real_name, p.id]
+      .filter(Boolean).join(' ').toLocaleLowerCase().includes(q));
+  }, [people, recipientQuery]);
+
+  function toggleRecipient(id: string) {
+    setSelectedRecipients(current => {
+      if (current.includes(id)) return current.filter(value => value !== id);
+      if (current.length >= 100) {
+        setMsg('指定收件人最多 100 个。');
+        return current;
+      }
+      return [...current, id];
+    });
+  }
+
+  async function sendNotification() {
+    if (!noticeTitle.trim() || noticeTitle.trim().length > 120) return setMsg('通知标题需填写，且不超过 120 字。');
+    if (!noticeBody.trim() || noticeBody.trim().length > 2000) return setMsg('通知正文需填写，且不超过 2000 字。');
+    const link = noticeLink.trim() || '/me/notifications';
+    if (!link.startsWith('/') || link.startsWith('//') || link.length > 300) return setMsg('跳转地址必须是站内相对路径。');
+    if (!allRecipients && !selectedRecipients.length) return setMsg('请先选择收件成员。');
+    const recipientCount = allRecipients ? people.length : selectedRecipients.length;
+    if (allRecipients && recipientCount > 1000) return setMsg('全体发送人数超过 1000，请改为分批指定成员。');
+    if (!(await confirmDialog(
+      '确认向' + (allRecipients ? '全部已加入成员' : '选中的 ' + recipientCount + ' 位成员')
+      + '发送站内通知？发送后无法撤回。',
+      { confirmText: '确认发送' },
+    ))) return;
+
+    setSending(true);
+    const { data: sent, error } = await supabase.rpc('admin_send_notification_campaign', {
+      p_title: noticeTitle.trim(),
+      p_body: noticeBody.trim(),
+      p_link: link,
+      p_recipient_ids: allRecipients ? null : selectedRecipients,
+    });
+    setSending(false);
+    if (error) {
+      setMsg('发送站内通知失败：' + error.message);
+      return;
+    }
+    setMsg('站内通知已创建，成功写入 ' + sent + ' 位成员的通知列表。手机推送或邮件送达不在本功能范围内。');
+    setNoticeTitle('');
+    setNoticeBody('');
+    setNoticeLink('/me/notifications');
+    setSelectedRecipients([]);
+    setComposeOpen(false);
+    await load();
+  }
+
   const shown = useMemo(() => {
     const q = query.trim().toLocaleLowerCase();
     return rows.filter(n => {
@@ -86,11 +155,41 @@ export default function AdminNotificationCenter({ setMsg }: { setMsg: (s: string
 
   return <section>
     <div style={panel}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+        <div>
+          <h2 style={{ margin: '0 0 5px', fontSize: 16 }}>发送站内通知</h2>
+          <p style={{ margin: 0, color: '#aab5d1', fontSize: 11, lineHeight: 1.6 }}>通知会出现在成员的通知中心，不代表系统推送或邮件送达。</p>
+        </div>
+        <button style={button} onClick={() => setComposeOpen(value => !value)}>{composeOpen ? '收起' : '新建通知'}</button>
+      </div>
+      {composeOpen && <div style={{ marginTop: 12, display: 'grid', gap: 8 }}>
+        <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 12, color: '#d7e0f8' }}>
+          <input type="checkbox" checked={allRecipients} onChange={e => setAllRecipients(e.target.checked)} />
+          发送给全部已加入成员（最多 1000 人）
+        </label>
+        {!allRecipients && <>
+          <input value={recipientQuery} onChange={e => setRecipientQuery(e.target.value)} placeholder="搜索昵称、用户名…" style={{ width: '100%', boxSizing: 'border-box', padding: 10, borderRadius: 10, border: '1px solid #ffffff20', background: '#080d1c', color: '#fff' }} />
+          <div style={{ color: '#aab5d1', fontSize: 11 }}>已选 {selectedRecipients.length}/100 人</div>
+          <div style={{ maxHeight: 150, overflowY: 'auto', border: '1px solid #ffffff16', borderRadius: 10, padding: '4px 9px' }}>
+            {filteredPeople.map(person => <label key={person.id} style={{ display: 'flex', gap: 8, alignItems: 'center', padding: '6px 0', borderBottom: '1px solid #ffffff0c', fontSize: 12 }}>
+              <input type="checkbox" checked={selectedRecipients.includes(person.id)} onChange={() => toggleRecipient(person.id)} />
+              <span>{person.display_name || person.real_name || person.username || '未命名成员'} <small style={{ color: '#8994b2' }}>@{person.username || person.id.slice(0, 8)}</small></span>
+            </label>)}
+            {!filteredPeople.length && <div style={{ color: '#8994b2', fontSize: 11, padding: 8 }}>没有匹配成员。</div>}
+          </div>
+        </>}
+        <input value={noticeTitle} onChange={e => setNoticeTitle(e.target.value)} maxLength={120} placeholder="通知标题（最多 120 字）" style={{ width: '100%', boxSizing: 'border-box', padding: 10, borderRadius: 10, border: '1px solid #ffffff20', background: '#080d1c', color: '#fff' }} />
+        <textarea value={noticeBody} onChange={e => setNoticeBody(e.target.value)} maxLength={2000} rows={4} placeholder="通知正文（最多 2000 字）" style={{ width: '100%', boxSizing: 'border-box', padding: 10, borderRadius: 10, border: '1px solid #ffffff20', background: '#080d1c', color: '#fff', resize: 'vertical' }} />
+        <input value={noticeLink} onChange={e => setNoticeLink(e.target.value)} maxLength={300} placeholder="站内跳转路径，例如 /me/notifications" style={{ width: '100%', boxSizing: 'border-box', padding: 10, borderRadius: 10, border: '1px solid #ffffff20', background: '#080d1c', color: '#fff' }} />
+        <button style={{ ...button, background: '#687cff', opacity: sending ? .6 : 1 }} disabled={sending} onClick={() => void sendNotification()}>{sending ? '发送中…' : '确认发送站内通知'}</button>
+      </div>}
+    </div>
+    <div style={panel}>
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'flex-start' }}>
         <div>
           <h2 style={{ margin: '0 0 6px', fontSize: 18 }}>站内通知中心</h2>
           <p style={{ margin: 0, color: '#aab5d1', fontSize: 12, lineHeight: 1.65 }}>
-            只读查看现有通知记录，帮助排查通知是否创建、是否已读。此处的“已创建”不代表手机推送或邮件一定送达。
+            查看现有通知的创建与已读状态。此处的“已创建”不代表手机推送或邮件一定送达。
           </p>
         </div>
         <button style={button} disabled={loading} onClick={() => void load()}>{loading ? '刷新中…' : '刷新'}</button>
@@ -119,7 +218,7 @@ export default function AdminNotificationCenter({ setMsg }: { setMsg: (s: string
           ['read', '已读', counts.read],
         ] as const).map(([v, label, count]) => <button key={v} style={{ ...button, background: filter === v ? '#687cff' : '#ffffff0d' }} aria-pressed={filter === v} onClick={() => setFilter(v)}>{label} {count}</button>)}
       </div>
-      <div style={{ color: '#8491b1', fontSize: 11, marginTop: 9 }}>最近最多 200 条记录；本页不发送、不删除，也不更改任何通知状态。</div>
+      <div style={{ color: '#8491b1', fontSize: 11, marginTop: 9 }}>最近最多 200 条记录；发送操作只新增站内通知，不修改或删除历史通知。</div>
     </div>
 
     {loading && <p style={{ color: '#aab5d1', textAlign: 'center', padding: 20 }}>正在读取通知记录…</p>}

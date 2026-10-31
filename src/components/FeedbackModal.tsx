@@ -25,6 +25,12 @@ export default function FeedbackModal({ kind, onClose }: { kind: 'login' | 'gene
     });
     setBusy(false);
     if (error) return setErr('提交失败：' + error.message);
+    // 站内反馈同时发一封邮件给开发者（best-effort：邮件失败也不影响已存入后台的反馈记录）
+    if (kind === 'general' && session) {
+      supabase.functions.invoke('dev-feedback', {
+        body: { name: name.trim(), contact: contact.trim(), content: c.slice(0, 1000) },
+      }).catch(() => {});
+    }
     setDone(true);
   }
 
@@ -35,7 +41,7 @@ export default function FeedbackModal({ kind, onClose }: { kind: 'login' | 'gene
         {done ? (
           <>
             <h3 style={{ marginTop: 0 }}>✓ 已收到</h3>
-            <p className="mut">感谢反馈，管理员会尽快查看处理。</p>
+            <p className="mut">感谢反馈，已经发给开发者了。留了联系方式的话，处理后会回复你。</p>
             <button className="pri" onClick={onClose}>好的</button>
           </>
         ) : (

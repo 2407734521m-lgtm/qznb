@@ -24,42 +24,43 @@ begin
   with
   bounds as (
     select
-      pg_catalog.date_trunc('day', pg_catalog.now()) - pg_catalog.make_interval(days => v_days - 1) as start_at,
+      pg_catalog.date_trunc('day', pg_catalog.now()) - pg_catalog.make_interval(days => v_days - 1) as series_start_at,
+      pg_catalog.date_trunc('day', pg_catalog.now()) - pg_catalog.make_interval(days => greatest(v_days - 1, 29)) as event_start_at,
       pg_catalog.date_trunc('day', pg_catalog.now()) as end_at
   ),
   days as (
-    select generate_series(b.start_at, b.end_at, interval '1 day') as day
+    select pg_catalog.generate_series(b.series_start_at, b.end_at, interval '1 day') as day
     from bounds b
   ),
   activity_events as (
     select p.created_at, p.author_id as user_id, 'post'::text as kind,
            (p.section = 'daily') as is_daily
       from public.posts p, bounds b
-     where p.created_at >= b.start_at and p.deleted_at is null
+     where p.created_at >= b.event_start_at and p.deleted_at is null
     union all
     select c.created_at, c.author_id, 'comment', false
       from public.comments c, bounds b
-     where c.created_at >= b.start_at and c.deleted_at is null
+     where c.created_at >= b.event_start_at and c.deleted_at is null
     union all
     select a.created_at, a.uploaded_by, 'photo', false
       from public.album_photos a, bounds b
-     where a.created_at >= b.start_at
+     where a.created_at >= b.event_start_at
     union all
     select m.created_at, m.sender_id, 'message', false
       from public.messages m, bounds b
-     where m.created_at >= b.start_at
+     where m.created_at >= b.event_start_at
     union all
     select l.created_at, l.author_id, 'love_wall', false
       from public.love_wall_posts l, bounds b
-     where l.created_at >= b.start_at
+     where l.created_at >= b.event_start_at
     union all
     select s.created_at, s.author_id, 'song', false
       from public.song_posts s, bounds b
-     where s.created_at >= b.start_at
+     where s.created_at >= b.event_start_at
     union all
     select bm.created_at, bm.author_id, 'board_message', false
       from public.board_messages bm, bounds b
-     where bm.created_at >= b.start_at and not bm.is_admin_msg
+     where bm.created_at >= b.event_start_at and not bm.is_admin_msg
   ),
   daily_activity as (
     select
@@ -79,7 +80,7 @@ begin
   daily_signups as (
     select pg_catalog.date_trunc('day', p.created_at) as day, count(*)::integer as signups
       from public.profiles p, bounds b
-     where p.created_at >= b.start_at
+     where p.created_at >= b.series_start_at
      group by 1
   ),
   daily_series as (

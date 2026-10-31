@@ -155,6 +155,7 @@ export default function Member() {
           {gbadge && <motion.div {...itemProps(1)} style={{ marginBottom: 6 }}>
             <span className="gbadge">{badgeText(gbadge.game_name, gbadge.rank)}</span>
           </motion.div>}
+          {rows.length === 0 && <motion.p className="mut" {...itemProps(1)} style={{ fontSize: 13, lineHeight: 1.7 }}>这位同学暂未公开更多个人资料。</motion.p>}
           {rows.map(([k, v], i) => k === '个性签名'
             ? <motion.p key={k} className="sig" {...itemProps(i + 1)}>{v}</motion.p>
             : <motion.div key={k} className="kv" {...itemProps(i + 1)}><b>{k}</b><div>{v}</div></motion.div>)}

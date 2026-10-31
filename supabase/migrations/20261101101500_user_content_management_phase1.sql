@@ -17,6 +17,7 @@ using ((select auth.uid()) = author_id);
 
 -- Published uploads consume their one-time upload token during insert. Permit
 -- removal only while the audio path is still attached to the caller's own post.
+drop policy if exists song_audio_delete_own_submission on storage.objects;
 create policy song_audio_delete_own_submission
 on storage.objects
 for delete
@@ -34,6 +35,8 @@ using (
 -- Comment editing is limited to the body column and to the original author.
 -- Do not let a client rewrite author_id, post_id or moderation timestamps.
 revoke update on table public.comments from public, anon, authenticated;
+revoke update (id, post_id, author_id, content, created_at, deleted_at)
+  on table public.comments from public, anon, authenticated;
 grant update (content) on table public.comments to authenticated;
 
 drop policy if exists comments_update_own on public.comments;

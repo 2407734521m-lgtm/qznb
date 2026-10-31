@@ -13,6 +13,19 @@ import './styles-editorial.css';
 // 管理员子域名（如 admin.xxx.com）：直达后台，不加载主站界面
 const isAdminHost = window.location.hostname.split('.')[0].toLowerCase() === 'admin';
 
+// 主站不再承载 /admin 后台界面；旧入口统一跳转到独立管理员子域名。
+// 同时兼容 HashRouter 的 #/admin 入口，以及历史上直接访问的 /admin 路径。
+function redirectLegacyAdminEntry() {
+  if (isAdminHost) return;
+  const isLegacyPath = window.location.pathname.replace(/\\/+$/, '') === '/admin';
+  const isLegacyHash = /^#\\/admin(?:\\/|$|[?])/.test(window.location.hash);
+  if (isLegacyPath || isLegacyHash) {
+    window.location.replace('https://admin.qianzhi.pw/');
+  }
+}
+redirectLegacyAdminEntry();
+window.addEventListener('hashchange', redirectLegacyAdminEntry);
+
 function AdminShell() {
   const { session, loading } = useAuth();
   const [role, setRole] = useState<string | null>(null);

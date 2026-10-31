@@ -31,6 +31,36 @@ Deno.serve(async (req: Request) => {
   if (roleError || !['admin', 'super_admin'].includes(role || '')) return response({ error: '仅管理员可以发送恢复通知。' }, 403);
 
   const admin = createClient(url, serviceKey, { auth: { persistSession: false } });
+
+  // Do not announce recovery while either manual or scheduled maintenance is active.
+  const { data: siteRows, error: settingsError } = await admin
+    .from('site_settings')
+    .select('key, value')
+    .in('key', ['maintenance', 'maintenance_schedule']);
+  if (settingsError) return response({ error: '读取网站维护状态失败，暂不能发送。' }, 500);
+  const siteSettings = new Map((siteRows ?? []).map((row: { key: string; value: string | null }) => [row.key, row.value]));
+  let maintenanceActive = siteSettings.get('maintenance') === 'true';
+  const rawSchedule = siteSettings.get('maintenance_schedule');
+  if (rawSchedule) {
+    let schedule: { enabled?: boolean; start_at?: string; end_at?: string };
+    try {
+      schedule = JSON.parse(rawSchedule);
+    } catch {
+      return response({ error: '维护计划配置无法读取，暂不能发送。' }, 503);
+    }
+    if (schedule.enabled === true) {
+      const start = Date.parse(schedule.start_at ?? '');
+      const end = Date.parse(schedule.end_at ?? '');
+      if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) {
+        return response({ error: '维护计划时间无效，暂不能发送。' }, 503);
+      }
+      maintenanceActive = start <= Date.now() && Date.now() < end;
+    }
+  }
+  if (maintenanceActive) {
+    return response({ error: '网站仍处于维护状态，结束维护后才能发送恢复通知。' }, 409);
+  }
+
   const { data: rows, error: readError } = await admin
     .from('maintenance_notify_emails')
     .select('id, email')

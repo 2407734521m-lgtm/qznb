@@ -1397,6 +1397,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_security_overview: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
       admin_create_maintenance_code: {
         Args: { p_valid_minutes: number; p_max_uses: number }
         Returns: { code: string; expires_at: string; max_uses: number }

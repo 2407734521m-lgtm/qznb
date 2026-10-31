@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { supabase, supabaseBaseUrl } from '../../lib/supabase';
 import { card, h3, mut, alog } from './shared';
 import MaintenanceAccessManager from './MaintenanceAccessManager';
+import { confirmDialog } from '../../lib/dialog';
+import DateTimeField from '../../components/DateTimeField';
 
 function toLocalDateTimeInput(value: string) {
   if (!value) return '';
@@ -94,7 +96,7 @@ export default function Settings({ me, setMsg }: { me: string; setMsg: (s: strin
   }
 
   async function clearMaintenanceSchedule() {
-    if (!confirm('取消当前定时维护计划？不会改变手动维护开关的设置。')) return;
+    if (!(await confirmDialog('取消当前定时维护计划？不会改变手动维护开关的设置。'))) return;
     setScheduleBusy(true);
     const value = JSON.stringify({ enabled: false, start_at: null, end_at: null });
     const { error } = await supabase.from('site_settings').upsert({ key: 'maintenance_schedule', value }, { onConflict: 'key' });
@@ -125,47 +127,129 @@ export default function Settings({ me, setMsg }: { me: string; setMsg: (s: strin
     await alog('health_check', r);
   }
 
-  async function fetchAllPosts() {
-    const pageSize = 500;
-    const all: any[] = [];
-    for (let from = 0; ; from += pageSize) {
-      const { data, error } = await supabase.from('posts').select('*').order('id', { ascending: true }).range(from, from + pageSize - 1);
-      if (error) throw error;
-      const page = data ?? [];
-      all.push(...page);
-      if (page.length < pageSize) return all;
-    }
-  }
-
   async function backup() {
-    if (!confirm('导出全站数据备份？文件会直接下载到本机，不经过公开链接。')) return;
-    setMsg('正在备份…');
+    if (!(await confirmDialog('导出全部业务数据库数据与存储文件清单？此版本不包含照片、音频、视频等文件本体；不能替代 Supabase 完整备份。'))) return;
+    setMsg('正在逐表导出，请勿关闭页面…');
+    const tableNames = [
+      'profiles', 'profile_emails', 'profile_privacy', 'profile_contacts',
+      'posts', 'comments', 'post_likes', 'favorites', 'timelines',
+      'albums', 'album_photos', 'board_messages', 'board_reads',
+      'friendships', 'conversations', 'conversation_members', 'messages',
+      'notifications', 'reports', 'feedbacks', 'invite_codes',
+      'admin_audit_logs', 'backup_logs', 'site_settings', 'app_settings',
+      'hot_snippets', 'greetings', 'wishes', 'events', 'event_regs',
+      'game_profiles', 'love_wall_posts', 'love_wall_media', 'love_wall_comments',
+      'song_posts', 'song_audio_uploads', 'member_presence', 'time_capsules',
+      'maintenance_notify_emails',
+    ];
+    const primaryKeys: Record<string, string[]> = {
+      profiles: ['id'], profile_emails: ['profile_id'], profile_privacy: ['profile_id'], profile_contacts: ['profile_id'],
+      posts: ['id'], comments: ['id'], post_likes: ['post_id', 'profile_id'], favorites: ['profile_id', 'target_type', 'target_id'],
+      timelines: ['id'], albums: ['id'], album_photos: ['id'], board_messages: ['id'], board_reads: ['profile_id'],
+      friendships: ['id'], conversations: ['id'], conversation_members: ['conversation_id', 'profile_id'], messages: ['id'],
+      notifications: ['id'], reports: ['id'], feedbacks: ['id'], invite_codes: ['id'], admin_audit_logs: ['id'],
+      backup_logs: ['id'], site_settings: ['key'], app_settings: ['id'], hot_snippets: ['id'], greetings: ['id'],
+      wishes: ['id'], events: ['id'], event_regs: ['event_id', 'profile_id'], game_profiles: ['id'],
+      love_wall_posts: ['id'], love_wall_media: ['id'], love_wall_comments: ['id'], song_posts: ['id'],
+      song_audio_uploads: ['path'], member_presence: ['profile_id'], time_capsules: ['id'],
+      maintenance_notify_emails: ['id'],
+    };
+    const pageSize = 500;
+    const tables: Record<string, { expected_rows: number; exported_rows: number; rows: any[] }> = {};
     try {
-      const [p, po, cm, al, ap, bm, fb] = await Promise.all([
-        supabase.from('profiles').select('id, username, display_name, real_name, role, joined, created_at, age, personality, signature, bio, hobbies'),
-        fetchAllPosts(),
-        supabase.from('comments').select('*').limit(5000),
-        supabase.from('albums').select('*').limit(500),
-        supabase.from('album_photos').select('id, album_id, photo_url, caption, created_at').limit(5000),
-        supabase.from('board_messages').select('*').limit(2000),
-        supabase.from('feedbacks').select('*').limit(2000),
-      ]);
+      for (const table of tableNames) {
+        const rows: any[] = [];
+        let expected: number | null = null;
+        for (let offset = 0; ; offset += pageSize) {
+          let request = supabase.from(table as any).select('*', { count: 'exact' });
+          for (const key of primaryKeys[table]) request = request.order(key, { ascending: true });
+          const { data, error, count } = await request.range(offset, offset + pageSize - 1);
+          if (error) throw new Error(table + ' 导出失败：' + error.message);
+          if (expected === null) {
+            if (count === null) throw new Error(table + ' 无法取得总行数，不能验证完整性。');
+            expected = count;
+          }
+          rows.push(...(data ?? []));
+          if (!data || data.length < pageSize) break;
+        }
+        if (rows.length !== expected) {
+          throw new Error(table + ' 行数校验失败：数据库报告 ' + expected + ' 行，实际导出 ' + rows.length + ' 行。请在数据稳定后重试。');
+        }
+        tables[table] = { expected_rows: expected, exported_rows: rows.length, rows };
+      }
+
+      const { data: buckets, error: bucketError } = await supabase.storage.listBuckets();
+      if (bucketError) throw new Error('读取存储桶失败：' + bucketError.message);
+      const storageManifest: Record<string, any[]> = {};
+      async function listFolder(bucket: string, folder: string): Promise<any[]> {
+        const entries: any[] = [];
+        for (let offset = 0; ; offset += 100) {
+          const { data, error } = await supabase.storage.from(bucket).list(folder, {
+            limit: 100, offset, sortBy: { column: 'name', order: 'asc' },
+          });
+          if (error) throw new Error('读取存储桶 ' + bucket + '/' + folder + ' 失败：' + error.message);
+          const page = data ?? [];
+          for (const item of page) {
+            const path = folder ? folder + '/' + item.name : item.name;
+            if (item.id == null) entries.push(...await listFolder(bucket, path));
+            else entries.push({
+              path, id: item.id, created_at: item.created_at ?? null,
+              updated_at: item.updated_at ?? null, last_accessed_at: item.last_accessed_at ?? null,
+              metadata: item.metadata ?? null,
+            });
+          }
+          if (page.length < 100) break;
+        }
+        return entries;
+      }
+      for (const bucket of buckets ?? []) {
+        storageManifest[bucket.name] = await listFolder(bucket.name, '');
+      }
+
+      const exportedAt = new Date().toISOString();
+      const totalRows = Object.values(tables).reduce((sum, item) => sum + item.exported_rows, 0);
+      const storageObjects = Object.values(storageManifest).reduce((sum, items) => sum + items.length, 0);
       const data = {
-        backup_at: new Date().toISOString(), scope: 'full',
-        profiles: p.data ?? [], posts: po, comments: cm.data ?? [],
-        albums: al.data ?? [], album_photos: ap.data ?? [], board: bm.data ?? [], feedbacks: fb.data ?? [],
+        format: 'qznb-database-export-v2',
+        backup_at: exportedAt,
+        scope: 'all-public-business-tables-and-storage-manifest',
+        completeness: {
+          database_tables: tableNames.length,
+          database_rows: totalRows,
+          storage_buckets: Object.keys(storageManifest).length,
+          storage_objects: storageObjects,
+          storage_file_bodies_included: false,
+          transactional_snapshot: false,
+        },
+        warning: '本文件包含全部已列入清单的 public 业务表数据及 Storage 文件清单，但不包含文件二进制内容，也不是同一事务时间点的数据库快照。真正灾备仍需 Supabase 数据库备份及 Storage 文件本体归档。',
+        tables,
+        storage_manifest: storageManifest,
       };
       const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = `班级备份_${new Date().toISOString().slice(0, 10)}.json`;
-      a.click(); URL.revokeObjectURL(a.href);
-      await supabase.from('backup_logs').insert({ created_by: me, scope: 'full', status: 'ok', note: `成员${(p.data ?? []).length} 帖子${po.length}（动态与日常）` });
-      await alog('backup', { scope: 'full' });
-      setMsg('备份完成，文件已下载'); load();
+      a.href = url;
+      a.download = '班级数据库导出_' + exportedAt.slice(0, 10) + '.json';
+      a.click();
+      URL.revokeObjectURL(url);
+
+      const note = '业务表 ' + tableNames.length + ' 张；数据行 ' + totalRows + '；存储桶 ' + Object.keys(storageManifest).length + ' 个；文件清单 ' + storageObjects + ' 项；未含文件本体';
+      const { error: logError } = await supabase.from('backup_logs').insert({
+        created_by: me, scope: 'database+storage-manifest', status: 'ok', note,
+      });
+      await alog('database_export', { tables: tableNames.length, rows: totalRows, storage_objects: storageObjects });
+      setMsg(logError
+        ? '数据导出完成，但备份日志写入失败：' + logError.message + '。注意：未包含媒体文件本体。'
+        : '数据库数据导出完成：' + tableNames.length + ' 张表、' + totalRows + ' 行、' + storageObjects + ' 个文件清单项。注意：未包含媒体文件本体，不能视为完整灾备。');
+      load();
     } catch (e: any) {
-      setMsg('备份失败：' + (e.message || ''));
-      try { await supabase.from('backup_logs').insert({ created_by: me, scope: 'full', status: 'fail', note: e.message || '' }); } catch {}
+      const message = e instanceof Error ? e.message : String(e);
+      setMsg('导出中止，未生成成功备份：' + message);
+      try {
+        await supabase.from('backup_logs').insert({
+          created_by: me, scope: 'database+storage-manifest', status: 'fail', note: message.slice(0, 1000),
+        });
+      } catch { /* Keep the original export failure visible. */ }
     }
   }
 
@@ -192,9 +276,9 @@ export default function Settings({ me, setMsg }: { me: string; setMsg: (s: strin
       <div className="row" style={{ gap: 8, alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', marginBottom: 4 }}>
         <span style={{ fontSize: 13.5, fontWeight: 650 }}>关闭登录入口</span>
         <button className={'mini' + (vals.close_login_entry === 'true' ? '' : ' ghost')}
-          onClick={() => {
+          onClick={async () => {
             const next = vals.close_login_entry === 'true' ? 'false' : 'true';
-            if (next === 'true' && !confirm('关闭后，网站普通登录和注册入口将隐藏；已有登录会话不受影响，管理员后台入口仍保留。确定继续？')) return;
+            if (next === 'true' && !(await confirmDialog('关闭后，网站普通登录和注册入口将隐藏；已有登录会话不受影响，管理员后台入口仍保留。确定继续？'))) return;
             save('close_login_entry', next);
           }}>
           {vals.close_login_entry === 'true' ? '已关闭' : '开放中'}
@@ -204,9 +288,9 @@ export default function Settings({ me, setMsg }: { me: string; setMsg: (s: strin
       <div className="row" style={{ gap: 8, alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', marginBottom: 4 }}>
         <span style={{ fontSize: 13.5, fontWeight: 650 }}>跳过登录界面（访客浏览）</span>
         <button className={'mini' + (vals.skip_login_screen === 'true' ? '' : ' ghost')}
-          onClick={() => {
+          onClick={async () => {
             const next = vals.skip_login_screen === 'true' ? 'false' : 'true';
-            if (next === 'true' && !confirm('开启后，未登录访客可直接查看公开首页和管理员公告；成员资料、动态、私聊、个人中心及所有互动仍需登录。确定开启？')) return;
+            if (next === 'true' && !(await confirmDialog('开启后，未登录访客可直接查看公开首页和管理员公告；成员资料、动态、私聊、个人中心及所有互动仍需登录。确定开启？'))) return;
             save('skip_login_screen', next);
           }}>
           {vals.skip_login_screen === 'true' ? '开启' : '关闭'}
@@ -216,8 +300,8 @@ export default function Settings({ me, setMsg }: { me: string; setMsg: (s: strin
       <div className="row" style={{ gap: 8, alignItems: 'center' }}>
         <span style={{ fontSize: 13.5 }}>维护模式（手动开关）</span>
         <button className={'mini' + (vals.maintenance === 'true' ? '' : ' ghost')}
-          onClick={() => {
-            if (vals.maintenance !== 'true' && !confirm('开启维护模式？所有人打开网站都只看到维护页（后台入口除外）。')) return;
+          onClick={async () => {
+            if (vals.maintenance !== 'true' && !(await confirmDialog('开启维护模式？所有人打开网站都只看到维护页（后台入口除外）。'))) return;
             save('maintenance', vals.maintenance === 'true' ? 'false' : 'true');
           }}>
           {vals.maintenance === 'true' ? '开' : '关'}
@@ -227,9 +311,9 @@ export default function Settings({ me, setMsg }: { me: string; setMsg: (s: strin
         <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 5 }}>定时开启与关闭</div>
         <p style={{ ...mut, margin: '0 0 10px' }}>按当前设备时区设置。计划启用后优先于手动开关：到开启时间自动进入维护模式，到关闭时间自动恢复网站；取消计划后恢复手动控制。</p>
         <label style={mut}>自动开启时间</label>
-        <input type="datetime-local" value={scheduleStart} onChange={e => setScheduleStart(e.target.value)} style={{ margin: '5px 0 10px' }} />
+        <DateTimeField value={scheduleStart} onChange={setScheduleStart} style={{ margin: '5px 0 10px' }} />
         <label style={mut}>自动关闭时间</label>
-        <input type="datetime-local" value={scheduleEnd} onChange={e => setScheduleEnd(e.target.value)} style={{ margin: '5px 0 10px' }} />
+        <DateTimeField value={scheduleEnd} onChange={setScheduleEnd} style={{ margin: '5px 0 10px' }} />
         <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
           <button className="pri" style={{ width: 'auto' }} disabled={scheduleBusy} onClick={() => void saveMaintenanceSchedule()}>{scheduleBusy ? '处理中…' : '保存并启用计划'}</button>
           <button className="mini ghost" disabled={scheduleBusy || !scheduleEnabled} onClick={() => void clearMaintenanceSchedule()}>取消定时计划</button>
@@ -270,9 +354,9 @@ export default function Settings({ me, setMsg }: { me: string; setMsg: (s: strin
     </div>
 
     <div style={card}>
-      <h3 style={h3}>备份</h3>
-      <p style={mut}>备份文件直接下载到本机，不生成公开链接。恢复前请先确认，避免覆盖新数据。</p>
-      <button className="pri" style={{ width: 'auto', padding: '10px 26px' }} onClick={backup}>一键备份</button>
+      <h3 style={h3}>数据库数据导出</h3>
+      <p style={mut}>逐表分页导出全部业务数据并校验行数，同时记录 Storage 文件清单。当前导出不包含照片、音频、视频等文件本体，也不是事务级快照，不能代替完整灾备。</p>
+      <button className="pri" style={{ width: 'auto', padding: '10px 26px' }} onClick={backup}>导出数据库数据与文件清单</button>
       <div style={{ marginTop: 10 }}>
         {backups.map(b => (
           <div key={b.id} style={{ fontSize: 12.5, padding: '6px 0', borderBottom: '1px solid #ffffff0c' }}>

@@ -96,14 +96,15 @@ export default function AdminNotificationCenter({ setMsg }: { setMsg: (s: string
   }, [people, recipientQuery]);
 
   function toggleRecipient(id: string) {
-    setSelectedRecipients(current => {
-      if (current.includes(id)) return current.filter(value => value !== id);
-      if (current.length >= 100) {
-        setMsg('指定收件人最多 100 个。');
-        return current;
-      }
-      return [...current, id];
-    });
+    if (selectedRecipients.includes(id)) {
+      setSelectedRecipients(current => current.filter(value => value !== id));
+      return;
+    }
+    if (selectedRecipients.length >= 100) {
+      setMsg('指定收件人最多 100 个。');
+      return;
+    }
+    setSelectedRecipients(current => [...current, id]);
   }
 
   async function sendNotification() {

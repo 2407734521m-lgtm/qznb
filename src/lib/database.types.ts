@@ -178,6 +178,24 @@ export type Database = {
           },
         ]
       }
+      maintenance_notify_emails: {
+        Row: {
+          id: number
+          email: string
+          created_at: string
+        }
+        Insert: {
+          id?: number
+          email: string
+          created_at?: string
+        }
+        Update: {
+          id?: number
+          email?: string
+          created_at?: string
+        }
+        Relationships: []
+      }
       board_messages: {
         Row: {
           id: number

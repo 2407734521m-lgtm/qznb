@@ -15,6 +15,7 @@ const groups: { title: string; note: string; entries: Entry[] }[] = [
     { mark: '装扮', title: '主页装扮', note: '调整背景、主题与页面布局', to: 'look' },
   ]},
   { title: '我的内容', note: '管理你发布、收藏和分享的内容', entries: [
+    { mark: '汇总', title: '我的全部内容', note: '集中查看发布、照片、投稿与归档记录', to: '/me/content' },
     { mark: '动态', title: '我的动态', note: '查看和管理已发布的动态', to: '/me/posts' },
     { mark: '收藏', title: '我的收藏', note: '找回保存过的精彩内容', to: '/me/favorites' },
     { mark: '投稿', title: '我的表白投稿', note: '查看投稿状态或删除自己的投稿', to: '/love-wall?mine=1' },

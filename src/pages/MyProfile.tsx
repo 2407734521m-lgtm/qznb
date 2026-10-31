@@ -42,14 +42,14 @@ function usePersistedSec(key: string, init: boolean) {
   return [v, set] as const;
 }
 
-function Collapsible({ icon, title, sub, open, onToggle, children, sid }: {
-  icon: string; title: string; sub?: string; open: boolean; onToggle: () => void; children: React.ReactNode; sid?: string;
+function Collapsible({ title, sub, open, onToggle, children, sid }: {
+  title: string; sub?: string; open: boolean; onToggle: () => void; children: React.ReactNode; sid?: string;
 }) {  return (
     <div className="card" id={sid} style={{ padding: 0, overflow: 'hidden' }}>
       <BackButton fallback="/me" />
       <button type="button" onClick={onToggle}
         style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '16px 20px', background: 'none', border: 0, color: 'inherit', font: 'inherit', cursor: 'pointer', textAlign: 'left' }}>
-        <span style={{ fontSize: 16, fontWeight: 700 }}>{icon} {title}</span>
+        <span style={{ fontSize: 16, fontWeight: 700 }}>{title}</span>
         {sub && <span style={{ fontSize: 12, color: '#fff', opacity: 0.85 }}>{sub}</span>}
         <span style={{ flex: 1 }} />
         <span style={{ fontSize: 13, color: '#fff', display: 'inline-block', transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .25s' }}>▼</span>
@@ -288,14 +288,14 @@ export default function MyProfile() {
           onChange={e => { pickAvatar(e.target.files?.[0]); e.target.value = ''; }} />
       </div>
 
-      {!joined && <div className="card"><h3 className="me-sec-t">🎟️ 加入班级</h3>
+      {!joined && <div className="card"><h3 className="me-sec-t">加入班级</h3>
         <p className="mut" style={{ fontSize: 13 }}>输入班级邀请码后，才能查看其他成员，也才会出现在成员页。</p>
         <div className="row" style={{ gap: 8 }}>
           <input placeholder="邀请码" value={code} onChange={e => setCode(e.target.value)} style={{ flex: 1 }} />
           <button className="pri" style={{ width: 'auto', padding: '10px 26px' }} onClick={join}>加入</button>
         </div></div>}
 
-      <Collapsible sid="sec-base" icon="📝" title="基本资料" open={baseOpen} onToggle={() => setBaseOpen(o => !o)}>
+      <Collapsible sid="sec-base" title="基本资料" open={baseOpen} onToggle={() => setBaseOpen(o => !o)}>
         {PROFILE_FIELDS.map(([k, label]) => fieldInput(k, label))}
         {/* 自我介绍视频 */}
         <div style={{ marginTop: 12 }}>
@@ -312,9 +312,9 @@ export default function MyProfile() {
         </div>
       </Collapsible>
 
-      <Collapsible sid="sec-game" icon="🎮" title="游戏与社交" open={gameOpen} onToggle={() => setGameOpen(o => !o)}>
+      <Collapsible sid="sec-game" title="游戏与社交" open={gameOpen} onToggle={() => setGameOpen(o => !o)}>
         <label>我的游戏段位</label>
-        {!gprof && <button className="ghost" style={{ width: '100%' }} onClick={openGpick}>🎮 设置我的游戏段位</button>}
+        {!gprof && <button className="ghost" style={{ width: '100%' }} onClick={openGpick}>设置我的游戏段位</button>}
         {gprof && (
           <div className="gprof">
             <div style={{ fontSize: 14.5, fontWeight: 700 }}>{gprof.game_name}
@@ -338,7 +338,7 @@ export default function MyProfile() {
         <SocialPicker value={v.social ?? ''} onChange={s => setV({ ...v, social: s })} />
       </Collapsible>
 
-      <Collapsible sid="sec-priv" icon="🔒" title="隐私设置"
+      <Collapsible sid="sec-priv" title="隐私设置"
         sub={`${PRIV_ROWS.filter(([f]) => priv[f]).length}/${PRIV_ROWS.length} 项公开`}
         open={privOpen} onToggle={() => setPrivOpen(o => !o)}>
         <p className="priv-note">哪些资料对其他成员公开，点一下开关就行</p>
@@ -361,7 +361,7 @@ export default function MyProfile() {
         </div>
       </Collapsible>
 
-      <Collapsible icon="🎨" sid="sec-look" title="我的主页外观" open={lookOpen} onToggle={() => setLookOpen(o => !o)}>
+      <Collapsible sid="sec-look" title="我的主页外观" open={lookOpen} onToggle={() => setLookOpen(o => !o)}>
         <p className="priv-note">主题</p>
         <div className="theme-grid">
           {THEMES.map(([k, l, c1, c2]) => (
@@ -378,10 +378,10 @@ export default function MyProfile() {
           ))}
         </div>
         <button type="button" className="pri" style={{ width: '100%', marginTop: 12 }}
-          onClick={() => window.dispatchEvent(new Event('ca:wallpaper:open'))}>🖼️ 换壁纸</button>
+          onClick={() => window.dispatchEvent(new Event('ca:wallpaper:open'))}>换壁纸</button>
       </Collapsible>
 
-      <Collapsible icon="🔑" title="通行密钥登录" open={keyOpen} onToggle={() => setKeyOpen(o => !o)}>
+      <Collapsible title="通行密钥登录" open={keyOpen} onToggle={() => setKeyOpen(o => !o)}>
         <p className="mut" style={{ fontSize: 12.5 }}>注册后，下次登录可用指纹 / 面容 ID 一键登录，不用输密码。</p>
         <button onClick={regKey}>注册通行密钥</button>
         {keys.map(k => (
@@ -392,7 +392,7 @@ export default function MyProfile() {
         ))}
       </Collapsible>
 
-      <Collapsible icon="🔔" title={`站内通知${notifUnread ? `（${notifUnread} 条未读）` : ''}`} open={notifOpen} onToggle={() => {
+      <Collapsible title={`站内通知${notifUnread ? `（${notifUnread} 条未读）` : ''}`} open={notifOpen} onToggle={() => {
         const n = !notifOpen; setNotifOpen(n);
         if (n && notifUnread > 0) {
           supabase.from('notifications').update({ is_read: true }).eq('profile_id', uid).eq('is_read', false).then(() => {
@@ -415,14 +415,14 @@ export default function MyProfile() {
       </Collapsible>
 
       <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-        <div style={{ padding: '16px 20px 6px', fontSize: 16, fontWeight: 700 }}>⚙️ 账号</div>
+        <div style={{ padding: '16px 20px 6px', fontSize: 16, fontWeight: 700 }}>账号</div>
         {(role === 'admin' || role === 'super_admin') &&
           <button type="button" onClick={() => { location.hash = '#/admin'; }}
             style={{ width: '100%', display: 'flex', alignItems: 'center', padding: '13px 20px', background: 'none', border: 0, borderTop: '1px solid #edf0f4', color: 'inherit', font: 'inherit', fontSize: 14, cursor: 'pointer', textAlign: 'left' }}>
-            🛠️ 管理后台 <span style={{ flex: 1 }} /><span style={{ color: '#8a8f9a', opacity: 1 }}>›</span></button>}
+            管理后台 <span style={{ flex: 1 }} /><span style={{ color: '#8a8f9a', opacity: 1 }}>›</span></button>}
         <button type="button" onClick={() => setFbOpen(true)}
           style={{ width: '100%', display: 'flex', alignItems: 'center', padding: '13px 20px', background: 'none', border: 0, borderTop: '1px solid #edf0f4', color: 'inherit', font: 'inherit', fontSize: 14, cursor: 'pointer', textAlign: 'left' }}>
-          💬 意见反馈 <span style={{ flex: 1 }} /><span style={{ color: '#8a8f9a', opacity: 1 }}>›</span></button>
+          意见反馈 <span style={{ flex: 1 }} /><span style={{ color: '#8a8f9a', opacity: 1 }}>›</span></button>
         <button type="button" onClick={logout}
           style={{ width: '100%', display: 'flex', alignItems: 'center', padding: '13px 20px', background: 'none', border: 0, borderTop: '1px solid #edf0f4', color: 'inherit', font: 'inherit', fontSize: 14, cursor: 'pointer', textAlign: 'left' }}>
           退出登录 <span style={{ flex: 1 }} /><span style={{ color: '#8a8f9a', opacity: 1 }}>›</span></button>

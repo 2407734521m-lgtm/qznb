@@ -690,6 +690,83 @@ export type Database = {
           },
         ]
       }
+      love_wall_comments: {
+        Row: {
+          id: string
+          post_id: string
+          author_id: string
+          content: string
+          created_at: string
+          deleted_at: string | null
+        }
+        Insert: {
+          id?: string
+          post_id: string
+          author_id: string
+          content: string
+          created_at?: string
+          deleted_at?: string | null
+        }
+        Update: {
+          id?: string
+          post_id?: string
+          author_id?: string
+          content?: string
+          created_at?: string
+          deleted_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "love_wall_comments_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "love_wall_posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "love_wall_comments_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      love_wall_media: {
+        Row: {
+          id: string
+          post_id: string
+          path: string
+          kind: string
+          sort: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          post_id: string
+          path: string
+          kind: string
+          sort?: number
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          post_id?: string
+          path?: string
+          kind?: string
+          sort?: number
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "love_wall_media_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "love_wall_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       love_wall_posts: {
         Row: {
           id: string

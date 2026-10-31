@@ -178,6 +178,24 @@ export type Database = {
           },
         ]
       }
+      maintenance_notify_emails: {
+        Row: {
+          id: number
+          email: string
+          created_at: string
+        }
+        Insert: {
+          id?: number
+          email: string
+          created_at?: string
+        }
+        Update: {
+          id?: number
+          email?: string
+          created_at?: string
+        }
+        Relationships: []
+      }
       board_messages: {
         Row: {
           id: number
@@ -690,11 +708,90 @@ export type Database = {
           },
         ]
       }
+      love_wall_comments: {
+        Row: {
+          id: string
+          post_id: string
+          author_id: string
+          content: string
+          created_at: string
+          deleted_at: string | null
+        }
+        Insert: {
+          id?: string
+          post_id: string
+          author_id: string
+          content: string
+          created_at?: string
+          deleted_at?: string | null
+        }
+        Update: {
+          id?: string
+          post_id?: string
+          author_id?: string
+          content?: string
+          created_at?: string
+          deleted_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "love_wall_comments_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "love_wall_posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "love_wall_comments_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      love_wall_media: {
+        Row: {
+          id: string
+          post_id: string
+          path: string
+          kind: string
+          sort: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          post_id: string
+          path: string
+          kind: string
+          sort?: number
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          post_id?: string
+          path?: string
+          kind?: string
+          sort?: number
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "love_wall_media_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "love_wall_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       love_wall_posts: {
         Row: {
           id: string
           author_id: string
           recipient_name: string | null
+          recipient_id: string | null
+          recipient_notified_at: string | null
           category: string
           content: string
           is_anonymous: boolean
@@ -706,6 +803,8 @@ export type Database = {
           id?: string
           author_id: string
           recipient_name?: string | null
+          recipient_id?: string | null
+          recipient_notified_at?: string | null
           category?: string
           content: string
           is_anonymous?: boolean
@@ -717,6 +816,8 @@ export type Database = {
           id?: string
           author_id?: string
           recipient_name?: string | null
+          recipient_id?: string | null
+          recipient_notified_at?: string | null
           category?: string
           content?: string
           is_anonymous?: boolean
@@ -877,6 +978,7 @@ export type Database = {
           image_url: string | null
           created_at: string
           deleted_at: string | null
+          section: string
         }
         Insert: {
           id?: number
@@ -885,6 +987,7 @@ export type Database = {
           image_url?: string | null
           created_at?: string
           deleted_at?: string | null
+          section?: string
         }
         Update: {
           id?: number
@@ -893,6 +996,7 @@ export type Database = {
           image_url?: string | null
           created_at?: string
           deleted_at?: string | null
+          section?: string
         }
         Relationships: [
           {
@@ -1421,6 +1525,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: unknown
       }
+      create_song_audio_upload: {
+        Args: { p_ext: string }
+        Returns: string
+      }
       create_invite_code: {
         Args: { new_code: string; nick: string | null }
         Returns: unknown
@@ -1505,6 +1613,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string | null
       }
+      my_review_estimates: {
+        Args: Record<PropertyKey, never>
+        Returns: { admin_active: boolean; items: { kind: string; id: string; created_at: string; ahead: number; total: number }[]; sampled_at: string }
+      }
       notify_greeting_recipient: {
         Args: Record<PropertyKey, never>
         Returns: unknown
@@ -1539,6 +1651,10 @@ export type Database = {
       }
       resolve_login_email: {
         Args: { ident: string }
+        Returns: unknown
+      }
+      song_wall_published: {
+        Args: Record<PropertyKey, never>
         Returns: unknown
       }
       respond_friend_request: {

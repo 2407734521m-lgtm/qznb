@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { supabase } from '../lib/supabase';
+import { confirmDialog } from '../lib/dialog';
 
 type Account = {
   id: string;
@@ -77,7 +78,7 @@ export default function AdminAccountManagement({
     }
     const next = !account.joined;
     const verb = next ? '恢复' : '禁用';
-    if (!window.confirm(`${verb}账号「${account.display_name || account.username}」？${next ? '' : '禁用后将失去班级成员权限。'}`)) return;
+    if (!(await confirmDialog(`${verb}账号「${account.display_name || account.username}」？${next ? '' : '禁用后将失去班级成员权限。'}`))) return;
     setBusy(account.id);
     const { error } = await supabase.rpc('set_joined', { target: account.id, j: next });
     setBusy(null);
@@ -103,8 +104,9 @@ export default function AdminAccountManagement({
       return;
     }
     const label = account.display_name || account.username;
-    const confirmed = window.confirm(
-      `确定永久删除成员「${label}」？此操作不可撤销。该成员的个人资料和登录账号将被删除；其发布的帖子、评论、私信等关联内容也可能因数据库级联规则一并删除。其他成员的账号不会被删除。`
+    const confirmed = await confirmDialog(
+      `确定永久删除成员「${label}」？此操作不可撤销。该成员的个人资料和登录账号将被删除；其发布的帖子、评论、私信等关联内容也可能因数据库级联规则一并删除。其他成员的账号不会被删除。`,
+      { danger: true }
     );
     if (!confirmed) return;
     setBusy(account.id);

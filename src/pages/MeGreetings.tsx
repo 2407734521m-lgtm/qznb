@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../auth';
 import BackButton from '../components/BackButton';
+import { confirmDialog } from '../lib/dialog';
 
 /** 我的留言 */
 export default function MeGreetings() {
@@ -29,7 +30,7 @@ export default function MeGreetings() {
   useEffect(() => { load(); }, []);
 
   async function del(id: number) {
-    if (!confirm('删除这条留言？')) return;
+    if (!(await confirmDialog('删除这条留言？', { danger: true }))) return;
     const { error } = await supabase.from('greetings').delete().eq('id', id);
     if (!error) load(); else setMsg('删除失败：' + error.message);
   }

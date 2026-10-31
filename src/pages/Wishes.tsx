@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../auth';
 import BackButton from '../components/BackButton';
+import { confirmDialog } from '../lib/dialog';
 
 /** 愿望墙：班级共同愿望 */
 export default function Wishes() {
@@ -31,7 +32,7 @@ export default function Wishes() {
     else { setText(''); load(); }
   }
   async function del(id: number) {
-    if (!confirm('删除这条愿望？')) return;
+    if (!(await confirmDialog('删除这条愿望？', { danger: true }))) return;
     await supabase.from('wishes').delete().eq('id', id);
     load();
   }

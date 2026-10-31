@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../auth';
 import BackButton from '../components/BackButton';
+import { confirmDialog, alertDialog, promptDialog } from '../lib/dialog';
 
 /** 留言祝福墙：给全班或某位同学留祝福 */
 export default function Greetings() {
@@ -51,18 +52,18 @@ export default function Greetings() {
   }
 
   async function del(id: number) {
-    if (!confirm('删除这条留言？')) return;
+    if (!(await confirmDialog('删除这条留言？', { danger: true }))) return;
     const { error } = await supabase.from('greetings').delete().eq('id', id);
     if (!error) load(); else setMsg('删除失败：' + error.message);
   }
 
   async function report(g: any) {
-    const reason = prompt('举报这条留言，请输入原因：');
+    const reason = await promptDialog('举报这条留言，请输入原因：');
     if (!reason || !reason.trim()) return;
     const { error } = await supabase.from('reports').insert({
       reporter_id: me, target_type: 'greeting', target_id: String(g.id), reason: reason.trim().slice(0, 200),
     });
-    alert(error ? '举报失败：' + error.message : '已举报，管理员会处理');
+    alertDialog(error ? '举报失败：' + error.message : '已举报，管理员会处理');
   }
 
   return (

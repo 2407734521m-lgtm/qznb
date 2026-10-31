@@ -11,8 +11,7 @@ import AdminSongWall from '../components/AdminSongWall';
 import AdminBulkEmail from '../components/AdminBulkEmail';
 import AdminAccountManagement from '../components/AdminAccountManagement';
 import type { AdminPost as Post, AdminComment as Cmt } from '../types/content';
-import { Spark, TrendChart, Donut } from './admin/charts';
-import { card, h3, mut, rowBtn, alog, timeAgo, bucket14 } from './admin/shared';
+import { card, h3, mut, rowBtn, alog, timeAgo } from './admin/shared';
 import Logs from './admin/Logs';
 import MaintenanceAccessManager from './admin/MaintenanceAccessManager';
 import InviteTab from './admin/InviteTab';
@@ -20,10 +19,11 @@ import FeedbackTab from './admin/FeedbackTab';
 import GameTab from './admin/GameTab';
 import TestTab from './admin/TestTab';
 import EventTab from './admin/EventTab';
-import Overview from './admin/Overview';
-import BoardMgr from './admin/BoardMgr';
 import Moderate from './admin/Moderate';
 import Settings from './admin/Settings';
+import Overview from './admin/Overview';
+import BoardMgr from './admin/BoardMgr';
+import { confirmDialog } from '../lib/dialog';
 
 /**
  * 管理后台测试版（V2）：高级管理控制中心
@@ -192,7 +192,7 @@ export default function Admin() {
       {msg && <p className="priv-note" style={{ margin: '0 0 10px' }}>{msg}</p>}
 
       <div className="admin-content" key={tab} aria-live="polite">
-        {tab === 'overview' && <Overview setMsg={setMsg} />}
+        {tab === 'overview' && <Overview setMsg={setMsg} go={setTab} />}
               {tab === 'members' && <Members me={me} isSuper={isSuper} setMsg={setMsg} extQ={q0} />}
               {tab === 'accounts' && isSuper && <AdminAccountManagement me={me} isSuper={isSuper} setMsg={setMsg} />}
               {tab === 'moderate' && <Moderate setMsg={setMsg} />}
@@ -271,7 +271,7 @@ export default function Admin() {
   );
 }
 
-/* ---------------- 总览（仪表盘） ---------------- */
+/* ---------------- 成员管理 ---------------- */
 function Members({ me, isSuper, setMsg, extQ }: { me: string; isSuper: boolean; setMsg: (s: string) => void; extQ: string }) {
   const [list, setList] = useState<Member[]>([]);
   const [q, setQ] = useState(extQ);
@@ -306,7 +306,7 @@ function Members({ me, isSuper, setMsg, extQ }: { me: string; isSuper: boolean; 
   const shown = filtered.slice(page * PER, (page + 1) * PER);
 
   async function setJoined(ids: string[], joined: boolean) {
-    if (!confirm(`${joined ? '恢复' : '禁用'}选中的 ${ids.length} 个账号？`)) return;
+    if (!(await confirmDialog(`${joined ? '恢复' : '禁用'}选中的 ${ids.length} 个账号？`))) return;
     for (const id of ids) {
       const { error } = await supabase.rpc('set_joined', { target: id, j: joined });
       if (!error) await alog(joined ? 'member_restore' : 'member_ban', { target: id });
@@ -315,7 +315,7 @@ function Members({ me, isSuper, setMsg, extQ }: { me: string; isSuper: boolean; 
   }
   async function setRole(id: string, newRole: string, name: string) {
     if (id === me) return setMsg('不能修改自己的角色');
-    if (!confirm(`把 ${name} 设为${newRole === 'super_admin' ? '超级管理员' : newRole === 'admin' ? '内容管理员' : '普通成员'}？`)) return;
+    if (!(await confirmDialog(`把 ${name} 设为${newRole === 'super_admin' ? '超级管理员' : newRole === 'admin' ? '内容管理员' : '普通成员'}？`))) return;
     const { error } = await supabase.rpc('set_role', { target: id, new_role: newRole });
     setMsg(error ? '失败：' + error.message : '角色已更新');
     if (!error) load();
@@ -385,4 +385,5 @@ function Members({ me, isSuper, setMsg, extQ }: { me: string; isSuper: boolean; 
   </>);
 }
 
-/* ---------------- 内容审核 ---------------- */
+/* ---------------- 日志 ---------------- */
+/* ---------------- 系统设置（仅超管） ---------------- */

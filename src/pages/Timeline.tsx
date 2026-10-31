@@ -4,6 +4,8 @@ import { motion, useReducedMotion } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../auth';
 import { useSignedUrl, uploadMedia, downscaleImage } from '../lib/media';
+import { confirmDialog } from '../lib/dialog';
+import DateTimeField from '../components/DateTimeField';
 
 type T = { id: number; profile_id: string; happened_on: string; title: string; content: string | null; media_url: string | null };
 
@@ -58,7 +60,7 @@ export default function Timeline() {
   }
 
   async function del(id: number) {
-    if (!confirm('删除这条时间线？')) return;
+    if (!(await confirmDialog('删除这条时间线？', { danger: true }))) return;
     await supabase.from('timelines').delete().eq('id', id);
     load();
   }
@@ -75,7 +77,7 @@ export default function Timeline() {
       {mine && <>
         <button className="pri" onClick={() => setShow(!show)}>{show ? '收起' : '＋ 添加时刻'}</button>
         {show && <div className="card" style={{ marginTop: 12 }}>
-          <label>日期</label><input type="date" value={date} onChange={e => setDate(e.target.value)} />
+          <label>日期</label><DateTimeField mode="date" value={date} onChange={setDate} />
           <label>标题</label><input value={title} onChange={e => setTitle(e.target.value)} placeholder="如：第一次班级春游" maxLength={80} />
           <label>文字</label><textarea value={content} onChange={e => setContent(e.target.value)} placeholder="写下当时的心情…" rows={3} />
           <label>照片 / 视频（可选）</label>

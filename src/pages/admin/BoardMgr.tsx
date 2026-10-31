@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { card, h3, mut, rowBtn, alog } from './shared';
+import { confirmDialog } from '../../lib/dialog';
 
-export default function BoardMgr({ me, setMsg }: { me: string; setMsg: (s: string) => void }) {
+/* ---------------- 内容审核 ---------------- */
+function BoardMgr({ me, setMsg }: { me: string; setMsg: (s: string) => void }) {
   const [bannerText, setBannerText] = useState('把我们的青春，留在这里');
   const [bannerUrl, setBannerUrl] = useState('');
   const [bannerBusy, setBannerBusy] = useState(false);
@@ -15,7 +17,7 @@ export default function BoardMgr({ me, setMsg }: { me: string; setMsg: (s: strin
   const popLabel = (v: any) => ({ '0': '关', '1': '1次', '2': '2次', '3': '3次', '999': '每次' } as any)[String(v ?? '0')] ?? '关';
   async function load() {
     const { data } = await supabase.from('board_messages')
-      .select('id, title, content, is_pinned, popup_on_login, popup_times, expires_at, created_at').eq('is_admin_msg', true)
+      .select('id, title, content, is_pinned, popup_on_login, popup_times, expires_at, created_at').eq('is_admin_msg', true).is('deleted_at', null)
       .order('is_pinned', { ascending: false }).order('created_at', { ascending: false }).limit(20);
     setList(data ?? []);
   }
@@ -56,7 +58,7 @@ export default function BoardMgr({ me, setMsg }: { me: string; setMsg: (s: strin
     else setMsg('失败：' + error.message);
   }
   async function del(id: number) {
-    if (!confirm('删除这条公告？')) return;
+    if (!(await confirmDialog('删除这条公告？', { danger: true }))) return;
     // 软删除进回收站
     const { error } = await supabase.from('board_messages').update({ deleted_at: new Date().toISOString() }).eq('id', id);
     if (!error) { await alog('notice_hide', { id }); load(); }
@@ -111,5 +113,3 @@ export default function BoardMgr({ me, setMsg }: { me: string; setMsg: (s: strin
   );
 }
 
-/* ---------------- 日志 ---------------- */
-/* ---------------- 系统设置（仅超管） ---------------- */

@@ -3,7 +3,57 @@ import { supabase } from '../../lib/supabase';
 import { card, h3, mut, timeAgo, bucket14 } from './shared';
 import { Spark, TrendChart, Donut } from './charts';
 
-export default function Overview({ setMsg }: { setMsg: (s: string) => void }) {
+/* ---------------- 总览（仪表盘） ---------------- */
+// 总览顶部待办中心：五个待处理队列的计数汇总在一处，点一行直达对应页签处理。
+function TodoCenter({ go }: { go: (tab: string) => void }) {
+  const [counts, setCounts] = useState<Record<string, number> | null>(null);
+  const [err, setErr] = useState(false);
+
+  async function load() {
+    const queries = [
+      supabase.from('love_wall_posts').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+      supabase.from('song_posts').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+      supabase.from('game_profiles').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+      supabase.from('reports').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+      supabase.from('feedbacks').select('id', { count: 'exact', head: true }).eq('status', 'open'),
+    ];
+    const res = await Promise.all(queries);
+    if (res.some(r => r.error)) { setErr(true); return; }
+    setErr(false);
+    setCounts({ love: res[0].count ?? 0, song: res[1].count ?? 0, game: res[2].count ?? 0, report: res[3].count ?? 0, feedback: res[4].count ?? 0 });
+  }
+  useEffect(() => { void load(); }, []);
+
+  const items: [string, string, string][] = [
+    ['love', '表白待审核', 'loveWall'],
+    ['song', '歌曲待审核', 'songWall'],
+    ['game', '段位待审核', 'game'],
+    ['report', '举报待处理', 'moderate'],
+    ['feedback', '反馈未处理', 'feedback'],
+  ];
+  const total = counts ? items.reduce((a, [k]) => a + (counts[k] || 0), 0) : 0;
+  return <div style={card}>
+    <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+      <h3 style={{ ...h3, margin: 0 }}>待处理{counts && total > 0 ? `（共 ${total} 件）` : ''}</h3>
+      <button className="mini ghost" onClick={() => void load()}>刷新</button>
+    </div>
+    {err && <p style={mut}>待办计数读取失败，点刷新重试。</p>}
+    {!counts && !err && <p style={mut}>正在统计…</p>}
+    {counts && total === 0 && !err && <p style={{ fontSize: 13.5, color: '#7ee2a8', margin: '6px 0 2px' }}>全部处理完了，没有积压。</p>}
+    {counts && items.map(([k, label, tab]) => (
+      <button key={k} onClick={() => go(tab)}
+        style={{ display: 'flex', width: '100%', alignItems: 'center', gap: 8, padding: '9px 2px', background: 'transparent', border: 0, borderBottom: '1px solid #ffffff0a', cursor: 'pointer', textAlign: 'left' }}>
+        <span style={{ flex: 1, fontSize: 13.5, color: (counts[k] || 0) === 0 ? '#8b93b0' : '#eef0ff' }}>{label}</span>
+        {(counts[k] || 0) > 0
+          ? <span style={{ background: '#f5c26b', color: '#231a04', fontWeight: 800, fontSize: 12, borderRadius: 999, padding: '2px 9px' }}>{counts[k]}</span>
+          : <span style={{ fontSize: 12, color: '#69718c' }}>无</span>}
+        <span style={{ color: '#8b93b0', fontSize: 13 }}>›</span>
+      </button>
+    ))}
+  </div>;
+}
+
+function Overview({ setMsg, go }: { setMsg: (s: string) => void; go: (tab: string) => void }) {
   const [st, setSt] = useState<any>(null);
   const [presence, setPresence] = useState<{ online: number; active: number; sampledAt: string; error: boolean } | null>(null);
   const [loadTimedOut, setLoadTimedOut] = useState(false);
@@ -55,17 +105,19 @@ export default function Overview({ setMsg }: { setMsg: (s: string) => void }) {
     (async () => {
       try {
         const since14 = new Date(Date.now() - 14 * 864e5).toISOString();
-        const [m, p, c, ph, r, nm, pr, por, phr] = await Promise.all([
+        const [m, p, c, ph, r, nm, pr, por, phr, pd, pdr] = await Promise.all([
           supabase.from('profiles').select('id', { count: 'exact', head: true }),
-          supabase.from('posts').select('id', { count: 'exact', head: true }).is('deleted_at', null),
+          supabase.from('posts').select('id', { count: 'exact', head: true }).eq('section', 'feed').is('deleted_at', null),
           supabase.from('comments').select('id', { count: 'exact', head: true }).is('deleted_at', null),
           supabase.from('album_photos').select('id', { count: 'exact', head: true }),
           supabase.from('reports').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
           supabase.from('profiles').select('id, display_name, username, created_at')
             .order('created_at', { ascending: false }).limit(5),
           supabase.from('profiles').select('created_at').gte('created_at', since14),
-          supabase.from('posts').select('created_at').gte('created_at', since14).is('deleted_at', null),
+          supabase.from('posts').select('created_at').eq('section', 'feed').gte('created_at', since14).is('deleted_at', null),
           supabase.from('album_photos').select('created_at').gte('created_at', since14),
+          supabase.from('posts').select('id', { count: 'exact', head: true }).eq('section', 'daily').is('deleted_at', null),
+          supabase.from('posts').select('created_at').eq('section', 'daily').gte('created_at', since14).is('deleted_at', null),
         ]);
         const week = new Date(Date.now() - 7 * 864e5).toISOString();
         const { count: new7 } = await supabase.from('profiles').select('id', { count: 'exact', head: true }).gte('created_at', week);
@@ -76,14 +128,15 @@ export default function Overview({ setMsg }: { setMsg: (s: string) => void }) {
         const dPro = bucket14((pr.data ?? []) as any[]);
         const dPost = bucket14((por.data ?? []) as any[]);
         const dPhoto = bucket14((phr.data ?? []) as any[]);
+        const dDailyPost = bucket14((pdr.data ?? []) as any[]);
         let acc = (m.count ?? 0) - dPro.reduce((a, b) => a + b, 0);
         const cum = dPro.map(v => (acc += v));
         setSt({
-          members: m.count ?? 0, posts: p.count ?? 0, comments: c.count ?? 0,
+          members: m.count ?? 0, posts: p.count ?? 0, dailyPosts: pd.count ?? 0, comments: c.count ?? 0,
           photos: ph.count ?? 0, pendingReports: r.count ?? 0, new7: new7 ?? 0,
           newMembers: nm.data ?? [], recentLogs: logs ?? [],
           dbOk: !pingErr, dbMs: Date.now() - t0,
-          dPro, dPost, dPhoto, cum,
+          dPro, dPost, dDailyPost, dPhoto, cum,
         });
       } catch (e: any) { setMsg('总览加载失败：' + (e.message || '')); }
     })();
@@ -98,6 +151,7 @@ export default function Overview({ setMsg }: { setMsg: (s: string) => void }) {
   const segs = [
     { label: '成员', v: st.members, color: '#5b8cff' },
     { label: '动态', v: st.posts, color: '#8b5cf6' },
+    { label: '日常', v: st.dailyPosts, color: '#38bdf8' },
     { label: '照片', v: st.photos, color: '#4ade80' },
     { label: '评论', v: st.comments, color: '#f5a623' },
   ];
@@ -110,15 +164,18 @@ export default function Overview({ setMsg }: { setMsg: (s: string) => void }) {
     '注册成员': <span style={{ color: '#4ade80' }}>较7天前 +{st.new7}</span>,
     '近7天新增': <span style={{ color: '#4ade80' }}>新增注册</span>,
     '班级动态': st.posts === 0 ? <span style={{ color: '#8b93b0' }}>暂无新动态</span> : <span style={{ color: '#4ade80' }}>持续更新中</span>,
+    '日常帖子': st.dailyPosts === 0 ? <span style={{ color: '#8b93b0' }}>暂无日常</span> : <span style={{ color: '#4ade80' }}>持续更新中</span>,
     '班级照片': st.photos === 0 ? <span style={{ color: '#8b93b0' }}>暂无新照片</span> : <span style={{ color: '#4ade80' }}>持续更新中</span>,
   };
   const stats: [string, number, number[], string][] = [
     ['注册成员', st.members, st.cum, '#5b8cff'],
     ['近7天新增', st.new7, st.dPro.slice(-7), '#8b5cf6'],
     ['班级动态', st.posts, st.dPost, '#4ade80'],
+    ['日常帖子', st.dailyPosts, st.dDailyPost, '#38bdf8'],
     ['班级照片', st.photos, st.dPhoto, '#f5a623'],
   ];
   return (<>
+    <TodoCenter go={go} />
     <div className="admin-stats-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
       {stats.map(([k, v, d, col]) => (
         <div key={k} style={{ ...card, marginBottom: 0, padding: 12 }}>
@@ -209,4 +266,3 @@ export default function Overview({ setMsg }: { setMsg: (s: string) => void }) {
   </>);
 }
 
-/* ---------------- 成员管理 ---------------- */

@@ -12,6 +12,7 @@ import FxLoader from './components/fx/Loader';
 import WelcomeOverlay from './components/WelcomeOverlay';
 import LoginSuccessOverlay from './components/LoginSuccessOverlay';
 import bgUrl from './assets/bg.jpg';
+import emblemUrl from './assets/pingzhong-emblem.png';
 import Login from './pages/Login';
 import Members from './pages/Members';
 import Member from './pages/Member';
@@ -40,6 +41,8 @@ import HotSnippets from './pages/HotSnippets';
 import LoveWall from './pages/LoveWall';
 import Explore from './pages/Explore';
 import SongWall from './pages/SongWall';
+import Daily from './pages/Daily';
+import { alertDialog } from './lib/dialog';
 
 const TABS = [
   { to: '/board', label: '公告' },
@@ -49,6 +52,7 @@ const TABS = [
   { to: '/me/notifications', label: '消息' },
   { to: '/songs', label: '歌声墙' },
   { to: '/love-wall', label: '表白墙' },
+  { to: '/daily', label: '日常' },
   { to: '/timeline', label: '回忆' },
   { to: '/me', label: '我的' },
 ];
@@ -72,6 +76,7 @@ function isTabActive(tab: string, path: string) {
   if (tab === '/friends') return ['/friends','/chat'].some(p => path.startsWith(p));
   if (tab === '/songs') return path.startsWith('/songs');
   if (tab === '/love-wall') return path.startsWith('/love-wall');
+  if (tab === '/daily') return path.startsWith('/daily');
   if (tab === '/timeline') return path.startsWith('/timeline');
   if (tab === '/me/notifications') return path.startsWith('/me/notifications');
   if (tab === '/me') return path.startsWith('/me') && !path.startsWith('/me/notifications');
@@ -104,8 +109,8 @@ function TestSwitchFab() {
       sessionStorage.removeItem('ca_testing_from');
     } catch {}
     const { error } = await supabase.auth.signOut();
-    if (error) alert('退出测试账号失败，请重试。');
-    else alert('测试账号已退出。为保护账号安全，请重新登录原账号。');
+    if (error) alertDialog('退出测试账号失败，请重试。');
+    else alertDialog('测试账号已退出。为保护账号安全，请重新登录原账号。');
     setBusy(false);
   }
   return (
@@ -180,10 +185,23 @@ function ResetPassword({ onDone }: { onDone: () => void }) {
 }
 
 // 维护模式：主站默认显示维护页；管理员可进入 /admin，持有有效临时通行码的访客可临时绕过此页。
-function MaintenanceScreen({ title, msg, hasSession, onLogout, onAdmin, onAccessGranted }: { title: string; msg: string; hasSession: boolean; onLogout: () => void; onAdmin: () => void; onAccessGranted: () => void }) {
+function MaintenanceScreen({ title, msg, hasSession, onLogout, onAccessGranted }: { title: string; msg: string; hasSession: boolean; onLogout: () => void; onAccessGranted: () => void }) {
   const [code, setCode] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [email, setEmail] = useState('');
+  const [subBusy, setSubBusy] = useState(false);
+  const [subNote, setSubNote] = useState('');
+  const [subDone, setSubDone] = useState(false);
+  async function subscribe() {
+    const em = email.trim().toLowerCase();
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)) { setSubNote('请填写正确的邮箱地址'); return; }
+    setSubBusy(true); setSubNote('');
+    const { error: insErr } = await supabase.from('maintenance_notify_emails').insert({ email: em });
+    setSubBusy(false);
+    if (!insErr || (insErr as any).code === '23505') setSubDone(true);
+    else setSubNote('登记失败，请稍后重试');
+  }
   async function redeem() {
     if (code.length !== 6 || [...code].some(ch => ch < '0' || ch > '9')) { setError('请输入完整的六位数验证码'); return; }
     setBusy(true); setError('');
@@ -210,7 +228,14 @@ function MaintenanceScreen({ title, msg, hasSession, onLogout, onAdmin, onAccess
         placeholder="请输入六位数验证码" style={{ textAlign: 'center', letterSpacing: 8, fontSize: 22 }} />
       {error && <p className="err" role="alert">{error}</p>}
       <button className="pri" disabled={busy || code.length !== 6} onClick={() => void redeem()}>{busy ? '验证中…' : '验证并进入'}</button>
-      <button className="mini ghost" style={{ marginTop: 12 }} onClick={onAdmin}>管理员入口</button>
+      <div style={{ marginTop: 18, paddingTop: 16, borderTop: '1px solid #ffffff14' }}>
+        <p style={{ fontSize: 13, color: 'var(--mut)', margin: '0 0 10px', lineHeight: 1.7 }}>没有验证码？留下邮箱，网站恢复后我们会第一时间发邮件通知你。</p>
+        {subDone ? <p style={{ fontSize: 13.5, color: '#7ee2a8', margin: 0 }}>已登记，网站恢复后会发邮件到 {email.trim().toLowerCase()}</p> : (<>
+          <input type="email" value={email} onChange={e => { setEmail(e.target.value); setSubNote(''); }} placeholder="填写您的邮箱地址" autoComplete="email" />
+          {subNote && <p className="err" role="alert">{subNote}</p>}
+          <button className="mini" style={{ marginTop: 10 }} disabled={subBusy} onClick={() => void subscribe()}>{subBusy ? '登记中…' : '恢复后邮件通知我'}</button>
+        </>)}
+      </div>
       {hasSession && <button className="mini ghost" style={{ marginTop: 12 }} onClick={onLogout}>退出登录</button>}
     </div>
   </div></>);
@@ -235,7 +260,8 @@ function PublicLanding({ data, onLogin }: { data: any; onLogin: () => void }) {
   const subtitle = data?.site_subtitle || '青春档案';
   const bannerText = data?.home_banner_text || '把我们的青春，留在这里';
   const bannerUrl = typeof data?.home_banner_url === 'string' && (data.home_banner_url.startsWith('https://') || data.home_banner_url.startsWith('http://')) ? data.home_banner_url : '';
-  return (<><div className="glow" /><main style={{ width: 'min(100% - 28px, 820px)', margin: '0 auto', padding: '22px 0 48px', color: '#202632' }}>
+  return (<><div className="glow" /><img src={emblemUrl} alt="" aria-hidden draggable={false}
+      style={{ position: 'fixed', top: 60, right: 10, width: 92, opacity: 0.32, pointerEvents: 'none', userSelect: 'none', zIndex: 30 }} /><main style={{ width: 'min(100% - 28px, 820px)', margin: '0 auto', padding: '22px 0 48px', color: '#202632' }}>
     <header style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 18 }}>
       <div style={{ flex: 1 }}><div style={{ fontSize: 11, letterSpacing: 3, color: '#7b8492' }}>OUR CLASS · PUBLIC SPACE</div><h1 style={{ margin: '6px 0 0', fontSize: 24 }}>{title}</h1><p style={{ margin: '4px 0 0', color: '#737b89', fontSize: 13 }}><ShinyText text={subtitle} /></p></div>
       {data?.close_login_entry !== 'true' && <button className="pri" style={{ width: 'auto', padding: '10px 16px', whiteSpace: 'nowrap' }} onClick={onLogin}>登录 / 注册</button>}
@@ -467,15 +493,25 @@ function Shell() {
   }, [siteConfig?.maintenance, loc.pathname]);
   useEffect(() => {
     let alive = true;
+    let inFlight = false;
     setSiteConfigLoading(true);
-    supabase.rpc('public_guest_landing').then(({ data, error }) => {
-      if (!alive) return;
-      setSiteConfig(error ? null : (data ?? null));
-      setSiteConfigLoading(false);
-    }, () => {
-      if (alive) { setSiteConfig(null); setSiteConfigLoading(false); }
-    });
-    return () => { alive = false; };
+    const refreshSiteConfig = async (initial = false) => {
+      if (inFlight) return;
+      inFlight = true;
+      try {
+        const { data, error } = await supabase.rpc('public_guest_landing');
+        if (alive && !error) setSiteConfig(data ?? null);
+      } catch {
+        // 保留上一次成功配置；短暂网络故障不应让维护页闪烁。
+      } finally {
+        inFlight = false;
+        if (alive && initial) setSiteConfigLoading(false);
+      }
+    };
+    void refreshSiteConfig(true);
+    // 定时维护由数据库按当前时间计算；每 15 秒刷新，使已打开页面也能准时切换。
+    const timer = window.setInterval(() => { void refreshSiteConfig(false); }, 15_000);
+    return () => { alive = false; window.clearInterval(timer); };
   }, [loc.pathname]);
   useEffect(() => { setShowLogin(false); }, [session]);
 
@@ -553,7 +589,7 @@ function Shell() {
   }} /></>);
   if (!session) {
     if (siteConfigLoading) return <div className="center" style={{ minHeight: '60vh' }}><FxLoader text="正在加载公开内容…" /></div>;
-    if (siteConfig?.maintenance === 'true' && !maintenanceAccess) return <MaintenanceScreen title={siteConfig.maintenance_title || ''} msg={siteConfig.maintenance_msg || ''} hasSession={false} onLogout={logout} onAdmin={() => nav('/admin')} onAccessGranted={() => setMaintenanceAccess(true)} />;
+    if (siteConfig?.maintenance === 'true' && !maintenanceAccess) return <MaintenanceScreen title={siteConfig.maintenance_title || ''} msg={siteConfig.maintenance_msg || ''} hasSession={false} onLogout={logout} onAccessGranted={() => setMaintenanceAccess(true)} />;
     if (showLogin && siteConfig?.close_login_entry !== 'true') return <><div className="glow" /><Login /><button className="mini ghost" style={{ position: 'fixed', top: 'calc(env(safe-area-inset-top) + 12px)', right: 14, zIndex: 900 }} onClick={() => setShowLogin(false)}>返回公开首页</button></>;
     if (siteConfig?.skip_login_screen === 'true') return <PublicLanding data={siteConfig} onLogin={() => setShowLogin(true)} />;
     if (siteConfig?.close_login_entry === 'true') return <LoginClosedScreen />;
@@ -561,7 +597,7 @@ function Shell() {
   }
   // 维护模式：后台开关开着时，主站所有人只显示维护页（管理后台页本身不受影响）。
   if (siteConfig?.maintenance === 'true' && !isAdminPage && !maintenanceAccess) {
-    return <MaintenanceScreen title={siteConfig.maintenance_title || ''} msg={siteConfig.maintenance_msg || ''} hasSession={!!session} onLogout={logout} onAdmin={() => nav('/admin')} onAccessGranted={() => setMaintenanceAccess(true)} />;
+    return <MaintenanceScreen title={siteConfig.maintenance_title || ''} msg={siteConfig.maintenance_msg || ''} hasSession={!!session} onLogout={logout} onAccessGranted={() => setMaintenanceAccess(true)} />;
   }
 
   return (
@@ -570,6 +606,8 @@ function Shell() {
       <div className="app-bg" style={wp.kind === 'grad'
         ? { background: wp.src, filter: `blur(${wp.blur}px) brightness(${100 - wp.dark}%)` }
         : { backgroundImage: `url(${wp.src === 'default' ? bgUrl : wp.src})`, filter: `blur(${wp.blur}px) brightness(${100 - wp.dark}%)` }} />
+      <img src={emblemUrl} alt="" aria-hidden draggable={false}
+        style={{ position: 'fixed', top: 60, right: 10, width: 92, opacity: 0.32, pointerEvents: 'none', userSelect: 'none', zIndex: 30 }} />
       {isAdminPage ? (
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', position: 'sticky', top: 0, zIndex: 40, background: 'rgba(255,255,255,.92)', backdropFilter: 'blur(12px)', borderBottom: '1px solid #e8eaf0' }}>
           <b style={{ fontSize: 15 }}>管理后台</b>
@@ -604,6 +642,7 @@ function Shell() {
               <Route path="/explore" element={<Explore />} />
               <Route path="/love-wall" element={<LoveWall />} />
               <Route path="/songs" element={<SongWall />} />
+              <Route path="/daily" element={<Daily />} />
               <Route path="/members" element={<Members />} />
               <Route path="/members/:id" element={<Member />} />
               <Route path="/feed" element={<Discover />} />

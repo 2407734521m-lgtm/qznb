@@ -10,7 +10,7 @@ export type FeedPost = Pick<
 
 export type AdminPost = Pick<
   PostRow,
-  'id' | 'author_id' | 'content' | 'image_url' | 'created_at' | 'deleted_at'
+  'id' | 'author_id' | 'content' | 'image_url' | 'created_at' | 'deleted_at' | 'section'
 >;
 
 export type FeedComment = Pick<

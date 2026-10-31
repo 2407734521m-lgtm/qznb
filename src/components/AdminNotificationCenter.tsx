@@ -112,6 +112,7 @@ export default function AdminNotificationCenter({ setMsg }: { setMsg: (s: string
     if (!noticeBody.trim() || noticeBody.trim().length > 2000) return setMsg('通知正文需填写，且不超过 2000 字。');
     const link = noticeLink.trim() || '/me/notifications';
     if (!link.startsWith('/') || link.startsWith('//') || link.length > 300) return setMsg('跳转地址必须是站内相对路径。');
+    if (!people.length) return setMsg('成员名单尚未成功加载，或目前没有已加入成员，暂不能发送。');
     if (!allRecipients && !selectedRecipients.length) return setMsg('请先选择收件成员。');
     const recipientCount = allRecipients ? people.length : selectedRecipients.length;
     if (allRecipients && recipientCount > 1000) return setMsg('全体发送人数超过 1000，请改为分批指定成员。');

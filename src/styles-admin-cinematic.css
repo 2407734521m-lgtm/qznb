@@ -448,3 +448,28 @@
 .admin-overview-timeout p{margin:8px 0 14px;color:#aebbd3;font-size:12px;line-height:1.6}
 .admin-overview-timeout button{min-height:40px;padding:9px 16px;border:1px solid rgba(157,188,255,.28);border-radius:12px;background:rgba(91,140,255,.18);color:#eaf1ff;font:inherit}
 @media(prefers-reduced-motion:reduce){.admin-loading-pulse{animation:none}}
+
+
+/* Admin mobile fixes: keep selection controls compact and reserve space for the fixed dock. */
+.admin-shell .admin-content input[type="checkbox"],
+.admin-shell .admin-content input[type="radio"]{
+  flex:0 0 16px!important;
+  width:16px!important;
+  min-width:16px!important;
+  max-width:16px!important;
+  height:16px!important;
+  min-height:16px!important;
+  padding:0!important;
+  margin:3px 2px 0 0!important;
+  box-sizing:border-box!important;
+  accent-color:#39b9ad;
+}
+@media(max-width:899px){
+  .admin-shell .admin-content{
+    padding-bottom:calc(116px + env(safe-area-inset-bottom))!important;
+    scroll-padding-bottom:calc(116px + env(safe-area-inset-bottom));
+  }
+  .admin-shell{
+    padding-bottom:calc(124px + env(safe-area-inset-bottom))!important;
+  }
+}

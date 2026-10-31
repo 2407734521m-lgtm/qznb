@@ -277,4 +277,20 @@ using (
   and chat_private.is_conversation_member(split_part(name, '/', 1)::bigint)
 );
 
+-- Public RPCs are authenticated-only; SECURITY DEFINER does not imply public access.
+revoke all on function public.send_friend_request(uuid) from public, anon;
+grant execute on function public.send_friend_request(uuid) to authenticated;
+
+revoke all on function public.respond_friend_request(uuid, boolean) from public, anon;
+grant execute on function public.respond_friend_request(uuid, boolean) to authenticated;
+
+revoke all on function public.friend_requests() from public, anon;
+grant execute on function public.friend_requests() to authenticated;
+
+revoke all on function public.my_friends() from public, anon;
+grant execute on function public.my_friends() to authenticated;
+
+revoke all on function public.get_or_create_conversation(uuid) from public, anon;
+grant execute on function public.get_or_create_conversation(uuid) to authenticated;
+
 drop function public.is_conversation_member(bigint);

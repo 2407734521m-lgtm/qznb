@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { card, h3, mut, alog } from './shared';
+import { confirmDialog } from '../../lib/dialog';
 
 type Ic = { id: number; code: string; nickname: string | null; active: boolean; created_at: string; expires_at: string | null };
 export default function InviteTab({ isSuper, setMsg }: { isSuper: boolean; setMsg: (s: string) => void }) {
@@ -15,7 +16,7 @@ export default function InviteTab({ isSuper, setMsg }: { isSuper: boolean; setMs
   }
   useEffect(() => { load(); }, []);
   async function batchCodes(n: number) {
-    if (!confirm(`一次生成 ${n} 个随机邀请码？`)) return;
+    if (!(await confirmDialog(`一次生成 ${n} 个随机邀请码？`))) return;
     setBatchBusy(true);
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
     let ok = 0;
@@ -42,7 +43,7 @@ export default function InviteTab({ isSuper, setMsg }: { isSuper: boolean; setMs
     if (!error) { await alog('invite_toggle', { id, active: !a }); load(); } else setMsg('操作失败：' + error.message);
   }
   async function delIc(id: number) {
-    if (!confirm('删除这个邀请码？')) return;
+    if (!(await confirmDialog('删除这个邀请码？', { danger: true }))) return;
     const { error } = await supabase.rpc('delete_invite_code', { cid: id });
     if (!error) { await alog('invite_delete', { id }); load(); } else setMsg('删除失败：' + error.message);
   }

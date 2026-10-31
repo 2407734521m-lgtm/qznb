@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { card, h3, mut, alog } from './shared';
+import { confirmDialog } from '../../lib/dialog';
 
 type Gp = { profile_id: string; game_name: string; rank: string | null; game_uid: string | null; status: string };
 export default function GameTab({ setMsg }: { setMsg: (s: string) => void }) {
@@ -26,7 +27,7 @@ export default function GameTab({ setMsg }: { setMsg: (s: string) => void }) {
     else setMsg('操作失败：' + error.message);
   }
   async function revoke(pid: string) {
-    if (!confirm('撤销这个段位认证？')) return;
+    if (!(await confirmDialog('撤销这个段位认证？', { danger: true }))) return;
     const { error } = await supabase.rpc('review_game_profile', { pid, approve: false });
     if (!error) { await alog('game_revoke', { pid }); load(); } else setMsg('操作失败：' + error.message);
   }

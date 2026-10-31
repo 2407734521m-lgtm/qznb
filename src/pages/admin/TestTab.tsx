@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useAuth } from '../../auth';
 import { supabase } from '../../lib/supabase';
 import { card, h3, mut } from './shared';
+import { confirmDialog } from '../../lib/dialog';
 
 type TA = { id: string; label: string; email: string; password: string };
 function loadTAs(): TA[] {
@@ -31,7 +32,7 @@ export default function TestTab({ setMsg }: { setMsg: (s: string) => void }) {
     } catch {}
   }
   async function switchTo(a: TA) {
-    if (!confirm(`切换登录到 ${a.label || a.email}？`)) return;
+    if (!(await confirmDialog(`切换登录到 ${a.label || a.email}？`))) return;
     if (!session?.user.email) return setMsg('无法读取当前账号邮箱，请先重新登录。');
     try {
       sessionStorage.setItem('ca_testing_from', session.user.email);

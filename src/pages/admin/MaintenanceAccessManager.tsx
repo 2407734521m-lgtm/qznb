@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { card, h3, mut, alog } from './shared';
+import { confirmDialog } from '../../lib/dialog';
 
 export default function MaintenanceAccessManager({ setMsg }: { setMsg: (s: string) => void }) {
   const [minutes, setMinutes] = useState('15');
@@ -49,7 +50,7 @@ export default function MaintenanceAccessManager({ setMsg }: { setMsg: (s: strin
   }
 
   async function revoke() {
-    if (!confirm('立即撤销当前所有临时通行码？已通过该码进入的访问会话也会失效。')) return;
+    if (!(await confirmDialog('立即撤销当前所有临时通行码？已通过该码进入的访问会话也会失效。', { danger: true }))) return;
     setBusy(true);
     const { data, error } = await supabase.rpc('admin_revoke_maintenance_codes');
     setBusy(false);

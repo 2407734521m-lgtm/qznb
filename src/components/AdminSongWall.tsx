@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useSignedUrl } from '../lib/media';
+import type { AdminSongPost as Song } from '../types/song';
 
-type Song = { id: string; author_id: string; title: string; description: string | null; audio_path: string; status: string; created_at: string };
 function ReviewSong({ song, onStatus, busy }: { song: Song; onStatus: (id: string, status: string) => void; busy: string | null }) {
   const url = useSignedUrl('song-audio', song.audio_path);
   return <article style={{ border: '1px solid #ffffff18', borderRadius: 13, padding: 12, background: '#11182b' }}>
@@ -25,7 +25,7 @@ export default function AdminSongWall({ setMsg }: { setMsg: (s: string) => void 
   async function load() {
     const { data, error } = await supabase.from('song_posts').select('*').order('created_at', { ascending: false }).limit(200);
     if (error) { setMsg('歌声墙管理不可用：请先执行 010_song_wall.sql 数据库迁移。'); return; }
-    setRows((data || []) as Song[]);
+    setRows(data ?? []);
   }
   useEffect(() => { void load(); }, []);
   async function setStatus(id: string, status: string) {

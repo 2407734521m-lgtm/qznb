@@ -53,7 +53,7 @@ function TodoCenter({ go }: { go: (tab: string) => void }) {
   </div>;
 }
 
-function Overview({ setMsg, go }: { setMsg: (s: string) => void; go: (tab: string) => void }) {
+export default function Overview({ setMsg, go }: { setMsg: (s: string) => void; go: (tab: string) => void }) {
   const [st, setSt] = useState<any>(null);
   const [presence, setPresence] = useState<{ online: number; active: number; sampledAt: string; error: boolean } | null>(null);
   const [loadTimedOut, setLoadTimedOut] = useState(false);

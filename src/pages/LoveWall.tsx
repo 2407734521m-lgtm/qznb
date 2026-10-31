@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../auth';
 import { getSignedUrls, downscaleImage } from '../lib/media';
-import emblemUrl from '../assets/pingzhong-emblem.png';
 
 // 公开列表来自 love_wall_published()，不含 author_id；自己的投稿来自表查询，只含自己的 author_id。
 type PublicPost = { id: string; recipient_name: string | null; category: string; content: string; is_anonymous: boolean; author_display_name: string | null; status: string; created_at: string };
@@ -213,10 +212,7 @@ export default function LoveWall() {
   }
 
   const shown = mine ? myPosts : posts;
-  return <main style={{ maxWidth: 760, margin: '0 auto', padding: '12px 0 110px', color: '#202124', position: 'relative' }}>
-    {/* 校徽水印：右上角半透明，不挡操作 */}
-    <img src={emblemUrl} alt="" aria-hidden draggable={false}
-      style={{ position: 'absolute', top: 10, right: 4, width: 118, opacity: 0.32, pointerEvents: 'none', userSelect: 'none', zIndex: 0 }} />
+  return <main style={{ maxWidth: 760, margin: '0 auto', padding: '12px 0 110px', color: '#202124' }}>
     {/* 头部：只留标题与页签，发布收成一个按钮 */}
     <div style={{ padding: '6px 2px 0' }}>
       <div style={{ fontSize: 11, letterSpacing: 3, color: '#737b89' }}>OUR CLASS · LITTLE FEELINGS</div>

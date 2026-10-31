@@ -1,0 +1,116 @@
+/* 全站桌面端布局增强：只在宽屏生效，不覆盖手机端交互。 */
+@media (min-width: 769px) {
+  :root { --desktop-content: 1440px; }
+
+  body { min-width: 320px; }
+
+  .topnav {
+    min-height: 64px;
+    padding: 10px max(24px, calc((100vw - 1480px) / 2));
+    gap: 8px;
+  }
+  .topnav .links {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+  }
+  .topnav a, .topnav button {
+    padding: 9px 13px;
+    font-size: 13px;
+    transition: background .18s ease, color .18s ease, transform .18s ease;
+  }
+  .topnav a:hover, .topnav button:hover {
+    color: var(--fg);
+    background: #ffffff12;
+  }
+  .topnav a.on {
+    box-shadow: inset 0 0 0 1px #ffffff12;
+  }
+
+  .wrap:not(.chat-shell) {
+    width: min(calc(100% - 64px), var(--desktop-content));
+    max-width: var(--desktop-content);
+    margin-inline: auto;
+    padding: 28px 0 56px;
+  }
+  .wrap:not(.chat-shell):has(.admin-shell) {
+    width: 100%;
+    max-width: none;
+    padding: 0;
+  }
+
+  .page {
+    width: 100%;
+    max-width: 1360px;
+    margin-inline: auto;
+  }
+  .page > .hero {
+    padding: 34px 36px 30px !important;
+    margin-bottom: 22px;
+  }
+  .page > .hero h1 { font-size: clamp(28px, 2.2vw, 38px); }
+  .page > .hero p { font-size: 15px; }
+
+  .searchbar {
+    max-width: 720px;
+    margin-block: 20px;
+  }
+  .mgrid {
+    grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+    gap: 20px;
+    margin-top: 14px;
+  }
+  .mcard { padding: 12px; }
+  .mcard h3 { font-size: 16px; }
+
+  .card, .post, .composer {
+    padding: 20px;
+    border-radius: 22px;
+  }
+  .post { margin-bottom: 18px; }
+  .post .bd { max-width: 100%; line-height: 1.8; }
+  .post .bdimg {
+    max-width: min(100%, 900px);
+    max-height: 680px;
+    object-fit: contain;
+    object-position: left center;
+  }
+
+  .login-wrap { padding: 48px; }
+  .login-card {
+    width: min(440px, 92vw);
+    padding: 34px 36px;
+    border-radius: 28px;
+  }
+  .login-card h1 { font-size: 25px; }
+
+  .me-page {
+    display: grid;
+    grid-template-columns: minmax(280px, .85fr) minmax(0, 1.65fr);
+    align-items: start;
+    gap: 20px;
+  }
+  .me-page > .me-head,
+  .me-page > .me-profile-head { grid-column: 1 / -1; }
+  .me-compact { max-width: 1080px; margin-inline: auto; }
+  .me-compact .card { padding: 24px; }
+
+  .tbl { table-layout: auto; }
+  .tbl th, .tbl td { padding: 13px 12px; }
+}
+
+@media (min-width: 1200px) {
+  .mgrid { grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 22px; }
+  .page .hero { border-radius: 28px; }
+}
+
+@media (min-width: 1600px) {
+  .wrap:not(.chat-shell) { width: min(calc(100% - 96px), 1520px); }
+  .page { max-width: 1440px; }
+  .mgrid { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
+}
+
+@media (max-width: 768px) {
+  /* 桌面增强样式在手机端完全退出，沿用原有移动端规则。 */
+}

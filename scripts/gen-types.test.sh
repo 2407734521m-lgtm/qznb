@@ -21,7 +21,7 @@ IDENTITY_TABLES=(
   echo '  public: {'
   echo '    Tables: {'
   for table in "${IDENTITY_TABLES[@]}"; do
-    printf '      %s: {\n        Row: { id: number }\n        Insert: {\n          id: number\n        }\n        Update: {\n          id?: number\n        }\n      }\n' "$table"
+    printf '      %s: {\n        Row: { id: number }\n        Insert: {\n          id: number\n        }\n        Update: {\n        }\n      }\n' "$table"
   done
   echo '    }'
   echo '    Views: {'

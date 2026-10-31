@@ -4,8 +4,10 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../auth';
 import { useSignedUrl } from '../lib/media';
 import './MeHub.css';
+import FeedbackModal from '../components/FeedbackModal';
+import SponsorModal from '../components/SponsorModal';
 
-type Entry = { mark: string; title: string; note: string; to: string; badge?: string };
+type Entry = { mark: string; title: string; note: string; to: string; badge?: string; act?: 'feedback' | 'sponsor' };
 const groups: { title: string; note: string; entries: Entry[] }[] = [
   { title: '个人主页', note: '整理你的个人形象', entries: [
     { mark: '主页', title: '我的主页', note: '别人看到的你的样子', to: 'profile' },
@@ -27,6 +29,10 @@ const groups: { title: string; note: string; entries: Entry[] }[] = [
     { mark: '隐私', title: '隐私设置', note: '谁可以看到你的资料', to: 'privacy' },
     { mark: '安全', title: '账号安全', note: '密码与登录状态', to: '/me/account' },
   ]},
+  { title: '支持', note: '遇到问题，或想支持一下网站', entries: [
+    { mark: '反馈', title: '联系开发者与反馈', note: '问题发邮件给开发者，留联系方式等回复', to: '', act: 'feedback' },
+    { mark: '赞助', title: '赞助', note: '自愿支持网站维护', to: '', act: 'sponsor' },
+  ]},
 ];
 
 export default function MeHub() {
@@ -35,6 +41,8 @@ export default function MeHub() {
   const [name, setName] = useState('');
   const [avatar, setAvatar] = useState<string | null>(null);
   const [unread, setUnread] = useState(0);
+  const [fbOpen, setFbOpen] = useState(false);
+  const [sponsorOpen, setSponsorOpen] = useState(false);
   const avUrl = useSignedUrl('avatars', avatar);
 
   useEffect(() => {
@@ -54,6 +62,8 @@ export default function MeHub() {
   }, [me]);
 
   function go(entry: Entry) {
+    if (entry.act === 'feedback') { setFbOpen(true); return; }
+    if (entry.act === 'sponsor') { setSponsorOpen(true); return; }
     if (entry.to === 'profile') nav(`/members/${me}`);
     else if (entry.to === 'edit') nav('/me/edit?sec=base');
     else if (entry.to === 'look') nav('/me/edit?sec=look');
@@ -105,6 +115,8 @@ export default function MeHub() {
           </section>
         ))}
       </div>
+      {fbOpen && <FeedbackModal kind="general" onClose={() => setFbOpen(false)} />}
+      {sponsorOpen && <SponsorModal onClose={() => setSponsorOpen(false)} />}
     </main>
   );
 }

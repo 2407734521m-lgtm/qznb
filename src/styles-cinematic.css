@@ -430,3 +430,16 @@ button:disabled{cursor:not-allowed;filter:saturate(.6)}
   }
 }
 
+
+
+/* Password visibility control shared by member and admin authentication screens. */
+.login-card .password-field{position:relative;width:100%;min-width:0;margin:0 0 4px}
+.login-card .password-field>input{width:100%;margin:0!important;padding-right:76px!important}
+.login-card .password-reveal{
+  position:absolute;top:50%;right:7px;transform:translateY(-50%);
+  min-height:32px;padding:0 10px;border-radius:9px;
+  border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.075);
+  color:rgba(229,237,255,.88);font:inherit;font-size:12px;font-weight:600;cursor:pointer;
+}
+.login-card .password-reveal:focus-visible{outline:2px solid #a9c4ff;outline-offset:2px}
+.login-card .password-reveal:disabled{opacity:.5;cursor:not-allowed}

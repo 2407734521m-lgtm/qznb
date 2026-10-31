@@ -2,7 +2,7 @@
 
 /* 管理后台：分区入场、层级与触控反馈 */
 .admin-content{animation:admin-panel-in .34s cubic-bezier(.2,.75,.25,1) both;transform-origin:50% 0}
-@keyframes admin-panel-in{from{opacity:0;transform:translate3d(0,9px,0) scale(.995);filter:blur(3px)}to{opacity:1;transform:translate3d(0,0,0) scale(1);filter:blur(0)}}
+@keyframes admin-panel-in{from{opacity:0;transform:translate3d(0,9px,0) scale(.995)}to{opacity:1;transform:translate3d(0,0,0) scale(1)}}
 .admin-content>div[style*="border-radius"]{transition:border-color .22s ease,box-shadow .22s ease}
 .admin-shell .row{min-width:0}
 .admin-shell button{transition:transform .16s ease,filter .16s ease,background-color .16s ease,border-color .16s ease}
@@ -116,7 +116,7 @@
 }
 @media(prefers-reduced-motion:no-preference){
   .admin-shell .admin-content .admin-email-glass .admin-email-panel{animation:email-glass-in .38s cubic-bezier(.2,.75,.25,1) both}
-  @keyframes email-glass-in{from{opacity:0;transform:translateY(7px) scale(.992);filter:blur(4px)}to{opacity:1;transform:translateY(0) scale(1);filter:blur(0)}}
+  @keyframes email-glass-in{from{opacity:0;transform:translateY(7px) scale(.992)}to{opacity:1;transform:translateY(0) scale(1)}}
 }
 
 

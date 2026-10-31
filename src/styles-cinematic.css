@@ -34,7 +34,6 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 }
 .app-bg { transform: scale(1.06); }
 .wrap { max-width: 1080px; }
-.page { animation: page-enter .48s var(--ui-ease) both; transform-origin: 50% 12%; }
 .hero { position: relative; padding-top: 26px; }
 .hero h1 {
   letter-spacing: -.025em;
@@ -121,13 +120,6 @@ button.ghost:hover:not(:disabled) {
 img, video { border-radius: inherit; }
 .page img { backface-visibility: hidden; }
 .page :where(h1,h2,h3,h4) { text-wrap: pretty; }
-.page :where(.mcard,.card,.tl-item,.classes-card,.class-detail-post,.campus-post) {
-  animation: card-arrive .5s var(--ui-ease) both;
-}
-.page :where(.mcard:nth-child(2), .card:nth-child(2), .tl-item:nth-child(2)) { animation-delay: .035s; }
-.page :where(.mcard:nth-child(3), .card:nth-child(3), .tl-item:nth-child(3)) { animation-delay: .07s; }
-.page :where(.mcard:nth-child(4), .card:nth-child(4), .tl-item:nth-child(4)) { animation-delay: .105s; }
-.page :where(.mcard:nth-child(n+5)) { animation-delay: .12s; }
 .campus-hero, .classes-hero, .class-detail-hero {
   border-radius: 26px;
   box-shadow: 0 16px 42px rgba(36,67,107,.09);
@@ -155,14 +147,6 @@ img, video { border-radius: inherit; }
   .tabbar { max-width: calc(100vw - 18px); bottom: calc(9px + env(safe-area-inset-bottom)); }
   .tabbar a { padding: 10px 12px; }
   .card { padding: 12px; }
-}
-@keyframes page-enter {
-  from { opacity: 0; transform: translate3d(0, 8px, 0); }
-  to { opacity: 1; transform: translate3d(0, 0, 0); }
-}
-@keyframes card-arrive {
-  from { opacity: 0; translate: 0 7px; }
-  to { opacity: 1; translate: 0 0; }
 }
 @keyframes pop-in {
   from { opacity: 0; transform: translateY(-5px) scale(.985); }

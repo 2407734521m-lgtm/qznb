@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from '../../auth';
+import { supabase } from '../../lib/supabase';
 import { card, h3, mut } from './shared';
 
 type TA = { id: string; label: string; email: string; password: string };

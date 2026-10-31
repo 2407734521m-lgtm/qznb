@@ -134,7 +134,7 @@ $function$;
 revoke all on function public.consume_song_audio_upload_token() from public, anon, authenticated, service_role;
 drop trigger if exists song_posts_consume_upload_token on public.song_posts;
 create trigger song_posts_consume_upload_token
-before insert on public.song_posts
+after insert on public.song_posts
 for each row execute function public.consume_song_audio_upload_token();
 
 -- Uploads must have a fresh path token belonging to the current user.

@@ -467,6 +467,9 @@ export type Database = {
           kind: string
           status: string
           created_at: string
+          admin_note: string | null
+          handled_by: string | null
+          handled_at: string | null
         }
         Insert: {
           id?: number
@@ -477,6 +480,9 @@ export type Database = {
           kind?: string
           status?: string
           created_at?: string
+          admin_note?: string | null
+          handled_by?: string | null
+          handled_at?: string | null
         }
         Update: {
           id?: number
@@ -487,6 +493,9 @@ export type Database = {
           kind?: string
           status?: string
           created_at?: string
+          admin_note?: string | null
+          handled_by?: string | null
+          handled_at?: string | null
         }
         Relationships: [
           {
@@ -1412,6 +1421,10 @@ export type Database = {
       admin_backup_overview: {
         Args: Record<PropertyKey, never>
         Returns: Json
+      }
+      admin_update_feedback: {
+        Args: { p_feedback_id: number; p_status: string; p_admin_note?: string | null }
+        Returns: undefined
       }
       admin_record_manual_backup: {
         Args: { p_scope: string; p_note: string }

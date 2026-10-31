@@ -40,15 +40,12 @@ import HotSnippets from './pages/HotSnippets';
 import LoveWall from './pages/LoveWall';
 import Explore from './pages/Explore';
 import SongWall from './pages/SongWall';
-import Messages from './pages/Messages';
 
 const TABS = [
-  { to: '/home', label: '首页' },
   { to: '/board', label: '公告' },
   { to: '/members', label: '班级' },
   { to: '/explore', label: '发现' },
   { to: '/friends', label: '私聊' },
-  { to: '/messages', label: 'iMessage' },
   { to: '/me/notifications', label: '消息' },
   { to: '/songs', label: '歌声墙' },
   { to: '/love-wall', label: '表白墙' },
@@ -73,7 +70,6 @@ function isTabActive(tab: string, path: string) {
   if (tab === '/members') return path.startsWith('/members');
   if (tab === '/explore') return ['/explore','/feed','/albums','/hot','/greetings','/events','/capsule','/wishes'].some(p => path.startsWith(p));
   if (tab === '/friends') return ['/friends','/chat'].some(p => path.startsWith(p));
-  if (tab === '/messages') return path.startsWith('/messages');
   if (tab === '/songs') return path.startsWith('/songs');
   if (tab === '/love-wall') return path.startsWith('/love-wall');
   if (tab === '/timeline') return path.startsWith('/timeline');
@@ -251,7 +247,6 @@ function Shell() {
   const isAdmin = role === 'admin' || role === 'super_admin';
   const isAdminPage = loc.pathname === '/admin';
   const isChatPage = loc.pathname.startsWith('/chat/');
-  const isMessagesPage = loc.pathname === '/messages';
   const nav = useNavigate();
   const barRef = useRef<HTMLElement>(null);
   const [dockCollapsed, setDockCollapsed] = useState(() => {
@@ -529,7 +524,7 @@ function Shell() {
           <NavLink to="/members" style={{ fontSize: 13, color: '#303642', textDecoration: 'none' }}>← 回站点</NavLink>
           <button className="mini ghost" onClick={logout}>退出</button>
         </div>
-      ) : !isChatPage && !isMessagesPage ? (
+      ) : !isChatPage ? (
       <nav className="topnav">
         <span className="links">
           {TABS.map(t => (
@@ -543,7 +538,7 @@ function Shell() {
       </nav>
       ) : null}
 
-      <div className={isChatPage ? "wrap chat-shell" : isMessagesPage ? "wrap im-list-shell" : "wrap"}>
+      <div className={isChatPage ? "wrap chat-shell" : "wrap"}>
         <AnimatePresence mode="wait">
           <motion.div key={loc.pathname}
             initial={reduce ? false : { opacity: 0, y: 16 }}
@@ -562,7 +557,7 @@ function Shell() {
               <Route path="/albums" element={<Navigate to="/feed" replace state={{ openTab: "albums" }} />} />
               <Route path="/albums/:id" element={<AlbumDetail />} />
               <Route path="/friends" element={<Friends />} />
-              <Route path="/messages" element={<Messages />} />
+              <Route path="/messages" element={<Navigate to="/friends" replace />} />
               <Route path="/chat/:cid" element={<Chat />} />
               <Route path="/timeline" element={<Timeline />} />
               <Route path="/timeline/:uid" element={<Timeline />} />
@@ -586,7 +581,7 @@ function Shell() {
         </AnimatePresence>
       </div>
 
-      {!isAdminPage && !isChatPage && !isMessagesPage && (
+      {!isAdminPage && !isChatPage && (
         <nav
           ref={barRef}
           className={`tabbar ${dockCollapsed ? 'dock-collapsed dock-side-' + dockSide : ''}`}

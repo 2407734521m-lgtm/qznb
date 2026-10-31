@@ -324,7 +324,7 @@ function Shell() {
   const [motionPreference, setMotionPreference] = useState<'system' | 'reduce' | 'full'>(() => {
     try { return (localStorage.getItem('qznb_motion_preference_v1') as 'system' | 'reduce' | 'full') || 'system'; } catch { return 'system'; }
   });
-  const reduce = motionPreference === 'reduce' || (motionPreference === 'system' && !!systemReduce);
+  const reduce = motionPreference === 'reduce' || !!systemReduce;
   useEffect(() => {
     const syncMotion = () => {
       try { setMotionPreference((localStorage.getItem('qznb_motion_preference_v1') as 'system' | 'reduce' | 'full') || 'system'); } catch { setMotionPreference('system'); }

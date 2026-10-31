@@ -30,7 +30,8 @@ const groups: { title: string; note: string; entries: Entry[] }[] = [
     { mark: '安全', title: '账号安全', note: '密码与登录状态', to: '/me/account' },
   ]},
   { title: '支持', note: '遇到问题，或想支持一下网站', entries: [
-    { mark: '反馈', title: '联系开发者与反馈', note: '问题发邮件给开发者，留联系方式等回复', to: '', act: 'feedback' },
+    { mark: '反馈', title: '联系开发者与反馈', note: '提交问题或意见', to: '', act: 'feedback' },
+    { mark: '进度', title: '我的反馈', note: '查看处理状态和管理员回复', to: '/me/feedback' },
     { mark: '赞助', title: '赞助', note: '自愿支持网站维护', to: '', act: 'sponsor' },
   ]},
 ];

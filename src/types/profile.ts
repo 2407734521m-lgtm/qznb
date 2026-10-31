@@ -17,3 +17,6 @@ export type ProfileLabel = Pick<
   ProfileRow,
   'id' | 'username' | 'display_name'
 >;
+
+export type MemberListItem =
+  Database['public']['Functions']['member_directory']['Returns'][number];

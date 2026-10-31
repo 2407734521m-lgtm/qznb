@@ -6,11 +6,8 @@ import { useSignedUrls } from '../lib/media';
 import Photo from '../components/Photo';
 import { setShot, takeShot, shotFrom, flyTo } from '../lib/transition';
 import { badgeText } from '../data/games';
+import type { MemberListItem } from '../types/profile';
 
-export type M = {
-  id: string; username: string; display_name: string | null; personality: string | null;
-  signature: string | null; avatar_path: string | null;
-};
 const PAGE = 18;
 
 const LAYOUTS = [
@@ -21,7 +18,7 @@ const LAYOUTS = [
   { k: 'list', name: '列表', icon: '📋' },
 ] as const;
 
-function Card({ m, i, badge, signedUrl, onOpen }: { m: M; i: number; badge?: string; signedUrl?: string; onOpen: (m: M, el: HTMLElement, img: string) => void }) {
+function Card({ m, i, badge, signedUrl, onOpen }: { m: MemberListItem; i: number; badge?: string; signedUrl?: string; onOpen: (m: MemberListItem, el: HTMLElement, img: string) => void }) {
   const reduce = useReducedMotion();
   const ref = useRef<HTMLDivElement>(null);
   const name = m.display_name ?? m.username;
@@ -41,7 +38,7 @@ function Card({ m, i, badge, signedUrl, onOpen }: { m: M; i: number; badge?: str
 
 export default function Members() {
   const nav = useNavigate(); const reduce = useReducedMotion();
-  const [q, setQ] = useState(''); const [rows, setRows] = useState<M[]>([]);
+  const [q, setQ] = useState(''); const [rows, setRows] = useState<MemberListItem[]>([]);
   const avatarUrls = useSignedUrls('avatars', rows.map(m => m.avatar_path));
   const [badges, setBadges] = useState<Record<string, string>>({});
   const [layout, setLayout] = useState<string>(() => localStorage.getItem('ca_members_layout') || 'c2');
@@ -51,11 +48,11 @@ export default function Members() {
   }
   const [state, setState] = useState<'loading' | 'ok' | 'error'>('loading'); const [more, setMore] = useState(false);
 
-  async function load(reset: boolean, query: string, base: M[]) {
+  async function load(reset: boolean, query: string, base: MemberListItem[]) {
     setState('loading');
     const { data, error } = await supabase.rpc('member_directory', { q: query, lim: PAGE, skip: reset ? 0 : base.length });
     if (error) return setState('error');
-    const list = (data ?? []) as M[];
+    const list = (data ?? []) as MemberListItem[];
     setRows(reset ? list : [...base, ...list]); setMore(list.length === PAGE); setState('ok');
   }
   useEffect(() => { const t = setTimeout(() => load(true, q, []), 300); return () => clearTimeout(t); }, [q]);
@@ -86,7 +83,7 @@ export default function Members() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  function open(m: M, photoEl: HTMLElement, img: string) {
+  function open(m: MemberListItem, photoEl: HTMLElement, img: string) {
     const s = shotFrom(photoEl, img, m.display_name || m.username);
     if (s) {
       // 按卡片所在列决定飞入方向：左列← / 右列→ / 中间↓

@@ -186,6 +186,7 @@ export default function Admin() {
   const [role, setRole] = useState('');
   const [verifiedUid, setVerifiedUid] = useState<string | null>(null);
   const [tab, setTab] = useState('overview');
+  const [moreOpen, setMoreOpen] = useState(false);
   const [msg, setMsg] = useState('');
   const [q0, setQ0] = useState('');
   const isSuper = role === 'super_admin';
@@ -214,7 +215,7 @@ export default function Admin() {
   }, [session?.user.id]);
 
   function switchTab(id: string) {
-    setTab(id); setMsg('');
+    setTab(id); setMsg(''); setMoreOpen(false);
     window.scrollTo({ top: 0 });
   }
 
@@ -291,8 +292,41 @@ export default function Admin() {
               {tab === 'test' && isSuper && <TestTab setMsg={setMsg} />}
       </div>
 
-      {/* 底部 dock */}
-      <div className="admin-dock" style={{
+      {/* 手机端更多入口：把低频管理功能收进轻量菜单 */}
+      {moreOpen && (
+        <div className="admin-mobile-more-backdrop" onClick={() => setMoreOpen(false)}>
+          <div className="admin-mobile-more" role="dialog" aria-label="更多管理功能" onClick={e => e.stopPropagation()}>
+            <div className="admin-mobile-more-head">
+              <div><strong>更多功能</strong><span>管理工具与系统设置</span></div>
+              <button type="button" aria-label="关闭" onClick={() => setMoreOpen(false)}>×</button>
+            </div>
+            <div className="admin-mobile-more-grid">
+              {tabs.filter(([id]) => !['overview','members','moderate','notifications'].includes(id)).map(([id,label]) => (
+                <button type="button" key={id} className={tab === id ? 'active' : ''} onClick={() => switchTab(id)}>
+                  <span>{label}</span><span aria-hidden="true">›</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 手机端精简 Dock */}
+      <nav className="admin-mobile-dock" aria-label="管理员主导航">
+        {tabs.filter(([id]) => ['overview','members','moderate','notifications'].includes(id)).map(([id,label]) => (
+          <button type="button" key={id} aria-current={tab === id ? 'page' : undefined} onClick={() => switchTab(id)}>
+            <span className="admin-mobile-dock-dot" />
+            <span>{label}</span>
+          </button>
+        ))}
+        <button type="button" className={moreOpen || !['overview','members','moderate','notifications'].includes(tab) ? 'active' : ''} aria-expanded={moreOpen} onClick={() => setMoreOpen(v => !v)}>
+          <span className="admin-mobile-dock-more">···</span>
+          <span>更多</span>
+        </button>
+      </nav>
+
+      {/* 桌面端侧边 Dock */}
+      <div className="admin-dock admin-dock-desktop" style={{
         position: 'fixed', left: '50%', transform: 'translateX(-50%)', zIndex: 60,
         bottom: 'calc(14px + env(safe-area-inset-bottom))',
         width: 'max-content', maxWidth: 'calc(100vw - 28px)',

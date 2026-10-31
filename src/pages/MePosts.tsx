@@ -11,7 +11,7 @@ export default function MePosts() {
 
   async function load() {
     const { data } = await supabase.from('posts')
-      .select('id, content, image_url, created_at').eq('author_id', me)
+      .select('id, content, image_url, created_at, section').eq('author_id', me)
       .is('deleted_at', null).order('created_at', { ascending: false }).limit(50);
     setPosts(data ?? []);
   }
@@ -34,7 +34,7 @@ export default function MePosts() {
           <div style={{ fontSize: 13.5, lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>{p.content}</div>
           {p.image_url && <img src={p.image_url} alt="" style={{ width: '100%', borderRadius: 10, marginTop: 8 }} loading="lazy" />}
           <div className="row" style={{ justifyContent: 'space-between', marginTop: 8 }}>
-            <span style={{ fontSize: 11.5, color: 'var(--mut)' }}>{(p.created_at || '').slice(0, 16).replace('T', ' ')}</span>
+            <span style={{ fontSize: 11.5, color: 'var(--mut)' }}><span style={{ marginRight: 6, padding: '1px 6px', borderRadius: 999, background: '#eef2ff', color: '#4c5ec2' }}>{p.section === 'daily' ? '日常' : '动态'}</span>{(p.created_at || '').slice(0, 16).replace('T', ' ')}</span>
             <button className="mini danger" onClick={() => del(p)}>删除</button>
           </div>
         </div>

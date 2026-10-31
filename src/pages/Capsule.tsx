@@ -57,11 +57,8 @@ export default function Capsule() {
   const [order, setOrder] = useState<number[]>([]);
   // 视频里默认就是自动滚动：开着，每 3.5 秒翻一封；阅读时自动停。
   const [autoScroll, setAutoScroll] = useState(true);
-  // 视频里的分类与未读：收件箱 = 别人的公开胶囊，我发的 = 自己的，未读 = 已到期但本机还没点开过的。
-  // 未读只记在本机 localStorage 里，表里没有已读字段，换设备不会同步，这一点下面和汇报里都会明说。
-  const [readIds, setReadIds] = useState<number[]>(() => {
-    try { return JSON.parse(localStorage.getItem('capsule-read-ids') || '[]'); } catch { return []; }
-  });
+  // 未读记录保存在账号级 capsule_reads 表；跨设备同步，不再使用无账号归属的本机缓存。
+  const [readIds, setReadIds] = useState<number[]>([]);
   const [filter, setFilter] = useState<'all' | 'inbox' | 'sent' | 'unread' | 'locked' | 'trash'>('all');
   const [page, setPage] = useState(0);
   const [trash, setTrash] = useState<any[]>([]);
@@ -70,13 +67,36 @@ export default function Capsule() {
   const touchXRef = useRef(0);
 
   async function load() {
-    // 主列表只显示没删的；回收站只显示本人的已删胶囊。
-    const { data } = await supabase.from('time_capsules').select('*').is('deleted_at', null).order('open_at', { ascending: true }).limit(50);
-    setList(data ?? []);
-    const { data: trashData } = await supabase.from('time_capsules').select('*').eq('author_id', me).not('deleted_at', 'is', null).order('deleted_at', { ascending: false }).limit(50);
-    setTrash(trashData ?? []);
+    // 主列表只显示未删除且当前账号有权读取的胶囊；回收站仅显示本人已删除记录。
+    const { data, error } = await supabase.from('time_capsules').select('*')
+      .is('deleted_at', null).order('open_at', { ascending: true }).limit(50);
+    if (error) {
+      setMsg('胶囊加载失败：' + error.message);
+      return;
+    }
+    const visible = data ?? [];
+    setList(visible);
+
+    const ids = visible.map(c => Number(c.id));
+    if (ids.length) {
+      const { data: reads, error: readError } = await (supabase as any)
+        .from('capsule_reads')
+        .select('capsule_id')
+        .eq('profile_id', me)
+        .in('capsule_id', ids);
+      if (readError) setMsg('已读状态同步失败：' + readError.message);
+      else setReadIds((reads ?? []).map((row: { capsule_id: number }) => Number(row.capsule_id)));
+    } else {
+      setReadIds([]);
+    }
+
+    const { data: trashData, error: trashError } = await supabase.from('time_capsules').select('*')
+      .eq('author_id', me).not('deleted_at', 'is', null)
+      .order('deleted_at', { ascending: false }).limit(50);
+    if (trashError) setMsg('回收站加载失败：' + trashError.message);
+    else setTrash(trashData ?? []);
   }
-  useEffect(() => { load(); }, []);
+  useEffect(() => { void load(); }, [me]);
   const idsKey = useMemo(() => list.map(c => c.id).join(','), [list]);
   useEffect(() => { setOrder(list.map(c => c.id)); }, [idsKey, list]);
   // 倒计时按分钟刷新一次即可，不必每秒重渲染。
@@ -94,10 +114,12 @@ export default function Capsule() {
   useEffect(() => {
     if (!shredding) return;
     const t = setTimeout(async () => {
-      const { error } = await supabase.from('time_capsules').update({ deleted_at: new Date().toISOString() }).eq('id', shredding.id);
+      const { data, error } = await supabase.from('time_capsules').update({ deleted_at: new Date().toISOString() })
+        .eq('id', shredding.id).eq('author_id', me).select('id').maybeSingle();
       if (error) setMsg('放进回收站失败：' + error.message);
+      else if (!data) setMsg('胶囊未删除：记录不存在或当前账号没有权限。');
       setShredding(null);
-      load();
+      await load();
     }, reduce ? 400 : 1500);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -111,13 +133,18 @@ export default function Capsule() {
     return () => window.removeEventListener('keydown', onKey);
   }, [reading]);
 
-  function markRead(id: number) {
-    setReadIds(prev => {
-      if (prev.includes(id)) return prev;
-      const next = [...prev, id];
-      try { localStorage.setItem('capsule-read-ids', JSON.stringify(next)); } catch { /* 本机存不下也不影响读信 */ }
-      return next;
+  async function markRead(id: number) {
+    if (readIds.includes(id)) return;
+    const { error } = await (supabase as any).from('capsule_reads').insert({
+      profile_id: me,
+      capsule_id: id,
     });
+    // 23505 表示该账号之前已经读过这封胶囊，不属于失败。
+    if (error && error.code !== '23505') {
+      setMsg('已读状态同步失败：' + error.message);
+      return;
+    }
+    setReadIds(current => current.includes(id) ? current : [...current, id]);
   }
 
   async function save() {
@@ -130,15 +157,20 @@ export default function Capsule() {
     else { setMsg('已封存，到期才能开启'); setTitle(''); setContent(''); setOpenAt(''); setIsPublic(false); load(); }
   }
   async function restore(id: number) {
-    const { error } = await supabase.from('time_capsules').update({ deleted_at: null }).eq('id', id);
+    const { data, error } = await supabase.from('time_capsules').update({ deleted_at: null })
+      .eq('id', id).eq('author_id', me).select('id').maybeSingle();
     if (error) setMsg('恢复失败：' + error.message);
-    load();
+    else if (!data) setMsg('恢复未完成：记录不存在或当前账号没有权限。');
+    await load();
   }
   async function permDel(id: number) {
     if (!(await confirmDialog('彻底删除？删了就找不回来了', { danger: true }))) return;
-    await supabase.from('time_capsules').delete().eq('id', id);
-    if (reading?.id === id) setReading(null);
-    load();
+    const { data, error } = await supabase.from('time_capsules').delete()
+      .eq('id', id).eq('author_id', me).select('id').maybeSingle();
+    if (error) setMsg('彻底删除失败：' + error.message);
+    else if (!data) setMsg('没有删除任何记录：胶囊不存在或当前账号没有权限。');
+    if (!error && reading?.id === id) setReading(null);
+    await load();
   }
 
   const today = new Date().toISOString().slice(0, 10);
@@ -229,7 +261,7 @@ export default function Capsule() {
                     onClick={() => {
                       if (swipedRef.current) { swipedRef.current = false; return; }
                       if (!isTop) { setOrder(o => [c.id, ...o.filter(x => x !== c.id)]); return; }
-                      if (opened) { setReading(c); markRead(c.id); } else setShakeId(c.id);
+                      if (opened) { setReading(c); void markRead(c.id); } else setShakeId(c.id);
                     }}
                     onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); (e.target as HTMLElement).click(); } }}
                     aria-label={isTop

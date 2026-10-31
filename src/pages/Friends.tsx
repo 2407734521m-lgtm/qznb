@@ -121,11 +121,12 @@ export default function Friends() {
   async function openChat(friend: Friend) {
     setMsg('');
     const { data, error } = await supabase.rpc('get_or_create_conversation', { other: friend.id });
-    if (error || !data) {
+    const conversationId = Number(data);
+    if (error || !Number.isSafeInteger(conversationId) || conversationId < 1) {
       setMsg('打开聊天失败：' + (error?.message ?? '暂时无法创建对话'));
       return;
     }
-    nav('/chat/' + data, { state: { name: friend.display_name ?? friend.username } });
+    nav('/chat/' + conversationId, { state: { name: friend.display_name ?? friend.username } });
   }
 
   async function openConversation(conversation: ConversationPreview) {

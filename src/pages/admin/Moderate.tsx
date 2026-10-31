@@ -29,9 +29,12 @@ export default function Moderate({ setMsg }: { setMsg: (s: string) => void }) {
     ]);
     setPosts(p.data ?? []); setCmts(c.data ?? []); setReports((r.data ?? []) as Report[]);
     setTrashP(tp.data ?? []); setTrashC(tc.data ?? []); setTrashB((tb.data ?? []) as BoardRow[]);
+    const commentPostIds = [...new Set([...(c.data ?? []), ...(tc.data ?? [])].map(comment => comment.post_id))];
     const sectionMap: Record<number, string> = {};
-    (p.data ?? []).forEach((post: any) => { sectionMap[post.id] = post.section ?? 'feed'; });
-    (tp.data ?? []).forEach((post: any) => { sectionMap[post.id] = post.section ?? 'feed'; });
+    if (commentPostIds.length) {
+      const { data: commentPosts } = await supabase.from('posts').select('id, section').in('id', commentPostIds);
+      (commentPosts ?? []).forEach(post => { sectionMap[post.id] = post.section ?? 'feed'; });
+    }
     setPostSections(sectionMap);
     const ids = new Set<string>();
     (p.data ?? []).forEach((x: any) => ids.add(x.author_id));

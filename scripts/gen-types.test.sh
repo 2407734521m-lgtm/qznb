@@ -71,7 +71,7 @@ run_case() {
 
   if [ "$want_success" = "yes" ]; then
     [ "$code" -eq 0 ] || ok=0
-    [ "$(grep -c '^          id?: number$' "$dir/src/lib/database.types.ts" || true)" = "14" ] || ok=0
+    [ "$(grep -Fxc '          id?: number' "$dir/src/lib/database.types.ts" || true)" = "14" ] || ok=0
     grep -Fq 'Returns: { online_count: number; active_count: number; sampled_at: string }' "$dir/src/lib/database.types.ts" || ok=0
     grep -Fq 'Returns: { site_title: string;' "$dir/src/lib/database.types.ts" || ok=0
     grep -Fq 'Returns: { id: string; username: string; display_name: string | null;' "$dir/src/lib/database.types.ts" || ok=0

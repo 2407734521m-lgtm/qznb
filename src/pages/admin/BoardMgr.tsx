@@ -4,7 +4,7 @@ import { card, h3, mut, rowBtn, alog } from './shared';
 import { confirmDialog } from '../../lib/dialog';
 
 /* ---------------- 内容审核 ---------------- */
-function BoardMgr({ me, setMsg }: { me: string; setMsg: (s: string) => void }) {
+export default function BoardMgr({ me, setMsg }: { me: string; setMsg: (s: string) => void }) {
   const [bannerText, setBannerText] = useState('把我们的青春，留在这里');
   const [bannerUrl, setBannerUrl] = useState('');
   const [bannerBusy, setBannerBusy] = useState(false);

@@ -43,6 +43,7 @@ export default function AdminSecurityCenter({ session, setMsg }: { session: Sess
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [signingOut, setSigningOut] = useState(false);
+  const [signingOutOthers, setSigningOutOthers] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -67,6 +68,15 @@ export default function AdminSecurityCenter({ session, setMsg }: { session: Sess
     setSigningOut(false);
     if (signOutError) setMsg('退出当前设备失败：' + signOutError.message);
     else setMsg('当前设备已退出登录。');
+  }
+
+  async function signOutOtherDevices() {
+    if (!(await confirmDialog('确定退出此账号在其他设备和浏览器上的所有登录？当前设备会保持登录。', { danger: true }))) return;
+    setSigningOutOthers(true);
+    const { error: signOutError } = await supabase.auth.signOut({ scope: 'others' });
+    setSigningOutOthers(false);
+    if (signOutError) setMsg('退出其他设备失败：' + signOutError.message);
+    else setMsg('已请求退出此账号的其他设备；当前设备保持登录。');
   }
 
   const login = data?.login ?? {};
@@ -103,10 +113,15 @@ export default function AdminSecurityCenter({ session, setMsg }: { session: Sess
         <div className="row" style={{ justifyContent: 'space-between', gap: 10 }}><span style={mut}>会话有效期</span><strong style={{ textAlign: 'right', fontSize: 12 }}>{expiryLabel}</strong></div>
         <div className="row" style={{ justifyContent: 'space-between', gap: 10 }}><span style={mut}>用户 ID</span><code style={{ fontSize: 11 }}>{session.user.id.slice(0, 8)}…</code></div>
       </div>
-      <button className="mini danger" style={{ marginTop: 12 }} disabled={signingOut} onClick={() => void signOutCurrentDevice()}>
-        {signingOut ? '正在退出…' : '退出当前设备'}
-      </button>
-      <p style={{ ...mut, marginBottom: 0 }}>此处只撤销当前浏览器的本地登录会话。远程注销其他设备需要服务端 Auth 管理密钥，当前版本不会伪装成已支持。</p>
+      <div className="row" style={{ gap: 8, flexWrap: 'wrap', marginTop: 12 }}>
+        <button className="mini danger" disabled={signingOut} onClick={() => void signOutCurrentDevice()}>
+          {signingOut ? '正在退出…' : '退出当前设备'}
+        </button>
+        <button className="mini" disabled={signingOutOthers} onClick={() => void signOutOtherDevices()}>
+          {signingOutOthers ? '正在处理…' : '退出其他设备'}
+        </button>
+      </div>
+      <p style={{ ...mut, marginBottom: 0 }}>「退出其他设备」仅作用于当前登录的管理员账号，并保留本设备。它不是撤销其他管理员账号的会话；被撤销会话的 Access Token 仍可能在过期前短暂有效。</p>
     </section>
 
     <section style={card}>

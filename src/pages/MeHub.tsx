@@ -15,7 +15,9 @@ const groups: { title: string; note: string; entries: Entry[] }[] = [
   { title: '我的内容', note: '回看你在青春档案留下的记录', entries: [
     { mark: '动态', title: '我的动态', note: '发布过的所有动态', to: '/me/posts' },
     { mark: '收藏', title: '我的收藏', note: '保存起来的内容', to: '/me/favorites' },
-    { mark: '相册', title: '我的相册', note: '照片与影像记录', to: '/feed' },
+    { mark: '相册', title: '班级相册', note: '按分类浏览照片与影像', to: '/albums' },
+    { mark: '活动', title: '班级活动', note: '查看近期活动与安排', to: '/events' },
+    { mark: '特效', title: '热门特效', note: '探索互动效果', to: '/hot' },
   ]},
   { title: '互动消息', note: '查看来自同学的互动', entries: [
     { mark: '留言', title: '我的留言', note: '收到的留言', to: '/me/greetings' },

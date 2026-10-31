@@ -693,7 +693,7 @@ function Shell() {
       {!isAdminPage && !isChatPage && (
         <nav
           ref={barRef}
-          className={`tabbar ${dockCollapsed ? 'dock-collapsed dock-side-' + dockSide : ''}`}
+          className={`tabbar ${loc.pathname === '/friends' ? 'dock-glass-context' : ''} ${dockCollapsed ? 'dock-collapsed dock-side-' + dockSide : ''}`}
           style={{ touchAction: 'pan-x pan-y' }}
           aria-label="主导航"
         >

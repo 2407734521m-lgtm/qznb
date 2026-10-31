@@ -39,6 +39,7 @@ export default function KaiboxDialog({ onClose }: { onClose: () => void }) {
       p_request_type: type,
       p_description: description.trim().slice(0, 500),
       p_contact: contact.trim().slice(0, 100) || null,
+      p_confirmed: true,
     });
     setBusy(false);
     if (e) return setError('提交失败：' + e.message);

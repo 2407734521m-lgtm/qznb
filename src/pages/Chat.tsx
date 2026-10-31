@@ -260,7 +260,7 @@ export default function Chat() {
       {error && <div className="im-error">{error}</div>}
       {showStickers && <div className="im-sticker-tray" role="group" aria-label="选择贴纸">{['🥹','😂','❤️','😍','🐱','🐻','✨','🎉','👍','😭','🫶','🌸','💖','😎'].map(sticker => <button key={sticker} type="button" className="im-sticker-choice" aria-label={'发送贴纸 ' + sticker} onClick={() => sendSticker(sticker)}>{sticker}</button>)}</div>}
       <form className="im-composer" onSubmit={e => { e.preventDefault(); send(); }}>
-        <input ref={imageRef} type="file" accept="image/*" hidden onChange={e => sendImage(e.target.files?.[0])} />
+        <input ref={imageRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif,image/heic" hidden onChange={e => sendImage(e.target.files?.[0])} />
         <button type="button" className="im-plus" aria-label="打开贴纸和图片菜单" title="打开贴纸和图片菜单" disabled={uploading || recording} onClick={() => setShowStickers(v => !v)}>{showStickers ? '×' : '＋'}</button><button type="button" className="im-icon" aria-label="选择图片" title="选择图片" disabled={uploading || recording} onClick={() => imageRef.current?.click()} style={{fontSize:17,minWidth:38,width:38,height:38}}>▧</button>
         <button type="button" className={'im-mic' + (recording ? ' recording' : '')} aria-label={recording ? '结束录音并发送' : '录制语音'} title={recording ? '结束录音并发送' : '录制语音'} disabled={uploading} onClick={recording ? stopRecording : startRecording}>{recording ? '■' : '●'}</button>
         <div className="im-input-wrap">

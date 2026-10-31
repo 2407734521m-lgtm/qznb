@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { motion, useReducedMotion } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../auth';
@@ -27,6 +28,9 @@ function timeAgo(s: string) {
 
 export default function Board() {
   const me = useAuth().session!.user.id; const reduce = useReducedMotion();
+  const location = useLocation();
+  const nav = useNavigate();
+  const searchQuery = new URLSearchParams(location.search).get('q')?.trim() || '';
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const [profiles, setProfiles] = useState<Record<string, Profile>>({});
   const [text, setText] = useState('');
@@ -92,8 +96,11 @@ export default function Board() {
     load();
   }
 
-  const notices = msgs.filter(m => m.is_admin_msg);
-  const talks = msgs.filter(m => !m.is_admin_msg);
+  const displayMsgs = searchQuery
+    ? msgs.filter(m => (m.title || '').toLowerCase().includes(searchQuery.toLowerCase()) || m.content.toLowerCase().includes(searchQuery.toLowerCase()))
+    : msgs;
+  const notices = displayMsgs.filter(m => m.is_admin_msg);
+  const talks = displayMsgs.filter(m => !m.is_admin_msg);
 
   function renderMsg(m: Msg, i: number) {
     const a = profiles[m.author_id];
@@ -123,6 +130,7 @@ export default function Board() {
         <p>班 级 通 知 · 留 言</p>
       </div>
 
+      {searchQuery && <div className="feed-search-banner">搜索公告板：{searchQuery}<button type="button" onClick={() => nav('/board', { replace: true })}>清除搜索</button></div>}
       {notices.length > 0 && <>
         <p className="mut" style={{ fontSize: 12.5, margin: '4px 2px 8px' }}>管理员公告</p>
         {notices.map((m, i) => renderMsg(m, i))}
@@ -133,7 +141,7 @@ export default function Board() {
         {talks.map((m, i) => renderMsg(m, i + notices.length))}
       </>}
 
-      {msgs.length === 0 && <div className="center" style={{ minHeight: 160 }}><div className="card">还没有留言，来发第一条吧</div></div>}
+      {displayMsgs.length === 0 && <div className="center" style={{ minHeight: 160 }}><div className="card">{searchQuery ? '公告板没有匹配内容。' : '还没有留言，来发第一条吧'}</div></div>}
 
       <div style={{ height: 70 }} />
 

@@ -21,6 +21,7 @@ export default function Album() {
   const [loadError, setLoadError] = useState('');
   const signedCovers = useSignedUrls('media', rows.map(a => a.cover_url));
   const [show, setShow] = useState(false);
+  const [categoryFilter, setCategoryFilter] = useState('全部');
   const [title, setTitle] = useState(''); const [cat, setCat] = useState(CATS[0]); const [custom, setCustom] = useState('');
   const [err, setErr] = useState('');
 
@@ -43,6 +44,9 @@ export default function Album() {
     } finally { setLoading(false); }
   }
   useEffect(() => { load(); }, []);
+
+  const categoryOptions = ['全部', ...Array.from(new Set(rows.map(row => row.category).filter(Boolean)))];
+  const visibleRows = categoryFilter === '全部' ? rows : rows.filter(row => row.category === categoryFilter);
 
   async function create() {
     const t = title.trim(); const c = cat === '自定义' ? custom.trim() : cat;
@@ -68,8 +72,13 @@ export default function Album() {
         {err && <p className="err">{err}</p>}
         <button className="pri" onClick={create}>创建相册</button>
       </div>}
+      <div className="album-categories" role="group" aria-label="相册分类">
+        {categoryOptions.map(category => <button type="button" key={category}
+          className={categoryFilter === category ? 'on' : ''}
+          onClick={() => setCategoryFilter(category)}>{category}</button>)}
+      </div>
       <div className="agrid">
-        {rows.map((a, i) => (
+        {visibleRows.map((a, i) => (
           <motion.div key={a.id} className="acard"
             initial={reduce ? {} : { opacity: 0, y: 22 }} animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.45, delay: Math.min(i * 0.05, 0.4) }}
@@ -82,6 +91,7 @@ export default function Album() {
       {loading && <div className="center" style={{ minHeight: 200 }}><div className="card">正在加载相册…</div></div>}
       {!loading && loadError && <div className="card err">{loadError}<button className="mini ghost" onClick={load}>重试</button></div>}
       {!loading && !loadError && rows.length === 0 && <div className="center" style={{ minHeight: 200 }}><div className="card">还没有相册，创建一个吧</div></div>}
+      {!loading && !loadError && rows.length > 0 && visibleRows.length === 0 && <div className="center" style={{ minHeight: 140 }}><div className="card">这个分类暂时没有相册。</div></div>}
     </div>
   );
 }

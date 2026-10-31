@@ -15,7 +15,7 @@ export default function MeAccount() {
   const [busy, setBusy] = useState(false);
 
   async function changePw() {
-    if (pw.length < 6) return setMsg('密码至少 6 位');
+    if (pw.length < 8) return setMsg('密码至少 8 位');
     if (pw !== pw2) return setMsg('两次输入不一致');
     setBusy(true); setMsg('');
     const { error } = await supabase.auth.updateUser({ password: pw });
@@ -38,7 +38,7 @@ export default function MeAccount() {
         <div style={{ fontSize: 13, color: 'var(--mut)', marginBottom: 4 }}>登录邮箱</div>
         <div style={{ fontSize: 14, marginBottom: 14 }}>{session?.user.email || '—'}</div>
         <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 8 }}>修改密码</div>
-        <input type="password" value={pw} onChange={e => setPw(e.target.value)} placeholder="新密码（至少 6 位）" style={{ marginBottom: 8 }} />
+        <input type="password" value={pw} onChange={e => setPw(e.target.value)} placeholder="新密码（至少 8 位）" style={{ marginBottom: 8 }} />
         <input type="password" value={pw2} onChange={e => setPw2(e.target.value)} placeholder="再输入一次" style={{ marginBottom: 8 }} />
         <button className="pri" disabled={busy} onClick={changePw}>{busy ? '提交中…' : '确认修改'}</button>
         {msg && <p className="priv-note" style={{ margin: '8px 0 0' }}>{msg}</p>}

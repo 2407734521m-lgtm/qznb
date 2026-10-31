@@ -45,6 +45,7 @@ import Explore from './pages/Explore';
 import SongWall from './pages/SongWall';
 import Daily from './pages/Daily';
 import { alertDialog } from './lib/dialog';
+import GlobalSearch from './components/GlobalSearch';
 
 const TABS = [
   { to: '/board', label: '公告' },
@@ -326,6 +327,7 @@ function Shell() {
   const [dockCollapsed, setDockCollapsed] = useState(() => {
     try { return localStorage.getItem('ca_dock_collapsed') === '1'; } catch { return false; }
   });
+  const [searchOpen, setSearchOpen] = useState(false);
   const [dockSide, setDockSide] = useState<'left' | 'right'>(() => {
     try { return localStorage.getItem('ca_dock_side') === 'left' ? 'left' : 'right'; } catch { return 'right'; }
   });
@@ -671,6 +673,7 @@ function Shell() {
         </span>
         <span className="sp" />
         {isAdmin && <a href="#/admin" title="管理后台" className="mob-admin" style={{ textDecoration: 'none', marginRight: 4, fontSize: 13 }}>管理</a>}
+        <button type="button" onClick={() => setSearchOpen(true)} title="搜索全站内容">⌕ 搜索</button>
         <button onClick={logout} title="退出登录">退出</button>
       </nav>
       ) : null}
@@ -688,7 +691,7 @@ function Shell() {
               <Route path="/explore" element={<Explore />} />
               <Route path="/love-wall" element={<LoveWall />} />
               <Route path="/songs" element={<SongWall />} />
-              <Route path="/daily" element={<Daily />} />
+              <Route path="/daily" element={<Daily searchQuery={typeof (loc.state as any)?.searchQuery === 'string' ? (loc.state as any).searchQuery : ''} />} />
               <Route path="/members" element={<Members />} />
               <Route path="/members/:id" element={<Member />} />
               <Route path="/feed" element={<Discover />} />
@@ -723,7 +726,7 @@ function Shell() {
       {!isAdminPage && !isChatPage && (
         <nav
           ref={barRef}
-          className={`tabbar ${loc.pathname === '/friends' ? 'dock-glass-context' : ''} ${dockCollapsed ? 'dock-collapsed dock-side-' + dockSide : ''}`}
+          className={`tabbar ${dockCollapsed ? 'dock-collapsed dock-side-' + dockSide : ''}`}
           style={{ touchAction: 'pan-x pan-y' }}
           aria-label="主导航"
         >
@@ -751,6 +754,15 @@ function Shell() {
             })}
           </AnimatePresence>
           </div>
+          {!dockCollapsed && (
+            <button
+              type="button"
+              className="dock-action dock-search"
+              aria-label="搜索全站内容"
+              title="搜索全站内容"
+              onClick={() => setSearchOpen(true)}
+            >⌕</button>
+          )}
           <button
             type="button"
             className="dock-action dock-toggle"
@@ -763,6 +775,7 @@ function Shell() {
           </button>
         </nav>
       )}
+      <GlobalSearch open={searchOpen} onClose={() => setSearchOpen(false)} />
       {gpsOffer && !isAdminPage && (
         <div role="dialog" aria-modal="true" aria-labelledby="gps-consent-title" onClick={closeGpsOffer} style={{
           position: 'fixed', inset: 0, zIndex: 700, background: 'rgba(0,0,0,.78)',

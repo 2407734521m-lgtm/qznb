@@ -47,7 +47,7 @@ export default function MeContent() {
       supabase.from('wishes').select('id', { count: 'exact', head: true }).eq('author_id', me),
       supabase.from('song_posts').select('id', { count: 'exact', head: true }).eq('author_id', me),
       supabase.from('love_wall_posts').select('id', { count: 'exact', head: true }).eq('author_id', me),
-      supabase.from('time_capsules').select('id', { count: 'exact', head: true }).eq('author_id', me),
+      supabase.from('time_capsules').select('id', { count: 'exact', head: true }).eq('author_id', me).is('deleted_at', null),
       supabase.from('greetings').select('id', { count: 'exact', head: true }).eq('author_id', me).is('deleted_at', null),
       supabase.from('favorites').select('target_id', { count: 'exact', head: true }).eq('profile_id', me),
       supabase.from('albums').select('id,title,category,deleted_at').eq('created_by', me).not('deleted_at', 'is', null).order('deleted_at', { ascending: false }).limit(30),
@@ -119,8 +119,8 @@ export default function MeContent() {
       </section>
       <section className="card" style={{ marginTop: 14 }}>
         <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-          <div><strong>已归档相册</strong><p style={{ margin: '3px 0 0', color: 'var(--mut)', fontSize: 11 }}>你移除的相册可以在这里恢复；照片文件会保留。</p></div>
-          <span style={{ fontSize: 12, color: 'var(--mut)' }}>{archived.length}</span>
+          <div><strong>最近已归档相册（最多展示 30 条）</strong><p style={{ margin: '3px 0 0', color: 'var(--mut)', fontSize: 11 }}>你移除的相册可以在这里恢复；照片文件会保留。</p></div>
+          <span style={{ fontSize: 12, color: 'var(--mut)' }}>{archived.length} 条</span>
         </div>
         {archived.length === 0 ? <p style={{ color: 'var(--mut)', fontSize: 12, marginBottom: 0 }}>目前没有已归档的相册。</p> : archived.map(album => <div key={album.id} className="row" style={{ justifyContent: 'space-between', gap: 8, padding: '10px 0', borderTop: '1px solid #edf1f3' }}>
           <div style={{ minWidth: 0 }}><strong style={{ display: 'block', fontSize: 12 }}>{album.title}</strong><small style={{ color: 'var(--mut)', fontSize: 11 }}>{album.category} · 已归档</small></div>

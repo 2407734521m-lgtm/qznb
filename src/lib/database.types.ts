@@ -1426,6 +1426,10 @@ export type Database = {
         Args: { p_feedback_id: number; p_status: string; p_admin_note?: string | null }
         Returns: undefined
       }
+      admin_send_notification_campaign: {
+        Args: { p_title: string; p_body: string; p_link?: string | null; p_recipient_ids?: string[] | null }
+        Returns: number
+      }
       admin_record_manual_backup: {
         Args: { p_scope: string; p_note: string }
         Returns: number

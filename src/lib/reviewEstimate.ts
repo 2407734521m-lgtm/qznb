@@ -38,7 +38,7 @@ export async function fetchReviewEstimates(): Promise<ReviewEstimates | null> {
 export function estimateText(item: ReviewEstimateItem, adminActive: boolean): string {
   const pos = item.ahead + 1;
   if (!adminActive) return `排队第 ${pos} 位 · 管理员暂时不在线，预计今晚睡前处理`;
-  if (item.ahead <= 1) return `排队第 ${pos} 位 · 预计 10 分钟左右审核`;
-  if (item.ahead <= 4) return `排队第 ${pos} 位 · 预计 30 分钟左右审核`;
+  if (item.ahead <= 2) return `排队第 ${pos} 位 · 预计 10 分钟左右审核`;
+  if (item.ahead <= 5) return `排队第 ${pos} 位 · 预计 30 分钟左右审核`;
   return `排队第 ${pos} 位 · 预计 1 小时左右审核`;
 }

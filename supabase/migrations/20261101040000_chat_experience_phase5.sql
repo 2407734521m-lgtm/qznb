@@ -213,10 +213,19 @@ begin
     from public.messages m
    where m.conversation_id = p_conversation_id;
 
+  if v_last_message_id is null then
+    select cm.last_read_message_id
+      into v_saved_message_id
+      from public.conversation_members cm
+     where cm.conversation_id = p_conversation_id
+       and cm.profile_id = auth.uid();
+    return v_saved_message_id;
+  end if;
+
   update public.conversation_members cm
      set last_read_message_id = greatest(
-       coalesce(cm.last_read_message_id, 0),
-       coalesce(v_last_message_id, 0)
+       coalesce(cm.last_read_message_id, v_last_message_id),
+       v_last_message_id
      )
    where cm.conversation_id = p_conversation_id
      and cm.profile_id = auth.uid()

@@ -1,14 +1,8 @@
 #!/usr/bin/env node
 /**
- * Normalize the generated Supabase types without changing runtime schema.
- *
- * Supabase's schema export has historically emitted IDENTITY primary keys as
- * required Insert fields in this repository's generated snapshot. Keep the
- * known identity columns optional, and restore precise return types for the
- * RPCs whose SQL definitions are tracked in supabase/migrations.
- *
- * This runs against the temporary output before gen-types.sh atomically swaps
- * the checked-in file, so any mismatch fails safely.
+ * Normalize generated Supabase types using schema facts verified in migrations.
+ * Runs against the temporary output before gen-types.sh atomically replaces
+ * the checked-in file. Any unexpected generated shape fails safely.
  */
 import fs from "node:fs";
 
@@ -19,20 +13,9 @@ if (!file) {
 }
 
 const IDENTITY_TABLES = [
-  "album_photos",
-  "albums",
-  "backup_logs",
-  "board_messages",
-  "comments",
-  "events",
-  "greetings",
-  "hot_snippets",
-  "notifications",
-  "posts",
-  "reports",
-  "time_capsules",
-  "timelines",
-  "wishes",
+  "album_photos", "albums", "backup_logs", "board_messages", "comments",
+  "events", "greetings", "hot_snippets", "notifications", "posts", "reports",
+  "time_capsules", "timelines", "wishes",
 ];
 
 const RPC_RETURNS = {
@@ -47,78 +30,67 @@ const RPC_RETURNS = {
   my_role: "string | null",
 };
 
-function tableBlockPattern(name) {
-  return new RegExp(
-    "^      " + name + ": \\{[\\s\\S]*?(?=^      [a-z_][\\w]*: \\{|^    Views: \\{)",
-    "m",
-  );
+const lines = fs.readFileSync(file, "utf8").split("\n");
+
+function sectionBounds(sectionName, nextSectionName) {
+  const start = lines.indexOf("    " + sectionName + ": {");
+  const end = lines.indexOf("    " + nextSectionName + ": {", start + 1);
+  if (start < 0 || end < 0) {
+    throw new Error("Missing generated section: " + sectionName);
+  }
+  return { start, end };
 }
 
-function functionBlockPattern(name) {
-  return new RegExp(
-    "^      " + name + ": \\{[\\s\\S]*?(?=^      [a-z_][\\w]*: \\{|^    Enums: \\{)",
-    "m",
-  );
+function directChildBounds(section, name) {
+  const start = lines.indexOf("      " + name + ": {", section.start + 1);
+  if (start < 0 || start >= section.end) {
+    throw new Error("Missing generated entry: " + name);
+  }
+  let end = section.end;
+  for (let i = start + 1; i < section.end; i += 1) {
+    if (/^      [a-z_][\w]*: \{$/.test(lines[i])) {
+      end = i;
+      break;
+    }
+  }
+  return { start, end };
 }
 
-let source = fs.readFileSync(file, "utf8");
-
+const tablesSection = sectionBounds("Tables", "Views");
 for (const tableName of IDENTITY_TABLES) {
-  const match = tableBlockPattern(tableName).exec(source);
-  if (!match) throw new Error("Missing expected table: " + tableName);
-
-  const block = match[0];
-  const insertStart = block.indexOf("        Insert: {");
-  const updateStart = block.indexOf("        Update: {");
-  if (insertStart < 0 || updateStart <= insertStart) {
+  const table = directChildBounds(tablesSection, tableName);
+  const insertStart = lines.indexOf("        Insert: {", table.start + 1);
+  const updateStart = lines.indexOf("        Update: {", table.start + 1);
+  if (insertStart < 0 || updateStart < 0 || insertStart >= updateStart || updateStart >= table.end) {
     throw new Error("Missing Insert/Update block: " + tableName);
   }
 
-  const before = block.slice(0, insertStart);
-  const insert = block.slice(insertStart, updateStart);
-  const after = block.slice(updateStart);
-  const idLines = insert.match(/^          id\??: number$/gm) ?? [];
-  if (idLines.length !== 1) {
+  const idIndexes = [];
+  for (let i = insertStart + 1; i < updateStart; i += 1) {
+    if (/^          id\??: number$/.test(lines[i])) idIndexes.push(i);
+  }
+  if (idIndexes.length !== 1) {
     throw new Error("Expected exactly one numeric Insert.id in " + tableName);
   }
-
-  const normalizedInsert = insert.replace(
-    /^          id: number$/m,
-    "          id?: number",
-  );
-  source =
-    source.slice(0, match.index) +
-    before +
-    normalizedInsert +
-    after +
-    source.slice(match.index + block.length);
+  lines[idIndexes[0]] = "          id?: number";
 }
 
+const functionsSection = sectionBounds("Functions", "Enums");
 for (const [functionName, returnType] of Object.entries(RPC_RETURNS)) {
-  const match = functionBlockPattern(functionName).exec(source);
-  if (!match) throw new Error("Missing expected RPC: " + functionName);
-
-  const block = match[0];
-  const returns = block.match(/^        Returns: .*$/gm) ?? [];
-  if (returns.length !== 1) {
+  const fn = directChildBounds(functionsSection, functionName);
+  const returnsIndexes = [];
+  for (let i = fn.start + 1; i < fn.end; i += 1) {
+    if (/^        Returns: /.test(lines[i])) returnsIndexes.push(i);
+  }
+  if (returnsIndexes.length !== 1) {
     throw new Error("Expected exactly one Returns field in " + functionName);
   }
-
-  const normalizedBlock = block.replace(
-    /^        Returns: .*$/m,
-    "        Returns: " + returnType,
-  );
-  source =
-    source.slice(0, match.index) +
-    normalizedBlock +
-    source.slice(match.index + block.length);
+  lines[returnsIndexes[0]] = "        Returns: " + returnType;
 }
 
-fs.writeFileSync(file, source, "utf8");
+fs.writeFileSync(file, lines.join("\n"), "utf8");
 console.log(
-  "✓ Normalized " +
-    IDENTITY_TABLES.length +
-    " IDENTITY Insert IDs and " +
-    Object.keys(RPC_RETURNS).length +
-    " RPC return types.",
+  "✓ Normalized " + IDENTITY_TABLES.length +
+  " IDENTITY Insert IDs and " + Object.keys(RPC_RETURNS).length +
+  " RPC return types.",
 );

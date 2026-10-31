@@ -665,7 +665,7 @@ function BoardMgr({ me, setMsg }: { me: string; setMsg: (s: string) => void }) {
   const popLabel = (v: any) => ({ '0': '关', '1': '1次', '2': '2次', '3': '3次', '999': '每次' } as any)[String(v ?? '0')] ?? '关';
   async function load() {
     const { data } = await supabase.from('board_messages')
-      .select('id, title, content, is_pinned, popup_on_login, popup_times, expires_at, created_at').eq('is_admin_msg', true)
+      .select('id, title, content, is_pinned, popup_on_login, popup_times, expires_at, created_at').eq('is_admin_msg', true).is('deleted_at', null)
       .order('is_pinned', { ascending: false }).order('created_at', { ascending: false }).limit(20);
     setList(data ?? []);
   }

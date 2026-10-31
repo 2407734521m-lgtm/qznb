@@ -67,8 +67,13 @@ export default function Board() {
   }
 
   async function del(id: number) {
-    if (!confirm('删除这条留言？')) return;
-    await supabase.from('board_messages').delete().eq('id', id);
+    if (isAdmin) {
+      if (!confirm('删除这条留言？（先进回收站，可恢复）')) return;
+      await supabase.from('board_messages').update({ deleted_at: new Date().toISOString() }).eq('id', id);
+    } else {
+      if (!confirm('删除这条留言？')) return;
+      await supabase.from('board_messages').delete().eq('id', id);
+    }
     load();
   }
 

@@ -5,6 +5,18 @@ import MaintenanceAccessManager from './MaintenanceAccessManager';
 import { confirmDialog } from '../../lib/dialog';
 import DateTimeField from '../../components/DateTimeField';
 
+const FEATURE_FLAGS = [
+  { key: 'posts', label: '动态与日常发帖', detail: '暂停新帖子发布；已有内容仍可浏览。' },
+  { key: 'comments', label: '评论与回复', detail: '暂停新评论提交；已有评论仍可浏览。' },
+  { key: 'albums', label: '创建相册', detail: '暂停创建新相册。' },
+  { key: 'album_photos', label: '相册照片上传', detail: '暂停向相册添加新照片。' },
+  { key: 'chat', label: '私聊消息', detail: '暂停发送新私聊消息；历史消息仍可查看。' },
+  { key: 'greetings', label: '留言功能', detail: '暂停发布新留言。' },
+  { key: 'love_wall', label: '表白墙', detail: '暂停发布表白、评论及相关媒体提交。' },
+  { key: 'songs', label: '歌声墙', detail: '暂停发布新歌声内容。' },
+  { key: 'board_posts', label: '普通公告留言', detail: '暂停成员发布普通留言；管理员公告不受影响。' },
+] as const;
+
 function toLocalDateTimeInput(value: string) {
   if (!value) return '';
   const date = new Date(value);
@@ -23,6 +35,8 @@ export default function Settings({ me, setMsg }: { me: string; setMsg: (s: strin
   const [notifyCount, setNotifyCount] = useState(0);
   const [notifyBusy, setNotifyBusy] = useState(false);
   const [notifyConfirm, setNotifyConfirm] = useState(false);
+  const [featureFlags, setFeatureFlags] = useState<Record<string, boolean>>({});
+  const [featureBusy, setFeatureBusy] = useState<string | null>(null);
 
   async function loadNotifyCount() {
     const { count } = await supabase.from('maintenance_notify_emails').select('id', { count: 'exact', head: true });
@@ -56,6 +70,7 @@ export default function Settings({ me, setMsg }: { me: string; setMsg: (s: strin
     const o: Record<string, string> = {};
     (data ?? []).forEach((x: any) => { o[x.key] = x.value; });
     setVals(o);
+    setFeatureFlags(Object.fromEntries(FEATURE_FLAGS.map(({ key }) => [key, o['feature_' + key] !== 'false'])));
     try {
       const schedule = JSON.parse(o.maintenance_schedule || '{}');
       setScheduleStart(toLocalDateTimeInput(schedule.start_at || ''));
@@ -70,6 +85,28 @@ export default function Settings({ me, setMsg }: { me: string; setMsg: (s: strin
     setBackups(bl ?? []);
   }
   useEffect(() => { load(); }, []);
+
+  async function saveFeatureFlag(key: string, enabled: boolean) {
+    const feature = FEATURE_FLAGS.find(item => item.key === key);
+    if (!feature) return;
+    if (!enabled && !(await confirmDialog(
+      `暂停「${feature.label}」？用户将无法提交新的相关内容，但已有内容不会被删除。`,
+      { danger: true }
+    ))) return;
+    setFeatureBusy(key);
+    const { error } = await supabase.from('site_settings').upsert(
+      { key: 'feature_' + key, value: String(enabled) },
+      { onConflict: 'key' }
+    );
+    setFeatureBusy(null);
+    if (error) {
+      setMsg('功能开关保存失败：' + error.message);
+      return;
+    }
+    setFeatureFlags(current => ({ ...current, [key]: enabled }));
+    await alog('feature_flag_changed', { feature: key, enabled });
+    setMsg(`「${feature.label}」已${enabled ? '恢复开放' : '暂停'}。数据库写入权限已同步更新。`);
+  }
 
   async function save(key: string, value: string) {
     const { error } = await supabase.from('site_settings').upsert({ key, value }, { onConflict: 'key' });
@@ -337,6 +374,43 @@ export default function Settings({ me, setMsg }: { me: string; setMsg: (s: strin
           {notifyBusy ? '发送中…' : notifyConfirm ? `确认发送给 ${notifyCount} 人？` : `发送恢复通知（${notifyCount} 人）`}
         </button>
       </div>
+    </div>
+
+    <div style={card}>
+      <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+        <h3 style={h3}>全站功能开关中心</h3>
+        <span style={{ ...mut, fontSize: 11 }}>数据库权限强制执行</span>
+      </div>
+      <p style={mut}>关闭某项功能后，数据库会拒绝普通成员提交对应的新内容；已有内容不会被删除。管理员公告保留独立权限。每次修改都会写入管理员审计日志。</p>
+      <div style={{ display: 'grid', gap: 8 }}>
+        {FEATURE_FLAGS.map(feature => {
+          const enabled = featureFlags[feature.key] !== false;
+          return <div key={feature.key} style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
+            padding: '11px 12px', borderRadius: 12, border: '1px solid #ffffff14', background: '#ffffff06',
+          }}>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: 13, fontWeight: 700 }}>{feature.label}</div>
+              <div style={{ ...mut, fontSize: 11.5 }}>{feature.detail}</div>
+              <div style={{ fontSize: 10.5, marginTop: 3, color: enabled ? '#86efac' : '#ffb4b4' }}>
+                {enabled ? '当前开放' : '当前暂停'}
+              </div>
+            </div>
+            <button
+              type="button"
+              className={enabled ? 'mini ghost' : 'mini'}
+              disabled={featureBusy !== null}
+              onClick={() => void saveFeatureFlag(feature.key, !enabled)}
+              style={{ minWidth: 76, flexShrink: 0 }}
+            >
+              {featureBusy === feature.key ? '保存中…' : enabled ? '暂停功能' : '恢复开放'}
+            </button>
+          </div>;
+        })}
+      </div>
+      <p style={{ ...mut, marginBottom: 0, marginTop: 10 }}>
+        说明：这些开关控制数据库写入权限，不会自动撤回已发出的消息，也不会删除历史数据。文件存储上传入口及客户端按钮的完整联动会在后续阶段继续覆盖。
+      </p>
     </div>
 
     <MaintenanceAccessManager setMsg={setMsg} />

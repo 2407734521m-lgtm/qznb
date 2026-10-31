@@ -34,6 +34,7 @@ import MePosts from './pages/MePosts';
 import MeFavorites from './pages/MeFavorites';
 import MeGreetings from './pages/MeGreetings';
 import MeNotifications from './pages/MeNotifications';
+import MeFeedback from './pages/MeFeedback';
 import MeAccount from './pages/MeAccount';
 import ErrorBoundary from './components/ErrorBoundary';
 import AdminLogin from './pages/AdminLogin';
@@ -698,6 +699,7 @@ function Shell() {
               <Route path="/me/favorites" element={<MeFavorites />} />
               <Route path="/me/greetings" element={<MeGreetings />} />
               <Route path="/me/notifications" element={<MeNotifications />} />
+              <Route path="/me/feedback" element={<MeFeedback />} />
               <Route path="/me/account" element={<MeAccount />} />
               <Route path="/greetings" element={<Greetings />} />
               <Route path="/home" element={<Home />} />

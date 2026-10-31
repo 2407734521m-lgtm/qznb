@@ -1,17 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import type { ProfileAdminIdentity as Profile } from '../types/profile';
+import type { Database } from '../lib/database.types';
 
-type Post = {
-  id: string;
-  author_id: string;
-  recipient_name: string | null;
-  category: string;
-  content: string;
-  is_anonymous: boolean;
-  status: string;
-  created_at: string;
-};
+type LoveWallPost = Database['public']['Tables']['love_wall_posts']['Row'];
 const FILTERS = [
   ['pending', '待审核'],
   ['published', '已发布'],
@@ -28,7 +20,7 @@ const statusLabel: Record<string, string> = {
 };
 
 export default function AdminLoveWall({ setMsg }: { setMsg: (s: string) => void }) {
-  const [rows, setRows] = useState<Post[]>([]);
+  const [rows, setRows] = useState<LoveWallPost[]>([]);
   const [profiles, setProfiles] = useState<Record<string, Profile>>({});
   const [filter, setFilter] = useState('pending');
   const [query, setQuery] = useState('');
@@ -47,7 +39,7 @@ export default function AdminLoveWall({ setMsg }: { setMsg: (s: string) => void 
       if (!quiet) setLoading(false);
       return;
     }
-    const nextRows = (data || []) as Post[];
+    const nextRows = data ?? [];
     setRows(nextRows);
     const ids = [...new Set(nextRows.map(p => p.author_id).filter(Boolean))];
     if (ids.length) {
@@ -88,7 +80,7 @@ export default function AdminLoveWall({ setMsg }: { setMsg: (s: string) => void 
     });
   }, [rows, profiles, filter, query]);
 
-  async function setStatus(p: Post, status: string) {
+  async function setStatus(p: LoveWallPost, status: string) {
     if (busy) return;
     setBusy(p.id);
     setMsg('');
@@ -105,7 +97,7 @@ export default function AdminLoveWall({ setMsg }: { setMsg: (s: string) => void 
     await load(true);
   }
 
-  const authorLabel = (p: Post) => {
+  const authorLabel = (p: LoveWallPost) => {
     const profile = profiles[p.author_id];
     return profile?.display_name || profile?.real_name || profile?.username || '未找到对应资料';
   };

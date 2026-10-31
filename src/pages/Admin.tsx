@@ -8,6 +8,7 @@ import '../styles-admin-unified.css';
 import AdminSystemCenter from '../components/AdminSystemCenter';
 import AdminAnalyticsCenter from '../components/AdminAnalyticsCenter';
 import AdminBackupCenter from '../components/AdminBackupCenter';
+import AdminReleaseCenter from '../components/AdminReleaseCenter';
 import AdminSecurityCenter from '../components/AdminSecurityCenter';
 import AdminApprovalCenter from '../components/AdminApprovalCenter';
 import AdminLoveWall from '../components/AdminLoveWall';
@@ -46,6 +47,7 @@ const TABS_ALL: [string, string, boolean][] = [
   ['overview', '总览', false],
   ['analytics', '数据分析', true],
   ['backups', '备份与恢复', true],
+  ['release', '版本发布', true],
   ['members', '成员', false],
   ['accounts', '账号管理', true],
   ['invite', '邀请码', false],
@@ -218,6 +220,7 @@ export default function Admin() {
         {tab === 'overview' && <Overview setMsg={setMsg} go={setTab} />}
         {tab === 'analytics' && isSuper && <AdminAnalyticsCenter setMsg={setMsg} />}
         {tab === 'backups' && isSuper && <AdminBackupCenter setMsg={setMsg} />}
+        {tab === 'release' && isSuper && <AdminReleaseCenter />}
               {tab === 'members' && <Members me={me} isSuper={isSuper} setMsg={setMsg} extQ={q0} />}
               {tab === 'accounts' && isSuper && <AdminAccountManagement me={me} isSuper={isSuper} setMsg={setMsg} />}
               {tab === 'moderate' && <Moderate setMsg={setMsg} />}

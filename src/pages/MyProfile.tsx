@@ -139,9 +139,25 @@ export default function MyProfile() {
     if (p.error || pr.error || c.error) return setMsg('资料加载失败，请刷新重试');
     const all: Record<string, any> = { ...p.data, ...(c.data ?? {}) };
     setV(Object.fromEntries(ALL_FIELDS.map(([k]) => [k, all[k] == null ? '' : String(all[k])])));
-    setPriv(pr.data); setJoined(p.data.joined); setAvatar(p.data.avatar_path); setUname(p.data.username ?? '');
+    setPriv({
+      show_name: pr.data.show_name,
+      show_age: pr.data.show_age,
+      show_personality: pr.data.show_personality,
+      show_signature: pr.data.show_signature,
+      show_bio: pr.data.show_bio,
+      show_hobbies: pr.data.show_hobbies,
+      show_avatar: pr.data.show_avatar,
+      show_contact: pr.data.show_contact,
+      show_social: pr.data.show_social,
+      show_game_id: pr.data.show_game_id,
+      hide_love_wall_name: pr.data.hide_love_wall_name,
+    });
+    setJoined(p.data.joined); setAvatar(p.data.avatar_path); setUname(p.data.username ?? '');
     setVideoPath(p.data.intro_video_path ?? null);
-    setTheme(p.data.theme?.theme ?? 'aurora'); setLayout(p.data.theme?.layout ?? 'left');
+    const rawTheme = p.data.theme;
+    const themeSettings = typeof rawTheme === 'object' && rawTheme !== null && !Array.isArray(rawTheme) ? rawTheme : {};
+    setTheme(typeof themeSettings.theme === 'string' ? themeSettings.theme : 'aurora');
+    setLayout(typeof themeSettings.layout === 'string' ? themeSettings.layout : 'left');
     if (!g.error) setGprof((g.data as GameProfile) ?? null);
     loadedRef.current = true;
   })(); }, [uid]);
@@ -172,7 +188,19 @@ export default function MyProfile() {
       withRetry(() => supabase.from('profiles').update({ display_name: n(v.display_name), age: age ? Number(age) : null,
         personality: n(v.personality), signature: n(v.signature), bio: n(v.bio), hobbies: n(v.hobbies),
         theme: { theme, layout } }).eq('id', uid)),
-      withRetry(() => supabase.from('profile_privacy').update(Object.fromEntries(Object.keys(priv).filter(k => k.startsWith('show_') || k === 'hide_love_wall_name').map(k => [k, !!priv[k]]))).eq('profile_id', uid)),
+      withRetry(() => supabase.from('profile_privacy').update({
+        show_name: !!priv.show_name,
+        show_age: !!priv.show_age,
+        show_personality: !!priv.show_personality,
+        show_signature: !!priv.show_signature,
+        show_bio: !!priv.show_bio,
+        show_hobbies: !!priv.show_hobbies,
+        show_avatar: !!priv.show_avatar,
+        show_contact: !!priv.show_contact,
+        show_social: !!priv.show_social,
+        show_game_id: !!priv.show_game_id,
+        hide_love_wall_name: !!priv.hide_love_wall_name,
+      }).eq('profile_id', uid)),
       withRetry(() => supabase.from('profile_contacts').upsert({ profile_id: uid, contact: n(v.contact), social: n(v.social) }, { onConflict: 'profile_id' }))]);
     savingRef.current = false;
     const err = r.find(x => x.error);

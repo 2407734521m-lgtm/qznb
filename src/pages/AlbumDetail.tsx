@@ -31,7 +31,7 @@ export default function AlbumDetail() {
   const viewUrl = useSignedUrl('media', view?.photo_url);
 
   async function load() {
-    const { data: a } = await supabase.from('albums').select('*').eq('id', id).maybeSingle();
+    const { data: a } = await supabase.from('albums').select('*').eq('id', Number(id)).maybeSingle();
     setAlbum(a ?? null);
     const { data: p } = await supabase.from('album_photos').select('*').eq('album_id', Number(id))
       .order('created_at', { ascending: false });

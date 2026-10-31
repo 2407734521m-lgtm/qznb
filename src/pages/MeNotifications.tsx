@@ -14,6 +14,19 @@ export default function MeNotifications() {
   const [actionError, setActionError] = useState('');
   const [filter, setFilter] = useState<'all' | 'unread'>('all');
   const [actionBusy, setActionBusy] = useState(false);
+  const [notificationPrefs, setNotificationPrefs] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    const sync = () => {
+      try {
+        const raw = JSON.parse(localStorage.getItem('qznb_user_preferences_v1:' + me) || 'null');
+        setNotificationPrefs(raw?.notifications && typeof raw.notifications === 'object' ? raw.notifications : {});
+      } catch { setNotificationPrefs({}); }
+    };
+    sync();
+    window.addEventListener('qznb-settings-changed', sync);
+    return () => window.removeEventListener('qznb-settings-changed', sync);
+  }, [me]);
 
   async function load() {
     setLoading(true);
@@ -84,7 +97,8 @@ export default function MeNotifications() {
   }
 
   const unreadCount = list.filter(item => !item.is_read).length;
-  const visibleList = filter === 'unread' ? list.filter(item => !item.is_read) : list;
+  const visibleList = list.filter(item => notificationPrefs[item.type] !== false)
+    .filter(item => filter === 'unread' ? !item.is_read : true);
   const typeLabel: Record<string, string> = {
     comment: '评论', like: '点赞', greeting: '留言', notice: '公告', love_wall: '表白墙', feedback: '反馈进度',
   };

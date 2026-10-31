@@ -1,7 +1,11 @@
 -- 022: 六位数临时维护通行码
--- 通行码与管理员认证完全分离；只授予临时绕过维护页的能力，不产生管理员身份。
+-- 通行码与管理员认证完全分离；只授予临时绕过维护页的能力。
+-- 所有敏感表与 SECURITY DEFINER 实现放在非 Data API 暴露的私有 schema；
+-- public RPC 仅使用 SECURITY INVOKER 包装，避免把高权限逻辑直接暴露在 public。
+
 create schema if not exists maintenance_private;
-revoke all on schema maintenance_private from public, anon, authenticated;
+revoke all on schema maintenance_private from public;
+grant usage on schema maintenance_private to anon, authenticated;
 
 create extension if not exists pgcrypto with schema extensions;
 
@@ -34,9 +38,12 @@ create index maintenance_access_attempts_ip_time_idx
 create index maintenance_access_sessions_code_idx
   on maintenance_private.access_sessions (code_id);
 
+alter table maintenance_private.access_codes enable row level security;
+alter table maintenance_private.access_sessions enable row level security;
+alter table maintenance_private.access_attempts enable row level security;
 revoke all on all tables in schema maintenance_private from public, anon, authenticated;
 
-create or replace function public.admin_create_maintenance_code(
+create or replace function maintenance_private.admin_create_maintenance_code(
   p_valid_minutes integer default 15,
   p_max_uses integer default 1
 )
@@ -59,10 +66,9 @@ begin
     raise exception '有效期或使用次数超出允许范围' using errcode = '22023';
   end if;
 
-  update maintenance_private.access_codes set revoked_at = now()
-  where revoked_at is null;
-  update maintenance_private.access_sessions set revoked_at = now()
-  where revoked_at is null;
+  -- 新码取代旧码，并同步撤销此前签发的所有访问会话。
+  update maintenance_private.access_codes set revoked_at = now() where revoked_at is null;
+  update maintenance_private.access_sessions set revoked_at = now() where revoked_at is null;
 
   loop
     v_bytes := extensions.gen_random_bytes(4);
@@ -87,7 +93,7 @@ begin
 end;
 $$;
 
-create or replace function public.admin_revoke_maintenance_codes()
+create or replace function maintenance_private.admin_revoke_maintenance_codes()
 returns jsonb
 language plpgsql
 security definer
@@ -110,11 +116,11 @@ begin
 end;
 $$;
 
-create or replace function public.maintenance_redeem_code(p_code text)
+create or replace function maintenance_private.maintenance_redeem_code(p_code text)
 returns jsonb
 language plpgsql
 security definer
-set search_path = pg_catalog, public, maintenance_private, extensions
+set search_path = pg_catalog, maintenance_private, extensions
 as $$
 declare
   v_headers jsonb;
@@ -157,7 +163,7 @@ begin
 end;
 $$;
 
-create or replace function public.maintenance_validate_access(p_token text)
+create or replace function maintenance_private.maintenance_validate_access(p_token text)
 returns boolean
 language sql
 stable
@@ -174,6 +180,47 @@ as $$
       and c.revoked_at is null and c.expires_at > now()
   );
 $$;
+
+revoke all on function maintenance_private.admin_create_maintenance_code(integer, integer) from public;
+revoke all on function maintenance_private.admin_revoke_maintenance_codes() from public;
+revoke all on function maintenance_private.maintenance_redeem_code(text) from public;
+revoke all on function maintenance_private.maintenance_validate_access(text) from public;
+grant execute on function maintenance_private.admin_create_maintenance_code(integer, integer) to authenticated;
+grant execute on function maintenance_private.admin_revoke_maintenance_codes() to authenticated;
+grant execute on function maintenance_private.maintenance_redeem_code(text) to anon, authenticated;
+grant execute on function maintenance_private.maintenance_validate_access(text) to anon, authenticated;
+
+create or replace function public.admin_create_maintenance_code(
+  p_valid_minutes integer default 15,
+  p_max_uses integer default 1
+)
+returns jsonb
+language sql
+security invoker
+set search_path = public, maintenance_private
+as $$ select maintenance_private.admin_create_maintenance_code(p_valid_minutes, p_max_uses); $$;
+
+create or replace function public.admin_revoke_maintenance_codes()
+returns jsonb
+language sql
+security invoker
+set search_path = public, maintenance_private
+as $$ select maintenance_private.admin_revoke_maintenance_codes(); $$;
+
+create or replace function public.maintenance_redeem_code(p_code text)
+returns jsonb
+language sql
+security invoker
+set search_path = public, maintenance_private
+as $$ select maintenance_private.maintenance_redeem_code(p_code); $$;
+
+create or replace function public.maintenance_validate_access(p_token text)
+returns boolean
+language sql
+stable
+security invoker
+set search_path = public, maintenance_private
+as $$ select maintenance_private.maintenance_validate_access(p_token); $$;
 
 revoke all on function public.admin_create_maintenance_code(integer, integer) from public, anon, authenticated;
 revoke all on function public.admin_revoke_maintenance_codes() from public, anon, authenticated;

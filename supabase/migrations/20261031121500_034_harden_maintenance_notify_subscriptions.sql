@@ -59,7 +59,7 @@ before insert on public.maintenance_notify_emails
 for each row execute function maintenance_private.enforce_notify_subscription_rate_limit();
 
 -- Clients may submit only the email column; ID and timestamp stay server-generated.
-revoke insert on public.maintenance_notify_emails from anon, authenticated;
+revoke insert on public.maintenance_notify_emails from public, anon, authenticated;
 grant insert (email) on public.maintenance_notify_emails to anon, authenticated;
 
 -- Normalize uniqueness regardless of email letter casing.

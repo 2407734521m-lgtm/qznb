@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, useReducedMotion } from 'framer-motion';
 import { supabase } from '../lib/supabase';
-import { useSignedUrl } from '../lib/media';
+import { useSignedUrls } from '../lib/media';
 import Photo from '../components/Photo';
 import { setShot, takeShot, shotFrom, flyTo } from '../lib/transition';
 import { badgeText } from '../data/games';
@@ -21,9 +21,8 @@ const LAYOUTS = [
   { k: 'list', name: '列表', icon: '📋' },
 ] as const;
 
-function Card({ m, i, badge, onOpen }: { m: M; i: number; badge?: string; onOpen: (m: M, el: HTMLElement, img: string) => void }) {
+function Card({ m, i, badge, signedUrl, onOpen }: { m: M; i: number; badge?: string; signedUrl?: string; onOpen: (m: M, el: HTMLElement, img: string) => void }) {
   const reduce = useReducedMotion();
-  const url = useSignedUrl('avatars', m.avatar_path);
   const ref = useRef<HTMLDivElement>(null);
   const name = m.display_name ?? m.username;
   return (
@@ -31,8 +30,8 @@ function Card({ m, i, badge, onOpen }: { m: M; i: number; badge?: string; onOpen
       initial={reduce ? {} : { opacity: 0, y: 26 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay: reduce ? 0 : Math.min(i * 0.05, 0.5), ease: [0.22, 1, 0.36, 1] }}
-      onClick={() => ref.current && onOpen(m, ref.current.querySelector('.photo') as HTMLElement, url ?? '')}>
-      <Photo id={m.id} path={m.avatar_path} name={name} />
+      onClick={() => ref.current && onOpen(m, ref.current.querySelector('.photo') as HTMLElement, signedUrl ?? '')}>
+      <Photo id={m.id} path={m.avatar_path} name={name} signedUrl={signedUrl ?? ''} />
       <h3>{name}</h3>
       <p>{m.signature ?? m.personality ?? '这个人很神秘'}</p>
       {badge && <div className="gbadge">{badge}</div>}
@@ -43,6 +42,7 @@ function Card({ m, i, badge, onOpen }: { m: M; i: number; badge?: string; onOpen
 export default function Members() {
   const nav = useNavigate(); const reduce = useReducedMotion();
   const [q, setQ] = useState(''); const [rows, setRows] = useState<M[]>([]);
+  const avatarUrls = useSignedUrls('avatars', rows.map(m => m.avatar_path));
   const [badges, setBadges] = useState<Record<string, string>>({});
   const [layout, setLayout] = useState<string>(() => localStorage.getItem('ca_members_layout') || 'c2');
   const [lopen, setLopen] = useState(false);
@@ -127,7 +127,7 @@ export default function Members() {
         </div>
       </div>
       <div className={'mgrid ' + layout}>
-        {rows.map((m, i) => <Card key={m.id} m={m} i={i} badge={badges[m.id]} onOpen={open} />)}
+        {rows.map((m, i) => <Card key={m.id} m={m} i={i} badge={badges[m.id]} signedUrl={m.avatar_path ? avatarUrls[m.avatar_path] : ''} onOpen={open} />)}
       </div>
       {state === 'loading' && <p className="center" style={{ minHeight: 120 }}>加载中…</p>}
       {state === 'ok' && more && <button className="pri" onClick={() => load(false, q, rows)}>加载更多</button>}

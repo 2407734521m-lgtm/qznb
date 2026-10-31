@@ -58,7 +58,7 @@ export default function LoveWall() {
   return <main style={{ maxWidth: 760, margin: '0 auto', padding: '12px 0 28px', color: '#202124' }}>
     <section style={{ padding: 22, borderRadius: 24, border: '1px solid #e9ebf0', background: '#fff', boxShadow: '0 8px 28px #202a3d0a' }}>
       <div style={{ fontSize: 11, letterSpacing: 3, color: '#737b89' }}>OUR CLASS · LITTLE FEELINGS</div>
-      <h1 style={{ fontSize: 27, margin: '10px 0 6px' }}>心动信箱</h1>
+      <h1 style={{ fontSize: 27, margin: '10px 0 6px' }}>表白墙</h1>
       <p style={{ color: '#606673', lineHeight: 1.7, fontSize: 13, marginTop: 0 }}>把喜欢、感谢和没来得及说的话，留在青春档案里。</p>
       <label style={{ display: 'block', fontSize: 12, color: '#606673', margin: '14px 0 6px' }}>投稿类型</label>
       <select value={category} onChange={e => setCategory(e.target.value)} style={field}>

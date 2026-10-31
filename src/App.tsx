@@ -43,7 +43,7 @@ import SongWall from './pages/SongWall';
 import Messages from './pages/Messages';
 
 const TABS = [
-  { to: '/home', label: '公告' },
+  { to: '/board', label: '公告' },
   { to: '/members', label: '班级' },
   { to: '/explore', label: '发现' },
   { to: '/friends', label: '私聊' },
@@ -68,8 +68,9 @@ function parseDevice(ua: string): string {
 }
 
 function isTabActive(tab: string, path: string) {
+  if (tab === '/board') return path.startsWith('/board');
   if (tab === '/members') return path.startsWith('/members');
-  if (tab === '/explore') return ['/explore','/feed','/board','/albums','/hot','/greetings','/events','/capsule','/wishes'].some(p => path.startsWith(p));
+  if (tab === '/explore') return ['/explore','/feed','/albums','/hot','/greetings','/events','/capsule','/wishes'].some(p => path.startsWith(p));
   if (tab === '/friends') return ['/friends','/chat'].some(p => path.startsWith(p));
   if (tab === '/messages') return path.startsWith('/messages');
   if (tab === '/songs') return path.startsWith('/songs');
@@ -557,7 +558,7 @@ function Shell() {
               <Route path="/members" element={<Members />} />
               <Route path="/members/:id" element={<Member />} />
               <Route path="/feed" element={<Discover />} />
-              <Route path="/albums" element={<Navigate to="/feed" replace />} />
+              <Route path="/albums" element={<Navigate to="/feed" replace state={{ openTab: "albums" }} />} />
               <Route path="/albums/:id" element={<AlbumDetail />} />
               <Route path="/friends" element={<Friends />} />
               <Route path="/messages" element={<Messages />} />

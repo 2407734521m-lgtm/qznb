@@ -920,7 +920,19 @@ function Logs() {
         <div key={l.id} style={{ fontSize: 12.5, padding: '7px 0', borderBottom: '1px solid #ffffff0c' }}>
           <span style={mut}>{(l.created_at || '').slice(0, 16).replace('T', ' ')}</span>
           <div><b>{l.action}</b></div>
-          <div style={mut}>{JSON.stringify(l.detail ?? {}).slice(0, 200)}</div>
+          <div style={{ marginTop: 6, display: 'grid', gap: 5 }}>
+            {Object.entries((() => {
+              let value: any = l.detail ?? {};
+              if (typeof value === 'string') { try { value = JSON.parse(value); } catch { return { 内容: value }; } }
+              if (value && typeof value === 'object' && !Array.isArray(value)) return value;
+              return { 内容: Array.isArray(value) ? value.join('、') : String(value ?? '—') };
+            })()).map(([key, value]) => (
+              <div key={key} style={{ display: 'grid', gridTemplateColumns: 'minmax(76px, 110px) minmax(0, 1fr)', gap: 8, lineHeight: 1.55 }}>
+                <span style={mut}>{key}</span>
+                <span style={{ color: '#d7dce5', overflowWrap: 'anywhere', whiteSpace: 'pre-wrap' }}>{typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value ?? '—')}</span>
+              </div>
+            ))}
+          </div>
         </div>
       ))}
       {shown.length === 0 && <p style={mut}>暂无记录</p>}

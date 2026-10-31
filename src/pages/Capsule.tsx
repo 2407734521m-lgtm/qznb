@@ -174,8 +174,9 @@ export default function Capsule() {
           <span style={{ fontSize: 13, color: 'var(--mut)' }}>开启日期：</span>
           <input type="date" value={openAt} min={today} onChange={e => setOpenAt(e.target.value)} style={{ width: 'auto' }} />
         </div>
-        <label style={{ fontSize: 13, display: 'flex', gap: 6, alignItems: 'center', marginBottom: 8 }}>
-          <input type="checkbox" checked={isPublic} onChange={e => setIsPublic(e.target.checked)} /> 到期后公开给全班看
+        <label style={{ fontSize: 13, display: 'flex', flexDirection: 'row', justifyContent: 'flex-start', alignItems: 'center', gap: 9, width: '100%', textAlign: 'left', marginBottom: 8 }}>
+          <input type="checkbox" checked={isPublic} onChange={e => setIsPublic(e.target.checked)} style={{ flex: '0 0 auto', margin: 0 }} />
+          <span>到期后公开给全班看</span>
         </label>
         <button className="pri" onClick={save}>封存</button>
         {msg && <p className="priv-note" style={{ marginTop: 8 }}>{msg}</p>}

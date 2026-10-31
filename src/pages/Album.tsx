@@ -4,13 +4,12 @@ import { motion, useReducedMotion } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import { withRetry } from '../lib/retry';
 import { useAuth } from '../auth';
-import { useSignedUrl } from '../lib/media';
+import { useSignedUrls } from '../lib/media';
 
 type A = { id: number; title: string; category: string; cover_url: string | null; created_at: string; n?: number };
 const CATS = ['班级日常', '军训', '运动会', '春游', '聚会', '毕业', '自定义'];
 
-function Cover({ path }: { path: string | null }) {
-  const url = useSignedUrl('media', path);
+function Cover({ url }: { url?: string }) {
   return url ? <img src={url} alt="" loading="lazy" /> : <span style={{ fontSize: 34 }}>📷</span>;
 }
 
@@ -18,20 +17,30 @@ export default function Album() {
   const nav = useNavigate(); const reduce = useReducedMotion();
   const me = useAuth().session!.user.id;
   const [rows, setRows] = useState<A[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
+  const signedCovers = useSignedUrls('media', rows.map(a => a.cover_url));
   const [show, setShow] = useState(false);
   const [title, setTitle] = useState(''); const [cat, setCat] = useState(CATS[0]); const [custom, setCustom] = useState('');
   const [err, setErr] = useState('');
 
   async function load() {
-    const { data: a } = await supabase.from('albums').select('*').is('deleted_at', null).order('created_at', { ascending: false });
-    const list = (a ?? []) as A[];
-    if (list.length) {
-      const { data: p } = await supabase.from('album_photos').select('album_id').in('album_id', list.map(x => x.id));
-      const cnt: Record<number, number> = {};
-      (p ?? []).forEach((r: any) => { cnt[r.album_id] = (cnt[r.album_id] || 0) + 1; });
-      list.forEach(x => { x.n = cnt[x.id] || 0; });
-    }
-    setRows(list);
+    setLoading(true); setLoadError('');
+    try {
+      const { data: a, error: albumError } = await supabase.from('albums').select('*').is('deleted_at', null).order('created_at', { ascending: false });
+      if (albumError) throw albumError;
+      const list = (a ?? []) as A[];
+      if (list.length) {
+        const { data: p, error: photoError } = await supabase.from('album_photos').select('album_id').in('album_id', list.map(x => x.id));
+        if (photoError) throw photoError;
+        const cnt: Record<number, number> = {};
+        (p ?? []).forEach((r: any) => { cnt[r.album_id] = (cnt[r.album_id] || 0) + 1; });
+        list.forEach(x => { x.n = cnt[x.id] || 0; });
+      }
+      setRows(list);
+    } catch (e: any) {
+      setLoadError(e?.message || '相册加载失败，请稍后重试。');
+    } finally { setLoading(false); }
   }
   useEffect(() => { load(); }, []);
 
@@ -65,12 +74,14 @@ export default function Album() {
             initial={reduce ? {} : { opacity: 0, y: 22 }} animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.45, delay: Math.min(i * 0.05, 0.4) }}
             onClick={() => nav(`/albums/${a.id}`)}>
-            <div className="cov"><Cover path={a.cover_url} /></div>
+            <div className="cov"><Cover url={a.cover_url ? signedCovers[a.cover_url] : undefined} /></div>
             <div className="t"><h4>{a.title}</h4><p>{a.category} · {a.n ?? 0} 张</p></div>
           </motion.div>
         ))}
       </div>
-      {rows.length === 0 && <div className="center" style={{ minHeight: 200 }}><div className="card">还没有相册，创建一个吧 📸</div></div>}
+      {loading && <div className="center" style={{ minHeight: 200 }}><div className="card">正在加载相册…</div></div>}
+      {!loading && loadError && <div className="card err">{loadError}<button className="mini ghost" onClick={load}>重试</button></div>}
+      {!loading && !loadError && rows.length === 0 && <div className="center" style={{ minHeight: 200 }}><div className="card">还没有相册，创建一个吧 📸</div></div>}
     </div>
   );
 }

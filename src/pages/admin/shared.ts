@@ -25,7 +25,7 @@ export function timeAgo(s: string) {
   return new Date(s).toLocaleDateString();
 }
 
-function bucket14(rows: { created_at: string }[]) {
+export function bucket14(rows: { created_at: string }[]) {
   const days: number[] = Array(14).fill(0);
   const start = new Date(); start.setHours(0, 0, 0, 0); start.setDate(start.getDate() - 13);
   rows.forEach(r => {

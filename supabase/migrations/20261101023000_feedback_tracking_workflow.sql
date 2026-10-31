@@ -28,6 +28,10 @@ create policy fb_sel_own
   to authenticated
   using (auth.uid() = user_id);
 
+-- Prevent direct status/note writes that would bypass the notification RPC.
+drop policy if exists fb_upd on public.feedbacks;
+revoke update on table public.feedbacks from public, anon, authenticated;
+
 create or replace function public.admin_update_feedback(
   p_feedback_id bigint,
   p_status text,
@@ -45,7 +49,7 @@ declare
   v_status_label text;
   v_body text;
 begin
-  if v_actor is null or public.my_role() not in ('admin', 'super_admin') then
+  if v_actor is null or coalesce(public.my_role(), '') not in ('admin', 'super_admin') then
     raise exception 'administrator required' using errcode = '42501';
   end if;
 

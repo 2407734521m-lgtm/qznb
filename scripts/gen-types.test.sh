@@ -73,6 +73,9 @@ run_case() {
     [ "$code" -eq 0 ] || ok=0
     [ "$(grep -c '^          id?: number$' "$dir/src/lib/database.types.ts" || true)" = "14" ] || ok=0
     grep -Fq 'Returns: { online_count: number; active_count: number; sampled_at: string }' "$dir/src/lib/database.types.ts" || ok=0
+    grep -Fq 'Returns: { site_title: string;' "$dir/src/lib/database.types.ts" || ok=0
+    grep -Fq 'Returns: { id: string; username: string; display_name: string | null;' "$dir/src/lib/database.types.ts" || ok=0
+    grep -Fq 'Returns: { id: string; username: string; display_name: string | null; age: number | null;' "$dir/src/lib/database.types.ts" || ok=0
     grep -Fq 'Returns: string | null' "$dir/src/lib/database.types.ts" || ok=0
     # Normalization must be idempotent.
     (cd "$dir" && node scripts/normalize-database-types.mjs src/lib/database.types.ts >/dev/null) || ok=0

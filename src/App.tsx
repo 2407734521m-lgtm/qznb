@@ -6,6 +6,9 @@ import { supabase } from './lib/supabase';
 import { useAuth } from './auth';
 import { getWallpaper } from './lib/wallpaper';
 import WallpaperOnboarding from './components/WallpaperOnboarding';
+import BlurText from './components/fx/BlurText';
+import ShinyText from './components/fx/ShinyText';
+import FxLoader from './components/fx/Loader';
 import WelcomeOverlay from './components/WelcomeOverlay';
 import LoginSuccessOverlay from './components/LoginSuccessOverlay';
 import bgUrl from './assets/bg.jpg';
@@ -133,7 +136,7 @@ function AdminRoute() {
       () => { clearTimeout(timer); if (live) setRole(''); });
     return () => { live = false; clearTimeout(timer); };
   }, [session]);
-  if (loading || (session && role === null)) return <div className="center" style={{ minHeight: '60vh' }}>加载中…</div>;
+  if (loading || (session && role === null)) return <div className="center" style={{ minHeight: '60vh' }}><FxLoader text="加载中…" /></div>;
   const isAdmin = role === 'admin' || role === 'super_admin';
   return isAdmin ? <ErrorBoundary><Admin /></ErrorBoundary> : <AdminLogin />;
 }
@@ -213,14 +216,14 @@ function PublicLanding({ data, onLogin }: { data: any; onLogin: () => void }) {
   const bannerUrl = typeof data?.home_banner_url === 'string' && (data.home_banner_url.startsWith('https://') || data.home_banner_url.startsWith('http://')) ? data.home_banner_url : '';
   return (<><div className="glow" /><main style={{ width: 'min(100% - 28px, 820px)', margin: '0 auto', padding: '22px 0 48px', color: '#202632' }}>
     <header style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 18 }}>
-      <div style={{ flex: 1 }}><div style={{ fontSize: 11, letterSpacing: 3, color: '#7b8492' }}>OUR CLASS · PUBLIC SPACE</div><h1 style={{ margin: '6px 0 0', fontSize: 24 }}>{title}</h1><p style={{ margin: '4px 0 0', color: '#737b89', fontSize: 13 }}>{subtitle}</p></div>
+      <div style={{ flex: 1 }}><div style={{ fontSize: 11, letterSpacing: 3, color: '#7b8492' }}>OUR CLASS · PUBLIC SPACE</div><h1 style={{ margin: '6px 0 0', fontSize: 24 }}>{title}</h1><p style={{ margin: '4px 0 0', color: '#737b89', fontSize: 13 }}><ShinyText text={subtitle} /></p></div>
       {data?.close_login_entry !== 'true' && <button className="pri" style={{ width: 'auto', padding: '10px 16px', whiteSpace: 'nowrap' }} onClick={onLogin}>登录 / 注册</button>}
     </header>
     <section style={{ aspectRatio: '16 / 9', width: '100%', position: 'relative', overflow: 'hidden', borderRadius: 22, marginBottom: 18, background: bannerUrl ? '#e9edf3' : 'linear-gradient(135deg,#f5f7fa,#e4e9f1)', border: '1px solid #e5e8ee', boxShadow: '0 12px 34px #202a3d0c' }}>
       {bannerUrl && <img src={bannerUrl} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />}
       <div style={{ position: 'absolute', inset: 0, padding: 'clamp(18px,5vw,30px)', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', background: bannerUrl ? 'linear-gradient(90deg,#10182899,transparent)' : 'linear-gradient(120deg,#ffffff00,#dfe4ec55)' }}>
         <div style={{ fontSize: 10, letterSpacing: 2, color: bannerUrl ? '#fff' : '#737b89' }}>ANNOUNCEMENTS</div>
-        <h2 style={{ margin: '8px 0 0', color: bannerUrl ? '#fff' : '#202632', fontSize: 'clamp(20px,5vw,30px)', lineHeight: 1.3 }}>{bannerText}</h2>
+        <h2 style={{ margin: '8px 0 0', color: bannerUrl ? '#fff' : '#202632', fontSize: 'clamp(20px,5vw,30px)', lineHeight: 1.3 }}><BlurText key={bannerText} text={bannerText} /></h2>
       </div>
     </section>
     <section style={{ background: '#fff', border: '1px solid #e9ebf0', borderRadius: 20, padding: '18px clamp(14px,4vw,22px)', boxShadow: '0 8px 28px #202a3d0a' }}>
@@ -426,6 +429,15 @@ function Shell() {
   }, [loc.pathname]);
   useEffect(() => { setShowLogin(false); }, [session]);
 
+  // 浏览器标签/阅读模式标题跟随后台「网站标题/副标题」设置（site_settings）：
+  // 公共配置一到手就同步 document.title；index.html 里的静态标题只作首屏兜底。
+  useEffect(() => {
+    if (!siteConfig) return;
+    const t = String(siteConfig.site_title || '我们的班级').trim() || '我们的班级';
+    const s = String(siteConfig.site_subtitle || '青春档案').trim();
+    document.title = s ? `${t} · ${s}` : t;
+  }, [siteConfig]);
+
   // 在线心跳：仅在页面可见且近 5 分钟内有交互时续期；管理员只读取聚合人数。
   useEffect(() => {
     if (!session) return;
@@ -482,7 +494,7 @@ function Shell() {
 
   async function logout() { await supabase.auth.signOut(); }
 
-  if (loading) return <div className="center"><motion.span animate={reduce ? undefined : { opacity: [0.35, 1, 0.35] }} transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut' }} style={{ fontSize: 22 }}>✦</motion.span><span style={{ marginLeft: 8 }}>加载中…</span></div>;
+  if (loading) return <div className="center"><FxLoader text="加载中…" /></div>;
   if (!session && isAdminPage) return (<><div className="glow" /><div style={{ position: 'fixed', inset: 0, background: '#fff' }} /><div style={{ position: 'relative' }}><AdminLogin /></div></>);
   // 从重置密码邮件回来：优先显示设置新密码页。
   if (pwReset) return (<><div className="glow" /><ResetPassword onDone={() => {
@@ -490,7 +502,7 @@ function Shell() {
     try { window.history.replaceState(null, '', window.location.pathname + window.location.hash); } catch {}
   }} /></>);
   if (!session) {
-    if (siteConfigLoading) return <div className="center" style={{ minHeight: '60vh' }}>正在加载公开内容…</div>;
+    if (siteConfigLoading) return <div className="center" style={{ minHeight: '60vh' }}><FxLoader text="正在加载公开内容…" /></div>;
     if (siteConfig?.maintenance === 'true') return <MaintenanceScreen title={siteConfig.maintenance_title || ''} msg={siteConfig.maintenance_msg || ''} hasSession={false} onLogout={logout} onAdmin={() => nav('/admin')} />;
     if (showLogin && siteConfig?.close_login_entry !== 'true') return <><div className="glow" /><Login /><button className="mini ghost" style={{ position: 'fixed', top: 'calc(env(safe-area-inset-top) + 12px)', right: 14, zIndex: 900 }} onClick={() => setShowLogin(false)}>返回公开首页</button></>;
     if (siteConfig?.skip_login_screen === 'true') return <PublicLanding data={siteConfig} onLogin={() => setShowLogin(true)} />;

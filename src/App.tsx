@@ -261,7 +261,7 @@ function PublicLanding({ data, onLogin }: { data: any; onLogin: () => void }) {
   const bannerText = data?.home_banner_text || '把我们的青春，留在这里';
   const bannerUrl = typeof data?.home_banner_url === 'string' && (data.home_banner_url.startsWith('https://') || data.home_banner_url.startsWith('http://')) ? data.home_banner_url : '';
   return (<><div className="glow" /><img src={emblemUrl} alt="" aria-hidden draggable={false}
-      style={{ position: 'fixed', top: 60, right: 10, width: 92, opacity: 0.32, pointerEvents: 'none', userSelect: 'none', zIndex: 30 }} /><main style={{ width: 'min(100% - 28px, 820px)', margin: '0 auto', padding: '22px 0 48px', color: '#202632' }}>
+      style={{ position: 'absolute', top: 60, right: 10, width: 92, opacity: 0.32, pointerEvents: 'none', userSelect: 'none', zIndex: 30 }} /><main style={{ width: 'min(100% - 28px, 820px)', margin: '0 auto', padding: '22px 0 48px', color: '#202632' }}>
     <header style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 18 }}>
       <div style={{ flex: 1 }}><div style={{ fontSize: 11, letterSpacing: 3, color: '#7b8492' }}>OUR CLASS · PUBLIC SPACE</div><h1 style={{ margin: '6px 0 0', fontSize: 24 }}>{title}</h1><p style={{ margin: '4px 0 0', color: '#737b89', fontSize: 13 }}><ShinyText text={subtitle} /></p></div>
       {data?.close_login_entry !== 'true' && <button className="pri" style={{ width: 'auto', padding: '10px 16px', whiteSpace: 'nowrap' }} onClick={onLogin}>登录 / 注册</button>}
@@ -607,7 +607,7 @@ function Shell() {
         ? { background: wp.src, filter: `blur(${wp.blur}px) brightness(${100 - wp.dark}%)` }
         : { backgroundImage: `url(${wp.src === 'default' ? bgUrl : wp.src})`, filter: `blur(${wp.blur}px) brightness(${100 - wp.dark}%)` }} />
       <img src={emblemUrl} alt="" aria-hidden draggable={false}
-        style={{ position: 'fixed', top: 60, right: 10, width: 92, opacity: 0.32, pointerEvents: 'none', userSelect: 'none', zIndex: 30 }} />
+        style={{ position: 'absolute', top: 60, right: 10, width: 92, opacity: 0.32, pointerEvents: 'none', userSelect: 'none', zIndex: 30 }} />
       {isAdminPage ? (
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', position: 'sticky', top: 0, zIndex: 40, background: 'rgba(255,255,255,.92)', backdropFilter: 'blur(12px)', borderBottom: '1px solid #e8eaf0' }}>
           <b style={{ fontSize: 15 }}>管理后台</b>
@@ -697,7 +697,7 @@ function Shell() {
                   <NavLink to={t.to} className={on ? 'on' : ''}
                     ref={on ? (el: any) => { if (el) el.scrollIntoView({ inline: 'center', block: 'nearest' }); } : undefined}>
                     <span className="dock-tab-label">{t.label}</span>
-                    {((t.to === '/explore' && boardUnread) || (t.to === '/me/notifications' && notifUnread)) && <span className="dock-unread-dot" />}
+                    {((t.to === '/board' && boardUnread) || (t.to === '/me/notifications' && notifUnread)) && <span className="dock-unread-dot" />}
                   </NavLink>
                 </motion.div>
               );

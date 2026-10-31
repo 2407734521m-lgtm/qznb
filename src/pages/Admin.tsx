@@ -385,7 +385,7 @@ function Members({ me, isSuper, setMsg, extQ }: { me: string; isSuper: boolean; 
         <button className="mini ghost" disabled={page >= pages - 1} onClick={() => setPage(p => p + 1)}>下一页</button>
       </div>
     )}
-    {detailId && <AdminMemberModal memberId={detailId} onClose={() => setDetailId(null)} onChanged={load} />}
+    {detailId && <AdminMemberModal memberId={detailId} onClose={() => setDetailId(null)} onChanged={load} isSuper={isSuper} />}
   </>);
 }
 

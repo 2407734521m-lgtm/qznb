@@ -163,6 +163,10 @@ export default function Admin() {
     window.scrollTo({ top: 0 });
   }
 
+  function signOut() {
+    void supabase.auth.signOut().then(() => location.reload());
+  }
+
   if (!session) {
     return <div className="center" style={{ minHeight: '60vh' }}>登录会话已失效，请返回管理员登录页重新登录。</div>;
   }
@@ -249,6 +253,9 @@ export default function Admin() {
             <span>{label}</span>
           </button>
         ))}
+        <button type="button" className="admin-dock-exit" onClick={signOut}>
+          <span>退出</span>
+        </button>
       </nav>
 
       {/* 桌面端侧边 Dock */}
@@ -272,6 +279,11 @@ export default function Admin() {
               fontWeight: tab === id ? 700 : 400,
             }}>{label}</button>
           ))}
+          <button onClick={signOut} style={{
+            flexShrink: 0, whiteSpace: 'nowrap', padding: '9px 14px', borderRadius: 999, cursor: 'pointer',
+            fontSize: 13, border: 0, fontFamily: 'inherit', marginLeft: 4,
+            background: 'rgba(255,107,107,.12)', color: '#ff9d9d',
+          }}>退出</button>
         </div>
       </div>
     </div>

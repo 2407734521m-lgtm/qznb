@@ -55,15 +55,6 @@ function AdminShell() {
   return (<>
     <div className="glow" />
     <div className="wrap"><Admin /></div>
-    <button
-      onClick={() => supabase.auth.signOut().then(() => location.reload())}
-      title="退出登录"
-      style={{
-        position: 'fixed', right: 14, bottom: 14, zIndex: 50,
-        width: 44, height: 44, borderRadius: '50%',
-        background: 'rgba(255,255,255,.08)', border: '1px solid rgba(255,255,255,.16)',
-        color: '#fff', fontSize: 18, cursor: 'pointer', backdropFilter: 'blur(10px)',
-      }}>⏻</button>
   </>);
 }
 

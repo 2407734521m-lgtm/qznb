@@ -50,7 +50,8 @@ begin
     raise exception 'super administrator required' using errcode = '42501';
   end if;
 
-  if p_action_type not in ('delete_member_account', 'set_role')
+  if p_action_type is null
+     or p_action_type not in ('delete_member_account', 'set_role')
      or p_target_user_id is null
      or p_target_user_id = v_actor
      or p_reason is null
@@ -76,7 +77,9 @@ begin
     if v_target_role <> 'member' or p_requested_role is not null then
       raise exception 'only regular member accounts can be deleted';
     end if;
-  elsif p_requested_role not in ('member', 'admin') or v_target_role = 'super_admin'
+  elsif p_requested_role is null
+        or p_requested_role not in ('member', 'admin')
+        or v_target_role = 'super_admin'
         or p_requested_role = v_target_role then
     raise exception 'invalid role change target';
   end if;
@@ -124,6 +127,9 @@ begin
 
   if not found then
     raise exception 'approval request not found';
+  end if;
+  if p_approve is null then
+    raise exception 'approval decision is required';
   end if;
   if v_request.status <> 'pending' then
     raise exception 'approval request is no longer pending';

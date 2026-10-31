@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../auth';
 import { useSignedUrl } from '../lib/media';
 import type { ProfileSummary as Profile } from '../types/profile';
 import { confirmDialog } from '../lib/dialog';
+import KaiboxDialog from '../components/KaiboxDialog';
 
 type Msg = { id: number; author_id: string; title: string | null; content: string; is_admin_msg: boolean; is_pinned: boolean; created_at: string };
 
@@ -32,6 +33,19 @@ export default function Board() {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
   const [isAdmin, setIsAdmin] = useState(false);
+  const [showKaibox, setShowKaibox] = useState(false);
+  const titleTaps = useRef({ count: 0, last: 0 });
+
+  function handleTitleTap() {
+    const now = Date.now();
+    if (now - titleTaps.current.last > 1400) titleTaps.current.count = 0;
+    titleTaps.current.last = now;
+    titleTaps.current.count += 1;
+    if (titleTaps.current.count >= 7) {
+      titleTaps.current.count = 0;
+      setShowKaibox(true);
+    }
+  }
 
   async function load() {
     const nowIso = new Date().toISOString();
@@ -105,7 +119,7 @@ export default function Board() {
   return (
     <div className="page" style={{ paddingBottom: 120 }}>
       <div className="hero">
-        <h1>公告板</h1>
+        <h1 onClick={handleTitleTap} role="button" tabIndex={0} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleTitleTap(); } }} style={{ cursor: 'pointer', userSelect: 'none' }}>公告板</h1>
         <p>班 级 通 知 · 留 言</p>
       </div>
 
@@ -134,6 +148,7 @@ export default function Board() {
           {err && <p className="err" style={{ margin: '6px 0 0', fontSize: 12.5 }}>{err}</p>}
         </div>
       </div>
+      {showKaibox && <KaiboxDialog onClose={() => setShowKaibox(false)} />}
     </div>
   );
 }

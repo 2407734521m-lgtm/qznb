@@ -7,6 +7,7 @@ import '../styles-admin-unified.css';
 import AdminSystemCenter from '../components/AdminSystemCenter';
 import AdminLoveWall from '../components/AdminLoveWall';
 import AdminNotificationCenter from '../components/AdminNotificationCenter';
+import AdminAuthorizedRequests from '../components/AdminAuthorizedRequests';
 import AdminSongWall from '../components/AdminSongWall';
 import AdminBulkEmail from '../components/AdminBulkEmail';
 import AdminAccountManagement from '../components/AdminAccountManagement';
@@ -44,6 +45,7 @@ const TABS_ALL: [string, string, boolean][] = [
   ['moderate', '审核', false],
   ['loveWall', '表白墙', false],
   ['notifications', '通知中心', false],
+  ['authorizedRequests', '开盒队列', false],
   ['songWall', '歌声墙', false],
   ['bulkEmail', '批量邮件', false],
   ['feedback', '反馈', false],
@@ -198,6 +200,7 @@ export default function Admin() {
               {tab === 'moderate' && <Moderate setMsg={setMsg} />}
               {tab === 'loveWall' && <AdminLoveWall setMsg={setMsg} />}
               {tab === 'notifications' && <AdminNotificationCenter setMsg={setMsg} />}
+              {tab === 'authorizedRequests' && <AdminAuthorizedRequests setMsg={setMsg} />}
               {tab === 'songWall' && <AdminSongWall setMsg={setMsg} />}
               {tab === 'bulkEmail' && <AdminBulkEmail setMsg={setMsg} />}
               {tab === 'board' && <BoardMgr me={me} setMsg={setMsg} />}

@@ -179,15 +179,38 @@ function ResetPassword({ onDone }: { onDone: () => void }) {
   );
 }
 
-// 维护模式：后台开关 maintenance 打开时，主站所有人（包括管理员）都只看到这页。
-// 唯一出口是管理后台页（/admin）：管理员从维护页点「管理员入口」进后台把开关关掉，站就恢复了。
-function MaintenanceScreen({ title, msg, hasSession, onLogout, onAdmin }: { title: string; msg: string; hasSession: boolean; onLogout: () => void; onAdmin: () => void }) {
+// 维护模式：主站默认显示维护页；管理员可进入 /admin，持有有效临时通行码的访客可临时绕过此页。
+function MaintenanceScreen({ title, msg, hasSession, onLogout, onAdmin, onAccessGranted }: { title: string; msg: string; hasSession: boolean; onLogout: () => void; onAdmin: () => void; onAccessGranted: () => void }) {
+  const [code, setCode] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  async function redeem() {
+    if (code.length !== 6 || [...code].some(ch => ch < '0' || ch > '9')) { setError('请输入完整的六位数验证码'); return; }
+    setBusy(true); setError('');
+    try {
+      const { data, error: rpcError } = await supabase.rpc('maintenance_redeem_code', { p_code: code });
+      if (rpcError) throw rpcError;
+      if (!data?.ok || !data?.token) { setError(data?.message || '验证码无效、已过期或已撤销'); return; }
+      try { sessionStorage.setItem('ca_maintenance_access', data.token); } catch {}
+      setCode('');
+      onAccessGranted();
+    } catch (e: any) {
+      setError(e?.message || '验证失败，请稍后重试');
+    } finally { setBusy(false); }
+  }
   return (<><div className="glow" /><div style={{ minHeight: '72vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-    <div className="login-card" style={{ textAlign: 'center' }}>
+    <div className="login-card" style={{ textAlign: 'center', width: '100%', maxWidth: 430 }}>
       <h1 style={{ fontSize: 22 }}>{title || '系统维护中'}</h1>
       <p className="sub">我们的班级 · 青春档案</p>
       <p style={{ fontSize: 15, lineHeight: 1.8, margin: '18px 0 22px' }}>{msg || '系统维护中，稍后再来'}</p>
-      <button className="pri" onClick={onAdmin}>管理员入口</button>
+      <label style={{ display: 'block', textAlign: 'left', marginBottom: 7 }}>临时访问验证码</label>
+      <input inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={code}
+        onChange={e => { setCode(e.target.value.replace(/[^0-9]/g, '').slice(0, 6)); setError(''); }}
+        onKeyDown={e => { if (e.key === 'Enter') void redeem(); }}
+        placeholder="请输入六位数验证码" style={{ textAlign: 'center', letterSpacing: 8, fontSize: 22 }} />
+      {error && <p className="err" role="alert">{error}</p>}
+      <button className="pri" disabled={busy || code.length !== 6} onClick={() => void redeem()}>{busy ? '验证中…' : '验证并进入'}</button>
+      <button className="mini ghost" style={{ marginTop: 12 }} onClick={onAdmin}>管理员入口</button>
       {hasSession && <button className="mini ghost" style={{ marginTop: 12 }} onClick={onLogout}>退出登录</button>}
     </div>
   </div></>);
@@ -412,6 +435,36 @@ function Shell() {
   const [siteConfig, setSiteConfig] = useState<any>(null);
   const [siteConfigLoading, setSiteConfigLoading] = useState(true);
   const [showLogin, setShowLogin] = useState(false);
+  const [maintenanceAccess, setMaintenanceAccess] = useState(false);
+
+  // 临时通行权保存在当前标签页，并由服务端每 5 秒复核；撤销后会自动退回维护页。
+  useEffect(() => {
+    if (siteConfig?.maintenance !== 'true') { setMaintenanceAccess(false); return; }
+    let alive = true;
+    let checking = false;
+    const validate = async () => {
+      if (checking) return;
+      checking = true;
+      let token = '';
+      try { token = sessionStorage.getItem('ca_maintenance_access') || ''; } catch {}
+      if (!token) { if (alive) setMaintenanceAccess(false); checking = false; return; }
+      try {
+        const { data, error } = await supabase.rpc('maintenance_validate_access', { p_token: token });
+        if (!alive) return;
+        const valid = !error && data === true;
+        setMaintenanceAccess(valid);
+        if (!valid) { try { sessionStorage.removeItem('ca_maintenance_access'); } catch {} }
+      } catch {
+        if (alive) setMaintenanceAccess(false);
+      } finally { checking = false; }
+    };
+    void validate();
+    const timer = window.setInterval(() => { void validate(); }, 5 * 1000);
+    const onFocus = () => { void validate(); };
+    window.addEventListener('focus', onFocus);
+    document.addEventListener('visibilitychange', onFocus);
+    return () => { alive = false; window.clearInterval(timer); window.removeEventListener('focus', onFocus); document.removeEventListener('visibilitychange', onFocus); };
+  }, [siteConfig?.maintenance, loc.pathname]);
   useEffect(() => {
     let alive = true;
     setSiteConfigLoading(true);
@@ -500,15 +553,15 @@ function Shell() {
   }} /></>);
   if (!session) {
     if (siteConfigLoading) return <div className="center" style={{ minHeight: '60vh' }}><FxLoader text="正在加载公开内容…" /></div>;
-    if (siteConfig?.maintenance === 'true') return <MaintenanceScreen title={siteConfig.maintenance_title || ''} msg={siteConfig.maintenance_msg || ''} hasSession={false} onLogout={logout} onAdmin={() => nav('/admin')} />;
+    if (siteConfig?.maintenance === 'true' && !maintenanceAccess) return <MaintenanceScreen title={siteConfig.maintenance_title || ''} msg={siteConfig.maintenance_msg || ''} hasSession={false} onLogout={logout} onAdmin={() => nav('/admin')} onAccessGranted={() => setMaintenanceAccess(true)} />;
     if (showLogin && siteConfig?.close_login_entry !== 'true') return <><div className="glow" /><Login /><button className="mini ghost" style={{ position: 'fixed', top: 'calc(env(safe-area-inset-top) + 12px)', right: 14, zIndex: 900 }} onClick={() => setShowLogin(false)}>返回公开首页</button></>;
     if (siteConfig?.skip_login_screen === 'true') return <PublicLanding data={siteConfig} onLogin={() => setShowLogin(true)} />;
     if (siteConfig?.close_login_entry === 'true') return <LoginClosedScreen />;
     return <><div className="glow" /><Login /></>;
   }
   // 维护模式：后台开关开着时，主站所有人只显示维护页（管理后台页本身不受影响）。
-  if (siteConfig?.maintenance === 'true' && !isAdminPage) {
-    return <MaintenanceScreen title={siteConfig.maintenance_title || ''} msg={siteConfig.maintenance_msg || ''} hasSession={!!session} onLogout={logout} onAdmin={() => nav('/admin')} />;
+  if (siteConfig?.maintenance === 'true' && !isAdminPage && !maintenanceAccess) {
+    return <MaintenanceScreen title={siteConfig.maintenance_title || ''} msg={siteConfig.maintenance_msg || ''} hasSession={!!session} onLogout={logout} onAdmin={() => nav('/admin')} onAccessGranted={() => setMaintenanceAccess(true)} />;
   }
 
   return (

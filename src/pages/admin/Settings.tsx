@@ -126,34 +126,118 @@ export default function Settings({ me, setMsg }: { me: string; setMsg: (s: strin
   }
 
   async function backup() {
-    if (!confirm('导出全站数据备份？文件会直接下载到本机，不经过公开链接。')) return;
-    setMsg('正在备份…');
+    if (!confirm('导出全部业务数据库数据与存储文件清单？此版本不包含照片、音频、视频等文件本体；不能替代 Supabase 完整备份。')) return;
+    setMsg('正在逐表导出，请勿关闭页面…');
+    const tableNames = [
+      'profiles', 'profile_emails', 'profile_privacy', 'profile_contacts',
+      'posts', 'comments', 'post_likes', 'favorites', 'timelines',
+      'albums', 'album_photos', 'board_messages', 'board_reads',
+      'friendships', 'conversations', 'conversation_members', 'messages',
+      'notifications', 'reports', 'feedbacks', 'invite_codes',
+      'admin_audit_logs', 'backup_logs', 'site_settings', 'app_settings',
+      'hot_snippets', 'greetings', 'wishes', 'events', 'event_regs',
+      'game_profiles', 'love_wall_posts', 'love_wall_media', 'love_wall_comments',
+      'song_posts', 'song_audio_uploads', 'member_presence', 'time_capsules',
+      'maintenance_notify_emails',
+    ];
+    const pageSize = 500;
+    const tables: Record<string, { expected_rows: number; exported_rows: number; rows: any[] }> = {};
     try {
-      const [p, po, cm, al, ap, bm, fb] = await Promise.all([
-        supabase.from('profiles').select('id, username, display_name, real_name, role, joined, created_at, age, personality, signature, bio, hobbies'),
-        supabase.from('posts').select('*').limit(2000),
-        supabase.from('comments').select('*').limit(5000),
-        supabase.from('albums').select('*').limit(500),
-        supabase.from('album_photos').select('id, album_id, photo_url, caption, created_at').limit(5000),
-        supabase.from('board_messages').select('*').limit(2000),
-        supabase.from('feedbacks').select('*').limit(2000),
-      ]);
+      for (const table of tableNames) {
+        const rows: any[] = [];
+        let expected: number | null = null;
+        for (let offset = 0; ; offset += pageSize) {
+          const { data, error, count } = await supabase
+            .from(table as any)
+            .select('*', { count: 'exact' })
+            .order('id', { ascending: true })
+            .range(offset, offset + pageSize - 1);
+          if (error) throw new Error(table + ' 导出失败：' + error.message);
+          if (expected === null) {
+            if (count === null) throw new Error(table + ' 无法取得总行数，不能验证完整性。');
+            expected = count;
+          }
+          rows.push(...(data ?? []));
+          if (!data || data.length < pageSize) break;
+        }
+        if (rows.length !== expected) {
+          throw new Error(table + ' 行数校验失败：数据库报告 ' + expected + ' 行，实际导出 ' + rows.length + ' 行。请在数据稳定后重试。');
+        }
+        tables[table] = { expected_rows: expected, exported_rows: rows.length, rows };
+      }
+
+      const { data: buckets, error: bucketError } = await supabase.storage.listBuckets();
+      if (bucketError) throw new Error('读取存储桶失败：' + bucketError.message);
+      const storageManifest: Record<string, any[]> = {};
+      async function listFolder(bucket: string, folder: string): Promise<any[]> {
+        const entries: any[] = [];
+        for (let offset = 0; ; offset += 100) {
+          const { data, error } = await supabase.storage.from(bucket).list(folder, {
+            limit: 100, offset, sortBy: { column: 'name', order: 'asc' },
+          });
+          if (error) throw new Error('读取存储桶 ' + bucket + '/' + folder + ' 失败：' + error.message);
+          const page = data ?? [];
+          for (const item of page) {
+            const path = folder ? folder + '/' + item.name : item.name;
+            if (item.id == null) entries.push(...await listFolder(bucket, path));
+            else entries.push({
+              path, id: item.id, created_at: item.created_at ?? null,
+              updated_at: item.updated_at ?? null, last_accessed_at: item.last_accessed_at ?? null,
+              metadata: item.metadata ?? null,
+            });
+          }
+          if (page.length < 100) break;
+        }
+        return entries;
+      }
+      for (const bucket of buckets ?? []) {
+        storageManifest[bucket.name] = await listFolder(bucket.name, '');
+      }
+
+      const exportedAt = new Date().toISOString();
+      const totalRows = Object.values(tables).reduce((sum, item) => sum + item.exported_rows, 0);
+      const storageObjects = Object.values(storageManifest).reduce((sum, items) => sum + items.length, 0);
       const data = {
-        backup_at: new Date().toISOString(), scope: 'full',
-        profiles: p.data ?? [], posts: po.data ?? [], comments: cm.data ?? [],
-        albums: al.data ?? [], album_photos: ap.data ?? [], board: bm.data ?? [], feedbacks: fb.data ?? [],
+        format: 'qznb-database-export-v2',
+        backup_at: exportedAt,
+        scope: 'all-public-business-tables-and-storage-manifest',
+        completeness: {
+          database_tables: tableNames.length,
+          database_rows: totalRows,
+          storage_buckets: Object.keys(storageManifest).length,
+          storage_objects: storageObjects,
+          storage_file_bodies_included: false,
+          transactional_snapshot: false,
+        },
+        warning: '本文件包含全部已列入清单的 public 业务表数据及 Storage 文件清单，但不包含文件二进制内容，也不是同一事务时间点的数据库快照。真正灾备仍需 Supabase 数据库备份及 Storage 文件本体归档。',
+        tables,
+        storage_manifest: storageManifest,
       };
       const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = `班级备份_${new Date().toISOString().slice(0, 10)}.json`;
-      a.click(); URL.revokeObjectURL(a.href);
-      await supabase.from('backup_logs').insert({ created_by: me, scope: 'full', status: 'ok', note: `成员${(p.data ?? []).length} 动态${(po.data ?? []).length}` });
-      await alog('backup', { scope: 'full' });
-      setMsg('备份完成，文件已下载'); load();
+      a.href = url;
+      a.download = '班级数据库导出_' + exportedAt.slice(0, 10) + '.json';
+      a.click();
+      URL.revokeObjectURL(url);
+
+      const note = '业务表 ' + tableNames.length + ' 张；数据行 ' + totalRows + '；存储桶 ' + Object.keys(storageManifest).length + ' 个；文件清单 ' + storageObjects + ' 项；未含文件本体';
+      const { error: logError } = await supabase.from('backup_logs').insert({
+        created_by: me, scope: 'database+storage-manifest', status: 'ok', note,
+      });
+      await alog('database_export', { tables: tableNames.length, rows: totalRows, storage_objects: storageObjects });
+      setMsg(logError
+        ? '数据导出完成，但备份日志写入失败：' + logError.message + '。注意：未包含媒体文件本体。'
+        : '数据库数据导出完成：' + tableNames.length + ' 张表、' + totalRows + ' 行、' + storageObjects + ' 个文件清单项。注意：未包含媒体文件本体，不能视为完整灾备。');
+      load();
     } catch (e: any) {
-      setMsg('备份失败：' + (e.message || ''));
-      try { await supabase.from('backup_logs').insert({ created_by: me, scope: 'full', status: 'fail', note: e.message || '' }); } catch {}
+      const message = e instanceof Error ? e.message : String(e);
+      setMsg('导出中止，未生成成功备份：' + message);
+      try {
+        await supabase.from('backup_logs').insert({
+          created_by: me, scope: 'database+storage-manifest', status: 'fail', note: message.slice(0, 1000),
+        });
+      } catch { /* Keep the original export failure visible. */ }
     }
   }
 
@@ -258,9 +342,9 @@ export default function Settings({ me, setMsg }: { me: string; setMsg: (s: strin
     </div>
 
     <div style={card}>
-      <h3 style={h3}>备份</h3>
-      <p style={mut}>备份文件直接下载到本机，不生成公开链接。恢复前请先确认，避免覆盖新数据。</p>
-      <button className="pri" style={{ width: 'auto', padding: '10px 26px' }} onClick={backup}>一键备份</button>
+      <h3 style={h3}>数据库数据导出</h3>
+      <p style={mut}>逐表分页导出全部业务数据并校验行数，同时记录 Storage 文件清单。当前导出不包含照片、音频、视频等文件本体，也不是事务级快照，不能代替完整灾备。</p>
+      <button className="pri" style={{ width: 'auto', padding: '10px 26px' }} onClick={backup}>导出数据库数据与文件清单</button>
       <div style={{ marginTop: 10 }}>
         {backups.map(b => (
           <div key={b.id} style={{ fontSize: 12.5, padding: '6px 0', borderBottom: '1px solid #ffffff0c' }}>

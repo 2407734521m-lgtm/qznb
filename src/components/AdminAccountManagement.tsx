@@ -213,7 +213,7 @@ export default function AdminAccountManagement({
         <span style={{ ...muted, alignSelf: 'center' }}>已选 {selected.size} 个</span>
         <button style={{ ...btn, color: '#8de0b7' }} disabled={batchBusy} onClick={() => void batchSetJoined(true)}>批量恢复</button>
         <button style={{ ...btn, color: '#ffb5c1' }} disabled={batchBusy} onClick={() => void batchSetJoined(false)}>批量禁用</button>
-      </div>
+      </div>}
     </div>
 
     {loading && rows.length === 0 && <p style={{ ...muted, textAlign: 'center', padding: 20 }}>正在读取账号信息…</p>}

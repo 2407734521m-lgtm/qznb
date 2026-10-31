@@ -53,6 +53,7 @@ export default function KaiboxDialog({ onClose }: { onClose: () => void }) {
     pending: '候选队列中',
     not_found: '本次未找到，已通知你',
     completed: '已完成',
+    closed: '今日名额已用完',
   };
 
   return (

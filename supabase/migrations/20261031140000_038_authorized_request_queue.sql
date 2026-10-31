@@ -68,9 +68,21 @@ begin
     where id = p_request_id and status = 'selected';
   if not found then raise exception '该申请当前不是处理中状态'; end if;
   if not p_found then
+    insert into public.notifications(profile_id,type,title,body,link)
+      select profile_id,'authorized_request','申请结果通知','本次申请未能找到符合条件的结果。你可以在「开盒」查看进度。','/board'
+      from public.authorized_request_queue where id = p_request_id;
     select id into v_next from public.authorized_request_queue where request_date = v_day and status = 'pending'
       order by created_at,id limit 1 for update;
-    if v_next is not null then update public.authorized_request_queue set status = 'selected',updated_at = now() where id = v_next; end if;
+    if v_next is not null then
+      update public.authorized_request_queue set status = 'selected',updated_at = now() where id = v_next;
+      insert into public.notifications(profile_id,type,title,body,link)
+        select profile_id,'authorized_request','轮到你了','前一项申请未能完成，你已递补为今日优先候选。','/board'
+        from public.authorized_request_queue where id = v_next;
+    end if;
+  else
+    insert into public.notifications(profile_id,type,title,body,link)
+      select profile_id,'authorized_request','申请已完成','你的申请已完成处理。','/board'
+      from public.authorized_request_queue where id = p_request_id;
   end if;
   return jsonb_build_object('ok',true,'next_request_id',v_next);
 end $$;

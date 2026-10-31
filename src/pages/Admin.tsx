@@ -6,6 +6,7 @@ import { useAuth } from '../auth';
 import '../styles-admin-cinematic.css';
 import '../styles-admin-unified.css';
 import AdminSystemCenter from '../components/AdminSystemCenter';
+import AdminAnalyticsCenter from '../components/AdminAnalyticsCenter';
 import AdminSecurityCenter from '../components/AdminSecurityCenter';
 import AdminApprovalCenter from '../components/AdminApprovalCenter';
 import AdminLoveWall from '../components/AdminLoveWall';
@@ -42,6 +43,7 @@ type Member = {
 
 const TABS_ALL: [string, string, boolean][] = [
   ['overview', '总览', false],
+  ['analytics', '数据分析', true],
   ['members', '成员', false],
   ['accounts', '账号管理', true],
   ['invite', '邀请码', false],
@@ -212,6 +214,7 @@ export default function Admin() {
 
       <div className="admin-content" key={tab} aria-live="polite">
         {tab === 'overview' && <Overview setMsg={setMsg} go={setTab} />}
+        {tab === 'analytics' && isSuper && <AdminAnalyticsCenter setMsg={setMsg} />}
               {tab === 'members' && <Members me={me} isSuper={isSuper} setMsg={setMsg} extQ={q0} />}
               {tab === 'accounts' && isSuper && <AdminAccountManagement me={me} isSuper={isSuper} setMsg={setMsg} />}
               {tab === 'moderate' && <Moderate setMsg={setMsg} />}

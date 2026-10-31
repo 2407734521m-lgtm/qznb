@@ -14,7 +14,6 @@ function Avatar({ p, size = 38 }: { p?: Profile; size?: number }) {
   return (
     <div className="av" style={{ width: size, height: size }}>
       {url ? <img src={url} alt="" /> : <span>{(p?.display_name ?? p?.username ?? '?').slice(0, 1)}</span>}
-      {showKaibox && <KaiboxDialog onClose={() => setShowKaibox(false)} />}
     </div>
   );
 }
@@ -149,6 +148,7 @@ export default function Board() {
           {err && <p className="err" style={{ margin: '6px 0 0', fontSize: 12.5 }}>{err}</p>}
         </div>
       </div>
+      {showKaibox && <KaiboxDialog onClose={() => setShowKaibox(false)} />}
     </div>
   );
 }

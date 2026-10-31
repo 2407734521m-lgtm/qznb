@@ -7,6 +7,7 @@ import '../styles-admin-cinematic.css';
 import '../styles-admin-unified.css';
 import AdminSystemCenter from '../components/AdminSystemCenter';
 import AdminSecurityCenter from '../components/AdminSecurityCenter';
+import AdminApprovalCenter from '../components/AdminApprovalCenter';
 import AdminLoveWall from '../components/AdminLoveWall';
 import AdminNotificationCenter from '../components/AdminNotificationCenter';
 import AdminAuthorizedRequests from '../components/AdminAuthorizedRequests';
@@ -26,7 +27,7 @@ import Moderate from './admin/Moderate';
 import Settings from './admin/Settings';
 import Overview from './admin/Overview';
 import BoardMgr from './admin/BoardMgr';
-import { confirmDialog } from '../lib/dialog';
+import { confirmDialog, promptDialog } from '../lib/dialog';
 
 /**
  * 管理后台测试版（V2）：高级管理控制中心
@@ -56,6 +57,7 @@ const TABS_ALL: [string, string, boolean][] = [
   ['events', '活动', false],
   ['logs', '日志', false],
   ['security', '安全防护', true],
+  ['approvals', '审批中心', true],
   ['system', '安全与监控', true],
   ['settings', '设置', true], // 仅超管
   ['test', '测试', true], // 仅超管
@@ -222,6 +224,7 @@ export default function Admin() {
               {tab === 'events' && <EventTab me={me} setMsg={setMsg} />}
               {tab === 'logs' && <Logs />}
               {tab === 'security' && isSuper && <AdminSecurityCenter session={session} setMsg={setMsg} />}
+              {tab === 'approvals' && isSuper && <AdminApprovalCenter setMsg={setMsg} />}
               {tab === 'system' && isSuper && <AdminSystemCenter setMsg={setMsg} go={switchTab} />}
               {tab === 'settings' && isSuper && <Settings me={me} setMsg={setMsg} />}
               {tab === 'invite' && <InviteTab isSuper={isSuper} setMsg={setMsg} />}
@@ -310,10 +313,17 @@ function Members({ me, isSuper, setMsg, extQ }: { me: string; isSuper: boolean; 
   }
   async function setRole(id: string, newRole: string, name: string) {
     if (id === me) return setMsg('不能修改自己的角色');
-    if (!(await confirmDialog(`把 ${name} 设为${newRole === 'super_admin' ? '超级管理员' : newRole === 'admin' ? '内容管理员' : '普通成员'}？`))) return;
-    const { error } = await supabase.rpc('set_role', { target: id, new_role: newRole });
-    setMsg(error ? '失败：' + error.message : '角色已更新');
-    if (!error) load();
+    if (newRole !== 'admin' && newRole !== 'member') return setMsg('该角色变更暂不支持直接申请');
+    if (!(await confirmDialog(`提交将 ${name} 调整为${newRole === 'admin' ? '内容管理员' : '普通成员'} 的审批申请？批准前不会改变角色。`))) return;
+    const reason = await promptDialog('填写角色调整原因（至少 8 个字）', { placeholder: '说明调整原因与必要性' });
+    if (!reason || reason.trim().length < 8) return setMsg('未提交：请填写至少 8 个字的审批原因。');
+    const { data, error } = await supabase.rpc('admin_request_sensitive_action', {
+      p_action_type: 'set_role',
+      p_target_user_id: id,
+      p_requested_role: newRole,
+      p_reason: reason.trim(),
+    });
+    setMsg(error ? '提交审批失败：' + error.message : '已提交审批申请（' + String(data).slice(0, 8) + '），需另一位超级管理员批准后生效。');
   }
 
   return (<>
@@ -363,7 +373,6 @@ function Members({ me, isSuper, setMsg, extQ }: { me: string; isSuper: boolean; 
               style={{ width: 'auto', padding: '6px 8px', fontSize: 12.5 }} disabled={m.id === me}>
               <option value="member">普通成员</option>
               <option value="admin">内容管理员</option>
-              <option value="super_admin">超级管理员</option>
             </select>
           )}
         </div>

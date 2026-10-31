@@ -1401,6 +1401,18 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: Json
       }
+      admin_request_sensitive_action: {
+        Args: { p_action_type: string; p_target_user_id: string; p_requested_role: string | null; p_reason: string }
+        Returns: string
+      }
+      admin_decide_sensitive_action: {
+        Args: { p_request_id: string; p_approve: boolean; p_note?: string | null }
+        Returns: undefined
+      }
+      admin_sensitive_action_requests: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
       record_auth_login_failure: {
         Args: { p_method: string; p_failure_class: string }
         Returns: undefined

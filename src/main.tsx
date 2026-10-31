@@ -17,8 +17,8 @@ const isAdminHost = window.location.hostname.split('.')[0].toLowerCase() === 'ad
 // 同时兼容 HashRouter 的 #/admin 入口，以及历史上直接访问的 /admin 路径。
 function redirectLegacyAdminEntry() {
   if (isAdminHost) return;
-  const isLegacyPath = window.location.pathname.replace(/\\/+$/, '') === '/admin';
-  const isLegacyHash = /^#\\/admin(?:\\/|$|[?])/.test(window.location.hash);
+  const isLegacyPath = window.location.pathname.replace(/\/+$/, '') === '/admin';
+  const isLegacyHash = /^#\/admin(?:\/|$|[?])/.test(window.location.hash);
   if (isLegacyPath || isLegacyHash) {
     window.location.replace('https://admin.qianzhi.pw/');
   }

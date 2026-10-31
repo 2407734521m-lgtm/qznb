@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../auth';
+import { confirmDialog } from '../lib/dialog';
 import { getSignedUrls, downscaleImage } from '../lib/media';
 import { fetchReviewEstimates, estimateText, type ReviewEstimates } from '../lib/reviewEstimate';
 
@@ -39,6 +41,7 @@ function timeAgo(s: string) {
 
 export default function LoveWall() {
   const { session } = useAuth();
+  const [searchParams] = useSearchParams();
   const [posts, setPosts] = useState<PublicPost[]>([]);
   const [myPosts, setMyPosts] = useState<MyPost[]>([]);
   const [content, setContent] = useState('');
@@ -50,7 +53,8 @@ export default function LoveWall() {
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState('');
   const [formErr, setFormErr] = useState('');
-  const [mine, setMine] = useState(false);
+  const [mine, setMine] = useState(searchParams.get('mine') === '1');
+  const [deletingPostId, setDeletingPostId] = useState<string | null>(null);
   const [composing, setComposing] = useState(false);
   const [anon, setAnon] = useState(true);
   const [mediaByPost, setMediaByPost] = useState<Record<string, MediaItem[]>>({});
@@ -99,6 +103,9 @@ export default function LoveWall() {
       const cc: Record<string, number> = {};
       (crows || []).forEach(r => { cc[r.post_id] = (cc[r.post_id] || 0) + 1; });
       setCounts(cc);
+    } else {
+      setMediaByPost({});
+      setCounts({});
     }
   }
   useEffect(() => { void load(); }, [session?.user.id]);
@@ -171,6 +178,66 @@ export default function LoveWall() {
     if (error) { setNotice('删除失败，请稍后再试。'); return; }
     setCommentsByPost(prev => ({ ...prev, [c.post_id]: (prev[c.post_id] || []).filter(x => x.id !== c.id) }));
     setCounts(prev => ({ ...prev, [c.post_id]: Math.max(0, (prev[c.post_id] || 1) - 1) }));
+  }
+
+  async function deletePost(p: MyPost) {
+    if (!session || session.user.id !== p.author_id || deletingPostId) return;
+    const ok = await confirmDialog('删除后，这条投稿及其评论将无法恢复。确认删除？', {
+      danger: true,
+      confirmText: '删除投稿',
+    });
+    if (!ok) return;
+
+    setDeletingPostId(p.id);
+    const mediaPaths = (mediaByPost[p.id] || []).map(item => item.path);
+    try {
+      // 双重校验作者身份：前端限制按钮，数据库 RLS 再作最终授权。
+      const { data, error } = await supabase.from('love_wall_posts')
+        .delete()
+        .eq('id', p.id)
+        .eq('author_id', session.user.id)
+        .select('id')
+        .maybeSingle();
+      if (error || !data) {
+        setNotice(error ? '删除失败：当前账号没有删除权限，或网络暂时不可用。' : '没有找到可删除的投稿，请刷新后重试。');
+        return;
+      }
+
+      // 帖子删除成功后再清理本人上传的对象；附件行和评论由外键级联清理。
+      let mediaCleanupFailed = false;
+      if (mediaPaths.length) {
+        try {
+          const { error: mediaError } = await supabase.storage.from('media').remove(mediaPaths);
+          mediaCleanupFailed = Boolean(mediaError);
+        } catch {
+          mediaCleanupFailed = true;
+        }
+      }
+
+      setMyPosts(prev => prev.filter(item => item.id !== p.id));
+      setMediaByPost(prev => {
+        const next = { ...prev };
+        delete next[p.id];
+        return next;
+      });
+      setCounts(prev => {
+        const next = { ...prev };
+        delete next[p.id];
+        return next;
+      });
+      setCommentsByPost(prev => {
+        const next = { ...prev };
+        delete next[p.id];
+        return next;
+      });
+      setNotice(mediaCleanupFailed
+        ? '投稿已删除，但部分附件文件暂未清理；帖子不会再显示。'
+        : '投稿已删除。');
+    } catch {
+      setNotice('删除失败：网络暂时不可用，请稍后重试。');
+    } finally {
+      setDeletingPostId(null);
+    }
   }
 
   function onPickFiles(e: React.ChangeEvent<HTMLInputElement>) {
@@ -263,6 +330,7 @@ export default function LoveWall() {
         const cc = catColor[p.category] || { bg: '#eef1f6', fg: '#5a6472' };
         const statusText = p.status === 'pending' ? '审核中' : p.status === 'rejected' ? '未通过' : p.status === 'hidden' ? '已隐藏' : timeAgo(p.created_at);
         const est = mine && p.status === 'pending' ? estimates?.byId.get(p.id) : undefined;
+        const canDelete = mine && !!session?.user.id && (p as MyPost).author_id === session.user.id;
         return <article key={p.id} style={{ padding: 17, borderRadius: 18, border: '1px solid #e9ebf0', background: '#fff', boxShadow: '0 8px 28px #202a3d0a' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
             <span style={{ fontSize: 11, fontWeight: 700, background: cc.bg, color: cc.fg, borderRadius: 999, padding: '4px 10px' }}>{p.category}</span>
@@ -273,6 +341,18 @@ export default function LoveWall() {
           {(mediaByPost[p.id] || []).length > 0 && <LoveMediaGrid items={mediaByPost[p.id]} />}
           <div style={{ fontSize: 11, color: '#606673' }}>{p.is_anonymous ? '匿名同学' : (mine ? '我发布的' : ((p as PublicPost).author_display_name || '班级同学'))} · {p.status === 'pending' ? '审核通过后公开展示' : p.status === 'published' ? '已公开展示' : '未公开展示'}</div>
           {est && <div style={{ fontSize: 11, color: '#606673', marginTop: 4 }}>{estimateText(est, estimates?.adminActive ?? false)}</div>}
+          {canDelete && (
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 10, paddingTop: 9, borderTop: '1px solid #f0f2f6' }}>
+              <button
+                type="button"
+                disabled={deletingPostId === p.id}
+                onClick={() => void deletePost(p as MyPost)}
+                style={{ border: '1px solid #f0d8dc', borderRadius: 999, padding: '7px 12px', background: '#fff7f8', color: '#ad394b', fontSize: 12, fontWeight: 700, cursor: deletingPostId === p.id ? 'wait' : 'pointer' }}
+              >
+                {deletingPostId === p.id ? '删除中…' : '删除投稿'}
+              </button>
+            </div>
+          )}
           {p.status === 'published' && (
             <div style={{ marginTop: 10, borderTop: '1px solid #f0f2f6', paddingTop: 10 }}>
               <button onClick={() => void toggleComments(p.id)} style={{ border: 0, background: 'transparent', color: '#5a6472', fontSize: 12.5, cursor: 'pointer', padding: 0 }}>

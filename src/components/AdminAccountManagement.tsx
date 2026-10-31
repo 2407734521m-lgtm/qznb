@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { confirmDialog } from '../lib/dialog';
+import { alog } from '../pages/admin/shared';
 
 type Account = {
   id: string;
@@ -42,6 +43,10 @@ export default function AdminAccountManagement({
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [page, setPage] = useState(0);
+  const [batchBusy, setBatchBusy] = useState(false);
+  const pageSize = 25;
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -67,6 +72,10 @@ export default function AdminAccountManagement({
     });
   }, [rows, query, status]);
 
+  useEffect(() => { setPage(0); }, [query, status]);
+  const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const shown = filtered.slice(page * pageSize, (page + 1) * pageSize);
+
   async function toggleAccount(account: Account) {
     if (!isSuper) {
       setMsg('账号禁用/恢复仅限超级管理员操作。');
@@ -90,6 +99,33 @@ export default function AdminAccountManagement({
     await load();
   }
 
+  async function batchSetJoined(joined: boolean) {
+    if (!isSuper) return setMsg('批量账号操作仅限超级管理员。');
+    const targets = filtered.filter(account => selected.has(account.id) && account.id !== me && account.joined !== joined);
+    if (!targets.length) return setMsg('没有可执行的选中账号。');
+    const verb = joined ? '恢复' : '禁用';
+    if (!(await confirmDialog('确认' + verb + '选中的 ' + targets.length + ' 个账号？不会处理当前登录账号。', { danger: !joined }))) return;
+    setBatchBusy(true);
+    let success = 0; let failed = 0;
+    for (const account of targets) {
+      const { error } = await supabase.rpc('set_joined', { target: account.id, j: joined });
+      if (error) failed++;
+      else { success++; await alog(joined ? 'member_unban' : 'member_ban', { target: account.id, source: 'account_management_batch' }); }
+    }
+    setBatchBusy(false); setSelected(new Set()); await load();
+    setMsg('批量' + verb + '完成：成功 ' + success + ' 个，失败 ' + failed + ' 个。');
+  }
+
+  function exportFiltered() {
+    const rows = [['显示名称', '用户名', '角色', '账号状态', '注册时间', '最近登录'], ...filtered.map(account => [account.display_name || account.username, account.username, account.role, account.joined ? '正常' : '已禁用', account.created_at, account.last_sign_in_at || ''])];
+    const csv = '\uFEFF' + rows.map(row => row.map(value => '"' + String(value ?? '').replace(/"/g, '""') + '"').join(',')).join('\r\n');
+    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
+    const link = document.createElement('a'); link.href = url;
+    link.download = 'qznb-members-' + new Date().toISOString().slice(0, 10) + '.csv';
+    link.click(); URL.revokeObjectURL(url);
+    setMsg('已导出当前筛选的 ' + filtered.length + ' 条基础账号记录，不包含邮箱、联系方式或账号 ID。');
+    void alog('member_export', { count: filtered.length, scope: 'filtered_basic_fields' });
+  }
   async function deleteAccount(account: Account) {
     if (!isSuper) {
       setMsg('删除账号仅限超级管理员操作。');
@@ -167,15 +203,26 @@ export default function AdminAccountManagement({
           <button key={value} style={{ ...btn, background: status === value ? '#5b8cff44' : '#ffffff08', borderColor: status === value ? '#7da0ff' : '#ffffff20' }}
             aria-pressed={status === value} onClick={() => setStatus(value)}>{label}</button>)}
       </div>
-      <p style={{ ...muted, margin: '8px 0 0' }}>当前 {filtered.length} 个账号。登录位置只显示用户在资料/设备功能中提供的记录，不会冒充 IP 定位。</p>
+      <p style={{ ...muted, margin: '8px 0 0' }}>当前 {filtered.length} 个账号 · 第 {page + 1}/{pageCount} 页。登录位置只显示用户在资料/设备功能中提供的记录，不会冒充 IP 定位。</p>
+      <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap', marginTop: 9 }}>
+        <button style={btn} onClick={exportFiltered}>导出当前筛选 CSV</button>
+        <button style={btn} onClick={() => setSelected(new Set(shown.map(account => account.id)))}>选择本页</button>
+        <button style={btn} onClick={() => setSelected(new Set())}>清空选择</button>
+      </div>
+      {selected.size > 0 && <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap', marginTop: 9 }}>
+        <span style={{ ...muted, alignSelf: 'center' }}>已选 {selected.size} 个</span>
+        <button style={{ ...btn, color: '#8de0b7' }} disabled={batchBusy} onClick={() => void batchSetJoined(true)}>批量恢复</button>
+        <button style={{ ...btn, color: '#ffb5c1' }} disabled={batchBusy} onClick={() => void batchSetJoined(false)}>批量禁用</button>
+      </div>
     </div>
 
     {loading && rows.length === 0 && <p style={{ ...muted, textAlign: 'center', padding: 20 }}>正在读取账号信息…</p>}
     {!loading && filtered.length === 0 && <p style={{ ...muted, textAlign: 'center', padding: 20 }}>没有找到符合条件的账号。</p>}
 
-    {filtered.map((r) => <article key={r.id} style={{ ...panel, opacity: r.joined ? 1 : .72 }}>
+    {shown.map((r) => <article key={r.id} style={{ ...panel, opacity: r.joined ? 1 : .72 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'flex-start' }}>
-        <div style={{ minWidth: 0 }}>
+        <input type="checkbox" aria-label={'选择 ' + (r.display_name || r.username)} checked={selected.has(r.id)} onChange={event => setSelected(current => { const next = new Set(current); event.target.checked ? next.add(r.id) : next.delete(r.id); return next; })} disabled={r.id === me} />
+        <div style={{ minWidth: 0, flex: 1 }}>
           <div style={{ fontSize: 14, fontWeight: 750, overflowWrap: 'anywhere' }}>{r.display_name || r.username}
             <span style={{ ...muted, marginLeft: 6 }}>{r.role === 'super_admin' ? '超级管理员' : r.role === 'admin' ? '内容管理员' : '成员'}</span>
           </div>
@@ -221,6 +268,11 @@ export default function AdminAccountManagement({
         {!isSuper && <span style={muted}>账号管理操作仅超级管理员可用</span>}
       </div>
     </article>)}
+    {pageCount > 1 && <div style={{ ...panel, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 12 }}>
+      <button style={btn} disabled={page === 0} onClick={() => setPage(value => Math.max(0, value - 1))}>上一页</button>
+      <span style={muted}>{page + 1} / {pageCount}</span>
+      <button style={btn} disabled={page >= pageCount - 1} onClick={() => setPage(value => Math.min(pageCount - 1, value + 1))}>下一页</button>
+    </div>}
     <div style={{ ...panel, ...muted }}>
       <strong style={{ color: '#dce5ff' }}>管理边界说明</strong>
       <div>本版的“禁用账号”沿用现有 set_joined 权限函数。它限制班级成员权限，不等同于撤销 Supabase 登录会话。</div>

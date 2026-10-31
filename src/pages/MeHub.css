@@ -29,3 +29,21 @@
 @media(hover:hover){.me-hub-tile:hover{transform:translateY(-2px);border-color:#d7dfef;box-shadow:0 8px 18px #24324d0d}}
 @media(max-width:420px){.me-hub-hero{padding:18px;border-radius:22px}.me-hub-group{padding:13px}.me-hub-grid{gap:7px}.me-hub-tile{gap:7px;padding:9px;min-height:62px}.me-hub-mark{width:32px;height:32px;flex-basis:32px;border-radius:10px;font-size:9px}.me-hub-tile-copy strong{font-size:11.5px}.me-hub-tile-copy small{font-size:9.5px}}
 @media(prefers-reduced-motion:reduce){.me-hub-tile{transition:none}}
+
+/* Unified site palette: white surfaces, deep-sea blue and teal accents */
+.me-hub-hero{
+  background:
+    radial-gradient(ellipse at 90% 0%,rgba(69,177,177,.24),transparent 42%),
+    linear-gradient(125deg,#164e63 0%,#176477 55%,#278b91 100%)!important;
+  box-shadow:0 14px 32px rgba(22,100,117,.16)!important;
+}
+.me-hub-hero:after{border-color:#ffffff38;box-shadow:0 0 0 22px #ffffff10,0 0 0 46px #ffffff08}
+.me-hub-group{border-color:#e0e9ed!important;box-shadow:0 8px 24px rgba(25,59,77,.045)!important}
+.me-hub-group-head h2,.me-hub-tile-copy strong{color:#203b4b!important}
+.me-hub-group-head p,.me-hub-tile-copy small{color:#748792!important}
+.me-hub-tile{border-color:#e2ebee!important;background:linear-gradient(145deg,#fff,#f6fafb)!important;color:#203b4b!important}
+.me-hub-mark{background:#e8f3f4!important;color:#176477!important}
+.me-hub-arrow{color:#6d8995!important}
+.me-hub-unread{background:#e8f3f4!important;border-color:#c8e5e4!important;color:#176477!important}
+.me-hub-dot{background:#d35d68!important;box-shadow:0 0 0 3px #d35d681a!important}
+@media(hover:hover){.me-hub-tile:hover{border-color:#a9d2d3!important;box-shadow:0 8px 18px rgba(22,100,117,.09)!important}}

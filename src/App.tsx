@@ -210,7 +210,7 @@ function PublicLanding({ data, onLogin }: { data: any; onLogin: () => void }) {
   const title = data?.site_title || '我们的班级';
   const subtitle = data?.site_subtitle || '青春档案';
   const bannerText = data?.home_banner_text || '把我们的青春，留在这里';
-  const bannerUrl = typeof data?.home_banner_url === 'string' && /^https?:\\/\\//i.test(data.home_banner_url) ? data.home_banner_url : '';
+  const bannerUrl = typeof data?.home_banner_url === 'string' && (data.home_banner_url.startsWith('https://') || data.home_banner_url.startsWith('http://')) ? data.home_banner_url : '';
   return (<><div className="glow" /><main style={{ width: 'min(100% - 28px, 820px)', margin: '0 auto', padding: '22px 0 48px', color: '#202632' }}>
     <header style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 18 }}>
       <div style={{ flex: 1 }}><div style={{ fontSize: 11, letterSpacing: 3, color: '#7b8492' }}>OUR CLASS · PUBLIC SPACE</div><h1 style={{ margin: '6px 0 0', fontSize: 24 }}>{title}</h1><p style={{ margin: '4px 0 0', color: '#737b89', fontSize: 13 }}>{subtitle}</p></div>

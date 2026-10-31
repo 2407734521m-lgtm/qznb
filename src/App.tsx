@@ -93,12 +93,18 @@ function TestSwitchFab() {
   const [busy, setBusy] = useState(false);
   useEffect(() => {
     try {
-      // 旧版本曾把测试账号密码写入 localStorage；迁移到仅当前标签页可用的 sessionStorage 后清除旧副本。
-      const legacy = localStorage.getItem('ca_test_accounts');
-      if (legacy) {
-        if (!sessionStorage.getItem('ca_test_accounts')) sessionStorage.setItem('ca_test_accounts', legacy);
-        localStorage.removeItem('ca_test_accounts');
+      // 兼容旧测试账号列表，但只保留备注名和邮箱；绝不继续迁移或保留明文密码。
+      const stored = sessionStorage.getItem('ca_test_accounts') || localStorage.getItem('ca_test_accounts');
+      if (stored) {
+        const parsed: unknown = JSON.parse(stored);
+        const safe = Array.isArray(parsed) ? parsed
+          .filter((item): item is { id: string; label?: string; email: string } =>
+            !!item && typeof item.id === 'string' && typeof item.email === 'string')
+          .map(item => ({ id: item.id, label: typeof item.label === 'string' ? item.label : '', email: item.email.trim() }))
+          : [];
+        sessionStorage.setItem('ca_test_accounts', JSON.stringify(safe));
       }
+      localStorage.removeItem('ca_test_accounts');
       setTestingAs(sessionStorage.getItem('ca_testing_as'));
     } catch { setTestingAs(null); }
   }, [session]);

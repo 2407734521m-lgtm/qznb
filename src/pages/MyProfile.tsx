@@ -238,7 +238,7 @@ export default function MyProfile() {
     const f = e.target.files?.[0];
     e.target.value = '';
     if (!f) return;
-    if (!f.type.startsWith('video/')) return setMsg('请选择视频文件');
+    if (!['video/mp4', 'video/webm', 'video/quicktime', 'video/ogg', 'video/x-m4v', 'video/3gpp'].includes(f.type)) return setMsg('视频仅支持 MP4、WebM、MOV 等常见格式');
     if (f.size > 200 * 1024 * 1024) return setMsg('视频不能超过 200MB');
     setVideoFile(f); // 打开确认弹窗
   }
@@ -344,7 +344,7 @@ export default function MyProfile() {
               {videoPath ? '重新上传视频' : '上传自我介绍视频'}
             </button>
           </div>
-          <input ref={videoInputRef} type="file" hidden accept="video/*" onChange={pickVideo} />
+          <input ref={videoInputRef} type="file" hidden accept="video/mp4,video/webm,video/quicktime,video/ogg,video/x-m4v,video/3gpp" onChange={pickVideo} />
         </div>
       </Collapsible>
 

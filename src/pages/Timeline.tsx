@@ -83,7 +83,7 @@ export default function Timeline() {
           <label>照片 / 视频（可选）</label>
           <div className="row" style={{ marginBottom: 10 }}>
             <button className="ghost" onClick={() => fref.current?.click()}>{file ? '已选：' + file.name.slice(0, 18) : '选择文件'}</button>
-            <input ref={fref} type="file" accept="image/*,video/mp4" hidden onChange={e => setFile(e.target.files?.[0] ?? null)} />
+            <input ref={fref} type="file" accept="image/jpeg,image/png,image/webp,image/gif,image/heic,image/avif,video/mp4" hidden onChange={e => setFile(e.target.files?.[0] ?? null)} />
           </div>
           {err && <p className="err">{err}</p>}
           <button className="pri" disabled={busy} onClick={add}>{busy ? '保存中…' : '保存到时间线'}</button>

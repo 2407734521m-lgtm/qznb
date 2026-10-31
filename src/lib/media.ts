@@ -56,10 +56,26 @@ export function useSignedUrl(bucket: string, path?: string | null) {
   return url;
 }
 
+const uploadMimeTypes: Record<string, readonly string[]> = {
+  media: [
+    'image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/heic', 'image/avif',
+    'video/mp4', 'video/webm', 'video/quicktime', 'video/ogg', 'video/x-m4v', 'video/3gpp',
+  ],
+  videos: ['video/mp4', 'video/webm', 'video/quicktime', 'video/ogg', 'video/x-m4v', 'video/3gpp'],
+  'chat-media': [
+    'image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/heic',
+    'audio/webm', 'audio/mp4', 'audio/ogg', 'audio/aac', 'audio/mpeg', 'audio/x-m4a',
+  ],
+};
+
 /** 上传文件到私有 bucket 的"自己的文件夹"，返回 storage path。 */
 export async function uploadMedia(bucket: string, file: File, folder?: string): Promise<string> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('未登录');
+  const allowedTypes = uploadMimeTypes[bucket];
+  if (allowedTypes && !allowedTypes.includes(file.type)) {
+    throw new Error('文件格式不受支持，请选择常见图片、MP4/WebM 视频或支持的聊天音频格式。');
+  }
   const ext = (file.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
   const r = await withRetry(async () => {
     const path = `${folder ? `${folder.replace(/^\/+|\/+$/g, '')}/` : `${user.id}/`}${Date.now()}.${ext}`;

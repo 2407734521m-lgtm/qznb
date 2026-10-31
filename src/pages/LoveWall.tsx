@@ -14,6 +14,10 @@ type CommentItem = CommentRow & { name: string };
 type RecipientOption = { id: string; username: string; display_name: string | null };
 
 const MAX_IMAGES = 9;
+const ALLOWED_MEDIA_TYPES = new Set([
+  'image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/heic', 'image/avif',
+  'video/mp4', 'video/webm', 'video/quicktime', 'video/ogg', 'video/x-m4v', 'video/3gpp',
+]);
 const MAX_VIDEOS = 3;
 
 const categories = ['暗恋心事', '认真表白', '感谢与祝福', '毕业寄语'];
@@ -177,6 +181,7 @@ export default function LoveWall() {
     for (const f of list) {
       const isImg = f.type.startsWith('image/');
       const isVid = f.type.startsWith('video/');
+      if (!ALLOWED_MEDIA_TYPES.has(f.type)) { setFormErr('仅支持 JPG、PNG、WebP、GIF、HEIC、AVIF 图片及 MP4、WebM、MOV 等常见视频。'); continue; }
       if (!isImg && !isVid) { setFormErr('只能添加照片或视频文件。'); continue; }
       if (isImg && next.filter(x => x.kind === 'image').length >= MAX_IMAGES) { setFormErr('照片最多添加 9 张。'); continue; }
       if (isVid && next.filter(x => x.kind === 'video').length >= MAX_VIDEOS) { setFormErr('视频最多添加 3 个。'); continue; }
@@ -343,7 +348,7 @@ export default function LoveWall() {
             <button onClick={() => fileRef.current?.click()} style={{ width: 76, height: 76, borderRadius: 12, border: '1px dashed #c9d1de', background: '#fbfcfe', color: '#606673', fontSize: 22, cursor: 'pointer' }}>＋</button>
           </div>
           <div style={{ fontSize: 11.5, color: '#8a93a1', marginTop: 6 }}>照片最多 9 张，视频最多 3 个（单个不超过 50MB）</div>
-          <input ref={fileRef} type="file" accept="image/*,video/*" multiple hidden onChange={onPickFiles} />
+          <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif,image/heic,image/avif,video/mp4,video/webm,video/quicktime,video/ogg,video/x-m4v,video/3gpp" multiple hidden onChange={onPickFiles} />
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, margin: '14px 0 4px' }}>
             <div>
               <div style={{ fontSize: 13, fontWeight: 700, color: '#202632' }}>匿名发布</div>

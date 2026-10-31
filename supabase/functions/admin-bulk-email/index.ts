@@ -39,6 +39,19 @@ Deno.serve(async (req: Request) => {
   if (!subject || subject.length > 160 || !bodyText || bodyText.length > 10000) return response({ error: '邮件标题或正文长度不符合要求。' }, 400);
 
   const admin = createClient(url, serviceKey, { auth: { persistSession: false } });
+
+  // Server-side per-admin throttle; the browser's confirmation dialog is not a security boundary.
+  const rateLimitSince = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+  const { count: recentCampaigns, error: rateLimitError } = await admin
+    .from('admin_email_campaigns')
+    .select('id', { count: 'exact', head: true })
+    .eq('actor_id', userData.user.id)
+    .gte('created_at', rateLimitSince);
+  if (rateLimitError) return response({ error: '无法检查邮件发送频率，请稍后重试。' }, 503);
+  if ((recentCampaigns ?? 0) >= 5) {
+    return response({ error: '单个管理员每小时最多发起 5 次批量邮件任务，请稍后再试。' }, 429);
+  }
+
   const recipients: { id: string; email: string }[] = [];
   const wanted = new Set(userIds);
   for (let page = 1; page <= 20; page++) {

@@ -327,6 +327,9 @@ begin
          deleted_at = pg_catalog.now(),
          edited_at = null
    where id = p_message_id;
+
+  delete from public.message_reactions
+   where message_id = p_message_id;
 end;
 $function$;
 

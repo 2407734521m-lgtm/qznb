@@ -10,13 +10,13 @@ import { setShot, takeShot, shotFrom, flyTo } from '../lib/transition';
 import { badgeText } from '../data/games';
 import { parseSocial } from '../data/social';
 import type { Dir } from '../lib/transition';
-import type { M } from './Members';
+import type { MemberListItem } from '../types/profile';
 
 const REV: Record<Dir, Dir> = { left: 'right', right: 'left', down: 'down' };
 
 export default function Member() {
   const { id = '' } = useParams(); const nav = useNavigate(); const reduce = useReducedMotion();
-  const locState = (useLocation().state as { m?: M; img?: string } | null);
+  const locState = (useLocation().state as { m?: MemberListItem; img?: string } | null);
   const [m, setM] = useState<any>(locState?.m ?? null);
   const [err, setErr] = useState('');
   const [flying, setFlying] = useState(false);

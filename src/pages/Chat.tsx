@@ -4,8 +4,8 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../auth';
 import { downscaleImage, uploadMedia, useSignedUrl } from '../lib/media';
 import { goBackOr } from '../components/BackButton';
+import type { ChatMessage } from '../types/message';
 
-type M = { id: number; sender_id: string; body: string; created_at: string };
 
 function MessageContent({ body }: { body: string }) {
   const imagePath = body.startsWith('[[im-image:') && body.endsWith(']]') ? body.slice(11, -2) : null;
@@ -22,7 +22,7 @@ export default function Chat() {
   const nav = useNavigate();
   const loc = useLocation() as { state?: { name?: string } };
   const [name, setName] = useState(loc.state?.name ?? '聊天');
-  const [msgs, setMsgs] = useState<M[]>([]);
+  const [msgs, setMsgs] = useState<ChatMessage[]>([]);
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -65,7 +65,7 @@ export default function Chat() {
     if (!cid || !Number.isFinite(Number(cid))) return;
     const { data, error: loadError } = await supabase.from('messages').select('*')
       .eq('conversation_id', Number(cid)).order('created_at');
-    if (data) { setMsgs(data as M[]); setError(''); }
+    if (data) { setMsgs(data); setError(''); }
     else if (loadError) setError('消息加载失败，请检查网络后重试。');
   }
 

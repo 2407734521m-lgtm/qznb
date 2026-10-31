@@ -1401,6 +1401,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: Json
       }
+      admin_member_activity: {
+        Args: { p_target: string }
+        Returns: Json
+      }
       admin_request_sensitive_action: {
         Args: { p_action_type: string; p_target_user_id: string; p_requested_role: string | null; p_reason: string }
         Returns: string

@@ -80,10 +80,13 @@ export default function Feed({ searchQuery = '' }: { searchQuery?: string }) {
   useEffect(() => { void load(); }, [searchQuery]);
   useEffect(() => {
     let alive = true;
-    supabase.rpc('my_friends').then(({ data, error }) => {
-      if (!alive || error) return;
-      setFriendIds(((data ?? []) as Array<{ id: string }>).map(item => item.id));
-    }).catch(() => {});
+    supabase.rpc('my_friends').then(
+      ({ data, error }) => {
+        if (!alive || error) return;
+        setFriendIds(((data ?? []) as Array<{ id: string }>).map(item => item.id));
+      },
+      () => { /* 好友列表读取失败时保留全部动态视图 */ }
+    );
     return () => { alive = false; };
   }, [me]);
 

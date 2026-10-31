@@ -36,7 +36,7 @@ function sectionBounds(sectionName, nextSectionName) {
   const start = lines.findIndex((line) => line.trim() === sectionName + ": {");
   const end = lines.findIndex((line, index) => index > start && line.trim() === nextSectionName + ": {");
   if (start < 0 || end < 0) {
-    throw new Error("Missing generated section: " + sectionName);
+    throw new Error("Missing generated section: " + sectionName + "; headers=" + lines.filter((line) => /Tables|Views|Functions|Enums/.test(line)).map((line) => JSON.stringify(line)).join(" | ") + "; firstLines=" + lines.slice(0, 8).map((line) => JSON.stringify(line)).join(" | "));
   }
   return { start, end };
 }

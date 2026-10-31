@@ -42,6 +42,7 @@ import LoveWall from './pages/LoveWall';
 import Explore from './pages/Explore';
 import SongWall from './pages/SongWall';
 import Daily from './pages/Daily';
+import { alertDialog } from './lib/dialog';
 
 const TABS = [
   { to: '/board', label: '公告' },
@@ -108,8 +109,8 @@ function TestSwitchFab() {
       sessionStorage.removeItem('ca_testing_from');
     } catch {}
     const { error } = await supabase.auth.signOut();
-    if (error) alert('退出测试账号失败，请重试。');
-    else alert('测试账号已退出。为保护账号安全，请重新登录原账号。');
+    if (error) alertDialog('退出测试账号失败，请重试。');
+    else alertDialog('测试账号已退出。为保护账号安全，请重新登录原账号。');
     setBusy(false);
   }
   return (

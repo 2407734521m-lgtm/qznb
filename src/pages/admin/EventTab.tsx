@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { card, h3, mut, alog } from './shared';
+import { confirmDialog } from '../../lib/dialog';
+import DateTimeField from '../../components/DateTimeField';
 
 export default function EventTab({ me, setMsg }: { me: string; setMsg: (s: string) => void }) {
   const [list, setList] = useState<any[]>([]);
@@ -23,7 +25,7 @@ export default function EventTab({ me, setMsg }: { me: string; setMsg: (s: strin
     else { await alog('event_add', { title: title.trim() }); setTitle(''); setDesc(''); setAt(''); setLoc(''); load(); setMsg('活动已发布'); }
   }
   async function del(id: number) {
-    if (!confirm('删除这个活动？报名数据一起删除。')) return;
+    if (!(await confirmDialog('删除这个活动？报名数据一起删除。', { danger: true }))) return;
     const { error } = await supabase.from('events').delete().eq('id', id);
     if (!error) { await alog('event_delete', { id }); load(); } else setMsg('删除失败：' + error.message);
   }
@@ -33,7 +35,7 @@ export default function EventTab({ me, setMsg }: { me: string; setMsg: (s: strin
       <input value={title} onChange={e => setTitle(e.target.value)} placeholder="活动标题，如：毕业聚餐" maxLength={60} style={{ marginBottom: 8 }} />
       <textarea value={desc} onChange={e => setDesc(e.target.value)} placeholder="活动介绍…" rows={2} maxLength={500} style={{ width: '100%', marginBottom: 8 }} />
       <div className="row" style={{ gap: 8, marginBottom: 8 }}>
-        <input type="datetime-local" value={at} onChange={e => setAt(e.target.value)} style={{ flex: 1 }} />
+        <DateTimeField value={at} onChange={setAt} style={{ flex: 1, margin: 0 }} />
         <input value={loc} onChange={e => setLoc(e.target.value)} placeholder="地点" style={{ flex: 1 }} />
       </div>
       <button className="pri" style={{ width: 'auto', padding: '10px 26px' }} onClick={add}>发布活动</button>

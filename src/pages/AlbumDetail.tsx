@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../auth';
 import { useSignedUrl, useSignedUrls, uploadMedia, downscaleImage } from '../lib/media';
 import { withRetry } from '../lib/retry';
+import { confirmDialog } from '../lib/dialog';
 
 type P = { id: number; photo_url: string; caption: string | null; uploaded_by: string | null };
 
@@ -64,7 +65,7 @@ export default function AlbumDetail() {
   }
 
   async function del(p: P) {
-    if (!confirm('删除这张照片？')) return;
+    if (!(await confirmDialog('删除这张照片？', { danger: true }))) return;
     await supabase.from('album_photos').delete().eq('id', p.id);
     load();
   }

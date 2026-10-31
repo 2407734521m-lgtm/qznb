@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { supabase, supabaseBaseUrl } from '../../lib/supabase';
 import { card, h3, mut, alog } from './shared';
 import MaintenanceAccessManager from './MaintenanceAccessManager';
+import { confirmDialog } from '../../lib/dialog';
+import DateTimeField from '../../components/DateTimeField';
 
 function toLocalDateTimeInput(value: string) {
   if (!value) return '';
@@ -94,7 +96,7 @@ export default function Settings({ me, setMsg }: { me: string; setMsg: (s: strin
   }
 
   async function clearMaintenanceSchedule() {
-    if (!confirm('取消当前定时维护计划？不会改变手动维护开关的设置。')) return;
+    if (!(await confirmDialog('取消当前定时维护计划？不会改变手动维护开关的设置。'))) return;
     setScheduleBusy(true);
     const value = JSON.stringify({ enabled: false, start_at: null, end_at: null });
     const { error } = await supabase.from('site_settings').upsert({ key: 'maintenance_schedule', value }, { onConflict: 'key' });
@@ -126,7 +128,7 @@ export default function Settings({ me, setMsg }: { me: string; setMsg: (s: strin
   }
 
   async function backup() {
-    if (!confirm('导出全部业务数据库数据与存储文件清单？此版本不包含照片、音频、视频等文件本体；不能替代 Supabase 完整备份。')) return;
+    if (!(await confirmDialog('导出全部业务数据库数据与存储文件清单？此版本不包含照片、音频、视频等文件本体；不能替代 Supabase 完整备份。'))) return;
     setMsg('正在逐表导出，请勿关闭页面…');
     const tableNames = [
       'profiles', 'profile_emails', 'profile_privacy', 'profile_contacts',
@@ -274,9 +276,9 @@ export default function Settings({ me, setMsg }: { me: string; setMsg: (s: strin
       <div className="row" style={{ gap: 8, alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', marginBottom: 4 }}>
         <span style={{ fontSize: 13.5, fontWeight: 650 }}>关闭登录入口</span>
         <button className={'mini' + (vals.close_login_entry === 'true' ? '' : ' ghost')}
-          onClick={() => {
+          onClick={async () => {
             const next = vals.close_login_entry === 'true' ? 'false' : 'true';
-            if (next === 'true' && !confirm('关闭后，网站普通登录和注册入口将隐藏；已有登录会话不受影响，管理员后台入口仍保留。确定继续？')) return;
+            if (next === 'true' && !(await confirmDialog('关闭后，网站普通登录和注册入口将隐藏；已有登录会话不受影响，管理员后台入口仍保留。确定继续？'))) return;
             save('close_login_entry', next);
           }}>
           {vals.close_login_entry === 'true' ? '已关闭' : '开放中'}
@@ -286,9 +288,9 @@ export default function Settings({ me, setMsg }: { me: string; setMsg: (s: strin
       <div className="row" style={{ gap: 8, alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', marginBottom: 4 }}>
         <span style={{ fontSize: 13.5, fontWeight: 650 }}>跳过登录界面（访客浏览）</span>
         <button className={'mini' + (vals.skip_login_screen === 'true' ? '' : ' ghost')}
-          onClick={() => {
+          onClick={async () => {
             const next = vals.skip_login_screen === 'true' ? 'false' : 'true';
-            if (next === 'true' && !confirm('开启后，未登录访客可直接查看公开首页和管理员公告；成员资料、动态、私聊、个人中心及所有互动仍需登录。确定开启？')) return;
+            if (next === 'true' && !(await confirmDialog('开启后，未登录访客可直接查看公开首页和管理员公告；成员资料、动态、私聊、个人中心及所有互动仍需登录。确定开启？'))) return;
             save('skip_login_screen', next);
           }}>
           {vals.skip_login_screen === 'true' ? '开启' : '关闭'}
@@ -298,8 +300,8 @@ export default function Settings({ me, setMsg }: { me: string; setMsg: (s: strin
       <div className="row" style={{ gap: 8, alignItems: 'center' }}>
         <span style={{ fontSize: 13.5 }}>维护模式（手动开关）</span>
         <button className={'mini' + (vals.maintenance === 'true' ? '' : ' ghost')}
-          onClick={() => {
-            if (vals.maintenance !== 'true' && !confirm('开启维护模式？所有人打开网站都只看到维护页（后台入口除外）。')) return;
+          onClick={async () => {
+            if (vals.maintenance !== 'true' && !(await confirmDialog('开启维护模式？所有人打开网站都只看到维护页（后台入口除外）。'))) return;
             save('maintenance', vals.maintenance === 'true' ? 'false' : 'true');
           }}>
           {vals.maintenance === 'true' ? '开' : '关'}
@@ -309,9 +311,9 @@ export default function Settings({ me, setMsg }: { me: string; setMsg: (s: strin
         <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 5 }}>定时开启与关闭</div>
         <p style={{ ...mut, margin: '0 0 10px' }}>按当前设备时区设置。计划启用后优先于手动开关：到开启时间自动进入维护模式，到关闭时间自动恢复网站；取消计划后恢复手动控制。</p>
         <label style={mut}>自动开启时间</label>
-        <input type="datetime-local" value={scheduleStart} onChange={e => setScheduleStart(e.target.value)} style={{ margin: '5px 0 10px' }} />
+        <DateTimeField value={scheduleStart} onChange={setScheduleStart} style={{ margin: '5px 0 10px' }} />
         <label style={mut}>自动关闭时间</label>
-        <input type="datetime-local" value={scheduleEnd} onChange={e => setScheduleEnd(e.target.value)} style={{ margin: '5px 0 10px' }} />
+        <DateTimeField value={scheduleEnd} onChange={setScheduleEnd} style={{ margin: '5px 0 10px' }} />
         <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
           <button className="pri" style={{ width: 'auto' }} disabled={scheduleBusy} onClick={() => void saveMaintenanceSchedule()}>{scheduleBusy ? '处理中…' : '保存并启用计划'}</button>
           <button className="mini ghost" disabled={scheduleBusy || !scheduleEnabled} onClick={() => void clearMaintenanceSchedule()}>取消定时计划</button>

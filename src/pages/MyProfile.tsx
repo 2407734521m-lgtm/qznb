@@ -11,6 +11,7 @@ import { badgeText } from '../data/games';
 import WelcomeOverlay from '../components/WelcomeOverlay';
 import BackButton from '../components/BackButton';
 import { fetchReviewEstimates, estimateText, type ReviewEstimates } from '../lib/reviewEstimate';
+import { confirmDialog } from '../lib/dialog';
 
 const PROFILE_FIELDS = [['display_name', '名字', 'show_name'], ['age', '年龄', 'show_age'],
   ['personality', '性格', 'show_personality'], ['signature', '个性签名', 'show_signature'],
@@ -176,7 +177,7 @@ export default function MyProfile() {
     setGprof((data as GameProfile) ?? null);
   }
   async function clearGame() {
-    if (!confirm('清除游戏段位资料？成员卡片上的标签也会消失。')) return;
+    if (!(await confirmDialog('清除游戏段位资料？成员卡片上的标签也会消失。', { danger: true }))) return;
     const { error } = await supabase.rpc('clear_game_profile');
     if (error) return setMsg('清除失败：' + error.message);
     setGprof(null); setMsg('已清除游戏资料');

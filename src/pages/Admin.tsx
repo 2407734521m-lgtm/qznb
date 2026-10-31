@@ -22,6 +22,7 @@ import TestTab from './admin/TestTab';
 import EventTab from './admin/EventTab';
 import Moderate from './admin/Moderate';
 import Settings from './admin/Settings';
+import { confirmDialog } from '../lib/dialog';
 
 /**
  * 管理后台测试版（V2）：高级管理控制中心
@@ -572,7 +573,7 @@ function Members({ me, isSuper, setMsg, extQ }: { me: string; isSuper: boolean; 
   const shown = filtered.slice(page * PER, (page + 1) * PER);
 
   async function setJoined(ids: string[], joined: boolean) {
-    if (!confirm(`${joined ? '恢复' : '禁用'}选中的 ${ids.length} 个账号？`)) return;
+    if (!(await confirmDialog(`${joined ? '恢复' : '禁用'}选中的 ${ids.length} 个账号？`))) return;
     for (const id of ids) {
       const { error } = await supabase.rpc('set_joined', { target: id, j: joined });
       if (!error) await alog(joined ? 'member_restore' : 'member_ban', { target: id });
@@ -581,7 +582,7 @@ function Members({ me, isSuper, setMsg, extQ }: { me: string; isSuper: boolean; 
   }
   async function setRole(id: string, newRole: string, name: string) {
     if (id === me) return setMsg('不能修改自己的角色');
-    if (!confirm(`把 ${name} 设为${newRole === 'super_admin' ? '超级管理员' : newRole === 'admin' ? '内容管理员' : '普通成员'}？`)) return;
+    if (!(await confirmDialog(`把 ${name} 设为${newRole === 'super_admin' ? '超级管理员' : newRole === 'admin' ? '内容管理员' : '普通成员'}？`))) return;
     const { error } = await supabase.rpc('set_role', { target: id, new_role: newRole });
     setMsg(error ? '失败：' + error.message : '角色已更新');
     if (!error) load();
@@ -706,7 +707,7 @@ function BoardMgr({ me, setMsg }: { me: string; setMsg: (s: string) => void }) {
     else setMsg('失败：' + error.message);
   }
   async function del(id: number) {
-    if (!confirm('删除这条公告？')) return;
+    if (!(await confirmDialog('删除这条公告？', { danger: true }))) return;
     // 软删除进回收站
     const { error } = await supabase.from('board_messages').update({ deleted_at: new Date().toISOString() }).eq('id', id);
     if (!error) { await alog('notice_hide', { id }); load(); }

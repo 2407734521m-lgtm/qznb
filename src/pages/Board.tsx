@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../auth';
 import { useSignedUrl } from '../lib/media';
 import type { ProfileSummary as Profile } from '../types/profile';
+import { confirmDialog } from '../lib/dialog';
 
 type Msg = { id: number; author_id: string; title: string | null; content: string; is_admin_msg: boolean; is_pinned: boolean; created_at: string };
 
@@ -68,10 +69,10 @@ export default function Board() {
 
   async function del(id: number) {
     if (isAdmin) {
-      if (!confirm('删除这条留言？（先进回收站，可恢复）')) return;
+      if (!(await confirmDialog('删除这条留言？（先进回收站，可恢复）', { danger: true }))) return;
       await supabase.from('board_messages').update({ deleted_at: new Date().toISOString() }).eq('id', id);
     } else {
-      if (!confirm('删除这条留言？')) return;
+      if (!(await confirmDialog('删除这条留言？', { danger: true }))) return;
       await supabase.from('board_messages').delete().eq('id', id);
     }
     load();

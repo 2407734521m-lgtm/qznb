@@ -5,6 +5,7 @@ type Person = { id: string; username: string | null; display_name: string | null
 type Campaign = { id: number; subject: string; selected_count: number; sent_count: number; failed_count: number; no_email_count: number; provider_failure_count: number; status: string; created_at: string; completed_at: string | null; actor_name: string };
 export default function AdminBulkEmail({ setMsg }: { setMsg: (s: string) => void }) {
   const [people, setPeople] = useState<Person[]>([]);
+  const [emails, setEmails] = useState<Record<string, string>>({});
   const [selected, setSelected] = useState<string[]>([]);
   const [query, setQuery] = useState('');
   const [subject, setSubject] = useState('');
@@ -25,6 +26,18 @@ export default function AdminBulkEmail({ setMsg }: { setMsg: (s: string) => void
       });
     return () => { live = false; };
   }, []);
+  // 邮箱在登录账号里、不在 profiles 表：复用账号管理页的管理员 RPC 取邮箱，
+  // 显示在名字下方；取不到时静默回退显示用户名，不影响勾选和发送。
+  useEffect(() => {
+    let live = true;
+    supabase.rpc('admin_member_accounts').then(({ data, error }) => {
+      if (!live || error || !Array.isArray(data)) return;
+      const map: Record<string, string> = {};
+      (data as any[]).forEach(r => { if (r?.id && r?.email) map[r.id] = r.email; });
+      setEmails(map);
+    });
+    return () => { live = false; };
+  }, []);
   async function loadHistory() {
     setHistoryLoading(true);
     const { data, error } = await supabase.rpc('admin_email_campaign_history');
@@ -41,8 +54,8 @@ export default function AdminBulkEmail({ setMsg }: { setMsg: (s: string) => void
   useEffect(() => { setConfirming(false); }, [selected, subject, body]);
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return people.filter(p => !q || [p.username,p.display_name,p.real_name,p.id].some(v => (v || '').toLowerCase().includes(q)));
-  }, [people, query]);
+    return people.filter(p => !q || [p.username,p.display_name,p.real_name,p.id,emails[p.id]].some(v => (v || '').toLowerCase().includes(q)));
+  }, [people, query, emails]);
   function toggle(id: string) { setSelected(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]); }
   function toggleVisible() {
     const ids = filtered.map(p => p.id);
@@ -87,7 +100,7 @@ export default function AdminBulkEmail({ setMsg }: { setMsg: (s: string) => void
       <div style={{ maxHeight: 190, overflowY: 'auto', border: '1px solid #ffffff12', borderRadius: 10, padding: '3px 9px' }}>
         {loading ? <p style={muted}>加载成员中…</p> : filtered.map(p => <label key={p.id} style={person}>
           <input type="checkbox" checked={selected.includes(p.id)} onChange={() => toggle(p.id)} />
-          <span style={{ minWidth: 0, flex: 1 }}><b style={{ display: 'block', fontSize: 12 }}>{p.display_name || p.real_name || p.username || '未命名账号'}</b><small style={{ color: '#8994b2', fontSize: 10 }}>{p.username || p.id.slice(0,8)}</small></span>
+          <span style={{ minWidth: 0, flex: 1 }}><b style={{ display: 'block', fontSize: 12 }}>{p.display_name || p.real_name || p.username || '未命名账号'}</b><small style={{ color: '#8994b2', fontSize: 10, display: 'block', overflowWrap: 'anywhere' }}>{emails[p.id] || p.username || p.id.slice(0,8)}</small></span>
         </label>)}
         {!loading && !filtered.length && <p style={muted}>没有匹配的账号。</p>}
       </div>

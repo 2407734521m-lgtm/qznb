@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { card, h3, mut, rowBtn, alog } from './shared';
 import { confirmDialog } from '../../lib/dialog';
@@ -8,6 +8,8 @@ export default function BoardMgr({ me, setMsg }: { me: string; setMsg: (s: strin
   const [bannerText, setBannerText] = useState('把我们的青春，留在这里');
   const [bannerUrl, setBannerUrl] = useState('');
   const [bannerBusy, setBannerBusy] = useState(false);
+  const [bannerUploading, setBannerUploading] = useState(false);
+  const bannerFileRef = useRef<HTMLInputElement | null>(null);
   const [title, setTitle] = useState('');
   const [text, setText] = useState('');
   const [exp, setExp] = useState('0');
@@ -22,15 +24,31 @@ export default function BoardMgr({ me, setMsg }: { me: string; setMsg: (s: strin
     setList(data ?? []);
   }
   useEffect(() => { load(); supabase.from('site_settings').select('key,value').in('key',['home_banner_text','home_banner_url']).then(({data}) => { (data ?? []).forEach((x:any) => { if(x.key==='home_banner_text') setBannerText(x.value || '把我们的青春，留在这里'); if(x.key==='home_banner_url') setBannerUrl(x.value || ''); }); }); }, []);
-  async function saveBanner() {
+  async function saveBanner(urlOverride?: string) {
     setBannerBusy(true); let failure = '';
-    for (const item of [{key:'home_banner_text',value:bannerText.trim().slice(0,100) || '把我们的青春，留在这里'},{key:'home_banner_url',value:bannerUrl.trim()}]) {
+    for (const item of [{key:'home_banner_text',value:bannerText.trim().slice(0,100) || '把我们的青春，留在这里'},{key:'home_banner_url',value:(urlOverride ?? bannerUrl).trim()}]) {
       const {data: found,error: readError} = await supabase.from('site_settings').select('key').eq('key',item.key).maybeSingle();
       if(readError) { failure=readError.message; break; }
       const result = found ? await supabase.from('site_settings').update({value:item.value}).eq('key',item.key) : await supabase.from('site_settings').insert(item);
       if(result.error) { failure=result.error.message; break; }
     }
     setBannerBusy(false); setMsg(failure ? '横幅保存失败：'+failure : '首页横幅设置已保存');
+  }
+  // 直接上传图片做横幅：传到公开桶 site-assets（仅管理员可写），拿到
+  // 公开地址后自动填入并保存，不用再去别处找图床链接。
+  async function uploadBanner(file: File | undefined) {
+    if (!file) return;
+    if (!file.type.startsWith('image/')) { setMsg('请选择图片文件。'); return; }
+    if (file.size > 5 * 1024 * 1024) { setMsg('图片不能超过 5MB，请压缩后再传。'); return; }
+    setBannerUploading(true);
+    const ext = (file.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
+    const path = `banner/${Date.now()}.${ext}`;
+    const { error } = await supabase.storage.from('site-assets').upload(path, file, { contentType: file.type, upsert: false });
+    if (error) { setBannerUploading(false); setMsg('图片上传失败：' + error.message); return; }
+    const { data } = supabase.storage.from('site-assets').getPublicUrl(path);
+    setBannerUploading(false);
+    setBannerUrl(data.publicUrl);
+    await saveBanner(data.publicUrl);
   }
   async function post() {
     const c = text.trim(); if (!c) return setMsg('先写点公告内容');
@@ -67,10 +85,11 @@ export default function BoardMgr({ me, setMsg }: { me: string; setMsg: (s: strin
   return (
     <div style={card}>
       <h3 style={h3}>首页 16:9 横幅</h3>
-      <p style={mut}>在这里设置首页横幅文字和图片地址；图片建议使用横向 16:9 图片的 HTTPS 地址。</p>
+      <p style={mut}>在这里设置首页横幅文字和图片；可以直接上传一张图片（建议横向 16:9、不超过 5MB），也可以粘贴图片的 HTTPS 地址。</p>
       <input value={bannerText} onChange={e=>setBannerText(e.target.value)} maxLength={100} placeholder="横幅标题文字" />
       <input value={bannerUrl} onChange={e=>setBannerUrl(e.target.value)} placeholder="图片 HTTPS 地址（可留空）" />
-      <div style={rowBtn}><button className="pri" style={{width:'auto',padding:'10px 20px'}} disabled={bannerBusy} onClick={saveBanner}>{bannerBusy?'保存中…':'保存横幅'}</button><button className="mini ghost" disabled={bannerBusy} onClick={()=>setBannerUrl('')}>移除图片</button></div>
+      <input ref={bannerFileRef} type="file" accept="image/*" style={{display:'none'}} onChange={e=>{ void uploadBanner(e.target.files?.[0]); e.target.value=''; }} />
+      <div style={rowBtn}><button className="pri" style={{width:'auto',padding:'10px 20px'}} disabled={bannerBusy} onClick={()=>void saveBanner()}>{bannerBusy?'保存中…':'保存横幅'}</button><button className="mini ghost" disabled={bannerBusy || bannerUploading} onClick={()=>bannerFileRef.current?.click()}>{bannerUploading?'上传中…':'上传图片'}</button><button className="mini ghost" disabled={bannerBusy} onClick={()=>setBannerUrl('')}>移除图片</button></div>
       <hr style={{border:0,borderTop:'1px solid #e5e7eb',margin:'18px 0'}} />
       <h3 style={h3}>公告管理</h3>
       <input value={title} onChange={e => setTitle(e.target.value)} maxLength={60} placeholder="公告标题（可选）" style={{ marginBottom: 8 }} />

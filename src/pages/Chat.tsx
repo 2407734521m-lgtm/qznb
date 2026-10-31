@@ -98,10 +98,12 @@ export default function Chat() {
     const otherMember = (members ?? []).find(member => member.profile_id !== me);
     setOtherLastReadMessageId(otherMember?.last_read_message_id ?? null);
 
-    const { error: readError } = await supabase.rpc('mark_conversation_read', {
-      p_conversation_id: conversationId,
-    });
-    if (readError) console.error('mark conversation read failed', readError);
+    if (document.visibilityState === 'visible') {
+      const { error: readError } = await supabase.rpc('mark_conversation_read', {
+        p_conversation_id: conversationId,
+      });
+      if (readError) console.error('mark conversation read failed', readError);
+    }
   }
 
   useEffect(() => {
@@ -125,7 +127,15 @@ export default function Chat() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'message_reactions' }, () => { load(); })
       .subscribe();
     const fallback = setInterval(load, 12000);
-    return () => { clearInterval(fallback); supabase.removeChannel(channel); };
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') load();
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    return () => {
+      clearInterval(fallback);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+      supabase.removeChannel(channel);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cid]);
 

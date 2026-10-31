@@ -70,7 +70,7 @@ run_case() {
   printf '// ORIGINAL SENTINEL\n' > "$dir/src/lib/database.types.ts"
 
   local code=0
-  (cd "$dir" && STUB_VER="$ver" STUB_GEN="$gen_mode" bash scripts/gen-types.sh >/dev/null 2>&1) || code=$?
+  (cd "$dir" && STUB_VER="$ver" STUB_GEN="$gen_mode" bash scripts/gen-types.sh > "$dir/run.log" 2>&1) || code=$?
   local content
   content="$(cat "$dir/src/lib/database.types.ts")"
   local leftovers
@@ -78,15 +78,17 @@ run_case() {
   local ok=1
 
   if [ "$want_success" = "yes" ]; then
-    [ "$code" -eq 0 ] || ok=0
+    if [ "$code" -ne 0 ]; then cat "$dir/run.log"; ok=0; fi
     [ "$(grep -Fxc '          id?: number' "$dir/src/lib/database.types.ts" || true)" = "14" ] || ok=0
     grep -Fq 'Returns: { online_count: number; active_count: number; sampled_at: string }' "$dir/src/lib/database.types.ts" || ok=0
     grep -Fq 'Returns: { site_title: string;' "$dir/src/lib/database.types.ts" || ok=0
     grep -Fq 'Returns: { id: string; username: string; display_name: string | null;' "$dir/src/lib/database.types.ts" || ok=0
     grep -Fq 'Returns: { id: string; username: string; display_name: string | null; age: number | null;' "$dir/src/lib/database.types.ts" || ok=0
     grep -Fq 'Returns: string | null' "$dir/src/lib/database.types.ts" || ok=0
-    # Normalization must be idempotent.
-    (cd "$dir" && node scripts/normalize-database-types.mjs src/lib/database.types.ts >/dev/null) || ok=0
+    # Normalization must be idempotent after successful generation only.
+    if [ "$code" -eq 0 ]; then
+      (cd "$dir" && node scripts/normalize-database-types.mjs src/lib/database.types.ts >/dev/null) || ok=0
+    fi
   else
     [ "$code" -ne 0 ] || ok=0
     [ "$content" = "// ORIGINAL SENTINEL" ] || ok=0

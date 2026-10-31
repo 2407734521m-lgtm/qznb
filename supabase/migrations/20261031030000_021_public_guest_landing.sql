@@ -1,10 +1,10 @@
 -- 021: 受限的访客首页数据接口
 -- 内部读取函数放在非 Data API 暴露的 private schema；public RPC 仅作安全包装。
-create schema if not exists private;
-revoke all on schema private from public;
-grant usage on schema private to anon, authenticated;
+create schema if not exists guest_api_private;
+revoke all on schema guest_api_private from public;
+grant usage on schema guest_api_private to anon, authenticated;
 
-create or replace function private.public_guest_landing_data()
+create or replace function guest_api_private.public_guest_landing_data()
 returns jsonb
 language sql
 stable
@@ -39,18 +39,18 @@ as $$
   );
 $$;
 
-revoke all on function private.public_guest_landing_data() from public, anon, authenticated;
-grant execute on function private.public_guest_landing_data() to anon, authenticated;
+revoke all on function guest_api_private.public_guest_landing_data() from public, anon, authenticated;
+grant execute on function guest_api_private.public_guest_landing_data() to anon, authenticated;
 
--- SECURITY INVOKER 包装函数不会自行绕过 RLS；它只调用 private 中的白名单数据函数。
+-- SECURITY INVOKER 包装函数不会自行绕过 RLS；它只调用专用非暴露 schema 中的白名单数据函数。
 create or replace function public.public_guest_landing()
 returns jsonb
 language sql
 stable
 security invoker
-set search_path = public, private
+set search_path = public, guest_api_private
 as $$
-  select private.public_guest_landing_data();
+  select guest_api_private.public_guest_landing_data();
 $$;
 
 revoke all on function public.public_guest_landing() from public, anon, authenticated;

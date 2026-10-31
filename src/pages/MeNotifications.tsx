@@ -31,7 +31,7 @@ export default function MeNotifications() {
     })();
   }, []);
 
-  const typeLabel: Record<string, string> = { comment: '评论', like: '点赞', greeting: '留言', notice: '公告' };
+  const typeLabel: Record<string, string> = { comment: '评论', like: '点赞', greeting: '留言', notice: '公告', love_wall: '表白墙' };
 
   return (
     <div className="page" style={{ paddingBottom: 110 }}>

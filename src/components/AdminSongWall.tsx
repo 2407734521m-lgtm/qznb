@@ -20,7 +20,7 @@ function ReviewSong({ song, onStatus, busy }: { song: Song; onStatus: (id: strin
 }
 export default function AdminSongWall({ setMsg }: { setMsg: (s: string) => void }) {
   const [rows, setRows] = useState<Song[]>([]);
-  const [filter, setFilter] = useState('pending');
+  const [filter, setFilter] = useState('published');
   const [busy, setBusy] = useState<string | null>(null);
   async function load() {
     const { data, error } = await supabase.from('song_posts').select('*').order('created_at', { ascending: false }).limit(200);
@@ -40,7 +40,7 @@ export default function AdminSongWall({ setMsg }: { setMsg: (s: string) => void 
   return <section>
     <div style={{ background: 'linear-gradient(145deg,#171e33,#0d1222)', border: '1px solid #ffffff18', borderRadius: 14, padding: 13, marginBottom: 10 }}>
       <h2 style={{ fontSize: 15, margin: '0 0 6px' }}>歌声墙审核</h2>
-      <p style={{ color: '#9da6c3', fontSize: 11, lineHeight: 1.6 }}>先试听再审核。仅审核通过的作品会对其他成员公开。</p>
+      <p style={{ color: '#9da6c3', fontSize: 11, lineHeight: 1.6 }}>投稿默认匿名并立即公开；管理员可在这里试听、隐藏或拒绝不合规作品。</p>
       <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>{[['pending','待审核'],['published','已发布'],['hidden','已隐藏'],['rejected','未通过'],['all','全部']].map(([v,l]) => <button key={v} onClick={() => setFilter(v)} style={{ border: 0, borderRadius: 999, padding: '7px 10px', fontSize: 11, background: filter===v?'#687cff':'#ffffff12', color: '#fff' }}>{l} {v==='all'?rows.length:rows.filter(p=>p.status===v).length}</button>)}</div>
     </div>
     <div style={{ display: 'grid', gap: 9 }}>{shown.map(song => <ReviewSong key={song.id} song={song} busy={busy} onStatus={(id,status) => void setStatus(id,status)} />)}</div>

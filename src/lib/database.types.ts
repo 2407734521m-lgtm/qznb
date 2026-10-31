@@ -772,6 +772,8 @@ export type Database = {
           id: string
           author_id: string
           recipient_name: string | null
+          recipient_id: string | null
+          recipient_notified_at: string | null
           category: string
           content: string
           is_anonymous: boolean
@@ -783,6 +785,8 @@ export type Database = {
           id?: string
           author_id: string
           recipient_name?: string | null
+          recipient_id?: string | null
+          recipient_notified_at?: string | null
           category?: string
           content: string
           is_anonymous?: boolean
@@ -794,6 +798,8 @@ export type Database = {
           id?: string
           author_id?: string
           recipient_name?: string | null
+          recipient_id?: string | null
+          recipient_notified_at?: string | null
           category?: string
           content?: string
           is_anonymous?: boolean
@@ -1498,6 +1504,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: unknown
       }
+      create_song_audio_upload: {
+        Args: { p_ext: string }
+        Returns: string
+      }
       create_invite_code: {
         Args: { new_code: string; nick: string | null }
         Returns: unknown
@@ -1616,6 +1626,10 @@ export type Database = {
       }
       resolve_login_email: {
         Args: { ident: string }
+        Returns: unknown
+      }
+      song_wall_published: {
+        Args: Record<PropertyKey, never>
         Returns: unknown
       }
       respond_friend_request: {

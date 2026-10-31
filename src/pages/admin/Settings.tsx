@@ -125,13 +125,25 @@ export default function Settings({ me, setMsg }: { me: string; setMsg: (s: strin
     await alog('health_check', r);
   }
 
+  async function fetchAllPosts() {
+    const pageSize = 500;
+    const all: any[] = [];
+    for (let from = 0; ; from += pageSize) {
+      const { data, error } = await supabase.from('posts').select('*').order('id', { ascending: true }).range(from, from + pageSize - 1);
+      if (error) throw error;
+      const page = data ?? [];
+      all.push(...page);
+      if (page.length < pageSize) return all;
+    }
+  }
+
   async function backup() {
     if (!confirm('导出全站数据备份？文件会直接下载到本机，不经过公开链接。')) return;
     setMsg('正在备份…');
     try {
       const [p, po, cm, al, ap, bm, fb] = await Promise.all([
         supabase.from('profiles').select('id, username, display_name, real_name, role, joined, created_at, age, personality, signature, bio, hobbies'),
-        supabase.from('posts').select('*').limit(2000),
+        fetchAllPosts(),
         supabase.from('comments').select('*').limit(5000),
         supabase.from('albums').select('*').limit(500),
         supabase.from('album_photos').select('id, album_id, photo_url, caption, created_at').limit(5000),
@@ -140,7 +152,7 @@ export default function Settings({ me, setMsg }: { me: string; setMsg: (s: strin
       ]);
       const data = {
         backup_at: new Date().toISOString(), scope: 'full',
-        profiles: p.data ?? [], posts: po.data ?? [], comments: cm.data ?? [],
+        profiles: p.data ?? [], posts: po, comments: cm.data ?? [],
         albums: al.data ?? [], album_photos: ap.data ?? [], board: bm.data ?? [], feedbacks: fb.data ?? [],
       };
       const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
@@ -148,7 +160,7 @@ export default function Settings({ me, setMsg }: { me: string; setMsg: (s: strin
       a.href = URL.createObjectURL(blob);
       a.download = `班级备份_${new Date().toISOString().slice(0, 10)}.json`;
       a.click(); URL.revokeObjectURL(a.href);
-      await supabase.from('backup_logs').insert({ created_by: me, scope: 'full', status: 'ok', note: `成员${(p.data ?? []).length} 动态${(po.data ?? []).length}` });
+      await supabase.from('backup_logs').insert({ created_by: me, scope: 'full', status: 'ok', note: `成员${(p.data ?? []).length} 帖子${po.length}（动态与日常）` });
       await alog('backup', { scope: 'full' });
       setMsg('备份完成，文件已下载'); load();
     } catch (e: any) {

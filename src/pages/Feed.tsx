@@ -27,7 +27,7 @@ function timeAgo(s: string) {
   return new Date(s).toLocaleDateString();
 }
 
-export default function Feed() {
+export default function Feed({ searchQuery = '' }: { searchQuery?: string }) {
   const me = useAuth().session!.user.id; const reduce = useReducedMotion();
   const [posts, setPosts] = useState<Post[]>([]);
   const [profiles, setProfiles] = useState<Record<string, Profile>>({});
@@ -41,10 +41,15 @@ export default function Feed() {
   const [text, setText] = useState(''); const [img, setImg] = useState<File | null>(null);
   const [busy, setBusy] = useState(false); const [err, setErr] = useState('');
   const [isAdmin, setIsAdmin] = useState(false);
+  const [feedScope, setFeedScope] = useState<'all' | 'friends'>('all');
+  const [friendIds, setFriendIds] = useState<string[]>([]);
   const fref = useRef<HTMLInputElement>(null);
 
   async function load() {
-    const { data: ps } = await supabase.from('posts').select('*').eq('section', 'feed').is('deleted_at', null).order('created_at', { ascending: false }).limit(30);
+    let postQuery = supabase.from('posts').select('*').eq('section', 'feed').is('deleted_at', null)
+      .order('created_at', { ascending: false }).limit(30);
+    if (searchQuery.trim()) postQuery = postQuery.ilike('content', `%${searchQuery.trim()}%`);
+    const { data: ps } = await postQuery;
     const list = ps ?? [];
     setPosts(list);
     if (!list.length) return;
@@ -72,7 +77,15 @@ export default function Feed() {
     const { data: r } = await supabase.rpc('my_role');
     setIsAdmin(r === 'admin' || r === 'super_admin');
   }
-  useEffect(() => { load(); }, []);
+  useEffect(() => { void load(); }, [searchQuery]);
+  useEffect(() => {
+    let alive = true;
+    supabase.rpc('my_friends').then(({ data, error }) => {
+      if (!alive || error) return;
+      setFriendIds(((data ?? []) as Array<{ id: string }>).map(item => item.id));
+    }).catch(() => {});
+    return () => { alive = false; };
+  }, [me]);
 
   async function publish() {
     if (!text.trim() && !img) return setErr('写点什么再发布吧');
@@ -133,11 +146,18 @@ export default function Feed() {
     load();
   }
 
+  const visiblePosts = posts.filter(post => feedScope === 'all' || post.author_id === me || friendIds.includes(post.author_id));
+
   return (
     <div className="page">
       <div className="hero">
         <h1>班级动态</h1>
         <p>分 享 此 刻 · 留 住 感 动</p>
+      </div>
+      <div className="feed-filters" role="group" aria-label="动态筛选">
+        <button type="button" className={feedScope === 'all' ? 'on' : ''} onClick={() => setFeedScope('all')}>全部动态</button>
+        <button type="button" className={feedScope === 'friends' ? 'on' : ''} onClick={() => setFeedScope('friends')}>好友动态</button>
+        {searchQuery.trim() && <span className="feed-search-note">搜索：{searchQuery}</span>}
       </div>
       <div className="composer">
         <textarea value={text} onChange={e => setText(e.target.value)} placeholder="分享今天的班级故事…" rows={3} maxLength={2000} />
@@ -151,7 +171,7 @@ export default function Feed() {
         {err && <p className="err">{err}</p>}
       </div>
 
-      {posts.map((p, i) => {
+      {visiblePosts.map((p, i) => {
         const a = profiles[p.author_id];
         const list = cmts[p.id] ?? [];
         const open = !!openCmt[p.id];
@@ -196,7 +216,7 @@ export default function Feed() {
           </motion.article>
         );
       })}
-      {posts.length === 0 && <div className="center" style={{ minHeight: 200 }}><div className="card">还没有动态，来发第一条吧</div></div>}
+      {visiblePosts.length === 0 && <div className="center" style={{ minHeight: 200 }}><div className="card">{searchQuery.trim() ? '没有找到匹配的动态。' : feedScope === 'friends' ? '暂时没有好友动态。添加好友后，这里会显示他们分享的内容。' : '还没有动态，来发第一条吧'}</div></div>}
     </div>
   );
 }

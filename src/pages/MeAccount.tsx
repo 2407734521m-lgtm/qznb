@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../auth';
 import BackButton from '../components/BackButton';
+import { confirmDialog } from '../lib/dialog';
 
 /** 账号安全：改密码 / 退出登录 */
 export default function MeAccount() {
@@ -24,7 +25,7 @@ export default function MeAccount() {
   }
 
   async function logout() {
-    if (!confirm('确定退出登录？')) return;
+    if (!(await confirmDialog('确定退出登录？'))) return;
     await supabase.auth.signOut();
     nav('/login', { replace: true });
   }

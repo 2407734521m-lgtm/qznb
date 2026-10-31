@@ -4,6 +4,8 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../auth';
 import BackButton from '../components/BackButton';
 import { EASE, DUR } from '../lib/motion';
+import { confirmDialog } from '../lib/dialog';
+import DateTimeField from '../components/DateTimeField';
 
 /** 时光胶囊：写给未来的信，到期才能看。
  *  呈现照参考视频的信封收件箱来做：信封叠成一摞、日期居中、右上角火漆印、
@@ -133,7 +135,7 @@ export default function Capsule() {
     load();
   }
   async function permDel(id: number) {
-    if (!confirm('彻底删除？删了就找不回来了')) return;
+    if (!(await confirmDialog('彻底删除？删了就找不回来了', { danger: true }))) return;
     await supabase.from('time_capsules').delete().eq('id', id);
     if (reading?.id === id) setReading(null);
     load();
@@ -172,10 +174,11 @@ export default function Capsule() {
         <textarea value={content} onChange={e => setContent(e.target.value)} placeholder="想对未来的自己或班级说什么…" rows={4} maxLength={2000} style={{ width: '100%', marginBottom: 8 }} />
         <div className="row" style={{ gap: 8, alignItems: 'center', marginBottom: 8 }}>
           <span style={{ fontSize: 13, color: 'var(--mut)' }}>开启日期：</span>
-          <input type="date" value={openAt} min={today} onChange={e => setOpenAt(e.target.value)} style={{ width: 'auto' }} />
+          <DateTimeField mode="date" value={openAt} min={today} onChange={setOpenAt} style={{ width: 'auto', margin: 0 }} />
         </div>
-        <label style={{ fontSize: 13, display: 'flex', gap: 6, alignItems: 'center', marginBottom: 8 }}>
-          <input type="checkbox" checked={isPublic} onChange={e => setIsPublic(e.target.checked)} /> 到期后公开给全班看
+        <label style={{ fontSize: 13, display: 'flex', flexDirection: 'row', justifyContent: 'flex-start', alignItems: 'center', gap: 9, width: '100%', textAlign: 'left', marginBottom: 8 }}>
+          <input type="checkbox" checked={isPublic} onChange={e => setIsPublic(e.target.checked)} style={{ flex: '0 0 auto', margin: 0 }} />
+          <span>到期后公开给全班看</span>
         </label>
         <button className="pri" onClick={save}>封存</button>
         {msg && <p className="priv-note" style={{ marginTop: 8 }}>{msg}</p>}

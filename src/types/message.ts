@@ -1,9 +1,12 @@
-export interface Profile {
-  id: string; // uuid
-  display_name: string | null;
-  username: string | null;
-  avatar_path: string | null;
-}
+import type { ProfileSummary } from './profile';
+import type { Database } from '../lib/database.types';
+
+export type Profile = ProfileSummary;
+
+export type ChatMessage = Pick<
+  Database['public']['Tables']['messages']['Row'],
+  'id' | 'sender_id' | 'body' | 'created_at'
+>;
 
 export interface Message {
   id: number; // bigint

@@ -3,13 +3,13 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../auth';
-import { useSignedUrl, uploadMedia, downscaleImage } from '../lib/media';
+import { useSignedUrl, useSignedUrls, uploadMedia, downscaleImage } from '../lib/media';
 import { withRetry } from '../lib/retry';
+import { confirmDialog } from '../lib/dialog';
 
 type P = { id: number; photo_url: string; caption: string | null; uploaded_by: string | null };
 
-function Thumb({ p, onView }: { p: P; onView: () => void }) {
-  const url = useSignedUrl('media', p.photo_url);
+function Thumb({ p, url, onView }: { p: P; url?: string; onView: () => void }) {
   if (!url) return null;
   return (
     <figure onClick={onView}>
@@ -24,6 +24,7 @@ export default function AlbumDetail() {
   const me = useAuth().session!.user.id;
   const [album, setAlbum] = useState<any>(null);
   const [photos, setPhotos] = useState<P[]>([]);
+  const photoUrls = useSignedUrls('media', photos.map(p => p.photo_url));
   const [view, setView] = useState<P | null>(null);
   const [cap, setCap] = useState(''); const [busy, setBusy] = useState(false); const [err, setErr] = useState('');
   const [isAdmin, setIsAdmin] = useState(false);
@@ -31,7 +32,7 @@ export default function AlbumDetail() {
   const viewUrl = useSignedUrl('media', view?.photo_url);
 
   async function load() {
-    const { data: a } = await supabase.from('albums').select('*').eq('id', id).maybeSingle();
+    const { data: a } = await supabase.from('albums').select('*').eq('id', Number(id)).maybeSingle();
     setAlbum(a ?? null);
     const { data: p } = await supabase.from('album_photos').select('*').eq('album_id', Number(id))
       .order('created_at', { ascending: false });
@@ -64,7 +65,7 @@ export default function AlbumDetail() {
   }
 
   async function del(p: P) {
-    if (!confirm('删除这张照片？')) return;
+    if (!(await confirmDialog('删除这张照片？', { danger: true }))) return;
     await supabase.from('album_photos').delete().eq('id', p.id);
     load();
   }
@@ -90,7 +91,7 @@ export default function AlbumDetail() {
       <div className="masonry">
         {photos.map(p => (
           <div key={p.id} style={{ position: 'relative' }}>
-            <Thumb p={p} onView={() => setView(p)} />
+            <Thumb p={p} url={photoUrls[p.photo_url]} onView={() => setView(p)} />
             {(p.uploaded_by === me || isAdmin) && (
               <button className="mini danger" style={{ position: 'absolute', top: 6, right: 6 }}
                 onClick={e => { e.stopPropagation(); del(p); }}>删除</button>

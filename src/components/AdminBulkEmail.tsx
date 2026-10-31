@@ -9,6 +9,7 @@ export default function AdminBulkEmail({ setMsg }: { setMsg: (s: string) => void
   const [subject, setSubject] = useState('');
   const [body, setBody] = useState('');
   const [busy, setBusy] = useState(false);
+  const [confirming, setConfirming] = useState(false);
   const [loading, setLoading] = useState(true);
   useEffect(() => {
     let live = true;
@@ -21,6 +22,8 @@ export default function AdminBulkEmail({ setMsg }: { setMsg: (s: string) => void
       });
     return () => { live = false; };
   }, []);
+  // 收件人或内容变化时，取消待确认状态，避免误发。
+  useEffect(() => { setConfirming(false); }, [selected, subject, body]);
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return people.filter(p => !q || [p.username,p.display_name,p.real_name,p.id].some(v => (v || '').toLowerCase().includes(q)));
@@ -36,7 +39,12 @@ export default function AdminBulkEmail({ setMsg }: { setMsg: (s: string) => void
     if (!subject.trim() || subject.trim().length > 160) { setMsg('邮件标题需填写，且不超过 160 个字。'); return; }
     if (!body.trim() || body.trim().length > 10000) { setMsg('邮件内容需填写，且不超过 10000 个字。'); return; }
     if (selected.length > 100) { setMsg('单次最多选择 100 个账号，请分批发送。'); return; }
-    if (!confirm(`确认向 ${selected.length} 个账号发送这封邮件？发送后无法撤回。`)) return;
+    if (!confirming) {
+      setConfirming(true);
+      setMsg(`已选择 ${selected.length} 个账号，再点一次「确认发送」就会发出，发送后无法撤回；改动收件人或内容可取消确认。`);
+      return;
+    }
+    setConfirming(false);
     setBusy(true); setMsg('正在发送邮件，请不要关闭页面…');
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -46,7 +54,7 @@ export default function AdminBulkEmail({ setMsg }: { setMsg: (s: string) => void
       });
       if (invokeError) throw new Error(invokeError.message || '发送失败。请检查邮件服务配置。');
       if (result?.error) throw new Error(result.error || '发送失败。请检查邮件服务配置。');
-      setMsg(`发送任务完成：成功 ${result.sent || 0} 封，失败 ${result.failed || 0} 封。`);
+      setMsg(`发送任务完成：成功 ${result.sent || 0} 封，失败 ${result.failed || 0} 封。${result.detail ? '失败原因：' + result.detail : ''}`);
       setSelected([]);
     } catch (e: any) { setMsg(e.message || '发送失败。'); }
     finally { setBusy(false); }
@@ -71,7 +79,7 @@ export default function AdminBulkEmail({ setMsg }: { setMsg: (s: string) => void
       <input value={subject} onChange={e => setSubject(e.target.value)} maxLength={160} placeholder="例如：班级活动通知" style={field} />
       <label style={label}>邮件内容</label>
       <textarea value={body} onChange={e => setBody(e.target.value)} maxLength={10000} rows={6} placeholder="写下邮件正文…" style={{ ...field, resize: 'vertical' }} />
-      <button disabled={busy} onClick={() => void send()} style={{ ...sendBtn, opacity: busy ? .6 : 1 }}>{busy ? '发送中…' : `发送给已选择的 ${selected.length} 个账号`}</button>
+      <button disabled={busy} onClick={() => void send()} style={{ ...sendBtn, opacity: busy ? .6 : 1, ...(confirming ? { background: 'linear-gradient(135deg,#f59e0b,#ef4444)' } : {}) }}>{busy ? '发送中…' : confirming ? `确认发送？将发送给 ${selected.length} 个账号` : `发送给已选择的 ${selected.length} 个账号`}</button>
       <p style={{ color: '#8994b2', fontSize: 10, lineHeight: 1.6, marginBottom: 0 }}>只向你明确勾选的账号发送；请勿发送骚扰、敏感或与社区无关的邮件。需要先部署 admin-bulk-email 函数，并配置邮件服务密钥。</p>
     </div>
   </section>;

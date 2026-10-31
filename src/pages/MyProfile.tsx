@@ -10,6 +10,8 @@ import SocialPicker from '../components/SocialPicker';
 import { badgeText } from '../data/games';
 import WelcomeOverlay from '../components/WelcomeOverlay';
 import BackButton from '../components/BackButton';
+import { fetchReviewEstimates, estimateText, type ReviewEstimates } from '../lib/reviewEstimate';
+import { confirmDialog } from '../lib/dialog';
 
 const PROFILE_FIELDS = [['display_name', '名字', 'show_name'], ['age', '年龄', 'show_age'],
   ['personality', '性格', 'show_personality'], ['signature', '个性签名', 'show_signature'],
@@ -23,7 +25,6 @@ const THEMES = [['aurora', '极光', '#7c9cff', '#c27cff'], ['sunset', '晚霞',
   ['forest', '森林', '#4ade80', '#14b8a6'], ['mono', '黑白', '#e8e8e8', '#777777'],
   ['stars', '星空', '#818cf8', '#38bdf8'], ['ocean', '海洋', '#22d3ee', '#3b82f6']];
 const LAYOUTS = [['left', '照片在左'], ['right', '照片在右'], ['center', '居中']];
-const PRIV_ICONS: Record<string, string> = { show_avatar: '🖼️', show_name: '📝', show_age: '🎂', show_personality: '✨', show_signature: '💬', show_bio: '📖', show_hobbies: '🎯', show_contact: '📞', show_social: '🌐' };
 const PRIV_ROWS: [string, string][] = [['show_avatar', '个人照片'], ...ALL_FIELDS.map(([, label, flag]) => [flag, label] as [string, string])];
 
 // 通用折叠栏
@@ -94,6 +95,13 @@ export default function MyProfile() {
   const [fbOpen, setFbOpen] = useState(false);
   const [welcome, setWelcome] = useState<string | null>(null);
   const [gprof, setGprof] = useState<GameProfile | null>(null);
+  const [reviewEst, setReviewEst] = useState<ReviewEstimates | null>(null);
+  useEffect(() => {
+    if (gprof?.status !== 'pending') { setReviewEst(null); return; }
+    let active = true;
+    void fetchReviewEstimates().then(r => { if (active) setReviewEst(r); });
+    return () => { active = false; };
+  }, [gprof?.status]);
   const [gpickOpen, setGpickOpen] = useState(false);
   const [gpickOrigin, setGpickOrigin] = useState<Origin | null>(null);
   function openGpick(e: React.MouseEvent<HTMLElement>) {
@@ -140,9 +148,25 @@ export default function MyProfile() {
     if (p.error || pr.error || c.error) return setMsg('资料加载失败，请刷新重试');
     const all: Record<string, any> = { ...p.data, ...(c.data ?? {}) };
     setV(Object.fromEntries(ALL_FIELDS.map(([k]) => [k, all[k] == null ? '' : String(all[k])])));
-    setPriv(pr.data); setJoined(p.data.joined); setAvatar(p.data.avatar_path); setUname(p.data.username ?? '');
+    setPriv({
+      show_name: pr.data.show_name,
+      show_age: pr.data.show_age,
+      show_personality: pr.data.show_personality,
+      show_signature: pr.data.show_signature,
+      show_bio: pr.data.show_bio,
+      show_hobbies: pr.data.show_hobbies,
+      show_avatar: pr.data.show_avatar,
+      show_contact: pr.data.show_contact,
+      show_social: pr.data.show_social,
+      show_game_id: pr.data.show_game_id,
+      hide_love_wall_name: pr.data.hide_love_wall_name,
+    });
+    setJoined(p.data.joined); setAvatar(p.data.avatar_path); setUname(p.data.username ?? '');
     setVideoPath(p.data.intro_video_path ?? null);
-    setTheme(p.data.theme?.theme ?? 'aurora'); setLayout(p.data.theme?.layout ?? 'left');
+    const rawTheme = p.data.theme;
+    const themeSettings = typeof rawTheme === 'object' && rawTheme !== null && !Array.isArray(rawTheme) ? rawTheme : {};
+    setTheme(typeof themeSettings.theme === 'string' ? themeSettings.theme : 'aurora');
+    setLayout(typeof themeSettings.layout === 'string' ? themeSettings.layout : 'left');
     if (!g.error) setGprof((g.data as GameProfile) ?? null);
     loadedRef.current = true;
   })(); }, [uid]);
@@ -153,7 +177,7 @@ export default function MyProfile() {
     setGprof((data as GameProfile) ?? null);
   }
   async function clearGame() {
-    if (!confirm('清除游戏段位资料？成员卡片上的标签也会消失。')) return;
+    if (!(await confirmDialog('清除游戏段位资料？成员卡片上的标签也会消失。', { danger: true }))) return;
     const { error } = await supabase.rpc('clear_game_profile');
     if (error) return setMsg('清除失败：' + error.message);
     setGprof(null); setMsg('已清除游戏资料');
@@ -173,7 +197,19 @@ export default function MyProfile() {
       withRetry(() => supabase.from('profiles').update({ display_name: n(v.display_name), age: age ? Number(age) : null,
         personality: n(v.personality), signature: n(v.signature), bio: n(v.bio), hobbies: n(v.hobbies),
         theme: { theme, layout } }).eq('id', uid)),
-      withRetry(() => supabase.from('profile_privacy').update(Object.fromEntries(Object.keys(priv).filter(k => k.startsWith('show_') || k === 'hide_love_wall_name').map(k => [k, !!priv[k]]))).eq('profile_id', uid)),
+      withRetry(() => supabase.from('profile_privacy').update({
+        show_name: !!priv.show_name,
+        show_age: !!priv.show_age,
+        show_personality: !!priv.show_personality,
+        show_signature: !!priv.show_signature,
+        show_bio: !!priv.show_bio,
+        show_hobbies: !!priv.show_hobbies,
+        show_avatar: !!priv.show_avatar,
+        show_contact: !!priv.show_contact,
+        show_social: !!priv.show_social,
+        show_game_id: !!priv.show_game_id,
+        hide_love_wall_name: !!priv.hide_love_wall_name,
+      }).eq('profile_id', uid)),
       withRetry(() => supabase.from('profile_contacts').upsert({ profile_id: uid, contact: n(v.contact), social: n(v.social) }, { onConflict: 'profile_id' }))]);
     savingRef.current = false;
     const err = r.find(x => x.error);
@@ -325,6 +361,7 @@ export default function MyProfile() {
             {gprof.status === 'approved' && gprof.rank && <div className="gbadge">{badgeText(gprof.game_name, gprof.rank)}</div>}
             <div className="mut" style={{ fontSize: 12.5, margin: '4px 0 8px' }}>
               {gprof.status === 'pending' && '⏳ 段位审核中，通过后成员卡片会显示标签'}
+              {gprof.status === 'pending' && reviewEst?.game && <div style={{ marginTop: 2 }}>⏳ {estimateText(reviewEst.game, reviewEst.adminActive)}</div>}
               {gprof.status === 'approved' && !gprof.rank && '✓ 已通过（未填段位，不显示标签）'}
               {gprof.status === 'rejected' && '❌ 审核未通过，可以修改后重新提交'}
             </div>
@@ -347,7 +384,7 @@ export default function MyProfile() {
           {PRIV_ROWS.map(([flag, label]) => (
             <button key={flag} type="button" className={'priv-btn' + (priv[flag] ? ' on' : '')}
               onClick={() => setPriv({ ...priv, [flag]: !priv[flag] })}>
-              <span>{PRIV_ICONS[flag] ?? '🔹'} {label}</span>
+              <span>{label}</span>
               <span className="sw"><span className="knob" /></span>
             </button>
           ))}
@@ -356,7 +393,7 @@ export default function MyProfile() {
         <div className="priv-list">
           <button type="button" className={'priv-btn' + (priv.hide_love_wall_name !== false ? ' on' : '')}
             onClick={() => setPriv({ ...priv, hide_love_wall_name: !(priv.hide_love_wall_name !== false) })}>
-            <span>💌 表白墙隐藏姓名</span>
+            <span>表白墙隐藏姓名</span>
             <span className="sw"><span className="knob" /></span>
           </button>
         </div>

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../auth';
 import BackButton from '../components/BackButton';
+import { confirmDialog, alertDialog } from '../lib/dialog';
 
 /** 班级活动：查看 + 报名 */
 export default function Events() {
@@ -29,11 +30,11 @@ export default function Events() {
 
   async function toggle(id: number, joined: boolean) {
     if (joined) {
-      if (!confirm('取消报名？')) return;
+      if (!(await confirmDialog('取消报名？'))) return;
       await supabase.from('event_regs').delete().eq('event_id', id).eq('profile_id', me);
     } else {
       const { error } = await supabase.from('event_regs').insert({ event_id: id, profile_id: me });
-      if (error) return alert('报名失败：' + error.message);
+      if (error) return alertDialog('报名失败：' + error.message);
     }
     load();
   }

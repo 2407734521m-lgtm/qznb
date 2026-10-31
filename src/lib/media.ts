@@ -2,18 +2,56 @@ import { useEffect, useState } from 'react';
 import { supabase } from './supabase';
 import { withRetry } from './retry';
 
-/** 私有 bucket 的 1 小时签名链接。path 为空或已是 http(s) 时直接返回。 */
+/** 私有 bucket 的签名 URL 缓存；同一资源在有效期内不重复签名。 */
+const signedUrlCache = new Map<string, { url: string; expiresAt: number }>();
+
+export async function getSignedUrls(bucket: string, paths: Array<string | null | undefined>) {
+  const unique = [...new Set(paths.filter((p): p is string => !!p && !/^https?:\/\//.test(p)))];
+  const result: Record<string, string> = {};
+  const missing: string[] = [];
+  const now = Date.now();
+  unique.forEach(path => {
+    const cached = signedUrlCache.get(bucket + ':' + path);
+    if (cached && cached.expiresAt > now + 60_000) result[path] = cached.url;
+    else missing.push(path);
+  });
+  if (missing.length) {
+    const { data, error } = await supabase.storage.from(bucket).createSignedUrls(missing, 3600);
+    if (error) throw error;
+    (data ?? []).forEach(item => {
+      if (!item.path || !item.signedUrl) return;
+      result[item.path] = item.signedUrl;
+      signedUrlCache.set(bucket + ':' + item.path, { url: item.signedUrl, expiresAt: now + 3_500_000 });
+    });
+  }
+  paths.forEach(path => { if (path && /^https?:\/\//.test(path)) result[path] = path; });
+  return result;
+}
+
+/** 列表场景批量签名，避免每张图片各发一次请求。 */
+export function useSignedUrls(bucket: string, paths: Array<string | null | undefined>) {
+  const [urls, setUrls] = useState<Record<string, string>>({});
+  const key = [...new Set(paths.filter(Boolean) as string[])].sort().join('|');
+  useEffect(() => {
+    let alive = true;
+    const current = key ? key.split('|') : [];
+    if (!current.length) { setUrls({}); return; }
+    getSignedUrls(bucket, current).then(value => { if (alive) setUrls(value); }).catch(() => {});
+    return () => { alive = false; };
+  }, [bucket, key]);
+  return urls;
+}
+
+/** 单张图片兼容接口；也复用批量签名缓存。 */
 export function useSignedUrl(bucket: string, path?: string | null) {
   const [url, setUrl] = useState<string | null>(null);
   useEffect(() => {
-    let off = false;
+    let alive = true;
     setUrl(null);
     if (!path) return;
     if (/^https?:\/\//.test(path)) { setUrl(path); return; }
-    supabase.storage.from(bucket).createSignedUrl(path, 3600)
-      .then(({ data }) => { if (!off) setUrl(data?.signedUrl ?? null); })
-      .catch(() => {});
-    return () => { off = true; };
+    getSignedUrls(bucket, [path]).then(value => { if (alive) setUrl(value[path] ?? null); }).catch(() => {});
+    return () => { alive = false; };
   }, [bucket, path]);
   return url;
 }

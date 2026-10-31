@@ -50,6 +50,7 @@ Deno.serve(async (req: Request) => {
   if (!recipients.length) return response({ error: '所选账号没有可用邮箱。' }, 400);
 
   let sent = 0;
+  let firstError = '';
   const failed = userIds.length - recipients.length;
   for (const recipient of recipients) {
     try {
@@ -59,8 +60,15 @@ Deno.serve(async (req: Request) => {
         body: JSON.stringify({ from, to: [recipient.email], subject, text: bodyText }),
       });
       if (r.ok) sent++;
-    } catch { /* counted below */ }
+      else if (!firstError) {
+        const t = await r.text().catch(() => '');
+        firstError = `Resend 返回 ${r.status}：${t.slice(0, 200)}`;
+      }
+    } catch (e) {
+      if (!firstError) firstError = '调用 Resend 失败：' + (e instanceof Error ? e.message : String(e));
+    }
   }
+  if (firstError) console.error('bulk-email send failed:', firstError);
   const attempted = recipients.length;
-  return response({ sent, failed: failed + attempted - sent, selected: userIds.length });
+  return response({ sent, failed: failed + attempted - sent, selected: userIds.length, ...(firstError ? { detail: firstError } : {}) });
 });

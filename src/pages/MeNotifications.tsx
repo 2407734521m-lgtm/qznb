@@ -9,12 +9,18 @@ export default function MeNotifications() {
   const nav = useNavigate();
   const me = useAuth().session!.user.id;
   const [list, setList] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
 
   async function load() {
-    const { data } = await supabase.from('notifications')
+    setLoading(true); setLoadError('');
+    const { data, error } = await supabase.from('notifications')
       .select('id, type, title, body, link, is_read, created_at')
       .eq('profile_id', me).order('created_at', { ascending: false }).limit(30);
-    setList(data ?? []);
+    if (error) setLoadError(error.code === '42501' || error.code === 'PGRST301'
+      ? '当前账号没有读取通知的权限。' : '通知暂时加载失败，请稍后重试。');
+    else setList(data ?? []);
+    setLoading(false);
   }
   useEffect(() => {
     load();
@@ -25,13 +31,15 @@ export default function MeNotifications() {
     })();
   }, []);
 
-  const typeLabel: Record<string, string> = { comment: '评论', like: '点赞', greeting: '留言', notice: '公告' };
+  const typeLabel: Record<string, string> = { comment: '评论', like: '点赞', greeting: '留言', notice: '公告', love_wall: '表白墙' };
 
   return (
     <div className="page" style={{ paddingBottom: 110 }}>
       <BackButton fallback="/me" />
       <h2 style={{ margin: '4px 0 12px', fontSize: 20 }}>我的通知</h2>
-      {list.length === 0 && <div className="card" style={{ textAlign: 'center', color: 'var(--mut)', padding: '36px 14px' }}>暂无通知</div>}
+      {loading && <div className="card" style={{ textAlign: 'center', color: 'var(--mut)', padding: '36px 14px' }}>正在加载通知…</div>}
+      {!loading && loadError && <div className="card" style={{ textAlign: 'center', color: 'var(--mut)', padding: '24px 14px' }}>{loadError}<button className="mini ghost" onClick={load}>重试</button></div>}
+      {!loading && !loadError && list.length === 0 && <div className="card" style={{ textAlign: 'center', color: 'var(--mut)', padding: '36px 14px' }}>暂无通知记录</div>}
       {list.map(n => (
         <div key={n.id} className="card" style={{ opacity: n.is_read ? 0.75 : 1, cursor: n.link ? 'pointer' : 'default' }}
           onClick={() => { if (n.link) nav(n.link); }}>

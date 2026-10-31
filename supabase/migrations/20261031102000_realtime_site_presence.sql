@@ -1,6 +1,6 @@
--- Realtime site-wide online count.
--- Authenticated users may publish their own ephemeral Presence state.
--- Only administrators may read Presence state from the private channel.
+-- Realtime site-wide anonymous connection count.
+-- Authenticated users may publish an ephemeral online marker to one shared key.
+-- Only administrators may read Presence state; no account IDs or profile data are sent.
 DO $$
 BEGIN
   IF NOT EXISTS (

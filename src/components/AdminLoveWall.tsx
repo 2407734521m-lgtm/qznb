@@ -1,23 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { supabase } from '../lib/supabase';
+import { getSignedUrls } from '../lib/media';
+import type { ProfileAdminIdentity as Profile } from '../types/profile';
+import type { Database } from '../lib/database.types';
 
-type Post = {
-  id: string;
-  author_id: string;
-  recipient_name: string | null;
-  category: string;
-  content: string;
-  is_anonymous: boolean;
-  status: string;
-  created_at: string;
-};
-type Profile = {
-  id: string;
-  username: string | null;
-  display_name: string | null;
-  real_name: string | null;
-};
-
+type LoveWallPost = Database['public']['Tables']['love_wall_posts']['Row'];
 const FILTERS = [
   ['pending', '待审核'],
   ['published', '已发布'],
@@ -34,11 +21,12 @@ const statusLabel: Record<string, string> = {
 };
 
 export default function AdminLoveWall({ setMsg }: { setMsg: (s: string) => void }) {
-  const [rows, setRows] = useState<Post[]>([]);
+  const [rows, setRows] = useState<LoveWallPost[]>([]);
   const [profiles, setProfiles] = useState<Record<string, Profile>>({});
   const [filter, setFilter] = useState('pending');
   const [query, setQuery] = useState('');
   const [busy, setBusy] = useState<string | null>(null);
+  const [mediaByPost, setMediaByPost] = useState<Record<string, { id: string; path: string; kind: string; url?: string }[]>>({});
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async (quiet = false) => {
@@ -53,8 +41,19 @@ export default function AdminLoveWall({ setMsg }: { setMsg: (s: string) => void 
       if (!quiet) setLoading(false);
       return;
     }
-    const nextRows = (data || []) as Post[];
+    const nextRows = data ?? [];
     setRows(nextRows);
+    if (nextRows.length) {
+      const { data: mrows } = await supabase.from('love_wall_media')
+        .select('id,post_id,path,kind,sort').in('post_id', nextRows.map(x => x.id)).order('sort');
+      const mlist = (mrows ?? []) as { id: string; post_id: string; path: string; kind: string; sort: number }[];
+      if (mlist.length) {
+        const signed = await getSignedUrls('media', mlist.map(m => m.path)).catch(() => ({} as Record<string, string>));
+        const grouped: Record<string, { id: string; path: string; kind: string; url?: string }[]> = {};
+        mlist.forEach(m => { (grouped[m.post_id] = grouped[m.post_id] || []).push({ id: m.id, path: m.path, kind: m.kind, url: signed[m.path] }); });
+        setMediaByPost(grouped);
+      } else setMediaByPost({});
+    } else setMediaByPost({});
     const ids = [...new Set(nextRows.map(p => p.author_id).filter(Boolean))];
     if (ids.length) {
       const { data: people, error: peopleError } = await supabase
@@ -62,7 +61,7 @@ export default function AdminLoveWall({ setMsg }: { setMsg: (s: string) => void 
         .select('id,username,display_name,real_name')
         .in('id', ids);
       if (!peopleError) {
-        setProfiles(Object.fromEntries(((people || []) as Profile[]).map(p => [p.id, p])));
+        setProfiles(Object.fromEntries((people || []).map(p => [p.id, p])));
       }
     } else {
       setProfiles({});
@@ -94,7 +93,7 @@ export default function AdminLoveWall({ setMsg }: { setMsg: (s: string) => void 
     });
   }, [rows, profiles, filter, query]);
 
-  async function setStatus(p: Post, status: string) {
+  async function setStatus(p: LoveWallPost, status: string) {
     if (busy) return;
     setBusy(p.id);
     setMsg('');
@@ -111,7 +110,7 @@ export default function AdminLoveWall({ setMsg }: { setMsg: (s: string) => void 
     await load(true);
   }
 
-  const authorLabel = (p: Post) => {
+  const authorLabel = (p: LoveWallPost) => {
     const profile = profiles[p.author_id];
     return profile?.display_name || profile?.real_name || profile?.username || '未找到对应资料';
   };
@@ -179,6 +178,12 @@ export default function AdminLoveWall({ setMsg }: { setMsg: (s: string) => void 
         </div>
 
         <p style={{ whiteSpace: 'pre-wrap', lineHeight: 1.75, overflowWrap: 'anywhere', margin: '13px 0' }}>{p.content}</p>
+
+        {(mediaByPost[p.id] || []).length > 0 && <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6, margin: '0 0 12px' }}>
+          {(mediaByPost[p.id] || []).map(m => m.kind === 'image'
+            ? (m.url ? <a key={m.id} href={m.url} target="_blank" rel="noreferrer"><img src={m.url} alt="" loading="lazy" style={{ width: '100%', aspectRatio: '1 / 1', objectFit: 'cover', borderRadius: 10, display: 'block' }} /></a> : null)
+            : (m.url ? <video key={m.id} src={m.url} controls playsInline preload="metadata" style={{ width: '100%', gridColumn: '1 / -1', borderRadius: 10, background: '#000', maxHeight: 320, display: 'block' }} /> : null))}
+        </div>}
 
         <details style={identityBox}>
           <summary style={{ cursor: 'pointer', color: '#c5d3f5', fontSize: 12, fontWeight: 700, padding: '2px 0' }}>

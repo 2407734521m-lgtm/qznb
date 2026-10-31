@@ -1,10 +1,12 @@
 import { useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import Feed from './Feed';
 import Album from './Album';
 
 // 动态 + 相册合并为一页，内部切换
 export default function Discover() {
-  const [tab, setTab] = useState<'feed' | 'albums'>('feed');
+  const location = useLocation();
+  const [tab, setTab] = useState<'feed' | 'albums'>(() => (location.state as any)?.openTab === 'albums' ? 'albums' : 'feed');
   return (
     <div>
       <div className="seg" style={{ margin: '2px 0 2px' }}>

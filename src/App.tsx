@@ -36,6 +36,8 @@ import MeGreetings from './pages/MeGreetings';
 import MeNotifications from './pages/MeNotifications';
 import MeFeedback from './pages/MeFeedback';
 import MeAccount from './pages/MeAccount';
+import MeSettings from './pages/MeSettings';
+import MeGrowth from './pages/MeGrowth';
 import ErrorBoundary from './components/ErrorBoundary';
 import AdminLogin from './pages/AdminLogin';
 import Board from './pages/Board';
@@ -318,7 +320,18 @@ function Shell() {
   const { session, loading } = useAuth();  const [role, setRole] = useState('');
   const loc = useLocation();
   const emblem = emblemSpot(loc.pathname);
-  const reduce = useReducedMotion();
+  const systemReduce = useReducedMotion();
+  const [motionPreference, setMotionPreference] = useState<'system' | 'reduce' | 'full'>(() => {
+    try { return (localStorage.getItem('qznb_motion_preference_v1') as 'system' | 'reduce' | 'full') || 'system'; } catch { return 'system'; }
+  });
+  const reduce = motionPreference === 'reduce' || !!systemReduce;
+  useEffect(() => {
+    const syncMotion = () => {
+      try { setMotionPreference((localStorage.getItem('qznb_motion_preference_v1') as 'system' | 'reduce' | 'full') || 'system'); } catch { setMotionPreference('system'); }
+    };
+    window.addEventListener('qznb-settings-changed', syncMotion);
+    return () => window.removeEventListener('qznb-settings-changed', syncMotion);
+  }, []);
   const isAdmin = role === 'admin' || role === 'super_admin';
   const isAdminPage = loc.pathname === '/admin';
   const isChatPage = loc.pathname.startsWith('/chat/');
@@ -710,6 +723,8 @@ function Shell() {
               <Route path="/me/notifications" element={<MeNotifications />} />
               <Route path="/me/feedback" element={<MeFeedback />} />
               <Route path="/me/account" element={<MeAccount />} />
+              <Route path="/me/settings" element={<MeSettings />} />
+              <Route path="/me/growth" element={<MeGrowth />} />
               <Route path="/greetings" element={<Greetings />} />
               <Route path="/home" element={<Home />} />
                             <Route path="/capsule" element={<Capsule />} />

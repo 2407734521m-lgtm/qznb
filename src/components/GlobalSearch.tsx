@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+import { useAuth } from '../auth';
 
 type SearchResult = {
   kind: 'member' | 'post' | 'album' | 'notice';
@@ -10,11 +11,9 @@ type SearchResult = {
   state?: Record<string, unknown>;
 };
 
-const HISTORY_KEY = 'qznb_search_history_v1';
-
-function readHistory(): string[] {
+function readHistory(historyKey: string): string[] {
   try {
-    const value: unknown = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
+    const value: unknown = JSON.parse(localStorage.getItem(historyKey) || '[]');
     return Array.isArray(value)
       ? value.filter((item): item is string => typeof item === 'string').slice(0, 6)
       : [];
@@ -25,12 +24,16 @@ function readHistory(): string[] {
 
 export default function GlobalSearch({ open, onClose }: { open: boolean; onClose: () => void }) {
   const nav = useNavigate();
+  const userId = useAuth().session?.user.id || 'guest';
+  const historyKey = `qznb_search_history_v2:${userId}`;
   const inputRef = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<SearchResult[]>([]);
-  const [history, setHistory] = useState<string[]>(readHistory);
+  const [history, setHistory] = useState<string[]>(() => readHistory(historyKey));
   const [loading, setLoading] = useState(false);
   const [failed, setFailed] = useState(false);
+
+  useEffect(() => { setHistory(readHistory(historyKey)); }, [historyKey]);
 
   useEffect(() => {
     if (!open) return;
@@ -58,7 +61,7 @@ export default function GlobalSearch({ open, onClose }: { open: boolean; onClose
       setFailed(false);
       try {
         const pattern = `%${term}%`;
-        const [members, posts, albums, notices] = await Promise.all([
+        const [members, posts, albums, notices, noticesByTitle] = await Promise.all([
           supabase.rpc('member_directory', { q: term, lim: 6, skip: 0 }),
           supabase.from('posts').select('id, content, section, created_at')
             .in('section', ['feed', 'daily']).is('deleted_at', null).ilike('content', pattern)
@@ -68,6 +71,9 @@ export default function GlobalSearch({ open, onClose }: { open: boolean; onClose
             .order('created_at', { ascending: false }).limit(4),
           supabase.from('board_messages').select('id, title, content, created_at')
             .is('deleted_at', null).ilike('content', pattern)
+            .order('created_at', { ascending: false }).limit(4),
+          supabase.from('board_messages').select('id, title, content, created_at')
+            .is('deleted_at', null).ilike('title', pattern)
             .order('created_at', { ascending: false }).limit(4),
         ]);
         if (!alive) return;
@@ -99,7 +105,8 @@ export default function GlobalSearch({ open, onClose }: { open: boolean; onClose
             target: `/albums/${album.id}`,
           });
         });
-        (notices.data ?? []).forEach((notice: any) => {
+        const noticeRows = [...new Map([...(notices.data ?? []), ...(noticesByTitle.data ?? [])].map((notice: any) => [notice.id, notice])).values()];
+        noticeRows.forEach((notice: any) => {
           next.push({
             kind: 'notice',
             title: notice.title || String(notice.content || '公告留言').slice(0, 66),
@@ -108,7 +115,7 @@ export default function GlobalSearch({ open, onClose }: { open: boolean; onClose
           });
         });
         setResults(next);
-        setFailed([members, posts, albums, notices].every((item: any) => !!item.error));
+        setFailed([members, posts, albums, notices, noticesByTitle].every((item: any) => !!item.error));
       } catch {
         if (alive) {
           setResults([]);
@@ -128,7 +135,7 @@ export default function GlobalSearch({ open, onClose }: { open: boolean; onClose
   function remember(value: string) {
     const next = [value, ...history.filter(item => item !== value)].slice(0, 6);
     setHistory(next);
-    try { localStorage.setItem(HISTORY_KEY, JSON.stringify(next)); } catch { /* local history is optional */ }
+    try { localStorage.setItem(historyKey, JSON.stringify(next)); } catch { /* local history is optional */ }
   }
 
   function openResult(result: SearchResult) {
@@ -188,7 +195,7 @@ export default function GlobalSearch({ open, onClose }: { open: boolean; onClose
                 {history.map(item => <button type="button" key={item} onClick={() => useHistory(item)}>{item}</button>)}
                 <button type="button" className="clear-history" onClick={() => {
                   setHistory([]);
-                  try { localStorage.removeItem(HISTORY_KEY); } catch {}
+                  try { localStorage.removeItem(historyKey); } catch {}
                 }}>清除记录</button>
               </div>
             ) : <p className="global-search-hint">输入至少两个字符，开始搜索全站内容。</p>}

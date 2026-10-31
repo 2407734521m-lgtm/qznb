@@ -3,8 +3,9 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../auth';
 import { useSignedUrl } from '../lib/media';
 import type { SongWallPost as Song, PublicSongWallPost } from '../types/song';
+import { fetchReviewEstimates, estimateText, type ReviewEstimates } from '../lib/reviewEstimate';
 
-function SongCard({ song, mine }: { song: Song | PublicSongWallPost; mine: boolean }) {
+function SongCard({ song, mine, estText }: { song: Song | PublicSongWallPost; mine: boolean; estText?: string }) {
   const url = useSignedUrl('song-audio', song.audio_path);
   const status = 'status' in song ? song.status : 'published';
   return <article style={{ border: '1px solid #e9ebf0', background: '#fff', borderRadius: 14, padding: 13 }}>
@@ -15,6 +16,7 @@ function SongCard({ song, mine }: { song: Song | PublicSongWallPost; mine: boole
       </div>
       {mine && <span style={{ flexShrink: 0, fontSize: 10, borderRadius: 999, padding: '4px 7px', background: status === 'published' ? '#e6f4ea' : '#f1f3f6', color: status === 'published' ? '#1a7a4a' : '#606673' }}>{status === 'pending' ? '审核中' : status === 'published' ? '已发布' : status === 'rejected' ? '未通过' : '已隐藏'}</span>}
     </div>
+    {estText && <div style={{ color: '#606673', fontSize: 11, marginTop: 6 }}>⏳ {estText}</div>}
     {song.description && <p style={{ color: '#333946', fontSize: 12, lineHeight: 1.7, margin: '9px 0' }}>{song.description}</p>}
     {url ? <audio controls preload="none" src={url} style={{ width: '100%', height: 36, marginTop: 8 }} /> : <div style={{ color: '#606673', fontSize: 11, marginTop: 10 }}>音频链接加载中…</div>}
   </article>;
@@ -30,6 +32,7 @@ export default function SongWall() {
   const [file, setFile] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState('');
+  const [estimates, setEstimates] = useState<ReviewEstimates | null>(null);
 
   async function load() {
     const { data, error } = await supabase.rpc('song_wall_published');
@@ -40,8 +43,13 @@ export default function SongWall() {
         .select('id,author_id,title,description,audio_path,status,duration_seconds,created_at')
         .eq('author_id', session.user.id).order('created_at', { ascending: false }).limit(100);
       if (mineError) setNotice('我的投稿暂时无法加载，请稍后重试。');
-      else setMySongs((mineData || []) as Song[]);
-    } else setMySongs([]);
+      else {
+        const list = (mineData || []) as Song[];
+        setMySongs(list);
+        if (list.some(x => x.status === 'pending')) setEstimates(await fetchReviewEstimates());
+        else setEstimates(null);
+      }
+    } else { setMySongs([]); setEstimates(null); }
   }
   useEffect(() => { void load(); }, [session?.user.id]);
 
@@ -103,7 +111,10 @@ export default function SongWall() {
       <button onClick={() => setMine(v => !v)} style={ghost}>{mine ? '返回歌声墙' : '我的投稿'}</button>
     </div>
     <div style={{ display: 'grid', gap: 10 }}>
-      {visible.map(song => <SongCard key={song.id} song={song} mine={mine} />)}
+      {visible.map(song => {
+        const est = mine && 'status' in song && song.status === 'pending' ? estimates?.byId.get(song.id) : undefined;
+        return <SongCard key={song.id} song={song} mine={mine} estText={est ? estimateText(est, estimates?.adminActive ?? false) : undefined} />;
+      })}
       {!visible.length && <div style={{ textAlign: 'center', padding: 24, border: '1px dashed #dfe3ea', borderRadius: 14, color: '#606673', fontSize: 12 }}>{mine ? '你还没有投稿。' : '还没有公开作品，来发布第一段歌声吧。'}</div>}
     </div>
   </main>;

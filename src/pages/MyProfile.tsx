@@ -10,6 +10,7 @@ import SocialPicker from '../components/SocialPicker';
 import { badgeText } from '../data/games';
 import WelcomeOverlay from '../components/WelcomeOverlay';
 import BackButton from '../components/BackButton';
+import { fetchReviewEstimates, estimateText, type ReviewEstimates } from '../lib/reviewEstimate';
 
 const PROFILE_FIELDS = [['display_name', '名字', 'show_name'], ['age', '年龄', 'show_age'],
   ['personality', '性格', 'show_personality'], ['signature', '个性签名', 'show_signature'],
@@ -93,6 +94,13 @@ export default function MyProfile() {
   const [fbOpen, setFbOpen] = useState(false);
   const [welcome, setWelcome] = useState<string | null>(null);
   const [gprof, setGprof] = useState<GameProfile | null>(null);
+  const [reviewEst, setReviewEst] = useState<ReviewEstimates | null>(null);
+  useEffect(() => {
+    if (gprof?.status !== 'pending') { setReviewEst(null); return; }
+    let active = true;
+    void fetchReviewEstimates().then(r => { if (active) setReviewEst(r); });
+    return () => { active = false; };
+  }, [gprof?.status]);
   const [gpickOpen, setGpickOpen] = useState(false);
   const [gpickOrigin, setGpickOrigin] = useState<Origin | null>(null);
   function openGpick(e: React.MouseEvent<HTMLElement>) {
@@ -352,6 +360,7 @@ export default function MyProfile() {
             {gprof.status === 'approved' && gprof.rank && <div className="gbadge">{badgeText(gprof.game_name, gprof.rank)}</div>}
             <div className="mut" style={{ fontSize: 12.5, margin: '4px 0 8px' }}>
               {gprof.status === 'pending' && '⏳ 段位审核中，通过后成员卡片会显示标签'}
+              {gprof.status === 'pending' && reviewEst?.game && <div style={{ marginTop: 2 }}>⏳ {estimateText(reviewEst.game, reviewEst.adminActive)}</div>}
               {gprof.status === 'approved' && !gprof.rank && '✓ 已通过（未填段位，不显示标签）'}
               {gprof.status === 'rejected' && '❌ 审核未通过，可以修改后重新提交'}
             </div>

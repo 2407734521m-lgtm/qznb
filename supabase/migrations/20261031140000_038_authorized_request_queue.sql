@@ -14,12 +14,15 @@ create table if not exists public.authorized_request_queue (
   updated_at timestamptz not null default now()
 );
 create index if not exists authorized_request_queue_day_idx on public.authorized_request_queue(request_date, created_at, id);
+create index if not exists authorized_request_queue_owner_idx on public.authorized_request_queue(profile_id, created_at desc);
+create unique index if not exists authorized_request_queue_one_selected_per_day
+  on public.authorized_request_queue(request_date) where status = 'selected';
 alter table public.authorized_request_queue enable row level security;
 revoke all on public.authorized_request_queue from anon, authenticated;
 grant select on public.authorized_request_queue to authenticated;
 drop policy if exists authorized_request_queue_read_own on public.authorized_request_queue;
 create policy authorized_request_queue_read_own on public.authorized_request_queue for select to authenticated
-using (profile_id = auth.uid() or public.my_role() in ('admin','super_admin'));
+using (profile_id = (select auth.uid()) or (select public.my_role()) in ('admin','super_admin'));
 
 create or replace function public.submit_authorized_request(p_request_type text, p_description text, p_contact text default null)
 returns jsonb language plpgsql security definer set search_path = public, pg_temp as $$

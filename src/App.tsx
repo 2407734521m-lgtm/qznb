@@ -41,6 +41,7 @@ import HotSnippets from './pages/HotSnippets';
 import LoveWall from './pages/LoveWall';
 import Explore from './pages/Explore';
 import SongWall from './pages/SongWall';
+import Daily from './pages/Daily';
 
 const TABS = [
   { to: '/board', label: '公告' },
@@ -50,6 +51,7 @@ const TABS = [
   { to: '/me/notifications', label: '消息' },
   { to: '/songs', label: '歌声墙' },
   { to: '/love-wall', label: '表白墙' },
+  { to: '/daily', label: '日常' },
   { to: '/timeline', label: '回忆' },
   { to: '/me', label: '我的' },
 ];
@@ -73,6 +75,7 @@ function isTabActive(tab: string, path: string) {
   if (tab === '/friends') return ['/friends','/chat'].some(p => path.startsWith(p));
   if (tab === '/songs') return path.startsWith('/songs');
   if (tab === '/love-wall') return path.startsWith('/love-wall');
+  if (tab === '/daily') return path.startsWith('/daily');
   if (tab === '/timeline') return path.startsWith('/timeline');
   if (tab === '/me/notifications') return path.startsWith('/me/notifications');
   if (tab === '/me') return path.startsWith('/me') && !path.startsWith('/me/notifications');
@@ -638,6 +641,7 @@ function Shell() {
               <Route path="/explore" element={<Explore />} />
               <Route path="/love-wall" element={<LoveWall />} />
               <Route path="/songs" element={<SongWall />} />
+              <Route path="/daily" element={<Daily />} />
               <Route path="/members" element={<Members />} />
               <Route path="/members/:id" element={<Member />} />
               <Route path="/feed" element={<Discover />} />

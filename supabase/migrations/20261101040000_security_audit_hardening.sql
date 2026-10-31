@@ -2,7 +2,7 @@
 begin;
 
 -- Event registrations are a member-facing roster, not a public directory.
--- Keep the roster visible to joined members and administrators only.
+-- Joined members/admins can view the roster; unjoined accounts can only see their own row.
 drop policy if exists er_sel on public.event_regs;
 create policy er_sel
 on public.event_regs
@@ -12,6 +12,20 @@ using (
   profile_id = (select auth.uid())
   or public.is_member()
   or public.my_role() in ('admin', 'super_admin')
+);
+
+-- A non-member must not be able to join a class event before joining the community.
+drop policy if exists er_ins on public.event_regs;
+create policy er_ins
+on public.event_regs
+for insert
+to authenticated
+with check (
+  profile_id = (select auth.uid())
+  and (
+    public.is_member()
+    or public.my_role() in ('admin', 'super_admin')
+  )
 );
 
 -- Enforce file types at the Storage service boundary, not only in browser inputs.

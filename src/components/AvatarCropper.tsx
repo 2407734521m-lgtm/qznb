@@ -101,7 +101,6 @@ export default function AvatarCropper({ src, onDone, onCancel }:
         <div className="crop-grid"><i /><i /><i /><i /></div>
       </div>
       <div className="crop-bar" onClick={e => e.stopPropagation()}>
-        <span>🔍</span>
         <input type="range" min={1} max={4} step={0.01} value={scale}
           onChange={e => setScaleClamped(Number(e.target.value))} />
       </div>

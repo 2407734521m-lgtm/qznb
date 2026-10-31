@@ -78,8 +78,7 @@ export default function Friends() {
       `}</style>
       <header className="im-inbox-head">
         <div><div className="im-inbox-kicker">PINGZHONG · CONNECT</div><div className="im-inbox-title">Messages</div><div className="im-inbox-subtitle">和班级里的朋友保持联系</div></div>
-        <div className="im-inbox-orb" aria-hidden="true">☰</div>
-      </header>
+        </header>
       <label className="im-search"><span aria-hidden="true">⌕</span><input value={query} onChange={e => setQuery(e.target.value)} placeholder="搜索好友" aria-label="搜索好友" /><span aria-hidden="true">⌘</span></label>
       <div className="im-inbox-tabs">
         <button type="button" className={tab === 'friends' ? 'on' : ''} onClick={() => setTab('friends')}>消息与好友 · {friends.length}</button>
@@ -88,7 +87,7 @@ export default function Friends() {
       {msg && <p className="im-inbox-message" role="status">{msg}</p>}
       {tab === 'friends' && (
         <div className="im-inbox-list">
-          {filtered.length === 0 ? <div className="im-inbox-empty"><div className="im-inbox-empty-icon">✉</div><div style={{fontWeight:750,color:'#f3f8ff',fontSize:15,marginBottom:7}}>{query ? '没有找到这位好友' : '你的对话，从这里开始'}</div><div style={{fontSize:12,lineHeight:1.7}}>{query ? '试试其他名字或用户名。' : '添加班级好友后，他们会出现在这里。点开好友即可进入私聊。'}</div></div> : filtered.map(f => (
+          {filtered.length === 0 ? <div className="im-inbox-empty"><div style={{fontWeight:750,color:'#f3f8ff',fontSize:15,marginBottom:7}}>{query ? '没有找到这位好友' : '你的对话，从这里开始'}</div><div style={{fontSize:12,lineHeight:1.7}}>{query ? '试试其他名字或用户名。' : '添加班级好友后，他们会出现在这里。点开好友即可进入私聊。'}</div></div> : filtered.map(f => (
             <button key={f.id} type="button" className="im-inbox-row" onClick={() => chat(f)}>
               <FA p={f} />
               <span className="im-inbox-person"><span className="im-inbox-name" style={{display:'block'}}>{f.display_name ?? f.username}</span><span className="im-inbox-preview" style={{display:'block'}}>@{f.username} · 点击继续聊天</span></span>
@@ -99,7 +98,7 @@ export default function Friends() {
       )}
       {tab === 'reqs' && (
         <div className="im-inbox-list">
-          {reqs.length === 0 ? <div className="im-inbox-empty"><div className="im-inbox-empty-icon">♧</div><div style={{fontWeight:750,color:'#f3f8ff',fontSize:15,marginBottom:7}}>暂无新的请求</div><div style={{fontSize:12}}>新的好友申请会显示在这里。</div></div> : reqs.map(f => (
+          {reqs.length === 0 ? <div className="im-inbox-empty"><div style={{fontWeight:750,color:'#f3f8ff',fontSize:15,marginBottom:7}}>暂无新的请求</div><div style={{fontSize:12}}>新的好友申请会显示在这里。</div></div> : reqs.map(f => (
             <div key={f.id} className="im-inbox-row" style={{cursor:'default'}}>
               <FA p={f} />
               <span className="im-inbox-person"><span className="im-inbox-name" style={{display:'block'}}>{f.display_name ?? f.username}</span><span className="im-inbox-preview" style={{display:'block'}}>@{f.username} 想加你为好友</span></span>

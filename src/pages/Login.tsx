@@ -313,12 +313,8 @@ export default function Login() {
           <p className="sub">青 春 档 案</p>
 
           {verifyEmail ? (<>
-            <h1 style={{ fontSize: 22 }}>📧 验证邮箱</h1>
+            <h1 style={{ fontSize: 22 }}>验证邮箱</h1>
             <p className="sub">注 册 验 证</p>
-            <motion.div aria-hidden
-              animate={reduce ? {} : { y: [0, -7, 0], rotate: [0, -4, 4, 0] }}
-              transition={{ repeat: Infinity, duration: 1.8, ease: 'easeInOut' }}
-              style={{ fontSize: 44, lineHeight: 1.2, margin: '2px 0 6px' }}>✉️</motion.div>
             <p className="priv-note" style={{ margin: '0 0 4px' }}>验证码已发送到 <b style={{ color: '#fff' }}>{verifyEmail}</b><br />
               打开 QQ 邮箱，找标题是「我们的班级 · 青春档案 — 你的验证码」的邮件，把里面的 <b style={{ color: '#fff' }}>6 位数字验证码</b> 填到下面<br />
               没看到就翻一下垃圾箱；也可以点邮件里的「确认邮箱」链接直接完成验证</p>
@@ -352,7 +348,7 @@ export default function Login() {
             <p className="login-switch">还没有账号？<button onClick={() => { setMode('reg'); setErr(''); setCode(''); setInvite(''); setForgotSent(false); }}>去注册</button></p>
             <p className="login-switch" style={{ marginTop: 2 }}>如果登录不上<button onClick={() => setFbOpen(true)}>点我反馈</button></p>
           </>) : mode === 'forgot' ? (<>
-            <h1 style={{ fontSize: 22 }}>🔑 重置密码</h1>
+            <h1 style={{ fontSize: 22 }}>重置密码</h1>
             <p className="sub">找 回 密 码</p>
             <p className="priv-note" style={{ margin: '0 0 4px' }}>输入注册时的 QQ 邮箱，我们会发一个 6 位重置验证码给你<br />不用点邮件里的链接，在下面填码、设新密码就行</p>
             <label>QQ 邮箱</label>
@@ -380,11 +376,11 @@ export default function Login() {
             {name.trim() && (<>
               <label>真实姓名</label>
               <input value={real} onChange={e => setReal(e.target.value)} placeholder="仅管理员可见，不会公开" maxLength={30} />
-              <p className="priv-note">🔒 真实姓名只用于后台统计，普通成员看不到</p>
+              <p className="priv-note">真实姓名只用于后台统计，普通成员看不到</p>
             </>)}
             <label>头像（可选）</label>
             <div className="avatar-pick">
-              <div className="prev">{avatarPrev ? <img src={avatarPrev} alt="" /> : '🙂'}</div>
+              <div className="prev">{avatarPrev ? <img src={avatarPrev} alt="" /> : ''}</div>
               <button className="ghost" onClick={() => fileRef.current?.click()}>选择照片</button>
               <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" hidden
                 onChange={e => pickAvatar(e.target.files?.[0])} />
@@ -419,7 +415,7 @@ export default function Login() {
           </>)}
 
           <div className="bg-panel">
-            <button className="ghost" style={{ fontSize: 12.5 }} onClick={() => setShowBg(!showBg)}>🖼 自定义背景 {showBg ? '▲' : '▼'}</button>
+            <button className="ghost" style={{ fontSize: 12.5 }} onClick={() => setShowBg(!showBg)}>自定义背景 {showBg ? '▲' : '▼'}</button>
             {showBg && (<div style={{ marginTop: 8 }}>
               <div className="row">
                 <button className="ghost" style={{ fontSize: 12 }} onClick={() => bgRef.current?.click()}>上传照片</button>

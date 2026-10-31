@@ -164,7 +164,7 @@ function ResetPassword({ onDone }: { onDone: () => void }) {
   return (
     <div style={{ minHeight: '72vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
       <div className="login-card">
-        <h1 style={{ fontSize: 20 }}>🔑 重置密码</h1>
+        <h1 style={{ fontSize: 20 }}>重置密码</h1>
         <p className="sub">设 置 新 密 码</p>
         {ok ? (<>
           <p className="priv-note">✓ 密码已重置，下次用新密码登录</p>
@@ -745,7 +745,6 @@ function Shell() {
             background: 'linear-gradient(155deg,#1a2340,#0b1020)',
             border: '1px solid rgba(255,255,255,.16)', boxShadow: '0 24px 80px #000b',
           }}>
-            <div aria-hidden style={{ fontSize: 34, marginBottom: 8 }}>📍</div>
             <h2 id="gps-consent-title" style={{ margin: '0 0 10px', fontSize: 22 }}>精准位置授权（自愿）</h2>
             <p style={{ lineHeight: 1.7, color: 'rgba(244,246,255,.82)' }}>
               精准定位不是注册或登录的必需条件。只有你点击“同意并开启定位”后，浏览器才会请求设备的位置权限；你也可以直接跳过，不影响使用班级网站。

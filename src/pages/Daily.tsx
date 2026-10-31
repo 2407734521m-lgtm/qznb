@@ -169,9 +169,9 @@ export default function Daily() {
             {p.image_url && <PostImg url={postImageUrls[p.image_url]} />}
             <div className="ft">
               <button className={liked[p.id] ? 'liked' : ''} onClick={() => toggleLike(p)}>
-                {liked[p.id] ? '❤️' : '🤍'} {likes[p.id] || ''}
+                {liked[p.id] ? '♥' : '♡'} {likes[p.id] || ''}
               </button>
-              <button onClick={() => setOpenCmt({ ...openCmt, [p.id]: !open })}>💬 {list.length || ''} 评论</button>
+              <button onClick={() => setOpenCmt({ ...openCmt, [p.id]: !open })}>{list.length || ''} 评论</button>
               {p.author_id !== me && <button className="mini ghost" onClick={() => reportPost(p)}>举报</button>}
               {(p.author_id === me || isAdmin) && <button className="del" onClick={() => delPost(p)}>删除</button>}
             </div>
@@ -197,7 +197,7 @@ export default function Daily() {
           </motion.article>
         );
       })}
-      {posts.length === 0 && <div className="center" style={{ minHeight: 200 }}><div className="card">还没有日常，来发第一条吧 ✨</div></div>}
+      {posts.length === 0 && <div className="center" style={{ minHeight: 200 }}><div className="card">还没有日常，来发第一条吧</div></div>}
     </div>
   );
 }

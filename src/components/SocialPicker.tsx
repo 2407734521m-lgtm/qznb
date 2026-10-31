@@ -26,7 +26,7 @@ export default function SocialPicker({ value, onChange }: { value: string; onCha
         <div className="rankgrid">
           {rest.map(s => (
             <button key={s.name} type="button" className="rankchip" onClick={() => add(s.name)}>
-              {s.icon} {s.name} ＋
+              {s.name} ＋
             </button>
           ))}
         </div>

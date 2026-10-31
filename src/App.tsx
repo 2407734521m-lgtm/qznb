@@ -460,7 +460,7 @@ function Shell() {
       } finally { checking = false; }
     };
     void validate();
-    const timer = window.setInterval(() => { void validate(); }, 15 * 1000);
+    const timer = window.setInterval(() => { void validate(); }, 5 * 1000);
     const onFocus = () => { void validate(); };
     window.addEventListener('focus', onFocus);
     document.addEventListener('visibilitychange', onFocus);

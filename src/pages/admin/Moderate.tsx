@@ -3,11 +3,12 @@ import { supabase } from '../../lib/supabase';
 import type { Database } from '../../lib/database.types';
 import type { AdminPost as Post, AdminComment as Cmt } from '../../types/content';
 import { card, mut, rowBtn, alog, timeAgo } from './shared';
+import { confirmDialog, promptDialog } from '../../lib/dialog';
 
 type Report = Database['public']['Tables']['reports']['Row'];
 type BoardRow = Database['public']['Tables']['board_messages']['Row'];
 
-export default function Moderate({ setMsg }: { setMsg: (s: string) => void }) {
+export default function Moderate({ setMsg }: { setMsg: (s: string) =帖 void }) {
   const [sub, setSub] = useState<'posts' | 'comments' | 'reports' | 'trash'>('reports');
   const [posts, setPosts] = useState<Post[]>([]);
   const [cmts, setCmts] = useState<Cmt[]>([]);
@@ -52,47 +53,47 @@ export default function Moderate({ setMsg }: { setMsg: (s: string) => void }) {
   useEffect(() => { load(); }, []);
 
   async function hidePost(p: Post, hide: boolean) {
-    if (!confirm(hide ? '隐藏这条帖子？（进回收站，可恢复）' : '恢复这条帖子？')) return;
+    if (!(await confirmDialog(hide ? '隐藏这条帖子？（进回收站，可恢复）' : '恢复这条帖子？'))) return;
     const { error } = await supabase.rpc('admin_set_post_hidden', { p_id: p.id, p_hidden: hide });
     if (!error) { await alog(hide ? 'post_hide' : 'post_restore', { id: p.id }); load(); }
     else setMsg('失败：' + error.message);
   }
   async function delPost(p: Post) {
-    if (!confirm('彻底删除这条帖子？不可恢复！')) return;
-    if (!confirm('再次确认：真的彻底删除吗？')) return;
+    if (!(await confirmDialog('彻底删除这条帖子？不可恢复！', { danger: true }))) return;
+    if (!(await confirmDialog('再次确认：真的彻底删除吗？', { danger: true }))) return;
     const { error } = await supabase.from('posts').delete().eq('id', p.id);
     if (!error) { await alog('post_delete', { id: p.id }); load(); }
     else setMsg('失败：' + error.message);
   }
   async function hideCmt(c: Cmt, hide: boolean) {
-    if (!confirm(hide ? '隐藏这条评论？' : '恢复这条评论？')) return;
+    if (!(await confirmDialog(hide ? '隐藏这条评论？' : '恢复这条评论？'))) return;
     const { error } = await supabase.rpc('admin_set_comment_hidden', { p_id: c.id, p_hidden: hide });
     if (!error) { await alog(hide ? 'comment_hide' : 'comment_restore', { id: c.id }); load(); }
     else setMsg('失败：' + error.message);
   }
   async function restoreBoard(b: BoardRow) {
-    if (!confirm('恢复这条公告？恢复后立即公开显示。')) return;
+    if (!(await confirmDialog('恢复这条公告？恢复后立即公开显示。'))) return;
     const { error } = await supabase.from('board_messages').update({ deleted_at: null }).eq('id', b.id);
     if (!error) { await alog('notice_restore', { id: b.id }); load(); }
     else setMsg('失败：' + error.message);
   }
   async function purgeBoard(b: BoardRow) {
-    if (!confirm('彻底删除这条公告？不可恢复！')) return;
-    if (!confirm('再次确认：真的彻底删除吗？')) return;
+    if (!(await confirmDialog('彻底删除这条公告？不可恢复！', { danger: true }))) return;
+    if (!(await confirmDialog('再次确认：真的彻底删除吗？', { danger: true }))) return;
     const { error } = await supabase.from('board_messages').delete().eq('id', b.id);
     if (!error) { await alog('notice_purge', { id: b.id }); load(); }
     else setMsg('失败：' + error.message);
   }
   async function purgeCmt(c: Cmt) {
-    if (!confirm('彻底删除这条评论？不可恢复！')) return;
-    if (!confirm('再次确认：真的彻底删除吗？')) return;
+    if (!(await confirmDialog('彻底删除这条评论？不可恢复！', { danger: true }))) return;
+    if (!(await confirmDialog('再次确认：真的彻底删除吗？', { danger: true }))) return;
     const { error } = await supabase.from('comments').delete().eq('id', c.id);
     if (!error) { await alog('comment_purge', { id: c.id }); load(); }
     else setMsg('失败：' + error.message);
   }
 
   async function handleReport(r: Report, ok: boolean) {
-    const answer = ok ? null : prompt('驳回原因（可选）：');
+    const answer = ok ? null : await promptDialog('驳回原因（可选）：');
     if (!ok && answer === null) return;
     const note = answer ?? '';
     const { error } = await supabase.from('reports').update({
@@ -107,7 +108,7 @@ export default function Moderate({ setMsg }: { setMsg: (s: string) => void }) {
   return (<>
     <div className="row" style={{ gap: 6, marginBottom: 12 }}>
       <button className={'mini' + (sub === 'reports' ? '' : ' ghost')} onClick={() => setSub('reports')}>举报{pending ? `（${pending}）` : ''}</button>
-      <button className={'mini' + (sub === 'posts' ? '' : ' ghost')} onClick={() => setSub('posts')}>帖子</button>
+      <button className={'mini' + (sub === 'posts' ? '' : ' ghost')} onClick={() => setSub('posts')}>动态</button>
       <button className={'mini' + (sub === 'comments' ? '' : ' ghost')} onClick={() => setSub('comments')}>评论</button>
       <button className={'mini' + (sub === 'trash' ? '' : ' ghost')} onClick={() => setSub('trash')}>回收站{trashCount ? `（${trashCount}）` : ''}</button>
     </div>

@@ -38,23 +38,30 @@ Deno.serve(async (req: Request) => {
     .select('key, value')
     .in('key', ['maintenance', 'maintenance_schedule']);
   if (settingsError) return response({ error: '读取网站维护状态失败，暂不能发送。' }, 500);
-  const siteSettings = new Map((siteRows ?? []).map((row: { key: string; value: string | null }) => [row.key, row.value]));
+  const siteSettings = new Map<string, string | null>(
+    (siteRows ?? []).map((row: { key: string; value: string | null }) => [row.key, row.value] as const)
+  );
   let maintenanceActive = siteSettings.get('maintenance') === 'true';
   const rawSchedule = siteSettings.get('maintenance_schedule');
   if (rawSchedule) {
-    let schedule: { enabled?: boolean; start_at?: string; end_at?: string };
+    let parsed: unknown;
     try {
-      schedule = JSON.parse(rawSchedule);
+      parsed = JSON.parse(rawSchedule);
     } catch {
       return response({ error: '维护计划配置无法读取，暂不能发送。' }, 503);
     }
-    if (schedule.enabled === true) {
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      return response({ error: '维护计划配置无效，暂不能发送。' }, 503);
+    }
+    const schedule = parsed as { enabled?: boolean | string; start_at?: string; end_at?: string };
+    if (schedule.enabled === true || schedule.enabled === 'true') {
       const start = Date.parse(schedule.start_at ?? '');
       const end = Date.parse(schedule.end_at ?? '');
       if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) {
         return response({ error: '维护计划时间无效，暂不能发送。' }, 503);
       }
-      maintenanceActive = start <= Date.now() && Date.now() < end;
+      const now = Date.now();
+      maintenanceActive = start <= now && now < end;
     }
   }
   if (maintenanceActive) {

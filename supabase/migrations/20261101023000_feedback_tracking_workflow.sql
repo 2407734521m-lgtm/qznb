@@ -50,6 +50,7 @@ begin
   end if;
 
   if p_feedback_id is null
+     or p_status is null
      or p_status not in ('open', 'in_progress', 'done')
      or (v_note is not null and pg_catalog.char_length(v_note) > 500) then
     raise exception 'invalid feedback update';

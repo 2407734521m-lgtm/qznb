@@ -137,13 +137,7 @@ export default function AdminSystemCenter({ setMsg, go }: {
     status: 'connecting', online: null, updatedAt: null,
   });
   const loadingRef = useRef(false);
-  const presenceRef = useRef(presence);
-  presenceRef.current = presence;
-
-  useEffect(() => startSitePresence(next => {
-    presenceRef.current = next;
-    setPresence(next);
-  }), []);
+  useEffect(() => startSitePresence(next => setPresence(next)), []);
 
   async function refresh(silent = false) {
     if (loadingRef.current) return;

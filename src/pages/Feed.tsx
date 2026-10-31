@@ -6,6 +6,7 @@ import { useSignedUrls, uploadMedia, downscaleImage } from '../lib/media';
 import { withRetry } from '../lib/retry';
 import type { ProfileSummary as Profile } from '../types/profile';
 import type { FeedPost as Post, FeedComment as Cmt } from '../types/content';
+import { confirmDialog, alertDialog, promptDialog } from '../lib/dialog';
 
 
 function Avatar({ p, url, size = 42 }: { p?: Profile; url?: string; size?: number }) {
@@ -115,17 +116,17 @@ export default function Feed() {
   }
 
   async function delPost(p: Post) {
-    if (!confirm('删除这条动态？评论和点赞会一起删除。')) return;
+    if (!(await confirmDialog('删除这条动态？评论和点赞会一起删除。', { danger: true }))) return;
     await supabase.from('posts').delete().eq('id', p.id);
     load();
   }
   async function reportPost(p: Post) {
-    const reason = prompt('举报这条动态，请输入原因：');
+    const reason = await promptDialog('举报这条动态，请输入原因：');
     if (!reason || !reason.trim()) return;
     const { error } = await supabase.from('reports').insert({
       reporter_id: me, target_type: 'post', target_id: String(p.id), reason: reason.trim().slice(0, 200),
     });
-    alert(error ? '举报失败：' + error.message : '已举报，管理员会处理');
+    alertDialog(error ? '举报失败：' + error.message : '已举报，管理员会处理');
   }
   async function delCmt(c: Cmt) {
     await supabase.from('comments').delete().eq('id', c.id);

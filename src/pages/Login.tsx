@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase';
 import FeedbackModal from '../components/FeedbackModal';
 import { downscaleImage } from '../lib/media';
 import bgDefault from '../assets/cow.jpg';
+import { alertDialog } from '../lib/dialog';
 
 const BG_KEY = 'ca_login_bg_v2';
 const DEFAULT_BG = bgDefault; // 默认壁纸（纯牛马）
@@ -292,7 +293,7 @@ export default function Login() {
       await supabase.auth.signOut();
       setMode('login'); setForgotSent(false); setForgotCode(''); setForgotNewPw(''); setForgotNewPw2('');
       setPw(''); setPw2(''); setErr('');
-      alert('密码已重设成功，去登录吧');
+      alertDialog('密码已重设成功，去登录吧');
     } catch (e: any) {
       const m = e?.message || '';
       setErr(/expired|invalid/i.test(m) ? '验证码不正确或已过期，请核对后重试'

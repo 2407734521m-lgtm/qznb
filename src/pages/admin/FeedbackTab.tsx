@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { card, h3, mut, alog } from './shared';
+import { confirmDialog } from '../../lib/dialog';
 
 type Fb = { id: number; name: string | null; contact: string | null; content: string; kind: string; status: string; created_at: string; user_id: string | null };
 export default function FeedbackTab({ me, isSuper, setMsg }: { me: string; isSuper: boolean; setMsg: (s: string) => void }) {
@@ -19,7 +20,7 @@ export default function FeedbackTab({ me, isSuper, setMsg }: { me: string; isSup
     if (!error) { await alog('feedback_mark', { id, done }); load(); } else setMsg('操作失败：' + error.message);
   }
   async function del(id: number) {
-    if (!confirm('删除这条反馈？')) return;
+    if (!(await confirmDialog('删除这条反馈？', { danger: true }))) return;
     const { error } = await supabase.from('feedbacks').delete().eq('id', id);
     if (!error) { await alog('feedback_delete', { id }); load(); } else setMsg('删除失败：' + error.message);
   }

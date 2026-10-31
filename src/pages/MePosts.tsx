@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../auth';
 import BackButton from '../components/BackButton';
+import { confirmDialog } from '../lib/dialog';
 
 /** 我的动态 */
 export default function MePosts() {
@@ -18,7 +19,7 @@ export default function MePosts() {
   useEffect(() => { load(); }, []);
 
   async function del(p: any) {
-    if (!confirm('删除这条动态？评论和点赞会一起删除。')) return;
+    if (!(await confirmDialog('删除这条动态？评论和点赞会一起删除。', { danger: true }))) return;
     const { error } = await supabase.from('posts').delete().eq('id', p.id);
     if (!error) load(); else setMsg('删除失败：' + error.message);
   }

@@ -52,7 +52,7 @@ export default function Members() {
     setState('loading');
     const { data, error } = await supabase.rpc('member_directory', { q: query, lim: PAGE, skip: reset ? 0 : base.length });
     if (error) return setState('error');
-    const list = (data ?? []) as MemberListItem[];
+    const list = data ?? [];
     setRows(reset ? list : [...base, ...list]); setMore(list.length === PAGE); setState('ok');
   }
   useEffect(() => { const t = setTimeout(() => load(true, q, []), 300); return () => clearTimeout(t); }, [q]);

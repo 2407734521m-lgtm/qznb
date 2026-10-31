@@ -42,7 +42,7 @@ export default function MeNotifications() {
     void load();
   }, [me]);
 
-  async function markRead(id: string) {
+  async function markRead(id: number) {
     const item = list.find(entry => entry.id === id);
     if (!item || item.is_read) return true;
     const { error } = await supabase.from('notifications')

@@ -4,8 +4,9 @@ import { useAuth } from '../auth';
 import { useSignedUrl } from '../lib/media';
 import type { SongWallPost as Song, PublicSongWallPost } from '../types/song';
 import { fetchReviewEstimates, estimateText, type ReviewEstimates } from '../lib/reviewEstimate';
+import { confirmDialog } from '../lib/dialog';
 
-function SongCard({ song, mine, estText }: { song: Song | PublicSongWallPost; mine: boolean; estText?: string }) {
+function SongCard({ song, mine, estText, onDelete, deleting }: { song: Song | PublicSongWallPost; mine: boolean; estText?: string; onDelete?: (song: Song) => void; deleting?: boolean }) {
   const url = useSignedUrl('song-audio', song.audio_path);
   const status = 'status' in song ? song.status : 'published';
   return <article style={{ border: '1px solid #e9ebf0', background: '#fff', borderRadius: 14, padding: 13 }}>
@@ -19,6 +20,7 @@ function SongCard({ song, mine, estText }: { song: Song | PublicSongWallPost; mi
     {estText && <div style={{ color: '#606673', fontSize: 11, marginTop: 6 }}>{estText}</div>}
     {song.description && <p style={{ color: '#333946', fontSize: 12, lineHeight: 1.7, margin: '9px 0' }}>{song.description}</p>}
     {url ? <audio controls preload="none" src={url} style={{ width: '100%', height: 36, marginTop: 8 }} /> : <div style={{ color: '#606673', fontSize: 11, marginTop: 10 }}>音频链接加载中…</div>}
+    {mine && 'author_id' in song && <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 9 }}><button disabled={deleting} onClick={() => onDelete?.(song)} style={{ border: '1px solid #f0caca', borderRadius: 999, padding: '6px 11px', background: '#fff8f8', color: '#a33b3b', fontSize: 11, cursor: deleting ? 'wait' : 'pointer' }}>{deleting ? '删除中…' : '删除我的投稿'}</button></div>}
   </article>;
 }
 
@@ -33,6 +35,7 @@ export default function SongWall() {
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState('');
   const [estimates, setEstimates] = useState<ReviewEstimates | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   async function load() {
     const { data, error } = await supabase.rpc('song_wall_published');
@@ -87,6 +90,36 @@ export default function SongWall() {
     } finally { setBusy(false); }
   }
 
+  async function deleteSong(song: Song) {
+    if (!session || song.author_id !== session.user.id) return;
+    if (!(await confirmDialog(`确定删除《${song.title}》吗？删除后这条投稿和对应音频将无法恢复。`, { danger: true }))) return;
+    setDeletingId(song.id);
+    setNotice('');
+    try {
+      // The existing Storage policy authorizes deletion through this user's upload record.
+      const { error: storageError } = await supabase.storage.from('song-audio').remove([song.audio_path]);
+      if (storageError) throw new Error('音频文件清理失败：' + storageError.message);
+
+      const { data: deleted, error } = await supabase.from('song_posts')
+        .delete().eq('id', song.id).eq('author_id', session.user.id)
+        .select('id').maybeSingle();
+      if (error) throw error;
+      if (!deleted) throw new Error('投稿记录未删除，可能已不存在或当前账号没有权限。');
+
+      const { error: registryError } = await supabase.from('song_audio_uploads')
+        .delete().eq('path', song.audio_path).eq('profile_id', session.user.id);
+      await load();
+      setNotice(registryError
+        ? '投稿和音频已删除，但上传凭证清理失败；请联系管理员处理。'
+        : '投稿已删除，音频文件也已清理。');
+    } catch (error) {
+      await load();
+      setNotice(error instanceof Error ? '删除失败：' + error.message : '删除失败，请稍后重试。');
+    } finally {
+      setDeletingId(null);
+    }
+  }
+
   const visible = mine ? mySongs : songs;
   return <main style={{ maxWidth: 720, margin: '0 auto', padding: '12px 0 30px', color: '#202124' }}>
     <header style={{ padding: '10px 2px 16px' }}>
@@ -113,7 +146,7 @@ export default function SongWall() {
     <div style={{ display: 'grid', gap: 10 }}>
       {visible.map(song => {
         const est = mine && 'status' in song && song.status === 'pending' ? estimates?.byId.get(song.id) : undefined;
-        return <SongCard key={song.id} song={song} mine={mine} estText={est ? estimateText(est, estimates?.adminActive ?? false) : undefined} />;
+        return <SongCard key={song.id} song={song} mine={mine} estText={est ? estimateText(est, estimates?.adminActive ?? false) : undefined} onDelete={deleteSong} deleting={deletingId === song.id} />;
       })}
       {!visible.length && <div style={{ textAlign: 'center', padding: 24, border: '1px dashed #dfe3ea', borderRadius: 14, color: '#606673', fontSize: 12 }}>{mine ? '你还没有投稿。' : '还没有公开作品，来发布第一段歌声吧。'}</div>}
     </div>

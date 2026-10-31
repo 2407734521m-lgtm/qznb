@@ -54,7 +54,7 @@ export type Database = {
           created_at: string
         }
         Insert: {
-          id: number
+          id?: number
           album_id: number
           photo_url: string
           caption?: string | null
@@ -97,7 +97,7 @@ export type Database = {
           deleted_at: string | null
         }
         Insert: {
-          id: number
+          id?: number
           title: string
           category?: string
           cover_url?: string | null
@@ -153,7 +153,7 @@ export type Database = {
           created_at: string
         }
         Insert: {
-          id: number
+          id?: number
           created_by?: string | null
           scope: string
           status: string
@@ -193,7 +193,7 @@ export type Database = {
           popup_times: number
         }
         Insert: {
-          id: number
+          id?: number
           author_id?: string | null
           content: string
           is_admin_msg?: boolean
@@ -261,7 +261,7 @@ export type Database = {
           deleted_at: string | null
         }
         Insert: {
-          id: number
+          id?: number
           post_id: number
           author_id: string
           content: string
@@ -383,7 +383,7 @@ export type Database = {
           created_at: string
         }
         Insert: {
-          id: number
+          id?: number
           title: string
           description?: string | null
           event_at?: string | null
@@ -580,7 +580,7 @@ export type Database = {
           created_at: string
         }
         Insert: {
-          id: number
+          id?: number
           author_id: string
           target_id?: string | null
           content: string
@@ -626,7 +626,7 @@ export type Database = {
           created_at: string
         }
         Insert: {
-          id: number
+          id?: number
           title: string
           language?: string
           code: string
@@ -807,7 +807,7 @@ export type Database = {
           created_at: string
         }
         Insert: {
-          id: number
+          id?: number
           profile_id: string
           type?: string
           title: string
@@ -879,7 +879,7 @@ export type Database = {
           deleted_at: string | null
         }
         Insert: {
-          id: number
+          id?: number
           author_id: string
           content: string
           image_url?: string | null
@@ -1081,7 +1081,7 @@ export type Database = {
           created_at: string
         }
         Insert: {
-          id: number
+          id?: number
           reporter_id?: string | null
           target_type: string
           target_id: string
@@ -1189,7 +1189,7 @@ export type Database = {
           deleted_at: string | null
         }
         Insert: {
-          id: number
+          id?: number
           author_id?: string | null
           title: string
           content: string
@@ -1229,7 +1229,7 @@ export type Database = {
           created_at: string
         }
         Insert: {
-          id: number
+          id?: number
           profile_id: string
           happened_on: string
           title: string
@@ -1265,7 +1265,7 @@ export type Database = {
           created_at: string
         }
         Insert: {
-          id: number
+          id?: number
           author_id?: string | null
           content: string
           likes?: number
@@ -1307,7 +1307,7 @@ export type Database = {
       }
       admin_presence_summary: {
         Args: Record<PropertyKey, never>
-        Returns: unknown
+        Returns: { online_count: number; active_count: number; sampled_at: string }
       }
       admin_revoke_maintenance_codes: {
         Args: Record<PropertyKey, never>
@@ -1487,11 +1487,11 @@ export type Database = {
       }
       member_detail: {
         Args: { uid: string }
-        Returns: unknown
+        Returns: { id: string; username: string; display_name: string | null; age: number | null; personality: string | null; signature: string | null; bio: string | null; hobbies: string | null; avatar_path: string | null; theme: Json; contact: string | null; social: string | null }[]
       }
       member_directory: {
         Args: { q: string; lim: number; skip: number }
-        Returns: unknown
+        Returns: { id: string; username: string; display_name: string | null; personality: string | null; signature: string | null; avatar_path: string | null }[]
       }
       member_video: {
         Args: { uid: string }
@@ -1503,7 +1503,7 @@ export type Database = {
       }
       my_role: {
         Args: Record<PropertyKey, never>
-        Returns: unknown
+        Returns: string | null
       }
       notify_greeting_recipient: {
         Args: Record<PropertyKey, never>
@@ -1511,7 +1511,7 @@ export type Database = {
       }
       public_guest_landing: {
         Args: Record<PropertyKey, never>
-        Returns: unknown
+        Returns: { site_title: string; site_subtitle: string; home_banner_text: string; home_banner_url: string; close_login_entry: string; skip_login_screen: string; maintenance: string; maintenance_title: string; maintenance_msg: string; notices: { id: number; title: string | null; content: string; created_at: string }[] }
       }
       regexp_match: {
         Args: { arg_1: unknown; arg_2: unknown } | { arg_1: unknown; arg_2: unknown; arg_3: string }

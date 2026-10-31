@@ -137,9 +137,105 @@ begin
       where client_ip = v_ip and attempted_at > now() - interval '15 minutes') >= 10 then
     return jsonb_build_object('ok', false, 'message', '尝试次数过多，请 15 分钟后再试');
   end if;
-  insert into maintenance_private.access_attempts(client_ip) values (v_ip);
+  -- 同一来源串行检查失败次数；只计失败输入，不影响同一网络下的正常多人使用。
+  perform pg_advisory_xact_lock(hashtext(v_ip::text));
+  if (select count(*) from maintenance_private.access_attempts
+      where client_ip = v_ip and attempted_at > now() - interval '15 minutes') >= 10 then
+    return jsonb_build_object('ok', false, 'message', '尝试次数过多，请 15 分钟后再试');
+  end if;
 
-  if p_code is null or p_code !~ '^[0-9]{6}$' then
+  if p_code is null or p_code !~ '^[0-9]{6}
+
+  select * into v_code
+  from maintenance_private.access_codes
+  where code_hash = encode(extensions.digest(convert_to(p_code, 'UTF8'), 'sha256'), 'hex')
+    and revoked_at is null and expires_at > now() and used_count < max_uses
+  for update;
+
+  if not found then
+    insert into maintenance_private.access_attempts(client_ip) values (v_ip);
+    return jsonb_build_object('ok', false, 'message', '验证码无效、已过期或已撤销');
+  end if;
+
+  update maintenance_private.access_codes set used_count = used_count + 1 where id = v_code.id;
+  v_token_bytes := extensions.gen_random_bytes(32);
+  v_token := encode(v_token_bytes, 'hex');
+  insert into maintenance_private.access_sessions(code_id, token_hash, expires_at)
+  values (v_code.id, encode(extensions.digest(convert_to(v_token, 'UTF8'), 'sha256'), 'hex'), v_code.expires_at);
+
+  return jsonb_build_object('ok', true, 'token', v_token, 'expires_at', v_code.expires_at);
+end;
+$$;
+
+create or replace function maintenance_private.maintenance_validate_access(p_token text)
+returns boolean
+language sql
+stable
+security definer
+set search_path = pg_catalog, maintenance_private, extensions
+as $$
+  select exists (
+    select 1
+    from maintenance_private.access_sessions s
+    join maintenance_private.access_codes c on c.id = s.code_id
+    where p_token is not null
+      and s.token_hash = encode(extensions.digest(convert_to(p_token, 'UTF8'), 'sha256'), 'hex')
+      and s.revoked_at is null and s.expires_at > now()
+      and c.revoked_at is null and c.expires_at > now()
+  );
+$$;
+
+revoke all on function maintenance_private.admin_create_maintenance_code(integer, integer) from public;
+revoke all on function maintenance_private.admin_revoke_maintenance_codes() from public;
+revoke all on function maintenance_private.maintenance_redeem_code(text) from public;
+revoke all on function maintenance_private.maintenance_validate_access(text) from public;
+grant execute on function maintenance_private.admin_create_maintenance_code(integer, integer) to authenticated;
+grant execute on function maintenance_private.admin_revoke_maintenance_codes() to authenticated;
+grant execute on function maintenance_private.maintenance_redeem_code(text) to anon, authenticated;
+grant execute on function maintenance_private.maintenance_validate_access(text) to anon, authenticated;
+
+create or replace function public.admin_create_maintenance_code(
+  p_valid_minutes integer default 15,
+  p_max_uses integer default 1
+)
+returns jsonb
+language sql
+security invoker
+set search_path = public, maintenance_private
+as $$ select maintenance_private.admin_create_maintenance_code(p_valid_minutes, p_max_uses); $$;
+
+create or replace function public.admin_revoke_maintenance_codes()
+returns jsonb
+language sql
+security invoker
+set search_path = public, maintenance_private
+as $$ select maintenance_private.admin_revoke_maintenance_codes(); $$;
+
+create or replace function public.maintenance_redeem_code(p_code text)
+returns jsonb
+language sql
+security invoker
+set search_path = public, maintenance_private
+as $$ select maintenance_private.maintenance_redeem_code(p_code); $$;
+
+create or replace function public.maintenance_validate_access(p_token text)
+returns boolean
+language sql
+stable
+security invoker
+set search_path = public, maintenance_private
+as $$ select maintenance_private.maintenance_validate_access(p_token); $$;
+
+revoke all on function public.admin_create_maintenance_code(integer, integer) from public, anon, authenticated;
+revoke all on function public.admin_revoke_maintenance_codes() from public, anon, authenticated;
+revoke all on function public.maintenance_redeem_code(text) from public, anon, authenticated;
+revoke all on function public.maintenance_validate_access(text) from public, anon, authenticated;
+grant execute on function public.admin_create_maintenance_code(integer, integer) to authenticated;
+grant execute on function public.admin_revoke_maintenance_codes() to authenticated;
+grant execute on function public.maintenance_redeem_code(text) to anon, authenticated;
+grant execute on function public.maintenance_validate_access(text) to anon, authenticated;
+ then
+    insert into maintenance_private.access_attempts(client_ip) values (v_ip);
     return jsonb_build_object('ok', false, 'message', '验证码无效、已过期或已撤销');
   end if;
 

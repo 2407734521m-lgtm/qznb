@@ -23,7 +23,6 @@ const THEMES = [['aurora', '极光', '#7c9cff', '#c27cff'], ['sunset', '晚霞',
   ['forest', '森林', '#4ade80', '#14b8a6'], ['mono', '黑白', '#e8e8e8', '#777777'],
   ['stars', '星空', '#818cf8', '#38bdf8'], ['ocean', '海洋', '#22d3ee', '#3b82f6']];
 const LAYOUTS = [['left', '照片在左'], ['right', '照片在右'], ['center', '居中']];
-const PRIV_ICONS: Record<string, string> = { show_avatar: '🖼️', show_name: '📝', show_age: '🎂', show_personality: '✨', show_signature: '💬', show_bio: '📖', show_hobbies: '🎯', show_contact: '📞', show_social: '🌐' };
 const PRIV_ROWS: [string, string][] = [['show_avatar', '个人照片'], ...ALL_FIELDS.map(([, label, flag]) => [flag, label] as [string, string])];
 
 // 通用折叠栏
@@ -347,7 +346,7 @@ export default function MyProfile() {
           {PRIV_ROWS.map(([flag, label]) => (
             <button key={flag} type="button" className={'priv-btn' + (priv[flag] ? ' on' : '')}
               onClick={() => setPriv({ ...priv, [flag]: !priv[flag] })}>
-              <span>{PRIV_ICONS[flag] ?? '🔹'} {label}</span>
+              <span>{label}</span>
               <span className="sw"><span className="knob" /></span>
             </button>
           ))}
@@ -356,7 +355,7 @@ export default function MyProfile() {
         <div className="priv-list">
           <button type="button" className={'priv-btn' + (priv.hide_love_wall_name !== false ? ' on' : '')}
             onClick={() => setPriv({ ...priv, hide_love_wall_name: !(priv.hide_love_wall_name !== false) })}>
-            <span>💌 表白墙隐藏姓名</span>
+            <span>表白墙隐藏姓名</span>
             <span className="sw"><span className="knob" /></span>
           </button>
         </div>

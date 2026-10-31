@@ -18,16 +18,6 @@ function Spin() {
   );
 }
 
-// 登录标识可以是：QQ 邮箱 / 用户名
-async function resolveEmail(ident: string): Promise<string> {
-  const id = ident.trim();
-  if (!id) throw new Error('empty');
-  if (id.includes('@')) return id; // 邮箱直接用
-  const { data, error } = await supabase.rpc('resolve_login_email', { ident: id });
-  if (error || !data) throw new Error('notfound');
-  return data as string;
-}
-
 export default function Login() {
   const reduce = useReducedMotion();
   const [mode, setMode] = useState<'login' | 'reg' | 'forgot'>('login');
@@ -84,25 +74,46 @@ export default function Login() {
   }
 
   async function doLogin() {
+    const id = ident.trim();
+    if (!id) return setErr('请输入登录账号');
+    if (!pw) return setErr('请输入密码');
     setErr(''); setBusy(true);
     let em = '';
     try {
-      em = await resolveEmail(ident);
       try { sessionStorage.setItem('ca_login_success', '1'); } catch {}
-      const { error } = await supabase.auth.signInWithPassword({ email: em, password: pw });
-      if (error) throw error;
+      if (id.includes('@')) {
+        em = id;
+        const { error } = await supabase.auth.signInWithPassword({ email: em, password: pw });
+        if (error) throw error;
+      } else {
+        const { data, error } = await supabase.functions.invoke('username-login', {
+          body: { username: id, password: pw },
+        });
+        if (error) throw error;
+        if (data?.code === 'email_not_confirmed') throw new Error('USERNAME_EMAIL_NOT_CONFIRMED');
+        if (data?.code === 'rate_limited') throw new Error('USERNAME_LOGIN_RATE_LIMITED');
+        if (!data?.ok || !data?.session?.access_token || !data?.session?.refresh_token) {
+          throw new Error('Invalid login credentials');
+        }
+        const { error: sessionError } = await supabase.auth.setSession({
+          access_token: data.session.access_token,
+          refresh_token: data.session.refresh_token,
+        });
+        if (sessionError) throw sessionError;
+      }
     } catch (e: any) {
       try { sessionStorage.removeItem('ca_login_success'); } catch {}
       const m = e?.message || '';
       if (/email not confirmed/i.test(m) && em) {
-        // 邮箱还没验证：转到验证码界面
-        setVerifyEmail(em); setCode(''); setResendIn(0); setErr(''); setBusy(false);
+        setVerifyEmail(em); setCode(''); setResendIn(0); setErr('');
         return;
       }
-      setErr(e?.message === 'notfound' ? '找不到这个账号，请检查用户名 / QQ 邮箱是否正确'
-        : e?.message === 'empty' ? '请输入登录账号'
-        : /Invalid login credentials/i.test(m) ? '账号或密码错误'
-        : '登录失败：' + (m || '网络错误'));
+      setErr(m === 'USERNAME_EMAIL_NOT_CONFIRMED'
+        ? '此账号尚未完成邮箱验证，请使用注册时的 QQ 邮箱登录并完成验证'
+        : m === 'USERNAME_LOGIN_RATE_LIMITED'
+          ? '尝试次数过多，请稍后再试'
+          : /Invalid login credentials/i.test(m) ? '账号或密码错误'
+          : '登录失败：' + (m || '网络错误'));
     } finally { setBusy(false); }
   }
 

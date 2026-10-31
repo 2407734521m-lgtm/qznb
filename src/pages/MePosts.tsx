@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../auth';
 import BackButton from '../components/BackButton';
@@ -7,6 +8,7 @@ import { useSignedUrls } from '../lib/media';
 
 /** 我的动态 */
 export default function MePosts() {
+  const nav = useNavigate();
   const me = useAuth().session!.user.id;
   const [posts, setPosts] = useState<any[]>([]);
   const [msg, setMsg] = useState('');

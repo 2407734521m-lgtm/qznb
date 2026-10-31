@@ -229,7 +229,16 @@ begin
      )
    where cm.conversation_id = p_conversation_id
      and cm.profile_id = auth.uid()
+     and coalesce(cm.last_read_message_id, 0) < v_last_message_id
   returning cm.last_read_message_id into v_saved_message_id;
+
+  if v_saved_message_id is null then
+    select cm.last_read_message_id
+      into v_saved_message_id
+      from public.conversation_members cm
+     where cm.conversation_id = p_conversation_id
+       and cm.profile_id = auth.uid();
+  end if;
 
   return v_saved_message_id;
 end;

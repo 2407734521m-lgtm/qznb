@@ -18,7 +18,6 @@ import Member from './pages/Member';
 import MyProfile from './pages/MyProfile';
 import Timeline from './pages/Timeline';
 import AlbumDetail from './pages/AlbumDetail';
-import Album from './pages/Album';
 import Discover from './pages/Discover';
 import Friends from './pages/Friends';
 import Chat from './pages/Chat';
@@ -559,7 +558,7 @@ function Shell() {
               <Route path="/members" element={<Members />} />
               <Route path="/members/:id" element={<Member />} />
               <Route path="/feed" element={<Discover />} />
-              <Route path="/albums" element={<Album />} />
+              <Route path="/albums" element={<Navigate to="/feed" replace state={{ openTab: "albums" }} />} />
               <Route path="/albums/:id" element={<AlbumDetail />} />
               <Route path="/friends" element={<Friends />} />
               <Route path="/messages" element={<Messages />} />

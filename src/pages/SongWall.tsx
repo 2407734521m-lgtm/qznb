@@ -106,12 +106,8 @@ export default function SongWall() {
       if (error) throw error;
       if (!deleted) throw new Error('投稿记录未删除，可能已不存在或当前账号没有权限。');
 
-      const { error: registryError } = await supabase.from('song_audio_uploads')
-        .delete().eq('path', song.audio_path).eq('profile_id', session.user.id);
       await load();
-      setNotice(registryError
-        ? '投稿和音频已删除，但上传凭证清理失败；请联系管理员处理。'
-        : '投稿已删除，音频文件也已清理。');
+      setNotice('投稿已删除，音频文件也已清理。');
     } catch (error) {
       await load();
       setNotice(error instanceof Error ? '删除失败：' + error.message : '删除失败，请稍后重试。');

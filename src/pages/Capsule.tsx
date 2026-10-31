@@ -236,7 +236,6 @@ export default function Capsule() {
                       ? (opened ? `打开胶囊：${c.title}` : `未开启的胶囊，${countdown(c.open_at, now)}`)
                       : `把这封胶囊翻到最上面，开启日期 ${c.open_at}`}>
                     <span className="capsule-flap" aria-hidden="true" />
-                    {opened && !readIds.includes(c.id) && <span className="capsule-paperclip" aria-hidden="true">📎</span>}
                     <span className="capsule-seal" aria-hidden="true">{opened ? '开' : '封'}</span>
                     <span className="capsule-face">
                       <span className="capsule-date">{fmtEnvelopeDate(c.open_at)}</span>

@@ -16,7 +16,7 @@ function SongCard({ song, mine, estText }: { song: Song | PublicSongWallPost; mi
       </div>
       {mine && <span style={{ flexShrink: 0, fontSize: 10, borderRadius: 999, padding: '4px 7px', background: status === 'published' ? '#e6f4ea' : '#f1f3f6', color: status === 'published' ? '#1a7a4a' : '#606673' }}>{status === 'pending' ? '审核中' : status === 'published' ? '已发布' : status === 'rejected' ? '未通过' : '已隐藏'}</span>}
     </div>
-    {estText && <div style={{ color: '#606673', fontSize: 11, marginTop: 6 }}>⏳ {estText}</div>}
+    {estText && <div style={{ color: '#606673', fontSize: 11, marginTop: 6 }}>{estText}</div>}
     {song.description && <p style={{ color: '#333946', fontSize: 12, lineHeight: 1.7, margin: '9px 0' }}>{song.description}</p>}
     {url ? <audio controls preload="none" src={url} style={{ width: '100%', height: 36, marginTop: 8 }} /> : <div style={{ color: '#606673', fontSize: 11, marginTop: 10 }}>音频链接加载中…</div>}
   </article>;

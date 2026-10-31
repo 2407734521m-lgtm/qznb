@@ -267,11 +267,11 @@ export default function LoveWall() {
           <p style={{ whiteSpace: 'pre-wrap', lineHeight: 1.8, margin: '10px 0 12px', overflowWrap: 'anywhere', fontSize: 14.5 }}>{p.content}</p>
           {(mediaByPost[p.id] || []).length > 0 && <LoveMediaGrid items={mediaByPost[p.id]} />}
           <div style={{ fontSize: 11, color: '#606673' }}>{p.is_anonymous ? '匿名同学' : (mine ? '我发布的' : ((p as PublicPost).author_display_name || '班级同学'))} · {p.status === 'pending' ? '审核通过后公开展示' : p.status === 'published' ? '已公开展示' : '未公开展示'}</div>
-          {est && <div style={{ fontSize: 11, color: '#606673', marginTop: 4 }}>⏳ {estimateText(est, estimates?.adminActive ?? false)}</div>}
+          {est && <div style={{ fontSize: 11, color: '#606673', marginTop: 4 }}>{estimateText(est, estimates?.adminActive ?? false)}</div>}
           {p.status === 'published' && (
             <div style={{ marginTop: 10, borderTop: '1px solid #f0f2f6', paddingTop: 10 }}>
               <button onClick={() => void toggleComments(p.id)} style={{ border: 0, background: 'transparent', color: '#5a6472', fontSize: 12.5, cursor: 'pointer', padding: 0 }}>
-                💬 评论{counts[p.id] ? `（${counts[p.id]}）` : ''} {openId === p.id ? '▲' : '▼'}
+                评论{counts[p.id] ? `（${counts[p.id]}）` : ''} {openId === p.id ? '▲' : '▼'}
               </button>
               {openId === p.id && (
                 <div style={{ marginTop: 10, display: 'grid', gap: 10 }}>
@@ -299,7 +299,7 @@ export default function LoveWall() {
     {/* 唯一的发布入口：悬浮按钮（避开底部 Dock） */}
     <button onClick={() => { void openCompose(); }} aria-label="写表白"
       style={{ position: 'fixed', right: 18, bottom: 'calc(92px + env(safe-area-inset-bottom))', zIndex: 60, border: 0, borderRadius: 999, padding: '13px 20px', background: 'linear-gradient(135deg,#e0567a,#c22f3d)', color: '#fff', fontWeight: 800, fontSize: 14, boxShadow: '0 12px 28px rgba(194,47,61,.35)', cursor: 'pointer' }}>
-      ✎ 写表白
+      写表白
     </button>
 
     {/* 发布面板：底部弹层，字段与原来的投稿表单一致 */}

@@ -10,7 +10,7 @@ type A = { id: number; title: string; category: string; cover_url: string | null
 const CATS = ['班级日常', '军训', '运动会', '春游', '聚会', '毕业', '自定义'];
 
 function Cover({ url }: { url?: string }) {
-  return url ? <img src={url} alt="" loading="lazy" /> : <span style={{ fontSize: 34 }}>📷</span>;
+  return url ? <img src={url} alt="" loading="lazy" /> : <span style={{ fontSize: 34 }}></span>;
 }
 
 export default function Album() {
@@ -81,7 +81,7 @@ export default function Album() {
       </div>
       {loading && <div className="center" style={{ minHeight: 200 }}><div className="card">正在加载相册…</div></div>}
       {!loading && loadError && <div className="card err">{loadError}<button className="mini ghost" onClick={load}>重试</button></div>}
-      {!loading && !loadError && rows.length === 0 && <div className="center" style={{ minHeight: 200 }}><div className="card">还没有相册，创建一个吧 📸</div></div>}
+      {!loading && !loadError && rows.length === 0 && <div className="center" style={{ minHeight: 200 }}><div className="card">还没有相册，创建一个吧</div></div>}
     </div>
   );
 }

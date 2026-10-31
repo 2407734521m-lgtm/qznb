@@ -315,8 +315,7 @@ export default function MyProfile() {
       <div className="card me-head">
         <div className="me-ava" onClick={() => fileRef.current?.click()} title="点击更换照片">
           {avatarUrl ? <img src={avatarUrl} alt="我的照片" /> : <span>{(v.display_name || uname || '?').slice(0, 1)}</span>}
-          <span className="me-ava-edit">📷</span>
-        </div>
+          </div>
         <div style={{ minWidth: 0 }}>
           <h2 style={{ margin: 0 }}>{v.display_name || uname || '…'}</h2>
           <p className="mut" style={{ margin: '2px 0 0', fontSize: 12.5 }}>@{uname}</p>
@@ -325,14 +324,14 @@ export default function MyProfile() {
           onChange={e => { pickAvatar(e.target.files?.[0]); e.target.value = ''; }} />
       </div>
 
-      {!joined && <div className="card"><h3 className="me-sec-t">🎟️ 加入班级</h3>
+      {!joined && <div className="card"><h3 className="me-sec-t">加入班级</h3>
         <p className="mut" style={{ fontSize: 13 }}>输入班级邀请码后，才能查看其他成员，也才会出现在成员页。</p>
         <div className="row" style={{ gap: 8 }}>
           <input placeholder="邀请码" value={code} onChange={e => setCode(e.target.value)} style={{ flex: 1 }} />
           <button className="pri" style={{ width: 'auto', padding: '10px 26px' }} onClick={join}>加入</button>
         </div></div>}
 
-      <Collapsible sid="sec-base" icon="📝" title="基本资料" open={baseOpen} onToggle={() => setBaseOpen(o => !o)}>
+      <Collapsible sid="sec-base" title="基本资料" open={baseOpen} onToggle={() => setBaseOpen(o => !o)}>
         {PROFILE_FIELDS.map(([k, label]) => fieldInput(k, label))}
         {/* 自我介绍视频 */}
         <div style={{ marginTop: 12 }}>
@@ -349,9 +348,9 @@ export default function MyProfile() {
         </div>
       </Collapsible>
 
-      <Collapsible sid="sec-game" icon="🎮" title="游戏与社交" open={gameOpen} onToggle={() => setGameOpen(o => !o)}>
+      <Collapsible sid="sec-game" title="游戏与社交" open={gameOpen} onToggle={() => setGameOpen(o => !o)}>
         <label>我的游戏段位</label>
-        {!gprof && <button className="ghost" style={{ width: '100%' }} onClick={openGpick}>🎮 设置我的游戏段位</button>}
+        {!gprof && <button className="ghost" style={{ width: '100%' }} onClick={openGpick}>设置我的游戏段位</button>}
         {gprof && (
           <div className="gprof">
             <div style={{ fontSize: 14.5, fontWeight: 700 }}>{gprof.game_name}
@@ -360,8 +359,8 @@ export default function MyProfile() {
             {gprof.rank && <div style={{ fontSize: 13, marginTop: 2 }}>段位：{gprof.rank}</div>}
             {gprof.status === 'approved' && gprof.rank && <div className="gbadge">{badgeText(gprof.game_name, gprof.rank)}</div>}
             <div className="mut" style={{ fontSize: 12.5, margin: '4px 0 8px' }}>
-              {gprof.status === 'pending' && '⏳ 段位审核中，通过后成员卡片会显示标签'}
-              {gprof.status === 'pending' && reviewEst?.game && <div style={{ marginTop: 2 }}>⏳ {estimateText(reviewEst.game, reviewEst.adminActive)}</div>}
+              {gprof.status === 'pending' && '段位审核中，通过后成员卡片会显示标签'}
+              {gprof.status === 'pending' && reviewEst?.game && <div style={{ marginTop: 2 }}>{estimateText(reviewEst.game, reviewEst.adminActive)}</div>}
               {gprof.status === 'approved' && !gprof.rank && '✓ 已通过（未填段位，不显示标签）'}
               {gprof.status === 'rejected' && '❌ 审核未通过，可以修改后重新提交'}
             </div>
@@ -376,7 +375,7 @@ export default function MyProfile() {
         <SocialPicker value={v.social ?? ''} onChange={s => setV({ ...v, social: s })} />
       </Collapsible>
 
-      <Collapsible sid="sec-priv" icon="🔒" title="隐私设置"
+      <Collapsible sid="sec-priv" title="隐私设置"
         sub={`${PRIV_ROWS.filter(([f]) => priv[f]).length}/${PRIV_ROWS.length} 项公开`}
         open={privOpen} onToggle={() => setPrivOpen(o => !o)}>
         <p className="priv-note">哪些资料对其他成员公开，点一下开关就行</p>
@@ -399,7 +398,7 @@ export default function MyProfile() {
         </div>
       </Collapsible>
 
-      <Collapsible icon="🎨" sid="sec-look" title="我的主页外观" open={lookOpen} onToggle={() => setLookOpen(o => !o)}>
+      <Collapsible sid="sec-look" title="我的主页外观" open={lookOpen} onToggle={() => setLookOpen(o => !o)}>
         <p className="priv-note">主题</p>
         <div className="theme-grid">
           {THEMES.map(([k, l, c1, c2]) => (

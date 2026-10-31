@@ -63,7 +63,7 @@ export default function WallpaperOnboarding({ onDone }: { onDone: () => void }) 
           boxShadow: '0 24px 70px #000c',
         }}
       >
-        <div style={{ fontSize: 18, fontWeight: 800 }}>✨ 选一张壁纸</div>
+        <div style={{ fontSize: 18, fontWeight: 800 }}>选一张壁纸</div>
         <div className="mut" style={{ fontSize: 12.5, margin: '4px 0 12px' }}>这是你以后打开班级的样子，随时可以在「我的 → 外观」里换</div>
 
         <div style={{ display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 4 }}>

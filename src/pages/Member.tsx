@@ -168,9 +168,9 @@ export default function Member() {
           {(gbadge || m?.social) && (
             <motion.div {...itemProps(rows.length + 1)} className="xbtns">
               {gbadge && <button type="button" className={'xbtn' + (gx === 'game' ? ' on' : '')}
-                onClick={() => setGx(gx === 'game' ? null : 'game')}>🎮 游戏</button>}
+                onClick={() => setGx(gx === 'game' ? null : 'game')}>游戏</button>}
               {m?.social && <button type="button" className={'xbtn' + (gx === 'social' ? ' on' : '')}
-                onClick={() => setGx(gx === 'social' ? null : 'social')}>🌐 社交</button>}
+                onClick={() => setGx(gx === 'social' ? null : 'social')}>社交</button>}
             </motion.div>
           )}
           <div className={'xpanel' + (gx ? ' open' : '')}>
@@ -194,7 +194,7 @@ export default function Member() {
           {m && (
             <motion.div {...itemProps(rows.length + 1)}>
               <Link to={`/timeline/${id}`} className="ghost" style={{ display: 'inline-block', textDecoration: 'none', marginTop: 8 }}>
-                ✨ 看{name}的青春时间线
+                看{name}的青春时间线
               </Link>
             </motion.div>
           )}
@@ -207,7 +207,7 @@ export default function Member() {
             style={{ visibility: flying ? 'hidden' : 'visible', transformOrigin: 'center' }}>
             <Photo id={id} path={m?.avatar_path} name={name || '?'} />
           </motion.div>
-          {isMe && <label className="ghost upbtn">📷 上传照片
+          {isMe && <label className="ghost upbtn">上传照片
             <input type="file" hidden accept="image/jpeg,image/png,image/webp"
               onChange={e => { pickPhoto(e.target.files?.[0]); e.target.value = ''; }} />
           </label>}
@@ -215,10 +215,10 @@ export default function Member() {
           {!isMe && uid && (
             !fstat ? <button className="ghost upbtn" disabled={fbusy} onClick={addFriend}>＋ 加好友</button>
             : fstat.status === 'accepted'
-              ? <button className="pri upbtn" style={{ width: 'auto', padding: '8px 18px' }} disabled={fbusy} onClick={goChat}>💬 去聊天</button>
+              ? <button className="pri upbtn" style={{ width: 'auto', padding: '8px 18px' }} disabled={fbusy} onClick={goChat}>去聊天</button>
               : fstat.status === 'pending' && fstat.requester === uid
-                ? <button className="ghost upbtn" disabled>⏳ 已申请，等待通过</button>
-                : <button className="pri upbtn" style={{ width: 'auto', padding: '8px 18px' }} onClick={() => nav('/friends')}>💌 对方想加你，去看看</button>
+                ? <button className="ghost upbtn" disabled>已申请，等待通过</button>
+                : <button className="pri upbtn" style={{ width: 'auto', padding: '8px 18px' }} onClick={() => nav('/friends')}>对方想加你，去看看</button>
           )}
           {!isMe && upMsg && <p className="mut" style={{ fontSize: 12, margin: '6px 0 0' }}>{upMsg}</p>}
         </div>

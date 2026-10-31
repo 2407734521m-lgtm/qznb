@@ -49,10 +49,10 @@ export function praiseFor(game: Game, rank: string): { title: string; emoji: str
   return { title: '新星', emoji: '🌱' };
 }
 
-// 成员卡片上的标签，如：👑 王者荣耀的大神！
+// 成员卡片上的标签，如：王者荣耀的大神！
 export function badgeText(gameName: string, rank: string): string {
   const g = gameByName(gameName);
-  if (!g) return `🎮 ${gameName}玩家！`;
+  if (!g) return `${gameName}玩家！`;
   const p = praiseFor(g, rank);
-  return `${p.emoji} ${gameName}的${p.title}！`;
+  return `${gameName}的${p.title}！`;
 }

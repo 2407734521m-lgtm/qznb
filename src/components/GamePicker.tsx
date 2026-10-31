@@ -57,12 +57,12 @@ export default function GamePicker({ initial, origin, onClose, onDone }:
       <div className="gexpand" style={open ? endStyle : startStyle}>
         <div className="gexpand-in">
           <div className={'gpick-head' + (open ? ' ganim' : '')}>
-            <b>🎮 选择游戏</b>
+            <b>选择游戏</b>
             <button type="button" className="mini ghost" onClick={close}>✕ 关闭</button>
           </div>
           {!game ? (<>
             <input className={open ? 'ganim' : ''} value={q} onChange={e => setQ(e.target.value)}
-              placeholder="🔍 搜索游戏，如：王者荣耀" />
+              placeholder="搜索游戏，如：王者荣耀" />
             <div className="glist">
               {list.map((g, i) => (
                 <button key={g.name} type="button"

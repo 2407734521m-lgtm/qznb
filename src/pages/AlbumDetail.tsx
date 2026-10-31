@@ -83,7 +83,7 @@ export default function AlbumDetail() {
         <label>添加照片</label>
         <input value={cap} onChange={e => setCap(e.target.value)} placeholder="给照片写句话（可选）" maxLength={200} />
         <div className="row">
-          <button className="ghost" disabled={busy} onClick={() => fref.current?.click()}>{busy ? (upProg || '上传中…') : '📷 选择照片（可多选）'}</button>
+          <button className="ghost" disabled={busy} onClick={() => fref.current?.click()}>{busy ? (upProg || '上传中…') : '选择照片（可多选）'}</button>
           <input ref={fref} type="file" accept="image/*" multiple hidden onChange={e => { upload(e.target.files); e.target.value = ''; }} />
         </div>
         {err && <p className="err">{err}</p>}
@@ -99,7 +99,7 @@ export default function AlbumDetail() {
           </div>
         ))}
       </div>
-      {photos.length === 0 && <div className="center" style={{ minHeight: 160 }}><div className="card">空空如也，快上传第一张吧 ✨</div></div>}
+      {photos.length === 0 && <div className="center" style={{ minHeight: 160 }}><div className="card">空空如也，快上传第一张吧</div></div>}
 
       <AnimatePresence>
         {view && (

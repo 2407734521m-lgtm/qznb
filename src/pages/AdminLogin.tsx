@@ -42,7 +42,7 @@ export default function AdminLogin({ showBack = true }: { showBack?: boolean }) 
   return (
     <div style={{ minHeight: '72vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
       <div className="login-card" style={{ background: '#0d1017f2', border: '1px solid #ffffff1f', maxWidth: 340, width: '100%' }}>
-        <h1 style={{ fontSize: 20 }}>🛠️ 管理后台</h1>
+        <h1 style={{ fontSize: 20 }}>管理后台</h1>
         <p className="sub">管 理 员 登 录</p>
         <label>管理员账号</label>
         <input value={ident} onChange={e => setIdent(e.target.value)} placeholder="QQ 邮箱 / 用户名"

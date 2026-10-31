@@ -90,8 +90,8 @@ export default function Board() {
         <div className="hd">
           <Avatar p={a} />
           <div><div className="nm">{a ? (a.display_name ?? a.username) : '…'}
-            {m.is_admin_msg && <span className="chip ad" style={{ marginLeft: 8, fontSize: 11 }}>📢 公告</span>}
-            {m.is_pinned && <span className="chip" style={{ marginLeft: 6, fontSize: 11 }}>📌 置顶</span>}</div>
+            {m.is_admin_msg && <span className="chip ad" style={{ marginLeft: 8, fontSize: 11 }}>公告</span>}
+            {m.is_pinned && <span className="chip" style={{ marginLeft: 6, fontSize: 11 }}>置顶</span>}</div>
             <div className="tm">{timeAgo(m.created_at)}</div></div>
           <div style={{ flex: 1 }} />
           {(m.author_id === me || isAdmin) && <button className="del" onClick={() => del(m.id)}>删除</button>}
@@ -110,16 +110,16 @@ export default function Board() {
       </div>
 
       {notices.length > 0 && <>
-        <p className="mut" style={{ fontSize: 12.5, margin: '4px 2px 8px' }}>📢 管理员公告</p>
+        <p className="mut" style={{ fontSize: 12.5, margin: '4px 2px 8px' }}>管理员公告</p>
         {notices.map((m, i) => renderMsg(m, i))}
       </>}
 
       {talks.length > 0 && <>
-        <p className="mut" style={{ fontSize: 12.5, margin: '14px 2px 8px' }}>💬 同学留言</p>
+        <p className="mut" style={{ fontSize: 12.5, margin: '14px 2px 8px' }}>同学留言</p>
         {talks.map((m, i) => renderMsg(m, i + notices.length))}
       </>}
 
-      {msgs.length === 0 && <div className="center" style={{ minHeight: 160 }}><div className="card">还没有留言，来发第一条吧 ✨</div></div>}
+      {msgs.length === 0 && <div className="center" style={{ minHeight: 160 }}><div className="card">还没有留言，来发第一条吧</div></div>}
 
       <div style={{ height: 70 }} />
 

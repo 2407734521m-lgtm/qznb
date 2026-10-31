@@ -11,11 +11,11 @@ import type { MemberListItem } from '../types/profile';
 const PAGE = 18;
 
 const LAYOUTS = [
-  { k: 'c2', name: '2列 · 大卡', icon: '🖼️' },
-  { k: 'c3', name: '3列', icon: '🔲' },
-  { k: 'c4', name: '4列 · 紧凑', icon: '▦' },
-  { k: 'c6', name: '6列 · 迷你', icon: '⋮⋮' },
-  { k: 'list', name: '列表', icon: '📋' },
+  { k: 'c2', name: '2列 · 大卡' },
+  { k: 'c3', name: '3列' },
+  { k: 'c4', name: '4列 · 紧凑' },
+  { k: 'c6', name: '6列 · 迷你' },
+  { k: 'list', name: '列表' },
 ] as const;
 
 function Card({ m, i, badge, signedUrl, onOpen }: { m: MemberListItem; i: number; badge?: string; signedUrl?: string; onOpen: (m: MemberListItem, el: HTMLElement, img: string) => void }) {
@@ -101,7 +101,7 @@ export default function Members() {
         <p>青 春 档 案 · 每 一 张 面 孔 都 是 故 事</p>
       </div>
       <div className="searchbar">
-        <input placeholder="🔍 按名字、性格搜索成员" value={q} onChange={e => setQ(e.target.value)} />
+        <input placeholder="按名字、性格搜索成员" value={q} onChange={e => setQ(e.target.value)} />
       </div>
       {state === 'error' && <p className="err">加载失败。请确认已用邀请码加入班级，或检查网络后重试。
         <button className="ghost" onClick={() => load(true, q, [])}>重试</button></p>}
@@ -111,13 +111,13 @@ export default function Members() {
         <span className="mut" style={{ fontSize: 12.5 }}>{rows.length} 位成员</span>
         <div className="lswitch">
           <button type="button" className="ghost" style={{ width: 'auto', padding: '8px 14px', fontSize: 13 }}
-            onClick={() => setLopen(!lopen)}>🔲 排列</button>
+            onClick={() => setLopen(!lopen)}>排列</button>
           {lopen && <>
             <div className="lmask" onClick={() => setLopen(false)} />
             <div className="lpop">
               {LAYOUTS.map(l => (
                 <button key={l.k} type="button" className={layout === l.k ? 'on' : ''}
-                  onClick={() => pickLayout(l.k)}>{l.icon} {l.name}</button>
+                  onClick={() => pickLayout(l.k)}>{l.name}</button>
               ))}
             </div>
           </>}

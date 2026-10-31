@@ -90,7 +90,7 @@ export default function Timeline() {
         </div>}
       </>}
       <div className="tl">
-        {rows.length === 0 && <p className="mut" style={{ padding: '20px 0' }}>还没有记录，去创造第一条吧 ✨</p>}
+        {rows.length === 0 && <p className="mut" style={{ padding: '20px 0' }}>还没有记录，去创造第一条吧</p>}
         {years.map(y => (
           <div key={y}>
             <div className="tl-year">{y}</div>

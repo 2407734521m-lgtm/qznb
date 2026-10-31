@@ -38,11 +38,11 @@ export default function HotSnippets() {
   return (
     <div>
       <BackButton fallback="/explore" />
-      <h1 style={{ fontSize: 20 }}>🔥 热门特效</h1>
+      <h1 style={{ fontSize: 20 }}>热门特效</h1>
       <p className="sub">点开就能在站内直接预览和使用 · 每小时自动上新 1 个 · 最多保留 10 个 · 每 5 小时删掉最少人看的 1 个</p>
       {err && <p className="err">{err}</p>}
       {list.length === 0 && !err && (
-        <div className="center" style={{ minHeight: 160 }}><div className="card">还没上热门特效，每小时会自动来一个 ✨</div></div>
+        <div className="center" style={{ minHeight: 160 }}><div className="card">还没上热门特效，每小时会自动来一个</div></div>
       )}
       {list.map(s => (
         <div key={s.id} className="card" style={{ marginBottom: 12 }}>
@@ -50,7 +50,7 @@ export default function HotSnippets() {
             <div>
               <b>{s.title}</b>
               <div style={{ fontSize: 12, opacity: 0.7, marginTop: 4 }}>
-                {s.language || '网页特效'} · 👁 {s.views} 次使用
+                {s.language || '网页特效'} · {s.views} 次使用
                 {s.source_name ? ` · 来源：${s.source_name}` : ''}
               </div>
             </div>

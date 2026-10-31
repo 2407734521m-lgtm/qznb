@@ -25,6 +25,17 @@ function AdminShell() {
       () => { clearTimeout(timer); if (live) setRole(''); });
     return () => { live = false; clearTimeout(timer); };
   }, [session]);
+  // 后台标签标题：跟随后台设置里的网站标题，格式为「<网站标题> · 管理后台」。
+  useEffect(() => {
+    let live = true;
+    supabase.from('site_settings').select('key, value').in('key', ['site_title'])
+      .then(({ data }) => {
+        if (!live) return;
+        const t = (data ?? []).find((x: any) => x.key === 'site_title')?.value;
+        document.title = `${String(t || '我们的班级').trim() || '我们的班级'} · 管理后台`;
+      });
+    return () => { live = false; };
+  }, []);
   if (loading || (session && role === null)) return <div className="center">加载中…</div>;
   const isAdmin = role === 'admin' || role === 'super_admin';
   if (!isAdmin) return (<><div className="glow" /><AdminLogin showBack={false} /></>);

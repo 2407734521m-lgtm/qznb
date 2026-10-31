@@ -429,6 +429,15 @@ function Shell() {
   }, [loc.pathname]);
   useEffect(() => { setShowLogin(false); }, [session]);
 
+  // 浏览器标签/阅读模式标题跟随后台「网站标题/副标题」设置（site_settings）：
+  // 公共配置一到手就同步 document.title；index.html 里的静态标题只作首屏兜底。
+  useEffect(() => {
+    if (!siteConfig) return;
+    const t = String(siteConfig.site_title || '我们的班级').trim() || '我们的班级';
+    const s = String(siteConfig.site_subtitle || '青春档案').trim();
+    document.title = s ? `${t} · ${s}` : t;
+  }, [siteConfig]);
+
   // 在线心跳：仅在页面可见且近 5 分钟内有交互时续期；管理员只读取聚合人数。
   useEffect(() => {
     if (!session) return;

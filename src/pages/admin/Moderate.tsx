@@ -8,7 +8,7 @@ import { confirmDialog, promptDialog } from '../../lib/dialog';
 type Report = Database['public']['Tables']['reports']['Row'];
 type BoardRow = Database['public']['Tables']['board_messages']['Row'];
 
-export default function Moderate({ setMsg }: { setMsg: (s: string) =帖 void }) {
+export default function Moderate({ setMsg }: { setMsg: (s: string) => void }) {
   const [sub, setSub] = useState<'posts' | 'comments' | 'reports' | 'trash'>('reports');
   const [posts, setPosts] = useState<Post[]>([]);
   const [cmts, setCmts] = useState<Cmt[]>([]);

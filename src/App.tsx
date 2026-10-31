@@ -179,8 +179,7 @@ function ResetPassword({ onDone }: { onDone: () => void }) {
   );
 }
 
-// 维护模式：后台开关 maintenance 打开时，主站所有人（包括管理员）都只看到这页。
-// 唯一出口是管理后台页（/admin）：管理员从维护页点「管理员入口」进后台把开关关掉，站就恢复了。
+// 维护模式：主站默认显示维护页；管理员可进入 /admin，持有有效临时通行码的访客可临时绕过此页。
 function MaintenanceScreen({ title, msg, hasSession, onLogout, onAdmin, onAccessGranted }: { title: string; msg: string; hasSession: boolean; onLogout: () => void; onAdmin: () => void; onAccessGranted: () => void }) {
   const [code, setCode] = useState('');
   const [busy, setBusy] = useState(false);
@@ -438,7 +437,7 @@ function Shell() {
   const [showLogin, setShowLogin] = useState(false);
   const [maintenanceAccess, setMaintenanceAccess] = useState(false);
 
-  // 临时通行权保存在当前标签页，并由服务端每 15 秒复核；撤销后会自动退回维护页。
+  // 临时通行权保存在当前标签页，并由服务端每 5 秒复核；撤销后会自动退回维护页。
   useEffect(() => {
     if (siteConfig?.maintenance !== 'true') { setMaintenanceAccess(false); return; }
     let alive = true;

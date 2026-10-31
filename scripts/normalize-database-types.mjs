@@ -77,7 +77,7 @@ for (const tableName of IDENTITY_TABLES) {
   const before = block.slice(0, insertStart);
   const insert = block.slice(insertStart, updateStart);
   const after = block.slice(updateStart);
-  const idLines = insert.match(/^          id\\??: number$/gm) ?? [];
+  const idLines = insert.match(/^          id\??: number$/gm) ?? [];
   if (idLines.length !== 1) {
     throw new Error("Expected exactly one numeric Insert.id in " + tableName);
   }

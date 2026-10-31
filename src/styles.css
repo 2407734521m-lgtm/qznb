@@ -877,3 +877,41 @@ img { backface-visibility: hidden; }
     transition-duration: .01ms !important;
   }
 }
+
+
+/* Friends / Messages page only: extend its blue-silver glass language to the floating dock.
+   The context class is added only on /friends, so every other page keeps the original dock. */
+@media (max-width: 768px) {
+  .tabbar.dock-glass-context {
+    background:
+      linear-gradient(135deg, rgba(226, 242, 255, .34), rgba(226, 235, 249, .20) 52%, rgba(248, 251, 255, .28)) !important;
+    -webkit-backdrop-filter: blur(34px) saturate(1.65) brightness(1.08);
+    backdrop-filter: blur(34px) saturate(1.65) brightness(1.08);
+    border: 1px solid rgba(232, 245, 255, .48) !important;
+    box-shadow:
+      0 16px 42px rgba(18, 42, 75, .18),
+      inset 0 1px 0 rgba(255, 255, 255, .62),
+      inset 0 -1px 0 rgba(120, 157, 194, .12) !important;
+  }
+  .tabbar.dock-glass-context .dock-item > a {
+    color: rgba(35, 54, 78, .76);
+    text-shadow: 0 1px 0 rgba(255, 255, 255, .24);
+  }
+  .tabbar.dock-glass-context .dock-item > a.on {
+    color: #17324f !important;
+    background: linear-gradient(135deg, rgba(255,255,255,.58), rgba(205,229,255,.36)) !important;
+    border: 1px solid rgba(255,255,255,.48);
+    box-shadow: 0 5px 16px rgba(45, 93, 145, .12), inset 0 1px 0 rgba(255,255,255,.68);
+  }
+  .tabbar.dock-glass-context .dock-toggle {
+    color: #f7fbff !important;
+    background: linear-gradient(145deg, rgba(39, 57, 82, .88), rgba(21, 35, 56, .92)) !important;
+    border: 1px solid rgba(255,255,255,.28) !important;
+    -webkit-backdrop-filter: blur(20px) saturate(1.4);
+    backdrop-filter: blur(20px) saturate(1.4);
+    box-shadow: 0 7px 20px rgba(20, 39, 64, .24), inset 0 1px 0 rgba(255,255,255,.2) !important;
+  }
+  .tabbar.dock-glass-context .dock-unread-dot {
+    box-shadow: 0 0 0 2px rgba(226,242,255,.72);
+  }
+}

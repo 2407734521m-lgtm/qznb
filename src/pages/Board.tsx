@@ -3,9 +3,9 @@ import { motion, useReducedMotion } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../auth';
 import { useSignedUrl } from '../lib/media';
+import type { ProfileSummary as Profile } from '../types/profile';
 
 type Msg = { id: number; author_id: string; title: string | null; content: string; is_admin_msg: boolean; is_pinned: boolean; created_at: string };
-type Profile = { id: string; username: string; display_name: string | null; avatar_path: string | null };
 
 function Avatar({ p, size = 38 }: { p?: Profile; size?: number }) {
   const url = useSignedUrl('avatars', p?.avatar_path);
@@ -43,7 +43,7 @@ export default function Board() {
     setMsgs(list);
     const { data: dir } = await supabase.rpc('member_directory', { q: '', lim: 50, skip: 0 });
     const pm: Record<string, Profile> = {};
-    ((dir ?? []) as any[]).forEach(x => { pm[x.id] = x; });
+    (dir ?? []).forEach(x => { pm[x.id] = x; });
     setProfiles(pm);
     const { data: r } = await supabase.rpc('my_role');
     setIsAdmin(r === 'admin' || r === 'super_admin');

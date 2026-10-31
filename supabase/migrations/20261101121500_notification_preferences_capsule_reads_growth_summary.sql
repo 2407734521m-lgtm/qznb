@@ -148,7 +148,13 @@ as $$
   comment_stats as (
     select
       count(*)::bigint as total,
-      (array_agg(c.created_at order by c.created_at asc))[10] as tenth_at
+      (
+        select c2.created_at
+        from public.comments c2
+        where c2.author_id = (select auth.uid()) and c2.deleted_at is null
+        order by c2.created_at asc
+        offset 9 limit 1
+      ) as tenth_at
     from public.comments c
     where c.author_id = (select auth.uid()) and c.deleted_at is null
   ),

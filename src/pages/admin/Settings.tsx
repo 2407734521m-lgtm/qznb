@@ -34,7 +34,9 @@ export default function Settings({ me, setMsg }: { me: string; setMsg: (s: strin
   const [scheduleBusy, setScheduleBusy] = useState(false);
   const [notifyCount, setNotifyCount] = useState(0);
   const [notifyBusy, setNotifyBusy] = useState(false);
-  const [notifyConfirm, setNotifyConfirm] = useState(false);\n  const [featureFlags, setFeatureFlags] = useState<Record<string, boolean>>({});\n  const [featureBusy, setFeatureBusy] = useState<string | null>(null);
+  const [notifyConfirm, setNotifyConfirm] = useState(false);
+  const [featureFlags, setFeatureFlags] = useState<Record<string, boolean>>({});
+  const [featureBusy, setFeatureBusy] = useState<string | null>(null);
 
   async function loadNotifyCount() {
     const { count } = await supabase.from('maintenance_notify_emails').select('id', { count: 'exact', head: true });
@@ -67,7 +69,8 @@ export default function Settings({ me, setMsg }: { me: string; setMsg: (s: strin
     const { data } = await supabase.from('site_settings').select('key, value');
     const o: Record<string, string> = {};
     (data ?? []).forEach((x: any) => { o[x.key] = x.value; });
-    setVals(o);\n    setFeatureFlags(Object.fromEntries(FEATURE_FLAGS.map(({ key }) => [key, o['feature_' + key] !== 'false'])));
+    setVals(o);
+    setFeatureFlags(Object.fromEntries(FEATURE_FLAGS.map(({ key }) => [key, o['feature_' + key] !== 'false'])));
     try {
       const schedule = JSON.parse(o.maintenance_schedule || '{}');
       setScheduleStart(toLocalDateTimeInput(schedule.start_at || ''));

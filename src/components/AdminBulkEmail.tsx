@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '../lib/supabase';
 
 type Person = { id: string; username: string | null; display_name: string | null; real_name: string | null };
+type Campaign = { id: number; subject: string; selected_count: number; sent_count: number; failed_count: number; no_email_count: number; provider_failure_count: number; status: string; created_at: string; completed_at: string | null; actor_name: string };
 export default function AdminBulkEmail({ setMsg }: { setMsg: (s: string) => void }) {
   const [people, setPeople] = useState<Person[]>([]);
   const [selected, setSelected] = useState<string[]>([]);
@@ -11,6 +12,8 @@ export default function AdminBulkEmail({ setMsg }: { setMsg: (s: string) => void
   const [busy, setBusy] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [history, setHistory] = useState<Campaign[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
   useEffect(() => {
     let live = true;
     supabase.from('profiles').select('id,username,display_name,real_name').order('created_at', { ascending: false }).limit(1000)
@@ -22,6 +25,18 @@ export default function AdminBulkEmail({ setMsg }: { setMsg: (s: string) => void
       });
     return () => { live = false; };
   }, []);
+  async function loadHistory() {
+    setHistoryLoading(true);
+    const { data, error } = await supabase.rpc('admin_email_campaign_history');
+    if (error) {
+      setMsg('邮件历史读取失败：' + error.message);
+      setHistory([]);
+    } else {
+      setHistory(Array.isArray(data) ? data as Campaign[] : []);
+    }
+    setHistoryLoading(false);
+  }
+  useEffect(() => { void loadHistory(); }, []);
   // 收件人或内容变化时，取消待确认状态，避免误发。
   useEffect(() => { setConfirming(false); }, [selected, subject, body]);
   const filtered = useMemo(() => {
@@ -56,6 +71,7 @@ export default function AdminBulkEmail({ setMsg }: { setMsg: (s: string) => void
       if (result?.error) throw new Error(result.error || '发送失败。请检查邮件服务配置。');
       setMsg(`发送任务完成：成功 ${result.sent || 0} 封，失败 ${result.failed || 0} 封。${result.detail ? '失败原因：' + result.detail : ''}`);
       setSelected([]);
+      await loadHistory();
     } catch (e: any) { setMsg(e.message || '发送失败。'); }
     finally { setBusy(false); }
   }
@@ -80,7 +96,38 @@ export default function AdminBulkEmail({ setMsg }: { setMsg: (s: string) => void
       <label style={label}>邮件内容</label>
       <textarea value={body} onChange={e => setBody(e.target.value)} maxLength={10000} rows={6} placeholder="写下邮件正文…" style={{ ...field, resize: 'vertical' }} />
       <button disabled={busy} onClick={() => void send()} style={{ ...sendBtn, opacity: busy ? .6 : 1, ...(confirming ? { background: 'linear-gradient(135deg,#f59e0b,#ef4444)' } : {}) }}>{busy ? '发送中…' : confirming ? `确认发送？将发送给 ${selected.length} 个账号` : `发送给已选择的 ${selected.length} 个账号`}</button>
-      <p style={{ color: '#8994b2', fontSize: 10, lineHeight: 1.6, marginBottom: 0 }}>只向你明确勾选的账号发送；请勿发送骚扰、敏感或与社区无关的邮件。需要先部署 admin-bulk-email 函数，并配置邮件服务密钥。</p>
+      <p style={{ color: '#8994b2', fontSize: 10, lineHeight: 1.6, marginBottom: 0 }}>只向你明确勾选的账号发送；请勿发送骚扰、敏感或与社区无关的邮件。发送记录只保存邮件主题、数量和状态，不保存正文或邮箱地址。</p>
+    </div>
+    <div className="admin-email-panel" style={{ ...panel, marginTop: 12 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+        <div>
+          <h2 style={{ fontSize: 14, margin: '0 0 4px' }}>最近发送记录</h2>
+          <p style={{ color: '#9da6c3', fontSize: 10.5, margin: 0 }}>最近 30 次邮件任务；记录不代表收件箱最终送达。</p>
+        </div>
+        <button style={small} disabled={historyLoading} onClick={() => void loadHistory()}>{historyLoading ? '刷新中…' : '刷新'}</button>
+      </div>
+      {historyLoading && !history.length && <p style={muted}>正在读取发送记录…</p>}
+      {!historyLoading && !history.length && <p style={muted}>暂无邮件发送记录。</p>}
+      {history.map(item => {
+        const statusText = item.status === 'completed' ? '全部提交成功' : item.status === 'partial' ? '部分失败' : item.status === 'failed' ? '发送失败' : '处理中';
+        const statusColor = item.status === 'completed' ? '#7ed9b0' : item.status === 'processing' ? '#f5c26b' : '#ff9da7';
+        return <div key={item.id} style={{ padding: '10px 0', borderBottom: '1px solid #ffffff10' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'flex-start' }}>
+            <strong style={{ fontSize: 12.5, minWidth: 0, overflowWrap: 'anywhere' }}>{item.subject}</strong>
+            <span style={{ color: statusColor, fontSize: 10.5, flexShrink: 0 }}>{statusText}</span>
+          </div>
+          <div style={{ color: '#9da6c3', fontSize: 10.5, marginTop: 4 }}>
+            #{item.id} · {new Date(item.created_at).toLocaleString()} · {item.actor_name}
+          </div>
+          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', color: '#c6d0e9', fontSize: 11, marginTop: 6 }}>
+            <span>选中 {item.selected_count}</span>
+            <span style={{ color: '#7ed9b0' }}>成功 {item.sent_count}</span>
+            <span style={{ color: item.failed_count ? '#ff9da7' : '#9da6c3' }}>失败 {item.failed_count}</span>
+            {item.no_email_count > 0 && <span>无邮箱 {item.no_email_count}</span>}
+            {item.provider_failure_count > 0 && <span>服务商失败 {item.provider_failure_count}</span>}
+          </div>
+        </div>;
+      })}
     </div>
   </section>;
 }

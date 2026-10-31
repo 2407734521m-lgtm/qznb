@@ -24,7 +24,7 @@ const button: React.CSSProperties = {
 };
 const typeLabels: Record<string, string> = {
   comment: '评论', like: '点赞', greeting: '留言', notice: '公告',
-  love: '表白', love_wall: '表白墙', system: '系统',
+  love: '表白', love_wall: '表白墙', system: '系统', feedback: '反馈进度',
 };
 
 export default function AdminNotificationCenter({ setMsg }: { setMsg: (s: string) => void }) {

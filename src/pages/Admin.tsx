@@ -1012,6 +1012,30 @@ function Settings({ me, setMsg }: { me: string; setMsg: (s: string) => void }) {
           {vals.require_invite === 'true' ? '开' : '关'}
         </button>
       </div>
+      <div className="row" style={{ gap: 8, alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', marginBottom: 4 }}>
+        <span style={{ fontSize: 13.5, fontWeight: 650 }}>关闭登录入口</span>
+        <button className={'mini' + (vals.close_login_entry === 'true' ? '' : ' ghost')}
+          onClick={() => {
+            const next = vals.close_login_entry === 'true' ? 'false' : 'true';
+            if (next === 'true' && !confirm('关闭后，网站普通登录和注册入口将隐藏；已有登录会话不受影响，管理员后台入口仍保留。确定继续？')) return;
+            save('close_login_entry', next);
+          }}>
+          {vals.close_login_entry === 'true' ? '已关闭' : '开放中'}
+        </button>
+      </div>
+      <p style={{ ...mut, margin: '0 0 12px' }}>关闭后，未登录访客不能从网站登录或注册；已有账号不会被强制退出。</p>
+      <div className="row" style={{ gap: 8, alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', marginBottom: 4 }}>
+        <span style={{ fontSize: 13.5, fontWeight: 650 }}>跳过登录界面（访客浏览）</span>
+        <button className={'mini' + (vals.skip_login_screen === 'true' ? '' : ' ghost')}
+          onClick={() => {
+            const next = vals.skip_login_screen === 'true' ? 'false' : 'true';
+            if (next === 'true' && !confirm('开启后，未登录访客可直接查看公开首页和管理员公告；成员资料、动态、私聊、个人中心及所有互动仍需登录。确定开启？')) return;
+            save('skip_login_screen', next);
+          }}>
+          {vals.skip_login_screen === 'true' ? '开启' : '关闭'}
+        </button>
+      </div>
+      <p style={{ ...mut, margin: '0 0 12px' }}>访客仅能查看公开首页与管理员公告，不会获得成员身份，也不能写入内容。</p>
       <div className="row" style={{ gap: 8, alignItems: 'center' }}>
         <span style={{ fontSize: 13.5 }}>维护模式</span>
         <button className={'mini' + (vals.maintenance === 'true' ? '' : ' ghost')}

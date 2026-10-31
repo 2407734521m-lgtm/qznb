@@ -120,8 +120,24 @@
 }
 
 
-/* 桌面端管理后台：左侧导航 + 宽屏工作区（不改变移动端布局） */
+/* 桌面端管理后台：左侧导航 + 宽屏工作区（不改变移动端布局）
+   审查修复（基于 PR #62）：
+   1. 管理后台始终被外层 .wrap 包裹（max-width:1040px 居中），原 PR 未处理这一层，
+      宽屏下内容被压回居中窄栏、左侧 Dock 与内容脱节；这里用 :has 只在包裹
+      管理后台时解除 .wrap 的宽度/内边距限制，不影响任何用户端页面。
+      不支持 :has 的旧浏览器自动退回原布局，不会更差。
+   2. 原 PR 依赖 [style*="grid-template-columns"]、[style*="border-radius"] 和
+      多层 :first-child/:last-child 位置选择器，已改为真实类名钩子
+      （.admin-stats-grid / .admin-header-title），不再依赖内联样式字符串。
+   3. 统计卡四列只在 >=1181px 启用；900-1180px 保持两列，避免卡片过窄。
+   4. 桌面搜索栏恢复 sticky 吸顶（原 PR 改成 relative 后长列表里会滚走）。 */
 @media (min-width: 900px) {
+  .wrap:has(.admin-shell) {
+    max-width: none !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
   .admin-shell {
     margin: 0 !important;
     min-height: 100vh;
@@ -142,13 +158,14 @@
     padding: 8px 0 20px;
     margin-bottom: 22px !important;
   }
-  .admin-shell .admin-header > div:first-child > div:last-child > div:first-child {
+  .admin-shell .admin-header .admin-header-title {
     font-size: 22px !important;
     letter-spacing: -.025em;
   }
   .admin-shell .admin-search {
-    position: relative;
-    top: auto;
+    position: sticky;
+    top: 22px;
+    z-index: 30;
     max-width: 520px;
     margin: 0 0 22px auto !important;
   }
@@ -160,23 +177,13 @@
     margin: 0 auto !important;
     padding-bottom: 28px;
   }
-  .admin-shell .admin-content > div:first-child[style*="grid-template-columns"] {
-    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
-    gap: 16px !important;
-  }
-  .admin-shell .admin-content > div[style*="grid-template-columns"] {
-    gap: 18px !important;
-  }
-  .admin-shell .admin-content > div[style*="border-radius"] {
-    border-radius: 18px;
+  .admin-shell .admin-content .admin-stats-grid {
+    gap: 14px !important;
   }
   .admin-shell .admin-content input,
   .admin-shell .admin-content textarea,
   .admin-shell .admin-content select {
     font-size: 14px;
-  }
-  .admin-shell .admin-content table {
-    width: 100%;
   }
   .admin-shell .admin-dock {
     left: 22px !important;
@@ -225,6 +232,22 @@
   .admin-shell .admin-content .admin-email-glass .admin-email-panel {
     padding: 22px !important;
   }
+  /* 成员详情弹窗：桌面端改为居中对话框，不再是贴底抽屉 */
+  .admin-modal-overlay {
+    align-items: center !important;
+    padding: 24px;
+    box-sizing: border-box;
+  }
+  .admin-modal-overlay .admin-modal-card {
+    border-radius: 18px !important;
+    max-height: 90vh;
+  }
+}
+@media (min-width: 1181px) {
+  .admin-shell .admin-content .admin-stats-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    gap: 16px !important;
+  }
 }
 @media (min-width: 900px) and (max-width: 1180px) {
   .admin-shell { padding-left: 270px !important; padding-right: 24px !important; }
@@ -234,8 +257,19 @@
     max-width: 222px !important;
   }
 }
+/* 矮屏桌面（768px 高等）：导航按钮略收紧，17 个入口尽量少滚动 */
+@media (min-width: 900px) and (max-height: 820px) {
+  .admin-shell .admin-dock button {
+    min-height: 38px !important;
+    padding-top: 7px !important;
+    padding-bottom: 7px !important;
+    font-size: 13px !important;
+  }
+  .admin-shell .admin-dock > .row { gap: 3px !important; }
+}
 @media (max-width: 899px) {
-  .admin-shell .admin-dock { z-index: 80; }
+  /* 原 PR 此规则无 !important，被 Dock 内联 z-index:60 压住不生效；补上才有效 */
+  .admin-shell .admin-dock { z-index: 80 !important; }
 }
 @media (prefers-reduced-motion: reduce) {
   .admin-shell .admin-dock,

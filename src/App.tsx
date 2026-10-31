@@ -365,14 +365,16 @@ function Shell() {
   }, [session, loc.pathname]);
   useEffect(() => {
     let alive = true;
-    const h = () => {
+    const h = async () => {
       if (!session) { setNotifUnread(false); return; }
-      void supabase.from('notifications').select('id', { count: 'exact', head: true })
-        .eq('profile_id', session.user.id).eq('is_read', false)
-        .then(({ count, error }) => {
-          if (alive && !error) setNotifUnread((count ?? 0) > 0);
-        })
-        .catch(() => { /* 请求失败时保留上次红点状态 */ });
+      try {
+        const { count, error } = await supabase.from('notifications')
+          .select('id', { count: 'exact', head: true })
+          .eq('profile_id', session.user.id).eq('is_read', false);
+        if (alive && !error) setNotifUnread((count ?? 0) > 0);
+      } catch {
+        // 请求失败时保留上次红点状态。
+      }
     };
     window.addEventListener('notif-read', h);
     return () => {

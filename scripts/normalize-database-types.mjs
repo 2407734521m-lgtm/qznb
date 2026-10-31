@@ -33,8 +33,8 @@ const RPC_RETURNS = {
 const lines = fs.readFileSync(file, "utf8").split("\n");
 
 function sectionBounds(sectionName, nextSectionName) {
-  const start = lines.indexOf("    " + sectionName + ": {");
-  const end = lines.indexOf("    " + nextSectionName + ": {", start + 1);
+  const start = lines.findIndex((line) => line.trim() === sectionName + ": {");
+  const end = lines.findIndex((line, index) => index > start && line.trim() === nextSectionName + ": {");
   if (start < 0 || end < 0) {
     throw new Error("Missing generated section: " + sectionName);
   }
@@ -42,7 +42,7 @@ function sectionBounds(sectionName, nextSectionName) {
 }
 
 function directChildBounds(section, name) {
-  const start = lines.indexOf("      " + name + ": {", section.start + 1);
+  const start = lines.findIndex((line, index) => index > section.start && index < section.end && line.trim() === name + ": {");
   if (start < 0 || start >= section.end) {
     throw new Error("Missing generated entry: " + name);
   }

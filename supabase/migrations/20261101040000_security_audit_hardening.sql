@@ -9,7 +9,8 @@ on public.event_regs
 for select
 to authenticated
 using (
-  public.is_member()
+  profile_id = (select auth.uid())
+  or public.is_member()
   or public.my_role() in ('admin', 'super_admin')
 );
 

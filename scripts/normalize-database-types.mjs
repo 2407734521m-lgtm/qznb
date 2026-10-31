@@ -28,6 +28,17 @@ const RPC_RETURNS = {
   member_detail:
     "{ id: string; username: string; display_name: string | null; age: number | null; personality: string | null; signature: string | null; bio: string | null; hobbies: string | null; avatar_path: string | null; theme: Json; contact: string | null; social: string | null }[]",
   my_role: "string | null",
+  admin_create_maintenance_code: "{ code: string; expires_at: string; max_uses: number }",
+  admin_revoke_maintenance_codes: "{ ok: boolean; revoked_count: number }",
+  maintenance_redeem_code: "{ ok: boolean; message?: string; token?: string; expires_at?: string }",
+  member_video: "{ path: string; status: string }[]",
+};
+
+const RPC_ARGS = {
+  admin_update_profile:
+    "{ target: string; p_display_name: string | null; p_real_name?: string | null; p_signature: string | null; p_bio: string | null; p_personality: string | null; p_hobbies: string | null; p_age: number | null; p_video_status?: string | null }",
+  create_invite_code: "{ new_code: string; nick: string | null }",
+  submit_game_profile: "{ gname: string; guid: string | null; rnk: string | null }",
 };
 
 const lines = fs.readFileSync(file, "utf8").split("\n");
@@ -76,6 +87,18 @@ for (const tableName of IDENTITY_TABLES) {
 }
 
 const functionsSection = sectionBounds("Functions", "Enums");
+for (const [functionName, argsType] of Object.entries(RPC_ARGS)) {
+  const fn = directChildBounds(functionsSection, functionName);
+  const argsIndexes = [];
+  for (let i = fn.start + 1; i < fn.end; i += 1) {
+    if (/^        Args: /.test(lines[i])) argsIndexes.push(i);
+  }
+  if (argsIndexes.length !== 1) {
+    throw new Error("Expected exactly one Args field in " + functionName);
+  }
+  lines[argsIndexes[0]] = "        Args: " + argsType;
+}
+
 for (const [functionName, returnType] of Object.entries(RPC_RETURNS)) {
   const fn = directChildBounds(functionsSection, functionName);
   const returnsIndexes = [];

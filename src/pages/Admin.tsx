@@ -955,7 +955,7 @@ function MaintenanceAccessManager({ setMsg }: { setMsg: (s: string) => void }) {
       p_valid_minutes: Number(minutes), p_max_uses: Number(maxUses),
     });
     setBusy(false);
-    if (error || !data?.code) { setMsg('验证码生成失败：' + (error?.message || data?.message || '请检查数据库迁移是否已执行')); return; }
+    if (error || !data?.code) { setMsg('验证码生成失败：' + (error?.message || '请检查数据库迁移是否已执行')); return; }
     setCode(String(data.code));
     setExpiresAt(String(data.expires_at || ''));
     setMsg('临时通行码已生成。请及时复制并发送给需要进入的人。');

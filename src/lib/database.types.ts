@@ -1295,7 +1295,7 @@ export type Database = {
     Functions: {
       admin_create_maintenance_code: {
         Args: { p_valid_minutes: number; p_max_uses: number }
-        Returns: unknown
+        Returns: { code: string; expires_at: string; max_uses: number }
       }
       admin_delete_member_account: {
         Args: { target: string }
@@ -1311,7 +1311,7 @@ export type Database = {
       }
       admin_revoke_maintenance_codes: {
         Args: Record<PropertyKey, never>
-        Returns: unknown
+        Returns: { ok: boolean; revoked_count: number }
       }
       admin_set_comment_hidden: {
         Args: { p_id: number; p_hidden: boolean }
@@ -1322,7 +1322,7 @@ export type Database = {
         Returns: unknown
       }
       admin_update_profile: {
-        Args: { target: string; p_display_name: string; p_real_name: string; p_signature: string; p_bio: string; p_personality: string; p_hobbies: string; p_age: number; p_video_status: string }
+        Args: { target: string; p_display_name: string | null; p_real_name?: string | null; p_signature: string | null; p_bio: string | null; p_personality: string | null; p_hobbies: string | null; p_age: number | null; p_video_status?: string | null }
         Returns: unknown
       }
       bootstrap_super_admin: {
@@ -1422,7 +1422,7 @@ export type Database = {
         Returns: unknown
       }
       create_invite_code: {
-        Args: { new_code: string; nick: string }
+        Args: { new_code: string; nick: string | null }
         Returns: unknown
       }
       delete_invite_code: {
@@ -1479,7 +1479,7 @@ export type Database = {
       }
       maintenance_redeem_code: {
         Args: { p_code: string }
-        Returns: unknown
+        Returns: { ok: boolean; message?: string; token?: string; expires_at?: string }
       }
       maintenance_validate_access: {
         Args: { p_token: string }
@@ -1495,7 +1495,7 @@ export type Database = {
       }
       member_video: {
         Args: { uid: string }
-        Returns: unknown
+        Returns: { path: string; status: string }[]
       }
       my_friends: {
         Args: Record<PropertyKey, never>
@@ -1582,7 +1582,7 @@ export type Database = {
         Returns: unknown
       }
       submit_game_profile: {
-        Args: { gname: string; guid: string; rnk: string }
+        Args: { gname: string; guid: string | null; rnk: string | null }
         Returns: unknown
       }
       submit_intro_video: {

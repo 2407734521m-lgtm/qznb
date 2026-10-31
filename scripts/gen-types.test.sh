@@ -27,7 +27,7 @@ IDENTITY_TABLES=(
   echo '    Views: {'
   echo '    }'
   echo '    Functions: {'
-  for fn in admin_presence_summary public_guest_landing member_directory member_detail my_role; do
+  for fn in admin_presence_summary public_guest_landing member_directory member_detail my_role admin_create_maintenance_code admin_revoke_maintenance_codes maintenance_redeem_code member_video admin_update_profile create_invite_code submit_game_profile; do
     printf '      %s: {\n        Args: Record<PropertyKey, never>\n        Returns: unknown\n      }\n' "$fn"
   done
   echo '    }'
@@ -85,6 +85,13 @@ run_case() {
     grep -Fq 'Returns: { id: string; username: string; display_name: string | null;' "$dir/src/lib/database.types.ts" || ok=0
     grep -Fq 'Returns: { id: string; username: string; display_name: string | null; age: number | null;' "$dir/src/lib/database.types.ts" || ok=0
     grep -Fq 'Returns: string | null' "$dir/src/lib/database.types.ts" || ok=0
+    grep -Fq 'Returns: { code: string; expires_at: string; max_uses: number }' "$dir/src/lib/database.types.ts" || ok=0
+    grep -Fq 'Returns: { ok: boolean; revoked_count: number }' "$dir/src/lib/database.types.ts" || ok=0
+    grep -Fq 'Returns: { ok: boolean; message?: string; token?: string; expires_at?: string }' "$dir/src/lib/database.types.ts" || ok=0
+    grep -Fq 'Returns: { path: string; status: string }[]' "$dir/src/lib/database.types.ts" || ok=0
+    grep -Fq 'Args: { new_code: string; nick: string | null }' "$dir/src/lib/database.types.ts" || ok=0
+    grep -Fq 'Args: { gname: string; guid: string | null; rnk: string | null }' "$dir/src/lib/database.types.ts" || ok=0
+    grep -Fq 'p_display_name: string | null' "$dir/src/lib/database.types.ts" || ok=0
     # Normalization must be idempotent after successful generation only.
     if [ "$code" -eq 0 ]; then
       (cd "$dir" && node scripts/normalize-database-types.mjs src/lib/database.types.ts >/dev/null) || ok=0

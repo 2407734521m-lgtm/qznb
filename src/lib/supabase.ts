@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import type { Database } from './database.types';
 const envUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
 // 同源接口（2026-10-24）：在 qianzhi.pw / www.qianzhi.pw / admin.qianzhi.pw 上时，
 // 接口走本站的 /api（Cloudflare 路由到 qznb-api），和页面同源，不再发跨域预检请求，
@@ -13,6 +14,6 @@ const sameOriginApi =
 export const supabaseBaseUrl = (window as any).__SUPABASE_URL || sameOriginApi || envUrl;
 const key = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
 export const configured = Boolean(supabaseBaseUrl && key);
-export const supabase = createClient(supabaseBaseUrl ?? 'http://localhost', key ?? 'missing', {
+export const supabase = createClient<Database>(supabaseBaseUrl ?? 'http://localhost', key ?? 'missing', {
   auth: { persistSession: true, autoRefreshToken: true },
 });

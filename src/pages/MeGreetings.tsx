@@ -18,7 +18,7 @@ export default function MeGreetings() {
       .is('deleted_at', null).order('created_at', { ascending: false }).limit(50);
     const rows = data ?? [];
     setList(rows);
-    const ids = [...new Set(rows.map(r => r.target_id).filter(Boolean))];
+    const ids = [...new Set(rows.map(r => r.target_id).filter((id): id is string => typeof id === 'string' && id.length > 0))];
     if (ids.length) {
       const { data: ps } = await supabase.from('profiles').select('id, display_name, username').in('id', ids);
       const m: Record<string, string> = {};

@@ -18,7 +18,7 @@ export default function AdminAuthorizedRequests({ setMsg }: { setMsg: (s: string
   async function load() {
     const { data, error: e } = await (supabase as any).from('authorized_request_queue')
       .select('id,profile_id,request_date,request_type,description,contact,status,created_at')
-      .order('created_at', { ascending: false }).limit(100);
+      .order('created_at', { ascending: true }).limit(100);
     if (e) setError('读取队列失败：' + e.message);
     else { setError(''); setItems((data || []) as Item[]); }
   }

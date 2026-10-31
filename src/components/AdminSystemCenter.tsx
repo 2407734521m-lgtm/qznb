@@ -297,7 +297,7 @@ export default function AdminSystemCenter({ setMsg, go }: {
     setMsg('系统巡检报告已导出；报告不包含成员邮箱、联系方式或个人资料。');
   }
 
-  const realtimeTone: CheckStatus = presence.status === 'connected' ? 'ok' : presence.status === 'connecting' ? 'warn' : 'error';
+  const realtimeTone = presence.status === 'connected' ? 'good' : presence.status === 'connecting' ? 'warn' : 'bad';
   const maintenanceTone: CheckStatus = dashboard?.maintenance.includes('维护进行中') || dashboard?.maintenance.includes('手动维护已开启') ? 'warn'
     : dashboard?.maintenance.includes('异常') ? 'error' : 'ok';
 

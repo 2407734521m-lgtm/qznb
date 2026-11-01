@@ -620,8 +620,16 @@ export default function ParticleFlower() {
         const detectedHands = results.multiHandLandmarks || [];
         const hand = detectedHands[0];
         const secondHand = detectedHands[1];
-        twoHandBoostRef.current = hand?.[8] && secondHand?.[8]
-          ? lerp(twoHandBoostRef.current, clamp(1 - distance(hand[8], secondHand[8]) / 0.72, 0, 1), 0.16)
+        const firstPalm = hand?.[0] && hand?.[9] ? {
+          x: (hand[0].x + hand[9].x) * 0.5,
+          y: (hand[0].y + hand[9].y) * 0.5
+        } : null;
+        const secondPalm = secondHand?.[0] && secondHand?.[9] ? {
+          x: (secondHand[0].x + secondHand[9].x) * 0.5,
+          y: (secondHand[0].y + secondHand[9].y) * 0.5
+        } : null;
+        twoHandBoostRef.current = firstPalm && secondPalm
+          ? lerp(twoHandBoostRef.current, clamp(1 - distance(firstPalm, secondPalm) / 0.72, 0, 1), 0.16)
           : lerp(twoHandBoostRef.current, 0, 0.08);
         if (!hand) {
           landmarksRef.current = null; fingerRef.current = null;

@@ -1073,8 +1073,21 @@ export default function ParticleFlower() {
   }, [saveArtworkImage]);
 
   const collectArtwork = useCallback(() => {
-    const dataUrl = saveArtworkImage();
-    if (!dataUrl) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const thumbnail = document.createElement('canvas');
+    const scale = Math.min(1, 420 / Math.max(canvas.width, canvas.height));
+    thumbnail.width = Math.max(1, Math.round(canvas.width * scale));
+    thumbnail.height = Math.max(1, Math.round(canvas.height * scale));
+    const ctx = thumbnail.getContext('2d');
+    if (!ctx) return;
+    ctx.fillStyle = '#100b16'; ctx.fillRect(0, 0, thumbnail.width, thumbnail.height);
+    ctx.drawImage(canvas, 0, 0, thumbnail.width, thumbnail.height);
+    if (signature.trim()) {
+      ctx.font = '11px sans-serif'; ctx.fillStyle = 'rgba(255,235,244,.82)';
+      ctx.textAlign = 'right'; ctx.fillText(signature.trim().slice(0, 24), thumbnail.width - 8, thumbnail.height - 8);
+    }
+    const dataUrl = thumbnail.toDataURL('image/jpeg', 0.68);
     const item: Artwork = {
       id: String(Date.now()),
       name: signature.trim().slice(0, 24) || (THEME_NAMES[artThemeRef.current] + '作品'),
@@ -1083,9 +1096,9 @@ export default function ParticleFlower() {
     const next = [item, ...savedArtworks].slice(0, 8);
     try {
       window.localStorage.setItem('qznb-bloom-artworks', JSON.stringify(next));
-      setSavedArtworks(next); setMediaMessage('已收藏到本机作品集');
+      setSavedArtworks(next); setMediaMessage('已收藏到本机作品集（轻量缩略图）');
     } catch { setMediaMessage('本地空间不足，请先删除旧作品'); }
-  }, [saveArtworkImage, savedArtworks, signature]);
+  }, [savedArtworks, signature]);
 
   const shareArtwork = useCallback(async () => {
     const dataUrl = saveArtworkImage();
@@ -1370,7 +1383,7 @@ export default function ParticleFlower() {
           </button>
           <button type="button" className="bloom-auto-demo" onClick={() => { setExperienceMode('demo'); autoDemoRef.current=true; setAutoDemo(true); setStatus('自动演示'); }}>✦ 自动演示完整花期</button>
           <div className="bloom-privacy">摄像头与手势数据只在本地浏览器处理，不会上传；作品收藏仅保存在本机</div>
-          {savedArtworks.length>0 && <section className="bloom-artwork-library"><div className="bloom-artwork-library-title">本机作品集 <small>{savedArtworks.length}/8</small></div><div className="bloom-artwork-grid">{savedArtworks.map(item=><div className="bloom-artwork-card" key={item.id}><a href={item.dataUrl} download={item.name+'.png'}><img src={item.dataUrl} alt={item.name}/><span>{item.name}</span></a><button type="button" aria-label={'删除'+item.name} onClick={()=>{const next=savedArtworks.filter(saved=>saved.id!==item.id);setSavedArtworks(next);try{window.localStorage.setItem('qznb-bloom-artworks',JSON.stringify(next));}catch{setMediaMessage('删除失败，请检查浏览器存储权限');}}}>删除</button></div>)}</div></section>}
+          {savedArtworks.length>0 && <section className="bloom-artwork-library"><div className="bloom-artwork-library-title">本机作品集 <small>{savedArtworks.length}/8</small></div><div className="bloom-artwork-grid">{savedArtworks.map(item=><div className="bloom-artwork-card" key={item.id}><a href={item.dataUrl} download={item.name+'.jpg'}><img src={item.dataUrl} alt={item.name}/><span>{item.name}</span></a><button type="button" aria-label={'删除'+item.name} onClick={()=>{const next=savedArtworks.filter(saved=>saved.id!==item.id);setSavedArtworks(next);try{window.localStorage.setItem('qznb-bloom-artworks',JSON.stringify(next));}catch{setMediaMessage('删除失败，请检查浏览器存储权限');}}}>删除</button></div>)}</div></section>}
           {error&&<div className="bloom-error" role="alert">{error}</div>}
         </section>
       )}

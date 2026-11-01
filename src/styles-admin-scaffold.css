@@ -619,6 +619,13 @@
 }
 
 
+/* Phase 4: dashboard data categories are intentionally shown as independent counts. */
+.admin-shell-v3 .admin-overview-data-list{min-height:0;justify-content:flex-start;padding:4px 0}
+.admin-shell-v3 .admin-overview-data-list .admin-overview-mix-legend{width:100%;display:grid;gap:12px}
+.admin-shell-v3 .admin-overview-data-list .admin-overview-mix-legend>div{grid-template-columns:8px minmax(0,1fr) auto auto;min-height:25px}
+.admin-shell-v3 .admin-overview-data-list .admin-overview-mix-legend small{min-width:40px;text-align:right}
+
+
 /* Phase 4: semantically honest category totals (not a misleading mixed pie chart). */
 .admin-shell-v3 .admin-overview-category-list{
   display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;

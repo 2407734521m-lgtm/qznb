@@ -81,10 +81,15 @@ export default function Login() {
     if (!id) return setErr('请输入登录账号');
     if (!pw) return setErr('请输入密码');
     setErr(''); setBusy(true);
-    const loginStartedAt = performance.now();
     let em = '';
     try {
-      try { sessionStorage.setItem('ca_login_success', '1'); } catch {}
+      // Persist the start time BEFORE starting authentication. The auth-state
+      // listener may update the App before this function's promise resolves.
+      try {
+        sessionStorage.setItem('ca_login_started_at', String(Date.now()));
+        sessionStorage.setItem('ca_login_success', '1');
+        sessionStorage.removeItem('ca_login_elapsed_ms');
+      } catch {}
       if (id.includes('@')) {
         em = id;
         const { error } = await supabase.auth.signInWithPassword({ email: em, password: pw });
@@ -105,9 +110,12 @@ export default function Login() {
         });
         if (sessionError) throw sessionError;
       }
-      try { sessionStorage.setItem('ca_login_elapsed_ms', String(Math.round(performance.now() - loginStartedAt))); } catch {}
     } catch (e: any) {
-      try { sessionStorage.removeItem('ca_login_success'); sessionStorage.removeItem('ca_login_elapsed_ms'); } catch {}
+      try {
+        sessionStorage.removeItem('ca_login_success');
+        sessionStorage.removeItem('ca_login_started_at');
+        sessionStorage.removeItem('ca_login_elapsed_ms');
+      } catch {}
       const m = e?.message || '';
       const method = em ? 'email' : 'username';
       const failureClass = /invalid login credentials|invalid_credentials/i.test(m)

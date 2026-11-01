@@ -283,6 +283,26 @@ export default function AdminWorkspace({
         </main>
       </div>
 
+      <nav className="admin-mobile-quickbar" aria-label="移动端快捷导航">
+        {['overview', 'moderate', 'notifications', 'accounts']
+          .map(id => tabs.find(item => item[0] === id))
+          .filter((item): item is AdminTab => Boolean(item))
+          .map(item => (
+            <button type="button" key={item[0]}
+              className={['admin-mobile-quick-item', activeTab === item[0] ? 'is-active' : ''].join(' ')}
+              aria-current={activeTab === item[0] ? 'page' : undefined}
+              onClick={() => choose(item[0])}>
+              <span className="admin-mobile-quick-icon"><AdminIcon name={item[0]} size={18} /></span>
+              <span>{item[1]}</span>
+            </button>
+          ))}
+        <button type="button" className="admin-mobile-quick-item"
+          aria-expanded={mobileOpen} onClick={() => setMobileOpen(open => !open)}>
+          <span className="admin-mobile-quick-icon"><AdminIcon name="menu" size={18} /></span>
+          <span>更多</span>
+        </button>
+      </nav>
+
       {paletteOpen && (
         <div className="admin-command-overlay" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget) setPaletteOpen(false); }}>
           <section className="admin-command-palette" role="dialog" aria-modal="true" aria-label="搜索管理功能">

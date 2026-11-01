@@ -195,3 +195,46 @@ button.ghost:hover:not(:disabled),button.mini:hover:not(:disabled){
   html{scroll-behavior:auto}
   *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
 }
+
+
+/* Restore the established light liquid-glass finish for the user-facing mobile Dock.
+   Keep geometry, navigation behavior and motion in their existing stylesheets. */
+@media (max-width: 768px) {
+  .tabbar {
+    background: linear-gradient(135deg,
+      rgba(250, 255, 255, .84),
+      rgba(225, 244, 245, .68) 52%,
+      rgba(246, 252, 253, .82)) !important;
+    border: 1px solid rgba(255, 255, 255, .88) !important;
+    box-shadow:
+      0 16px 42px rgba(6, 39, 57, .18),
+      inset 0 1px 0 rgba(255, 255, 255, .94),
+      inset 0 -1px 0 rgba(66, 139, 150, .10) !important;
+    -webkit-backdrop-filter: blur(36px) saturate(1.7) brightness(1.06) !important;
+    backdrop-filter: blur(36px) saturate(1.7) brightness(1.06) !important;
+  }
+
+  .tabbar .dock-item > a {
+    color: #426371 !important;
+    text-shadow: none !important;
+  }
+
+  .tabbar .dock-item > a.on,
+  .tabbar .dock-item > a[aria-current="page"] {
+    color: #124b59 !important;
+    background: linear-gradient(135deg,
+      rgba(255, 255, 255, .96),
+      rgba(195, 236, 230, .76)) !important;
+    border: 1px solid rgba(255, 255, 255, .96) !important;
+    box-shadow:
+      0 5px 16px rgba(39, 129, 137, .15),
+      inset 0 1px 0 #fff !important;
+  }
+
+  .tabbar .dock-toggle {
+    color: #2b6570 !important;
+    background: rgba(255, 255, 255, .76) !important;
+    border: 1px solid rgba(255, 255, 255, .82) !important;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .9) !important;
+  }
+}

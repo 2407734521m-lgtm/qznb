@@ -1495,6 +1495,10 @@ export type Database = {
         Args: { p_title: string; p_body: string; p_link?: string | null; p_recipient_ids?: string[] | null }
         Returns: number
       }
+      admin_send_member_message: {
+        Args: { p_title: string; p_body: string; p_recipient_ids: string[]; p_link?: string }
+        Returns: number
+      }
       admin_email_campaign_history: {
         Args: Record<PropertyKey, never>
         Returns: Json
@@ -1526,6 +1530,22 @@ export type Database = {
       admin_delete_member_account: {
         Args: { target: string }
         Returns: unknown
+      }
+      admin_member_moderation: {
+        Args: { p_target_user_id: string }
+        Returns: Json
+      }
+      admin_apply_member_moderation: {
+        Args: { p_target_user_id: string; p_action_type: string; p_reason: string; p_duration_hours?: number | null }
+        Returns: string
+      }
+      admin_revoke_member_moderation: {
+        Args: { p_action_id: string; p_reason: string }
+        Returns: undefined
+      }
+      member_moderation_allows: {
+        Args: { p_scope: string }
+        Returns: boolean
       }
       admin_member_accounts: {
         Args: Record<PropertyKey, never>

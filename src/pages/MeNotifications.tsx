@@ -128,7 +128,7 @@ export default function MeNotifications() {
   const visibleList = list.filter(item => notificationPrefs[item.type] !== false)
     .filter(item => filter === 'unread' ? !item.is_read : true);
   const typeLabel: Record<string, string> = {
-    comment: '评论', like: '点赞', greeting: '留言', notice: '公告', love_wall: '表白墙', feedback: '反馈进度',
+    comment: '评论', like: '点赞', greeting: '留言', notice: '公告', love_wall: '表白墙', feedback: '反馈进度', admin_message: '管理员消息', moderation: '纪律处理',
   };
 
   return (

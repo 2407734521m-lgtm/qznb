@@ -6,10 +6,10 @@ import BackButton from '../components/BackButton';
 import { confirmDialog } from '../lib/dialog';
 
 type MotionPreference = 'system' | 'reduce' | 'full';
-type NotificationKey = 'comment' | 'like' | 'greeting' | 'notice' | 'feedback' | 'love_wall';
+type NotificationKey = 'comment' | 'like' | 'greeting' | 'notice' | 'feedback' | 'love_wall' | 'admin_message';
 type Preferences = { motion: MotionPreference; notifications: Record<NotificationKey, boolean> };
-const DEFAULTS: Preferences = { motion: 'system', notifications: { comment: true, like: true, greeting: true, notice: true, feedback: true, love_wall: true } };
-const LABELS: Record<NotificationKey, string> = { comment: '评论与回复', like: '点赞提醒', greeting: '留言提醒', notice: '公告提醒', feedback: '反馈处理进度', love_wall: '表白墙提醒' };
+const DEFAULTS: Preferences = { motion: 'system', notifications: { comment: true, like: true, greeting: true, notice: true, feedback: true, love_wall: true, admin_message: true } };
+const LABELS: Record<NotificationKey, string> = { comment: '评论与回复', like: '点赞提醒', greeting: '留言提醒', notice: '公告提醒', feedback: '反馈处理进度', love_wall: '表白墙提醒', admin_message: '管理员私信' };
 function deviceLabel(ua: string) {
   if (/Android/i.test(ua)) return 'Android 设备';
   if (/iPhone|iPad/i.test(ua)) return /iPad/i.test(ua) ? 'iPad' : 'iPhone';

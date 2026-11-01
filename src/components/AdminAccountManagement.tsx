@@ -285,7 +285,7 @@ export default function AdminAccountManagement({
         <button style={btn} onClick={() => setSelected(new Set(filtered.filter(account => account.role === 'member' && account.id !== me).map(account => account.id)))}>选择筛选结果</button>
         <button style={btn} onClick={() => setSelected(new Set())}>清空选择</button>
       </div>
-      {filtered.some(account => selected.has(account.id)) && <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap', marginTop: 9, alignItems: 'center' }}>
+      {filtered.some(account => selected.has(account.id)) && <div className="admin-account-batchbar-active" style={{ display: 'flex', gap: 7, flexWrap: 'wrap', marginTop: 9, alignItems: 'center' }}>
         <span style={{ ...muted, alignSelf: 'center' }}>当前筛选已选 {filtered.filter(account => selected.has(account.id)).length} 个</span>
         <button style={btn} onClick={() => {
           const recipients = filtered.filter(account => selected.has(account.id) && account.role === 'member' && account.joined)

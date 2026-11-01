@@ -128,6 +128,7 @@ export default function Admin() {
   const [msg, setMsg] = useState('');
   const [q0, setQ0] = useState('');
   const isSuper = role === 'super_admin';
+  const canRequestSensitiveAction = role === 'admin';
   const tabs = TABS_ALL.filter(([, , sup]) => !sup || isSuper);
 
   useEffect(() => {
@@ -225,7 +226,7 @@ export default function Admin() {
         {tab === 'analytics' && isSuper && <AdminAnalyticsCenter setMsg={setMsg} />}
         {tab === 'backups' && isSuper && <AdminBackupCenter setMsg={setMsg} />}
         {tab === 'release' && isSuper && <AdminReleaseCenter />}
-              {tab === 'members' && <Members me={me} isSuper={isSuper} setMsg={setMsg} extQ={q0} />}
+              {tab === 'members' && <Members me={me} isSuper={isSuper} canRequest={canRequestSensitiveAction} setMsg={setMsg} extQ={q0} />}
               {tab === 'accounts' && isSuper && <AdminAccountManagement me={me} isSuper={isSuper} setMsg={setMsg} />}
               {tab === 'moderate' && <Moderate setMsg={setMsg} />}
               {tab === 'loveWall' && <AdminLoveWall setMsg={setMsg} />}
@@ -291,7 +292,7 @@ export default function Admin() {
 }
 
 /* ---------------- 成员管理 ---------------- */
-function Members({ me, isSuper, setMsg, extQ }: { me: string; isSuper: boolean; setMsg: (s: string) => void; extQ: string }) {
+function Members({ me, isSuper, canRequest, setMsg, extQ }: { me: string; isSuper: boolean; canRequest: boolean; setMsg: (s: string) => void; extQ: string }) {
   const [list, setList] = useState<Member[]>([]);
   const [q, setQ] = useState(extQ);
   useEffect(() => { if (extQ) setQ(extQ); }, [extQ]);
@@ -353,6 +354,21 @@ function Members({ me, isSuper, setMsg, extQ }: { me: string; isSuper: boolean; 
       setMemberActionBusy(false);
     }
   }
+  async function requestDelete(id: string, name: string) {
+    if (!canRequest) return setMsg('只有管理员可以发起永久删除申请。');
+    if (id === me) return setMsg('不能申请删除自己的账号。');
+    if (!(await confirmDialog(`提交永久删除成员「${name}」的审批申请？批准前不会删除账号。`, { danger: true }))) return;
+    const reason = await promptDialog('填写永久删除原因（至少 8 个字）', { placeholder: '说明删除原因及必要性' });
+    if (!reason || reason.trim().length < 8) return setMsg('未提交：请填写至少 8 个字的审批原因。');
+    const { data, error } = await supabase.rpc('admin_request_sensitive_action', {
+      p_action_type: 'delete_member_account',
+      p_target_user_id: id,
+      p_requested_role: null,
+      p_reason: reason.trim(),
+    });
+    setMsg(error ? '提交删除审批失败：' + error.message : '已提交删除申请，等待超级管理员审批（' + String(data).slice(0, 8) + '）。');
+  }
+
   async function setRole(id: string, newRole: string, name: string) {
     if (id === me) return setMsg('不能修改自己的角色');
     if (newRole !== 'admin' && newRole !== 'member') return setMsg('该角色变更暂不支持直接申请');
@@ -409,10 +425,11 @@ function Members({ me, isSuper, setMsg, extQ }: { me: string; isSuper: boolean; 
           </div>
         </div>
         <div style={rowBtn}>
+          {canRequest && m.role === 'member' && <button className="mini danger" disabled={m.id === me} onClick={() => void requestDelete(m.id, m.display_name || m.username)}>申请永久删除</button>}
           {isSuper && (m.joined
             ? <button className="mini danger" disabled={m.id === me || memberActionBusy || m.role !== 'member'} onClick={() => setJoined([m.id], false)}>暂停班级权限</button>
             : <button className="mini" disabled={memberActionBusy || m.role !== 'member'} onClick={() => setJoined([m.id], true)}>恢复班级权限</button>)}
-          {isSuper && m.role !== 'super_admin' && (
+          {canRequest && m.role !== 'super_admin' && (
             <select value={m.role} onChange={e => setRole(m.id, e.target.value, m.display_name || m.username)}
               style={{ width: 'auto', padding: '6px 8px', fontSize: 12.5 }} disabled={m.id === me}>
               <option value="member">普通成员</option>

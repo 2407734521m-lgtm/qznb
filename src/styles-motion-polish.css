@@ -124,6 +124,9 @@
 /* Site-wide motion accents inspired by Motion, React Bits and Aceternity.
    Keep effects transform/opacity based so mobile scrolling stays responsive. */
 .qz-route-transition{transform-origin:50% 20%;will-change:transform,opacity}
+/* The particle-flower page uses a viewport-fixed canvas. Keep its route wrapper
+   free of transform/will-change:transform so fixed descendants stay viewport-relative. */
+.qz-route-transition--fullscreen{transform:none!important;will-change:opacity}
 .tabbar .dock-item>a{isolation:isolate;overflow:hidden}
 .tabbar .dock-active-indicator{
   position:absolute;left:24%;right:24%;bottom:3px;height:2px;border-radius:99px;

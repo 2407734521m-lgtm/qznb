@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase';
 import { confirmDialog, promptDialog } from '../lib/dialog';
 import { alog } from '../pages/admin/shared';
 import AdminMemberModal from './AdminMemberModal';
+import AdminMemberModeration from './AdminMemberModeration';
 
 type Account = {
   id: string;
@@ -44,6 +45,7 @@ export default function AdminAccountManagement({
   const [roleFilter, setRoleFilter] = useState<'all' | 'member' | 'admin' | 'super_admin'>('all');
   const [sortBy, setSortBy] = useState<'newest' | 'recent_login' | 'oldest'>('newest');
   const [detailId, setDetailId] = useState<string | null>(null);
+  const [moderationId, setModerationId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
@@ -223,6 +225,7 @@ export default function AdminAccountManagement({
 
   const activeCount = rows.filter((r) => r.joined).length;
   const disabledCount = rows.length - activeCount;
+  const moderationTarget = rows.find(account => account.id === moderationId && account.role === 'member') ?? null;
 
   return <section>
     <div style={panel}>
@@ -321,6 +324,8 @@ export default function AdminAccountManagement({
       </div>}
 
       <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap', marginTop: 10 }}>
+        {isSuper && r.role === 'member' && <button style={{ ...btn, borderColor: '#e6a85c66', color: '#f1c37d' }}
+          onClick={() => setModerationId(current => current === r.id ? null : r.id)}>纪律管理</button>}
         <button style={btn} onClick={() => setDetailId(r.id)}>成员档案 / 活动记录</button>
         <button style={btn} onClick={() => void copyAccountId(r)}>复制账号 ID</button>
         <button style={{ ...btn, borderColor: r.joined ? '#ff879655' : '#7ed9b055', color: r.joined ? '#ffb5c1' : '#8de0b7' }}
@@ -338,6 +343,12 @@ export default function AdminAccountManagement({
       </div>
     </article>)}
     {detailId && <AdminMemberModal memberId={detailId} onClose={() => setDetailId(null)} onChanged={load} isSuper={isSuper} />}
+    {moderationTarget && <AdminMemberModeration
+      memberId={moderationTarget.id}
+      memberName={moderationTarget.display_name || moderationTarget.username}
+      onClose={() => setModerationId(null)}
+      setMsg={setMsg}
+    />}
     {pageCount > 1 && <div style={{ ...panel, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 12 }}>
       <button style={btn} disabled={page === 0} onClick={() => setPage(value => Math.max(0, value - 1))}>上一页</button>
       <span style={muted}>{page + 1} / {pageCount}</span>
@@ -346,7 +357,7 @@ export default function AdminAccountManagement({
     <div style={{ ...panel, ...muted }}>
       <strong style={{ color: '#dce5ff' }}>管理边界说明</strong>
       <div>本版的“暂停班级权限”沿用现有 set_joined 权限函数，只限制班级成员权限，不会阻止 Supabase 登录，也不等同于远程撤销会话。</div>
-      <div>禁言需要单独的发言限制和数据库策略；本版不会把禁用账号伪装成禁言，也不会假装已经采集到真实 IP 定位。</div>
+      <div>社区禁言、私聊禁言和全站互动限制由数据库 RLS 与受保护的管理函数执行；浏览、登录和举报能力保持独立。</div>
     </div>
   </section>;
 }

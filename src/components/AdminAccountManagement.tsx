@@ -282,7 +282,15 @@ export default function AdminAccountManagement({
       </div>
       {filtered.some(account => selected.has(account.id)) && <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap', marginTop: 9, alignItems: 'center' }}>
         <span style={{ ...muted, alignSelf: 'center' }}>当前筛选已选 {filtered.filter(account => selected.has(account.id)).length} 个</span>
-        <button style={btn} onClick={() => setMessageRecipients(filtered.filter(account => selected.has(account.id) && account.role === 'member').map(account => ({ id: account.id, name: account.display_name || account.username })))}>发送给已选成员</button>
+        <button style={btn} onClick={() => {
+          const recipients = filtered.filter(account => selected.has(account.id) && account.role === 'member')
+            .map(account => ({ id: account.id, name: account.display_name || account.username }));
+          if (recipients.length > 100) {
+            setMsg('每次最多向 100 位成员发送消息，请减少选中人数后重试。');
+            return;
+          }
+          setMessageRecipients(recipients);
+        }}>发送给已选成员</button>
         <button style={btn} disabled={batchBusy} onClick={exportSelected}>导出已选 CSV</button>
         <button style={{ ...btn, color: '#8de0b7' }} disabled={batchBusy} onClick={() => void batchSetJoined(true)}>批量恢复</button>
         <button style={{ ...btn, color: '#ffb5c1' }} disabled={batchBusy} onClick={() => void batchSetJoined(false)}>批量暂停权限</button>

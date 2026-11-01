@@ -1109,11 +1109,17 @@ button.ghost, .mini.ghost {
   border:1px solid #cfe2e5; border-radius:16px; background:#fff;
   box-shadow:0 5px 18px rgba(24,92,103,.07), inset 0 1px 0 #fff;
 }
+/* 焦点环画在外层框上：里层 input 必须彻底无框，否则全局 input 样式
+   会给它再描一层边，出现截图里的双框错位。 */
+.global-search-input-wrap:focus-within {
+  border-color:#58aeb0; box-shadow:0 0 0 3px rgba(42,157,159,.14);
+}
 .global-search-input-wrap>span { color:#398b92; font-size:26px; line-height:1; }
 .global-search-input-wrap input {
-  flex:1; min-width:0; margin:0; padding:12px 0; border:0; outline:0; box-shadow:none!important;
+  flex:1; width:auto; min-width:0; margin:0; padding:12px 0; border:0!important; outline:0; box-shadow:none!important;
   background:transparent!important; font-size:16px; color:#203b4b;
 }
+.global-search-input-wrap input:focus { border-color:transparent!important; box-shadow:none!important; }
 .global-search-input-wrap button { border:0; background:transparent; color:#42858c; font-size:12px; }
 .global-search-results { min-height:80px; overflow-y:auto; overscroll-behavior:contain; margin-top:18px; }
 .global-search-history { margin-top:20px; }

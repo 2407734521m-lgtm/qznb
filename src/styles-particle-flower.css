@@ -306,3 +306,68 @@
   .bloom-hand-preview-canvas{height:72px}
   .bloom-hand-preview-state{font-size:7px}
 }
+
+
+/* Recognition UI: compact, subtle candidate controls; keep the bottom-right hand preview clear. */
+.bloom-page.tool-write .bloom-ink-canvas{opacity:0!important}
+.bloom-ink-tools{
+  left:clamp(16px,3vw,40px);
+  right:clamp(196px,22vw,260px);
+  transform:none;
+  max-width:none;
+  justify-content:flex-start;
+  flex-wrap:wrap;
+  border-radius:20px;
+}
+.bloom-ink-status{
+  display:flex;
+  flex-direction:column;
+  align-items:flex-start;
+  gap:3px;
+  white-space:normal;
+}
+.bloom-ink-status small{
+  color:#9e879a;
+  font:8px Inter,"Noto Sans SC",sans-serif;
+  letter-spacing:.25px;
+}
+.bloom-ink-candidates{display:flex;align-items:center;gap:4px;padding:0 3px}
+.bloom-ink-candidates span{color:#ae98a8;font:9px "Noto Sans SC",sans-serif;white-space:nowrap}
+.bloom-ink-candidates button{
+  min-width:28px;width:28px;height:28px;padding:0!important;border-radius:9px!important;
+  font:15px "Noto Sans SC",sans-serif!important
+}
+.bloom-ink-candidates button.selected{
+  background:rgba(241,182,207,.22);color:#ffe5f0;
+  border-color:rgba(244,184,211,.44);box-shadow:0 0 14px rgba(231,140,180,.15)
+}
+.bloom-ink-tools .bloom-ink-confirm{
+  border-color:rgba(243,187,211,.34);
+  background:linear-gradient(135deg,rgba(225,151,184,.24),rgba(245,207,204,.13));
+  color:#ffe8f0
+}
+.bloom-ink-word{
+  color:#f5cddd;font:13px "Noto Sans SC",sans-serif;letter-spacing:2px;padding:0 4px;
+  text-shadow:0 0 12px rgba(232,148,183,.3)
+}
+@media(max-width:700px){
+  .bloom-ink-tools{
+    left:12px;right:164px;bottom:calc(12px + env(safe-area-inset-bottom));
+    max-width:none;gap:4px;padding:7px;border-radius:17px
+  }
+  .bloom-ink-status{max-width:100%;font-size:8px}
+  .bloom-ink-status small{font-size:7px}
+  .bloom-ink-candidates{gap:3px}
+  .bloom-ink-candidates button{min-width:25px;width:25px;height:25px;font-size:13px!important}
+  .bloom-ink-tools button{padding:7px 9px;font-size:8px}
+  .bloom-ink-word{font-size:11px;letter-spacing:1px}
+}
+@media(max-width:700px) and (orientation:landscape){
+  .bloom-ink-tools{
+    left:12px;right:150px;bottom:calc(10px + env(safe-area-inset-bottom));
+    gap:3px;padding:6px
+  }
+  .bloom-hand-preview{
+    right:10px;bottom:calc(72px + env(safe-area-inset-bottom));width:128px
+  }
+}

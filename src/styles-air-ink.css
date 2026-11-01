@@ -1,0 +1,75 @@
+:root{--air-ink-pink:#f3b2ce}
+.air-ink-page{position:fixed;inset:0;z-index:190;overflow:hidden;background:radial-gradient(ellipse at 50% 43%,#211423 0%,#100b16 52%,#09070d 100%);color:#f8edf3;font-family:Inter,"Noto Sans SC",sans-serif;isolation:isolate}
+.air-ink-camera{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform:scaleX(-1);opacity:.1;filter:brightness(.75) saturate(.12);z-index:0}
+.air-ink-canvas{position:absolute;inset:0;width:100%;height:100%;z-index:2;pointer-events:none}
+.air-ink-vignette{position:absolute;inset:0;z-index:1;pointer-events:none;background:radial-gradient(ellipse at 50% 45%,transparent 22%,rgba(9,6,13,.2) 62%,rgba(9,6,13,.8) 100%),linear-gradient(180deg,rgba(9,6,13,.66),transparent 30%,transparent 72%,rgba(9,6,13,.55)}
+.air-ink-header{position:absolute;z-index:8;top:calc(22px + env(safe-area-inset-top));left:clamp(18px,4vw,54px);right:clamp(18px,4vw,54px);display:flex;align-items:flex-start;justify-content:space-between;gap:18px}
+.air-ink-eyebrow{color:#d79ab8;font:9px/1.4 Inter,Arial,sans-serif;letter-spacing:2.5px}
+.air-ink-header h1{margin:8px 0 5px;color:#fff5f8;font:500 clamp(24px,4vw,38px)/1.2 "Noto Serif SC","Songti SC",serif;letter-spacing:3px}
+.air-ink-header p{max-width:500px;margin:0;color:#c9b7c6;font:12px/1.8 "Noto Sans SC",sans-serif}
+.air-ink-exit{display:flex;align-items:center;gap:7px;padding:10px 16px;border:1px solid rgba(255,255,255,.23);border-radius:999px;background:rgba(255,255,255,.075);color:#f8eaf0;backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);font:12px Inter,"Noto Sans SC",sans-serif;cursor:pointer}
+.air-ink-start{position:absolute;z-index:6;left:50%;top:50%;width:min(420px,calc(100vw - 38px));transform:translate(-50%,-42%);padding:30px 28px;border:1px solid rgba(255,255,255,.14);border-radius:26px;background:rgba(31,18,33,.64);box-shadow:0 24px 90px rgba(0,0,0,.28);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);text-align:center}
+.air-ink-start-mark{margin:0 auto 10px;color:#f2b6d1;font-size:36px;text-shadow:0 0 28px rgba(245,158,197,.5)}
+.air-ink-start h2{margin:0 0 9px;color:#fff2f7;font:500 21px "Noto Serif SC","Songti SC",serif;letter-spacing:2px}
+.air-ink-start p{margin:0 auto 20px;max-width:310px;color:#bdaabd;font:11px/1.8 "Noto Sans SC",sans-serif}
+.air-ink-primary{min-height:44px;padding:0 24px;border:1px solid #f4c8d9;border-radius:999px;background:linear-gradient(135deg,#f8dce7,#d889ae);color:#2a1421;font:12px "Noto Sans SC",sans-serif;letter-spacing:1px;cursor:pointer}
+.air-ink-hint{margin-top:16px;color:#8f7d91;font:9px/1.6 "Noto Sans SC",sans-serif}
+.air-ink-error{margin-top:16px;padding:10px 12px;border:1px solid rgba(233,154,173,.32);border-radius:12px;background:rgba(57,27,44,.6);color:#ffd5df;font:11px/1.6 "Noto Sans SC",sans-serif}
+.air-ink-loading{position:absolute;z-index:20;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:rgba(9,6,13,.88);backdrop-filter:blur(20px);color:#f8dce8;font:13px "Noto Sans SC",sans-serif}
+.air-ink-loader{color:#f3b2ce;font-size:40px;animation:air-ink-pulse 1.5s ease-in-out infinite;text-shadow:0 0 26px rgba(243,178,206,.7)}
+.air-ink-load-track{width:min(260px,68vw);height:3px;overflow:hidden;border-radius:99px;background:rgba(255,255,255,.13)}
+.air-ink-load-track span{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,#e9a4bf,#fff0df);transition:width .25s ease}
+.air-ink-loading small{color:#a993a5;font:10px Inter,Arial,sans-serif}
+@keyframes air-ink-pulse{50%{transform:scale(1.13);opacity:.72}}
+.air-ink-toolbar{position:absolute;z-index:9;left:clamp(16px,3vw,42px);right:clamp(16px,3vw,42px);bottom:calc(22px + env(safe-area-inset-bottom));display:flex;align-items:center;gap:7px;flex-wrap:wrap;padding:11px 12px;border:1px solid rgba(255,255,255,.18);border-radius:20px;background:rgba(24,13,27,.68);color:#f4e5ed;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);box-shadow:0 12px 34px rgba(0,0,0,.24)}
+.air-ink-toolbar>button{min-height:34px;padding:0 12px;border:1px solid rgba(255,255,255,.18);border-radius:999px;background:rgba(255,255,255,.065);color:#f5dce8;font:10px "Noto Sans SC",sans-serif;white-space:nowrap;cursor:pointer}
+.air-ink-confirm{border-color:rgba(243,187,211,.42)!important;background:linear-gradient(135deg,rgba(225,151,184,.34),rgba(245,207,204,.17))!important;color:#ffe8f0!important}
+.air-ink-save{border-color:rgba(255,226,238,.28)!important;background:rgba(255,255,255,.1)!important}
+.air-ink-status{display:flex;flex-direction:column;gap:4px;min-width:175px;max-width:250px;margin-right:3px}
+.air-ink-status>span{color:#e5d4e0;font-size:10px}
+.air-ink-status>i,.air-ink-hand-state i{display:inline-block;width:7px;height:7px;flex:0 0 7px;border-radius:50%;background:#a891a2;box-shadow:0 0 8px #a891a2}
+.air-ink-status.drawing>span{color:#ffe3ee}
+.air-ink-status.drawing>i{background:#f3b4cf;box-shadow:0 0 11px #f3b4cf}
+.air-ink-status small{color:#9e879a;font:8px/1.45 "Noto Sans SC",sans-serif}
+.air-ink-candidates{display:flex;align-items:center;gap:5px;padding:0 4px}
+.air-ink-candidates>span{color:#ae98a8;font:9px "Noto Sans SC",sans-serif}
+.air-ink-candidates button{width:30px;height:30px;border:1px solid rgba(255,255,255,.16);border-radius:9px;background:rgba(255,255,255,.06);color:#f5dce8;font:16px "Noto Sans SC",sans-serif;cursor:pointer}
+.air-ink-candidates button.selected{background:rgba(241,182,207,.22);color:#ffe5f0;border-color:rgba(244,184,211,.44)}
+.air-ink-result{display:flex;align-items:center;gap:8px;margin-left:auto;padding:0 8px}
+.air-ink-result small{color:#aa98a9;font:8px "Noto Sans SC",sans-serif}
+.air-ink-result strong{color:#f5cddd;font:16px "Noto Sans SC",sans-serif;letter-spacing:2px}
+.air-ink-hand-card{position:absolute;z-index:8;right:clamp(16px,3vw,38px);top:calc(116px + env(safe-area-inset-top));width:190px;padding:10px 11px 9px;border:1px solid rgba(255,255,255,.17);border-radius:17px;background:rgba(25,14,28,.55);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);box-shadow:0 12px 35px rgba(0,0,0,.2)}
+.air-ink-hand-heading{display:flex;justify-content:space-between;align-items:center;color:#e8d8e4;font:10px "Noto Sans SC",sans-serif}
+.air-ink-hand-heading small{color:#9e899b;font:8px Inter,Arial,sans-serif;letter-spacing:1px}
+.air-ink-hand-canvas{display:block;width:100%;height:150px;margin:3px 0}
+.air-ink-hand-state{display:flex;align-items:center;gap:7px;color:#a993a5;font:8px "Noto Sans SC",sans-serif}
+.air-ink-hand-state.detected{color:#f0c5d8}
+.air-ink-hand-state.detected i{background:#9edbb7;box-shadow:0 0 8px #9edbb7}
+.air-ink-bottom-note{position:absolute;z-index:5;left:clamp(18px,3vw,42px);bottom:calc(102px + env(safe-area-inset-bottom));color:rgba(224,204,219,.54);font:9px "Noto Sans SC",sans-serif}
+@media(max-width:700px){
+ .air-ink-header{top:calc(14px + env(safe-area-inset-top));left:14px;right:14px;gap:10px}
+ .air-ink-eyebrow{font-size:7px;letter-spacing:1.3px}
+ .air-ink-header h1{font-size:25px;letter-spacing:2px}
+ .air-ink-header p{max-width:255px;font-size:10px;line-height:1.6}
+ .air-ink-exit{padding:8px 12px;font-size:10px}
+ .air-ink-start{padding:24px 18px}
+ .air-ink-toolbar{left:10px;right:10px;bottom:calc(10px + env(safe-area-inset-bottom));gap:5px;padding:8px;border-radius:17px}
+ .air-ink-toolbar>button{min-height:31px;padding:0 9px;font-size:9px}
+ .air-ink-status{width:100%;max-width:none;min-width:0;margin:0 2px 2px}
+ .air-ink-status small{font-size:7px}
+ .air-ink-candidates{gap:4px}
+ .air-ink-candidates button{width:27px;height:27px;font-size:14px}
+ .air-ink-hand-card{top:calc(104px + env(safe-area-inset-top));right:10px;width:132px;padding:8px}
+ .air-ink-hand-canvas{height:100px}
+ .air-ink-hand-heading{font-size:9px}
+ .air-ink-hand-state{font-size:7px}
+ .air-ink-bottom-note{left:12px;bottom:calc(157px + env(safe-area-inset-bottom));font-size:7px}
+ .air-ink-result{margin-left:0}
+}
+@media(max-width:700px) and (orientation:landscape){
+ .air-ink-toolbar{left:10px;right:148px;bottom:calc(10px + env(safe-area-inset-bottom));gap:4px;padding:7px}
+ .air-ink-hand-card{top:calc(64px + env(safe-area-inset-top));right:10px;width:128px}
+ .air-ink-hand-canvas{height:88px}
+ .air-ink-bottom-note{bottom:calc(16px + env(safe-area-inset-bottom));max-width:42vw}
+}
+@media(prefers-reduced-motion:reduce){.air-ink-loader{animation:none}.air-ink-load-track span{transition:none}}

@@ -10,6 +10,7 @@ type Particle = {
 };
 type Mode = 'gesture' | 'demo';
 type LayoutOrientation = 'portrait' | 'landscape';
+type FpsLimit = 30 | 60 | 90 | 120 | 0;
 
 const HAND_CONNECTIONS: number[][] = [
   [0,1],[1,2],[2,3],[3,4], [0,5],[5,6],[6,7],[7,8],
@@ -115,6 +116,8 @@ export default function ParticleFlower() {
   const streamRef = useRef<MediaStream | null>(null);
   const handsRef = useRef<any>(null);
   const rafRef = useRef<number>(0);
+  const fpsLimitRef = useRef<FpsLimit>(0);
+  const startGuardRef = useRef(false);
   const cameraRafRef = useRef<number>(0);
   const particlesRef = useRef<Particle[]>([]);
   const targetRef = useRef(0.18);
@@ -129,6 +132,8 @@ export default function ParticleFlower() {
   const modeRef = useRef<Mode>('demo');
   const [mode, setMode] = useState<Mode>('demo');
   const [layoutOrientation, setLayoutOrientation] = useState<LayoutOrientation>(() => window.matchMedia('(orientation: landscape)').matches ? 'landscape' : 'portrait');
+  const [fpsLimit, setFpsLimit] = useState<FpsLimit>(0);
+  const [actualFps, setActualFps] = useState(0);
   const [openness, setOpenness] = useState(18);
   const [status, setStatus] = useState('等待手掌');
   const [cameraLive, setCameraLive] = useState(false);
@@ -170,7 +175,8 @@ export default function ParticleFlower() {
   }, [stopCamera]);
 
   const startCamera = useCallback(async () => {
-    if (loading) return;
+    if (loading || startGuardRef.current) return;
+    startGuardRef.current = true;
     setError(''); setLoading(true);
     try {
       if (!navigator.mediaDevices?.getUserMedia) throw new Error('当前浏览器不支持摄像头，或页面不是 HTTPS 安全连接。');
@@ -216,6 +222,7 @@ export default function ParticleFlower() {
       experienceStartedRef.current = true;
       setExperienceStarted(true);
       setLoading(false);
+      startGuardRef.current = false;
       let busy = false;
       let lastVideoTime = -1;
       const process = async () => {
@@ -234,6 +241,7 @@ export default function ParticleFlower() {
       stopCamera();
       setError(e?.message || '摄像头启动失败。请检查浏览器权限。');
       setLoading(false);
+      startGuardRef.current = false;
     }
   }, [loading, stopCamera]);
 
@@ -242,7 +250,7 @@ export default function ParticleFlower() {
     if (!canvas) return;
     const ctx = canvas.getContext('2d', { alpha: true, desynchronized: true });
     if (!ctx) return;
-    let width = 0, height = 0, dpr = 1, lastTime = 0;
+    let width = 0, height = 0, dpr = 1, lastTime = 0, lastRenderedTime = 0, fpsWindowStart = 0, fpsFrames = 0;
     const mobile = window.matchMedia('(max-width: 700px)').matches;
     const cores = navigator.hardwareConcurrency || 4;
     const memory = (navigator as any).deviceMemory || 4;
@@ -261,7 +269,12 @@ export default function ParticleFlower() {
     resize();
     const render = (time: number) => {
       rafRef.current = requestAnimationFrame(render);
-      const dt = Math.min(0.032, Math.max(0.001, (time-lastTime)/1000 || 0.016));
+      const targetFps = fpsLimitRef.current;
+      const frameInterval = targetFps > 0 ? 1000 / targetFps : 0;
+      if (frameInterval && time - lastRenderedTime < frameInterval - 0.5) return;
+      const elapsed = lastTime ? (time-lastTime)/1000 : 1/60;
+      const dt = Math.min(0.05, Math.max(0.001, elapsed));
+      lastRenderedTime = time;
       lastTime = time;
       const spring = 18, damping = 8.5;
       const accel = (targetRef.current-currentRef.current)*spring - velocityRef.current*damping;
@@ -342,7 +355,13 @@ export default function ParticleFlower() {
         ctx.beginPath(); ctx.moveTo(p.x-8,p.y); ctx.lineTo(p.x+8,p.y); ctx.moveTo(p.x,p.y-8); ctx.lineTo(p.x,p.y+8); ctx.stroke();
         ctx.beginPath(); ctx.arc(p.x,p.y,13,0,Math.PI*2); ctx.strokeStyle='rgba(255,244,235,.22)'; ctx.stroke(); ctx.restore();
       }
-      if (time-lastHudRef.current>90) {
+      fpsFrames++;
+      if (!fpsWindowStart) fpsWindowStart = time;
+      if (time - fpsWindowStart >= 500) {
+        setActualFps(Math.round(fpsFrames * 1000 / (time - fpsWindowStart)));
+        fpsFrames = 0; fpsWindowStart = time;
+      }
+      if (time-lastHudRef.current>250) {
         lastHudRef.current=time;
         const percent=Math.round(opennessNow*100);
         setOpenness(percent);
@@ -426,6 +445,11 @@ export default function ParticleFlower() {
         <div className="bloom-progress"><span style={{width:openness+'%'}} /></div>
         <div className="bloom-hud-meta">{particleCount.toLocaleString()} LIGHT PARTICLES</div>
       </aside>
+      <div className="bloom-fps-switch" role="group" aria-label="动画帧率上限">
+        <span>FPS</span>
+        {([30, 60, 90, 120, 0] as FpsLimit[]).map(value => <button key={value} className={fpsLimit === value ? 'active' : ''} onClick={() => { fpsLimitRef.current = value; setFpsLimit(value); }} aria-pressed={fpsLimit === value}>{value === 0 ? '自动' : value}</button>)}
+        <small>{actualFps}</small>
+      </div>
       <div className="bloom-orientation-switch" role="group" aria-label="画面布局方向">
         <span>布局</span>
         <button className={layoutOrientation === 'portrait' ? 'active' : ''} onClick={() => setLayoutOrientation('portrait')} aria-pressed={layoutOrientation === 'portrait'}>竖屏</button>

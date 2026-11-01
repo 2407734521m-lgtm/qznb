@@ -533,6 +533,13 @@ export default function ParticleFlower() {
         video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 60, max: 60 } }
       });
       streamRef.current = stream;
+      const cameraTrack = stream.getVideoTracks()[0];
+      cameraTrack?.addEventListener('ended', () => {
+        if (streamRef.current !== stream) return;
+        stopCamera();
+        setStatus('摄像头已断开');
+        setError('摄像头连接已中断。请检查系统摄像头权限后重新进入体验。');
+      }, { once: true });
       const video = videoRef.current;
       if (!video) throw new Error('摄像头画面容器尚未准备好。');
       setLoadingStage('正在启动摄像头');

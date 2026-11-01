@@ -23,7 +23,7 @@ const button: React.CSSProperties = {
   background: '#ffffff0d', color: '#eef0ff', fontSize: 12, cursor: 'pointer',
 };
 const typeLabels: Record<string, string> = {
-  comment: '评论', like: '点赞', greeting: '留言', notice: '公告',
+  comment: '评论', like: '点赞', greeting: '留言', notice: '公告', admin_message: '管理员消息', moderation: '纪律处理',
   love: '表白', love_wall: '表白墙', system: '系统', feedback: '反馈进度',
 };
 

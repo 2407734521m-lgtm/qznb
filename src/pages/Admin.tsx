@@ -298,6 +298,7 @@ function Members({ me, isSuper, setMsg, extQ }: { me: string; isSuper: boolean; 
   const [fRole, setFRole] = useState('all');
   const [fJoined, setFJoined] = useState('all');
   const [sel, setSel] = useState<Set<string>>(new Set());
+  const [memberActionBusy, setMemberActionBusy] = useState(false);
   const [page, setPage] = useState(0);
   const [detailId, setDetailId] = useState<string | null>(null);
   const PER = 20;
@@ -325,12 +326,32 @@ function Members({ me, isSuper, setMsg, extQ }: { me: string; isSuper: boolean; 
   const shown = filtered.slice(page * PER, (page + 1) * PER);
 
   async function setJoined(ids: string[], joined: boolean) {
-    if (!(await confirmDialog(`${joined ? '恢复' : '禁用'}选中的 ${ids.length} 个账号？`))) return;
-    for (const id of ids) {
-      const { error } = await supabase.rpc('set_joined', { target: id, j: joined });
-      if (!error) await alog(joined ? 'member_restore' : 'member_ban', { target: id });
+    if (!isSuper) return setMsg('暂停或恢复成员权限仅限超级管理员操作。');
+    if (memberActionBusy) return;
+    const targets = [...new Set(ids)].filter(id => {
+      const member = list.find(item => item.id === id);
+      return id !== me && member?.role === 'member' && member.joined !== joined;
+    });
+    if (!targets.length) return setMsg('没有可执行的普通成员账号。');
+    if (!(await confirmDialog(`${joined ? '恢复' : '暂停'}选中的 ${targets.length} 个普通成员账号的班级权限？`))) return;
+    setMemberActionBusy(true);
+    let success = 0;
+    const failures: string[] = [];
+    try {
+      for (const id of targets) {
+        const { error } = await supabase.rpc('set_joined', { target: id, j: joined });
+        if (error) failures.push(id + '：' + error.message);
+        else success++;
+      }
+      setSel(new Set());
+      await load();
+      setMsg(`批量${joined ? '恢复' : '暂停'}完成：成功 ${success} 个，失败 ${failures.length} 个。`
+        + (failures.length ? ' 首个失败原因：' + failures[0].slice(0, 100) : ''));
+    } catch (error) {
+      setMsg('批量操作未能完成：' + (error instanceof Error ? error.message : '请稍后重试。'));
+    } finally {
+      setMemberActionBusy(false);
     }
-    setSel(new Set()); load(); setMsg('已处理');
   }
   async function setRole(id: string, newRole: string, name: string) {
     if (id === me) return setMsg('不能修改自己的角色');
@@ -365,9 +386,11 @@ function Members({ me, isSuper, setMsg, extQ }: { me: string; isSuper: boolean; 
       </div>
       {sel.size > 0 && (
         <div className="row" style={{ gap: 8, marginTop: 8 }}>
-          <button className="mini" onClick={() => setJoined([...sel], true)}>恢复选中（{sel.size}）</button>
-          <button className="mini danger" onClick={() => setJoined([...sel], false)}>禁用选中（{sel.size}）</button>
-          <button className="mini ghost" onClick={() => setSel(new Set())}>取消选择</button>
+          {isSuper && <>
+            <button className="mini" disabled={memberActionBusy} onClick={() => setJoined([...sel], true)}>{memberActionBusy ? '处理中…' : `恢复选中（${sel.size}）`}</button>
+            <button className="mini danger" disabled={memberActionBusy} onClick={() => setJoined([...sel], false)}>{memberActionBusy ? '处理中…' : `暂停选中（${sel.size}）`}</button>
+          </>}
+          <button className="mini ghost" disabled={memberActionBusy} onClick={() => setSel(new Set())}>取消选择</button>
         </div>
       )}
     </div>
@@ -386,9 +409,9 @@ function Members({ me, isSuper, setMsg, extQ }: { me: string; isSuper: boolean; 
           </div>
         </div>
         <div style={rowBtn}>
-          {m.joined
-            ? <button className="mini danger" disabled={m.id === me} onClick={() => setJoined([m.id], false)}>暂停班级权限</button>
-            : <button className="mini" onClick={() => setJoined([m.id], true)}>恢复班级权限</button>}
+          {isSuper && (m.joined
+            ? <button className="mini danger" disabled={m.id === me || memberActionBusy || m.role !== 'member'} onClick={() => setJoined([m.id], false)}>暂停班级权限</button>
+            : <button className="mini" disabled={memberActionBusy || m.role !== 'member'} onClick={() => setJoined([m.id], true)}>恢复班级权限</button>)}
           {isSuper && m.role !== 'super_admin' && (
             <select value={m.role} onChange={e => setRole(m.id, e.target.value, m.display_name || m.username)}
               style={{ width: 'auto', padding: '6px 8px', fontSize: 12.5 }} disabled={m.id === me}>

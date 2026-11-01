@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../auth';
@@ -74,14 +74,18 @@ export default function Friends() {
   const [searchError, setSearchError] = useState('');
   const [sentRequestIds, setSentRequestIds] = useState<string[]>([]);
   const [friendActionId, setFriendActionId] = useState<string | null>(null);
+  const loadSequenceRef = useRef(0);
 
   async function load() {
+    const requestId = ++loadSequenceRef.current;
     const [friendResult, requestResult, conversationResult, sentRequestResult] = await Promise.all([
       supabase.rpc('my_friends'),
       supabase.rpc('friend_requests'),
       supabase.rpc('my_conversations'),
       supabase.from('friendships').select('addressee').eq('requester', me).eq('status', 'pending'),
     ]);
+    // Realtime 与 15 秒兜底刷新可能重叠，只允许最后一次请求更新列表。
+    if (requestId !== loadSequenceRef.current) return;
     if (friendResult.error || requestResult.error || conversationResult.error) {
       console.error('inbox load failed', friendResult.error, requestResult.error, conversationResult.error);
       setMsg('部分消息列表暂时无法加载，请稍后刷新。');
@@ -90,21 +94,33 @@ export default function Friends() {
       setReqs((requestResult.data ?? []) as Friend[]);
       setConversations((conversationResult.data ?? []) as ConversationPreview[]);
       setSentRequestIds((sentRequestResult.data ?? []).map(row => row.addressee as string));
-      if (sentRequestResult.error) console.warn('outgoing friend requests unavailable', sentRequestResult.error);
-      setMsg('');
+      if (sentRequestResult.error) {
+        console.warn('outgoing friend requests unavailable', sentRequestResult.error);
+        setMsg('好友与消息已加载，但待发出的好友申请状态暂时无法读取。');
+      } else {
+        setMsg('');
+      }
     }
     setLoading(false);
   }
 
   useEffect(() => {
     void load();
+    let realtimeTimer: number | undefined;
+    const scheduleLoad = () => {
+      // 合并短时间内连续到达的多条消息事件，避免重复查询四组列表。
+      window.clearTimeout(realtimeTimer);
+      realtimeTimer = window.setTimeout(() => { void load(); }, 180);
+    };
     const channel = supabase.channel('inbox-' + me)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, () => { void load(); })
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'conversation_members', filter: 'profile_id=eq.' + me }, () => { void load(); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, scheduleLoad)
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'conversation_members', filter: 'profile_id=eq.' + me }, scheduleLoad)
       .subscribe();
     const fallback = window.setInterval(() => { void load(); }, 15000);
     return () => {
       window.clearInterval(fallback);
+      window.clearTimeout(realtimeTimer);
+      loadSequenceRef.current += 1;
       void supabase.removeChannel(channel);
     };
     // The authenticated user is stable for this mounted page.

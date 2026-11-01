@@ -650,3 +650,121 @@
   .bloom-start-actions{margin-top:8px}
   .bloom-control-panel .bloom-immersive-start,.bloom-control-panel .bloom-preview-start{min-height:43px}
 }
+
+
+/* 花冠触碰反馈：手指命中哪一瓣，就让该瓣粒子向花心收拢。 */
+.bloom-page.is-active:not(.tool-write) .bloom-bloom-progress{
+  display:block!important;
+  position:absolute;
+  z-index:28;
+  left:clamp(18px,3vw,36px);
+  right:auto;
+  bottom:calc(20px + env(safe-area-inset-bottom));
+  width:205px;
+  padding:12px 14px 11px;
+  border:1px solid rgba(255,225,239,.2);
+  border-radius:16px;
+  background:linear-gradient(145deg,rgba(30,15,29,.62),rgba(17,10,20,.48));
+  box-shadow:0 12px 32px rgba(0,0,0,.2),inset 0 1px 0 rgba(255,255,255,.06);
+  backdrop-filter:blur(18px);
+  -webkit-backdrop-filter:blur(18px);
+  pointer-events:none;
+}
+.bloom-bloom-progress .bloom-hud-label{
+  color:#e5a6c2;
+  font-size:8px;
+  letter-spacing:1.8px;
+}
+.bloom-bloom-progress .bloom-hud-state{
+  margin-top:7px;
+  font-size:14px;
+  color:#fff0f5;
+}
+.bloom-bloom-progress .bloom-hud-number{
+  top:20px;
+  right:13px;
+  font-size:25px;
+}
+.bloom-bloom-progress .bloom-progress{
+  margin-top:9px;
+  height:3px;
+  border-radius:99px;
+  background:rgba(255,255,255,.16);
+  overflow:hidden;
+}
+.bloom-bloom-progress .bloom-progress span{
+  border-radius:inherit;
+  background:linear-gradient(90deg,#ffe3c7,#f5b2d0,#e879ad);
+  box-shadow:0 0 10px rgba(243,159,193,.6);
+}
+.bloom-bloom-progress .bloom-hud-meta{margin-top:7px;font-size:7px}
+.bloom-page.tool-write.is-active .bloom-bloom-progress{display:none!important}
+
+/* 空中书写是独立入口，不在花朵的模式选择器里。 */
+.bloom-air-ink-launch{
+  width:100%;
+  display:flex;
+  align-items:center;
+  gap:12px;
+  margin-top:10px;
+  padding:12px 15px;
+  border:1px solid rgba(240,192,215,.18);
+  border-radius:16px;
+  color:#f2dce8;
+  background:linear-gradient(110deg,rgba(230,167,197,.09),rgba(255,255,255,.025));
+  text-align:left;
+  cursor:pointer;
+  transition:background .2s,border-color .2s,transform .2s;
+}
+.bloom-air-ink-launch:active{
+  transform:scale(.985);
+  background:rgba(236,177,207,.13);
+  border-color:rgba(240,192,215,.34);
+}
+.bloom-air-ink-icon{
+  display:grid;
+  place-items:center;
+  width:34px;
+  height:34px;
+  flex:0 0 34px;
+  border:1px solid rgba(242,190,214,.22);
+  border-radius:11px;
+  color:#f4bad3;
+  background:rgba(236,169,202,.1);
+  font:20px/1 Inter,Arial,sans-serif;
+}
+.bloom-air-ink-launch>span:nth-child(2){display:flex;flex:1;flex-direction:column;gap:4px}
+.bloom-air-ink-launch b{
+  color:#f7e8f0;
+  font:11px "Noto Sans SC",sans-serif;
+  font-weight:500;
+  letter-spacing:.8px;
+}
+.bloom-air-ink-launch small{
+  color:#a993a5;
+  font:8px Inter,"Noto Sans SC",sans-serif;
+  letter-spacing:.2px;
+}
+.bloom-air-ink-arrow{color:#d7a7bf;font:17px Inter,Arial,sans-serif}
+@media(max-width:700px){
+  .bloom-page.is-active:not(.tool-write) .bloom-bloom-progress{
+    left:14px;
+    bottom:calc(16px + env(safe-area-inset-bottom));
+    width:164px;
+    padding:10px 11px;
+    border-radius:14px;
+  }
+  .bloom-bloom-progress .bloom-hud-number{top:19px;right:11px;font-size:23px}
+  .bloom-bloom-progress .bloom-hud-state{font-size:12px}
+  .bloom-bloom-progress .bloom-hud-meta{font-size:6px}
+  .bloom-air-ink-launch{margin-top:8px;padding:10px 12px}
+  .bloom-air-ink-icon{width:30px;height:30px;flex-basis:30px}
+}
+@media(max-width:700px) and (orientation:landscape){
+  .bloom-page.is-active:not(.tool-write) .bloom-bloom-progress{
+    left:14px;
+    right:auto;
+    bottom:calc(14px + env(safe-area-inset-bottom));
+    width:154px;
+  }
+}

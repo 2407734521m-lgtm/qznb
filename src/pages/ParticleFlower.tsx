@@ -6,7 +6,7 @@ type Point = { x: number; y: number; z: number };
 type Particle = {
   seed: number; angle: number; depth: number; size: number; phase: number; tone: number; petalId: number;
   budX: number; budY: number; budZ: number; bloomX: number; bloomY: number; bloomZ: number;
-  x: number; y: number; vx: number; vy: number; projectionScale: number;
+  x: number; y: number; vx: number; vy: number; projectionScale: number; rim: boolean;
 };
 type Mode = 'gesture' | 'demo';
 type ExperienceTool = 'flower' | 'write';
@@ -79,7 +79,8 @@ function makeParticles(count: number): Particle[] {
       phase: Math.random() * TAU,
       tone: along < 0.35 ? 0 : layer === 0 ? 1 : layer === 1 ? 2 : 3,
       petalId: layer * 8 + petalIndex,
-      budX, budY, budZ, bloomX, bloomY, bloomZ, x: 0, y: 0, vx: 0, vy: 0, projectionScale: 1
+      budX, budY, budZ, bloomX, bloomY, bloomZ, x: 0, y: 0, vx: 0, vy: 0, projectionScale: 1,
+      rim: Math.abs(across) > widthProfile * 0.105 * layerScale * 0.68
     });
   }
   return out;
@@ -342,6 +343,8 @@ export default function ParticleFlower() {
   const currentRef = useRef(0.72);
   const velocityRef = useRef(0);
   const fingerRef = useRef<Point | null>(null);
+  const gestureRotationRef = useRef(0);
+  const fingerTrailRef = useRef<Array<{ x: number; y: number; t: number }>>([]);
   const landmarksRef = useRef<any[] | null>(null);
   const hasHandRef = useRef(false);
   const experienceStartedRef = useRef(false);
@@ -351,6 +354,10 @@ export default function ParticleFlower() {
   const [mode, setMode] = useState<Mode>('demo');
   const [layoutOrientation, setLayoutOrientation] = useState<LayoutOrientation>(() => window.matchMedia('(orientation: landscape)').matches ? 'landscape' : 'portrait');
   const [fpsLimit, setFpsLimit] = useState<FpsLimit>(initialFpsLimit);
+  const [qualityPreset, setQualityPreset] = useState<'auto' | 'soft' | 'standard' | 'ultra' | 'custom'>('auto');
+  const [focusMode, setFocusMode] = useState(false);
+  const [performanceNotice, setPerformanceNotice] = useState('设备自适应已开启');
+  const autoFpsLowSamplesRef = useRef(0);
   const [actualFps, setActualFps] = useState(0);
   const [openness, setOpenness] = useState(18);
   const [status, setStatus] = useState('等待手掌');
@@ -443,6 +450,7 @@ export default function ParticleFlower() {
     if (loading || startGuardRef.current) return;
     experienceToolRef.current = tool;
     setExperienceTool(tool);
+    setFocusMode(false);
     targetRef.current = 0.18;
     currentRef.current = 0.18;
     velocityRef.current = 0;
@@ -547,7 +555,9 @@ export default function ParticleFlower() {
             setIsWriting(false);
             scheduleInkRecognition();
           }
-          targetRef.current = 0.18; hasHandRef.current = false; setHasHand(false); return;
+          targetRef.current = 0.18; hasHandRef.current = false; setHasHand(false);
+          gestureRotationRef.current = lerp(gestureRotationRef.current, 0, 0.06);
+          return;
         }
         landmarksRef.current = hand;
         const wrist = hand[0], middleBase = hand[9];
@@ -559,6 +569,12 @@ export default function ParticleFlower() {
         const index = hand[8];
         const screenPoint = { x: (1-index.x) * viewportRef.current.width, y: index.y * viewportRef.current.height };
         fingerRef.current = { ...screenPoint, z: index.z || 0 };
+        if (experienceToolRef.current === 'flower') {
+          const horizontalOffset = screenPoint.x / Math.max(1, viewportRef.current.width) - 0.5;
+          gestureRotationRef.current = lerp(gestureRotationRef.current, clamp(horizontalOffset * 0.3, -0.14, 0.14), 0.08);
+          fingerTrailRef.current.push({ x: screenPoint.x, y: screenPoint.y, t: performance.now() });
+          if (fingerTrailRef.current.length > 12) fingerTrailRef.current.shift();
+        }
 
         if (experienceToolRef.current === 'write') {
           // 以掌宽归一化拇指与食指指尖距离；双阈值迟滞可减少笔尖临界抖动。
@@ -657,6 +673,29 @@ export default function ParticleFlower() {
     setOrientationFallback(next === 'landscape' && !window.matchMedia('(orientation: landscape)').matches);
   }, []);
 
+  const applyQualityPreset = useCallback((preset: 'auto' | 'soft' | 'standard' | 'ultra') => {
+    const mobile = window.matchMedia('(max-width: 700px)').matches;
+    const cores = navigator.hardwareConcurrency || 4;
+    const memory = (navigator as any).deviceMemory || 4;
+    const limitedDevice = mobile && (cores <= 4 || memory <= 4);
+    const config = preset === 'soft'
+      ? { count: mobile ? 1200 : 2200, size: 0.9, glow: 0.78, fps: (mobile ? 30 : 60) as FpsLimit }
+      : preset === 'standard'
+        ? { count: mobile ? 1800 : 3200, size: 1, glow: 1, fps: (mobile ? 60 : 0) as FpsLimit }
+        : preset === 'ultra'
+          ? { count: mobile ? 3000 : 5400, size: 1.1, glow: 1.22, fps: 0 as FpsLimit }
+          : { count: limitedDevice ? 1400 : mobile ? 2200 : 3800, size: 1, glow: 1, fps: (mobile ? 60 : 0) as FpsLimit };
+    setQualityPreset(preset);
+    particleCountRef.current = config.count; setParticleCount(config.count);
+    particleSizeRef.current = config.size; setParticleSize(config.size);
+    glowIntensityRef.current = config.glow; setGlowIntensity(config.glow);
+    fpsLimitRef.current = config.fps; setFpsLimit(config.fps);
+    autoFpsLowSamplesRef.current = 0;
+    setPerformanceNotice(preset === 'auto' ? '已按设备能力自动配置' : '已应用画质预设');
+    if (particleRebuildTimerRef.current) window.clearTimeout(particleRebuildTimerRef.current);
+    particleRebuildTimerRef.current = window.setTimeout(() => { particlesRef.current = makeParticles(config.count); }, 140);
+  }, []);
+
   const exitExperience = useCallback(async () => {
     stopCamera();
     try { (screen as any).orientation?.unlock?.(); } catch {}
@@ -728,7 +767,7 @@ export default function ParticleFlower() {
 
       if (experienceToolRef.current === 'flower') {
         const ps = particlesRef.current;
-        const yaw = now*.085 + Math.sin(now*.17)*.025;
+        const yaw = now*.085 + Math.sin(now*.17)*.025 + gestureRotationRef.current;
         const cosYaw=Math.cos(yaw),sinYaw=Math.sin(yaw);
         const pitch=.2+Math.sin(now*.13)*.018;
         const cosPitch=Math.cos(pitch),sinPitch=Math.sin(pitch);
@@ -737,6 +776,17 @@ export default function ParticleFlower() {
         halo.addColorStop(0,'rgba(226,105,161,'+(.075+opennessNow*.07)+')');
         halo.addColorStop(1,'rgba(120,50,105,0)');
         ctx.fillStyle=halo;ctx.fillRect(0,0,width,height);
+        // A warm inner light gives the layered flower a visible centre and a gentle breathing pulse.
+        const corePulse = 0.92 + Math.sin(now * 1.15) * 0.08;
+        const coreRadius = scale * (0.025 + opennessNow * 0.012) * corePulse;
+        const coreGlow = ctx.createRadialGradient(cx, cy, 0, cx, cy, coreRadius * 4.2);
+        coreGlow.addColorStop(0, 'rgba(255,245,224,.42)');
+        coreGlow.addColorStop(.18, 'rgba(255,205,205,.19)');
+        coreGlow.addColorStop(1, 'rgba(244,144,190,0)');
+        ctx.save(); ctx.globalCompositeOperation = 'lighter';
+        ctx.fillStyle = coreGlow; ctx.beginPath(); ctx.arc(cx, cy, coreRadius * 4.2, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = 'rgba(255,242,219,.42)'; ctx.beginPath(); ctx.arc(cx, cy, coreRadius * .55, 0, Math.PI * 2); ctx.fill();
+        ctx.restore();
 
         // Additive prebuilt sprites avoid per-frame sorting and per-particle canvas paths.
         // Detect the touched petal first; then pull that entire petal gently toward the bloom centre.
@@ -790,6 +840,11 @@ export default function ParticleFlower() {
           const sprite=particleSprites[p.tone],diameter=size*7.2;
           ctx.globalAlpha=alpha;
           ctx.drawImage(sprite,x-diameter*.5,y-diameter*.5,diameter,diameter);
+          if (p.rim) {
+            ctx.globalAlpha = Math.min(0.24, alpha * 0.26);
+            ctx.fillStyle = 'rgba(255,242,231,.92)';
+            ctx.beginPath(); ctx.arc(x, y, Math.max(0.45, diameter * 0.045), 0, Math.PI * 2); ctx.fill();
+          }
         }
         ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';
       }
@@ -826,6 +881,20 @@ export default function ParticleFlower() {
         ctx.fill();
         ctx.restore();
       }
+      if (experienceToolRef.current === 'flower' && fingerTrailRef.current.length > 1) {
+        const trail = fingerTrailRef.current.filter(point => time - point.t < 260);
+        fingerTrailRef.current = trail;
+        if (trail.length > 1) {
+          ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+          for (let i = 1; i < trail.length; i++) {
+            const age = clamp(1 - (time - trail[i].t) / 260, 0, 1);
+            ctx.strokeStyle = 'rgba(255,190,216,' + (age * 0.2) + ')';
+            ctx.lineWidth = 1 + age * 2.2;
+            ctx.beginPath(); ctx.moveTo(trail[i - 1].x, trail[i - 1].y); ctx.lineTo(trail[i].x, trail[i].y); ctx.stroke();
+          }
+          ctx.restore();
+        }
+      }
       if (modeRef.current==='demo') {
         const p=pointerRef.current || {x:cx,y:cy};
         ctx.save(); ctx.strokeStyle='rgba(255,244,235,.75)'; ctx.lineWidth=1;
@@ -858,6 +927,27 @@ export default function ParticleFlower() {
       setStatus('演示模式');
     }
   }, [mode]);
+
+  // Auto quality only steps down after several consecutive slow samples; it never
+  // oscillates upward mid-session or overrides a manually selected preset.
+  useEffect(() => {
+    if (!experienceStarted || mode !== 'gesture' || qualityPreset !== 'auto' || actualFps <= 0) {
+      autoFpsLowSamplesRef.current = 0;
+      return;
+    }
+    const mobile = window.matchMedia('(max-width: 700px)').matches;
+    const floor = fpsLimit === 0 ? (mobile ? 42 : 48) : Math.max(22, Math.min(48, fpsLimit * 0.68));
+    if (actualFps < floor) autoFpsLowSamplesRef.current += 1;
+    else autoFpsLowSamplesRef.current = 0;
+    if (autoFpsLowSamplesRef.current >= 4 && particleCountRef.current > 800) {
+      const next = Math.max(800, Math.round((particleCountRef.current * 0.82) / 200) * 200);
+      autoFpsLowSamplesRef.current = 0;
+      particleCountRef.current = next; setParticleCount(next);
+      setPerformanceNotice('帧率偏低，已自动降低粒子密度');
+      if (particleRebuildTimerRef.current) window.clearTimeout(particleRebuildTimerRef.current);
+      particleRebuildTimerRef.current = window.setTimeout(() => { particlesRef.current = makeParticles(next); }, 160);
+    }
+  }, [actualFps, experienceStarted, mode, qualityPreset, fpsLimit]);
 
   const getLocalPointer = (clientX: number, clientY: number): Point => {
     const forcedLandscape = layoutOrientationRef.current === 'landscape' && window.innerWidth < window.innerHeight;
@@ -894,9 +984,11 @@ export default function ParticleFlower() {
   const statusChinese = mode==='demo' ? '演示模式' : !hasHand ? '等待手掌' : openness<28 ? '花苞' : openness>68 ? '绽放' : '舒展中';
 
   return (
-    <main className={'bloom-page ' + (layoutOrientation === 'landscape' ? 'orientation-landscape ' : 'orientation-portrait ') + (orientationFallback ? 'orientation-fallback ' : '') + (experienceTool === 'write' ? 'tool-write ' : '') + (experienceStarted ? 'is-active' : '')} onPointerDown={handlePointerDown} onPointerMove={handlePointerMove} onPointerUp={handlePointerUp} onPointerCancel={handlePointerUp}>
+    <main className={'bloom-page ' + (layoutOrientation === 'landscape' ? 'orientation-landscape ' : 'orientation-portrait ') + (orientationFallback ? 'orientation-fallback ' : '') + (experienceTool === 'write' ? 'tool-write ' : '') + (experienceStarted ? 'is-active ' : '') + (focusMode ? 'is-focused' : '')} onPointerDown={handlePointerDown} onPointerMove={handlePointerMove} onPointerUp={handlePointerUp} onPointerCancel={handlePointerUp}>
       <video ref={videoRef} className={'bloom-camera' + (cameraLive ? ' is-live' : '')} playsInline muted />
       <button type="button" className="bloom-exit" onClick={() => void exitExperience()} aria-label="退出指尖生花体验">× <span>退出</span></button>
+      {experienceStarted && <button type="button" className="bloom-focus-toggle" aria-pressed={focusMode} onClick={() => setFocusMode(value => !value)}>{focusMode ? '恢复界面' : '专注模式'}</button>}
+      {experienceStarted && <aside className="bloom-telemetry" aria-live="off"><span>{actualFps} FPS</span><i /> <span>{particleCount.toLocaleString()} 粒子</span><i /> <span>{hasHand ? '手势已连接' : mode === 'demo' ? '触屏演示' : '等待手势'}</span></aside>}
       {experienceStarted && experienceTool === 'write' && (
         <div className="bloom-ink-tools">
           <div className={'bloom-ink-status' + (isWriting ? ' drawing' : '')}>
@@ -1011,11 +1103,17 @@ export default function ParticleFlower() {
           <div className="bloom-kicker">BLOOM STUDIO / 光粒子工作台</div>
           <h1>让花，在指尖醒来。</h1>
           <p>调节花冠粒子的密度、大小与光感，然后进入独立的沉浸式生花体验。</p>
+          <div className="bloom-quality-presets" role="group" aria-label="画质预设">
+            <span>画质方案</span>
+            {([{ value: 'auto', label: '自动推荐' }, { value: 'soft', label: '柔和' }, { value: 'standard', label: '标准' }, { value: 'ultra', label: '极致' }] as const).map(item => (
+              <button type="button" key={item.value} className={qualityPreset === item.value ? 'active' : ''} onClick={() => applyQualityPreset(item.value)}>{item.label}</button>
+            ))}
+          </div>
           <div className="bloom-settings-grid">
             <label className="bloom-setting">
               <span><b>粒子密度</b><output>{particleCount.toLocaleString()}</output></span>
               <input aria-label="粒子密度" type="range" min="800" max="6000" step="200" value={particleCount} onChange={event=>{
-                const next=Number(event.target.value);particleCountRef.current=next;setParticleCount(next);
+                const next=Number(event.target.value);particleCountRef.current=next;setParticleCount(next);setQualityPreset('custom');
                 if(particleRebuildTimerRef.current)window.clearTimeout(particleRebuildTimerRef.current);
                 particleRebuildTimerRef.current=window.setTimeout(()=>{particlesRef.current=makeParticles(next)},160);
               }}/>
@@ -1024,14 +1122,14 @@ export default function ParticleFlower() {
             <label className="bloom-setting">
               <span><b>粒子大小</b><output>{particleSize.toFixed(1)}×</output></span>
               <input aria-label="粒子大小" type="range" min="0.5" max="2.0" step="0.1" value={particleSize} onChange={event=>{
-                const next=Number(event.target.value);particleSizeRef.current=next;setParticleSize(next);
+                const next=Number(event.target.value);particleSizeRef.current=next;setParticleSize(next);setQualityPreset('custom');
               }}/>
               <small>控制光点颗粒感和扩散范围</small>
             </label>
             <label className="bloom-setting">
               <span><b>光晕强度</b><output>{glowIntensity.toFixed(1)}×</output></span>
               <input aria-label="光晕强度" type="range" min="0.4" max="1.6" step="0.1" value={glowIntensity} onChange={event=>{
-                const next=Number(event.target.value);glowIntensityRef.current=next;setGlowIntensity(next);
+                const next=Number(event.target.value);glowIntensityRef.current=next;setGlowIntensity(next);setQualityPreset('custom');
               }}/>
               <small>调整柔光、亮点与层次感</small>
             </label>
@@ -1039,7 +1137,7 @@ export default function ParticleFlower() {
           <div className="bloom-settings-footer">
             <span>刷新上限</span>
             <div className="bloom-setting-fps" role="group" aria-label="刷新上限">
-              {([30,60,90,120,0] as FpsLimit[]).map(value=><button type="button" key={value} className={fpsLimit===value?'active':''} onClick={()=>{fpsLimitRef.current=value;setFpsLimit(value)}}>{value===0?'自动':value}</button>)}
+              {([30,60,90,120,0] as FpsLimit[]).map(value=><button type="button" key={value} className={fpsLimit===value?'active':''} onClick={()=>{fpsLimitRef.current=value;setFpsLimit(value);setQualityPreset('custom')}}>{value===0?'自动':value}</button>)}
             </div>
             <small>{actualFps} FPS</small>
           </div>

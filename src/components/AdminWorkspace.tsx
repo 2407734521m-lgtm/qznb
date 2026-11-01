@@ -46,6 +46,7 @@ const ICON_PATHS: Record<string, string> = {
   settings: 'M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z M19 13.5a7.4 7.4 0 0 0 0-3l2-1.5-2-3.5-2.4 1a7.5 7.5 0 0 0-2.6-1.5L13.6 2h-4l-.4 3a7.5 7.5 0 0 0-2.6 1.5l-2.4-1-2 3.5 2 1.5a7.4 7.4 0 0 0 0 3l-2 1.5 2 3.5 2.4-1a7.5 7.5 0 0 0 2.6 1.5l.4 3h4l.4-3a7.5 7.5 0 0 0 2.6-1.5l2.4 1 2-3.5z',
   test: 'M8 3h8 M10 3v6l-5 9a2 2 0 0 0 1.7 3h10.6A2 2 0 0 0 19 18l-5-9V3 M8 15h8',
   menu: 'M3 6h18 M3 12h18 M3 18h18',
+  star: 'm12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.3 6.4 20.2l1.1-6.2L3 9.6l6.2-.9z',
   search: 'M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16z M21 21l-4.3-4.3',
   logout: 'M10 17l5-5-5-5 M15 12H3 M12 3h7a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-7',
   chevron: 'M9 18l6-6-6-6',
@@ -116,6 +117,12 @@ export default function AdminWorkspace({
     } catch { return {}; }
   });
   const [paletteOpen, setPaletteOpen] = useState(false);
+  const [favoriteIds, setFavoriteIds] = useState<string[]>(() => {
+    try { const value = JSON.parse(localStorage.getItem('qznb-admin-favorites') || '[]'); return Array.isArray(value) ? value.filter((id): id is string => typeof id === 'string') : []; } catch { return []; }
+  });
+  const [recentIds, setRecentIds] = useState<string[]>(() => {
+    try { const value = JSON.parse(localStorage.getItem('qznb-admin-recent') || '[]'); return Array.isArray(value) ? value.filter((id): id is string => typeof id === 'string').slice(0, 5) : []; } catch { return []; }
+  });
   const [query, setQuery] = useState('');
   const [activeIndex, setActiveIndex] = useState(0);
   const commandInput = useRef<HTMLInputElement>(null);
@@ -134,6 +141,27 @@ export default function AdminWorkspace({
     ...item, group: group.label,
   }))), [groups]);
 
+  const availableItems = useMemo(() => groups.flatMap(group => group.items)
+    .filter((item, index, all) => all.findIndex(candidate => candidate.id === item.id) === index), [groups]);
+  const navigationGroups = useMemo(() => {
+    const byId = new Map(availableItems.map(item => [item.id, item]));
+    const favorites = favoriteIds.map(id => byId.get(id)).filter((item): item is {id:string;label:string} => Boolean(item));
+    const recent = recentIds.filter(id => !favoriteIds.includes(id)).map(id => byId.get(id)).filter((item): item is {id:string;label:string} => Boolean(item));
+    return [
+      ...(favorites.length ? [{ label: '常用功能', items: favorites }] : []),
+      ...(recent.length ? [{ label: '最近访问', items: recent }] : []),
+      ...groups,
+    ];
+  }, [availableItems, favoriteIds, recentIds, groups]);
+  const mobileQuickItems = useMemo(() => {
+    const byId = new Map(availableItems.map(item => [item.id, item]));
+    const pinned = favoriteIds.map(id => byId.get(id)).filter((item): item is {id:string;label:string} => Boolean(item)).slice(0, 3);
+    const fallback = ['overview', 'moderate', 'notifications', 'accounts']
+      .map(id => byId.get(id)).filter((item): item is {id:string;label:string} => Boolean(item));
+    const merged = [...pinned, ...fallback.filter(item => !pinned.some(pin => pin.id === item.id))];
+    return merged.slice(0, 4);
+  }, [availableItems, favoriteIds]);
+
   const matchingItems = useMemo(() => {
     const value = query.trim().toLowerCase();
     return flatItems.filter(item => !value || item.label.toLowerCase().includes(value) || item.group.toLowerCase().includes(value));
@@ -149,6 +177,14 @@ export default function AdminWorkspace({
   useEffect(() => {
     try { localStorage.setItem('qznb-admin-collapsed-groups', JSON.stringify(collapsedGroups)); } catch { /* storage may be disabled */ }
   }, [collapsedGroups]);
+
+  useEffect(() => {
+    try { localStorage.setItem('qznb-admin-favorites', JSON.stringify(favoriteIds)); } catch { /* storage may be disabled */ }
+  }, [favoriteIds]);
+
+  useEffect(() => {
+    try { localStorage.setItem('qznb-admin-recent', JSON.stringify(recentIds)); } catch { /* storage may be disabled */ }
+  }, [recentIds]);
 
   useEffect(() => {
     const activeGroup = groupFor(activeTab);
@@ -213,7 +249,12 @@ export default function AdminWorkspace({
 
   useEffect(() => { setActiveIndex(0); }, [query]);
 
+  function toggleFavorite(id: string) {
+    setFavoriteIds(previous => previous.includes(id) ? previous.filter(value => value !== id) : [...previous, id].slice(-8));
+  }
+
   function choose(id: string) {
+    setRecentIds(previous => [id, ...previous.filter(value => value !== id)].slice(0, 5));
     onSelect(id);
     setPaletteOpen(false);
     setMobileOpen(false);
@@ -255,7 +296,7 @@ export default function AdminWorkspace({
 
         <div className="admin-sidebar-caption">WORKSPACE</div>
         <nav className="admin-sidebar-nav">
-          {groups.map(group => (
+          {navigationGroups.map(group => (
             <section className="admin-nav-group" key={group.label}>
               <button
                 type="button"
@@ -270,15 +311,23 @@ export default function AdminWorkspace({
               </button>
               <div className={['admin-nav-group-items', collapsedGroups[group.label] ? 'is-group-collapsed' : ''].join(' ')}>
                 {group.items.map(item => (
-                  <button type="button" key={item.id}
-                    className={['admin-nav-item', activeTab === item.id ? 'is-active' : ''].join(' ')}
-                    aria-current={activeTab === item.id ? 'page' : undefined}
-                    title={collapsed ? item.label : undefined}
-                    onClick={() => choose(item.id)}>
-                    <span className="admin-nav-icon"><AdminIcon name={item.id} size={17} /></span>
-                    <span className="admin-nav-label">{item.label}</span>
-                    {activeTab === item.id && <span className="admin-nav-active-dot" />}
-                  </button>
+                  <div className="admin-nav-item-row" key={`${group.label}-${item.id}`}>
+                    <button type="button"
+                      className={['admin-nav-item', activeTab === item.id ? 'is-active' : ''].join(' ')}
+                      aria-current={activeTab === item.id ? 'page' : undefined}
+                      title={collapsed ? item.label : undefined}
+                      onClick={() => choose(item.id)}>
+                      <span className="admin-nav-icon"><AdminIcon name={item.id} size={17} /></span>
+                      <span className="admin-nav-label">{item.label}</span>
+                      {activeTab === item.id && <span className="admin-nav-active-dot" />}
+                    </button>
+                    <button type="button" className={['admin-nav-pin', favoriteIds.includes(item.id) ? 'is-pinned' : ''].join(' ')}
+                      aria-label={`${favoriteIds.includes(item.id) ? '取消常用' : '设为常用'}：${item.label}`}
+                      aria-pressed={favoriteIds.includes(item.id)} title={favoriteIds.includes(item.id) ? '取消常用' : '设为常用'}
+                      onClick={() => toggleFavorite(item.id)}>
+                      <AdminIcon name="star" size={13} />
+                    </button>
+                  </div>
                 ))}
               </div>
             </section>
@@ -350,16 +399,13 @@ export default function AdminWorkspace({
       </div>
 
       <nav className="admin-mobile-quickbar" aria-label="移动端快捷导航">
-        {['overview', 'moderate', 'notifications', 'accounts']
-          .map(id => tabs.find(item => item[0] === id))
-          .filter((item): item is AdminTab => Boolean(item))
-          .map(item => (
-            <button type="button" key={item[0]}
-              className={['admin-mobile-quick-item', activeTab === item[0] ? 'is-active' : ''].join(' ')}
-              aria-current={activeTab === item[0] ? 'page' : undefined}
-              onClick={() => choose(item[0])}>
-              <span className="admin-mobile-quick-icon"><AdminIcon name={item[0]} size={18} /></span>
-              <span>{item[1]}</span>
+        {mobileQuickItems.map(item => (
+            <button type="button" key={item.id}
+              className={['admin-mobile-quick-item', activeTab === item.id ? 'is-active' : ''].join(' ')}
+              aria-current={activeTab === item.id ? 'page' : undefined}
+              onClick={() => choose(item.id)}>
+              <span className="admin-mobile-quick-icon"><AdminIcon name={item.id} size={18} /></span>
+              <span>{item.label}</span>
             </button>
           ))}
         <button type="button" className="admin-mobile-quick-item"

@@ -561,6 +561,25 @@
 }
 
 
+/* Phase 5: personalized navigation — favorites and recent destinations. */
+.admin-shell-v3 .admin-nav-item-row{display:flex;align-items:center;gap:3px;min-width:0}
+.admin-shell-v3 .admin-nav-item-row .admin-nav-item{flex:1;min-width:0}
+.admin-shell-v3 .admin-nav-pin{
+  display:flex;align-items:center;justify-content:center;flex:0 0 25px;width:25px;height:28px;
+  padding:0;border:1px solid transparent;border-radius:8px;background:transparent;
+  color:#687b98;opacity:0;cursor:pointer;transition:opacity .16s ease,color .16s ease,background .16s ease,border-color .16s ease;
+}
+.admin-shell-v3 .admin-nav-item-row:hover .admin-nav-pin,
+.admin-shell-v3 .admin-nav-pin:focus-visible,
+.admin-shell-v3 .admin-nav-pin.is-pinned{opacity:1}
+.admin-shell-v3 .admin-nav-pin:hover,.admin-shell-v3 .admin-nav-pin.is-pinned{color:#e9c77e;background:rgba(220,177,94,.09);border-color:rgba(220,177,94,.13)}
+.admin-shell-v3 .admin-nav-pin:focus-visible{outline:2px solid #87b8ff;outline-offset:2px}
+.admin-shell-v3 .admin-workspace.is-collapsed .admin-nav-pin{display:none}
+@media(max-width:899px){
+  .admin-shell-v3 .admin-nav-pin{opacity:1;flex-basis:31px;width:31px;height:34px}
+}
+@media(prefers-reduced-motion:reduce){.admin-shell-v3 .admin-nav-pin{transition:none!important}}
+
 /* Sidebar groups behave like a compact workspace outline. */
 .admin-shell-v3 .admin-nav-group-title{
   display:flex;align-items:center;justify-content:space-between;gap:8px;

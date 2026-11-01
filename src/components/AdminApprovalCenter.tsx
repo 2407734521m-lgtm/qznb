@@ -8,6 +8,7 @@ type ApprovalRequest = {
   action_type: 'delete_member_account' | 'set_role';
   target_user_id: string;
   target_name: string;
+  requester_id: string;
   requester_name: string;
   requested_role: string | null;
   reason: string;
@@ -30,7 +31,7 @@ const statusLabel: Record<ApprovalRequest['status'], string> = {
   expired: '已过期',
 };
 
-export default function AdminApprovalCenter({ setMsg }: { setMsg: (message: string) => void }) {
+export default function AdminApprovalCenter({ setMsg, me }: { setMsg: (message: string) => void; me: string }) {
   const [rows, setRows] = useState<ApprovalRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
@@ -59,6 +60,10 @@ export default function AdminApprovalCenter({ setMsg }: { setMsg: (message: stri
 
   async function decide(item: ApprovalRequest, approve: boolean) {
     if (item.status !== 'pending') return;
+    if (item.requester_id === me) {
+      setMsg('这是你发起的申请，需要由另一位超级管理员处理；本人不能批准或拒绝自己的申请。');
+      return;
+    }
     let note = '';
     if (approve) {
       if (!(await confirmDialog(
@@ -82,7 +87,11 @@ export default function AdminApprovalCenter({ setMsg }: { setMsg: (message: stri
     });
     setBusy(null);
     if (decisionError) {
-      setMsg((approve ? '审批执行失败：' : '拒绝申请失败：') + decisionError.message);
+      const selfApproval = decisionError.message.toLowerCase().includes('requester cannot approve their own request');
+      setMsg(selfApproval
+        ? '这是你发起的申请，需要由另一位超级管理员处理；本人不能批准或拒绝自己的申请。'
+        : (approve ? '审批执行失败：' : '拒绝申请失败：') + decisionError.message);
+      if (selfApproval) await load();
       return;
     }
     setMsg(approve ? '审批通过，操作已由数据库执行。' : '已拒绝该审批申请。');
@@ -129,12 +138,19 @@ export default function AdminApprovalCenter({ setMsg }: { setMsg: (message: stri
         {item.status === 'pending'
           ? <div style={mut}>到期：{new Date(item.expires_at).toLocaleString()}</div>
           : <div style={mut}>处理：{item.decided_by_name || '管理员'} · {item.decided_at ? new Date(item.decided_at).toLocaleString() : '—'}{item.decision_note ? ' · ' + item.decision_note : ''}</div>}
-        {item.status === 'pending' && <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 12 }}>
-          <button className="mini" disabled={busy === item.id} onClick={() => void decide(item, true)}>
-            {busy === item.id ? '处理中…' : '批准并执行'}
-          </button>
-          <button className="mini danger" disabled={busy === item.id} onClick={() => void decide(item, false)}>拒绝申请</button>
-        </div>}
+        {item.status === 'pending' && <>
+          {item.requester_id === me && <div role="status" style={{
+            marginTop: 12, padding: 10, borderRadius: 10, lineHeight: 1.65,
+            color: '#f6d69d', background: 'rgba(245,158,11,.09)',
+            border: '1px solid rgba(245,158,11,.22)', fontSize: 12,
+          }}>这是你发起的申请，需要由另一位超级管理员处理。本人不能批准或拒绝自己的申请。</div>}
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 12 }}>
+            <button className="mini" disabled={busy === item.id || item.requester_id === me} onClick={() => void decide(item, true)}>
+              {busy === item.id ? '处理中…' : '批准并执行'}
+            </button>
+            <button className="mini danger" disabled={busy === item.id || item.requester_id === me} onClick={() => void decide(item, false)}>拒绝申请</button>
+          </div>
+        </>}
       </article>)}
     <section style={card}>
       <h3 style={h3}>当前审批范围</h3>

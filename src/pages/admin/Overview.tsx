@@ -12,6 +12,7 @@ function TodoCenter({ go }: { go: (tab: string) => void }) {
   const [err, setErr] = useState(false);
 
   async function load() {
+    try {
     const queries = [
       supabase.from('love_wall_posts').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
       supabase.from('song_posts').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
@@ -23,6 +24,10 @@ function TodoCenter({ go }: { go: (tab: string) => void }) {
     if (res.some(r => r.error)) { setCounts(null); setErr(true); return; }
     setErr(false);
     setCounts({ love: res[0].count ?? 0, song: res[1].count ?? 0, game: res[2].count ?? 0, report: res[3].count ?? 0, feedback: res[4].count ?? 0 });
+    } catch {
+      setCounts(null);
+      setErr(true);
+    }
   }
   useEffect(() => { void load(); }, []);
 

@@ -119,3 +119,31 @@
     transition: none !important;
   }
 }
+
+
+/* Site-wide motion accents inspired by Motion, React Bits and Aceternity.
+   Keep effects transform/opacity based so mobile scrolling stays responsive. */
+.qz-route-transition{transform-origin:50% 20%;will-change:transform,opacity}
+.tabbar .dock-item>a{isolation:isolate;overflow:hidden}
+.tabbar .dock-active-indicator{
+  position:absolute;left:24%;right:24%;bottom:3px;height:2px;border-radius:99px;
+  background:currentColor;box-shadow:0 0 10px color-mix(in srgb,currentColor 58%,transparent);
+  pointer-events:none;z-index:1
+}
+.tabbar .dock-item>a .dock-tab-label{position:relative;z-index:2}
+.tabbar .dock-item>a .dock-unread-dot{z-index:3}
+@media(hover:hover) and (pointer:fine){
+  button.pri:not(:disabled),button.ghost,.topnav a,.topnav button{
+    transition-timing-function:var(--qz-motion-ease)
+  }
+  button.pri:not(:disabled):hover{transform:translateY(-1px);box-shadow:0 9px 24px color-mix(in srgb,var(--a) 22%,transparent)}
+  button.ghost:hover{border-color:color-mix(in srgb,var(--a) 48%,transparent);background:#ffffff16}
+}
+button:focus-visible,a:focus-visible{
+  outline:2px solid color-mix(in srgb,var(--a) 78%,white);
+  outline-offset:3px
+}
+@media(prefers-reduced-motion:reduce){
+  .qz-route-transition{will-change:auto}
+  .tabbar .dock-active-indicator{transition:none!important}
+}

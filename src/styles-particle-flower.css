@@ -88,3 +88,51 @@
  .bloom-page.is-active .bloom-mode-switch{right:16px;bottom:calc(28px + env(safe-area-inset-bottom))}
  .bloom-page.is-active .bloom-brand-cn{font-size:12px}
 }
+
+/* 方向布局仅调整作品内部排版，不强制旋转设备。 */
+.bloom-orientation-switch{position:absolute;z-index:4;right:clamp(20px,4vw,56px);bottom:calc(82px + env(safe-area-inset-bottom));display:flex;align-items:center;gap:3px;padding:4px 5px;border:1px solid #ffffff20;border-radius:99px;background:rgba(27,16,29,.72);backdrop-filter:blur(16px);color:#bcaab8;font:10px Inter,"Noto Sans SC",sans-serif}
+.bloom-orientation-switch span{padding:0 7px;letter-spacing:1px;color:#9e8a9b}
+.bloom-orientation-switch button{border:0;border-radius:99px;padding:7px 11px;background:transparent;color:#cbb9c7;font:10px "Noto Serif SC","Songti SC",serif;cursor:pointer}
+.bloom-orientation-switch button.active{background:#f0c5d8;color:#2a1421}
+.bloom-page.orientation-landscape .bloom-intro{top:clamp(92px,15vh,145px);left:clamp(24px,5vw,76px);max-width:min(410px,42vw)}
+.bloom-page.orientation-landscape .bloom-intro h1{font-size:clamp(28px,3.7vw,46px)}
+.bloom-page.orientation-landscape .bloom-intro p{max-width:360px}
+.bloom-page.orientation-landscape .bloom-steps{left:auto;right:clamp(24px,5vw,70px);bottom:calc(30px + env(safe-area-inset-bottom))}
+.bloom-page.orientation-landscape .bloom-hud{left:clamp(24px,5vw,70px);bottom:calc(32px + env(safe-area-inset-bottom))}
+.bloom-page.orientation-landscape .bloom-mode-switch{right:clamp(24px,5vw,70px);bottom:calc(28px + env(safe-area-inset-bottom))}
+.bloom-page.orientation-landscape .bloom-orientation-switch{right:clamp(24px,5vw,70px);bottom:calc(78px + env(safe-area-inset-bottom))}
+@media(max-width:700px){
+ .bloom-orientation-switch{right:16px;bottom:calc(78px + env(safe-area-inset-bottom))}
+ .bloom-page.orientation-landscape .bloom-intro{top:calc(82px + env(safe-area-inset-top));left:22px;right:22px;max-width:54vw}
+ .bloom-page.orientation-landscape .bloom-intro h1{font-size:clamp(24px,5.5vw,34px)}
+ .bloom-page.orientation-landscape .bloom-intro p{font-size:10px;max-width:300px}
+ .bloom-page.orientation-landscape .bloom-actions{margin-top:12px}
+ .bloom-page.orientation-landscape .bloom-steps{left:22px;right:auto;bottom:calc(18px + env(safe-area-inset-bottom));gap:7px}
+ .bloom-page.orientation-landscape .bloom-steps span{font-size:9px}
+ .bloom-page.orientation-landscape .bloom-hud{left:auto;right:18px;bottom:calc(100px + env(safe-area-inset-bottom));width:150px}
+ .bloom-page.orientation-landscape .bloom-mode-switch{right:16px;bottom:calc(24px + env(safe-area-inset-bottom))}
+ .bloom-page.orientation-landscape .bloom-orientation-switch{right:16px;bottom:calc(72px + env(safe-area-inset-bottom))}
+ .bloom-page.orientation-landscape.is-active .bloom-hud{left:auto;right:18px;bottom:calc(90px + env(safe-area-inset-bottom));width:150px}
+}
+
+/* 可选帧率是渲染上限；自动模式跟随屏幕刷新率。实际 FPS 显示当前绘制速度。 */
+.bloom-fps-switch{position:absolute;z-index:4;right:clamp(20px,4vw,56px);bottom:calc(132px + env(safe-area-inset-bottom));display:flex;align-items:center;gap:3px;padding:4px 5px;border:1px solid #ffffff20;border-radius:99px;background:rgba(27,16,29,.72);backdrop-filter:blur(16px);color:#bcaab8;font:9px Inter,Arial,sans-serif}
+.bloom-fps-switch>span{padding:0 6px;color:#c9a9bc;letter-spacing:1px}
+.bloom-fps-switch button{min-width:27px;border:0;border-radius:99px;padding:6px 7px;background:transparent;color:#cbb9c7;font:9px Inter,Arial,sans-serif;cursor:pointer}
+.bloom-fps-switch button.active{background:#f0c5d8;color:#2a1421}
+.bloom-fps-switch small{min-width:23px;text-align:center;color:#f4c3d6;font:9px Inter,Arial,sans-serif}
+@media(max-width:700px){
+ .bloom-fps-switch{right:16px;bottom:calc(124px + env(safe-area-inset-bottom));gap:1px}
+ .bloom-fps-switch button{min-width:24px;padding:6px 5px;font-size:8px}
+ .bloom-fps-switch>span{padding:0 4px;font-size:8px}
+ .bloom-page.orientation-landscape .bloom-fps-switch{right:16px;bottom:calc(116px + env(safe-area-inset-bottom))}
+}
+.bloom-page.orientation-landscape .bloom-fps-switch{right:clamp(24px,5vw,70px);bottom:calc(132px + env(safe-area-inset-bottom))}
+@media(max-width:700px){
+ .bloom-page.orientation-landscape .bloom-fps-switch{right:16px;bottom:calc(116px + env(safe-area-inset-bottom))}
+}
+
+/* 横屏沉浸模式把状态面板放到左下，避免与右侧帧率/方向控制重叠。 */
+@media(max-width:700px){
+ .bloom-page.orientation-landscape.is-active .bloom-hud{left:18px;right:auto;bottom:calc(78px + env(safe-area-inset-bottom));width:150px}
+}

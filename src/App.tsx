@@ -48,6 +48,7 @@ import Explore from './pages/Explore';
 import SongWall from './pages/SongWall';
 import Daily from './pages/Daily';
 import ParticleFlower from './pages/ParticleFlower';
+import AirInk from './pages/AirInk';
 import { alertDialog } from './lib/dialog';
 import GlobalSearch from './components/GlobalSearch';
 
@@ -79,7 +80,7 @@ function parseDevice(ua: string): string {
 function isTabActive(tab: string, path: string) {
   if (tab === '/board') return path.startsWith('/board');
   if (tab === '/members') return path.startsWith('/members');
-  if (tab === '/explore') return ['/explore','/feed','/albums','/hot','/greetings','/events','/capsule','/wishes','/particle-flower'].some(p => path.startsWith(p));
+  if (tab === '/explore') return ['/explore','/feed','/albums','/hot','/greetings','/events','/capsule','/wishes','/particle-flower','/air-ink'].some(p => path.startsWith(p));
   if (tab === '/friends') return ['/friends','/chat'].some(p => path.startsWith(p));
   if (tab === '/songs') return path.startsWith('/songs');
   if (tab === '/love-wall') return path.startsWith('/love-wall');
@@ -338,6 +339,8 @@ function Shell() {
   const isAdminPage = loc.pathname === '/admin';
   const isChatPage = loc.pathname.startsWith('/chat/');
   const isBloomPage = loc.pathname === '/particle-flower';
+  const isAirInkPage = loc.pathname === '/air-ink';
+  const isImmersivePage = isBloomPage || isAirInkPage;
   const nav = useNavigate();
   const barRef = useRef<HTMLElement>(null);
   const [dockCollapsed, setDockCollapsed] = useState(() => {
@@ -718,7 +721,7 @@ function Shell() {
           <NavLink to="/members" style={{ fontSize: 13, color: '#303642', textDecoration: 'none' }}>← 回站点</NavLink>
           <button className="mini ghost" onClick={logout}>退出</button>
         </div>
-      ) : !isChatPage && !isBloomPage ? (
+      ) : !isChatPage && !isImmersivePage ? (
       <nav className="topnav">
         <span className="links">
           {TABS.map(t => (
@@ -736,16 +739,17 @@ function Shell() {
       <div className={isChatPage ? "wrap chat-shell" : loc.pathname === '/friends' ? "wrap inbox-shell" : "wrap"}>
         <AnimatePresence mode="wait">
           <motion.div key={loc.pathname}
-            className={isBloomPage ? "qz-route-transition qz-route-transition--fullscreen" : "qz-route-transition"}
-            initial={reduce ? false : isBloomPage ? { opacity: 0 } : { opacity: 0, y: 12, scale: 0.992 }}
-            animate={isBloomPage ? { opacity: 1 } : { opacity: 1, y: 0, scale: 1 }}
-            exit={reduce ? { opacity: 1 } : isBloomPage ? { opacity: 0 } : { opacity: 0, y: -7, scale: 0.996 }}
+            className={isImmersivePage ? "qz-route-transition qz-route-transition--fullscreen" : "qz-route-transition"}
+            initial={reduce ? false : isImmersivePage ? { opacity: 0 } : { opacity: 0, y: 12, scale: 0.992 }}
+            animate={isImmersivePage ? { opacity: 1 } : { opacity: 1, y: 0, scale: 1 }}
+            exit={reduce ? { opacity: 1 } : isImmersivePage ? { opacity: 0 } : { opacity: 0, y: -7, scale: 0.996 }}
             transition={{ duration: reduce ? 0 : DUR.base + 0.06, ease: EASE }}>
             <Routes location={loc}>
               <Route path="/" element={<Navigate to="/home" replace />} />
               <Route path="/board" element={<Board />} />
               <Route path="/explore" element={<Explore />} />
               <Route path="/particle-flower" element={<ErrorBoundary><ParticleFlower /></ErrorBoundary>} />
+              <Route path="/air-ink" element={<ErrorBoundary><AirInk /></ErrorBoundary>} />
               <Route path="/love-wall" element={<LoveWall />} />
               <Route path="/songs" element={<SongWall />} />
               <Route path="/daily" element={<Daily searchQuery={typeof (loc.state as any)?.searchQuery === 'string' ? (loc.state as any).searchQuery : ''} />} />

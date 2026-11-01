@@ -1,0 +1,226 @@
+/* Login and registration polish.
+   All auth state, validation, verification, password reset and consent handlers stay unchanged. */
+.login-wrap {
+  min-height: 100svh;
+  min-height: 100dvh;
+  padding:
+    max(18px, env(safe-area-inset-top))
+    max(16px, env(safe-area-inset-right))
+    max(18px, env(safe-area-inset-bottom))
+    max(16px, env(safe-area-inset-left));
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(170, 219, 224, .25) transparent;
+}
+
+.login-card {
+  width: min(430px, 100%) !important;
+  max-height: calc(100dvh - 36px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: clamp(22px, 4vw, 30px) clamp(18px, 4.4vw, 28px) !important;
+  border: 1px solid rgba(182, 225, 235, .25) !important;
+  border-radius: 27px !important;
+  background:
+    radial-gradient(ellipse at 100% 0%, rgba(65, 190, 181, .12), transparent 42%),
+    linear-gradient(150deg, rgba(13, 42, 62, .94), rgba(5, 22, 39, .92)) !important;
+  box-shadow:
+    0 28px 88px rgba(0, 7, 20, .48),
+    0 4px 18px rgba(19, 111, 131, .10),
+    inset 0 1px 0 rgba(255, 255, 255, .15) !important;
+  -webkit-backdrop-filter: blur(30px) saturate(1.42);
+  backdrop-filter: blur(30px) saturate(1.42);
+  scrollbar-width: thin;
+  scrollbar-color: rgba(170, 219, 224, .25) transparent;
+}
+
+.login-card > h1:first-child {
+  color: #f5fdff;
+  font-size: clamp(23px, 5vw, 27px);
+  font-weight: 820;
+  letter-spacing: -.045em;
+  text-shadow: 0 6px 24px rgba(83, 187, 197, .15);
+}
+
+.login-card .sub {
+  color: rgba(184, 219, 228, .74);
+  margin-bottom: 22px;
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: .28em;
+}
+
+.login-card label {
+  margin: 12px 0 5px;
+  color: rgba(210, 232, 239, .88);
+  font-size: 12px;
+  font-weight: 720;
+  letter-spacing: .025em;
+}
+
+.login-card input:not([type="checkbox"]):not([type="range"]):not([type="file"]) {
+  min-height: 46px;
+  margin: 0 0 7px;
+  padding: 11px 14px;
+  border: 1px solid rgba(182, 220, 232, .19) !important;
+  border-radius: 14px !important;
+  background: rgba(2, 17, 32, .50) !important;
+  color: #f4fbff !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.035);
+  transition:
+    border-color .22s ease,
+    background .22s ease,
+    box-shadow .22s ease;
+}
+
+.login-card input:not([type="checkbox"]):not([type="range"]):not([type="file"])::placeholder {
+  color: rgba(188, 211, 222, .48);
+}
+
+.login-card input:not([type="checkbox"]):not([type="range"]):not([type="file"]):focus {
+  border-color: rgba(101, 225, 211, .64) !important;
+  background: rgba(4, 25, 42, .74) !important;
+  box-shadow: 0 0 0 4px rgba(76, 206, 193, .11), inset 0 1px 0 rgba(255,255,255,.05) !important;
+}
+
+.login-card button.pri {
+  min-height: 46px;
+  margin-top: 10px;
+  border-radius: 14px !important;
+  background: linear-gradient(120deg, #5fe0ce, #83c8f2) !important;
+  color: #06232e !important;
+  font-weight: 820;
+  box-shadow: 0 9px 25px rgba(38, 183, 172, .20), inset 0 1px 0 rgba(255,255,255,.52) !important;
+  transition: transform .22s cubic-bezier(.22,1,.36,1), box-shadow .22s ease, filter .22s ease;
+}
+
+.login-card button.ghost {
+  min-height: 42px;
+  border: 1px solid rgba(175, 220, 230, .22) !important;
+  border-radius: 13px !important;
+  background: rgba(220, 244, 255, .075) !important;
+  color: rgba(238, 249, 255, .94) !important;
+}
+
+.login-card .login-switch {
+  margin: 11px 0 0;
+  color: rgba(188, 213, 224, .72);
+  font-size: 12px;
+  line-height: 1.65;
+}
+
+.login-card .login-switch button,
+.login-card .linklike {
+  color: #83e2d6 !important;
+  font-weight: 740;
+  text-underline-offset: 3px;
+}
+
+.login-card .priv-note {
+  color: rgba(190, 215, 226, .70);
+  font-size: 11.5px;
+  line-height: 1.72;
+}
+
+.login-card .err {
+  margin: 8px 0;
+  padding: 9px 11px;
+  border: 1px solid rgba(255, 143, 157, .25);
+  border-radius: 12px;
+  background: rgba(195, 52, 76, .13);
+  color: #ffb3bd;
+  line-height: 1.6;
+}
+
+.login-card .avatar-pick {
+  padding: 8px 10px;
+  border: 1px solid rgba(181, 220, 229, .14);
+  border-radius: 15px;
+  background: rgba(214, 238, 247, .045);
+}
+
+.login-card .avatar-pick .prev {
+  width: 58px;
+  height: 58px;
+  border: 1px solid rgba(192, 229, 239, .25);
+  border-radius: 17px;
+  background: linear-gradient(145deg, rgba(117, 202, 207, .22), rgba(87, 137, 184, .18));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.10);
+}
+
+.login-card .bg-panel {
+  margin-top: 20px;
+  padding-top: 14px;
+  border-top-color: rgba(184, 224, 234, .14);
+  color: rgba(191, 216, 226, .68);
+}
+
+.login-card .bg-panel > button {
+  min-height: 38px;
+  padding-inline: 13px;
+}
+
+.login-card .bg-panel .row {
+  align-items: center;
+  gap: 10px;
+}
+
+.login-card .bg-panel input[type="range"] {
+  accent-color: #64dfd0;
+}
+
+.login-card input[type="checkbox"] {
+  accent-color: #55d6c7;
+}
+
+.login-card :where(button, input):focus-visible {
+  outline: 2px solid rgba(115, 224, 215, .92);
+  outline-offset: 3px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .login-card button.pri:not(:disabled):hover {
+    transform: translateY(-1px);
+    box-shadow: 0 13px 30px rgba(38, 183, 172, .28), inset 0 1px 0 rgba(255,255,255,.58) !important;
+  }
+
+  .login-card button.ghost:not(:disabled):hover {
+    border-color: rgba(111, 218, 212, .42) !important;
+    background: rgba(218, 245, 249, .12) !important;
+  }
+}
+
+@media (max-width: 520px) {
+  .login-wrap {
+    align-items: center;
+    justify-content: center;
+    padding-inline: max(12px, env(safe-area-inset-left)) max(12px, env(safe-area-inset-right));
+  }
+
+  .login-card {
+    width: 100% !important;
+    max-height: calc(100dvh - 28px);
+    border-radius: 23px !important;
+    padding: 22px 18px 20px !important;
+  }
+
+  .login-card .sub {
+    margin-bottom: 18px;
+  }
+
+  .login-card label {
+    margin-top: 10px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .login-card input,
+  .login-card button {
+    transition: none !important;
+  }
+
+  .login-card button.pri:not(:disabled):hover {
+    transform: none !important;
+  }
+}

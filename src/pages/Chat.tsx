@@ -5,6 +5,7 @@ import { useAuth } from '../auth';
 import { downscaleImage, uploadMedia, useSignedUrl } from '../lib/media';
 import { goBackOr } from '../components/BackButton';
 import type { ChatMessage } from '../types/message';
+import './Chat.polish.css';
 
 type ChatReaction = { message_id: number; profile_id: string; reaction: string; created_at: string };
 const QUICK_REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '🙏'];

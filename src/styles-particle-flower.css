@@ -1,0 +1,73 @@
+:root{--bloom-cream:#fff3d6;--bloom-pink:#f7a8c4;--bloom-rose:#e7549a}
+.bloom-page{position:fixed;inset:0;z-index:180;overflow:hidden;background:#0b0710;color:#f8edf3;font-family:Inter,"Noto Serif SC","Songti SC",serif;touch-action:none;isolation:isolate}
+.bloom-camera{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform:scaleX(-1);opacity:0;filter:brightness(.25) saturate(.12) blur(1.5px);transition:opacity 1.2s ease;z-index:-2}
+.bloom-camera.is-live{opacity:.34}
+.bloom-canvas{position:absolute;inset:0;width:100%;height:100%;z-index:0;pointer-events:none}
+.bloom-vignette{position:absolute;inset:0;pointer-events:none;z-index:1;background:radial-gradient(ellipse at 50% 48%,transparent 18%,rgba(11,7,16,.12) 58%,rgba(11,7,16,.82) 100%),linear-gradient(180deg,rgba(11,7,16,.76),transparent 27%,transparent 72%,rgba(11,7,16,.78)}
+.bloom-header{position:absolute;z-index:3;top:calc(22px + env(safe-area-inset-top));left:clamp(20px,4vw,56px);right:clamp(20px,4vw,56px);display:flex;align-items:flex-start;justify-content:space-between}
+.bloom-brand{display:flex;flex-direction:column;align-items:flex-start;gap:5px;border:0;background:none;color:#fff;cursor:pointer;padding:0;text-align:left}
+.bloom-brand-cn{font-family:"Noto Serif SC","Songti SC",serif;font-size:19px;letter-spacing:4px}
+.bloom-brand-en{font:9px/1.4 Inter,Arial,sans-serif;letter-spacing:2.5px;color:#c7b6c4}
+.bloom-pill{border:1px solid rgba(255,255,255,.2);border-radius:99px;padding:8px 12px;color:#d7cbd5;font:9px/1 Inter,Arial,sans-serif;letter-spacing:1.4px;background:rgba(255,255,255,.045);backdrop-filter:blur(12px)}
+.bloom-pill i{display:inline-block;width:6px;height:6px;border-radius:50%;background:#a58d9f;margin-right:8px;vertical-align:1px}
+.bloom-pill.live i{background:#a5e2c0;box-shadow:0 0 10px #a5e2c0}
+.bloom-intro{position:absolute;z-index:3;top:clamp(110px,20vh,190px);left:clamp(22px,8vw,120px);max-width:min(520px,80vw);pointer-events:none}
+.bloom-kicker{font:9px/1.4 Inter,Arial,sans-serif;letter-spacing:3px;color:#d79ab8;margin-bottom:18px}
+.bloom-intro h1{font-family:"Noto Serif SC","Songti SC",serif;font-size:clamp(30px,5vw,58px);font-weight:500;letter-spacing:3px;line-height:1.28;margin:0 0 14px;color:#fff7f2;text-shadow:0 4px 30px #09040d}
+.bloom-intro p{font-family:"Noto Serif SC","Songti SC",serif;font-size:clamp(12px,1.3vw,15px);letter-spacing:1px;line-height:2;color:#d6c4d0;margin:0;max-width:430px}
+.bloom-actions{display:flex;gap:10px;margin-top:26px;pointer-events:auto}
+.bloom-primary,.bloom-secondary{min-height:42px;padding:0 22px;border-radius:99px;font:12px "Noto Serif SC","Songti SC",serif;letter-spacing:1.5px;cursor:pointer;transition:transform .25s,background .25s,border-color .25s}
+.bloom-primary{border:1px solid #f4c8d9;background:linear-gradient(135deg,#f8dce7,#d889ae);color:#2a1421;box-shadow:0 8px 28px #d46a9b32}
+.bloom-secondary{border:1px solid #ffffff3a;background:#ffffff0a;color:#f5eaf0;backdrop-filter:blur(12px)}
+.bloom-primary:active,.bloom-secondary:active{transform:scale(.97)}
+.bloom-primary:disabled{opacity:.65}
+.bloom-privacy{pointer-events:none;margin-top:12px;color:#b9aab7;font:10px/1.6 Inter,"Noto Sans SC",sans-serif;letter-spacing:.5px}
+.bloom-error{pointer-events:auto;margin-top:12px;max-width:420px;padding:10px 13px;border:1px solid #e99aad55;border-radius:12px;background:#391b2c99;color:#ffd5df;font:12px/1.6 Inter,"Noto Sans SC",sans-serif}
+.bloom-side-note{position:absolute;z-index:3;right:clamp(14px,3vw,40px);top:50%;writing-mode:vertical-rl;transform:translateY(-50%);font:9px/1 Inter,Arial,sans-serif;letter-spacing:3px;color:#bda9b9}
+.bloom-steps{position:absolute;z-index:3;left:clamp(22px,4vw,56px);bottom:calc(28px + env(safe-area-inset-bottom));display:flex;align-items:center;gap:clamp(12px,2vw,26px);color:#e6d6e0}
+.bloom-steps div{display:flex;flex-direction:column;gap:5px}
+.bloom-steps b{font:9px Inter,Arial,sans-serif;letter-spacing:1.8px;color:#dc91b3}
+.bloom-steps span{font:12px "Noto Serif SC","Songti SC",serif;letter-spacing:1px;white-space:nowrap}
+.bloom-steps>i{width:24px;height:1px;background:#8e7183;opacity:.55}
+.bloom-hud{position:absolute;z-index:3;left:clamp(22px,4vw,56px);bottom:calc(100px + env(safe-area-inset-bottom));width:190px;padding:14px 15px;border:1px solid #ffffff20;border-radius:15px;background:rgba(20,12,23,.48);backdrop-filter:blur(16px);pointer-events:none}
+.bloom-hud-label{font:9px Inter,Arial,sans-serif;letter-spacing:2px;color:#c88eaa}
+.bloom-hud-label span{color:#a99ba7;letter-spacing:1px}
+.bloom-hud-state{margin-top:9px;font:16px "Noto Serif SC","Songti SC",serif;color:#fff0f5}
+.bloom-hud-en{margin-top:3px;font:8px Inter,Arial,sans-serif;letter-spacing:1.2px;color:#a99ba7}
+.bloom-hud-number{position:absolute;right:15px;top:30px;font:25px/1 Inter,Arial,sans-serif;color:#f4c3d6}
+.bloom-hud-number small{font-size:10px;margin-left:2px;color:#bba8b5}
+.bloom-progress{height:2px;margin-top:12px;background:#ffffff1b;overflow:hidden}
+.bloom-progress span{display:block;height:100%;background:linear-gradient(90deg,#f8d9e6,#e7549a);transition:width .12s linear}
+.bloom-hud-meta{margin-top:8px;color:#8f7c8c;font:7px Inter,Arial,sans-serif;letter-spacing:1.3px}
+.bloom-mode-switch{position:absolute;z-index:4;right:clamp(20px,4vw,56px);bottom:calc(30px + env(safe-area-inset-bottom));display:flex;gap:4px;padding:4px;border:1px solid #ffffff24;border-radius:99px;background:#1b101dcc;backdrop-filter:blur(16px)}
+.bloom-mode-switch button{border:0;border-radius:99px;padding:8px 15px;background:transparent;color:#bcaab8;font:11px "Noto Serif SC","Songti SC",serif;letter-spacing:1px}
+.bloom-mode-switch button.active{background:#f0c5d8;color:#2a1421}
+.bloom-loading{position:absolute;z-index:10;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:rgba(11,7,16,.94);backdrop-filter:blur(20px);font:14px "Noto Serif SC","Songti SC",serif;letter-spacing:2px;color:#f8dce8}
+.bloom-loader-flower{font-size:38px;animation:bloom-spin 2.4s linear infinite;text-shadow:0 0 25px #ed8bb8}
+.bloom-loading small{font:8px Inter,Arial,sans-serif;letter-spacing:2px;color:#9f8799}
+@keyframes bloom-spin{to{transform:rotate(360deg)}}
+@media(max-width:700px){
+ .bloom-camera.is-live{opacity:.25}
+ .bloom-intro{top:clamp(104px,16vh,150px);left:24px;right:24px;max-width:none}
+ .bloom-intro h1{font-size:clamp(29px,8vw,40px);letter-spacing:1px}
+ .bloom-intro p{font-size:12px;max-width:310px}
+ .bloom-actions{gap:8px;margin-top:19px;flex-wrap:wrap}
+ .bloom-primary,.bloom-secondary{padding:0 16px;min-height:40px;font-size:11px}
+ .bloom-side-note{right:9px;font-size:7px;letter-spacing:2px}
+ .bloom-steps{bottom:calc(24px + env(safe-area-inset-bottom));gap:9px;left:18px}
+ .bloom-steps span{font-size:10px;letter-spacing:0}
+ .bloom-steps>i{width:10px}
+ .bloom-hud{left:18px;bottom:calc(83px + env(safe-area-inset-bottom));width:162px;padding:11px 12px}
+ .bloom-hud-state{font-size:14px}
+ .bloom-hud-number{right:12px;top:26px;font-size:22px}
+ .bloom-hud-meta{font-size:6px}
+ .bloom-mode-switch{right:18px;bottom:calc(27px + env(safe-area-inset-bottom))}
+ .bloom-mode-switch button{padding:8px 12px;font-size:10px}
+}
+@media(max-height:650px) and (min-width:701px){
+ .bloom-intro{top:100px}
+ .bloom-intro h1{font-size:38px}
+ .bloom-hud{bottom:80px}
+ .bloom-steps{bottom:20px}
+}
+@media(prefers-reduced-motion:reduce){.bloom-primary,.bloom-secondary,.bloom-progress span{transition:none}.bloom-loader-flower{animation-duration:8s}}

@@ -590,3 +590,11 @@
 @media(prefers-reduced-motion:reduce){
   .admin-shell-v3 .admin-nav-group-title>svg,.admin-shell-v3 .admin-nav-group-items{transition:none!important}
 }
+
+.admin-shell-v3 .admin-number-ticker{
+  display:inline-block;min-width:1ch;white-space:nowrap;
+  font-variant-numeric:tabular-nums;font-feature-settings:"tnum";
+}
+@media(prefers-reduced-motion:reduce){
+  .admin-shell-v3 .admin-number-ticker{transition:none!important}
+}

@@ -768,3 +768,129 @@
     width:154px;
   }
 }
+
+
+/* BLOOM STUDIO refinement: quality presets, focused HUD and live device telemetry. */
+.bloom-quality-presets{
+  display:flex;
+  align-items:center;
+  flex-wrap:wrap;
+  gap:5px;
+  margin:13px 0 15px;
+  padding:8px 9px;
+  border:1px solid rgba(255,255,255,.1);
+  border-radius:15px;
+  background:rgba(0,0,0,.16);
+}
+.bloom-quality-presets>span{
+  margin-right:auto;
+  color:#cdbac8;
+  font:9px "Noto Sans SC",sans-serif;
+  letter-spacing:.5px;
+}
+.bloom-quality-presets button{
+  min-height:28px;
+  padding:0 10px;
+  border:1px solid rgba(255,255,255,.1);
+  border-radius:999px;
+  background:rgba(255,255,255,.035);
+  color:#c5b1c0;
+  font:9px "Noto Sans SC",sans-serif;
+  cursor:pointer;
+  transition:background .2s,border-color .2s,color .2s,transform .2s;
+}
+.bloom-quality-presets button.active{
+  border-color:rgba(244,190,215,.35);
+  color:#ffeaf2;
+  background:linear-gradient(120deg,rgba(231,163,194,.24),rgba(255,237,229,.12));
+  box-shadow:0 0 16px rgba(226,143,181,.1),inset 0 1px 0 rgba(255,255,255,.08);
+}
+.bloom-quality-presets button:active{transform:scale(.96)}
+.bloom-focus-toggle{
+  position:absolute;
+  z-index:36;
+  top:calc(13px + env(safe-area-inset-top));
+  left:calc(13px + env(safe-area-inset-left));
+  min-height:34px;
+  padding:0 13px;
+  border:1px solid rgba(255,231,241,.2);
+  border-radius:999px;
+  color:#f5e2eb;
+  background:rgba(27,16,29,.45);
+  box-shadow:0 8px 24px rgba(0,0,0,.14),inset 0 1px 0 rgba(255,255,255,.07);
+  backdrop-filter:blur(18px);
+  -webkit-backdrop-filter:blur(18px);
+  font:10px "Noto Sans SC",sans-serif;
+  letter-spacing:.6px;
+  cursor:pointer;
+  transition:background .2s,border-color .2s,opacity .2s;
+}
+.bloom-focus-toggle:active{background:rgba(230,164,195,.24)}
+.bloom-telemetry{
+  position:absolute;
+  z-index:27;
+  top:calc(16px + env(safe-area-inset-top));
+  left:50%;
+  transform:translateX(-50%);
+  display:flex;
+  align-items:center;
+  gap:9px;
+  max-width:calc(100vw - 150px);
+  padding:8px 12px;
+  border:1px solid rgba(255,231,241,.12);
+  border-radius:999px;
+  color:rgba(246,226,237,.72);
+  background:rgba(23,14,26,.32);
+  backdrop-filter:blur(14px);
+  -webkit-backdrop-filter:blur(14px);
+  font:9px/1 Inter,"Noto Sans SC",sans-serif;
+  white-space:nowrap;
+  pointer-events:none;
+  transition:opacity .25s,transform .25s;
+}
+.bloom-telemetry i{
+  width:3px;height:3px;flex:0 0 3px;border-radius:50%;
+  background:rgba(243,179,207,.65);
+  box-shadow:0 0 7px rgba(243,179,207,.55);
+}
+.bloom-page.is-focused .bloom-hud,
+.bloom-page.is-focused .bloom-steps,
+.bloom-page.is-focused .bloom-side-note,
+.bloom-page.is-focused .bloom-telemetry{
+  opacity:0!important;
+  visibility:hidden!important;
+  pointer-events:none!important;
+}
+.bloom-page.is-focused .bloom-focus-toggle{
+  opacity:.22;
+  background:rgba(20,13,22,.18);
+}
+.bloom-page.is-focused .bloom-focus-toggle:active{opacity:1}
+.bloom-page.tool-write .bloom-telemetry{top:auto;bottom:calc(18px + env(safe-area-inset-bottom))}
+@media(max-width:700px){
+  .bloom-quality-presets{gap:4px;margin:10px 0 12px;padding:7px}
+  .bloom-quality-presets>span{width:100%;margin:0 0 2px}
+  .bloom-quality-presets button{flex:1;min-width:0;padding:0 7px;font-size:8px}
+  .bloom-focus-toggle{
+    top:calc(10px + env(safe-area-inset-top));
+    left:calc(10px + env(safe-area-inset-left));
+    min-height:30px;padding:0 10px;font-size:9px
+  }
+  .bloom-telemetry{
+    top:calc(12px + env(safe-area-inset-top));
+    gap:6px;padding:7px 9px;font-size:8px;
+    max-width:calc(100vw - 130px)
+  }
+  .bloom-page.tool-write .bloom-telemetry{
+    left:12px;right:auto;bottom:calc(12px + env(safe-area-inset-bottom));
+    top:auto;transform:none;max-width:calc(100vw - 24px)
+  }
+}
+@media(max-width:700px) and (orientation:landscape){
+  .bloom-quality-presets{margin:7px 0 8px;padding:6px}
+  .bloom-quality-presets>span{width:auto;margin:0 5px 0 0}
+  .bloom-quality-presets button{flex:0 0 auto;min-height:25px}
+}
+@media(prefers-reduced-motion:reduce){
+  .bloom-quality-presets button,.bloom-focus-toggle,.bloom-telemetry{transition:none}
+}

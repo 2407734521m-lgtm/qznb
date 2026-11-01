@@ -114,7 +114,7 @@ export default function AdminMemberModal({ memberId, onClose, onChanged, isSuper
         {msg && <p className="priv-note" style={{ margin: '0 0 8px' }}>{msg}</p>}
         {!f ? <p className="mut">加载中…</p> : (<>
           <div className="row" style={{ gap: 10, alignItems: 'center', marginBottom: 12 }}>
-            <div style={{ fontSize: 30, fontWeight: 800, width: 52, height: 52, borderRadius: '50%',
+            <div className="admin-member-avatar" style={{ fontSize: 30, fontWeight: 800, width: 52, height: 52, borderRadius: '50%',
               background: 'linear-gradient(135deg,var(--a),var(--b))', color: '#1c2030',
               display: 'grid', placeItems: 'center', flexShrink: 0 }}>
               {(f.display_name || f.username || '?').slice(0, 1)}

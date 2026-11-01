@@ -88,17 +88,6 @@ function makeParticles(count: number): Particle[] {
 
   return out;
 }
-function drawGlowSprite(): HTMLCanvasElement {
-  const sprite = document.createElement('canvas'); sprite.width = 32; sprite.height = 32;
-  const c = sprite.getContext('2d')!;
-  const g = c.createRadialGradient(16,16,0,16,16,16);
-  g.addColorStop(0, 'rgba(255,239,226,.22)');
-  g.addColorStop(0.22, 'rgba(244,166,193,.13)');
-  g.addColorStop(0.48, 'rgba(230,112,163,.045)');
-  g.addColorStop(1, 'rgba(230,112,163,0)');
-  c.fillStyle = g; c.fillRect(0,0,32,32);
-  return sprite;
-}
 function mapCoverPoint(point: any, video: HTMLVideoElement, width: number, height: number) {
   const vw = video.videoWidth || width, vh = video.videoHeight || height;
   const scale = Math.max(width / vw, height / vh);

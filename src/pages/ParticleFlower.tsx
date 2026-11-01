@@ -336,8 +336,8 @@ export default function ParticleFlower() {
   const startGuardRef = useRef(false);
   const cameraRafRef = useRef<number>(0);
   const particlesRef = useRef<Particle[]>([]);
-  const targetRef = useRef(0.18);
-  const currentRef = useRef(0.18);
+  const targetRef = useRef(0.72);
+  const currentRef = useRef(0.72);
   const velocityRef = useRef(0);
   const fingerRef = useRef<Point | null>(null);
   const landmarksRef = useRef<any[] | null>(null);
@@ -442,6 +442,9 @@ export default function ParticleFlower() {
     if (loading || startGuardRef.current) return;
     experienceToolRef.current = tool;
     setExperienceTool(tool);
+    targetRef.current = 0.18;
+    currentRef.current = 0.18;
+    velocityRef.current = 0;
     pinchingRef.current = false;
     currentInkStrokeRef.current = null;
     smoothedInkPointRef.current = null;
@@ -646,36 +649,11 @@ export default function ParticleFlower() {
     return () => window.cancelAnimationFrame(frame);
   }, [layoutOrientation, orientationFallback]);
 
-  const changeOrientation = useCallback(async (next: LayoutOrientation) => {
+  const changeOrientation = useCallback((next: LayoutOrientation) => {
+    // Choosing a layout in the settings panel must not enter fullscreen by itself.
     layoutOrientationRef.current = next;
     setLayoutOrientation(next);
-    if (next === 'portrait') {
-      setOrientationFallback(false);
-      try { (screen as any).orientation?.unlock?.(); } catch {}
-      if (orientationFullscreenRef.current && document.fullscreenElement) {
-        try { await document.exitFullscreen(); } catch {}
-      }
-      orientationFullscreenRef.current = false;
-      return;
-    }
-
-    let enteredFullscreen = !!document.fullscreenElement;
-    if (!enteredFullscreen && document.documentElement.requestFullscreen) {
-      try {
-        await document.documentElement.requestFullscreen({ navigationUI: 'hide' } as FullscreenOptions);
-        enteredFullscreen = true;
-        orientationFullscreenRef.current = true;
-      } catch { /* 部分浏览器禁止网页请求全屏，继续尝试方向锁定并提供旋转布局回退。 */ }
-    }
-    let locked = false;
-    try {
-      const orientation = (screen as any).orientation;
-      if (orientation?.lock) {
-        await orientation.lock('landscape');
-        locked = true;
-      }
-    } catch { /* 浏览器或系统可能不允许网页锁定方向。 */ }
-    setOrientationFallback(!locked && !window.matchMedia('(orientation: landscape)').matches);
+    setOrientationFallback(next === 'landscape' && !window.matchMedia('(orientation: landscape)').matches);
   }, []);
 
   const exitExperience = useCallback(async () => {

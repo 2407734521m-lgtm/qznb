@@ -792,7 +792,6 @@ export default function ParticleFlower() {
           ctx.drawImage(sprite,x-diameter*.5,y-diameter*.5,diameter,diameter);
         }
         ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';
-      }        ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';
       }
       if (experienceToolRef.current !== 'write' && landmarksRef.current && modeRef.current==='gesture') {
         drawSkeleton(ctx,landmarksRef.current,width,height);

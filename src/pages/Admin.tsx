@@ -4,6 +4,7 @@ import { startSitePresence } from '../lib/sitePresence';
 import { useAuth } from '../auth';
 import '../styles-admin-cinematic.css';
 import '../styles-admin-unified.css';
+import '../styles-admin-scaffold.css';
 import AdminWorkspace from '../components/AdminWorkspace';
 import AdminSystemCenter from '../components/AdminSystemCenter';
 import AdminAnalyticsCenter from '../components/AdminAnalyticsCenter';

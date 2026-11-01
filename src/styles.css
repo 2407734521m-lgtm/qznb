@@ -8,6 +8,10 @@ body{background:var(--bg);color:var(--fg);font:14px/1.55 system-ui,-apple-system
 .app-bg{position:fixed;inset:0;z-index:-1;pointer-events:none;background-size:cover;background-position:center;filter:blur(7px) brightness(42%);transform:scale(1.1)}
 a{color:var(--a)}
 .wrap{max-width:960px;margin:0 auto;padding:14px calc(14px + env(safe-area-inset-right)) calc(14px + var(--tab-h)) calc(14px + env(safe-area-inset-left))}
+/* 私聊收件箱独占视口；仅 /friends 路由启用，不改变其他页面布局。 */
+.inbox-shell{position:fixed;inset:50px 0 0;z-index:2;width:100%;max-width:none!important;height:auto;margin:0;padding:0!important;overflow:hidden}
+.inbox-shell>div{height:100%;min-height:0}
+.inbox-shell .im-inbox{width:100%;height:100%;min-height:0;max-width:none;margin:0}
 @media(min-width:769px){.wrap{padding-bottom:40px}}
 
 /* ============ 导航：桌面顶栏 / 手机底栏 ============ */
@@ -22,6 +26,8 @@ a{color:var(--a)}
 @media(max-width:768px){
   .topnav{display:none}
   .wrap{padding-bottom:calc(104px + env(safe-area-inset-bottom))}
+  .inbox-shell{inset:0}
+  .inbox-shell>div{height:100%}
   .searchbar{top:10px}
   /* 悬浮胶囊底栏 */
   .tabbar{

@@ -181,6 +181,8 @@ export default function ParticleFlower() {
         setHasHand(true);
       });
       handsRef.current = hands;
+      // 首帧 send 会触发 MediaPipe 的 WASM/模型初始化；完成后才撤下唤醒遮罩。
+      await hands.send({ image: video });
       modeRef.current = 'gesture'; setMode('gesture');
       setCameraLive(true); setStatus('等待手掌');
       setLoading(false);
@@ -265,9 +267,10 @@ export default function ParticleFlower() {
         p.x=x; p.y=y;
         const normalized=clamp(Math.hypot(nx,ny)/(scale*0.48),0,1);
         const cream=1-normalized, pink=clamp(1-Math.abs(normalized-0.53)*2.05,0,1), edge=normalized;
-        const r=Math.round(lerp(255,231,edge));
-        const g=Math.round(lerp(243,84,edge));
-        const b=Math.round(lerp(214,154,edge));
+        const midMix=clamp(normalized*2,0,1), edgeMix=clamp((normalized-.5)*2,0,1);
+        const r=Math.round(normalized<.5?lerp(255,247,midMix):lerp(247,231,edgeMix));
+        const g=Math.round(normalized<.5?lerp(243,168,midMix):lerp(168,84,edgeMix));
+        const b=Math.round(normalized<.5?lerp(214,196,midMix):lerp(196,154,edgeMix));
         const alpha=0.35+cream*0.42+pink*0.18;
         const size=p.size*(0.65+opennessNow*0.4);
         ctx.globalAlpha=alpha;
@@ -305,14 +308,14 @@ export default function ParticleFlower() {
   }, [mode]);
 
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (modeRef.current!=='demo') return;
+    if (modeRef.current!=='demo' || (e.target as HTMLElement).closest('button')) return;
     pointerDownRef.current=true;
     (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
     pointerRef.current={x:e.clientX,y:e.clientY,z:0};
     targetRef.current=clamp(1-(e.clientY/window.innerHeight),0,1);
   };
   const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (modeRef.current!=='demo') return;
+    if (modeRef.current!=='demo' || (e.target as HTMLElement).closest('button')) return;
     pointerRef.current={x:e.clientX,y:e.clientY,z:0};
     if (pointerDownRef.current) targetRef.current=clamp(1-(e.clientY/window.innerHeight),0,1);
   };
@@ -368,7 +371,7 @@ export default function ParticleFlower() {
         <div className="bloom-hud-meta">{particleCount.toLocaleString()} LIGHT PARTICLES</div>
       </aside>
       <div className="bloom-mode-switch">
-        <button className={mode==='gesture'?'active':''} onClick={() => setExperienceMode('gesture')}>手势</button>
+        <button className={mode==='gesture'?'active':''} onClick={() => cameraLive ? setExperienceMode('gesture') : void startCamera()}>手势</button>
         <button className={mode==='demo'?'active':''} onClick={() => setExperienceMode('demo')}>演示</button>
       </div>
       {loading && <div className="bloom-loading"><div className="bloom-loader-flower">✿</div><span>正在唤醒手部模型</span><small>INITIALIZING MEDIAPIPE HANDS</small></div>}

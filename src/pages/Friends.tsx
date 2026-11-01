@@ -190,14 +190,23 @@ export default function Friends() {
   }
 
   async function respond(id: string, accept: boolean) {
+    if (friendActionId) return;
+    setFriendActionId(id);
     setMsg('');
-    const { error } = await supabase.rpc('respond_friend_request', { req: id, accept });
-    if (error) {
-      setMsg('操作失败：' + error.message);
-      return;
+    try {
+      const { error } = await supabase.rpc('respond_friend_request', { req: id, accept });
+      if (error) {
+        setMsg('操作失败：' + error.message);
+        return;
+      }
+      await load();
+      setMsg(accept ? '已成为好友。可以开始聊天了。' : '已拒绝好友申请。');
+    } catch (error) {
+      console.error('respond friend request failed', error);
+      setMsg('操作失败，请检查网络后重试。');
+    } finally {
+      setFriendActionId(null);
     }
-    setMsg(accept ? '已成为好友。可以开始聊天了。' : '已拒绝好友申请。');
-    await load();
   }
 
   async function addFriend(person: MemberSearchResult) {
@@ -408,8 +417,8 @@ export default function Friends() {
                     <span className="im-inbox-preview" style={{ display: 'block' }}>@{friend.username} 想加你为好友</span>
                   </span>
                   <span className="im-request-actions">
-                    <button type="button" className="pri" onClick={() => respond(friend.id, true)}>接受</button>
-                    <button type="button" className="ghost" onClick={() => respond(friend.id, false)}>拒绝</button>
+                    <button type="button" className="pri" disabled={friendActionId === friend.id} onClick={() => respond(friend.id, true)}>{friendActionId === friend.id ? '处理中…' : '接受'}</button>
+                    <button type="button" className="ghost" disabled={friendActionId === friend.id} onClick={() => respond(friend.id, false)}>拒绝</button>
                   </span>
                 </div>
               ))}

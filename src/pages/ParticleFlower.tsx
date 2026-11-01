@@ -434,6 +434,8 @@ export default function ParticleFlower() {
     if (cameraRafRef.current) cancelAnimationFrame(cameraRafRef.current);
     cameraRafRef.current = 0;
     if (recognitionTimerRef.current) window.clearTimeout(recognitionTimerRef.current);
+    if (recordingTimerRef.current) window.clearTimeout(recordingTimerRef.current);
+    if (mediaRecorderRef.current?.state === 'recording') mediaRecorderRef.current.stop();
     streamRef.current?.getTracks().forEach(track => track.stop());
     streamRef.current = null;
     if (videoRef.current) videoRef.current.srcObject = null;
@@ -1104,7 +1106,10 @@ export default function ParticleFlower() {
 
   const toggleRecording = useCallback(() => {
     const current = mediaRecorderRef.current;
-    if (current && current.state === 'recording') { current.stop(); return; }
+    if (current && current.state === 'recording') {
+      if (recordingTimerRef.current) window.clearTimeout(recordingTimerRef.current);
+      current.stop(); return;
+    }
     const canvas = canvasRef.current;
     if (!canvas || typeof MediaRecorder === 'undefined' || !canvas.captureStream) {
       setMediaMessage('当前浏览器不支持动画录制'); return;
@@ -1116,6 +1121,7 @@ export default function ParticleFlower() {
       mediaRecorderRef.current = recorder; recordingChunksRef.current = [];
       recorder.ondataavailable = event => { if (event.data.size) recordingChunksRef.current.push(event.data); };
       recorder.onstop = () => {
+        if (recordingTimerRef.current) window.clearTimeout(recordingTimerRef.current);
         const blob = new Blob(recordingChunksRef.current, { type: recorder.mimeType || 'video/webm' });
         if (blob.size) {
           const url = URL.createObjectURL(blob); const link = document.createElement('a');
@@ -1364,15 +1370,17 @@ export default function ParticleFlower() {
           </button>
           <button type="button" className="bloom-auto-demo" onClick={() => { setExperienceMode('demo'); autoDemoRef.current=true; setAutoDemo(true); setStatus('自动演示'); }}>✦ 自动演示完整花期</button>
           <div className="bloom-privacy">摄像头与手势数据只在本地浏览器处理，不会上传；作品收藏仅保存在本机</div>
-          {savedArtworks.length>0 && <section className="bloom-artwork-library"><div className="bloom-artwork-library-title">本机作品集 <small>{savedArtworks.length}/8</small></div><div className="bloom-artwork-grid">{savedArtworks.map(item=><a href={item.dataUrl} download={item.name+'.png'} key={item.id}><img src={item.dataUrl} alt={item.name}/><span>{item.name}</span></a>)}</div></section>}
+          {savedArtworks.length>0 && <section className="bloom-artwork-library"><div className="bloom-artwork-library-title">本机作品集 <small>{savedArtworks.length}/8</small></div><div className="bloom-artwork-grid">{savedArtworks.map(item=><div className="bloom-artwork-card" key={item.id}><a href={item.dataUrl} download={item.name+'.png'}><img src={item.dataUrl} alt={item.name}/><span>{item.name}</span></a><button type="button" aria-label={'删除'+item.name} onClick={()=>{const next=savedArtworks.filter(saved=>saved.id!==item.id);setSavedArtworks(next);try{window.localStorage.setItem('qznb-bloom-artworks',JSON.stringify(next));}catch{setMediaMessage('删除失败，请检查浏览器存储权限');}}}>删除</button></div>)}</div></section>}
           {error&&<div className="bloom-error" role="alert">{error}</div>}
         </section>
       )}
       {experienceStarted&&<div className="bloom-side-note">循光而行 · LET THE LIGHT BLOOM</div>}
-      {experienceStarted&&<footer className="bloom-steps">
+      {experienceStarted&&experienceTool==='flower'&&<footer className="bloom-steps bloom-gesture-guide">
         <div><b>01</b><span>握拳·闭合</span></div><i />
         <div><b>02</b><span>张掌·绽放</span></div><i />
-        <div><b>03</b><span>指尖·牵引</span></div>
+        <div><b>03</b><span>左右移动·旋转</span></div><i />
+        <div><b>04</b><span>上下移动·升降</span></div><i />
+        <div><b>05</b><span>双手靠近·增强光效</span></div>
       </footer>}
       {experienceStarted && experienceTool === 'flower' && <div className="bloom-art-actions">
         <button type="button" onClick={saveArtworkToDevice}>保存图片</button>

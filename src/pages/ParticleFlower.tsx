@@ -48,12 +48,14 @@ function makeParticles(count: number): Particle[] {
     const budX = Math.sin(budTheta) * Math.cos(angle) * budR * 0.24;
     const budY = Math.cos(budTheta) * budR * 0.43;
     const budZ = Math.sin(budTheta) * Math.sin(angle) * budR * 0.12;
-    // 五瓣玫瑰曲线，瓣尖略圆润并带少量厚度。
-    const petalWave = 0.5 + 0.5 * Math.cos(5 * angle);
-    const petalR = (0.10 + 0.90 * Math.pow(petalWave, 0.82)) * Math.sqrt(Math.random()) * 0.47;
+    // 参考视频的花冠：以半球穹顶为基底，九组柔和起伏形成层叠花瓣边缘。
+    const radial = Math.sqrt(Math.random());
+    const petalWave = 0.5 + 0.5 * Math.cos(9 * angle + seed * 0.012);
+    const petalEdge = 0.88 + 0.12 * Math.pow(petalWave, 1.35);
+    const petalR = radial * petalEdge * 0.50;
     const bloomX = Math.cos(angle) * petalR;
-    const bloomY = Math.sin(angle) * petalR * 0.88;
-    const bloomZ = depth * (0.025 + petalR * 0.075);
+    const bloomY = Math.sin(angle) * petalR * 0.72 - Math.pow(1 - radial, 1.5) * 0.022;
+    const bloomZ = Math.sqrt(Math.max(0, 1 - radial * radial)) * 0.16 + depth * 0.025;
     out.push({
       seed, angle, depth, size: 0.55 + Math.random() * 1.35, phase: Math.random() * Math.PI * 2,
       budX, budY, budZ, bloomX, bloomY, bloomZ,
@@ -108,6 +110,7 @@ export default function ParticleFlower() {
   const [openness, setOpenness] = useState(18);
   const [status, setStatus] = useState('等待手掌');
   const [cameraLive, setCameraLive] = useState(false);
+  const [experienceStarted, setExperienceStarted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [particleCount, setParticleCount] = useState(3000);
@@ -131,6 +134,7 @@ export default function ParticleFlower() {
   }, []);
 
   const setExperienceMode = useCallback((next: Mode) => {
+    setExperienceStarted(true);
     modeRef.current = next; setMode(next);
     if (next === 'demo') {
       stopCamera();
@@ -186,6 +190,7 @@ export default function ParticleFlower() {
       await hands.send({ image: video });
       modeRef.current = 'gesture'; setMode('gesture');
       setCameraLive(true); setStatus('等待手掌');
+      setExperienceStarted(true);
       setLoading(false);
       let busy = false;
       const process = async () => {
@@ -278,7 +283,7 @@ export default function ParticleFlower() {
         const alpha=0.35+cream*0.42+pink*0.18;
         const size=p.size*(0.65+opennessNow*0.4);
         ctx.globalAlpha=alpha;
-        ctx.drawImage(sprite,x-size*10,y-size*10,size*20,size*20);
+        ctx.drawImage(sprite,x-size*7,y-size*7,size*14,size*14);
         ctx.fillStyle='rgba('+r+','+g+','+b+',.88)';
         ctx.beginPath(); ctx.arc(x,y,Math.max(.45,size*.72),0,Math.PI*2); ctx.fill();
       }
@@ -335,7 +340,7 @@ export default function ParticleFlower() {
   const statusChinese = mode==='demo' ? '演示模式' : !hasHand ? '等待手掌' : openness<28 ? '花苞' : openness>68 ? '绽放' : '舒展中';
 
   return (
-    <main className="bloom-page" onPointerDown={handlePointerDown} onPointerMove={handlePointerMove} onPointerUp={handlePointerUp} onPointerCancel={handlePointerUp}>
+    <main className={'bloom-page' + (experienceStarted ? ' is-active' : '')} onPointerDown={handlePointerDown} onPointerMove={handlePointerMove} onPointerUp={handlePointerUp} onPointerCancel={handlePointerUp}>
       <video ref={videoRef} className={'bloom-camera' + (cameraLive ? ' is-live' : '')} playsInline muted />
       <canvas ref={canvasRef} className="bloom-canvas" aria-label="由粒子组成的互动花朵" />
       <div className="bloom-vignette" />

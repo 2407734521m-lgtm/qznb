@@ -116,22 +116,23 @@ export default function Daily({ searchQuery = '' }: { searchQuery?: string }) {
       if (fref.current) fref.current.value = '';
       void load();
     } catch (e: any) {
-      let outcomeNote = '';
-      if (uploadedPath) {
+      const failure = e.message || '网络错误';
+      if (!uploadedPath) {
+        setErr('发布失败：' + failure);
+      } else {
         // 网络错误可能发生在服务端提交成功之后；先确认没有帖子引用该图片，再清理。
         const { data: linkedPost, error: checkError } = await supabase.from('posts')
           .select('id').eq('image_url', uploadedPath).maybeSingle();
         if (checkError) {
-          outcomeNote = '；发布结果暂时无法确认，请刷新列表核对，暂未清理图片';
+          setErr('发布结果暂时无法确认，请刷新列表核对；为避免误删，暂未清理图片。');
         } else if (linkedPost) {
-          outcomeNote = '；已找到引用该图片的帖子，请刷新列表确认结果，避免重复发布';
+          setErr('已找到引用该图片的帖子，提交可能已成功。请刷新列表确认，避免重复发布。');
           void load();
         } else {
           const cleanupError = await removeOwnedMedia(uploadedPath, me);
-          if (cleanupError) outcomeNote = '；图片清理失败：' + cleanupError;
+          setErr('发布失败：' + failure + (cleanupError ? '；图片清理失败：' + cleanupError : ''));
         }
       }
-      setErr('发布失败：' + (e.message || '网络错误') + outcomeNote);
     } finally { setBusy(false); }
   }
 

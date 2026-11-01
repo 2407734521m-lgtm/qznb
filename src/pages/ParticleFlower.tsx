@@ -167,9 +167,6 @@ export default function ParticleFlower() {
   const pointerDownRef = useRef(false);
   const modeRef = useRef<Mode>('demo');
   const videoSizeRef = useRef({ w: 0, h: 0 });
-  // 开合度自适应标定：每个人的手大小、离镜头距离都不同，范围跟着实际手势学，
-  // 默认值只是冷启动。学到后缓慢向默认回摆，避免一次极端动作永久带偏。
-  const calibRef = useRef({ min: 1.18, max: 2.32 });
   const failStreakRef = useRef(0);
   const lastResultAtRef = useRef(0);
   const hudCacheRef = useRef({ pct: -1, state: '', en: '' });
@@ -227,16 +224,20 @@ export default function ParticleFlower() {
       if (!HandsCtor) throw new Error('手部模型未能初始化，请刷新页面重试。');
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: false,
-        video: { facingMode: 'user', width: { ideal: 960 }, height: { ideal: 720 }, frameRate: { ideal: 30, max: 30 } }
+        video: { facingMode: 'user', width: { ideal: 640, max: 960 }, height: { ideal: 480, max: 540 }, frameRate: { ideal: 30, max: 30 } }
       });
       streamRef.current = stream;
       const video = videoRef.current;
       if (!video) throw new Error('摄像头画面容器尚未准备好。');
       video.srcObject = stream;
       await video.play();
-      const hands = new HandsCtor({ locateFile: (file: string) => base + '/' + file });
-      hands.setOptions({ maxNumHands: 1, modelComplexity: 1, minDetectionConfidence: 0.62, minTrackingConfidence: 0.58 });
-      hands.onResults((results: any) => {
+      const makeHands = (cdnBase: string) => {
+        const h = new HandsCtor({ locateFile: (file: string) => cdnBase + '/' + file });
+        h.setOptions({ maxNumHands: 1, modelComplexity: 1, minDetectionConfidence: 0.62, minTrackingConfidence: 0.58 });
+        h.onResults(handleResults);
+        return h;
+      };
+      const handleResults = (results: any) => {
         lastResultAtRef.current = performance.now();
         failStreakRef.current = 0;
         const hand = results.multiHandLandmarks?.[0];
@@ -245,27 +246,47 @@ export default function ParticleFlower() {
           targetRef.current = 0.18; hasHandRef.current = false; return;
         }
         landmarksRef.current = hand;
-        const wrist = hand[0], middleBase = hand[9];
-        const tips = [4, 8, 12, 16, 20].map(i => hand[i]);
-        const baseDist = Math.max(0.001, distance(wrist, middleBase));
-        const ratio = tips.reduce((sum, p) => sum + distance(wrist, p), 0) / tips.length / baseDist;
-        const cal = calibRef.current;
-        if (ratio < cal.min) cal.min = ratio; else cal.min += (1.18 - cal.min) * 0.002;
-        if (ratio > cal.max) cal.max = ratio; else cal.max += (2.32 - cal.max) * 0.002;
-        const raw = clamp((ratio - cal.min) / Math.max(0.35, cal.max - cal.min), 0, 1);
-        targetRef.current = lerp(targetRef.current, raw, 0.2);
+        // 开合度按「手指伸直度」算（GPT 版的算法）：每根手指 MCP→指尖的直线距离
+        // 除以经 PIP 的折线长——弯曲时折线明显更长，这个比值与手大小、离镜头
+        // 远近无关，握拳必然低、张掌必然高，不需要标定。再混一点指尖外张程度
+        // 和大拇指张开度，避免手指并拢伸直时读数偏低。
+        const wrist = hand[0];
+        const fingerPairs = [[5, 6, 8], [9, 10, 12], [13, 14, 16], [17, 18, 20]];
+        const scores = fingerPairs.map(([mcp, pip, tip]) => {
+          const direct = Math.max(0.001, distance(hand[mcp], hand[tip]));
+          const path = distance(hand[mcp], hand[pip]) + distance(hand[pip], hand[tip]);
+          const straight = direct / Math.max(0.001, path);
+          const radial = distance(wrist, hand[tip]) / Math.max(0.001, distance(wrist, hand[mcp]));
+          return clamp((straight - 0.70) / 0.27, 0, 1) * 0.72 + clamp((radial - 1.0) / 0.72, 0, 1) * 0.28;
+        });
+        const thumb = clamp((distance(hand[4], hand[5]) / Math.max(0.001, distance(hand[2], hand[5]) * 0.9) - 0.25) / 0.8, 0, 1);
+        const raw = clamp(scores.reduce((a, b) => a + b, 0) / scores.length * 0.88 + thumb * 0.12, 0, 1);
+        targetRef.current = lerp(targetRef.current, raw, 0.24);
         fingerRawRef.current = { x: hand[8].x, y: hand[8].y };
         hasHandRef.current = true;
-      });
+      };
+      let hands = makeHands(base);
       handsRef.current = hands;
       lastResultAtRef.current = performance.now();
-      // 首帧 send 只为预热模型；失败不致命，后面的帧会继续试，连续失败有专门提示。
-      try {
+      // 首帧 send 只为预热模型；第一个源的模型文件坏掉时，换第二个源整套重建
+      // 再试一次（GPT 版的容灾）；仍失败不致命，主循环有失败计数和看门狗兜底。
+      const warmup = async (h: any) => {
         await Promise.race([
-          hands.send({ image: video }),
+          h.send({ image: video }),
           new Promise((_, reject) => window.setTimeout(() => reject(new Error('warmup timeout')), 15000)),
         ]);
-      } catch { /* 预热失败交给主循环的失败计数处理 */ }
+      };
+      try {
+        await warmup(hands);
+      } catch {
+        if (base === HANDS_SOURCES[0]) {
+          try { await hands.close(); } catch {}
+          hands = makeHands(HANDS_SOURCES[1]);
+          handsRef.current = hands;
+          lastResultAtRef.current = performance.now();
+          try { await warmup(hands); } catch { /* 交给主循环兜底 */ }
+        }
+      }
       modeRef.current = 'gesture'; setMode('gesture');
       setCameraLive(true);
       experienceStartedRef.current = true;
@@ -313,6 +334,16 @@ export default function ParticleFlower() {
       startGuardRef.current = false;
     }
   }, [loading, stopCamera, setExperienceMode]);
+
+  // 页面切到后台时直接停掉摄像头轨道，比只在循环里跳过更省电（GPT 版的做法）。
+  useEffect(() => {
+    const sync = () => {
+      const enabled = !document.hidden;
+      streamRef.current?.getVideoTracks().forEach(track => { track.enabled = enabled; });
+    };
+    document.addEventListener('visibilitychange', sync);
+    return () => document.removeEventListener('visibilitychange', sync);
+  }, []);
 
   useEffect(() => {
     const canvas = canvasRef.current;

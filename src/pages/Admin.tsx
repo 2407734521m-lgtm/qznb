@@ -6,6 +6,7 @@ import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import '../styles-admin-cinematic.css';
 import '../styles-admin-unified.css';
 import '../styles-admin-scaffold.css';
+import '../styles-admin-ops.css';
 import AdminWorkspace from '../components/AdminWorkspace';
 import AdminSystemCenter from '../components/AdminSystemCenter';
 import AdminAnalyticsCenter from '../components/AdminAnalyticsCenter';

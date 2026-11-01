@@ -568,7 +568,13 @@ export default function ParticleFlower() {
           const pinchRatio = distance(hand[4], hand[8]) / base;
           const drawNow = pinchingRef.current ? pinchRatio < 0.48 : pinchRatio < 0.34;
           if (drawNow) {
-            if (recognizedCandidateRef.current) return;
+            // If the user adds another stroke, treat it as continuation of this character,
+            // dismiss the provisional guess and recognize the combined original strokes again.
+            if (recognizedCandidateRef.current) {
+              recognizedCandidateRef.current = '';
+              setRecognizedCandidate('');
+              setRecognitionCandidates([]);
+            }
             const previous = smoothedInkPointRef.current;
             const smooth = previous
               ? { x: lerp(previous.x, screenPoint.x, 0.48), y: lerp(previous.y, screenPoint.y, 0.48) }

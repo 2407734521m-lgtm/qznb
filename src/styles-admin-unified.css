@@ -336,3 +336,38 @@
       linear-gradient(180deg, #111c2d 0%, #0e1727 100%) !important;
   }
 }
+
+
+/* Shared confirm / prompt layer lives beside the admin shell, so it receives
+   an explicit host class rather than depending on descendant selectors. */
+.admin-dialog-overlay {
+  background: rgba(4, 12, 23, .74) !important;
+  -webkit-backdrop-filter: blur(10px) saturate(1.1) !important;
+  backdrop-filter: blur(10px) saturate(1.1) !important;
+}
+.admin-dialog-card {
+  color: #e8eef5 !important;
+  background: linear-gradient(150deg, #1d2b41, #121d2f) !important;
+  border: 1px solid rgba(190, 211, 230, .18) !important;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, .44), inset 0 1px 0 rgba(255,255,255,.045) !important;
+}
+.admin-dialog-card textarea {
+  color: #e8eef5 !important;
+  background: rgba(220, 233, 245, .065) !important;
+  border: 1px solid rgba(190, 211, 230, .16) !important;
+}
+.admin-dialog-card .admin-dialog-cancel {
+  color: #d5e0eb !important;
+  background: rgba(220, 233, 245, .07) !important;
+  border: 1px solid rgba(190, 211, 230, .16) !important;
+}
+.admin-dialog-card .admin-dialog-primary {
+  color: #f4fffe !important;
+  background: linear-gradient(135deg, #278b89, #43b9b0) !important;
+  border: 1px solid rgba(124, 218, 208, .20) !important;
+}
+.admin-dialog-card .admin-dialog-danger {
+  color: #fff4f5 !important;
+  background: linear-gradient(135deg, #9d4657, #bd596b) !important;
+  border: 1px solid rgba(245, 151, 164, .24) !important;
+}

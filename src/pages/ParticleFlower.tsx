@@ -54,27 +54,30 @@ function makeParticles(count: number): Particle[] {
     const budY = Math.cos(budTheta) * budR * 0.43;
     const budZ = Math.sin(budTheta) * Math.sin(angle) * budR * 0.12;
 
-    // 三层花瓣以不同瓣数、半径和高度交叠，形成视频中蓬松的伞形花冠。
+    // 粒子花冠：每个点随机落在一片粒子花瓣的内部，瓣与瓣之间保留细缝。
+    // 三层分别采用 7/6/5 瓣，错位叠放；所有花瓣均由独立粒子组成。
     const layerRoll = Math.random();
     const layer = layerRoll < 0.48 ? 0 : layerRoll < 0.82 ? 1 : 2;
     const layerScale = layer === 0 ? 1 : layer === 1 ? 0.91 : 0.82;
     const petalCount = layer === 0 ? 7 : layer === 1 ? 6 : 5;
-    const petalWave = 0.5 + 0.5 * Math.cos(angle * petalCount + layer * 0.86 + seed * 0.008);
-    const scallopedEdge = 0.79 + 0.21 * Math.pow(petalWave, 1.28);
-    const radial = Math.pow(Math.random(), 0.76);
+    const petalPhase = layer * 0.86 + (layer === 1 ? Math.PI / 6 : layer === 2 ? Math.PI / 5 : 0);
+    const wave = Math.cos(angle * petalCount + petalPhase);
+    const petalRidge = Math.pow(Math.max(0, (wave + 1) * 0.5), 1.55);
+    const scallopedEdge = 0.73 + 0.27 * petalRidge;
+    const radial = Math.pow(Math.random(), 0.72);
     const petalR = radial * scallopedEdge * layerScale;
-    const fold = Math.sin(angle * petalCount + layer * 0.86) * 0.028 * radial;
+    const fold = Math.sin(angle * petalCount + petalPhase) * 0.035 * radial;
     const warpedAngle = angle + fold;
 
-    // 少量游离粒子从花冠边沿自然垂落，避免盛放状态看起来像实心几何圆盘。
-    const drift = Math.random() < 0.17 ? 0.07 + Math.random() * 0.17 : 0;
-    const layerLift = layer === 0 ? 0.058 : layer === 1 ? 0.018 : -0.026;
+    // 伞形花冠由上层、主层、下垂外层构成，外围少量粒子向下飘散。
+    const drift = Math.random() < 0.13 ? 0.06 + Math.random() * 0.18 : 0;
+    const layerLift = layer === 0 ? 0.072 : layer === 1 ? 0.012 : -0.052;
     const dome = Math.sqrt(Math.max(0, 1 - radial * radial));
-    const bloomX = Math.cos(warpedAngle) * petalR * 0.53
-      + Math.cos(angle) * drift * 0.22;
-    const bloomY = Math.sin(warpedAngle) * petalR * 0.42
-      + radial * radial * 0.035 + layerLift + drift;
-    const bloomZ = dome * 0.16 + (2 - layer) * 0.012 + depth * 0.018;
+    const bloomX = Math.cos(warpedAngle) * petalR * 0.56
+      + Math.cos(angle) * drift * 0.18;
+    const bloomY = Math.sin(warpedAngle) * petalR * 0.39
+      + radial * radial * 0.052 + layerLift + drift;
+    const bloomZ = dome * 0.19 + (2 - layer) * 0.018 + depth * 0.014;
 
     out.push({
       seed, angle, depth, size: 0.34 + Math.random() * 0.72, phase: Math.random() * Math.PI * 2,
@@ -109,81 +112,6 @@ function drawSkeleton(ctx: CanvasRenderingContext2D, landmarks: any[], w: number
   ctx.restore();
 }
 
-
-function drawPetalFlower(ctx: CanvasRenderingContext2D, cx: number, cy: number, scale: number, openness: number, time: number) {
-  const bloom = clamp((openness - 0.08) / 0.92, 0, 1);
-  const layers = [
-    { count: 7, length: 0.45, width: 0.175, start: 0.00, turn: 0.00, alpha: 0.78, stops: ['#b95782', '#e88eb0', '#f5bed0'] },
-    { count: 6, length: 0.385, width: 0.154, start: 0.045, turn: Math.PI / 6, alpha: 0.84, stops: ['#d8759e', '#f2aec5', '#f8d2dc'] },
-    { count: 5, length: 0.315, width: 0.132, start: 0.09, turn: Math.PI / 5, alpha: 0.9, stops: ['#e99ab4', '#f7c3d0', '#fff0df'] }
-  ];
-
-  ctx.save();
-  ctx.translate(cx, cy);
-  for (let layerIndex = 0; layerIndex < layers.length; layerIndex++) {
-    const layer = layers[layerIndex];
-    for (let i = 0; i < layer.count; i++) {
-      const baseAngle = (i / layer.count) * Math.PI * 2 + layer.turn;
-      const angle = baseAngle * (0.34 + bloom * 0.66) + Math.sin(time * 0.32 + i * 1.7 + layerIndex) * 0.009;
-      const petalLength = scale * layer.length * (0.62 + bloom * 0.38);
-      const petalWidth = scale * layer.width * (0.55 + bloom * 0.45);
-      const rootOffset = scale * layer.start * (0.45 + bloom * 0.55);
-
-      ctx.save();
-      ctx.rotate(angle);
-      ctx.translate(0, -rootOffset);
-      ctx.globalAlpha = layer.alpha;
-      ctx.shadowColor = 'rgba(224,105,151,.18)';
-      ctx.shadowBlur = scale * 0.012;
-
-      const gradient = ctx.createLinearGradient(0, 0, 0, -petalLength);
-      gradient.addColorStop(0, layer.stops[0]);
-      gradient.addColorStop(0.54, layer.stops[1]);
-      gradient.addColorStop(1, layer.stops[2]);
-
-      ctx.beginPath();
-      ctx.moveTo(-petalWidth * 0.22, 0);
-      ctx.bezierCurveTo(-petalWidth * 0.92, -petalLength * 0.22, -petalWidth * 0.72, -petalLength * 0.78, 0, -petalLength);
-      ctx.bezierCurveTo(petalWidth * 0.72, -petalLength * 0.78, petalWidth * 0.92, -petalLength * 0.22, petalWidth * 0.22, 0);
-      ctx.quadraticCurveTo(0, petalLength * 0.12, -petalWidth * 0.22, 0);
-      ctx.closePath();
-      ctx.fillStyle = gradient;
-      ctx.fill();
-      ctx.shadowBlur = 0;
-      ctx.strokeStyle = 'rgba(255,238,235,.26)';
-      ctx.lineWidth = Math.max(0.7, scale * 0.0018);
-      ctx.stroke();
-
-      ctx.beginPath();
-      ctx.moveTo(0, -petalLength * 0.08);
-      ctx.quadraticCurveTo(petalWidth * 0.025, -petalLength * 0.48, 0, -petalLength * 0.88);
-      ctx.strokeStyle = 'rgba(255,244,236,.24)';
-      ctx.lineWidth = Math.max(0.55, scale * 0.00135);
-      ctx.stroke();
-      ctx.restore();
-    }
-  }
-
-  const coreRadius = scale * (0.035 + bloom * 0.012);
-  const core = ctx.createRadialGradient(0, 0, 0, 0, 0, coreRadius * 2.5);
-  core.addColorStop(0, 'rgba(255,238,205,.96)');
-  core.addColorStop(0.38, 'rgba(248,190,172,.72)');
-  core.addColorStop(1, 'rgba(220,111,151,0)');
-  ctx.fillStyle = core;
-  ctx.beginPath();
-  ctx.arc(0, 0, coreRadius * 2.5, 0, Math.PI * 2);
-  ctx.fill();
-
-  ctx.fillStyle = 'rgba(255,231,196,.68)';
-  for (let i = 0; i < 17; i++) {
-    const a = i * Math.PI * 2 / 17;
-    const r = coreRadius * (0.72 + (i % 3) * 0.12);
-    ctx.beginPath();
-    ctx.arc(Math.cos(a) * r, Math.sin(a) * r, Math.max(0.6, scale * 0.0022), 0, Math.PI * 2);
-    ctx.fill();
-  }
-  ctx.restore();
-}
 
 export default function ParticleFlower() {
   const navigate = useNavigate();
@@ -452,9 +380,8 @@ export default function ParticleFlower() {
       halo.addColorStop(0,'rgba(226,105,161,'+(0.07+opennessNow*0.08)+')');
       halo.addColorStop(1,'rgba(120,50,105,0)');
       ctx.fillStyle = halo; ctx.fillRect(0,0,width,height);
-      // 花瓣是主体：三层有独立轮廓与渐变，不再用白芯粒子团冒充花瓣。
-      drawPetalFlower(ctx, cx, cy, scale, opennessNow, now);
-      // 粒子只作为花瓣边缘的光尘，使用柔和叠加，避免中心过曝。
+      // 花朵完全由粒子构成：不绘制任何实体花瓣或实心花冠。
+      // 三层粒子通过不同的花瓣瓣数、半径和高度形成层叠伞形轮廓。
       ctx.globalCompositeOperation = 'source-over';
       const ps = particlesRef.current;
       for (let i=0;i<ps.length;i++) {
@@ -476,17 +403,19 @@ export default function ParticleFlower() {
         }
         const x=cx+nx, y=cy+ny+nz*0.2;
         p.x=x; p.y=y;
-        const normalized=clamp(Math.hypot(nx,ny)/(scale*0.48),0,1);
+        const normalized=clamp(Math.hypot(nx,ny)/(scale*0.58),0,1);
+        // 中心香槟金 -> 花瓣粉 -> 外缘玫瑰粉，避免白色高亮芯。
         const r=Math.round(246-normalized*18);
-        const g=Math.round(190-normalized*70);
-        const b=Math.round(204-normalized*38);
-        const alpha=0.10+normalized*0.14;
-        const size=p.size*(0.72+opennessNow*0.22);
+        const g=Math.round(205-normalized*91);
+        const b=Math.round(177+normalized*31);
+        const centerWarmth=1-normalized;
+        const alpha=(0.24+normalized*0.18)*(0.82+Math.sin(p.phase+now*1.1)*0.12);
+        const size=p.size*(0.82+opennessNow*0.32);
         ctx.globalAlpha=alpha;
-        ctx.drawImage(sprite,x-size*2.1,y-size*2.1,size*4.2,size*4.2);
-        ctx.globalAlpha=alpha*0.9;
-        ctx.fillStyle='rgba('+r+','+g+','+b+',.5)';
-        ctx.beginPath(); ctx.arc(x,y,Math.max(.3,size*.46),0,Math.PI*2); ctx.fill();
+        ctx.drawImage(sprite,x-size*1.75,y-size*1.75,size*3.5,size*3.5);
+        ctx.globalAlpha=alpha*0.82;
+        ctx.fillStyle='rgba('+r+','+g+','+b+',.78)';
+        ctx.beginPath(); ctx.arc(x,y,Math.max(.42,size*(0.52+centerWarmth*.12)),0,Math.PI*2); ctx.fill();
       }
       ctx.globalAlpha=1; ctx.globalCompositeOperation='source-over';
       if (landmarksRef.current && modeRef.current==='gesture') drawSkeleton(ctx,landmarksRef.current,width,height);

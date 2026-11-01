@@ -130,9 +130,12 @@ export default function MeSettings() {
         <h2 style={{ fontSize: 15, margin: '0 0 4px' }}>主题与动画</h2>
         <p style={{ fontSize: 12, color: 'var(--mut)', margin: '0 0 12px' }}>主题和背景可在主页装修中调整；这里控制页面动效。</p>
         <label style={{ display: 'block', fontSize: 13, marginBottom: 7 }}>动画偏好</label>
-        <select value={prefs.motion} onChange={e => setPrefs(old => ({ ...old, motion: e.target.value as MotionPreference }))} style={{ width: '100%', padding: 11, borderRadius: 12, border: '1px solid #dce7eb', background: '#fff' }}>
-          <option value="system">跟随设备设置</option><option value="reduce">减少动画</option><option value="full">允许完整动画</option>
-        </select>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          {([['system', '跟随设备设置'], ['reduce', '减少动画'], ['full', '允许完整动画']] as const).map(([v, label]) => (
+            <button key={v} type="button" onClick={() => setPrefs(old => ({ ...old, motion: v as MotionPreference }))}
+              style={{ padding: '9px 14px', borderRadius: 999, border: `1px solid ${prefs.motion === v ? '#58aeb0' : '#dce7eb'}`, background: prefs.motion === v ? 'rgba(88,174,176,.10)' : '#fff', color: '#202632', fontSize: 13, fontFamily: 'inherit', cursor: 'pointer' }}>{label}</button>
+          ))}
+        </div>
         <p style={{ fontSize: 11, color: 'var(--mut)', margin: '8px 0 0' }}>减少动画会关闭页面过渡；完整动画仍尊重设备强制减少动态效果的设置。</p>
       </section>
       <section className="card" style={{ marginBottom: 12 }}>

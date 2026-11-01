@@ -5,6 +5,7 @@ import { useAuth } from '../auth';
 import { confirmDialog } from '../lib/dialog';
 import { getSignedUrls, downscaleImage } from '../lib/media';
 import { fetchReviewEstimates, estimateText, type ReviewEstimates } from '../lib/reviewEstimate';
+import OptionSheet from '../components/OptionSheet';
 
 // 公开列表来自 love_wall_published()，不含 author_id；自己的投稿来自表查询，只含自己的 author_id。
 type PublicPost = { id: string; recipient_name: string | null; category: string; content: string; is_anonymous: boolean; author_display_name: string | null; status: string; created_at: string };
@@ -429,19 +430,23 @@ export default function LoveWall() {
             <button onClick={() => !busy && setComposing(false)} aria-label="关闭" style={{ border: 0, background: '#f2f4f7', width: 32, height: 32, borderRadius: '50%', cursor: 'pointer', fontSize: 14, color: '#333946' }}>✕</button>
           </div>
           <label style={{ display: 'block', fontSize: 12, color: '#606673', margin: '14px 0 6px' }}>投稿类型</label>
-          <select value={category} onChange={e => setCategory(e.target.value)} style={field}>
-            {categories.map(c => <option key={c}>{c}</option>)}
-          </select>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            {categories.map(c => (
+              <button key={c} type="button" onClick={() => setCategory(c)}
+                style={{ padding: '8px 14px', borderRadius: 999, border: `1px solid ${category === c ? '#58aeb0' : '#dfe3ea'}`, background: category === c ? 'rgba(88,174,176,.10)' : '#fff', color: '#202124', fontSize: 13, fontFamily: 'inherit', cursor: 'pointer' }}>{c}</button>
+            ))}
+          </div>
           <label style={{ display: 'block', fontSize: 12, color: '#606673', margin: '12px 0 6px' }}>收件人（选填）</label>
           <input value={recipientSearch} onChange={e => setRecipientSearch(e.target.value)} maxLength={40} placeholder="搜索班级成员姓名或用户名" style={field} />
-          <select value={recipientId} onChange={e => {
-            const selected = recipientOptions.find(p => p.id === e.target.value);
-            setRecipientId(e.target.value);
-            setRecipientLabel(selected ? (selected.display_name || selected.username) : '');
-          }} style={{ ...field, marginTop: 8 }}>
-            <option value="">不指定收件人</option>
-            {recipientOptions.map(p => <option key={p.id} value={p.id}>{p.display_name || p.username}</option>)}
-          </select>
+          <OptionSheet title="选择收件人" value={recipientId}
+            buttonText={recipientId ? (recipientLabel || '已选收件人') : '不指定收件人'}
+            buttonStyle={{ ...field, marginTop: 8, justifyContent: 'space-between', cursor: 'pointer', textAlign: 'left' }}
+            options={[{ value: '', label: '不指定收件人' }, ...recipientOptions.map(p => ({ value: p.id as string, label: p.display_name || p.username }))]}
+            onChange={v => {
+              const selected = recipientOptions.find(p => p.id === v);
+              setRecipientId(v);
+              setRecipientLabel(selected ? (selected.display_name || selected.username) : '');
+            }} />
           {recipientId && <div style={{ fontSize: 11, color: '#606673', marginTop: 5 }}>收件人会在投稿审核通过后收到通知；投稿者身份仍只对管理员可见。</div>}
           <label style={{ display: 'block', fontSize: 12, color: '#606673', margin: '12px 0 6px' }}>写下你的心意</label>
           <textarea value={content} onChange={e => setContent(e.target.value)} maxLength={500} rows={4} placeholder="请尊重他人，不要发布联系方式、隐私或让对方不舒服的内容。" style={{ ...field, resize: 'vertical' }} />

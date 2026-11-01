@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../auth';
 import BackButton from '../components/BackButton';
+import OptionSheet from '../components/OptionSheet';
 import { confirmDialog, alertDialog, promptDialog } from '../lib/dialog';
 
 /** 留言祝福墙：给全班或某位同学留祝福 */
@@ -74,13 +75,10 @@ export default function Greetings() {
         <textarea value={text} onChange={e => setText(e.target.value)} rows={3} maxLength={500}
           placeholder="写下毕业寄语或祝福…" style={{ width: '100%', boxSizing: 'border-box' }} />
         <div className="row" style={{ gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
-          <select value={target} onChange={e => setTarget(e.target.value)}
-            style={{ width: 'auto', padding: '8px', fontSize: 13 }}>
-            <option value="">给全班</option>
-            {members.filter(m => m.id !== me).map(m => (
-              <option key={m.id} value={m.id}>给 {m.display_name || m.username}</option>
-            ))}
-          </select>
+          <OptionSheet title="选择祝福对象" value={target} onChange={setTarget}
+            buttonText={target === '' ? '给全班' : `给 ${members.find(m => m.id === target)?.display_name || members.find(m => m.id === target)?.username || ''}`}
+            buttonStyle={{ width: 'auto', padding: '8px 12px', fontSize: 13, borderRadius: 10, border: '1px solid #dfe3ea', background: '#fff', color: '#202124', fontFamily: 'inherit', cursor: 'pointer' }}
+            options={[{ value: '', label: '给全班' }, ...members.filter(m => m.id !== me).map(m => ({ value: m.id as string, label: `给 ${m.display_name || m.username}` }))]} />
           <button className="pri" style={{ width: 'auto', padding: '9px 26px' }} disabled={busy}
             onClick={send}>{busy ? '发送中…' : '送出祝福'}</button>
         </div>

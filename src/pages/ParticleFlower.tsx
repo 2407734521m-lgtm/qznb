@@ -1051,6 +1051,14 @@ export default function ParticleFlower() {
             </>
           )}
           {recognizedText && <span className="bloom-ink-word">{recognizedText}</span>}
+          <button type="button" className="bloom-ink-save" onClick={() => {
+            const canvas = canvasRef.current;
+            if (!canvas) return;
+            const link = document.createElement('a');
+            link.href = canvas.toDataURL('image/png');
+            link.download = '指尖生花-空中书写作品.png';
+            link.click();
+          }}>保存作品</button>
           <button type="button" onClick={() => {
             if (recognitionTimerRef.current) window.clearTimeout(recognitionTimerRef.current);
             recognitionRequestIdRef.current += 1;

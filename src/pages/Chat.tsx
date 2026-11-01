@@ -51,6 +51,7 @@ export default function Chat() {
   const inputRef = useRef<HTMLInputElement>(null);
   const pageRef = useRef<HTMLDivElement>(null);
   const mountedRef = useRef(true);
+  const loadSequenceRef = useRef(0);
 
   // Android 虚拟键盘打开时，可视视口会缩小；用它同步聊天容器高度。
   useEffect(() => {
@@ -96,10 +97,13 @@ export default function Chat() {
   }, []);
 
   async function load() {
+    const requestId = ++loadSequenceRef.current;
     if (!cid || !Number.isFinite(Number(cid))) return;
     const conversationId = Number(cid);
     const { data, error: loadError } = await supabase.from('messages').select('*')
       .eq('conversation_id', conversationId).order('created_at');
+    // Realtime、轮询和手动刷新可能同时完成；只应用最后发起的请求结果。
+    if (requestId !== loadSequenceRef.current) return;
     if (data) {
       setMsgs(data);
       setError('');
@@ -108,6 +112,7 @@ export default function Chat() {
         const { data: reactionRows, error: reactionError } = await supabase
           .from('message_reactions').select('message_id,profile_id,reaction,created_at')
           .in('message_id', messageIds);
+        if (requestId !== loadSequenceRef.current) return;
         if (!reactionError) setReactions((reactionRows ?? []) as ChatReaction[]);
       } else {
         setReactions([]);
@@ -120,6 +125,7 @@ export default function Chat() {
     const { data: members } = await supabase.from('conversation_members')
       .select('profile_id,last_read_message_id')
       .eq('conversation_id', conversationId);
+    if (requestId !== loadSequenceRef.current) return;
     const otherMember = (members ?? []).find(member => member.profile_id !== me);
     setOtherLastReadMessageId(otherMember?.last_read_message_id ?? null);
 
@@ -127,6 +133,7 @@ export default function Chat() {
       const { error: readError } = await supabase.rpc('mark_conversation_read', {
         p_conversation_id: conversationId,
       });
+      if (requestId !== loadSequenceRef.current) return;
       if (readError) console.error('mark conversation read failed', readError);
     }
   }
@@ -149,7 +156,9 @@ export default function Chat() {
     const channel = supabase.channel('chat-' + cid)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'messages', filter: 'conversation_id=eq.' + cid }, () => { load(); })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'conversation_members', filter: 'conversation_id=eq.' + cid }, () => { load(); })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'message_reactions' }, () => { load(); })
+      // message_reactions has no conversation_id; do not subscribe globally and
+      // refetch every open chat for unrelated reactions. The existing 12s refresh
+      // keeps this conversation's reactions in sync.
       .subscribe();
     const fallback = setInterval(load, 12000);
     const onVisibilityChange = () => {
@@ -159,6 +168,7 @@ export default function Chat() {
     return () => {
       clearInterval(fallback);
       document.removeEventListener('visibilitychange', onVisibilityChange);
+      loadSequenceRef.current += 1;
       supabase.removeChannel(channel);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps

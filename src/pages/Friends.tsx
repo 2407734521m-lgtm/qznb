@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../auth';
 import { useSignedUrl } from '../lib/media';
+import { confirmDialog } from '../lib/dialog';
 
 type Friend = {
   id: string;
@@ -62,8 +63,9 @@ function previewText(item: ConversationPreview, myId: string) {
 export default function Friends() {
   const nav = useNavigate();
   const me = useAuth().session!.user.id;
-  const [tab, setTab] = useState<'messages' | 'friends' | 'reqs'>('messages');
+  const [tab, setTab] = useState<'messages' | 'friends' | 'reqs' | 'blocked'>('messages');
   const [friends, setFriends] = useState<Friend[]>([]);
+  const [blockedMembers, setBlockedMembers] = useState<Friend[]>([]);
   const [reqs, setReqs] = useState<Friend[]>([]);
   const [conversations, setConversations] = useState<ConversationPreview[]>([]);
   const [msg, setMsg] = useState('');
@@ -78,11 +80,12 @@ export default function Friends() {
 
   async function load() {
     const requestId = ++loadSequenceRef.current;
-    const [friendResult, requestResult, conversationResult, sentRequestResult] = await Promise.all([
+    const [friendResult, requestResult, conversationResult, sentRequestResult, blockedResult] = await Promise.all([
       supabase.rpc('my_friends'),
       supabase.rpc('friend_requests'),
       supabase.rpc('my_conversations'),
       supabase.from('friendships').select('addressee').eq('requester', me).eq('status', 'pending'),
+      supabase.rpc('my_blocked_members'),
     ]);
     // Realtime 与 15 秒兜底刷新可能重叠，只允许最后一次请求更新列表。
     if (requestId !== loadSequenceRef.current) return;
@@ -93,10 +96,14 @@ export default function Friends() {
       setFriends((friendResult.data ?? []) as Friend[]);
       setReqs((requestResult.data ?? []) as Friend[]);
       setConversations((conversationResult.data ?? []) as ConversationPreview[]);
+      setBlockedMembers((blockedResult.data ?? []) as Friend[]);
       setSentRequestIds((sentRequestResult.data ?? []).map(row => row.addressee as string));
       if (sentRequestResult.error) {
         console.warn('outgoing friend requests unavailable', sentRequestResult.error);
         setMsg('好友与消息已加载，但待发出的好友申请状态暂时无法读取。');
+      } else if (blockedResult.error) {
+        console.warn('blocked member list unavailable', blockedResult.error);
+        setMsg('好友与消息已加载，但黑名单暂时无法读取。');
       } else {
         setMsg('');
       }
@@ -143,6 +150,11 @@ export default function Friends() {
     () => reqs.filter(f => (f.display_name ?? f.username).toLocaleLowerCase().includes(normalizedQuery)
       || f.username.toLocaleLowerCase().includes(normalizedQuery)),
     [reqs, normalizedQuery],
+  );
+  const filteredBlocked = useMemo(
+    () => blockedMembers.filter(f => (f.display_name ?? f.username).toLocaleLowerCase().includes(normalizedQuery)
+      || f.username.toLocaleLowerCase().includes(normalizedQuery)),
+    [blockedMembers, normalizedQuery],
   );
 
   useEffect(() => {
@@ -250,6 +262,66 @@ export default function Friends() {
     }
   }
 
+  async function changeRelationship(
+    person: Friend,
+    action: 'remove_friend' | 'block_member' | 'unblock_member',
+    confirmation: string,
+    successMessage: string,
+  ) {
+    if (friendActionId) return;
+    if (!(await confirmDialog(confirmation, { danger: true }))) return;
+    setFriendActionId(person.id);
+    setMsg('');
+    try {
+      let error: { message: string } | null = null;
+      if (action === 'remove_friend') {
+        const result = await supabase.rpc('remove_friend', { target: person.id });
+        error = result.error;
+      } else if (action === 'block_member') {
+        const result = await supabase.rpc('block_member', { target: person.id });
+        error = result.error;
+      } else {
+        const result = await supabase.rpc('unblock_member', { target: person.id });
+        error = result.error;
+      }
+      if (error) {
+        setMsg('操作失败：' + error.message);
+        return;
+      }
+      await load();
+      setMsg(successMessage);
+    } catch (error) {
+      console.error('friend relationship action failed', error);
+      setMsg('操作失败，请检查网络后重试。');
+    } finally {
+      setFriendActionId(null);
+    }
+  }
+
+  async function removeFriend(person: Friend) {
+    await changeRelationship(
+      person, 'remove_friend',
+      `确定解除与「${person.display_name ?? person.username}」的好友关系吗？历史消息不会删除，但双方将暂时无法继续进入这段私聊；重新成为好友后可恢复访问。`,
+      '已解除好友关系。',
+    );
+  }
+
+  async function blockMember(person: Friend) {
+    await changeRelationship(
+      person, 'block_member',
+      `确定拉黑「${person.display_name ?? person.username}」吗？双方将无法互相申请好友，也无法查看或发送彼此的私聊。取消拉黑不会自动恢复好友关系。`,
+      '已拉黑该成员，双方好友关系和私聊访问已停止。',
+    );
+  }
+
+  async function unblockMember(person: Friend) {
+    await changeRelationship(
+      person, 'unblock_member',
+      `确定解除对「${person.display_name ?? person.username}」的拉黑吗？解除后不会自动恢复好友关系。`,
+      '已解除拉黑。需要重新发送好友申请才能恢复好友关系。',
+    );
+  }
+
   return (
     <div className="page im-inbox">
       <style>{`
@@ -263,8 +335,8 @@ export default function Friends() {
         .im-search span{font-size:20px;color:#c6e1ff}
         .im-search input{flex:1;min-width:0;background:transparent!important;border:0!important;box-shadow:none!important;outline:none!important;color:#f4faff!important;padding:10px 0!important;font-size:14px}
         .im-search input::placeholder{color:rgba(224,239,255,.64)}
-        .im-inbox-tabs{display:flex;gap:8px;margin-bottom:14px}
-        .im-inbox-tabs button{flex:1;min-height:42px;border-radius:15px;border:1px solid rgba(215,237,255,.16);background:rgba(10,31,65,.36);color:rgba(226,240,255,.75);font-size:13px;backdrop-filter:blur(18px)}
+        .im-inbox-tabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-bottom:14px}
+        .im-inbox-tabs button{min-width:0;min-height:42px;border-radius:15px;border:1px solid rgba(215,237,255,.16);background:rgba(10,31,65,.36);color:rgba(226,240,255,.75);font-size:13px;backdrop-filter:blur(18px)}
         .im-inbox-tabs button.on{color:#fff;background:linear-gradient(120deg,rgba(35,135,255,.86),rgba(36,94,220,.82));border-color:rgba(168,216,255,.38);box-shadow:0 8px 24px rgba(0,94,255,.2)}
         .im-inbox-list{display:flex;flex-direction:column;gap:9px}
         .im-inbox-row{width:100%;display:flex;align-items:center;gap:12px;text-align:left;padding:12px;border-radius:23px;border:1px solid rgba(207,230,255,.14);background:linear-gradient(110deg,rgba(34,90,164,.34),rgba(11,27,57,.56));box-shadow:inset 0 1px 0 rgba(255,255,255,.07),0 8px 24px rgba(0,0,0,.08);color:#f4f9ff;backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);cursor:pointer;transition:transform .18s ease,border-color .18s ease,background .18s ease}
@@ -283,6 +355,10 @@ export default function Friends() {
         .im-inbox-message{margin:0 0 12px;padding:10px 13px;border-radius:14px;background:rgba(12,30,58,.68);border:1px solid rgba(210,232,255,.14);color:#d8eaff;font-size:12px}
         .im-request-actions{display:flex;gap:6px}
         .im-request-actions button{border-radius:12px;padding:8px 10px}
+        .im-friend-actions{display:flex;align-items:center;justify-content:flex-end;gap:6px;flex-wrap:wrap}
+        .im-friend-actions button{min-height:34px;padding:7px 9px;border-radius:11px;border:1px solid rgba(165,212,255,.28);background:rgba(44,124,221,.2);color:#eef7ff;font-size:11px;white-space:nowrap}
+        .im-friend-actions button.danger{border-color:rgba(255,145,154,.3);background:rgba(190,56,74,.14);color:#ffc0c5}
+        @media(max-width:520px){.im-inbox-tabs{grid-template-columns:repeat(2,minmax(0,1fr))}.im-inbox-row{flex-wrap:wrap}.im-friend-actions{width:100%;justify-content:flex-end;padding-left:58px}}
         .im-inbox-primary{border:1px solid rgba(160,213,255,.36);background:linear-gradient(120deg,#2a91f8,#3a70e8);color:white;border-radius:13px;padding:9px 14px;font-weight:650;margin-top:14px}
         .im-inbox-search-caption{display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:3px 3px 5px;color:#f3f8ff;font-size:13px;font-weight:750}
         .im-inbox-search-caption small{font-size:10px;font-weight:450;color:rgba(218,234,255,.62)}
@@ -313,6 +389,7 @@ export default function Friends() {
         <button type="button" className={tab === 'messages' ? 'on' : ''} onClick={() => setTab('messages')}>消息 · {conversations.length}</button>
         <button type="button" className={tab === 'friends' ? 'on' : ''} onClick={() => setTab('friends')}>好友 · {friends.length}</button>
         <button type="button" className={tab === 'reqs' ? 'on' : ''} onClick={() => setTab('reqs')}>请求{reqs.length > 0 ? ' · ' + reqs.length : ''}</button>
+        <button type="button" className={tab === 'blocked' ? 'on' : ''} onClick={() => setTab('blocked')}>黑名单 · {blockedMembers.length}</button>
       </div>
 
       {msg && <p className="im-inbox-message" role="status">{msg}</p>}
@@ -342,6 +419,7 @@ export default function Friends() {
             const isFriend = friends.some(friend => friend.id === person.id);
             const hasIncomingRequest = reqs.some(request => request.id === person.id);
             const hasOutgoingRequest = sentRequestIds.includes(person.id);
+            const isBlocked = blockedMembers.some(blocked => blocked.id === person.id);
             const busy = friendActionId === person.id;
             return (
               <div key={person.id} className="im-inbox-row" style={{ cursor: 'default' }}>
@@ -351,7 +429,9 @@ export default function Friends() {
                   <span className="im-inbox-preview" style={{ display: 'block' }}>@{person.username}</span>
                 </span>
                 <span className="im-inbox-search-action">
-                  {isFriend ? (
+                  {isBlocked ? (
+                    <button type="button" disabled>已拉黑</button>
+                  ) : isFriend ? (
                     <button type="button" className="is-friend" onClick={() => openChat(person)}>发消息</button>
                   ) : hasIncomingRequest ? (
                     <button type="button" className="is-incoming" disabled={busy} onClick={() => respond(person.id, true)}>
@@ -406,14 +486,40 @@ export default function Friends() {
                   <div className="im-inbox-empty-copy">通过上方搜索框查找站内成员，发送好友申请后等待对方同意。</div>
                 </div>
               ) : filteredFriends.map(friend => (
-                <button key={friend.id} type="button" className="im-inbox-row" onClick={() => openChat(friend)}>
+                <div key={friend.id} className="im-inbox-row" style={{ cursor: 'default' }}>
                   <FriendAvatar person={friend} />
                   <span className="im-inbox-person">
                     <span className="im-inbox-name" style={{ display: 'block' }}>{friend.display_name ?? friend.username}</span>
-                    <span className="im-inbox-preview" style={{ display: 'block' }}>@{friend.username} · 点击开始聊天</span>
+                    <span className="im-inbox-preview" style={{ display: 'block' }}>@{friend.username} · 已成为好友</span>
                   </span>
-                  <span className="im-inbox-arrow" aria-hidden="true">›</span>
-                </button>
+                  <div className="im-friend-actions">
+                    <button type="button" disabled={friendActionId === friend.id} onClick={() => openChat(friend)}>发消息</button>
+                    <button type="button" className="danger" disabled={!!friendActionId} onClick={() => void removeFriend(friend)}>解除好友</button>
+                    <button type="button" className="danger" disabled={!!friendActionId} onClick={() => void blockMember(friend)}>拉黑</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {tab === 'blocked' && (
+            <div className="im-inbox-list">
+              {filteredBlocked.length === 0 ? (
+                <div className="im-inbox-empty">
+                  <div className="im-inbox-empty-title">黑名单为空</div>
+                  <div className="im-inbox-empty-copy">你拉黑的成员会显示在这里。解除拉黑后，需要重新添加好友才能恢复私聊。</div>
+                </div>
+              ) : filteredBlocked.map(person => (
+                <div key={person.id} className="im-inbox-row" style={{ cursor: 'default' }}>
+                  <FriendAvatar person={person} />
+                  <span className="im-inbox-person">
+                    <span className="im-inbox-name" style={{ display: 'block' }}>{person.display_name ?? person.username}</span>
+                    <span className="im-inbox-preview" style={{ display: 'block' }}>@{person.username} · 已被你拉黑</span>
+                  </span>
+                  <div className="im-friend-actions">
+                    <button type="button" disabled={!!friendActionId} onClick={() => void unblockMember(person)}>解除拉黑</button>
+                  </div>
+                </div>
               ))}
             </div>
           )}

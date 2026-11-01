@@ -9,13 +9,13 @@ import SponsorModal from '../components/SponsorModal';
 
 type Entry = { mark: string; title: string; note: string; to: string; badge?: string; act?: 'feedback' | 'sponsor' };
 const groups: { title: string; note: string; entries: Entry[] }[] = [
-  { title: '个人资料', note: '管理你的主页形象与个人信息', entries: [
-    { mark: '主页', title: '我的主页', note: '查看同学看到的个人主页', to: 'profile' },
-    { mark: '资料', title: '编辑资料', note: '修改昵称、签名与兴趣爱好', to: 'edit' },
-    { mark: '装扮', title: '主页装扮', note: '调整背景、主题与页面布局', to: 'look' },
+  { title: '个人资料', note: '让同学更好地认识你', entries: [
+    { mark: '名片', title: '我的主页', note: '查看同学看到的个人主页', to: 'profile' },
+    { mark: '编辑', title: '编辑资料', note: '修改昵称、签名与兴趣爱好', to: 'edit' },
+    { mark: '主题', title: '主页装扮', note: '调整背景、主题与页面布局', to: 'look' },
   ]},
   { title: '我的内容', note: '管理你发布、收藏和分享的内容', entries: [
-    { mark: '汇总', title: '我的全部内容', note: '集中查看发布、照片、投稿与归档记录', to: '/me/content' },
+    { mark: '全部', title: '我的全部内容', note: '动态、照片、投稿与归档记录', to: '/me/content' },
     { mark: '动态', title: '我的动态', note: '查看和管理已发布的动态', to: '/me/posts' },
     { mark: '收藏', title: '我的收藏', note: '找回保存过的精彩内容', to: '/me/favorites' },
     { mark: '投稿', title: '我的表白投稿', note: '查看投稿状态或删除自己的投稿', to: '/love-wall?mine=1' },
@@ -40,10 +40,19 @@ const groups: { title: string; note: string; entries: Entry[] }[] = [
   ]},
 ];
 
+const shortcuts = [
+  { mark: '☆', title: '我的收藏', note: '留住喜欢的内容', to: '/me/favorites', tone: 'gold' },
+  { mark: '▤', title: '全部内容', note: '统一管理记录', to: '/me/content', tone: 'blue' },
+  { mark: '⌁', title: '成长档案', note: '查看成长足迹', to: '/me/growth', tone: 'teal' },
+  { mark: '◉', title: '我的通知', note: '查看互动消息', to: '/me/notifications', tone: 'violet' },
+  { mark: '⚙', title: '设置中心', note: '账号与隐私', to: '/me/settings', tone: 'slate' },
+];
+
 export default function MeHub() {
   const nav = useNavigate();
   const me = useAuth().session!.user.id;
   const [name, setName] = useState('');
+  const [username, setUsername] = useState('');
   const [avatar, setAvatar] = useState<string | null>(null);
   const [unread, setUnread] = useState(0);
   const [stats, setStats] = useState({ posts: 0, comments: 0, photos: 0, likes: 0, loading: true });
@@ -58,6 +67,7 @@ export default function MeHub() {
       if (!alive) return;
       if (data) {
         setName((data as any).display_name || (data as any).username || '');
+        setUsername((data as any).username || '');
         setAvatar((data as any).avatar_path ?? null);
       }
       const [{ count }, postRows, commentCount, photoCount] = await Promise.all([
@@ -77,14 +87,16 @@ export default function MeHub() {
         setUnread(count ?? 0);
         setStats({ posts: ownPostIds.length, comments: commentCount.count ?? 0, photos: photoCount.count ?? 0, likes, loading: false });
       }
-    })();
+    })().catch(() => {
+      if (alive) setStats(current => ({ ...current, loading: false }));
+    });
     return () => { alive = false; };
   }, [me]);
 
   function go(entry: Entry) {
     if (entry.act === 'feedback') { setFbOpen(true); return; }
     if (entry.act === 'sponsor') { setSponsorOpen(true); return; }
-    if (entry.to === 'profile') nav(`/members/${me}`);
+    if (entry.to === 'profile') nav('/members/' + me);
     else if (entry.to === 'edit') nav('/me/edit?sec=base');
     else if (entry.to === 'look') nav('/me/edit?sec=look');
     else if (entry.to === 'privacy') nav('/me/edit?sec=priv');
@@ -94,32 +106,82 @@ export default function MeHub() {
   return (
     <main className="page me-hub">
       <section className="me-hub-hero">
-        <div className="me-hub-hero-copy">
-          <div className="me-hub-eyebrow">MY SPACE · 青春档案</div>
-          <h1>我的空间</h1>
-          <p>管理资料、内容与个人设置</p>
-        </div>
-        <div className="me-hub-profile">
-          <div className="me-hub-avatar">
-            {avUrl ? <img src={avUrl} alt="个人头像" /> : <span>{(name || '我').slice(0, 1)}</span>}
+        <div className="me-hub-topbar">
+          <div>
+            <div className="me-hub-eyebrow">MY SPACE <span>·</span> 青春档案</div>
+            <h1>个人中心</h1>
           </div>
+          <div className="me-hub-head-actions">
+            <button className="me-hub-head-icon" aria-label="查看通知" title="查看通知" onClick={() => nav('/me/notifications')}>
+              <span aria-hidden="true">♧</span>
+              {unread > 0 && <i />}
+            </button>
+            <button className="me-hub-head-icon" aria-label="设置中心" title="设置中心" onClick={() => nav('/me/settings')}>
+              <span aria-hidden="true">⚙</span>
+            </button>
+          </div>
+        </div>
+
+        <div className="me-hub-profile">
+          <button className="me-hub-avatar" onClick={() => nav('/members/' + me)} aria-label="打开我的个人主页">
+            {avUrl ? <img src={avUrl} alt="个人头像" /> : <span>{(name || '我').slice(0, 1)}</span>}
+          </button>
           <div className="me-hub-identity">
             <strong>{name || '我的账号'}</strong>
-            <span>个人中心</span>
+            <span>{username ? '@' + username : '青春档案成员'}</span>
+            <small>把生活里的点滴，收藏成共同的回忆</small>
           </div>
-          <button className="me-hub-edit" onClick={() => nav('/me/edit?sec=base')}>编辑资料</button>
-          {unread > 0 && <button className="me-hub-unread" onClick={() => nav('/me/notifications')}>{unread} 条未读</button>}
+          <button className="me-hub-edit" onClick={() => nav('/me/edit?sec=base')}>编辑资料 <span>›</span></button>
+        </div>
+        {unread > 0 && <button className="me-hub-unread" onClick={() => nav('/me/notifications')}>{unread} 条未读通知 <span>查看 ›</span></button>}
+      </section>
+
+      <section className="me-hub-stats" aria-label="我的社区数据">
+        <div className="me-hub-stat-grid">
+          <button onClick={() => nav('/me/posts')}>
+            <strong>{stats.loading ? '—' : stats.posts}</strong><span>我的动态</span>
+          </button>
+          <button onClick={() => nav('/me/content')}>
+            <strong>{stats.loading ? '—' : stats.comments}</strong><span>我的评论</span>
+          </button>
+          <button onClick={() => nav('/me/content')}>
+            <strong>{stats.loading ? '—' : stats.likes}</strong><span>收到点赞</span>
+          </button>
+        </div>
+        <div className="me-hub-photo-note"><span className="me-hub-photo-mark">▧</span> 已为青春档案留下 <b>{stats.loading ? '—' : stats.photos}</b> 张照片 <span>·</span> <button onClick={() => nav('/albums')}>去相册看看 ›</button></div>
+      </section>
+
+      <section className="me-hub-shortcuts">
+        <div className="me-hub-section-head">
+          <div><h2>常用功能</h2><p>常用入口，一步直达</p></div>
+          <span>QUICK ACCESS</span>
+        </div>
+        <div className="me-hub-shortcut-grid">
+          {shortcuts.map(item => (
+            <button className="me-hub-shortcut" key={item.title} onClick={() => nav(item.to)}>
+              <span className={'me-hub-shortcut-icon ' + item.tone}>{item.mark}</span>
+              <strong>{item.title}</strong>
+              <small>{item.note}</small>
+            </button>
+          ))}
         </div>
       </section>
 
-      <section className="me-footprint" aria-label="我的社区足迹">
-        <div className="me-footprint-head"><div><h2>我的足迹</h2><p>你为青春档案留下的记录</p></div><span>{stats.loading ? '统计中…' : '持续累积'}</span></div>
-        <div className="me-footprint-grid">
-          <div><strong>{stats.loading ? '—' : stats.posts}</strong><span>发布动态</span></div>
-          <div><strong>{stats.loading ? '—' : stats.comments}</strong><span>参与评论</span></div>
-          <div><strong>{stats.loading ? '—' : stats.photos}</strong><span>上传照片</span></div>
-          <div><strong>{stats.loading ? '—' : stats.likes}</strong><span>收到点赞</span></div>
-        </div>
+      <section className="me-hub-feature-grid">
+        <button className="me-hub-feature me-hub-feature-primary" onClick={() => nav('/me/content')}>
+          <span className="me-hub-feature-kicker">CONTENT LIBRARY</span>
+          <strong>我的全部内容</strong>
+          <small>动态、照片、评论与投稿，统一整理</small>
+          <span className="me-hub-feature-meta">{stats.loading ? '正在统计…' : stats.posts + ' 条动态 · ' + stats.photos + ' 张照片'}</span>
+          <span className="me-hub-feature-arrow">↗</span>
+        </button>
+        <button className="me-hub-feature me-hub-feature-growth" onClick={() => nav('/me/growth')}>
+          <span className="me-hub-feature-kicker">GROWTH RECORD</span>
+          <strong>成长档案</strong>
+          <small>活跃天数、贡献记录与纪念徽章</small>
+          <span className="me-hub-feature-meta">每一次参与，都值得被记住</span>
+          <span className="me-hub-feature-arrow">↗</span>
+        </button>
       </section>
 
       <div className="me-hub-groups">
@@ -138,7 +200,7 @@ export default function MeHub() {
                     <small>{entry.note}</small>
                   </span>
                   {entry.badge === 'unread' && unread > 0
-                    ? <span className="me-hub-dot" aria-label={`${unread} 条未读`} />
+                    ? <span className="me-hub-dot" aria-label={unread + ' 条未读'} />
                     : <span className="me-hub-arrow">›</span>}
                 </button>
               ))}

@@ -400,12 +400,12 @@ export default function AdminWorkspace({
 
       <nav className="admin-mobile-quickbar" aria-label="移动端快捷导航">
         {mobileQuickItems.map(item => (
-            <button type="button" key={item[0]}
-              className={['admin-mobile-quick-item', activeTab === item[0] ? 'is-active' : ''].join(' ')}
-              aria-current={activeTab === item[0] ? 'page' : undefined}
-              onClick={() => choose(item[0])}>
-              <span className="admin-mobile-quick-icon"><AdminIcon name={item[0]} size={18} /></span>
-              <span>{item[1]}</span>
+            <button type="button" key={item.id}
+              className={['admin-mobile-quick-item', activeTab === item.id ? 'is-active' : ''].join(' ')}
+              aria-current={activeTab === item.id ? 'page' : undefined}
+              onClick={() => choose(item.id)}>
+              <span className="admin-mobile-quick-icon"><AdminIcon name={item.id} size={18} /></span>
+              <span>{item.label}</span>
             </button>
           ))}
         <button type="button" className="admin-mobile-quick-item"

@@ -217,3 +217,92 @@
   .bloom-ink-status{font-size:9px;padding:0 4px;white-space:normal;max-width:150px;line-height:1.45}
   .bloom-ink-tools button{padding:8px 10px;font-size:9px}
 }
+
+
+/* 书写时主屏只显示笔迹；手部骨骼单独放入右下角预览窗。 */
+.bloom-page.tool-write .bloom-camera.is-live{
+  opacity:0!important;
+  visibility:hidden;
+}
+.bloom-page.tool-write .bloom-canvas{
+  opacity:0!important;
+}
+.bloom-hand-preview{
+  position:absolute;
+  z-index:30;
+  right:clamp(14px,2.4vw,28px);
+  bottom:calc(92px + env(safe-area-inset-bottom));
+  width:184px;
+  padding:10px 11px 9px;
+  border:1px solid rgba(255,225,239,.22);
+  border-radius:18px;
+  background:linear-gradient(145deg,rgba(35,19,36,.78),rgba(17,11,22,.72));
+  box-shadow:0 14px 38px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.06);
+  backdrop-filter:blur(18px);
+  -webkit-backdrop-filter:blur(18px);
+  pointer-events:none;
+}
+.bloom-hand-preview-heading{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  margin:0 1px 4px;
+  color:#f4dce8;
+  font:11px "Noto Sans SC",sans-serif;
+  letter-spacing:.7px;
+}
+.bloom-hand-preview-heading small{
+  color:#a990a5;
+  font:8px Inter,Arial,sans-serif;
+  letter-spacing:1.4px;
+}
+.bloom-hand-preview-canvas{
+  display:block;
+  width:100%;
+  height:112px;
+  border-radius:10px;
+  background:
+    radial-gradient(ellipse at 50% 54%,rgba(223,129,170,.10),transparent 68%),
+    linear-gradient(145deg,rgba(255,255,255,.035),rgba(255,255,255,.012));
+}
+.bloom-hand-preview-state{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  margin:7px 1px 0;
+  color:#a993a5;
+  font:9px "Noto Sans SC",sans-serif;
+  white-space:nowrap;
+}
+.bloom-hand-preview-state i{
+  width:6px;height:6px;flex:0 0 6px;border-radius:50%;
+  background:#9e8296;box-shadow:0 0 7px rgba(180,139,168,.6)
+}
+.bloom-hand-preview-state.detected{color:#e9c7d8}
+.bloom-hand-preview-state.detected i{
+  background:#f0aeca;box-shadow:0 0 9px rgba(240,174,202,.85)
+}
+@media(max-width:700px){
+  .bloom-hand-preview{
+    right:12px;
+    bottom:calc(88px + env(safe-area-inset-bottom));
+    width:146px;
+    padding:8px 8px 7px;
+    border-radius:15px;
+  }
+  .bloom-hand-preview-heading{font-size:10px}
+  .bloom-hand-preview-heading small{font-size:7px}
+  .bloom-hand-preview-canvas{height:88px;border-radius:8px}
+  .bloom-hand-preview-state{font-size:8px;margin-top:6px}
+}
+@media(max-width:700px) and (orientation:landscape){
+  .bloom-hand-preview{
+    right:12px;
+    bottom:calc(76px + env(safe-area-inset-bottom));
+    width:132px;
+    padding:7px;
+  }
+  .bloom-hand-preview-canvas{height:72px}
+  .bloom-hand-preview-state{font-size:7px}
+}

@@ -264,7 +264,7 @@ export default function AdminWorkspace({
               <h1>{current?.[1] ?? '工作台'}</h1>
               <p>{descriptionFor(activeTab)}</p>
             </div>
-            {isSuper && activeTab === 'accounts' && (
+            {isSuper && (
               <form className="admin-member-search" onSubmit={event => { event.preventDefault(); onMemberSearchSubmit(); }}>
                 <label htmlFor="admin-member-search">快速定位成员</label>
                 <div className="admin-member-search-control">

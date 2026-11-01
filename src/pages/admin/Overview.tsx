@@ -10,23 +10,26 @@ import { Spark, TrendChart } from './charts';
 function TodoCenter({ go }: { go: (tab: string) => void }) {
   const [counts, setCounts] = useState<Record<string, number> | null>(null);
   const [err, setErr] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   async function load() {
-    try {
+    setLoading(true);
     const queries = [
       supabase.from('love_wall_posts').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+      supabase.from('song_posts').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
       supabase.from('song_posts').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
       supabase.from('game_profiles').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
       supabase.from('reports').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
       supabase.from('feedbacks').select('id', { count: 'exact', head: true }).eq('status', 'open'),
     ];
     const res = await Promise.all(queries);
-    if (res.some(r => r.error)) { setCounts(null); setErr(true); return; }
+    if (res.some(r => r.error)) { setCounts(null); setErr(true); setLoading(false); return; }
     setErr(false);
     setCounts({ love: res[0].count ?? 0, song: res[1].count ?? 0, game: res[2].count ?? 0, report: res[3].count ?? 0, feedback: res[4].count ?? 0 });
-    } catch {
-      setCounts(null);
-      setErr(true);
+    setLoading(false);
+  }
+  useEffect(() => { void load(); }, []);
+
     }
   }
   useEffect(() => { void load(); }, []);
@@ -42,7 +45,7 @@ function TodoCenter({ go }: { go: (tab: string) => void }) {
   return <div style={card}>
     <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
       <h3 style={{ ...h3, margin: 0 }}>待处理{counts && total > 0 ? `（共 ${total} 件）` : ''}</h3>
-      <button className="mini ghost" onClick={() => void load()}>刷新</button>
+      <button className="mini ghost" disabled={loading} onClick={() => void load()}>{loading ? '刷新中…' : '刷新'}</button>
     </div>
     {err && <p style={mut}>待办计数读取失败，点刷新重试。</p>}
     {!counts && !err && <p style={mut}>正在统计…</p>}
@@ -60,7 +63,7 @@ function TodoCenter({ go }: { go: (tab: string) => void }) {
   </div>;
 }
 
-export default function Overview({ setMsg, go }: { setMsg: (s: string) => void; go: (tab: string) => void }) {
+export default function Overview({ go }: { setMsg: (s: string) => void; go: (tab: string) => void }) {
   const [st, setSt] = useState<any>(null);
   const [presence, setPresence] = useState<{ online: number; active: number; sampledAt: string; error: boolean } | null>(null);
   const [realtimeReady, setRealtimeReady] = useState(false);
@@ -69,6 +72,7 @@ export default function Overview({ setMsg, go }: { setMsg: (s: string) => void; 
     status: 'connecting', online: null, updatedAt: null,
   });
   const [loadTimedOut, setLoadTimedOut] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [refreshSeq, setRefreshSeq] = useState(0);
 
   // 管理总览复用站点唯一 Presence 连接，避免监听器再创建一条自计数连接。
@@ -151,13 +155,18 @@ export default function Overview({ setMsg, go }: { setMsg: (s: string) => void; 
           supabase.from('posts').select('id', { count: 'exact', head: true }).eq('section', 'daily').is('deleted_at', null),
           supabase.from('posts').select('created_at').eq('section', 'daily').gte('created_at', since14).is('deleted_at', null),
         ]);
-        const critical = [m, p, c, ph, r, nm, pr, por, phr, pd, pdr];
-        if (critical.some(result => result.error)) throw new Error('部分核心统计读取失败，请检查权限或网络后重试。');
         const week = new Date(Date.now() - 7 * 864e5).toISOString();
-        const { count: new7, error: new7Error } = await supabase.from('profiles')
-          .select('id', { count: 'exact', head: true }).gte('created_at', week);
-        if (new7Error) throw new Error('近 7 天新增成员统计读取失败，请重试。');
+        const { count: new7, error: new7Error } = await supabase.from('profiles').select('id', { count: 'exact', head: true }).gte('created_at', week);
         const { data: logs, error: logsError } = await supabase.from('admin_audit_logs')
+          .select('id, action, created_at').order('created_at', { ascending: false }).limit(5);
+        const dataErrors = [m, p, c, ph, r, nm, pr, por, phr, pd, pdr].filter(result => result.error);
+        if (dataErrors.length || new7Error || logsError) {
+          const firstError = dataErrors[0]?.error ?? new7Error ?? logsError;
+          throw new Error(firstError?.message || '部分统计数据读取失败');
+        }
+        const t0 = Date.now();
+        const { error: pingErr } = await supabase.from('profiles').select('id', { head: true }).limit(1);
+        const dPro = bucket14((pr.data ?? []) as any[]);
           .select('id, action, created_at').order('created_at', { ascending: false }).limit(5);
         const t0 = Date.now();
         const { error: pingErr } = await supabase.from('profiles').select('id', { head: true }).limit(1);
@@ -176,28 +185,30 @@ export default function Overview({ setMsg, go }: { setMsg: (s: string) => void; 
           dbOk: !pingErr, dbMs: Date.now() - t0,
           dPro, dPost, dDailyPost, dPhoto, cum,
         });
-      } catch (e: any) { if (active) setMsg('总览加载失败：' + (e.message || '')); }
+      } catch (e: unknown) {
+        if (active) setLoadError(e instanceof Error ? e.message : '请检查网络或管理员数据权限后重试。');
+      }
     })();
     return () => { active = false; };
   }, [refreshSeq]);
   useEffect(() => {
-    if (st) return;
+    if (st || loadError) return;
     const timer = window.setTimeout(() => setLoadTimedOut(true), 12000);
     return () => window.clearTimeout(timer);
-  }, [st, refreshSeq]);
+  }, [st, loadError, refreshSeq]);
+  if (loadError) return <div className="admin-overview-timeout" role="alert"><strong>部分总览数据读取失败</strong><p>{loadError}</p><p>为避免把读取失败误报成 0，本次不会展示不完整统计。</p><button type="button" onClick={() => { setLoadError(null); setLoadTimedOut(false); setRefreshSeq(value => value + 1); }}>重新加载</button></div>;
   if (!st && !loadTimedOut) return <div className="admin-overview-loading" role="status"><span className="admin-loading-pulse" />正在整理总览数据…</div>;
-  if (!st) return <div className="admin-overview-timeout"><strong>总览数据暂时没有响应</strong><p>后台其他功能仍可使用。请检查网络后重试。</p><button type="button" onClick={() => { setLoadTimedOut(false); setRefreshSeq(value => value + 1); }}>重新加载</button></div>;
-  const categories: [string, number][] = [
-    ['注册成员', st.members], ['班级动态', st.posts], ['日常帖子', st.dailyPosts],
-    ['相册照片', st.photos], ['评论', st.comments],
+  if (!st) return <div className="admin-overview-timeout"><strong>总览数据暂时没有响应</strong><p>后台其他功能仍可使用。请检查网络后重试。</p><button type="button" onClick={() => { setLoadError(null); setLoadTimedOut(false); setRefreshSeq(value => value + 1); }}>重新加载</button></div>;
+  const segs = [
+    { label: '成员', v: st.members, color: '#5b8cff' },
+    { label: '动态', v: st.posts, color: '#8b5cf6' },
+    { label: '日常', v: st.dailyPosts, color: '#38bdf8' },
+    { label: '照片', v: st.photos, color: '#4ade80' },
+    { label: '评论', v: st.comments, color: '#f5a623' },
   ];
   const dlabels = [0, 3, 6, 10, 13].map(i => {
     const d = new Date(); d.setDate(d.getDate() - (13 - i));
     return `${d.getMonth() + 1}-${d.getDate()}`;
-  });
-  const statSub: Record<string, React.ReactNode> = {
-    '注册成员': <span style={{ color: '#4ade80' }}>较7天前 +{st.new7}</span>,
-    '近7天新增': <span style={{ color: '#4ade80' }}>新增注册</span>,
     '班级动态': st.posts === 0 ? <span style={{ color: '#8b93b0' }}>暂无新动态</span> : <span style={{ color: '#4ade80' }}>持续更新中</span>,
     '日常帖子': st.dailyPosts === 0 ? <span style={{ color: '#8b93b0' }}>暂无日常</span> : <span style={{ color: '#4ade80' }}>持续更新中</span>,
     '班级照片': st.photos === 0 ? <span style={{ color: '#8b93b0' }}>暂无新照片</span> : <span style={{ color: '#4ade80' }}>持续更新中</span>,
@@ -218,6 +229,7 @@ export default function Overview({ setMsg, go }: { setMsg: (s: string) => void; 
         </div>
         <button className="mini ghost" type="button" onClick={() => {
           setSt(null);
+          setLoadError(null);
           setLoadTimedOut(false);
           setRefreshSeq(value => value + 1);
         }}>刷新数据</button>
@@ -267,20 +279,19 @@ export default function Overview({ setMsg, go }: { setMsg: (s: string) => void; 
 
         <section className="admin-overview-panel admin-overview-mix-panel" style={card}>
           <div className="admin-overview-panel-heading">
-            <div><h3>分类数量</h3><p>各类数据独立统计，不混合计算占比</p></div>
+            <div><h3>数据规模概览</h3><p>各类记录数量分别展示，不进行跨类别占比比较</p></div>
           </div>
-          <div className="admin-overview-category-list">
-            {categories.map(([label, value]) => (
-              <div key={label}>
-                <span>{label}</span>
-                <strong>{Number(value).toLocaleString('zh-CN')}</strong>
-              </div>
-            ))}
-          </div>
-        </section>
-      </div>
-
-      <div className="admin-overview-activity-grid">
+          <div className="admin-overview-mix-content admin-overview-data-list">
+            <div className="admin-overview-mix-legend" role="list">
+              {segs.map(s => (
+                <div key={s.label} role="listitem">
+                  <span className="admin-overview-legend-dot" style={{ background: s.color }} />
+                  <span>{s.label}</span>
+                  <strong>{s.v.toLocaleString()}</strong>
+                  <small>{s.label === '成员' ? '人' : '条'}</small>
+                </div>
+              ))}
+            </div>
         <section className="admin-overview-panel" style={card}>
           <div className="admin-overview-panel-heading">
             <div><h3>最近管理操作</h3><p>后台最近写入的审计记录</p></div>

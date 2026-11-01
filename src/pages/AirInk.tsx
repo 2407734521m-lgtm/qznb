@@ -263,10 +263,10 @@ export default function AirInk() {
         const pinchRatio = distance(hand[4],hand[8])/palm;
         const drawing = pinchRef.current ? pinchRatio < .48 : pinchRatio < .34;
         if (!drawing) { releaseStroke(); return; }
-        if (selected) { setSelected(''); setCandidates([]); }
         const previous = smoothRef.current;
         const smooth = previous ? { x:previous.x+(point.x-previous.x)*.48, y:previous.y+(point.y-previous.y)*.48 } : point;
         if (!pinchRef.current) {
+          setSelected(''); setCandidates([]);
           pinchRef.current = true; recognitionRequestRef.current += 1; recognitionBusyRef.current = false;
           if (recognitionTimerRef.current) window.clearTimeout(recognitionTimerRef.current);
           setPhase('drawing'); setCandidates([]);
@@ -302,7 +302,7 @@ export default function AirInk() {
       setError(cause?.message || '摄像头启动失败，请检查浏览器权限。');
       setLoading(false);
     } finally { startGuardRef.current = false; }
-  }, [loading, scheduleRecognition, stopCamera, selected]);
+  }, [loading, scheduleRecognition, stopCamera]);
 
   const clearCharacter = useCallback(() => {
     if (recognitionTimerRef.current) window.clearTimeout(recognitionTimerRef.current);

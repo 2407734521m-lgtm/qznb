@@ -244,3 +244,130 @@
       linear-gradient(180deg, #111c2d 0%, #0e1727 100%) !important;
   }
 }
+
+
+/* ===== Final admin surface harmony audit =====
+   One surface family across Overview, Members, Accounts, Reports and Settings.
+   Status colors (success / warning / danger) intentionally remain semantic. */
+.admin-shell {
+  --admin-bg-0: #0e1727;
+  --admin-bg-1: #17263b;
+  --admin-bg-2: #1d2d43;
+  --admin-border: rgba(190, 211, 230, .15);
+  --admin-ink: #e8eef5;
+  --admin-muted-ink: #a2b1c2;
+  --admin-teal: #43b9b0;
+  background:
+    radial-gradient(ellipse at 12% 0%, rgba(54, 151, 157, .09), transparent 38%),
+    radial-gradient(ellipse at 94% 18%, rgba(80, 125, 164, .07), transparent 36%),
+    linear-gradient(180deg, #111c2d 0%, #0e1727 100%) !important;
+  color: var(--admin-ink) !important;
+}
+
+/* The previous selector only caught direct children and one exact 160deg card.
+   These rules also cover nested panels used by the account, analytics,
+   release, approval, backup and moderation modules. */
+.admin-shell .admin-content :is(div, section, article)[style*="linear-gradient(145deg"],
+.admin-shell .admin-content :is(div, section, article)[style*="linear-gradient(155deg"],
+.admin-shell .admin-content :is(div, section, article)[style*="linear-gradient(160deg"],
+.admin-shell .admin-content :is(div, section, article)[style*="#171e33"],
+.admin-shell .admin-content :is(div, section, article)[style*="#17213b"] {
+  color: var(--admin-ink) !important;
+  background: linear-gradient(150deg, rgba(29, 43, 65, .97), rgba(18, 29, 47, .99)) !important;
+  border-color: var(--admin-border) !important;
+  box-shadow: 0 10px 26px rgba(2, 8, 18, .20), inset 0 1px 0 rgba(255,255,255,.035) !important;
+}
+
+/* Replace the leftover blue-violet active state on wide-screen navigation. */
+.admin-shell .admin-dock button[aria-current="page"],
+.admin-shell .admin-mobile-dock button[aria-current="page"],
+.admin-shell .admin-mobile-dock button.active {
+  color: #f4fffe !important;
+  background: linear-gradient(135deg, #278b89, #43b9b0) !important;
+  border-color: rgba(124, 218, 208, .20) !important;
+  box-shadow: 0 5px 14px rgba(40, 139, 137, .18) !important;
+}
+
+/* A consistent teal primary-action treatment for custom controls that do not
+   use the shared .pri class. Warning confirmation remains amber. */
+.admin-shell .admin-content .admin-email-send-button {
+  color: #f4fffe !important;
+  background: linear-gradient(135deg, #278b89, #43b9b0) !important;
+  border: 1px solid rgba(124, 218, 208, .20) !important;
+  box-shadow: 0 6px 18px rgba(40, 139, 137, .18) !important;
+}
+.admin-shell .admin-content .admin-email-send-button.is-confirming {
+  color: #fff8eb !important;
+  background: linear-gradient(135deg, #9a6a27, #b87932) !important;
+  border-color: rgba(255, 205, 130, .26) !important;
+  box-shadow: 0 6px 18px rgba(154, 106, 39, .18) !important;
+}
+
+/* Links and native select menus should not fall back to a separate blue/light theme. */
+.admin-shell .admin-content a {
+  color: #8fd8d1 !important;
+}
+.admin-shell .admin-content select option {
+  color: #e8eef5;
+  background: #17263b;
+}
+.admin-shell .admin-content input,
+.admin-shell .admin-content textarea,
+.admin-shell .admin-content select {
+  color: #e8eef5 !important;
+  background-color: rgba(220, 233, 245, .065) !important;
+  border-color: var(--admin-border) !important;
+}
+
+/* Make the member avatar badge use the same sea-green accent instead of the
+   generic site-wide white-theme variables. */
+.admin-shell .admin-member-avatar {
+  color: #f4fffe !important;
+  background: linear-gradient(145deg, #246d78, #43b9b0) !important;
+  box-shadow: 0 7px 18px rgba(35, 139, 137, .20), inset 0 1px 0 rgba(255,255,255,.18);
+}
+
+/* Mobile and desktop share the same deep-sea canvas; only the layout changes. */
+@media (max-width: 899px) {
+  .admin-shell {
+    background:
+      radial-gradient(ellipse at 12% -4%, rgba(54, 151, 157, .09), transparent 38%),
+      radial-gradient(ellipse at 96% 16%, rgba(80, 125, 164, .07), transparent 36%),
+      linear-gradient(180deg, #111c2d 0%, #0e1727 100%) !important;
+  }
+}
+
+
+/* Shared confirm / prompt layer lives beside the admin shell, so it receives
+   an explicit host class rather than depending on descendant selectors. */
+.admin-dialog-overlay {
+  background: rgba(4, 12, 23, .74) !important;
+  -webkit-backdrop-filter: blur(10px) saturate(1.1) !important;
+  backdrop-filter: blur(10px) saturate(1.1) !important;
+}
+.admin-dialog-card {
+  color: #e8eef5 !important;
+  background: linear-gradient(150deg, #1d2b41, #121d2f) !important;
+  border: 1px solid rgba(190, 211, 230, .18) !important;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, .44), inset 0 1px 0 rgba(255,255,255,.045) !important;
+}
+.admin-dialog-card textarea {
+  color: #e8eef5 !important;
+  background: rgba(220, 233, 245, .065) !important;
+  border: 1px solid rgba(190, 211, 230, .16) !important;
+}
+.admin-dialog-card .admin-dialog-cancel {
+  color: #d5e0eb !important;
+  background: rgba(220, 233, 245, .07) !important;
+  border: 1px solid rgba(190, 211, 230, .16) !important;
+}
+.admin-dialog-card .admin-dialog-primary {
+  color: #f4fffe !important;
+  background: linear-gradient(135deg, #278b89, #43b9b0) !important;
+  border: 1px solid rgba(124, 218, 208, .20) !important;
+}
+.admin-dialog-card .admin-dialog-danger {
+  color: #fff4f5 !important;
+  background: linear-gradient(135deg, #9d4657, #bd596b) !important;
+  border: 1px solid rgba(245, 151, 164, .24) !important;
+}

@@ -125,8 +125,8 @@ function PromptBody({ req }: { req: PromptReq }) {
         }}
       />
       <div style={rowStyle}>
-        <button type="button" style={cancelBtn} onClick={() => done(null)}>{req.cancelText}</button>
-        <button type="button" style={okBtn} onClick={() => done(text)}>{req.confirmText}</button>
+        <button type="button" className="admin-dialog-cancel" style={cancelBtn} onClick={() => done(null)}>{req.cancelText}</button>
+        <button type="button" className="admin-dialog-primary" style={okBtn} onClick={() => done(text)}>{req.confirmText}</button>
       </div>
     </>
   );
@@ -157,19 +157,21 @@ export function DialogHost() {
     advance();
   }
 
+  const isAdminHost = window.location.hostname.toLowerCase() === 'admin.qianzhi.pw';
+
   return (
-    <div style={overlayStyle} onClick={backdrop}>
+    <div className={isAdminHost ? 'admin-dialog-overlay' : undefined} style={overlayStyle} onClick={backdrop}>
       <style>{'@keyframes dlg-in{from{transform:translateY(10px) scale(.98);opacity:0}to{transform:none;opacity:1}}'}</style>
-      <div style={cardStyle} onClick={e => e.stopPropagation()} role="dialog" aria-modal="true">
+      <div className={isAdminHost ? 'admin-dialog-card' : undefined} style={cardStyle} onClick={e => e.stopPropagation()} role="dialog" aria-modal="true">
         {r.kind === 'prompt' ? (
           <PromptBody key={r.id} req={r} />
         ) : r.kind === 'confirm' ? (
           <>
             <div style={msgStyle}>{r.message}</div>
             <div style={rowStyle}>
-              <button type="button" style={cancelBtn}
+              <button type="button" className="admin-dialog-cancel" style={cancelBtn}
                 onClick={() => { r.resolve(false); advance(); }}>{r.cancelText}</button>
-              <button type="button" style={r.danger ? dangerBtn : okBtn}
+              <button type="button" className={r.danger ? 'admin-dialog-danger' : 'admin-dialog-primary'} style={r.danger ? dangerBtn : okBtn}
                 onClick={() => { r.resolve(true); advance(); }}>{r.confirmText}</button>
             </div>
           </>
@@ -177,7 +179,7 @@ export function DialogHost() {
           <>
             <div style={msgStyle}>{r.message}</div>
             <div style={rowStyle}>
-              <button type="button" style={okBtn}
+              <button type="button" className="admin-dialog-primary" style={okBtn}
                 onClick={() => { r.resolve(); advance(); }}>{r.confirmText}</button>
             </div>
           </>

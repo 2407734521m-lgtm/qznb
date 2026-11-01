@@ -34,12 +34,19 @@ export default function AdminNumberTicker({
 
     if (reduceMotion) {
       motionValue.jump(target);
+      springValue.jump(target);
+      if (ref.current) {
+        ref.current.textContent = new Intl.NumberFormat('zh-CN', {
+          minimumFractionDigits: decimalPlaces,
+          maximumFractionDigits: decimalPlaces,
+        }).format(target);
+      }
       return undefined;
     }
 
     const timer = window.setTimeout(() => motionValue.set(target), delay * 1000);
     return () => window.clearTimeout(timer);
-  }, [delay, direction, isInView, motionValue, reduceMotion, startValue, value]);
+  }, [delay, decimalPlaces, direction, isInView, motionValue, reduceMotion, springValue, startValue, value]);
 
   useEffect(() => springValue.on('change', latest => {
     if (!ref.current) return;
@@ -50,10 +57,11 @@ export default function AdminNumberTicker({
     ref.current.textContent = formatted;
   }), [decimalPlaces, springValue]);
 
+  const initialValue = direction === 'down' ? value : startValue;
   const initialText = new Intl.NumberFormat('zh-CN', {
     minimumFractionDigits: decimalPlaces,
     maximumFractionDigits: decimalPlaces,
-  }).format(startValue);
+  }).format(initialValue);
 
   const targetText = new Intl.NumberFormat('zh-CN', {
     minimumFractionDigits: decimalPlaces,

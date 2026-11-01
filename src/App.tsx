@@ -818,7 +818,14 @@ function Shell() {
             onClick={() => setDockCollapsed(value => !value)}
             onDoubleClick={() => setDockSide(side => side === 'left' ? 'right' : 'left')}
           >
-            {dockCollapsed ? (dockSide === 'left' ? '›' : '‹') : (dockSide === 'left' ? '‹' : '›')}
+            <motion.span
+              aria-hidden="true"
+              animate={{ rotate: (dockSide === 'right') !== dockCollapsed ? 180 : 0 }}
+              transition={{ duration: 0.34, ease: EASE }}
+              style={{ display: 'block', lineHeight: 1, transformOrigin: '50% 50%' }}
+            >
+              ‹
+            </motion.span>
           </button>
         </nav>
       )}

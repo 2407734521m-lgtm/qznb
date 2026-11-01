@@ -119,6 +119,9 @@ export default function AdminWorkspace({
   const [query, setQuery] = useState('');
   const [activeIndex, setActiveIndex] = useState(0);
   const commandInput = useRef<HTMLInputElement>(null);
+  const commandDialog = useRef<HTMLElement>(null);
+  const commandTrigger = useRef<HTMLButtonElement>(null);
+  const previousFocus = useRef<HTMLElement | null>(null);
 
   const groups = useMemo(() => NAV_GROUPS.map(group => ({
     label: group.label,
@@ -178,7 +181,15 @@ export default function AdminWorkspace({
   }, []);
 
   useEffect(() => {
-    if (paletteOpen) commandInput.current?.focus();
+    if (!paletteOpen) return;
+    previousFocus.current = document.activeElement instanceof HTMLElement ? document.activeElement : commandTrigger.current;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    commandInput.current?.focus();
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      previousFocus.current?.focus();
+    };
   }, [paletteOpen]);
 
   useEffect(() => { setActiveIndex(0); }, [query]);
@@ -188,6 +199,18 @@ export default function AdminWorkspace({
     setPaletteOpen(false);
     setMobileOpen(false);
     setQuery('');
+  }
+
+  function handleDialogKeyDown(event: ReactKeyboardEvent<HTMLElement>) {
+    if (event.key !== 'Tab') return;
+    const root = commandDialog.current;
+    if (!root) return;
+    const focusable = Array.from(root.querySelectorAll<HTMLElement>('button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])'));
+    if (!focusable.length) { event.preventDefault(); return; }
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+    else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
   }
 
   function handleCommandKeyDown(event: ReactKeyboardEvent<HTMLInputElement>) {
@@ -281,7 +304,7 @@ export default function AdminWorkspace({
             <strong>{current?.[1] ?? '工作台'}</strong>
           </div>
           <div className="admin-console-spacer" />
-          <button type="button" className="admin-command-trigger" onClick={() => { setQuery(''); setPaletteOpen(true); }}>
+          <button ref={commandTrigger} type="button" className="admin-command-trigger" aria-haspopup="dialog" aria-expanded={paletteOpen} onClick={() => { setQuery(''); setPaletteOpen(true); }}>
             <AdminIcon name="search" size={16} />
             <span>搜索管理功能</span>
             <kbd>Ctrl K</kbd>
@@ -341,16 +364,16 @@ export default function AdminWorkspace({
 
       {paletteOpen && (
         <div className="admin-command-overlay" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget) setPaletteOpen(false); }}>
-          <section className="admin-command-palette" role="dialog" aria-modal="true" aria-label="搜索管理功能">
+          <section ref={commandDialog} className="admin-command-palette" role="dialog" aria-modal="true" aria-label="搜索管理功能" onKeyDown={handleDialogKeyDown}>
             <div className="admin-command-input-wrap">
               <AdminIcon name="search" size={18} />
               <input ref={commandInput} value={query} onChange={event => setQuery(event.target.value)}
-                onKeyDown={handleCommandKeyDown} placeholder="搜索功能名称或所属分组…" />
+                onKeyDown={handleCommandKeyDown} aria-label="搜索管理功能" aria-controls="admin-command-results" aria-activedescendant={matchingItems[activeIndex] ? `admin-command-option-${matchingItems[activeIndex].id}` : undefined} placeholder="搜索功能名称或所属分组…" />
               <kbd>ESC</kbd>
             </div>
-            <div className="admin-command-results">
+            <div id="admin-command-results" className="admin-command-results" role="listbox" aria-label="管理功能搜索结果">
               {matchingItems.length ? matchingItems.map((item, index) => (
-                <button type="button" key={item.id}
+                <button type="button" id={`admin-command-option-${item.id}`} role="option" aria-selected={index === activeIndex} key={item.id}
                   className={['admin-command-result', index === activeIndex ? 'is-active' : ''].join(' ')}
                   onMouseEnter={() => setActiveIndex(index)}
                   onClick={() => choose(item.id)}>

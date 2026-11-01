@@ -699,14 +699,16 @@ export default function ParticleFlower() {
         <h1>让花，在指尖醒来。</h1>
         <p>握拳，收拢成一颗花苞；张掌，让三千粒光一起舒展。</p>
         {!cameraLive && (
-          <div className="bloom-actions">
-            <button className="bloom-primary" onClick={() => void startCamera('flower')} disabled={loading}>
-              {loading ? '正在唤醒…' : '开启手势'}
-            </button>
-            <button className="bloom-secondary" onClick={() => void startCamera('write')} disabled={loading}>空中书写</button>
-            <button className="bloom-secondary" onClick={() => setExperienceMode('demo')}>无摄像头体验</button>
-          </div>
-          <div className="bloom-writing-note">AIR INK · 捏合拇指与食指开始书写，松开即可换笔画</div>
+          <>
+            <div className="bloom-actions">
+              <button className="bloom-primary" onClick={() => void startCamera('flower')} disabled={loading}>
+                {loading ? '正在唤醒…' : '开启手势'}
+              </button>
+              <button className="bloom-secondary" onClick={() => void startCamera('write')} disabled={loading}>空中书写</button>
+              <button className="bloom-secondary" onClick={() => setExperienceMode('demo')}>无摄像头体验</button>
+            </div>
+            <div className="bloom-writing-note">AIR INK · 捏合拇指与食指开始书写，松开即可换笔画</div>
+          </>
         )}
         <div className="bloom-privacy">画面仅在本地浏览器运算，不会上传</div>
         {error && <div className="bloom-error" role="alert">{error}</div>}

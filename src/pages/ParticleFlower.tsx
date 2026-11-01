@@ -60,11 +60,11 @@ function makeParticles(count: number): Particle[] {
     // 三层花瓣以不同瓣数、半径和高度交叠，形成视频中蓬松的伞形花冠。
     const layerRoll = Math.random();
     const layer = layerRoll < 0.48 ? 0 : layerRoll < 0.82 ? 1 : 2;
-    const layerScale = layer === 0 ? 1 : layer === 1 ? 0.91 : 0.82;
+    const layerScale = layer === 0 ? 1 : layer === 1 ? 0.93 : 0.85;
     const petalCount = layer === 0 ? 7 : layer === 1 ? 6 : 5;
     const petalWave = 0.5 + 0.5 * Math.cos(angle * petalCount + layer * 0.86 + seed * 0.008);
     const scallopedEdge = 0.79 + 0.21 * Math.pow(petalWave, 1.28);
-    const radial = Math.pow(Math.random(), 0.76);
+    const radial = Math.pow(Math.random(), 0.70);
     const petalR = radial * scallopedEdge * layerScale;
     const fold = Math.sin(angle * petalCount + layer * 0.86) * 0.028 * radial;
     const warpedAngle = angle + fold;
@@ -73,10 +73,10 @@ function makeParticles(count: number): Particle[] {
     const drift = Math.random() < 0.17 ? 0.07 + Math.random() * 0.17 : 0;
     const layerLift = layer === 0 ? 0.058 : layer === 1 ? 0.018 : -0.026;
     const dome = Math.sqrt(Math.max(0, 1 - radial * radial));
-    const bloomX = Math.cos(warpedAngle) * petalR * 0.53
-      + Math.cos(angle) * drift * 0.22;
-    const bloomY = Math.sin(warpedAngle) * petalR * 0.42
-      + radial * radial * 0.035 + layerLift + drift;
+    const bloomX = Math.cos(warpedAngle) * petalR * 0.55
+      + Math.cos(angle) * drift * 0.26;
+    const bloomY = Math.sin(warpedAngle) * petalR * 0.44
+      + radial * radial * 0.042 + layerLift + drift * 1.08;
     const bloomZ = dome * 0.16 + (2 - layer) * 0.012 + depth * 0.018;
 
     out.push({

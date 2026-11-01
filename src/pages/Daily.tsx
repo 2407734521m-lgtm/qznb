@@ -101,14 +101,24 @@ export default function Daily({ searchQuery = '' }: { searchQuery?: string }) {
   async function publish() {
     if (!text.trim() && !img) return setErr('写点什么再发布吧');
     setBusy(true); setErr('');
+    let uploadedPath: string | null = null;
     try {
       let image_url: string | null = null;
-      if (img) image_url = await uploadMedia('media', await downscaleImage(img));
+      if (img) {
+        image_url = await uploadMedia('media', await downscaleImage(img));
+        uploadedPath = image_url;
+      }
       const { error } = await withRetry(() => supabase.from('posts').insert({ author_id: me, content: text.trim(), image_url, section: 'daily' }));
       if (error) throw error;
-      setText(''); setImg(null); load();
-    } catch (e: any) { setErr('发布失败：' + (e.message || '网络错误')); }
-    finally { setBusy(false); }
+      // 帖子记录已引用该文件，之后不再把它当作失败上传清理。
+      uploadedPath = null;
+      setText(''); setImg(null);
+      if (fref.current) fref.current.value = '';
+      void load();
+    } catch (e: any) {
+      const cleanupError = uploadedPath ? await removeOwnedMedia(uploadedPath, me) : null;
+      setErr('发布失败：' + (e.message || '网络错误') + (cleanupError ? '；图片清理失败：' + cleanupError : ''));
+    } finally { setBusy(false); }
   }
 
   async function toggleLike(p: Post) {

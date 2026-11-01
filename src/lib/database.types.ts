@@ -1524,6 +1524,22 @@ export type Database = {
         Args: { target: string }
         Returns: unknown
       }
+      admin_member_moderation: {
+        Args: { p_target_user_id: string }
+        Returns: Json
+      }
+      admin_apply_member_moderation: {
+        Args: { p_target_user_id: string; p_action_type: string; p_reason: string; p_duration_hours?: number | null }
+        Returns: string
+      }
+      admin_revoke_member_moderation: {
+        Args: { p_action_id: string; p_reason: string }
+        Returns: undefined
+      }
+      member_moderation_allows: {
+        Args: { p_scope: string }
+        Returns: boolean
+      }
       admin_member_accounts: {
         Args: Record<PropertyKey, never>
         Returns: unknown

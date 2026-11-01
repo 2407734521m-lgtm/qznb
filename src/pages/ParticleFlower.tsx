@@ -38,30 +38,49 @@ function loadScript(src: string) {
 }
 function makeParticles(count: number): Particle[] {
   const out: Particle[] = [];
+  const TAU = Math.PI * 2;
+
   for (let i = 0; i < count; i++) {
     const seed = Math.random() * 1000;
-    const angle = Math.random() * Math.PI * 2;
+    const angle = Math.random() * TAU;
     const depth = Math.random() * 2 - 1;
-    // 立体花苞：使用球面采样并对中心区域增加密度。
+
+    // 花苞保持紧凑的椭球体，绽放态改为多层花冠，而不是一张均匀的圆盘。
     const budR = Math.pow(Math.random(), 1.65);
     const budTheta = Math.acos(2 * Math.random() - 1);
     const budX = Math.sin(budTheta) * Math.cos(angle) * budR * 0.24;
     const budY = Math.cos(budTheta) * budR * 0.43;
     const budZ = Math.sin(budTheta) * Math.sin(angle) * budR * 0.12;
-    // 参考视频的花冠：以半球穹顶为基底，九组柔和起伏形成层叠花瓣边缘。
-    const radial = Math.sqrt(Math.random());
-    const petalWave = 0.5 + 0.5 * Math.cos(9 * angle + seed * 0.012);
-    const petalEdge = 0.88 + 0.12 * Math.pow(petalWave, 1.35);
-    const petalR = radial * petalEdge * 0.50;
-    const bloomX = Math.cos(angle) * petalR;
-    const bloomY = Math.sin(angle) * petalR * 0.72 - Math.pow(1 - radial, 1.5) * 0.022;
-    const bloomZ = Math.sqrt(Math.max(0, 1 - radial * radial)) * 0.16 + depth * 0.025;
+
+    // 三层花瓣以不同瓣数、半径和高度交叠，形成视频中蓬松的伞形花冠。
+    const layerRoll = Math.random();
+    const layer = layerRoll < 0.48 ? 0 : layerRoll < 0.82 ? 1 : 2;
+    const layerScale = layer === 0 ? 1 : layer === 1 ? 0.91 : 0.82;
+    const petalCount = layer === 0 ? 7 : layer === 1 ? 6 : 5;
+    const petalWave = 0.5 + 0.5 * Math.cos(angle * petalCount + layer * 0.86 + seed * 0.008);
+    const scallopedEdge = 0.79 + 0.21 * Math.pow(petalWave, 1.28);
+    const radial = Math.pow(Math.random(), 0.76);
+    const petalR = radial * scallopedEdge * layerScale;
+    const fold = Math.sin(angle * petalCount + layer * 0.86) * 0.028 * radial;
+    const warpedAngle = angle + fold;
+
+    // 少量游离粒子从花冠边沿自然垂落，避免盛放状态看起来像实心几何圆盘。
+    const drift = Math.random() < 0.17 ? 0.07 + Math.random() * 0.17 : 0;
+    const layerLift = layer === 0 ? 0.058 : layer === 1 ? 0.018 : -0.026;
+    const dome = Math.sqrt(Math.max(0, 1 - radial * radial));
+    const bloomX = Math.cos(warpedAngle) * petalR * 0.53
+      + Math.cos(angle) * drift * 0.22;
+    const bloomY = Math.sin(warpedAngle) * petalR * 0.42
+      + radial * radial * 0.035 + layerLift + drift;
+    const bloomZ = dome * 0.16 + (2 - layer) * 0.012 + depth * 0.018;
+
     out.push({
       seed, angle, depth, size: 0.55 + Math.random() * 1.35, phase: Math.random() * Math.PI * 2,
       budX, budY, budZ, bloomX, bloomY, bloomZ,
       x: 0, y: 0, vx: 0, vy: 0
     });
   }
+
   return out;
 }
 function drawGlowSprite(): HTMLCanvasElement {
@@ -103,6 +122,7 @@ export default function ParticleFlower() {
   const fingerRef = useRef<Point | null>(null);
   const landmarksRef = useRef<any[] | null>(null);
   const hasHandRef = useRef(false);
+  const experienceStartedRef = useRef(false);
   const pointerRef = useRef<Point | null>(null);
   const pointerDownRef = useRef(false);
   const modeRef = useRef<Mode>('demo');
@@ -134,6 +154,7 @@ export default function ParticleFlower() {
   }, []);
 
   const setExperienceMode = useCallback((next: Mode) => {
+    experienceStartedRef.current = true;
     setExperienceStarted(true);
     modeRef.current = next; setMode(next);
     if (next === 'demo') {
@@ -190,6 +211,7 @@ export default function ParticleFlower() {
       await hands.send({ image: video });
       modeRef.current = 'gesture'; setMode('gesture');
       setCameraLive(true); setStatus('等待手掌');
+      experienceStartedRef.current = true;
       setExperienceStarted(true);
       setLoading(false);
       let busy = false;
@@ -240,7 +262,7 @@ export default function ParticleFlower() {
       currentRef.current = clamp(currentRef.current + velocityRef.current*dt, 0, 1);
       const opennessNow = currentRef.current;
       const now = time * 0.001;
-      const cx = width*0.5, cy = height*0.49;
+      const cx = width * (!experienceStartedRef.current && !mobile ? 0.68 : 0.5), cy = height*0.49;
       const scale = Math.min(width,height) * (mobile ? 0.79 : 0.83);
       const finger = modeRef.current === 'gesture' ? fingerRef.current : pointerRef.current;
       // 轻量残影衰减：保留上一帧的光迹，形成指尖牵引的流动感。
@@ -289,6 +311,24 @@ export default function ParticleFlower() {
       }
       ctx.globalAlpha=1; ctx.globalCompositeOperation='source-over';
       if (landmarksRef.current && modeRef.current==='gesture') drawSkeleton(ctx,landmarksRef.current,width,height);
+      // 食指尖端增加一圈柔和的玫瑰色光晕，让牵引点在暗背景中清晰可见。
+      if (finger && modeRef.current === 'gesture') {
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+        const tipGlow = ctx.createRadialGradient(finger.x, finger.y, 0, finger.x, finger.y, 34);
+        tipGlow.addColorStop(0, 'rgba(255,238,224,.92)');
+        tipGlow.addColorStop(0.16, 'rgba(255,164,204,.48)');
+        tipGlow.addColorStop(1, 'rgba(231,84,154,0)');
+        ctx.fillStyle = tipGlow;
+        ctx.beginPath();
+        ctx.arc(finger.x, finger.y, 34, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = 'rgba(255,247,235,.95)';
+        ctx.beginPath();
+        ctx.arc(finger.x, finger.y, 2.2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
       if (modeRef.current==='demo') {
         const p=pointerRef.current || {x:cx,y:cy};
         ctx.save(); ctx.strokeStyle='rgba(255,244,235,.75)'; ctx.lineWidth=1;

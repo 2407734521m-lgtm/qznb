@@ -1034,3 +1034,34 @@
   .bloom-gesture-guide>div span{font-size:7px}
   .bloom-artwork-card{padding-bottom:15px}
 }
+
+
+/* Fix visibility and theme consistency for the expanded flower controls. */
+.bloom-page.is-active:not(.is-focused) .bloom-gesture-guide{
+  display:flex!important;opacity:.82!important;visibility:visible!important;
+  transform:translateX(-50%)!important;pointer-events:none!important
+}
+.bloom-page.is-focused .bloom-art-actions,
+.bloom-page.is-focused .bloom-gesture-guide{
+  display:none!important;opacity:0!important;visibility:hidden!important;pointer-events:none!important
+}
+@media(max-width:900px){
+  .bloom-page.is-active:not(.is-focused) .bloom-gesture-guide{
+    transform:none!important;left:12px;right:12px;max-width:none
+  }
+}
+.bloom-page.theme-gold .bloom-bloom-progress .bloom-progress span{
+  background:linear-gradient(90deg,#fff0b7,#f5cd79,#d99a3c);
+  box-shadow:0 0 10px rgba(241,197,115,.55)
+}
+.bloom-page.theme-starsea .bloom-bloom-progress .bloom-progress span{
+  background:linear-gradient(90deg,#d8f8ff,#82d5f4,#788de8);
+  box-shadow:0 0 10px rgba(123,208,244,.55)
+}
+.bloom-page.theme-glass .bloom-bloom-progress .bloom-progress span{
+  background:linear-gradient(90deg,#efffff,#b8e4e8,#bdb2eb);
+  box-shadow:0 0 10px rgba(174,224,231,.55)
+}
+.bloom-page.theme-gold .bloom-bloom-progress .bloom-hud-state{color:#fff3cf}
+.bloom-page.theme-starsea .bloom-bloom-progress .bloom-hud-state{color:#e2f7ff}
+.bloom-page.theme-glass .bloom-bloom-progress .bloom-hud-state{color:#ecffff}

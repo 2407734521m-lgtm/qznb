@@ -12,6 +12,8 @@ type Friend = {
   created_at?: string;
 };
 
+type MemberSearchResult = Friend;
+
 type ConversationPreview = {
   conversation_id: number;
   conversation_created_at: string;
@@ -67,12 +69,18 @@ export default function Friends() {
   const [msg, setMsg] = useState('');
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(true);
+  const [searchResults, setSearchResults] = useState<MemberSearchResult[]>([]);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [searchError, setSearchError] = useState('');
+  const [sentRequestIds, setSentRequestIds] = useState<string[]>([]);
+  const [friendActionId, setFriendActionId] = useState<string | null>(null);
 
   async function load() {
-    const [friendResult, requestResult, conversationResult] = await Promise.all([
+    const [friendResult, requestResult, conversationResult, sentRequestResult] = await Promise.all([
       supabase.rpc('my_friends'),
       supabase.rpc('friend_requests'),
       supabase.rpc('my_conversations'),
+      supabase.from('friendships').select('addressee').eq('requester', me).eq('status', 'pending'),
     ]);
     if (friendResult.error || requestResult.error || conversationResult.error) {
       console.error('inbox load failed', friendResult.error, requestResult.error, conversationResult.error);
@@ -81,6 +89,8 @@ export default function Friends() {
       setFriends((friendResult.data ?? []) as Friend[]);
       setReqs((requestResult.data ?? []) as Friend[]);
       setConversations((conversationResult.data ?? []) as ConversationPreview[]);
+      setSentRequestIds((sentRequestResult.data ?? []).map(row => row.addressee as string));
+      if (sentRequestResult.error) console.warn('outgoing friend requests unavailable', sentRequestResult.error);
       setMsg('');
     }
     setLoading(false);
@@ -102,6 +112,7 @@ export default function Friends() {
   }, [me]);
 
   const normalizedQuery = query.trim().toLocaleLowerCase();
+  const searchTerm = query.trim();
   const filteredFriends = useMemo(
     () => friends.filter(f => (f.display_name ?? f.username).toLocaleLowerCase().includes(normalizedQuery)
       || f.username.toLocaleLowerCase().includes(normalizedQuery)),
@@ -117,6 +128,49 @@ export default function Friends() {
       || f.username.toLocaleLowerCase().includes(normalizedQuery)),
     [reqs, normalizedQuery],
   );
+
+  useEffect(() => {
+    if (!searchTerm) {
+      setSearchResults([]);
+      setSearchError('');
+      setSearchLoading(false);
+      return;
+    }
+    let active = true;
+    setSearchLoading(true);
+    setSearchError('');
+    const timer = window.setTimeout(() => {
+      void (async () => {
+        try {
+          const { data, error } = await supabase.rpc('member_directory', {
+            q: searchTerm,
+            lim: 20,
+            skip: 0,
+          });
+          if (!active) return;
+          if (error) {
+            setSearchResults([]);
+            setSearchError('成员搜索暂时不可用，请稍后重试。');
+            console.error('member directory search failed', error);
+          } else {
+            setSearchResults(((data ?? []) as MemberSearchResult[]).filter(person => person.id !== me));
+          }
+        } catch (error) {
+          if (active) {
+            setSearchResults([]);
+            setSearchError('成员搜索暂时不可用，请检查网络后重试。');
+          }
+          console.error('member directory search failed', error);
+        } finally {
+          if (active) setSearchLoading(false);
+        }
+      })();
+    }, 260);
+    return () => {
+      active = false;
+      window.clearTimeout(timer);
+    };
+  }, [searchTerm, me]);
 
   async function openChat(friend: Friend) {
     setMsg('');
@@ -146,11 +200,36 @@ export default function Friends() {
     await load();
   }
 
+  async function addFriend(person: MemberSearchResult) {
+    if (friendActionId) return;
+    setFriendActionId(person.id);
+    setMsg('');
+    try {
+      const { data, error } = await supabase.rpc('send_friend_request', { target: person.id });
+      if (error) {
+        setMsg('好友申请发送失败：' + error.message);
+        return;
+      }
+      const outcome = String(data ?? '');
+      await load();
+      if (outcome === 'sent') setMsg('好友申请已发送，等待对方同意。');
+      else if (outcome === 'accepted') setMsg('对方之前已向你发送申请，现在你们已成为好友。');
+      else if (outcome === 'already_friends') setMsg('你们已经是好友，可以直接开始聊天。');
+      else if (outcome === 'already_pending') setMsg('好友申请已经发送，请等待对方同意。');
+      else setMsg('好友申请状态已更新。');
+    } catch (error) {
+      console.error('send friend request failed', error);
+      setMsg('好友申请发送失败，请检查网络后重试。');
+    } finally {
+      setFriendActionId(null);
+    }
+  }
+
   return (
     <div className="page im-inbox">
       <style>{`
-        .im-inbox{position:relative;isolation:isolate;min-height:calc(100dvh - 112px);padding:18px 16px 28px!important;overflow:hidden;background:transparent!important}
-        .im-inbox:before{content:'';position:absolute;z-index:-1;pointer-events:none;inset:-20px -16px 0;background:radial-gradient(ellipse at 50% -5%,rgba(70,153,255,.58),transparent 43%),radial-gradient(ellipse at 10% 18%,rgba(27,190,221,.16),transparent 38%),linear-gradient(180deg,rgba(5,24,55,.28),rgba(3,12,31,.12) 48%,rgba(2,10,25,.28))}
+        .im-inbox{position:relative;isolation:isolate;width:100%;height:100%;min-height:0;max-width:none;margin:0;padding:18px 16px 28px!important;overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain;background:transparent!important}
+        .im-inbox:before{content:'';position:absolute;z-index:-1;pointer-events:none;inset:0;background:radial-gradient(ellipse at 50% -5%,rgba(70,153,255,.58),transparent 43%),radial-gradient(ellipse at 10% 18%,rgba(27,190,221,.16),transparent 38%),linear-gradient(180deg,rgba(5,24,55,.28),rgba(3,12,31,.12) 48%,rgba(2,10,25,.28))}
         .im-inbox-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:6px 2px 20px}
         .im-inbox-kicker{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:#b7d9ff;margin-bottom:5px}
         .im-inbox-title{font-size:30px;line-height:1.15;font-weight:780;letter-spacing:-.04em;color:#f7fbff}
@@ -180,6 +259,15 @@ export default function Friends() {
         .im-request-actions{display:flex;gap:6px}
         .im-request-actions button{border-radius:12px;padding:8px 10px}
         .im-inbox-primary{border:1px solid rgba(160,213,255,.36);background:linear-gradient(120deg,#2a91f8,#3a70e8);color:white;border-radius:13px;padding:9px 14px;font-weight:650;margin-top:14px}
+        .im-inbox-search-caption{display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:3px 3px 5px;color:#f3f8ff;font-size:13px;font-weight:750}
+        .im-inbox-search-caption small{font-size:10px;font-weight:450;color:rgba(218,234,255,.62)}
+        .im-inbox-search-action{display:flex;align-items:center;flex:none}
+        .im-inbox-search-action button{width:auto!important;min-width:82px;padding:8px 11px;border-radius:13px;border:1px solid rgba(165,212,255,.3);background:rgba(44,124,221,.28);color:#eef7ff;font-size:11px;font-weight:700;white-space:nowrap}
+        .im-inbox-search-action button.is-friend{background:rgba(70,170,143,.2);border-color:rgba(142,226,200,.28)}
+        .im-inbox-search-action button.is-incoming{background:linear-gradient(120deg,#278fe9,#3267da);border-color:rgba(175,221,255,.5)}
+        .im-inbox-search-action button:disabled{opacity:.72;cursor:default}
+        .im-search:focus-within{border-color:rgba(169,219,255,.48);box-shadow:0 0 0 3px rgba(75,157,255,.12),inset 0 1px 0 rgba(255,255,255,.09)}
+        @media(max-width:768px){.im-inbox{padding:calc(18px + env(safe-area-inset-top)) calc(16px + env(safe-area-inset-right)) calc(118px + env(safe-area-inset-bottom)) calc(16px + env(safe-area-inset-left))!important}}
         @media(prefers-reduced-motion:reduce){.im-inbox-row{transition:none}}
       `}</style>
 
@@ -193,7 +281,7 @@ export default function Friends() {
 
       <label className="im-search">
         <span aria-hidden="true">⌕</span>
-        <input value={query} onChange={e => setQuery(e.target.value)} placeholder="搜索好友或对话" aria-label="搜索好友或对话" />
+        <input value={query} onChange={e => setQuery(e.target.value)} placeholder="搜索全站成员、好友或对话" aria-label="搜索全站成员、好友或对话" />
       </label>
 
       <div className="im-inbox-tabs">
@@ -204,74 +292,130 @@ export default function Friends() {
 
       {msg && <p className="im-inbox-message" role="status">{msg}</p>}
 
-      {tab === 'messages' && (
-        <div className="im-inbox-list">
-          {filteredConversations.length === 0 ? (
+      {searchTerm ? (
+        <div className="im-inbox-list" aria-live="polite">
+          <div className="im-inbox-search-caption">
+            <span>搜索站内成员</span>
+            <small>只显示已加入的成员 · 最多 20 条</small>
+          </div>
+          {searchLoading ? (
             <div className="im-inbox-empty">
-              <div className="im-inbox-empty-title">{loading ? '正在加载消息…' : query ? '没有找到相关对话' : '还没有聊天记录'}</div>
-              <div className="im-inbox-empty-copy">{query ? '试试其他名字或用户名。' : '和好友开启一次对话，最近消息会自动显示在这里。'}</div>
-              {!query && <button type="button" className="im-inbox-primary" onClick={() => setTab('friends')}>选择好友开始聊天</button>}
+              <div className="im-inbox-empty-title">正在搜索…</div>
+              <div className="im-inbox-empty-copy">正在查找匹配的昵称或用户名。</div>
             </div>
-          ) : filteredConversations.map(conversation => (
-            <button key={conversation.conversation_id} type="button" className="im-inbox-row" onClick={() => openConversation(conversation)}>
-              <FriendAvatar person={{ id: conversation.other_profile_id, username: conversation.username, display_name: conversation.display_name, avatar_path: conversation.avatar_path }} />
-              <span className="im-inbox-person">
-                <span className="im-inbox-name" style={{ display: 'block' }}>{conversation.display_name ?? conversation.username}</span>
-                <span className="im-inbox-preview" style={{ display: 'block' }}>
-                  {conversation.last_message_sender_id === me && conversation.last_message_id ? '我：' : ''}
-                  {previewText(conversation, me)}
+          ) : searchError ? (
+            <div className="im-inbox-empty">
+              <div className="im-inbox-empty-title">暂时无法搜索</div>
+              <div className="im-inbox-empty-copy">{searchError}</div>
+            </div>
+          ) : searchResults.length === 0 ? (
+            <div className="im-inbox-empty">
+              <div className="im-inbox-empty-title">没有找到匹配成员</div>
+              <div className="im-inbox-empty-copy">试试昵称或完整用户名。你也可以检查拼写后再搜索。</div>
+            </div>
+          ) : searchResults.map(person => {
+            const isFriend = friends.some(friend => friend.id === person.id);
+            const hasIncomingRequest = reqs.some(request => request.id === person.id);
+            const hasOutgoingRequest = sentRequestIds.includes(person.id);
+            const busy = friendActionId === person.id;
+            return (
+              <div key={person.id} className="im-inbox-row" style={{ cursor: 'default' }}>
+                <FriendAvatar person={person} />
+                <span className="im-inbox-person">
+                  <span className="im-inbox-name" style={{ display: 'block' }}>{person.display_name ?? person.username}</span>
+                  <span className="im-inbox-preview" style={{ display: 'block' }}>@{person.username}</span>
                 </span>
-              </span>
-              <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 7 }}>
-                <span className="im-inbox-time">{formatInboxTime(conversation.last_message_at, conversation.conversation_created_at)}</span>
-                {conversation.unread_count > 0 && <span className="im-unread">{conversation.unread_count > 99 ? '99+' : conversation.unread_count}</span>}
-              </span>
-            </button>
-          ))}
+                <span className="im-inbox-search-action">
+                  {isFriend ? (
+                    <button type="button" className="is-friend" onClick={() => openChat(person)}>发消息</button>
+                  ) : hasIncomingRequest ? (
+                    <button type="button" className="is-incoming" disabled={busy} onClick={() => respond(person.id, true)}>
+                      {busy ? '处理中…' : '接受申请'}
+                    </button>
+                  ) : hasOutgoingRequest ? (
+                    <button type="button" disabled>等待同意</button>
+                  ) : (
+                    <button type="button" disabled={busy} onClick={() => addFriend(person)}>
+                      {busy ? '发送中…' : '添加好友'}
+                    </button>
+                  )}
+                </span>
+              </div>
+            );
+          })}
         </div>
-      )}
+      ) : (
+        <>
+          {tab === 'messages' && (
+            <div className="im-inbox-list">
+              {filteredConversations.length === 0 ? (
+                <div className="im-inbox-empty">
+                  <div className="im-inbox-empty-title">{loading ? '正在加载消息…' : '还没有聊天记录'}</div>
+                  <div className="im-inbox-empty-copy">和好友开启一次对话，最近消息会自动显示在这里。</div>
+                  <button type="button" className="im-inbox-primary" onClick={() => setTab('friends')}>选择好友开始聊天</button>
+                </div>
+              ) : filteredConversations.map(conversation => (
+                <button key={conversation.conversation_id} type="button" className="im-inbox-row" onClick={() => openConversation(conversation)}>
+                  <FriendAvatar person={{ id: conversation.other_profile_id, username: conversation.username, display_name: conversation.display_name, avatar_path: conversation.avatar_path }} />
+                  <span className="im-inbox-person">
+                    <span className="im-inbox-name" style={{ display: 'block' }}>{conversation.display_name ?? conversation.username}</span>
+                    <span className="im-inbox-preview" style={{ display: 'block' }}>
+                      {conversation.last_message_sender_id === me && conversation.last_message_id ? '我：' : ''}
+                      {previewText(conversation, me)}
+                    </span>
+                  </span>
+                  <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 7 }}>
+                    <span className="im-inbox-time">{formatInboxTime(conversation.last_message_at, conversation.conversation_created_at)}</span>
+                    {conversation.unread_count > 0 && <span className="im-unread">{conversation.unread_count > 99 ? '99+' : conversation.unread_count}</span>}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
 
-      {tab === 'friends' && (
-        <div className="im-inbox-list">
-          {filteredFriends.length === 0 ? (
-            <div className="im-inbox-empty">
-              <div className="im-inbox-empty-title">{query ? '没有找到这位好友' : '还没有好友'}</div>
-              <div className="im-inbox-empty-copy">{query ? '试试其他名字或用户名。' : '添加好友后，就可以在这里开启私聊。'}</div>
+          {tab === 'friends' && (
+            <div className="im-inbox-list">
+              {filteredFriends.length === 0 ? (
+                <div className="im-inbox-empty">
+                  <div className="im-inbox-empty-title">还没有好友</div>
+                  <div className="im-inbox-empty-copy">通过上方搜索框查找站内成员，发送好友申请后等待对方同意。</div>
+                </div>
+              ) : filteredFriends.map(friend => (
+                <button key={friend.id} type="button" className="im-inbox-row" onClick={() => openChat(friend)}>
+                  <FriendAvatar person={friend} />
+                  <span className="im-inbox-person">
+                    <span className="im-inbox-name" style={{ display: 'block' }}>{friend.display_name ?? friend.username}</span>
+                    <span className="im-inbox-preview" style={{ display: 'block' }}>@{friend.username} · 点击开始聊天</span>
+                  </span>
+                  <span className="im-inbox-arrow" aria-hidden="true">›</span>
+                </button>
+              ))}
             </div>
-          ) : filteredFriends.map(friend => (
-            <button key={friend.id} type="button" className="im-inbox-row" onClick={() => openChat(friend)}>
-              <FriendAvatar person={friend} />
-              <span className="im-inbox-person">
-                <span className="im-inbox-name" style={{ display: 'block' }}>{friend.display_name ?? friend.username}</span>
-                <span className="im-inbox-preview" style={{ display: 'block' }}>@{friend.username} · 点击开始聊天</span>
-              </span>
-              <span className="im-inbox-arrow" aria-hidden="true">›</span>
-            </button>
-          ))}
-        </div>
-      )}
+          )}
 
-      {tab === 'reqs' && (
-        <div className="im-inbox-list">
-          {filteredRequests.length === 0 ? (
-            <div className="im-inbox-empty">
-              <div className="im-inbox-empty-title">暂无新的请求</div>
-              <div className="im-inbox-empty-copy">新的好友申请会显示在这里。</div>
+          {tab === 'reqs' && (
+            <div className="im-inbox-list">
+              {filteredRequests.length === 0 ? (
+                <div className="im-inbox-empty">
+                  <div className="im-inbox-empty-title">暂无新的请求</div>
+                  <div className="im-inbox-empty-copy">新的好友申请会显示在这里。</div>
+                </div>
+              ) : filteredRequests.map(friend => (
+                <div key={friend.id} className="im-inbox-row" style={{ cursor: 'default' }}>
+                  <FriendAvatar person={friend} />
+                  <span className="im-inbox-person">
+                    <span className="im-inbox-name" style={{ display: 'block' }}>{friend.display_name ?? friend.username}</span>
+                    <span className="im-inbox-preview" style={{ display: 'block' }}>@{friend.username} 想加你为好友</span>
+                  </span>
+                  <span className="im-request-actions">
+                    <button type="button" className="pri" onClick={() => respond(friend.id, true)}>接受</button>
+                    <button type="button" className="ghost" onClick={() => respond(friend.id, false)}>拒绝</button>
+                  </span>
+                </div>
+              ))}
             </div>
-          ) : filteredRequests.map(friend => (
-            <div key={friend.id} className="im-inbox-row" style={{ cursor: 'default' }}>
-              <FriendAvatar person={friend} />
-              <span className="im-inbox-person">
-                <span className="im-inbox-name" style={{ display: 'block' }}>{friend.display_name ?? friend.username}</span>
-                <span className="im-inbox-preview" style={{ display: 'block' }}>@{friend.username} 想加你为好友</span>
-              </span>
-              <span className="im-request-actions">
-                <button type="button" className="pri" onClick={() => respond(friend.id, true)}>接受</button>
-                <button type="button" className="ghost" onClick={() => respond(friend.id, false)}>拒绝</button>
-              </span>
-            </div>
-          ))}
-        </div>
+          )}
+        </>
       )}
     </div>
   );

@@ -1492,6 +1492,10 @@ export type Database = {
         Args: { p_title: string; p_body: string; p_link?: string | null; p_recipient_ids?: string[] | null }
         Returns: number
       }
+      admin_send_member_message: {
+        Args: { p_title: string; p_body: string; p_recipient_ids: string[]; p_link?: string }
+        Returns: number
+      }
       admin_email_campaign_history: {
         Args: Record<PropertyKey, never>
         Returns: Json

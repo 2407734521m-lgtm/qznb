@@ -517,6 +517,7 @@ export default function ParticleFlower() {
               {loading ? '正在唤醒…' : '开启手势'}
             </button>
             <button className="bloom-secondary" onClick={() => setExperienceMode('demo')}>无摄像头体验</button>
+            <button className="bloom-secondary" onClick={() => navigate('/air-ink')}>独立空中书写</button>
           </div>
         )}
         <div className="bloom-privacy">画面仅在本地浏览器运算，不会上传</div>

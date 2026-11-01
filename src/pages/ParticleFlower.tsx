@@ -597,6 +597,29 @@ export default function ParticleFlower() {
               : screenPoint;
             if (!pinchingRef.current) {
               pinchingRef.current = true;
+              if (recognitionTimerRef.current) window.clearTimeout(recognitionTimerRef.current);
+              // A new stroke after a candidate begins the next character.
+              if (recognizedCandidateRef.current) {
+                const bounds = inkStrokesRef.current.flatMap(item => item.points);
+                if (bounds.length) {
+                  const minX = Math.min(...bounds.map(point => point.x));
+                  const maxX = Math.max(...bounds.map(point => point.x));
+                  const minY = Math.min(...bounds.map(point => point.y));
+                  const maxY = Math.max(...bounds.map(point => point.y));
+                  const size = Math.max(56, Math.min(150, Math.max(maxX - minX, maxY - minY) * 0.9));
+                  committedGlyphsRef.current.push({
+                    character: recognizedCandidateRef.current,
+                    x: (minX + maxX) * 0.5,
+                    y: (minY + maxY) * 0.5,
+                    size
+                  });
+                  setRecognizedText(committedGlyphsRef.current.map(glyph => glyph.character).join(''));
+                  inkStrokesRef.current = [];
+                  recognizedCandidateRef.current = '';
+                  setRecognizedCandidate('');
+                  setRecognitionCandidates([]);
+                }
+              }
               const stroke: InkStroke = { points: [smooth] };
               inkStrokesRef.current.push(stroke);
               currentInkStrokeRef.current = stroke;
@@ -613,6 +636,14 @@ export default function ParticleFlower() {
             currentInkStrokeRef.current = null;
             smoothedInkPointRef.current = null;
             setIsWriting(false);
+            if (recognitionTimerRef.current) window.clearTimeout(recognitionTimerRef.current);
+            recognitionTimerRef.current = window.setTimeout(() => {
+              if (!recognitionReadyRef.current || recognitionBusyRef.current) return;
+              const normalizedStrokes = normalizeInkForRecognition(inkStrokesRef.current);
+              if (!normalizedStrokes.length) return;
+              recognitionBusyRef.current = true;
+              recognitionWorkerRef.current?.postMessage({ type: 'lookup', strokes: normalizedStrokes, limit: 8 });
+            }, 1100);
           }
         }
         hasHandRef.current = true; setHasHand(true);
@@ -854,6 +885,16 @@ export default function ParticleFlower() {
         drawSkeleton(ctx,landmarksRef.current,width,height);
       }
       if (experienceToolRef.current === 'write') {
+        drawAirInkScene(
+          ctx,
+          inkStrokesRef.current,
+          committedGlyphsRef.current,
+          recognizedCandidateRef.current,
+          width,
+          height,
+          now,
+          recognitionStartedAtRef.current
+        );
         drawSkeletonPreview(handPreviewCanvasRef.current, landmarksRef.current && modeRef.current === 'gesture' ? landmarksRef.current : null);
       }
       // 花朵模式才在主画布显示食指牵引光点；书写模式把手势骨骼独立收纳到角落预览窗。
@@ -945,10 +986,48 @@ export default function ParticleFlower() {
       {experienceStarted && experienceTool === 'write' && (
         <div className="bloom-ink-tools">
           <div className={'bloom-ink-status' + (isWriting ? ' drawing' : '')}>
-            <i />{isWriting ? '正在书写 · 松开即可换笔画' : hasHand ? '捏合拇指与食指开始书写' : '请将手掌放入镜头'}
+            <i />{isWriting ? '正在书写 · 松开即可换笔画' : hasHand ? '捏合开始 · 停顿识字' : '请将手掌放入镜头'}
+            <small>{recognitionStatus === 'ready' ? '本地识字已就绪' : recognitionStatus === 'loading' ? '识字模型准备中' : recognitionStatus === 'error' ? '识字暂不可用，仍可书写' : ''}</small>
           </div>
+          {recognitionCandidates.length > 0 && (
+            <div className="bloom-ink-candidates">
+              <span>像是</span>
+              {recognitionCandidates.slice(0, 4).map(item => (
+                <button type="button" key={item.hanzi} className={recognizedCandidate === item.hanzi ? 'selected' : ''} onClick={() => {
+                  recognizedCandidateRef.current = item.hanzi;
+                  setRecognizedCandidate(item.hanzi);
+                  recognitionStartedAtRef.current = performance.now() / 1000;
+                }}>{item.hanzi}</button>
+              ))}
+            </div>
+          )}
+          {recognizedCandidate && (
+            <button type="button" className="bloom-ink-confirm" onClick={() => {
+              const bounds = inkStrokesRef.current.flatMap(item => item.points);
+              if (bounds.length) {
+                const minX = Math.min(...bounds.map(point => point.x));
+                const maxX = Math.max(...bounds.map(point => point.x));
+                const minY = Math.min(...bounds.map(point => point.y));
+                const maxY = Math.max(...bounds.map(point => point.y));
+                const size = Math.max(56, Math.min(150, Math.max(maxX - minX, maxY - minY) * 0.9));
+                committedGlyphsRef.current.push({ character: recognizedCandidate, x: (minX + maxX) * 0.5, y: (minY + maxY) * 0.5, size });
+                setRecognizedText(committedGlyphsRef.current.map(glyph => glyph.character).join(''));
+                inkStrokesRef.current = [];
+                recognizedCandidateRef.current = '';
+                setRecognizedCandidate('');
+                setRecognitionCandidates([]);
+              }
+            }}>确认这个字</button>
+          )}
+          {recognizedText && <span className="bloom-ink-word">{recognizedText}</span>}
           <button type="button" onClick={() => {
-            inkStrokesRef.current.pop();
+            if (recognitionTimerRef.current) window.clearTimeout(recognitionTimerRef.current);
+            if (inkStrokesRef.current.length) inkStrokesRef.current.pop();
+            else committedGlyphsRef.current.pop();
+            setRecognizedText(committedGlyphsRef.current.map(glyph => glyph.character).join(''));
+            recognizedCandidateRef.current = '';
+            setRecognizedCandidate('');
+            setRecognitionCandidates([]);
             currentInkStrokeRef.current = null;
             pinchingRef.current = false;
             smoothedInkPointRef.current = null;
@@ -956,7 +1035,13 @@ export default function ParticleFlower() {
             renderInkLayer(inkCanvasRef.current, viewportRef.current.width, viewportRef.current.height, inkStrokesRef.current);
           }}>撤销</button>
           <button type="button" onClick={() => {
+            if (recognitionTimerRef.current) window.clearTimeout(recognitionTimerRef.current);
             inkStrokesRef.current = [];
+            committedGlyphsRef.current = [];
+            recognizedCandidateRef.current = '';
+            setRecognizedCandidate('');
+            setRecognitionCandidates([]);
+            setRecognizedText('');
             currentInkStrokeRef.current = null;
             pinchingRef.current = false;
             smoothedInkPointRef.current = null;

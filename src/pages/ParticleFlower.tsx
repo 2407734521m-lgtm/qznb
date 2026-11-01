@@ -26,6 +26,13 @@ const THEME_COLORS: Record<ArtTheme, number[][]> = {
   glass: [[245,255,255],[204,239,238],[169,213,224],[195,178,236]]
 };
 const THEME_NAMES: Record<ArtTheme, string> = { sakura: '樱花', gold: '金色花园', starsea: '星海', glass: '玻璃花' };
+const THEME_HALO_COLORS: Record<ArtTheme, string> = {
+  sakura: '226,105,161', gold: '232,174,81', starsea: '94,180,235', glass: '175,213,222'
+};
+const THEME_CORE_COLORS: Record<ArtTheme, [string, string]> = {
+  sakura: ['255,245,224', '255,205,205'], gold: ['255,249,207', '255,208,126'],
+  starsea: ['231,252,255', '121,211,255'], glass: ['250,255,255', '181,226,237']
+};
 
 const HAND_CONNECTIONS: number[][] = [
   [0,1],[1,2],[2,3],[3,4], [0,5],[5,6],[6,7],[7,8],
@@ -829,21 +836,16 @@ export default function ParticleFlower() {
         const cosPitch=Math.cos(pitch),sinPitch=Math.sin(pitch);
         const cameraDistance=2.65,breathing=1+Math.sin(now*.68)*.006;
         const halo=ctx.createRadialGradient(cx,cy,scale*.08,cx,cy,scale*.82);
-        const haloColors: Record<ArtTheme, string> = { sakura: '226,105,161', gold: '232,174,81', starsea: '94,180,235', glass: '175,213,222' };
         const haloBoost = twoHandBoostRef.current * 0.055;
-        halo.addColorStop(0,'rgba('+haloColors[artThemeRef.current]+','+(.075+opennessNow*.07+haloBoost)+')');
+        halo.addColorStop(0,'rgba('+THEME_HALO_COLORS[artThemeRef.current]+','+(.075+opennessNow*.07+haloBoost)+')');
         halo.addColorStop(1,'rgba(120,50,105,0)');
         ctx.fillStyle=halo;ctx.fillRect(0,0,width,height);
         // A warm inner light gives the layered flower a visible centre and a gentle breathing pulse.
         const corePulse = 0.92 + Math.sin(now * 1.15) * 0.08;
         const coreRadius = scale * (0.025 + opennessNow * 0.012) * corePulse;
         const coreGlow = ctx.createRadialGradient(cx, cy, 0, cx, cy, coreRadius * 4.2);
-        const coreColors: Record<ArtTheme, [string, string]> = {
-          sakura: ['255,245,224', '255,205,205'], gold: ['255,249,207', '255,208,126'],
-          starsea: ['231,252,255', '121,211,255'], glass: ['250,255,255', '181,226,237']
-        };
-        coreGlow.addColorStop(0, 'rgba('+coreColors[artThemeRef.current][0]+','+(.42+haloBoost)+')');
-        coreGlow.addColorStop(.18, 'rgba('+coreColors[artThemeRef.current][1]+',.19)');
+        coreGlow.addColorStop(0, 'rgba('+THEME_CORE_COLORS[artThemeRef.current][0]+','+(.42+haloBoost)+')');
+        coreGlow.addColorStop(.18, 'rgba('+THEME_CORE_COLORS[artThemeRef.current][1]+',.19)');
         coreGlow.addColorStop(1, 'rgba(244,144,190,0)');
         ctx.save(); ctx.globalCompositeOperation = 'lighter';
         ctx.fillStyle = coreGlow; ctx.beginPath(); ctx.arc(cx, cy, coreRadius * 4.2, 0, Math.PI * 2); ctx.fill();

@@ -902,3 +902,101 @@
   visibility:visible!important;
   z-index:2!important;
 }
+
+
+/* Art Studio v2 — responsive creator controls, four palettes, and local作品管理. */
+.bloom-theme-picker{
+  display:flex;align-items:center;flex-wrap:wrap;gap:6px;
+  margin:12px 0 14px;padding:9px;
+  border:1px solid rgba(255,255,255,.1);border-radius:15px;background:rgba(0,0,0,.15)
+}
+.bloom-theme-picker>span{width:100%;color:#cdbac8;font:9px "Noto Sans SC",sans-serif;letter-spacing:.6px}
+.bloom-theme-picker button{
+  flex:1;min-width:0;min-height:31px;padding:0 9px;border:1px solid rgba(255,255,255,.12);
+  border-radius:10px;background:rgba(255,255,255,.035);color:#c9b8c4;
+  font:9px "Noto Sans SC",sans-serif;white-space:nowrap;cursor:pointer;
+  transition:background .2s,border-color .2s,color .2s,transform .2s
+}
+.bloom-theme-picker button.active{color:#fff2f7;border-color:rgba(255,220,238,.42);background:rgba(230,164,196,.2);box-shadow:inset 0 1px 0 rgba(255,255,255,.08)}
+.bloom-theme-picker button.theme-gold.active{border-color:rgba(255,220,150,.48);background:rgba(217,165,77,.2)}
+.bloom-theme-picker button.theme-blue.active{border-color:rgba(151,219,255,.48);background:rgba(91,166,223,.2)}
+.bloom-theme-picker button.theme-glass.active{border-color:rgba(195,238,239,.48);background:rgba(150,205,211,.18)}
+.bloom-theme-picker button:active{transform:scale(.96)}
+.bloom-signature-field{display:grid;grid-template-columns:72px minmax(0,1fr);align-items:center;gap:8px;margin-top:13px}
+.bloom-signature-field>span{color:#cbb8c7;font:9px "Noto Sans SC",sans-serif}
+.bloom-signature-field input{
+  min-width:0;width:100%;height:34px;padding:0 11px;border:1px solid rgba(255,255,255,.13);
+  border-radius:11px;outline:none;color:#f6e6ef;background:rgba(0,0,0,.18);
+  font:10px "Noto Sans SC",sans-serif
+}
+.bloom-signature-field input:focus{border-color:rgba(241,180,207,.48);box-shadow:0 0 0 3px rgba(228,155,188,.08)}
+.bloom-signature-field input::placeholder{color:#887887}
+.bloom-auto-demo{
+  width:100%;min-height:38px;margin-top:9px;border:1px solid rgba(242,190,214,.2);
+  border-radius:13px;color:#f5dce9;background:linear-gradient(100deg,rgba(231,159,194,.14),rgba(255,255,255,.035));
+  font:10px "Noto Sans SC",sans-serif;letter-spacing:.7px;cursor:pointer
+}
+.bloom-artwork-library{margin-top:16px;padding-top:13px;border-top:1px solid rgba(255,255,255,.1)}
+.bloom-artwork-library-title{display:flex;justify-content:space-between;align-items:center;margin-bottom:9px;color:#eddae5;font:10px "Noto Sans SC",sans-serif}
+.bloom-artwork-library-title small{color:#a88fa1;font:9px Inter,Arial,sans-serif}
+.bloom-artwork-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px}
+.bloom-artwork-grid a{display:block;min-width:0;color:#d4c0ce;text-decoration:none;font:8px "Noto Sans SC",sans-serif}
+.bloom-artwork-grid img{display:block;width:100%;aspect-ratio:1;border:1px solid rgba(255,255,255,.12);border-radius:9px;object-fit:cover;background:#100b16}
+.bloom-artwork-grid span{display:block;overflow:hidden;margin-top:4px;text-overflow:ellipsis;white-space:nowrap}
+.bloom-art-actions{
+  position:absolute;z-index:29;right:clamp(16px,3vw,34px);bottom:calc(20px + env(safe-area-inset-bottom));
+  display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:6px;
+  max-width:min(560px,calc(100vw - 250px));pointer-events:auto
+}
+.bloom-art-actions button{
+  min-height:34px;padding:0 12px;border:1px solid rgba(255,228,239,.18);border-radius:999px;
+  color:#f4e0eb;background:rgba(28,16,29,.48);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+  font:9px "Noto Sans SC",sans-serif;cursor:pointer;transition:background .2s,border-color .2s
+}
+.bloom-art-actions button:active{background:rgba(232,161,195,.25)}
+.bloom-art-actions button.recording{border-color:rgba(255,130,154,.58);color:#ffe5eb;background:rgba(145,42,65,.48)}
+.bloom-art-actions small{flex-basis:100%;min-height:12px;color:rgba(246,218,233,.66);text-align:right;font:8px "Noto Sans SC",sans-serif}
+.bloom-page:not(.tool-write) .bloom-hud{bottom:calc(76px + env(safe-area-inset-bottom))}
+.bloom-page:not(.is-active) .bloom-intro.bloom-control-panel{
+  left:auto;right:clamp(24px,4vw,64px);width:min(440px,40vw);
+  top:50%;bottom:auto;max-height:calc(100dvh - 120px);transform:translateY(-50%)
+}
+.bloom-page:not(.is-active) .bloom-header{left:clamp(28px,5vw,76px);right:auto;top:clamp(32px,7vh,64px)}
+.bloom-page:not(.is-active) .bloom-canvas{opacity:1}
+@media(max-width:900px){
+  .bloom-page:not(.is-active) .bloom-intro.bloom-control-panel{
+    left:12px;right:12px;top:auto;bottom:calc(12px + env(safe-area-inset-bottom));
+    width:auto;max-height:69dvh;transform:none
+  }
+  .bloom-page:not(.is-active) .bloom-header{left:18px;right:18px;top:18px}
+  .bloom-art-actions{right:12px;left:12px;bottom:calc(12px + env(safe-area-inset-bottom));max-width:none;gap:5px}
+  .bloom-art-actions button{min-height:31px;padding:0 10px;font-size:8px}
+  .bloom-art-actions small{text-align:left}
+  .bloom-page:not(.tool-write) .bloom-hud{bottom:calc(62px + env(safe-area-inset-bottom))}
+}
+@media(max-width:700px){
+  .bloom-theme-picker{gap:4px;margin:9px 0 10px;padding:7px}
+  .bloom-theme-picker button{min-height:29px;padding:0 5px;font-size:8px}
+  .bloom-signature-field{grid-template-columns:58px minmax(0,1fr);margin-top:9px}
+  .bloom-signature-field input{height:32px;font-size:9px}
+  .bloom-auto-demo{min-height:35px}
+  .bloom-artwork-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:5px}
+  .bloom-artwork-grid span{font-size:7px}
+}
+@media(max-width:700px) and (orientation:landscape){
+  .bloom-page:not(.is-active) .bloom-intro.bloom-control-panel{
+    top:calc(54px + env(safe-area-inset-top));bottom:calc(8px + env(safe-area-inset-bottom));
+    right:10px;left:auto;width:min(390px,54vw);max-height:none;padding:12px 13px
+  }
+  .bloom-page:not(.is-active) .bloom-header{top:12px;left:14px}
+  .bloom-theme-picker{margin:6px 0;padding:5px}
+  .bloom-theme-picker button{min-height:24px}
+  .bloom-signature-field{margin-top:6px}
+  .bloom-auto-demo{min-height:29px;margin-top:6px}
+  .bloom-page:not(.tool-write) .bloom-hud{left:12px;bottom:calc(58px + env(safe-area-inset-bottom))}
+  .bloom-art-actions{left:12px;right:auto;bottom:calc(10px + env(safe-area-inset-bottom));max-width:48vw;justify-content:flex-start}
+  .bloom-art-actions button{min-height:27px;padding:0 8px}
+}
+@media(prefers-reduced-motion:reduce){
+  .bloom-theme-picker button,.bloom-art-actions button{transition:none}
+}

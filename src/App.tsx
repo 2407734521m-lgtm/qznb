@@ -499,14 +499,28 @@ function Shell() {
       sessionStorage.removeItem('ca_login_success');
     } catch {}
     if (shouldShowLoginSuccess) {
+      // The start timestamp is written before the auth request begins. Read it
+      // here, after the session arrives, so AuthProvider timing cannot race a
+      // post-login write from the Login component.
       let durationMs = 0;
       try {
-        durationMs = Number(sessionStorage.getItem('ca_login_elapsed_ms') || 0);
+        const startedAt = Number(sessionStorage.getItem('ca_login_started_at') || 0);
+        sessionStorage.removeItem('ca_login_started_at');
+        // Remove the previous implementation's value in case an older tab left it behind.
         sessionStorage.removeItem('ca_login_elapsed_ms');
+        if (Number.isFinite(startedAt) && startedAt > 0) {
+          durationMs = Math.max(0, Date.now() - startedAt);
+        }
       } catch {}
       const metadata = session.user.user_metadata as Record<string, unknown> | undefined;
       const realName = typeof metadata?.real_name === 'string' ? metadata.real_name.trim() : '';
-      setLoginSuccess({ realName, durationMs: Number.isFinite(durationMs) ? durationMs : 0 });
+      setLoginSuccess({ realName, durationMs });
+    } else {
+      // Do not let an abandoned/failed attempt affect a later session.
+      try {
+        sessionStorage.removeItem('ca_login_started_at');
+        sessionStorage.removeItem('ca_login_elapsed_ms');
+      } catch {}
     }
     // 新注册后的 GPS 说明仅在用户主动选择时继续，不在登录时自动请求位置。
     try {

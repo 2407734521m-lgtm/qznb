@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from 'react';
 
 type AdminTab = [string, string, boolean];
 
@@ -166,7 +166,7 @@ export default function AdminWorkspace({
     setQuery('');
   }
 
-  function handleCommandKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
+  function handleCommandKeyDown(event: ReactKeyboardEvent<HTMLInputElement>) {
     if (event.key === 'ArrowDown') {
       event.preventDefault();
       setActiveIndex(index => Math.min(index + 1, Math.max(0, matchingItems.length - 1)));

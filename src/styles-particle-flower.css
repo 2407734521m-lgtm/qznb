@@ -114,3 +114,20 @@
  .bloom-page.orientation-landscape .bloom-orientation-switch{right:16px;bottom:calc(72px + env(safe-area-inset-bottom))}
  .bloom-page.orientation-landscape.is-active .bloom-hud{left:auto;right:18px;bottom:calc(90px + env(safe-area-inset-bottom));width:150px}
 }
+
+/* 可选帧率是渲染上限；自动模式跟随屏幕刷新率。实际 FPS 显示当前绘制速度。 */
+.bloom-fps-switch{position:absolute;z-index:4;right:clamp(20px,4vw,56px);bottom:calc(132px + env(safe-area-inset-bottom));display:flex;align-items:center;gap:3px;padding:4px 5px;border:1px solid #ffffff20;border-radius:99px;background:rgba(27,16,29,.72);backdrop-filter:blur(16px);color:#bcaab8;font:9px Inter,Arial,sans-serif}
+.bloom-fps-switch>span{padding:0 6px;color:#c9a9bc;letter-spacing:1px}
+.bloom-fps-switch button{min-width:27px;border:0;border-radius:99px;padding:6px 7px;background:transparent;color:#cbb9c7;font:9px Inter,Arial,sans-serif;cursor:pointer}
+.bloom-fps-switch button.active{background:#f0c5d8;color:#2a1421}
+.bloom-fps-switch small{min-width:23px;text-align:center;color:#f4c3d6;font:9px Inter,Arial,sans-serif}
+@media(max-width:700px){
+ .bloom-fps-switch{right:16px;bottom:calc(124px + env(safe-area-inset-bottom));gap:1px}
+ .bloom-fps-switch button{min-width:24px;padding:6px 5px;font-size:8px}
+ .bloom-fps-switch>span{padding:0 4px;font-size:8px}
+ .bloom-page.orientation-landscape .bloom-fps-switch{right:16px;bottom:calc(116px + env(safe-area-inset-bottom))}
+}
+.bloom-page.orientation-landscape .bloom-fps-switch{right:clamp(24px,5vw,70px);bottom:calc(132px + env(safe-area-inset-bottom))}
+@media(max-width:700px){
+ .bloom-page.orientation-landscape .bloom-fps-switch{right:16px;bottom:calc(116px + env(safe-area-inset-bottom))}
+}

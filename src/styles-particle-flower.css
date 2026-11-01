@@ -136,3 +136,45 @@
 @media(max-width:700px){
  .bloom-page.orientation-landscape.is-active .bloom-hud{left:18px;right:auto;bottom:calc(78px + env(safe-area-inset-bottom));width:150px}
 }
+
+
+/* 沉浸模式：进入体验后只保留花朵与退出，不再让 HUD、FPS 和布局按钮遮挡花冠。 */
+.bloom-exit{
+  display:none;position:absolute;z-index:30;top:calc(16px + env(safe-area-inset-top));right:calc(16px + env(safe-area-inset-right));
+  align-items:center;gap:7px;padding:10px 16px;border:1px solid rgba(255,255,255,.28);border-radius:999px;
+  color:#f8eaf0;background:rgba(28,13,27,.48);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
+  font:12px Inter,"Noto Sans SC",sans-serif;letter-spacing:1px;box-shadow:0 8px 30px rgba(0,0,0,.2);cursor:pointer
+}
+.bloom-exit:active{transform:scale(.96)}
+.bloom-page.is-active .bloom-header,
+.bloom-page.is-active .bloom-intro,
+.bloom-page.is-active .bloom-side-note,
+.bloom-page.is-active .bloom-steps,
+.bloom-page.is-active .bloom-hud,
+.bloom-page.is-active .bloom-fps-switch,
+.bloom-page.is-active .bloom-orientation-switch,
+.bloom-page.is-active .bloom-mode-switch{display:none!important}
+.bloom-page.is-active .bloom-exit{display:flex}
+.bloom-page.is-active .bloom-vignette{
+  background:radial-gradient(ellipse at 50% 50%,transparent 28%,rgba(11,7,16,.08) 70%,rgba(11,7,16,.62) 100%)
+}
+.bloom-page.is-active .bloom-camera.is-live{opacity:.12}
+.bloom-load-track{width:min(260px,68vw);height:3px;border-radius:99px;overflow:hidden;background:rgba(255,255,255,.12)}
+.bloom-load-track>span{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,#e9a4bf,#fff0df);transition:width .28s ease}
+.bloom-loading small{font:10px/1.6 Inter,"Noto Sans SC",sans-serif;letter-spacing:.5px;color:#d3b9ca;text-align:center}
+.bloom-loading em{font:9px/1.5 Inter,"Noto Sans SC",sans-serif;font-style:normal;color:#8f798c;text-align:center}
+.bloom-loading{padding:24px}
+@media(max-width:700px){
+  .bloom-exit{top:calc(12px + env(safe-area-inset-top));right:calc(12px + env(safe-area-inset-right));padding:9px 14px}
+  .bloom-page.is-active .bloom-camera.is-live{opacity:.08}
+}
+
+/* 浏览器不能锁定方向时，把整个体验画布旋转为真正的横向构图；画布使用虚拟横屏坐标。 */
+.bloom-page.orientation-fallback{
+  width:100vh;width:100dvh;height:100vw;inset:auto;top:0;left:0;right:auto;bottom:auto;
+  transform-origin:top left;transform:rotate(90deg) translateY(-100%)
+}
+.bloom-page.orientation-fallback .bloom-exit{top:calc(12px + env(safe-area-inset-top));right:calc(12px + env(safe-area-inset-right))}
+.bloom-page.orientation-fallback .bloom-intro{left:clamp(24px,5vw,76px);top:clamp(42px,10vh,84px);max-width:42vw}
+.bloom-page.orientation-fallback .bloom-hud{left:24px;bottom:24px}
+.bloom-page.orientation-fallback .bloom-steps{right:24px;left:auto;bottom:24px}

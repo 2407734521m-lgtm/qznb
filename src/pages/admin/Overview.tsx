@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { startSitePresence, type SitePresenceSnapshot } from '../../lib/sitePresence';
 import { card, h3, mut, timeAgo, bucket14 } from './shared';
+import AdminNumberTicker from '../../components/admin/AdminNumberTicker';
 import { Spark, TrendChart, Donut } from './charts';
 
 /* ---------------- 总览（仪表盘） ---------------- */
@@ -240,7 +241,7 @@ export default function Overview({ setMsg, go }: { setMsg: (s: string) => void; 
         {stats.map(([k, v, d, col]) => (
           <article key={k} className="admin-overview-metric-card" style={card}>
             <div className="admin-overview-metric-label">{k}</div>
-            <div className="admin-overview-metric-value">{v.toLocaleString()}</div>
+            <div className="admin-overview-metric-value"><AdminNumberTicker value={v} /></div>
             <div className="admin-overview-metric-hint">{statSub[k]}</div>
             <Spark data={d} color={col} />
           </article>

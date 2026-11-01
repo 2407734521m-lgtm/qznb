@@ -1044,6 +1044,97 @@ export default function ParticleFlower() {
     }
   }, [actualFps, experienceStarted, mode, qualityPreset, fpsLimit]);
 
+  const saveArtworkImage = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return '';
+    const output = document.createElement('canvas');
+    const scale = Math.min(1, 1200 / Math.max(canvas.width, canvas.height));
+    output.width = Math.max(1, Math.round(canvas.width * scale));
+    output.height = Math.max(1, Math.round(canvas.height * scale));
+    const ctx = output.getContext('2d');
+    if (!ctx) return '';
+    ctx.fillStyle = '#100b16'; ctx.fillRect(0, 0, output.width, output.height);
+    ctx.drawImage(canvas, 0, 0, output.width, output.height);
+    if (signature.trim()) {
+      ctx.font = '18px sans-serif'; ctx.fillStyle = 'rgba(255,235,244,.82)';
+      ctx.textAlign = 'right'; ctx.fillText(signature.trim().slice(0, 24), output.width - 18, output.height - 18);
+    }
+    return output.toDataURL('image/png');
+  }, [signature]);
+
+  const saveArtworkToDevice = useCallback(() => {
+    const dataUrl = saveArtworkImage();
+    if (!dataUrl) return;
+    const link = document.createElement('a'); link.href = dataUrl;
+    link.download = '指尖生花-' + THEME_NAMES[artThemeRef.current] + '.png'; link.click();
+    setMediaMessage('作品图片已在本地生成');
+  }, [saveArtworkImage]);
+
+  const collectArtwork = useCallback(() => {
+    const dataUrl = saveArtworkImage();
+    if (!dataUrl) return;
+    const item: Artwork = {
+      id: String(Date.now()),
+      name: signature.trim().slice(0, 24) || (THEME_NAMES[artThemeRef.current] + '作品'),
+      dataUrl, createdAt: Date.now()
+    };
+    const next = [item, ...savedArtworks].slice(0, 8);
+    try {
+      window.localStorage.setItem('qznb-bloom-artworks', JSON.stringify(next));
+      setSavedArtworks(next); setMediaMessage('已收藏到本机作品集');
+    } catch { setMediaMessage('本地空间不足，请先删除旧作品'); }
+  }, [saveArtworkImage, savedArtworks, signature]);
+
+  const shareArtwork = useCallback(async () => {
+    const dataUrl = saveArtworkImage();
+    if (!dataUrl) return;
+    try {
+      const response = await fetch(dataUrl); const blob = await response.blob();
+      const file = new File([blob], '指尖生花.png', { type: 'image/png' });
+      if (navigator.share && navigator.canShare?.({ files: [file] })) {
+        await navigator.share({ title: '我的粒子花作品', files: [file] });
+      } else if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(window.location.href);
+        setMediaMessage('分享链接已复制，也可以直接保存作品图片');
+      } else setMediaMessage('当前浏览器不支持系统分享，请先保存作品图片');
+    } catch (error: any) {
+      if (error?.name !== 'AbortError') setMediaMessage('分享暂不可用，请先保存作品图片');
+    }
+  }, [saveArtworkImage]);
+
+  const toggleRecording = useCallback(() => {
+    const current = mediaRecorderRef.current;
+    if (current && current.state === 'recording') { current.stop(); return; }
+    const canvas = canvasRef.current;
+    if (!canvas || typeof MediaRecorder === 'undefined' || !canvas.captureStream) {
+      setMediaMessage('当前浏览器不支持动画录制'); return;
+    }
+    try {
+      const stream = canvas.captureStream(30);
+      const mimeType = ['video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm'].find(type => MediaRecorder.isTypeSupported(type));
+      const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
+      mediaRecorderRef.current = recorder; recordingChunksRef.current = [];
+      recorder.ondataavailable = event => { if (event.data.size) recordingChunksRef.current.push(event.data); };
+      recorder.onstop = () => {
+        const blob = new Blob(recordingChunksRef.current, { type: recorder.mimeType || 'video/webm' });
+        if (blob.size) {
+          const url = URL.createObjectURL(blob); const link = document.createElement('a');
+          link.href = url; link.download = '指尖生花-动态作品.webm'; link.click();
+          window.setTimeout(() => URL.revokeObjectURL(url), 30000);
+          setMediaMessage('动态作品已导出');
+        }
+        stream.getTracks().forEach(track => track.stop());
+        mediaRecorderRef.current = null; setIsRecording(false);
+      };
+      recorder.start(250); setIsRecording(true); setMediaMessage('正在录制，最长 15 秒');
+      recordingTimerRef.current = window.setTimeout(() => {
+        if (recorder.state === 'recording') recorder.stop();
+      }, 15000);
+    } catch {
+      setMediaMessage('启动录制失败，可能是浏览器编码器不支持'); setIsRecording(false);
+    }
+  }, []);
+
   const getLocalPointer = (clientX: number, clientY: number): Point => {
     const forcedLandscape = layoutOrientationRef.current === 'landscape' && window.innerWidth < window.innerHeight;
     return forcedLandscape
@@ -1051,7 +1142,7 @@ export default function ParticleFlower() {
       : { x: clientX, y: clientY, z: 0 };
   };
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (modeRef.current!=='demo' || (e.target as HTMLElement).closest('button')) return;
+    if (modeRef.current!=='demo' || autoDemoRef.current || (e.target as HTMLElement).closest('button')) return;
     pointerDownRef.current=true;
     (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
     const point = getLocalPointer(e.clientX, e.clientY);
@@ -1059,7 +1150,7 @@ export default function ParticleFlower() {
     targetRef.current=clamp(1-(point.y/viewportRef.current.height),0,1);
   };
   const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (modeRef.current!=='demo' || (e.target as HTMLElement).closest('button')) return;
+    if (modeRef.current!=='demo' || autoDemoRef.current || (e.target as HTMLElement).closest('button')) return;
     const point = getLocalPointer(e.clientX, e.clientY);
     pointerRef.current=point;
     if (pointerDownRef.current) targetRef.current=clamp(1-(point.y/viewportRef.current.height),0,1);
@@ -1073,6 +1164,8 @@ export default function ParticleFlower() {
   useEffect(() => () => {
     stopCamera();
     if (particleRebuildTimerRef.current) window.clearTimeout(particleRebuildTimerRef.current);
+    if (recordingTimerRef.current) window.clearTimeout(recordingTimerRef.current);
+    if (mediaRecorderRef.current?.state === 'recording') mediaRecorderRef.current.stop();
   }, [stopCamera]);
 
   const statusEnglish = mode==='demo' ? 'DEMO EXPERIENCE' : !hasHand ? 'WAITING FOR HAND' : openness<28 ? 'CLOSED · FIST' : openness>68 ? 'BLOOM · OPEN' : 'OPENING · FLOW';

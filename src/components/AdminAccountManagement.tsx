@@ -146,7 +146,7 @@ export default function AdminAccountManagement({
         account.last_sign_in_at || '',
       ]),
     ];
-    const csv = '\\uFEFF' + exportRows.map(row => row.map(value => '"' + String(value ?? '').replace(/"/g, '""') + '"').join(',')).join('\\r\\n');
+    const csv = '\uFEFF' + exportRows.map(row => row.map(value => '"' + String(value ?? '').replace(/"/g, '""') + '"').join(',')).join('\r\n');
     const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
     const link = document.createElement('a');
     link.href = url;

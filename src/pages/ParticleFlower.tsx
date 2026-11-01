@@ -19,6 +19,7 @@ type FpsLimit = 30 | 60 | 90 | 120 | 0;
 type ArtTheme = 'sakura' | 'gold' | 'starsea' | 'glass';
 type Artwork = { id: string; name: string; dataUrl: string; createdAt: number };
 type FallingPetal = { x: number; y: number; vx: number; vy: number; rotation: number; spin: number; size: number; tone: number; life: number };
+type ManagedHanziWorker = Worker & { revokeObjectUrl?: () => void };
 const THEME_COLORS: Record<ArtTheme, number[][]> = {
   sakura: [[255,246,224],[255,215,224],[250,167,198],[238,126,177]],
   gold: [[255,248,207],[255,222,142],[246,184,89],[218,139,48]],
@@ -195,7 +196,7 @@ function drawSkeletonPreview(canvas: HTMLCanvasElement | null, landmarks: any[] 
 
 const HANZI_LOOKUP_BASE = 'https://cdn.jsdelivr.net/gh/gugray/hanzi_lookup@01f90c3ab99a8fadf0696c28e5eb097223c500db/web_demo';
 
-function makeHanziLookupWorker(): Worker {
+function makeHanziLookupWorker(): ManagedHanziWorker {
   const source = `
     const base = '${HANZI_LOOKUP_BASE}';
     self.onmessage = async (event) => {
@@ -215,9 +216,25 @@ function makeHanziLookupWorker(): Worker {
     };
   `;
   const url = URL.createObjectURL(new Blob([source], { type: 'application/javascript' }));
-  const worker = new Worker(url);
-  worker.addEventListener('error', () => URL.revokeObjectURL(url), { once: true });
+  const worker = new Worker(url) as ManagedHanziWorker;
+  let revoked = false;
+  const revokeObjectUrl = () => {
+    if (revoked) return;
+    URL.revokeObjectURL(url);
+    revoked = true;
+  };
+  worker.revokeObjectUrl = revokeObjectUrl;
+  worker.addEventListener('message', event => {
+    if (event.data?.type === 'ready' || event.data?.type === 'error') revokeObjectUrl();
+  });
+  worker.addEventListener('error', revokeObjectUrl, { once: true });
   return worker;
+}
+
+function disposeHanziLookupWorker(worker: Worker | null) {
+  if (!worker) return;
+  (worker as ManagedHanziWorker).revokeObjectUrl?.();
+  worker.terminate();
 }
 
 function normalizeInkForRecognition(strokes: InkStroke[]) {
@@ -460,7 +477,7 @@ export default function ParticleFlower() {
       try { void handsRef.current.close(); } catch {}
       handsRef.current = null;
     }
-    recognitionWorkerRef.current?.terminate();
+    disposeHanziLookupWorker(recognitionWorkerRef.current);
     recognitionWorkerRef.current = null;
     recognitionReadyRef.current = false;
     recognitionBusyRef.current = false;
@@ -507,7 +524,7 @@ export default function ParticleFlower() {
     smoothedInkPointRef.current = null;
     setIsWriting(false);
     if (recognitionTimerRef.current) window.clearTimeout(recognitionTimerRef.current);
-    recognitionWorkerRef.current?.terminate();
+    disposeHanziLookupWorker(recognitionWorkerRef.current);
     recognitionWorkerRef.current = null;
     recognitionReadyRef.current = false;
     recognitionBusyRef.current = false;

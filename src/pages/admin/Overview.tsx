@@ -283,7 +283,7 @@ export default function Overview({ go }: { setMsg: (s: string) => void; go: (tab
                   <span className="admin-overview-legend-dot" style={{ background: s.color }} />
                   <span>{s.label}</span>
                   <strong>{s.v.toLocaleString()}</strong>
-                  <small>条 / 人</small>
+                  <small>{s.label === '成员' ? '人' : '条'}</small>
                 </div>
               ))}
             </div>

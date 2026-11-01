@@ -7,6 +7,7 @@ import { useSignedUrl } from '../lib/media';
 import type { ProfileSummary as Profile } from '../types/profile';
 import { confirmDialog } from '../lib/dialog';
 import KaiboxDialog from '../components/KaiboxDialog';
+import './Board.polish.css';
 
 type Msg = { id: number; author_id: string; title: string | null; content: string; is_admin_msg: boolean; is_pinned: boolean; created_at: string };
 
@@ -105,10 +106,10 @@ export default function Board() {
   function renderMsg(m: Msg, i: number) {
     const a = profiles[m.author_id];
     return (
-      <motion.article key={m.id} className="post" style={m.is_admin_msg ? { border: '1px solid #ffd47955', background: '#fff8e61a' } : undefined}
+      <motion.article key={m.id} className={'post board-post' + (m.is_admin_msg ? ' board-post-admin' : '')}
         initial={reduce ? {} : { opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, delay: Math.min(i * 0.04, 0.25) }}>
-        <div className="hd">
+        <div className="hd board-post-head">
           <Avatar p={a} />
           <div><div className="nm">{a ? (a.display_name ?? a.username) : '…'}
             {m.is_admin_msg && <span className="chip ad" style={{ marginLeft: 8, fontSize: 11 }}>公告</span>}
@@ -117,27 +118,27 @@ export default function Board() {
           <div style={{ flex: 1 }} />
           {(m.author_id === me || isAdmin) && <button className="del" onClick={() => del(m.id)}>删除</button>}
         </div>
-        {m.is_admin_msg && m.title && <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 4 }}>{m.title}</div>}
-        <p className="bd" style={{ whiteSpace: 'pre-wrap' }}>{m.content}</p>
+        {m.is_admin_msg && m.title && <div className="board-post-title">{m.title}</div>}
+        <p className="bd board-post-body" style={{ whiteSpace: 'pre-wrap' }}>{m.content}</p>
       </motion.article>
     );
   }
 
   return (
-    <div className="page" style={{ paddingBottom: 120 }}>
-      <div className="hero">
+    <div className="page board-page" style={{ paddingBottom: 120 }}>
+      <div className="hero board-hero">
         <h1 onClick={handleTitleTap} role="button" tabIndex={0} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleTitleTap(); } }} style={{ cursor: 'pointer', userSelect: 'none' }}>公告板</h1>
         <p>班 级 通 知 · 留 言</p>
       </div>
 
       {searchQuery && <div className="feed-search-banner">搜索公告板：{searchQuery}<button type="button" onClick={() => nav('/board', { replace: true })}>清除搜索</button></div>}
       {notices.length > 0 && <>
-        <p className="mut" style={{ fontSize: 12.5, margin: '4px 2px 8px' }}>管理员公告</p>
+        <p className="mut board-section-label board-section-label-admin">管理员公告</p>
         {notices.map((m, i) => renderMsg(m, i))}
       </>}
 
       {talks.length > 0 && <>
-        <p className="mut" style={{ fontSize: 12.5, margin: '14px 2px 8px' }}>同学留言</p>
+        <p className="mut board-section-label">同学留言</p>
         {talks.map((m, i) => renderMsg(m, i + notices.length))}
       </>}
 
@@ -145,12 +146,12 @@ export default function Board() {
 
       <div style={{ height: 70 }} />
 
-      <div style={{ position: 'fixed', left: 12, right: 12, bottom: 'calc(78px + env(safe-area-inset-bottom))', zIndex: 30 }}>
-        <div className="card" style={{ margin: 0, padding: 8, borderRadius: 18, backdropFilter: 'blur(16px)', background: '#141824d9' }}>
+      <div className="board-composer-wrap" style={{ position: 'fixed', left: 12, right: 12, bottom: 'calc(78px + env(safe-area-inset-bottom))', zIndex: 30 }}>
+        <div className="card board-composer" style={{ margin: 0, padding: 8, borderRadius: 18 }}>
           <div className="row" style={{ gap: 8 }}>
-            <input value={text} onChange={e => setText(e.target.value)} placeholder="说点什么…"
+            <input className="board-composer-input" value={text} onChange={e => setText(e.target.value)} placeholder="说点什么…"
               maxLength={500} style={{ flex: 1, minWidth: 0, padding: '9px 12px', fontSize: 13.5 }} onKeyDown={e => e.key === 'Enter' && send()} />
-            <button className="pri" style={{ width: 'auto', padding: '9px 18px', fontSize: 13.5 }} disabled={busy || !text.trim()} onClick={send}>
+            <button className="pri board-send" style={{ width: 'auto', padding: '9px 18px', fontSize: 13.5 }} disabled={busy || !text.trim()} onClick={send}>
               {busy ? '…' : '发送'}</button>
           </div>
           {err && <p className="err" style={{ margin: '6px 0 0', fontSize: 12.5 }}>{err}</p>}

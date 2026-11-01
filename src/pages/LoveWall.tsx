@@ -268,9 +268,10 @@ export default function LoveWall() {
     const text = content.trim();
     if (text.length < 2 || text.length > 500) { setFormErr('内容请填写 2–500 个字。'); return; }
     setBusy(true); setFormErr('');
+    const uploaded: { path: string; kind: 'image' | 'video' }[] = [];
+    let attachmentsCommitted = false;
     try {
       // 先把附件传到 media 桶自己的 love/ 目录，再写帖子与附件记录。
-      const uploaded: { path: string; kind: 'image' | 'video' }[] = [];
       for (let i = 0; i < pick.length; i++) {
         const it = pick[i];
         const f = it.kind === 'image' ? await downscaleImage(it.file) : it.file;
@@ -288,23 +289,37 @@ export default function LoveWall() {
       }).select('id').single();
       if (error || !post) throw new Error('发布失败：请确认网站数据库迁移已执行。');
       let attachFailed = false;
+      let cleanupFailed = false;
       if (uploaded.length) {
         const { error: mErr } = await supabase.from('love_wall_media').insert(
           uploaded.map((u, i) => ({ post_id: post.id, path: u.path, kind: u.kind, sort: i }))
         );
-        if (mErr) attachFailed = true;
+        if (mErr) {
+          attachFailed = true;
+          const { error: cleanupError } = await supabase.storage.from('media').remove(uploaded.map(item => item.path));
+          cleanupFailed = Boolean(cleanupError);
+        } else {
+          attachmentsCommitted = true;
+        }
       }
       pick.forEach(x => URL.revokeObjectURL(x.url));
       setPick([]);
       setContent(''); setRecipientId(''); setRecipientLabel(''); setRecipientSearch('');
       setComposing(false);
       setMine(true);
-      setNotice(attachFailed ? '投稿已提交，但附件没有保存成功，请联系管理员。' : recipientId ? '投稿已提交；审核通过后公开展示，收件人会收到匿名通知。' : '投稿已提交，审核通过后会展示在表白墙。');
+      setNotice(attachFailed
+        ? (cleanupFailed ? '投稿已提交，但附件关联失败且部分文件未清理，请联系管理员。' : '投稿已提交，附件没有关联成功，已清理未关联文件。')
+        : recipientId ? '投稿已提交；审核通过后公开展示，收件人会收到匿名通知。' : '投稿已提交，审核通过后会展示在表白墙。');
       await load();
     } catch (err) {
+      // 失败发生在附件记录提交之前时，清理已上传的文件，避免产生孤立对象。
+      if (uploaded.length && !attachmentsCommitted) {
+        try { await supabase.storage.from('media').remove(uploaded.map(item => item.path)); } catch { /* Preserve the original publish error. */ }
+      }
       setFormErr(err instanceof Error ? err.message : '发布失败，请稍后再试。');
+    } finally {
+      setBusy(false);
     }
-    setBusy(false);
   }
 
   const shown = mine ? myPosts : posts;

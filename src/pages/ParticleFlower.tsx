@@ -383,6 +383,17 @@ export default function ParticleFlower() {
   const experienceToolRef = useRef<ExperienceTool>('flower');
   const [experienceTool, setExperienceTool] = useState<ExperienceTool>('flower');
   const [isWriting, setIsWriting] = useState(false);
+  const recognitionWorkerRef = useRef<Worker | null>(null);
+  const recognitionTimerRef = useRef<number>(0);
+  const recognitionReadyRef = useRef(false);
+  const recognitionBusyRef = useRef(false);
+  const recognizedCandidateRef = useRef('');
+  const committedGlyphsRef = useRef<InkGlyph[]>([]);
+  const recognitionStartedAtRef = useRef(0);
+  const [recognitionStatus, setRecognitionStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
+  const [recognitionCandidates, setRecognitionCandidates] = useState<HanziCandidate[]>([]);
+  const [recognizedCandidate, setRecognizedCandidate] = useState('');
+  const [recognizedText, setRecognizedText] = useState('');
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const handsRef = useRef<any>(null);
@@ -426,6 +437,7 @@ export default function ParticleFlower() {
   const stopCamera = useCallback(() => {
     if (cameraRafRef.current) cancelAnimationFrame(cameraRafRef.current);
     cameraRafRef.current = 0;
+    if (recognitionTimerRef.current) window.clearTimeout(recognitionTimerRef.current);
     streamRef.current?.getTracks().forEach(track => track.stop());
     streamRef.current = null;
     if (videoRef.current) videoRef.current.srcObject = null;
@@ -433,6 +445,11 @@ export default function ParticleFlower() {
       try { void handsRef.current.close(); } catch {}
       handsRef.current = null;
     }
+    recognitionWorkerRef.current?.terminate();
+    recognitionWorkerRef.current = null;
+    recognitionReadyRef.current = false;
+    recognitionBusyRef.current = false;
+    setRecognitionStatus('idle');
     setCameraLive(false);
     setHasHand(false); hasHandRef.current = false;
     landmarksRef.current = null;
@@ -465,8 +482,52 @@ export default function ParticleFlower() {
     currentInkStrokeRef.current = null;
     smoothedInkPointRef.current = null;
     setIsWriting(false);
+    if (recognitionTimerRef.current) window.clearTimeout(recognitionTimerRef.current);
+    recognitionWorkerRef.current?.terminate();
+    recognitionWorkerRef.current = null;
+    recognitionReadyRef.current = false;
+    recognitionBusyRef.current = false;
+    recognizedCandidateRef.current = '';
+    committedGlyphsRef.current = [];
+    setRecognitionCandidates([]);
+    setRecognizedCandidate('');
+    setRecognizedText('');
+    setRecognitionStatus(tool === 'write' ? 'loading' : 'idle');
     if (tool === 'write') {
       inkStrokesRef.current = [];
+      try {
+        const worker = makeHanziLookupWorker();
+        recognitionWorkerRef.current = worker;
+        worker.onmessage = (event: MessageEvent) => {
+          const message = event.data || {};
+          if (message.type === 'ready') {
+            recognitionReadyRef.current = true;
+            setRecognitionStatus('ready');
+          } else if (message.type === 'matches') {
+            recognitionBusyRef.current = false;
+            const matches = (message.candidates || [])
+              .filter((item: any) => item && typeof item.hanzi === 'string')
+              .slice(0, 5) as HanziCandidate[];
+            setRecognitionCandidates(matches);
+            const best = matches[0]?.hanzi || '';
+            recognizedCandidateRef.current = best;
+            setRecognizedCandidate(best);
+            recognitionStartedAtRef.current = performance.now() / 1000;
+          } else if (message.type === 'error') {
+            recognitionBusyRef.current = false;
+            recognitionReadyRef.current = false;
+            setRecognitionStatus('error');
+          }
+        };
+        worker.onerror = () => {
+          recognitionReadyRef.current = false;
+          recognitionBusyRef.current = false;
+          setRecognitionStatus('error');
+        };
+        worker.postMessage({ type: 'init' });
+      } catch {
+        setRecognitionStatus('error');
+      }
       renderInkLayer(inkCanvasRef.current, viewportRef.current.width, viewportRef.current.height, inkStrokesRef.current);
     }
     startGuardRef.current = true;

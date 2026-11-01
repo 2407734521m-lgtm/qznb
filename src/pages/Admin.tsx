@@ -20,7 +20,6 @@ import AdminSongWall from '../components/AdminSongWall';
 import AdminBulkEmail from '../components/AdminBulkEmail';
 import AdminAccountManagement from '../components/AdminAccountManagement';
 import Logs from './admin/Logs';
-import MaintenanceAccessManager from './admin/MaintenanceAccessManager';
 import InviteTab from './admin/InviteTab';
 import FeedbackTab from './admin/FeedbackTab';
 import GameTab from './admin/GameTab';
@@ -193,7 +192,7 @@ export default function Admin() {
             exit={reduceMotion ? undefined : { opacity: 0, y: -4 }}
             transition={reduceMotion ? { duration: 0 } : { duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
           >
-          {tab === 'overview' && <Overview setMsg={setMsg} go={setTab} />}
+          {tab === 'overview' && <Overview setMsg={setMsg} go={switchTab} />}
           {tab === 'analytics' && isSuper && <AdminAnalyticsCenter setMsg={setMsg} />}
           {tab === 'backups' && isSuper && <AdminBackupCenter setMsg={setMsg} />}
           {tab === 'release' && isSuper && <AdminReleaseCenter />}

@@ -43,7 +43,7 @@ security definer
 set search_path to ''
 as $function$
   select case
-    when p_scope not in ('community', 'chat') or auth.uid() is null then false
+    when p_scope is null or p_scope not in ('community', 'chat') or auth.uid() is null then false
     else not exists (
       select 1
       from admin_private.member_moderation_actions a
@@ -143,6 +143,7 @@ begin
 
   if p_target_user_id is null
      or p_target_user_id = v_actor
+     or p_action_type is null
      or p_action_type not in ('warning', 'community_mute', 'chat_mute', 'interaction_suspend')
      or p_reason is null
      or pg_catalog.char_length(pg_catalog.btrim(p_reason)) < 8
@@ -199,6 +200,26 @@ begin
       'expires_at', v_expires_at,
       'reason', pg_catalog.btrim(p_reason)
     )
+  );
+
+  insert into public.notifications(profile_id, type, title, body, link, is_read)
+  values (
+    p_target_user_id,
+    'moderation',
+    case p_action_type
+      when 'warning' then '管理员警告'
+      when 'community_mute' then '社区禁言已生效'
+      when 'chat_mute' then '私聊禁言已生效'
+      else '全站互动限制已生效'
+    end,
+    '处理原因：' || pg_catalog.btrim(p_reason) || E'\n' ||
+    case
+      when p_action_type = 'warning' then '这是一条警告记录，不会限制你的使用功能。'
+      when v_expires_at is null then '限制期限：长期，直到管理员手动解除。'
+      else '限制截止：' || pg_catalog.to_char(v_expires_at, 'YYYY-MM-DD HH24:MI:SS')
+    end,
+    null,
+    false
   );
 
   return v_action_id;
@@ -262,6 +283,17 @@ begin
       'action_type', v_action_type,
       'reason', pg_catalog.btrim(p_reason)
     )
+  );
+
+  insert into public.notifications(profile_id, type, title, body, link, is_read)
+  values (
+    v_target_user_id,
+    'moderation',
+    '成员互动限制已解除',
+    '已解除的处理类型：' || v_action_type || E'\n' ||
+    '解除原因：' || pg_catalog.btrim(p_reason),
+    null,
+    false
   );
 end;
 $function$;

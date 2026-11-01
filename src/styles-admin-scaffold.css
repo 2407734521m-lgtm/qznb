@@ -262,3 +262,22 @@
 .admin-shell-v3 .admin-workspace.is-collapsed .admin-nav-icon{width:100%;flex-basis:100%}
 .admin-shell-v3 .admin-workspace.is-collapsed .admin-sidebar-account{justify-content:center;padding-inline:0}
 .admin-shell-v3 .admin-workspace.is-collapsed .admin-sidebar-logout{justify-content:center;padding:0}
+
+@media(max-width:899px){
+  .admin-shell-v3 .admin-workspace.is-collapsed .admin-brand-copy,
+  .admin-shell-v3 .admin-workspace.is-collapsed .admin-sidebar-caption,
+  .admin-shell-v3 .admin-workspace.is-collapsed .admin-nav-group-title,
+  .admin-shell-v3 .admin-workspace.is-collapsed .admin-nav-label,
+  .admin-shell-v3 .admin-workspace.is-collapsed .admin-sidebar-account-copy,
+  .admin-shell-v3 .admin-workspace.is-collapsed .admin-sidebar-logout span{display:flex!important}
+  .admin-shell-v3 .admin-workspace.is-collapsed .admin-brand-copy,
+  .admin-shell-v3 .admin-workspace.is-collapsed .admin-sidebar-account-copy{flex-direction:column}
+  .admin-shell-v3 .admin-workspace.is-collapsed .admin-sidebar-caption,
+  .admin-shell-v3 .admin-workspace.is-collapsed .admin-nav-group-title{display:block!important}
+  .admin-shell-v3 .admin-workspace.is-collapsed .admin-sidebar{padding-inline:13px}
+  .admin-shell-v3 .admin-workspace.is-collapsed .admin-sidebar-brand{justify-content:flex-start;padding-inline:7px}
+  .admin-shell-v3 .admin-workspace.is-collapsed .admin-nav-item{justify-content:flex-start;gap:11px;padding-inline:10px}
+  .admin-shell-v3 .admin-workspace.is-collapsed .admin-nav-icon{width:20px;flex-basis:20px}
+  .admin-shell-v3 .admin-workspace.is-collapsed .admin-sidebar-account{justify-content:flex-start;padding-inline:5px}
+  .admin-shell-v3 .admin-workspace.is-collapsed .admin-sidebar-logout{justify-content:flex-start;padding-inline:10px}
+}

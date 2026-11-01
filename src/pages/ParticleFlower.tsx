@@ -95,24 +95,23 @@ function mapCoverPoint(point: any, video: HTMLVideoElement, width: number, heigh
   const offsetX = (width - renderedWidth) / 2, offsetY = (height - renderedHeight) / 2;
   return { x: (1 - point.x) * renderedWidth + offsetX, y: point.y * renderedHeight + offsetY };
 }
-function drawSkeletonPreview(ctx: CanvasRenderingContext2D, landmarks: any[] | null, w: number, h: number) {
-  ctx.clearRect(0, 0, w, h);
-  if (!landmarks || landmarks.length < 21) return;
-  const point = (p: any) => ({ x: (1 - p.x) * (w - 20) + 10, y: p.y * (h - 20) + 10 });
+// 骨骼直接叠在摄像头画面上：21 个关节点与视频共用同一套 cover 映射
+// （mapCoverPoint，与指尖牵引同一个函数），骨骼点落在真手上、严丝合缝。
+function drawSkeletonOverlay(ctx: CanvasRenderingContext2D, landmarks: any[] | null, video: HTMLVideoElement | null, w: number, h: number) {
+  if (!landmarks || landmarks.length < 21 || !video) return;
+  const pts = landmarks.map(p => mapCoverPoint(p, video, w, h));
   ctx.save();
-  ctx.lineWidth = 1.25;
+  ctx.lineWidth = 1.6;
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
-  ctx.strokeStyle = 'rgba(255,239,246,.82)';
-  for (const [a,b] of HAND_CONNECTIONS) {
-    const p = point(landmarks[a]), q = point(landmarks[b]);
-    ctx.beginPath(); ctx.moveTo(p.x,p.y); ctx.lineTo(q.x,q.y); ctx.stroke();
+  ctx.strokeStyle = 'rgba(255,239,246,.85)';
+  for (const [a, b] of HAND_CONNECTIONS) {
+    ctx.beginPath(); ctx.moveTo(pts[a].x, pts[a].y); ctx.lineTo(pts[b].x, pts[b].y); ctx.stroke();
   }
-  for (let i = 0; i < landmarks.length; i++) {
-    const p = point(landmarks[i]);
+  for (let i = 0; i < pts.length; i++) {
     ctx.beginPath();
-    ctx.arc(p.x,p.y,i === 0 ? 3.1 : 2.35,0,Math.PI*2);
-    ctx.fillStyle = [4,8,12,16,20].includes(i) ? 'rgba(255,190,215,.98)' : 'rgba(245,249,255,.94)';
+    ctx.arc(pts[i].x, pts[i].y, i === 0 ? 3.4 : 2.6, 0, Math.PI * 2);
+    ctx.fillStyle = [4, 8, 12, 16, 20].includes(i) ? 'rgba(255,190,215,.98)' : 'rgba(245,249,255,.94)';
     ctx.fill();
   }
   ctx.restore();
@@ -121,7 +120,6 @@ function drawSkeletonPreview(ctx: CanvasRenderingContext2D, landmarks: any[] | n
 export default function ParticleFlower() {
   const navigate = useNavigate();
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const skeletonCanvasRef = useRef<HTMLCanvasElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const handsRef = useRef<any>(null);
@@ -423,24 +421,9 @@ export default function ParticleFlower() {
         ctx.beginPath(); ctx.arc(x,y,Math.max(.45,size*.72),0,Math.PI*2); ctx.fill();
       }
       ctx.globalAlpha=1; ctx.globalCompositeOperation='source-over';
-      const skeletonCanvas = skeletonCanvasRef.current;
-      if (skeletonCanvas) {
-        const previewWidth = skeletonCanvas.clientWidth || 144;
-        const previewHeight = skeletonCanvas.clientHeight || 144;
-        const previewDpr = Math.min(window.devicePixelRatio || 1, 2);
-        const pixelWidth = Math.round(previewWidth * previewDpr);
-        const pixelHeight = Math.round(previewHeight * previewDpr);
-        if (skeletonCanvas.width !== pixelWidth || skeletonCanvas.height !== pixelHeight) {
-          skeletonCanvas.width = pixelWidth;
-          skeletonCanvas.height = pixelHeight;
-        }
-        const previewCtx = skeletonCanvas.getContext('2d');
-        if (previewCtx) {
-          previewCtx.setTransform(previewDpr, 0, 0, previewDpr, 0, 0);
-          drawSkeletonPreview(previewCtx,
-            modeRef.current === 'gesture' ? landmarksRef.current : null,
-            previewWidth, previewHeight);
-        }
+      // 骨骼叠加层：直接画在主画布上，与真手对齐（见 drawSkeletonOverlay）。
+      if (modeRef.current === 'gesture') {
+        drawSkeletonOverlay(ctx, landmarksRef.current, videoRef.current, width, height);
       }
       // 食指尖端增加一圈柔和的玫瑰色光晕，让牵引点在暗背景中清晰可见。
       if (finger && modeRef.current === 'gesture') {
@@ -523,11 +506,6 @@ export default function ParticleFlower() {
         </button>
         <div className={'bloom-pill' + (cameraLive ? ' live' : '')}><i />{cameraLive ? 'CAMERA LIVE' : 'STANDBY ｜ NO.01'}</div>
       </header>
-      <aside className={'bloom-skeleton-preview' + (cameraLive ? ' is-visible' : '') + (hasHand ? ' is-tracking' : '')} aria-label="手部 21 点骨骼预览">
-        <div className="bloom-skeleton-title">21-POINT SKELETON</div>
-        <canvas ref={skeletonCanvasRef} width={288} height={288} aria-hidden="true" />
-        <div className="bloom-skeleton-status">{hasHand ? '已识别 · 21 个关键点' : cameraLive ? '等待手部进入画面' : '开启手势后显示'}</div>
-      </aside>
       <section className="bloom-intro">
         <div className="bloom-kicker">AN INTERACTIVE LIGHT GARDEN</div>
         <h1>让花，在指尖醒来。</h1>

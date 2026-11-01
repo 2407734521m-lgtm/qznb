@@ -3,15 +3,17 @@ import { supabase } from '../../lib/supabase';
 import { startSitePresence, type SitePresenceSnapshot } from '../../lib/sitePresence';
 import { card, h3, mut, timeAgo, bucket14 } from './shared';
 import AdminNumberTicker from '../../components/admin/AdminNumberTicker';
-import { Spark, TrendChart, Donut } from './charts';
+import { Spark, TrendChart } from './charts';
 
 /* ---------------- 总览（仪表盘） ---------------- */
 // 总览顶部待办中心：五个待处理队列的计数汇总在一处，点一行直达对应页签处理。
 function TodoCenter({ go }: { go: (tab: string) => void }) {
   const [counts, setCounts] = useState<Record<string, number> | null>(null);
   const [err, setErr] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   async function load() {
+    setLoading(true);
     const queries = [
       supabase.from('love_wall_posts').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
       supabase.from('song_posts').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
@@ -20,9 +22,10 @@ function TodoCenter({ go }: { go: (tab: string) => void }) {
       supabase.from('feedbacks').select('id', { count: 'exact', head: true }).eq('status', 'open'),
     ];
     const res = await Promise.all(queries);
-    if (res.some(r => r.error)) { setErr(true); return; }
+    if (res.some(r => r.error)) { setCounts(null); setErr(true); setLoading(false); return; }
     setErr(false);
     setCounts({ love: res[0].count ?? 0, song: res[1].count ?? 0, game: res[2].count ?? 0, report: res[3].count ?? 0, feedback: res[4].count ?? 0 });
+    setLoading(false);
   }
   useEffect(() => { void load(); }, []);
 
@@ -37,7 +40,7 @@ function TodoCenter({ go }: { go: (tab: string) => void }) {
   return <div style={card}>
     <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
       <h3 style={{ ...h3, margin: 0 }}>待处理{counts && total > 0 ? `（共 ${total} 件）` : ''}</h3>
-      <button className="mini ghost" onClick={() => void load()}>刷新</button>
+      <button className="mini ghost" disabled={loading} onClick={() => void load()}>{loading ? '刷新中…' : '刷新'}</button>
     </div>
     {err && <p style={mut}>待办计数读取失败，点刷新重试。</p>}
     {!counts && !err && <p style={mut}>正在统计…</p>}
@@ -55,7 +58,7 @@ function TodoCenter({ go }: { go: (tab: string) => void }) {
   </div>;
 }
 
-export default function Overview({ setMsg, go }: { setMsg: (s: string) => void; go: (tab: string) => void }) {
+export default function Overview({ go }: { setMsg: (s: string) => void; go: (tab: string) => void }) {
   const [st, setSt] = useState<any>(null);
   const [presence, setPresence] = useState<{ online: number; active: number; sampledAt: string; error: boolean } | null>(null);
   const [realtimeReady, setRealtimeReady] = useState(false);
@@ -64,6 +67,7 @@ export default function Overview({ setMsg, go }: { setMsg: (s: string) => void; 
     status: 'connecting', online: null, updatedAt: null,
   });
   const [loadTimedOut, setLoadTimedOut] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [refreshSeq, setRefreshSeq] = useState(0);
 
   // 管理总览复用站点唯一 Presence 连接，避免监听器再创建一条自计数连接。
@@ -147,9 +151,14 @@ export default function Overview({ setMsg, go }: { setMsg: (s: string) => void; 
           supabase.from('posts').select('created_at').eq('section', 'daily').gte('created_at', since14).is('deleted_at', null),
         ]);
         const week = new Date(Date.now() - 7 * 864e5).toISOString();
-        const { count: new7 } = await supabase.from('profiles').select('id', { count: 'exact', head: true }).gte('created_at', week);
-        const { data: logs } = await supabase.from('admin_audit_logs')
+        const { count: new7, error: new7Error } = await supabase.from('profiles').select('id', { count: 'exact', head: true }).gte('created_at', week);
+        const { data: logs, error: logsError } = await supabase.from('admin_audit_logs')
           .select('id, action, created_at').order('created_at', { ascending: false }).limit(5);
+        const dataErrors = [m, p, c, ph, r, nm, pr, por, phr, pd, pdr].filter(result => result.error);
+        if (dataErrors.length || new7Error || logsError) {
+          const firstError = dataErrors[0]?.error ?? new7Error ?? logsError;
+          throw new Error(firstError?.message || '部分统计数据读取失败');
+        }
         const t0 = Date.now();
         const { error: pingErr } = await supabase.from('profiles').select('id', { head: true }).limit(1);
         const dPro = bucket14((pr.data ?? []) as any[]);
@@ -167,17 +176,20 @@ export default function Overview({ setMsg, go }: { setMsg: (s: string) => void; 
           dbOk: !pingErr, dbMs: Date.now() - t0,
           dPro, dPost, dDailyPost, dPhoto, cum,
         });
-      } catch (e: any) { if (active) setMsg('总览加载失败：' + (e.message || '')); }
+      } catch (e: unknown) {
+        if (active) setLoadError(e instanceof Error ? e.message : '请检查网络或管理员数据权限后重试。');
+      }
     })();
     return () => { active = false; };
   }, [refreshSeq]);
   useEffect(() => {
-    if (st) return;
+    if (st || loadError) return;
     const timer = window.setTimeout(() => setLoadTimedOut(true), 12000);
     return () => window.clearTimeout(timer);
-  }, [st, refreshSeq]);
+  }, [st, loadError, refreshSeq]);
+  if (loadError) return <div className="admin-overview-timeout" role="alert"><strong>部分总览数据读取失败</strong><p>{loadError}</p><p>为避免把读取失败误报成 0，本次不会展示不完整统计。</p><button type="button" onClick={() => { setLoadError(null); setLoadTimedOut(false); setRefreshSeq(value => value + 1); }}>重新加载</button></div>;
   if (!st && !loadTimedOut) return <div className="admin-overview-loading" role="status"><span className="admin-loading-pulse" />正在整理总览数据…</div>;
-  if (!st) return <div className="admin-overview-timeout"><strong>总览数据暂时没有响应</strong><p>后台其他功能仍可使用。请检查网络后重试。</p><button type="button" onClick={() => { setLoadTimedOut(false); setRefreshSeq(value => value + 1); }}>重新加载</button></div>;
+  if (!st) return <div className="admin-overview-timeout"><strong>总览数据暂时没有响应</strong><p>后台其他功能仍可使用。请检查网络后重试。</p><button type="button" onClick={() => { setLoadError(null); setLoadTimedOut(false); setRefreshSeq(value => value + 1); }}>重新加载</button></div>;
   const segs = [
     { label: '成员', v: st.members, color: '#5b8cff' },
     { label: '动态', v: st.posts, color: '#8b5cf6' },
@@ -185,7 +197,6 @@ export default function Overview({ setMsg, go }: { setMsg: (s: string) => void; 
     { label: '照片', v: st.photos, color: '#4ade80' },
     { label: '评论', v: st.comments, color: '#f5a623' },
   ];
-  const tot = segs.reduce((a, s) => a + s.v, 0);
   const dlabels = [0, 3, 6, 10, 13].map(i => {
     const d = new Date(); d.setDate(d.getDate() - (13 - i));
     return `${d.getMonth() + 1}-${d.getDate()}`;
@@ -213,6 +224,7 @@ export default function Overview({ setMsg, go }: { setMsg: (s: string) => void; 
         </div>
         <button className="mini ghost" type="button" onClick={() => {
           setSt(null);
+          setLoadError(null);
           setLoadTimedOut(false);
           setRefreshSeq(value => value + 1);
         }}>刷新数据</button>
@@ -262,17 +274,16 @@ export default function Overview({ setMsg, go }: { setMsg: (s: string) => void; 
 
         <section className="admin-overview-panel admin-overview-mix-panel" style={card}>
           <div className="admin-overview-panel-heading">
-            <div><h3>内容构成</h3><p>当前累计内容分布</p></div>
+            <div><h3>数据规模概览</h3><p>各类记录数量分别展示，不进行跨类别占比比较</p></div>
           </div>
-          <div className="admin-overview-mix-content">
-            <Donut segs={segs} />
-            <div className="admin-overview-mix-legend">
+          <div className="admin-overview-mix-content admin-overview-data-list">
+            <div className="admin-overview-mix-legend" role="list">
               {segs.map(s => (
-                <div key={s.label}>
+                <div key={s.label} role="listitem">
                   <span className="admin-overview-legend-dot" style={{ background: s.color }} />
                   <span>{s.label}</span>
                   <strong>{s.v.toLocaleString()}</strong>
-                  <small>{tot ? Math.round((s.v / tot) * 100) : 0}%</small>
+                  <small>条 / 人</small>
                 </div>
               ))}
             </div>

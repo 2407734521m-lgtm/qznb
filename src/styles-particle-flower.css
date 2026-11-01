@@ -11,7 +11,7 @@
 .bloom-pill{border:1px solid rgba(255,255,255,.2);border-radius:99px;padding:8px 12px;color:#d7cbd5;font:9px/1 Inter,Arial,sans-serif;letter-spacing:1.4px;background:rgba(255,255,255,.045);backdrop-filter:blur(12px)}
 .bloom-pill i{display:inline-block;width:6px;height:6px;border-radius:50%;background:#a58d9f;margin-right:8px;vertical-align:1px}
 .bloom-pill.live i{background:#a5e2c0;box-shadow:0 0 10px #a5e2c0}
-.bloom-intro{position:absolute;z-index:3;top:clamp(110px,20vh,190px);left:clamp(22px,8vw,120px);max-width:min(520px,80vw);pointer-events:none}
+.bloom-intro{position:absolute;z-index:3;top:clamp(110px,20vh,190px);left:clamp(22px,8vw,120px);max-width:min(520px,80vw);pointer-events:none;transition:opacity .65s ease,transform .65s ease,visibility .65s}
 .bloom-kicker{font:9px/1.4 Inter,Arial,sans-serif;letter-spacing:3px;color:#d79ab8;margin-bottom:18px}
 .bloom-intro h1{font-family:"Noto Serif SC","Songti SC",serif;font-size:clamp(30px,5vw,58px);font-weight:500;letter-spacing:3px;line-height:1.28;margin:0 0 14px;color:#fff7f2;text-shadow:0 4px 30px #09040d}
 .bloom-intro p{font-family:"Noto Serif SC","Songti SC",serif;font-size:clamp(12px,1.3vw,15px);letter-spacing:1px;line-height:2;color:#d6c4d0;margin:0;max-width:430px}
@@ -24,7 +24,7 @@
 .bloom-privacy{pointer-events:none;margin-top:12px;color:#b9aab7;font:10px/1.6 Inter,"Noto Sans SC",sans-serif;letter-spacing:.5px}
 .bloom-error{pointer-events:auto;margin-top:12px;max-width:420px;padding:10px 13px;border:1px solid #e99aad55;border-radius:12px;background:#391b2c99;color:#ffd5df;font:12px/1.6 Inter,"Noto Sans SC",sans-serif}
 .bloom-side-note{position:absolute;z-index:3;right:clamp(14px,3vw,40px);top:50%;writing-mode:vertical-rl;transform:translateY(-50%);font:9px/1 Inter,Arial,sans-serif;letter-spacing:3px;color:#bda9b9}
-.bloom-steps{position:absolute;z-index:3;left:clamp(22px,4vw,56px);bottom:calc(28px + env(safe-area-inset-bottom));display:flex;align-items:center;gap:clamp(12px,2vw,26px);color:#e6d6e0}
+.bloom-steps{position:absolute;z-index:3;left:clamp(22px,4vw,56px);bottom:calc(28px + env(safe-area-inset-bottom));display:flex;align-items:center;gap:clamp(12px,2vw,26px);color:#e6d6e0;transition:opacity .65s ease,transform .65s ease,visibility .65s}
 .bloom-steps div{display:flex;flex-direction:column;gap:5px}
 .bloom-steps b{font:9px Inter,Arial,sans-serif;letter-spacing:1.8px;color:#dc91b3}
 .bloom-steps span{font:12px "Noto Serif SC","Songti SC",serif;letter-spacing:1px;white-space:nowrap}
@@ -71,3 +71,20 @@
  .bloom-steps{bottom:20px}
 }
 @media(prefers-reduced-motion:reduce){.bloom-primary,.bloom-secondary,.bloom-progress span{transition:none}.bloom-loader-flower{animation-duration:8s}}
+
+/* 进入互动后，切换为参考作品的沉浸式画廊布局。 */
+.bloom-page.is-active .bloom-intro,
+.bloom-page.is-active .bloom-steps{opacity:0;visibility:hidden;transform:translateY(10px);pointer-events:none}
+.bloom-page.is-active .bloom-hud{left:clamp(24px,4vw,52px);bottom:calc(38px + env(safe-area-inset-bottom));width:210px;padding:0;border:0;border-radius:0;background:transparent;backdrop-filter:none}
+.bloom-page.is-active .bloom-hud-state{font-size:15px;letter-spacing:1px}
+.bloom-page.is-active .bloom-hud-number{right:18px;top:23px;font-size:26px}
+.bloom-page.is-active .bloom-progress{margin-top:10px}
+.bloom-page.is-active .bloom-brand-cn{font-size:14px;letter-spacing:3px}
+.bloom-page.is-active .bloom-brand-en{font-size:7px;letter-spacing:2px}
+.bloom-page.is-active .bloom-side-note{opacity:.42}
+@media(max-width:700px){
+ .bloom-page.is-active .bloom-hud{left:20px;bottom:calc(34px + env(safe-area-inset-bottom));width:174px}
+ .bloom-page.is-active .bloom-hud-number{right:5px;top:22px;font-size:23px}
+ .bloom-page.is-active .bloom-mode-switch{right:16px;bottom:calc(28px + env(safe-area-inset-bottom))}
+ .bloom-page.is-active .bloom-brand-cn{font-size:12px}
+}

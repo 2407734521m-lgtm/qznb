@@ -83,7 +83,7 @@ export default function LoginSuccessOverlay({ realName, durationMs, onDone }: Lo
           </span>
         </motion.div>
         <div style={{ marginTop: 8, color: 'rgba(39, 82, 96, .62)', fontSize: 11, fontWeight: 600, letterSpacing: '.06em' }}>
-          真实姓名仅本人可见 · 隐私已保护
+          仅自己与管理员可见 · 不向其他成员公开
         </div>
         <div style={{ marginTop: 10, color: 'rgba(39, 82, 96, .70)', fontSize: 12, fontWeight: 600, letterSpacing: '.08em' }}>
           正在进入青春档案

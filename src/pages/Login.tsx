@@ -74,7 +74,13 @@ export default function Login() {
     setErr(''); setBusy(true);
     let em = '';
     try {
-      try { sessionStorage.setItem('ca_login_success', '1'); } catch {}
+      // Persist the start time BEFORE starting authentication. The auth-state
+      // listener may update the App before this function's promise resolves.
+      try {
+        sessionStorage.setItem('ca_login_started_at', String(Date.now()));
+        sessionStorage.setItem('ca_login_success', '1');
+        sessionStorage.removeItem('ca_login_elapsed_ms');
+      } catch {}
       if (id.includes('@')) {
         em = id;
         const { error } = await supabase.auth.signInWithPassword({ email: em, password: pw });
@@ -96,7 +102,11 @@ export default function Login() {
         if (sessionError) throw sessionError;
       }
     } catch (e: any) {
-      try { sessionStorage.removeItem('ca_login_success'); } catch {}
+      try {
+        sessionStorage.removeItem('ca_login_success');
+        sessionStorage.removeItem('ca_login_started_at');
+        sessionStorage.removeItem('ca_login_elapsed_ms');
+      } catch {}
       const m = e?.message || '';
       const method = em ? 'email' : 'username';
       const failureClass = /invalid login credentials|invalid_credentials/i.test(m)

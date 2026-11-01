@@ -471,7 +471,7 @@ function Shell() {
 
   // 注册带邀请码：欢迎动画要在 App 层播（登录页验证通过会直接卸载，来不及播）
   const [welcome, setWelcome] = useState<string | null>(null);
-  const [loginSuccess, setLoginSuccess] = useState(false);
+  const [loginSuccess, setLoginSuccess] = useState<{ realName: string; durationMs: number } | null>(null);
   const [gpsOffer, setGpsOffer] = useState(false);
   const [gpsBusy, setGpsBusy] = useState(false);
   const [gpsResult, setGpsResult] = useState<{ latitude: number; longitude: number; accuracy: number } | null>(null);
@@ -490,7 +490,7 @@ function Shell() {
     try { nick = sessionStorage.getItem('ca_welcome_nick'); sessionStorage.removeItem('ca_welcome_nick'); } catch {}
     if (nick !== null) {
       setWelcome(nick);
-      setLoginSuccess(false);
+      setLoginSuccess(null);
       return;
     }
     let shouldShowLoginSuccess = false;
@@ -498,7 +498,30 @@ function Shell() {
       shouldShowLoginSuccess = sessionStorage.getItem('ca_login_success') === '1';
       sessionStorage.removeItem('ca_login_success');
     } catch {}
-    if (shouldShowLoginSuccess) setLoginSuccess(true);
+    if (shouldShowLoginSuccess) {
+      // The start timestamp is written before the auth request begins. Read it
+      // here, after the session arrives, so AuthProvider timing cannot race a
+      // post-login write from the Login component.
+      let durationMs = 0;
+      try {
+        const startedAt = Number(sessionStorage.getItem('ca_login_started_at') || 0);
+        sessionStorage.removeItem('ca_login_started_at');
+        // Remove the previous implementation's value in case an older tab left it behind.
+        sessionStorage.removeItem('ca_login_elapsed_ms');
+        if (Number.isFinite(startedAt) && startedAt > 0) {
+          durationMs = Math.max(0, Date.now() - startedAt);
+        }
+      } catch {}
+      const metadata = session.user.user_metadata as Record<string, unknown> | undefined;
+      const realName = typeof metadata?.real_name === 'string' ? metadata.real_name.trim() : '';
+      setLoginSuccess({ realName, durationMs });
+    } else {
+      // Do not let an abandoned/failed attempt affect a later session.
+      try {
+        sessionStorage.removeItem('ca_login_started_at');
+        sessionStorage.removeItem('ca_login_elapsed_ms');
+      } catch {}
+    }
     // 新注册后的 GPS 说明仅在用户主动选择时继续，不在登录时自动请求位置。
     try {
       if (sessionStorage.getItem('ca_gps_offer') === '1') {
@@ -907,7 +930,7 @@ function Shell() {
         </div>
       )}
       {showWp && <WallpaperOnboarding onDone={() => setShowWp(false)} />}
-      {loginSuccess && <LoginSuccessOverlay onDone={() => setLoginSuccess(false)} />}
+      {loginSuccess && <LoginSuccessOverlay realName={loginSuccess.realName} durationMs={loginSuccess.durationMs} onDone={() => setLoginSuccess(null)} />}
       {welcome !== null && <WelcomeOverlay nick={welcome} onDone={welcomeDone} />}
       {loginPop && (
         <div onClick={closeLoginPop} style={{

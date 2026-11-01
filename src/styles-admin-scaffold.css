@@ -559,3 +559,34 @@
   .admin-shell-v3 .admin-overview-dashboard{animation:none!important}
   .admin-shell-v3 .admin-overview-shortcuts>button,.admin-shell-v3 .admin-overview-metric-card{transition:none!important}
 }
+
+
+/* Sidebar groups behave like a compact workspace outline. */
+.admin-shell-v3 .admin-nav-group-title{
+  display:flex;align-items:center;justify-content:space-between;gap:8px;
+  width:100%;min-height:23px;padding:0 9px 7px;border:0;
+  background:transparent;color:#8493af;text-align:left;
+  font-family:inherit;font-size:10px;font-weight:700;letter-spacing:.06em;
+  cursor:pointer;
+}
+.admin-shell-v3 .admin-nav-group-title>svg{
+  flex:0 0 auto;color:#687c9a;transition:transform .18s ease,color .18s ease;
+}
+.admin-shell-v3 .admin-nav-group-title:hover{color:#c4d3e8}
+.admin-shell-v3 .admin-nav-group-title:hover>svg{color:#a9c5eb}
+.admin-shell-v3 .admin-nav-group-title[aria-expanded="false"]>svg{transform:rotate(-90deg)}
+.admin-shell-v3 .admin-nav-group-items{
+  max-height:520px;overflow:hidden;opacity:1;
+  transition:max-height .22s cubic-bezier(.2,.75,.25,1),opacity .16s ease;
+}
+.admin-shell-v3 .admin-nav-group-items.is-group-collapsed{
+  max-height:0;opacity:0;pointer-events:none;
+}
+.admin-shell-v3 .admin-workspace.is-collapsed .admin-nav-group-title{display:none!important}
+@media(max-width:899px){
+  .admin-shell-v3 .admin-workspace.is-collapsed .admin-nav-group-title{display:flex!important}
+  .admin-shell-v3 .admin-nav-group-items.is-group-collapsed{max-height:0!important;opacity:0!important}
+}
+@media(prefers-reduced-motion:reduce){
+  .admin-shell-v3 .admin-nav-group-title>svg,.admin-shell-v3 .admin-nav-group-items{transition:none!important}
+}

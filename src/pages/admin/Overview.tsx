@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { startSitePresence, type SitePresenceSnapshot } from '../../lib/sitePresence';
 import { card, h3, mut, timeAgo, bucket14 } from './shared';
+import AdminNumberTicker from '../../components/admin/AdminNumberTicker';
 import { Spark, TrendChart, Donut } from './charts';
 
 /* ---------------- 总览（仪表盘） ---------------- */
@@ -203,111 +204,164 @@ export default function Overview({ setMsg, go }: { setMsg: (s: string) => void; 
     ['日常帖子', st.dailyPosts, st.dDailyPost, '#38bdf8'],
     ['班级照片', st.photos, st.dPhoto, '#f5a623'],
   ];
-  return (<>
-    <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center', gap: 12, marginBottom: 12 }}>
-      <div>
-        <h2 style={{ margin: 0, fontSize: 18, color: '#eef2f8' }}>运营总览</h2>
-        <div style={{ marginTop: 4, fontSize: 10.5, color: '#8b93b0' }}>
-          数据更新于 {new Date(st.loadedAt).toLocaleString()}
+  return (
+    <div className="admin-overview-dashboard">
+      <header className="admin-overview-header">
+        <div>
+          <h2>运营总览</h2>
+          <p>数据更新于 {new Date(st.loadedAt).toLocaleString()}</p>
         </div>
-      </div>
-      <button className="mini ghost" type="button" onClick={() => {
-        setSt(null);
-        setLoadTimedOut(false);
-        setRefreshSeq(value => value + 1);
-      }}>刷新数据</button>
-    </div>
-    <TodoCenter go={go} />
-    <div className="admin-stats-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
-      {stats.map(([k, v, d, col]) => (
-        <div key={k} style={{ ...card, marginBottom: 0, padding: 12 }}>
-          <div style={{ fontSize: 11, color: '#8b93b0' }}>{k}</div>
-          <div style={{ fontSize: 24, fontWeight: 800, margin: '4px 0', color: '#fff' }}>{v}</div>
-          <div style={{ fontSize: 10.5 }}>{statSub[k]}</div>
-          <Spark data={d} color={col} />
-        </div>
-      ))}
-    </div>
-    <div style={card}>
-      <div className="row" style={{ justifyContent: 'space-between', marginBottom: 6 }}>
-        <b style={{ fontSize: 13 }}>近14天注册趋势</b>
-        <span style={{ fontSize: 10.5, color: '#8b93b0', border: '1px solid #ffffff1c', borderRadius: 8, padding: '2px 8px' }}>近14天</span>
-      </div>
-      <TrendChart data={st.dPro} />
-      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: '#8b93b0' }}>
-        {dlabels.map(l => <span key={l}>{l}</span>)}
-      </div>
-    </div>
-    <div style={{ ...card, display: 'flex', alignItems: 'center', gap: 14 }}>
-      <Donut segs={segs} />
-      <div style={{ fontSize: 11.5, color: '#aeb7d4', lineHeight: 2.1 }}>
-        {segs.map(s => (
-          <div key={s.label}>
-            <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: s.color, marginRight: 6 }} />
-            {s.label} {s.v} <span style={{ color: '#8b93b0' }}>{tot ? Math.round((s.v / tot) * 100) : 0}%</span>
-          </div>
+        <button className="mini ghost" type="button" onClick={() => {
+          setSt(null);
+          setLoadTimedOut(false);
+          setRefreshSeq(value => value + 1);
+        }}>刷新数据</button>
+      </header>
+
+      <section className="admin-overview-todo" aria-label="待处理任务">
+        <TodoCenter go={go} />
+      </section>
+
+      <nav className="admin-overview-shortcuts" aria-label="常用管理入口">
+        <button type="button" onClick={() => go('board')}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 19V5h14v14H5Z"/><path d="M8 9h8M8 13h5M8 17h8"/></svg>
+          <span><strong>发布公告</strong><small>更新首页与社区公告</small></span>
+        </button>
+        <button type="button" onClick={() => go('notifications')}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9ZM10 21h4"/></svg>
+          <span><strong>发送通知</strong><small>向成员发送站内消息</small></span>
+        </button>
+        <button type="button" onClick={() => go('feedback')}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 5h16v11H8l-4 4V5Z"/><path d="M8 9h8M8 13h5"/></svg>
+          <span><strong>查看反馈</strong><small>跟进建议与问题报告</small></span>
+        </button>
+      </nav>
+
+      <section className="admin-overview-primary-grid" aria-label="核心数据">
+        {stats.map(([k, v, d, col]) => (
+          <article key={k} className="admin-overview-metric-card" style={card}>
+            <div className="admin-overview-metric-label">{k}</div>
+            <div className="admin-overview-metric-value"><AdminNumberTicker value={v} /></div>
+            <div className="admin-overview-metric-hint">{statSub[k]}</div>
+            <Spark data={d} color={col} />
+          </article>
         ))}
-      </div>
-    </div>
-    <div style={card}>
-      <div className="row" style={{ justifyContent: 'space-between', marginBottom: 8 }}>
-        <b style={{ fontSize: 13 }}>最近管理操作</b>
-        <span style={{ fontSize: 11, color: '#5b8cff' }}>共 {st.recentLogs.length} 条</span>
-      </div>
-      {(st.recentLogs as any[]).map((l: any) => (
-        <div key={l.id} style={{ fontSize: 12.5, padding: '6px 0', borderBottom: '1px solid #ffffff0a', display: 'flex', justifyContent: 'space-between' }}>
-          <span style={{ color: '#c6cde6' }}>{l.action}</span>
-          <span style={{ color: '#8b93b0', fontSize: 10.5 }}>{(l.created_at || '').slice(5, 16).replace('T', ' ')}</span>
-        </div>
-      ))}
-      {st.recentLogs.length === 0 && <p style={mut}>暂无</p>}
-    </div>
-    <div style={card}>
-      <h3 style={h3}>最近加入</h3>
-      {(st.newMembers as any[]).map((m: any) => (
-        <div key={m.id} style={{ fontSize: 13.5, padding: '6px 0', borderBottom: '1px solid #ffffff0a' }}>
-          {m.display_name || m.username} <span style={mut}>· {timeAgo(m.created_at)}</span>
-        </div>
-      ))}
-      {st.newMembers.length === 0 && <p style={mut}>暂无</p>}
-    </div>
-    <div style={card}>
-      <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-        <h3 style={{ ...h3, margin: 0 }}>在线统计</h3>
-        <span style={{ fontSize: 10.5, color: realtimeReady ? '#4ade80' : (presence?.error || realtimeFailed ? '#ffb4b4' : '#f5c26b') }}>
-          {realtimeReady ? '实时推送 · 私有频道' : realtimeFailed ? '实时不可用 · 活动统计回退' : presence?.error ? '刷新失败 · 显示上次结果' : '连接中 · 活动统计回退'}
-        </span>
-      </div>
-      <div className="admin-stats-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-        <div style={{ background: '#ffffff0a', border: '1px solid #ffffff12', borderRadius: 12, padding: 12 }}>
-          <div style={{ fontSize: 11, color: '#8b93b0' }}>{realtimeReady ? '实时在线连接（已登录）' : '近 5 分钟活跃账号'}</div>
-          <div style={{ fontSize: 30, lineHeight: 1.2, fontWeight: 850, color: '#4ade80', marginTop: 4 }}>
-            {presence && presence.sampledAt ? presence.online : '—'}
+      </section>
+
+      <div className="admin-overview-insights-grid">
+        <section className="admin-overview-panel admin-overview-trend-panel" style={card}>
+          <div className="admin-overview-panel-heading">
+            <div><h3>近 14 天注册趋势</h3><p>每日新增成员数量</p></div>
+            <span className="admin-overview-range-label">近 14 天</span>
           </div>
-          <div style={{ fontSize: 10.5, color: '#8b93b0', marginTop: 4 }}>{realtimeReady ? '连接变化即时推送' : '5 分钟内有活动即计入'}</div>
-        </div>
-        <div style={{ background: '#ffffff0a', border: '1px solid #ffffff12', borderRadius: 12, padding: 12 }}>
-          <div style={{ fontSize: 11, color: '#8b93b0' }}>近 30 分钟活跃账号</div>
-          <div style={{ fontSize: 30, lineHeight: 1.2, fontWeight: 850, color: '#8bb5ff', marginTop: 4 }}>
-            {presence && presence.sampledAt ? presence.active : '—'}
+          <TrendChart data={st.dPro} />
+          <div className="admin-overview-chart-labels">
+            {dlabels.map(l => <span key={l}>{l}</span>)}
           </div>
-          <div style={{ fontSize: 10.5, color: '#8b93b0', marginTop: 4 }}>30 分钟内有活动即计入</div>
-        </div>
+        </section>
+
+        <section className="admin-overview-panel admin-overview-mix-panel" style={card}>
+          <div className="admin-overview-panel-heading">
+            <div><h3>内容构成</h3><p>当前累计内容分布</p></div>
+          </div>
+          <div className="admin-overview-mix-content">
+            <Donut segs={segs} />
+            <div className="admin-overview-mix-legend">
+              {segs.map(s => (
+                <div key={s.label}>
+                  <span className="admin-overview-legend-dot" style={{ background: s.color }} />
+                  <span>{s.label}</span>
+                  <strong>{s.v.toLocaleString()}</strong>
+                  <small>{tot ? Math.round((s.v / tot) * 100) : 0}%</small>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
       </div>
-      <div style={{ fontSize: 10.5, color: '#8b93b0', marginTop: 10, lineHeight: 1.6 }}>
-        {realtimeReady
-          ? '实时模式只发布匿名在线标记，不传递账号 ID、昵称或邮箱；只统计已登录且已连接的浏览器会话。同一账号的多个标签页或设备会分别计数。'
-          : '备用模式由服务器按活动窗口统计账号：近 5 分钟有活动计入在线，超过窗口后自动移出；同一账号去重。'}
-        {presence?.sampledAt ? `最近更新：${new Date(presence.sampledAt).toLocaleTimeString()}` : '等待首次采样…'}
+
+      <div className="admin-overview-activity-grid">
+        <section className="admin-overview-panel" style={card}>
+          <div className="admin-overview-panel-heading">
+            <div><h3>最近管理操作</h3><p>后台最近写入的审计记录</p></div>
+            <span className="admin-overview-count">{st.recentLogs.length} 条</span>
+          </div>
+          <div className="admin-overview-list">
+            {(st.recentLogs as any[]).map((l: any) => (
+              <div key={l.id} className="admin-overview-list-row">
+                <span className="admin-overview-list-marker" />
+                <strong>{l.action}</strong>
+                <time>{(l.created_at || '').slice(5, 16).replace('T', ' ')}</time>
+              </div>
+            ))}
+            {st.recentLogs.length === 0 && <p className="admin-overview-empty">暂无管理操作记录</p>}
+          </div>
+        </section>
+
+        <section className="admin-overview-panel" style={card}>
+          <div className="admin-overview-panel-heading">
+            <div><h3>最近加入</h3><p>最新注册的成员</p></div>
+            <span className="admin-overview-count">{st.newMembers.length} 人</span>
+          </div>
+          <div className="admin-overview-list">
+            {(st.newMembers as any[]).map((m: any) => (
+              <div key={m.id} className="admin-overview-list-row">
+                <span className="admin-overview-member-avatar">{(m.display_name || m.username || '用').slice(0, 1)}</span>
+                <strong>{m.display_name || m.username}</strong>
+                <time>{timeAgo(m.created_at)}</time>
+              </div>
+            ))}
+            {st.newMembers.length === 0 && <p className="admin-overview-empty">暂时还没有新成员</p>}
+          </div>
+        </section>
+      </div>
+
+      <div className="admin-overview-health-grid">
+        <section className="admin-overview-panel admin-overview-online-panel" style={card}>
+          <div className="admin-overview-panel-heading">
+            <div><h3>在线统计</h3><p>只展示聚合人数，不展示成员身份</p></div>
+            <span className={['admin-overview-live-status', realtimeReady ? 'is-live' : (presence?.error || realtimeFailed ? 'is-error' : 'is-waiting')].join(' ')}>
+              <i aria-hidden="true" />
+              {realtimeReady ? '实时推送' : realtimeFailed ? '活动统计回退' : presence?.error ? '刷新失败' : '连接中'}
+            </span>
+          </div>
+          <div className="admin-overview-online-metrics">
+            <div>
+              <span>{realtimeReady ? '实时在线连接（已登录）' : '近 5 分钟活跃账号'}</span>
+              <strong>{presence && presence.sampledAt ? presence.online : '—'}</strong>
+              <small>{realtimeReady ? '连接变化即时推送' : '5 分钟内有活动即计入'}</small>
+            </div>
+            <div>
+              <span>近 30 分钟活跃账号</span>
+              <strong>{presence && presence.sampledAt ? presence.active : '—'}</strong>
+              <small>30 分钟内有活动即计入</small>
+            </div>
+          </div>
+          <p className="admin-overview-privacy-note">
+            {realtimeReady
+              ? '实时模式只发布匿名在线标记，不传递账号 ID、昵称或邮箱；同一账号的多个标签页或设备会分别计数。'
+              : '备用模式由服务器按活动窗口统计账号：近 5 分钟有活动计入在线，超过窗口后自动移出；同一账号去重。'}
+            {presence?.sampledAt ? ` 最近更新：${new Date(presence.sampledAt).toLocaleTimeString()}` : ' 等待首次采样…'}
+          </p>
+        </section>
+
+        <section className="admin-overview-panel admin-overview-system-panel" style={card}>
+          <div className="admin-overview-panel-heading">
+            <div><h3>系统状态</h3><p>基础服务连通性</p></div>
+          </div>
+          <div className="admin-overview-system-row">
+            <span>数据库连接</span>
+            {st.dbOk
+              ? <strong className="is-healthy">正常 · {st.dbMs} ms</strong>
+              : <strong className="is-unhealthy">连接异常</strong>}
+          </div>
+          <div className="admin-overview-system-row">
+            <span>待处理举报</span>
+            <strong className={st.pendingReports > 0 ? 'is-warning' : 'is-healthy'}>{st.pendingReports} 条</strong>
+          </div>
+        </section>
       </div>
     </div>
-    <div style={card}>
-      <h3 style={h3}>系统状态</h3>
-      <div style={{ fontSize: 13.5, lineHeight: 2 }}>
-        <div>数据库：{st.dbOk ? <span style={{ color: '#4ade80' }}>连接正常（{st.dbMs}ms）</span> : <span style={{ color: '#ff8080' }}>连接异常</span>}</div>
-        {st.pendingReports > 0 && <div>待处理举报：<span style={{ color: '#f5a623' }}>{st.pendingReports} 条</span></div>}
-      </div>
-    </div>
-  </>);
+  );
 }
 

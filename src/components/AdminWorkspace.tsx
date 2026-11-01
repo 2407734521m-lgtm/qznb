@@ -109,6 +109,12 @@ export default function AdminWorkspace({
     try { return localStorage.getItem('qznb-admin-rail-collapsed') === '1'; } catch { return false; }
   });
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>(() => {
+    try {
+      const parsed = JSON.parse(localStorage.getItem('qznb-admin-collapsed-groups') || '{}');
+      return parsed && typeof parsed === 'object' ? parsed : {};
+    } catch { return {}; }
+  });
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [activeIndex, setActiveIndex] = useState(0);
@@ -137,6 +143,24 @@ export default function AdminWorkspace({
   useEffect(() => {
     try { localStorage.setItem('qznb-admin-rail-collapsed', collapsed ? '1' : '0'); } catch { /* storage may be disabled */ }
   }, [collapsed]);
+
+  useEffect(() => {
+    try { localStorage.setItem('qznb-admin-collapsed-groups', JSON.stringify(collapsedGroups)); } catch { /* storage may be disabled */ }
+  }, [collapsedGroups]);
+
+  useEffect(() => {
+    const activeGroup = groupFor(activeTab);
+    setCollapsedGroups(previous => previous[activeGroup]
+      ? { ...previous, [activeGroup]: false }
+      : previous);
+  }, [activeTab]);
+
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = previousOverflow; };
+  }, [mobileOpen]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -203,18 +227,30 @@ export default function AdminWorkspace({
         <nav className="admin-sidebar-nav">
           {groups.map(group => (
             <section className="admin-nav-group" key={group.label}>
-              <div className="admin-nav-group-title">{group.label}</div>
-              {group.items.map(item => (
-                <button type="button" key={item.id}
-                  className={['admin-nav-item', activeTab === item.id ? 'is-active' : ''].join(' ')}
-                  aria-current={activeTab === item.id ? 'page' : undefined}
-                  title={collapsed ? item.label : undefined}
-                  onClick={() => choose(item.id)}>
-                  <span className="admin-nav-icon"><AdminIcon name={item.id} size={17} /></span>
-                  <span className="admin-nav-label">{item.label}</span>
-                  {activeTab === item.id && <span className="admin-nav-active-dot" />}
-                </button>
-              ))}
+              <button
+                type="button"
+                className="admin-nav-group-title"
+                aria-expanded={!collapsedGroups[group.label]}
+                onClick={() => setCollapsedGroups(previous => ({
+                  ...previous, [group.label]: !previous[group.label],
+                }))}
+              >
+                <span>{group.label}</span>
+                <AdminIcon name="chevron" size={13} />
+              </button>
+              <div className={['admin-nav-group-items', collapsedGroups[group.label] ? 'is-group-collapsed' : ''].join(' ')}>
+                {group.items.map(item => (
+                  <button type="button" key={item.id}
+                    className={['admin-nav-item', activeTab === item.id ? 'is-active' : ''].join(' ')}
+                    aria-current={activeTab === item.id ? 'page' : undefined}
+                    title={collapsed ? item.label : undefined}
+                    onClick={() => choose(item.id)}>
+                    <span className="admin-nav-icon"><AdminIcon name={item.id} size={17} /></span>
+                    <span className="admin-nav-label">{item.label}</span>
+                    {activeTab === item.id && <span className="admin-nav-active-dot" />}
+                  </button>
+                ))}
+              </div>
             </section>
           ))}
         </nav>

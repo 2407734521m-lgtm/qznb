@@ -184,7 +184,7 @@ function makeHanziLookupWorker(): Worker {
           self.postMessage({ type: 'ready' });
         } else if (data.type === 'lookup') {
           const raw = self.wasm_bindgen.lookup(data.strokes, 8);
-          self.postMessage({ type: 'matches', candidates: JSON.parse(raw) });
+          self.postMessage({ type: 'matches', requestId: data.requestId, candidates: JSON.parse(raw) });
         }
       } catch (error) {
         self.postMessage({ type: 'error', message: String(error && error.message || error) });
@@ -387,6 +387,7 @@ export default function ParticleFlower() {
   const recognitionTimerRef = useRef<number>(0);
   const recognitionReadyRef = useRef(false);
   const recognitionBusyRef = useRef(false);
+  const recognitionRequestIdRef = useRef(0);
   const recognizedCandidateRef = useRef('');
   const committedGlyphsRef = useRef<InkGlyph[]>([]);
   const recognitionStartedAtRef = useRef(0);
@@ -487,6 +488,7 @@ export default function ParticleFlower() {
     recognitionWorkerRef.current = null;
     recognitionReadyRef.current = false;
     recognitionBusyRef.current = false;
+    recognitionRequestIdRef.current += 1;
     recognizedCandidateRef.current = '';
     committedGlyphsRef.current = [];
     setRecognitionCandidates([]);
@@ -505,6 +507,7 @@ export default function ParticleFlower() {
             setRecognitionStatus('ready');
           } else if (message.type === 'matches') {
             recognitionBusyRef.current = false;
+            if (message.requestId !== recognitionRequestIdRef.current) return;
             const matches = (message.candidates || [])
               .filter((item: any) => item && typeof item.hanzi === 'string')
               .slice(0, 5) as HanziCandidate[];
@@ -572,6 +575,15 @@ export default function ParticleFlower() {
             currentInkStrokeRef.current = null;
             smoothedInkPointRef.current = null;
             setIsWriting(false);
+            if (recognitionTimerRef.current) window.clearTimeout(recognitionTimerRef.current);
+            recognitionTimerRef.current = window.setTimeout(() => {
+              if (!recognitionReadyRef.current || recognitionBusyRef.current) return;
+              const normalizedStrokes = normalizeInkForRecognition(inkStrokesRef.current);
+              if (!normalizedStrokes.length) return;
+              recognitionBusyRef.current = true;
+              const requestId = ++recognitionRequestIdRef.current;
+              recognitionWorkerRef.current?.postMessage({ type: 'lookup', requestId, strokes: normalizedStrokes, limit: 8 });
+            }, 1100);
           }
           targetRef.current = 0.18; hasHandRef.current = false; setHasHand(false); return;
         }
@@ -597,6 +609,8 @@ export default function ParticleFlower() {
               : screenPoint;
             if (!pinchingRef.current) {
               pinchingRef.current = true;
+              recognitionRequestIdRef.current += 1;
+              recognitionBusyRef.current = false;
               if (recognitionTimerRef.current) window.clearTimeout(recognitionTimerRef.current);
               // A new stroke after a candidate begins the next character.
               if (recognizedCandidateRef.current) {
@@ -642,7 +656,8 @@ export default function ParticleFlower() {
               const normalizedStrokes = normalizeInkForRecognition(inkStrokesRef.current);
               if (!normalizedStrokes.length) return;
               recognitionBusyRef.current = true;
-              recognitionWorkerRef.current?.postMessage({ type: 'lookup', strokes: normalizedStrokes, limit: 8 });
+              const requestId = ++recognitionRequestIdRef.current;
+              recognitionWorkerRef.current?.postMessage({ type: 'lookup', requestId, strokes: normalizedStrokes, limit: 8 });
             }, 1100);
           }
         }
@@ -1022,6 +1037,8 @@ export default function ParticleFlower() {
           {recognizedText && <span className="bloom-ink-word">{recognizedText}</span>}
           <button type="button" onClick={() => {
             if (recognitionTimerRef.current) window.clearTimeout(recognitionTimerRef.current);
+            recognitionRequestIdRef.current += 1;
+            recognitionBusyRef.current = false;
             if (inkStrokesRef.current.length) inkStrokesRef.current.pop();
             else committedGlyphsRef.current.pop();
             setRecognizedText(committedGlyphsRef.current.map(glyph => glyph.character).join(''));
@@ -1036,6 +1053,8 @@ export default function ParticleFlower() {
           }}>撤销</button>
           <button type="button" onClick={() => {
             if (recognitionTimerRef.current) window.clearTimeout(recognitionTimerRef.current);
+            recognitionRequestIdRef.current += 1;
+            recognitionBusyRef.current = false;
             inkStrokesRef.current = [];
             committedGlyphsRef.current = [];
             recognizedCandidateRef.current = '';

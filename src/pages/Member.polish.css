@@ -123,6 +123,19 @@
   box-shadow: inset 0 1px 0 rgba(255,255,255,.08);
 }
 
+.member-profile-card.profile.compact.center {
+  align-items: center;
+}
+
+.member-profile-card.profile.compact.center .member-info {
+  width: min(100%, 720px);
+}
+
+.member-profile-card.profile.compact.center .member-photo-panel {
+  width: min(100%, 236px);
+  align-self: center;
+}
+
 .member-profile-card .member-photo-panel .photo {
   width: 100%;
   aspect-ratio: 3 / 4;

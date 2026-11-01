@@ -17,24 +17,28 @@ const HAND_CONNECTIONS: number[][] = [
   [5,9],[9,10],[10,11],[11,12], [9,13],[13,14],[14,15],[15,16],
   [13,17],[17,18],[18,19],[19,20],[0,17]
 ];
-const CDN = 'https://cdn.jsdelivr.net/npm/@mediapipe/hands';
+const MODEL_CDNS = ['https://cdn.jsdelivr.net/npm/@mediapipe/hands', 'https://unpkg.com/@mediapipe/hands'];
+const MODEL_TIMEOUT_MS = 12000;
 
 function clamp(v: number, min: number, max: number) { return Math.max(min, Math.min(max, v)); }
 function lerp(a: number, b: number, t: number) { return a + (b - a) * t; }
 function distance(a: any, b: any) { return Math.hypot(a.x - b.x, a.y - b.y); }
-function loadScript(src: string) {
+function loadScript(src: string, timeoutMs = MODEL_TIMEOUT_MS) {
   return new Promise<void>((resolve, reject) => {
     const existing = document.querySelector('script[data-bloom-src="' + src + '"]') as HTMLScriptElement | null;
     if (existing) {
-      if ((existing as any).dataset.loaded === '1') resolve();
-      else { existing.addEventListener('load', () => resolve(), { once: true }); existing.addEventListener('error', () => reject(new Error('模型脚本加载失败')), { once: true }); }
+      if ((existing as any).dataset.loaded === '1') { resolve(); return; }
+      const timer = window.setTimeout(() => reject(new Error('模型脚本加载超时')), timeoutMs);
+      existing.addEventListener('load', () => { window.clearTimeout(timer); resolve(); }, { once: true });
+      existing.addEventListener('error', () => { window.clearTimeout(timer); reject(new Error('模型脚本加载失败')); }, { once: true });
       return;
     }
     const script = document.createElement('script');
     script.src = src; script.async = true; script.crossOrigin = 'anonymous';
     script.dataset.bloomSrc = src;
-    script.onload = () => { script.dataset.loaded = '1'; resolve(); };
-    script.onerror = () => reject(new Error('无法加载 MediaPipe 手部模型，请检查网络后重试'));
+    const timer = window.setTimeout(() => { script.remove(); reject(new Error('模型脚本加载超时')); }, timeoutMs);
+    script.onload = () => { window.clearTimeout(timer); script.dataset.loaded = '1'; resolve(); };
+    script.onerror = () => { window.clearTimeout(timer); script.remove(); reject(new Error('模型脚本加载失败')); };
     document.head.appendChild(script);
   });
 }
@@ -96,6 +100,13 @@ function drawGlowSprite(): HTMLCanvasElement {
   c.fillStyle = g; c.fillRect(0,0,32,32);
   return sprite;
 }
+function mapCoverPoint(point: any, video: HTMLVideoElement, width: number, height: number) {
+  const vw = video.videoWidth || width, vh = video.videoHeight || height;
+  const scale = Math.max(width / vw, height / vh);
+  const renderedWidth = vw * scale, renderedHeight = vh * scale;
+  const offsetX = (width - renderedWidth) / 2, offsetY = (height - renderedHeight) / 2;
+  return { x: (1 - point.x) * renderedWidth + offsetX, y: point.y * renderedHeight + offsetY };
+}
 function drawSkeletonPreview(ctx: CanvasRenderingContext2D, landmarks: any[] | null, w: number, h: number) {
   ctx.clearRect(0, 0, w, h);
   if (!landmarks || landmarks.length < 21) return;
@@ -156,6 +167,13 @@ export default function ParticleFlower() {
   const [orientationMessage, setOrientationMessage] = useState('');
   const ownedFullscreenRef = useRef(false);
   const lastHudRef = useRef(0);
+  const lastInferenceRef = useRef(0);
+  const hudNumberRef = useRef<HTMLSpanElement>(null);
+  const hudStateRef = useRef<HTMLDivElement>(null);
+  const hudEnglishRef = useRef<HTMLDivElement>(null);
+  const hudProgressRef = useRef<HTMLSpanElement>(null);
+  const fpsReadoutRef = useRef<HTMLElement>(null);
+  const activeCdnRef = useRef(MODEL_CDNS[0]);
 
   useEffect(() => {
     const syncOrientation = () => {
@@ -247,20 +265,25 @@ export default function ParticleFlower() {
       if (!navigator.mediaDevices?.getUserMedia) throw new Error('当前浏览器不支持摄像头，或页面不是 HTTPS 安全连接。');
       const w = window as any;
       if (!w.Hands) {
-        await loadScript(CDN + '/hands.js');
+        let loaded = false;
+        for (const cdn of MODEL_CDNS) {
+          try { await loadScript(cdn + '/hands.js'); activeCdnRef.current = cdn; loaded = true; break; }
+          catch { /* try the next public mirror */ }
+        }
+        if (!loaded) throw new Error('手部模型加载失败：已尝试两个资源源并设置超时。请检查网络，或在系统浏览器中打开后重试。');
       }
       const HandsCtor = (window as any).Hands;
-      if (!HandsCtor) throw new Error('手部模型未能初始化，请刷新页面重试。');
+      if (!HandsCtor) throw new Error('手部模型脚本已加载，但初始化失败。请刷新页面重试。');
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: false,
-        video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 60, max: 60 } }
+        video: { facingMode: 'user', width: { ideal: 640, max: 960 }, height: { ideal: 480, max: 540 }, frameRate: { ideal: 30, max: 30 } }
       });
       streamRef.current = stream;
       const video = videoRef.current;
       if (!video) throw new Error('摄像头画面容器尚未准备好。');
       video.srcObject = stream;
       await video.play();
-      const hands = new HandsCtor({ locateFile: (file: string) => CDN + '/' + file });
+      const hands = new HandsCtor({ locateFile: (file: string) => activeCdnRef.current + '/' + file });
       hands.setOptions({ maxNumHands: 1, modelComplexity: 1, minDetectionConfidence: 0.62, minTrackingConfidence: 0.58 });
       hands.onResults((results: any) => {
         const hand = results.multiHandLandmarks?.[0];
@@ -269,19 +292,26 @@ export default function ParticleFlower() {
           targetRef.current = 0.18; hasHandRef.current = false; setHasHand(false); return;
         }
         landmarksRef.current = hand;
-        const wrist = hand[0], middleBase = hand[9];
-        const tips = [4,8,12,16,20].map(i => hand[i]);
-        const base = Math.max(0.001, distance(wrist, middleBase));
-        const ratio = tips.reduce((sum, p) => sum + distance(wrist,p), 0) / tips.length / base;
-        const raw = clamp((ratio - 1.02) / 1.12, 0, 1);
-        targetRef.current = lerp(targetRef.current, raw, 0.2);
+        const wrist = hand[0];
+        const fingerPairs = [[5,6,8],[9,10,12],[13,14,16],[17,18,20]];
+        const scores = fingerPairs.map(([mcp,pip,tip]) => {
+          const direct = Math.max(0.001, distance(hand[mcp], hand[tip]));
+          const path = distance(hand[mcp], hand[pip]) + distance(hand[pip], hand[tip]);
+          const straight = direct / Math.max(0.001, path);
+          const radial = distance(wrist, hand[tip]) / Math.max(0.001, distance(wrist, hand[mcp]));
+          return clamp((straight - 0.70) / 0.27, 0, 1) * 0.72 + clamp((radial - 1.0) / 0.72, 0, 1) * 0.28;
+        });
+        const thumb = clamp((distance(hand[4],hand[5]) / Math.max(0.001,distance(hand[2],hand[5])*.9) - .25) / .8,0,1);
+        const raw = clamp(scores.reduce((a,b)=>a+b,0)/scores.length*.88 + thumb*.12,0,1);
+        targetRef.current = lerp(targetRef.current, raw, 0.24);
         const index = hand[8];
-        fingerRef.current = { x: (1-index.x) * window.innerWidth, y: index.y * window.innerHeight, z: index.z || 0 };
+        const mapped = mapCoverPoint(index, video, window.innerWidth, window.innerHeight);
+        fingerRef.current = { x: mapped.x, y: mapped.y, z: index.z || 0 };
         hasHandRef.current = true; setHasHand(true);
       });
       handsRef.current = hands;
       // 首帧 send 会触发 MediaPipe 的 WASM/模型初始化；完成后才撤下唤醒遮罩。
-      await hands.send({ image: video });
+      await Promise.race([hands.send({ image: video }), new Promise((_, reject) => window.setTimeout(() => reject(new Error('手部模型初始化超时，请检查网络或更换浏览器后重试。')), 15000))]);
       modeRef.current = 'gesture'; setMode('gesture');
       setCameraLive(true); setStatus('等待手掌');
       experienceStartedRef.current = true;
@@ -290,13 +320,14 @@ export default function ParticleFlower() {
       startGuardRef.current = false;
       let busy = false;
       let lastVideoTime = -1;
+      let failures = 0;
       const process = async () => {
         const currentVideo = videoRef.current;
         if (!streamRef.current || !currentVideo || !handsRef.current) return;
-        if (!busy && currentVideo.readyState >= 2 && currentVideo.currentTime !== lastVideoTime) {
-          lastVideoTime = currentVideo.currentTime;
-          busy = true;
-          try { await handsRef.current.send({ image: currentVideo }); } catch {}
+        if (!document.hidden && !busy && currentVideo.readyState >= 2 && currentVideo.currentTime !== lastVideoTime && performance.now()-lastInferenceRef.current >= 1000/24) {
+          lastVideoTime = currentVideo.currentTime; lastInferenceRef.current = performance.now(); busy = true;
+          try { await handsRef.current.send({ image: currentVideo }); failures = 0; }
+          catch { failures++; if (failures >= 3) { setError('手部识别连续失败，请重新开启手势。'); setStatus('识别异常'); stopCamera(); return; } }
           finally { busy = false; }
         }
         if (streamRef.current) cameraRafRef.current = requestAnimationFrame(process);
@@ -304,7 +335,8 @@ export default function ParticleFlower() {
       cameraRafRef.current = requestAnimationFrame(process);
     } catch (e: any) {
       stopCamera();
-      setError(e?.message || '摄像头启动失败。请检查浏览器权限。');
+      const inWeChat = /MicroMessenger/i.test(navigator.userAgent || '');
+      setError(inWeChat ? '微信内置浏览器可能限制摄像头。请点右上角菜单，选择“在浏览器打开”，再允许摄像头权限。' : (e?.message || '摄像头启动失败。请检查浏览器权限。'));
       setLoading(false);
       startGuardRef.current = false;
     }
@@ -441,16 +473,20 @@ export default function ParticleFlower() {
       }
       fpsFrames++;
       if (!fpsWindowStart) fpsWindowStart = time;
-      if (time - fpsWindowStart >= 500) {
-        setActualFps(Math.round(fpsFrames * 1000 / (time - fpsWindowStart)));
+      if (time - fpsWindowStart >= 1000) {
+        const fps = Math.round(fpsFrames * 1000 / (time - fpsWindowStart));
+        if (fpsReadoutRef.current) fpsReadoutRef.current.textContent=String(fps);
         fpsFrames = 0; fpsWindowStart = time;
       }
-      if (time-lastHudRef.current>250) {
+      if (time-lastHudRef.current>50) {
         lastHudRef.current=time;
-        const percent=Math.round(opennessNow*100);
-        setOpenness(percent);
-        if (modeRef.current==='gesture') setStatus(!hasHandRef.current ? '等待手掌' : percent<28 ? '花苞' : percent>68 ? '绽放' : '舒展中');
-        else setStatus('演示模式');
+        const percent=opennessNow*100, rounded=Math.round(percent);
+        const cn=modeRef.current==='demo' ? '演示模式' : !hasHandRef.current ? '等待手掌' : percent<28 ? '花苞' : percent>68 ? '绽放' : '舒展中';
+        const en=modeRef.current==='demo' ? 'DEMO EXPERIENCE' : !hasHandRef.current ? 'WAITING FOR HAND' : percent<28 ? 'CLOSED · FIST' : percent>68 ? 'BLOOM · OPEN' : 'OPENING · FLOW';
+        if (hudNumberRef.current) hudNumberRef.current.textContent=String(rounded);
+        if (hudProgressRef.current) hudProgressRef.current.style.width=percent.toFixed(1)+'%';
+        if (hudStateRef.current) hudStateRef.current.textContent=cn;
+        if (hudEnglishRef.current) hudEnglishRef.current.textContent=en;
       }
     };
     rafRef.current=requestAnimationFrame(render);
@@ -508,7 +544,7 @@ export default function ParticleFlower() {
       <section className="bloom-intro">
         <div className="bloom-kicker">AN INTERACTIVE LIGHT GARDEN</div>
         <h1>让花，在指尖醒来。</h1>
-        <p>握拳，收拢成一颗花苞；张掌，让三千粒光一起舒展。</p>
+        <p>握拳，收拢成一颗花苞；张掌，让粒子花冠舒展。</p>
         {!cameraLive && (
           <div className="bloom-actions">
             <button className="bloom-primary" onClick={startCamera} disabled={loading}>
@@ -528,17 +564,12 @@ export default function ParticleFlower() {
       </footer>
       <aside className="bloom-hud">
         <div className="bloom-hud-label">GESTURE <span>/ 手势</span></div>
-        <div className="bloom-hud-state">{statusChinese}</div>
-        <div className="bloom-hud-en">{statusEnglish}</div>
-        <div className="bloom-hud-number">{openness}<small>%</small></div>
-        <div className="bloom-progress"><span style={{width:openness+'%'}} /></div>
-        <div className="bloom-hud-meta">{particleCount.toLocaleString()} LIGHT PARTICLES</div>
+        <div className="bloom-hud-state" ref={hudStateRef}>{statusChinese}</div>
+        <div className="bloom-hud-en" ref={hudEnglishRef}>{statusEnglish}</div>
+        <div className="bloom-hud-number"><span ref={hudNumberRef}>18</span><small>%</small></div>
+        <div className="bloom-progress"><span ref={hudProgressRef} style={{width:'18%'}} /></div>
+        <div className="bloom-hud-meta">PARTICLE FLOW · LIVE</div>
       </aside>
-      <div className="bloom-fps-switch" role="group" aria-label="动画帧率上限">
-        <span>FPS</span>
-        {([30, 60, 90, 120, 0] as FpsLimit[]).map(value => <button key={value} className={fpsLimit === value ? 'active' : ''} onClick={() => { fpsLimitRef.current = value; setFpsLimit(value); }} aria-pressed={fpsLimit === value}>{value === 0 ? '自动' : value}</button>)}
-        <small>{actualFps}</small>
-      </div>
       <div className="bloom-orientation-switch" role="group" aria-label="屏幕方向">
         <span>屏幕</span>
         <button className={layoutOrientation === 'portrait' ? 'active' : ''} onClick={() => void requestOrientation('portrait')} aria-pressed={layoutOrientation === 'portrait'}>竖屏</button>

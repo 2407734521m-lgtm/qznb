@@ -39,6 +39,19 @@ function timeAgo(s: string) {
   return new Date(s).toLocaleDateString();
 }
 
+async function cleanupUnlinkedLoveMedia(paths: string[]): Promise<boolean> {
+  if (!paths.length) return false;
+  // 写入请求可能已在服务端成功但客户端超时；先保留已被附件记录引用的文件。
+  const { data: linkedRows, error: lookupError } = await supabase.from('love_wall_media')
+    .select('path').in('path', paths);
+  if (lookupError) return true;
+  const linked = new Set((linkedRows ?? []).map(row => row.path));
+  const unlinked = paths.filter(path => !linked.has(path));
+  if (!unlinked.length) return false;
+  const { error: removeError } = await supabase.storage.from('media').remove(unlinked);
+  return Boolean(removeError);
+}
+
 export default function LoveWall() {
   const { session } = useAuth();
   const [searchParams] = useSearchParams();
@@ -296,8 +309,7 @@ export default function LoveWall() {
         );
         if (mErr) {
           attachFailed = true;
-          const { error: cleanupError } = await supabase.storage.from('media').remove(uploaded.map(item => item.path));
-          cleanupFailed = Boolean(cleanupError);
+          cleanupFailed = await cleanupUnlinkedLoveMedia(uploaded.map(item => item.path));
         } else {
           attachmentsCommitted = true;
         }
@@ -313,10 +325,13 @@ export default function LoveWall() {
       await load();
     } catch (err) {
       // 失败发生在附件记录提交之前时，清理已上传的文件，避免产生孤立对象。
+      let cleanupFailed = false;
       if (uploaded.length && !attachmentsCommitted) {
-        try { await supabase.storage.from('media').remove(uploaded.map(item => item.path)); } catch { /* Preserve the original publish error. */ }
+        try { cleanupFailed = await cleanupUnlinkedLoveMedia(uploaded.map(item => item.path)); }
+        catch { cleanupFailed = true; }
       }
-      setFormErr(err instanceof Error ? err.message : '发布失败，请稍后再试。');
+      setFormErr((err instanceof Error ? err.message : '发布失败，请稍后再试。')
+        + (cleanupFailed ? ' 部分附件未能确认或清理，请刷新「我的投稿」并联系管理员核对。' : ''));
     } finally {
       setBusy(false);
     }

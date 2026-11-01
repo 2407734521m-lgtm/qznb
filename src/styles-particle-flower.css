@@ -136,3 +136,932 @@
 @media(max-width:700px){
  .bloom-page.orientation-landscape.is-active .bloom-hud{left:18px;right:auto;bottom:calc(78px + env(safe-area-inset-bottom));width:150px}
 }
+
+
+/* 沉浸模式：进入体验后只保留花朵与退出，不再让 HUD、FPS 和布局按钮遮挡花冠。 */
+.bloom-exit{
+  display:none;position:absolute;z-index:30;top:calc(16px + env(safe-area-inset-top));right:calc(16px + env(safe-area-inset-right));
+  align-items:center;gap:7px;padding:10px 16px;border:1px solid rgba(255,255,255,.28);border-radius:999px;
+  color:#f8eaf0;background:rgba(28,13,27,.48);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
+  font:12px Inter,"Noto Sans SC",sans-serif;letter-spacing:1px;box-shadow:0 8px 30px rgba(0,0,0,.2);cursor:pointer
+}
+.bloom-exit:active{transform:scale(.96)}
+.bloom-page.is-active .bloom-header,
+.bloom-page.is-active .bloom-intro,
+.bloom-page.is-active .bloom-side-note,
+.bloom-page.is-active .bloom-steps,
+.bloom-page.is-active .bloom-hud,
+.bloom-page.is-active .bloom-fps-switch,
+.bloom-page.is-active .bloom-orientation-switch,
+.bloom-page.is-active .bloom-mode-switch{display:none!important}
+.bloom-page.is-active .bloom-exit{display:flex}
+.bloom-page.is-active .bloom-vignette{
+  background:radial-gradient(ellipse at 50% 50%,transparent 28%,rgba(11,7,16,.08) 70%,rgba(11,7,16,.62) 100%)
+}
+.bloom-page.is-active .bloom-camera.is-live{opacity:.12}
+.bloom-load-track{width:min(260px,68vw);height:3px;border-radius:99px;overflow:hidden;background:rgba(255,255,255,.12)}
+.bloom-load-track>span{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,#e9a4bf,#fff0df);transition:width .28s ease}
+.bloom-loading small{font:10px/1.6 Inter,"Noto Sans SC",sans-serif;letter-spacing:.5px;color:#d3b9ca;text-align:center}
+.bloom-loading em{font:9px/1.5 Inter,"Noto Sans SC",sans-serif;font-style:normal;color:#8f798c;text-align:center}
+.bloom-loading{padding:24px}
+@media(max-width:700px){
+  .bloom-exit{top:calc(12px + env(safe-area-inset-top));right:calc(12px + env(safe-area-inset-right));padding:9px 14px}
+  .bloom-page.is-active .bloom-camera.is-live{opacity:.08}
+}
+
+/* 浏览器不能锁定方向时，把整个体验画布旋转为真正的横向构图；画布使用虚拟横屏坐标。 */
+.bloom-page.orientation-fallback{
+  width:100vh;width:100dvh;height:100vw;inset:auto;top:0;left:0;right:auto;bottom:auto;
+  transform-origin:top left;transform:rotate(90deg) translateY(-100%)
+}
+.bloom-page.orientation-fallback .bloom-exit{top:calc(12px + env(safe-area-inset-top));right:calc(12px + env(safe-area-inset-right))}
+.bloom-page.orientation-fallback .bloom-intro{left:clamp(24px,5vw,76px);top:clamp(42px,10vh,84px);max-width:42vw}
+.bloom-page.orientation-fallback .bloom-hud{left:24px;bottom:24px}
+.bloom-page.orientation-fallback .bloom-steps{right:24px;left:auto;bottom:24px}
+
+
+/* AIR INK：空中书写模式的独立笔迹层与轻量工具栏。 */
+.bloom-writing-note{
+  margin-top:10px;color:#c9a9bc;font:10px/1.7 Inter,"Noto Sans SC",sans-serif;letter-spacing:.4px
+}
+.bloom-ink-canvas{
+  position:absolute;inset:0;width:100%;height:100%;z-index:2;pointer-events:none
+}
+.bloom-page.tool-write .bloom-canvas{z-index:2}
+.bloom-page.tool-write .bloom-ink-canvas{z-index:3}
+.bloom-page.tool-write .bloom-vignette{
+  background:radial-gradient(ellipse at 50% 48%,transparent 22%,rgba(11,7,16,.08) 65%,rgba(11,7,16,.42) 100%)
+}
+.bloom-page.tool-write .bloom-camera.is-live{opacity:.1}
+.bloom-ink-tools{
+  position:absolute;z-index:31;left:50%;bottom:calc(22px + env(safe-area-inset-bottom));transform:translateX(-50%);
+  display:flex;align-items:center;gap:7px;max-width:calc(100vw - 28px);padding:8px 10px;
+  border:1px solid rgba(255,255,255,.2);border-radius:999px;background:rgba(25,13,27,.62);
+  color:#f4e5ed;backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
+  box-shadow:0 12px 34px rgba(0,0,0,.22);font:11px Inter,"Noto Sans SC",sans-serif
+}
+.bloom-ink-status{
+  display:flex;align-items:center;gap:7px;padding:0 8px;color:#d8c4d1;white-space:nowrap;font-size:10px
+}
+.bloom-ink-status i{width:7px;height:7px;border-radius:50%;background:#a891a2;box-shadow:0 0 8px #a891a2}
+.bloom-ink-status.drawing i{background:#f3b4cf;box-shadow:0 0 11px #f3b4cf}
+.bloom-ink-tools button{
+  border:1px solid rgba(255,255,255,.18);border-radius:999px;padding:8px 12px;
+  background:rgba(255,255,255,.06);color:#f5dce8;font:10px "Noto Sans SC",sans-serif;white-space:nowrap
+}
+.bloom-ink-tools button:active{background:rgba(246,181,208,.28);transform:scale(.97)}
+.bloom-page.tool-write.is-active .bloom-exit{z-index:32}
+@media(max-width:700px){
+  .bloom-writing-note{max-width:310px;font-size:9px}
+  .bloom-ink-tools{bottom:calc(14px + env(safe-area-inset-bottom));gap:5px;padding:7px}
+  .bloom-ink-status{font-size:9px;padding:0 4px;white-space:normal;max-width:150px;line-height:1.45}
+  .bloom-ink-tools button{padding:8px 10px;font-size:9px}
+}
+
+
+/* 书写时主屏只显示笔迹；手部骨骼单独放入右下角预览窗。 */
+.bloom-page.tool-write .bloom-camera.is-live{
+  opacity:0!important;
+  visibility:hidden;
+}
+.bloom-page.tool-write .bloom-canvas{
+  opacity:0!important;
+}
+.bloom-hand-preview{
+  position:absolute;
+  z-index:30;
+  right:clamp(14px,2.4vw,28px);
+  bottom:calc(92px + env(safe-area-inset-bottom));
+  width:184px;
+  padding:10px 11px 9px;
+  border:1px solid rgba(255,225,239,.22);
+  border-radius:18px;
+  background:linear-gradient(145deg,rgba(35,19,36,.78),rgba(17,11,22,.72));
+  box-shadow:0 14px 38px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.06);
+  backdrop-filter:blur(18px);
+  -webkit-backdrop-filter:blur(18px);
+  pointer-events:none;
+}
+.bloom-hand-preview-heading{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  margin:0 1px 4px;
+  color:#f4dce8;
+  font:11px "Noto Sans SC",sans-serif;
+  letter-spacing:.7px;
+}
+.bloom-hand-preview-heading small{
+  color:#a990a5;
+  font:8px Inter,Arial,sans-serif;
+  letter-spacing:1.4px;
+}
+.bloom-hand-preview-canvas{
+  display:block;
+  width:100%;
+  height:112px;
+  border-radius:10px;
+  background:
+    radial-gradient(ellipse at 50% 54%,rgba(223,129,170,.10),transparent 68%),
+    linear-gradient(145deg,rgba(255,255,255,.035),rgba(255,255,255,.012));
+}
+.bloom-hand-preview-state{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  margin:7px 1px 0;
+  color:#a993a5;
+  font:9px "Noto Sans SC",sans-serif;
+  white-space:nowrap;
+}
+.bloom-hand-preview-state i{
+  width:6px;height:6px;flex:0 0 6px;border-radius:50%;
+  background:#9e8296;box-shadow:0 0 7px rgba(180,139,168,.6)
+}
+.bloom-hand-preview-state.detected{color:#e9c7d8}
+.bloom-hand-preview-state.detected i{
+  background:#f0aeca;box-shadow:0 0 9px rgba(240,174,202,.85)
+}
+@media(max-width:700px){
+  .bloom-hand-preview{
+    right:12px;
+    bottom:calc(88px + env(safe-area-inset-bottom));
+    width:146px;
+    padding:8px 8px 7px;
+    border-radius:15px;
+  }
+  .bloom-hand-preview-heading{font-size:10px}
+  .bloom-hand-preview-heading small{font-size:7px}
+  .bloom-hand-preview-canvas{height:88px;border-radius:8px}
+  .bloom-hand-preview-state{font-size:8px;margin-top:6px}
+}
+@media(max-width:700px) and (orientation:landscape){
+  .bloom-hand-preview{
+    right:12px;
+    bottom:calc(76px + env(safe-area-inset-bottom));
+    width:132px;
+    padding:7px;
+  }
+  .bloom-hand-preview-canvas{height:72px}
+  .bloom-hand-preview-state{font-size:7px}
+}
+
+
+/* Recognition UI: compact, subtle candidate controls; keep the bottom-right hand preview clear. */
+.bloom-page.tool-write .bloom-ink-canvas{opacity:0!important}
+.bloom-ink-tools{
+  left:clamp(16px,3vw,40px);
+  right:clamp(196px,22vw,260px);
+  transform:none;
+  max-width:none;
+  justify-content:flex-start;
+  flex-wrap:wrap;
+  border-radius:20px;
+}
+.bloom-ink-status{
+  display:flex;
+  flex-direction:column;
+  align-items:flex-start;
+  gap:3px;
+  white-space:normal;
+}
+.bloom-ink-status small{
+  color:#9e879a;
+  font:8px Inter,"Noto Sans SC",sans-serif;
+  letter-spacing:.25px;
+}
+.bloom-ink-candidates{display:flex;align-items:center;gap:4px;padding:0 3px}
+.bloom-ink-candidates span{color:#ae98a8;font:9px "Noto Sans SC",sans-serif;white-space:nowrap}
+.bloom-ink-candidates button{
+  min-width:28px;width:28px;height:28px;padding:0!important;border-radius:9px!important;
+  font:15px "Noto Sans SC",sans-serif!important
+}
+.bloom-ink-candidates button.selected{
+  background:rgba(241,182,207,.22);color:#ffe5f0;
+  border-color:rgba(244,184,211,.44);box-shadow:0 0 14px rgba(231,140,180,.15)
+}
+.bloom-ink-tools .bloom-ink-confirm{
+  border-color:rgba(243,187,211,.34);
+  background:linear-gradient(135deg,rgba(225,151,184,.24),rgba(245,207,204,.13));
+  color:#ffe8f0
+}
+.bloom-ink-word{
+  color:#f5cddd;font:13px "Noto Sans SC",sans-serif;letter-spacing:2px;padding:0 4px;
+  text-shadow:0 0 12px rgba(232,148,183,.3)
+}
+@media(max-width:700px){
+  .bloom-ink-tools{
+    left:12px;right:164px;bottom:calc(12px + env(safe-area-inset-bottom));
+    max-width:none;gap:4px;padding:7px;border-radius:17px
+  }
+  .bloom-ink-status{max-width:100%;font-size:8px}
+  .bloom-ink-status small{font-size:7px}
+  .bloom-ink-candidates{gap:3px}
+  .bloom-ink-candidates button{min-width:25px;width:25px;height:25px;font-size:13px!important}
+  .bloom-ink-tools button{padding:7px 9px;font-size:8px}
+  .bloom-ink-word{font-size:11px;letter-spacing:1px}
+}
+@media(max-width:700px) and (orientation:landscape){
+  .bloom-ink-tools{
+    left:12px;right:150px;bottom:calc(10px + env(safe-area-inset-bottom));
+    gap:3px;padding:6px
+  }
+  .bloom-hand-preview{
+    right:10px;bottom:calc(72px + env(safe-area-inset-bottom));width:128px
+  }
+}
+
+
+/* Air Ink：骨骼预览固定右上角；底部工具栏不再为右下角预览预留空位。 */
+.bloom-hand-preview{
+  top:calc(64px + env(safe-area-inset-top));
+  bottom:auto;
+  right:clamp(14px,2.4vw,28px);
+}
+.bloom-ink-tools{right:clamp(16px,3vw,40px)}
+.bloom-ink-tools .bloom-ink-rewrite{
+  border-color:rgba(255,226,238,.24);
+  background:rgba(255,255,255,.055);
+  color:#f2d9e5;
+}
+@media(max-width:700px){
+  .bloom-hand-preview{
+    top:calc(58px + env(safe-area-inset-top));
+    bottom:auto;
+    right:12px;
+    width:146px;
+  }
+  .bloom-ink-tools{right:12px}
+}
+@media(max-width:700px) and (orientation:landscape){
+  .bloom-hand-preview{
+    top:calc(54px + env(safe-area-inset-top));
+    bottom:auto;
+    right:10px;
+    width:128px;
+  }
+  .bloom-ink-tools{right:12px}
+}
+
+
+/* BLOOM STUDIO：外层只负责设置；点击主按钮后才进入真正的沉浸体验。 */
+.bloom-page:not(.is-active) .bloom-intro.bloom-control-panel{
+  top:auto;
+  left:clamp(18px,5vw,76px);
+  right:auto;
+  bottom:calc(22px + env(safe-area-inset-bottom));
+  width:min(520px,calc(100vw - 36px));
+  max-width:none;
+  max-height:calc(100dvh - 112px - env(safe-area-inset-top));
+  overflow-y:auto;
+  overscroll-behavior:contain;
+  padding:clamp(20px,3vw,30px);
+  border:1px solid rgba(255,226,239,.2);
+  border-radius:28px;
+  background:
+    radial-gradient(ellipse at 12% 0%,rgba(224,130,174,.15),transparent 46%),
+    linear-gradient(145deg,rgba(24,14,27,.88),rgba(14,10,20,.78));
+  box-shadow:0 24px 80px rgba(0,0,0,.34),inset 0 1px 0 rgba(255,255,255,.075);
+  backdrop-filter:blur(28px) saturate(1.18);
+  -webkit-backdrop-filter:blur(28px) saturate(1.18);
+  pointer-events:auto;
+  transform:none;
+  scrollbar-width:thin;
+  scrollbar-color:rgba(236,170,199,.35) transparent;
+  touch-action:pan-y;
+}
+.bloom-control-panel .bloom-kicker{
+  margin-bottom:10px;
+  color:#e9a8c4;
+  font-size:8px;
+  letter-spacing:2.8px;
+}
+.bloom-control-panel h1{
+  margin:0 0 7px;
+  font-size:clamp(24px,3vw,34px);
+  letter-spacing:1.5px;
+  line-height:1.28;
+}
+.bloom-control-panel>p{
+  max-width:440px;
+  color:#cdbbc8;
+  font:11px/1.8 Inter,"Noto Sans SC",sans-serif;
+  letter-spacing:.3px;
+}
+.bloom-tool-picker{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:5px;
+  margin:17px 0 16px;
+  padding:4px;
+  border:1px solid rgba(255,255,255,.1);
+  border-radius:15px;
+  background:rgba(0,0,0,.18);
+}
+.bloom-tool-picker button{
+  min-height:37px;
+  border:0;
+  border-radius:11px;
+  background:transparent;
+  color:#bca9b8;
+  font:11px "Noto Sans SC",sans-serif;
+  letter-spacing:1px;
+  cursor:pointer;
+  transition:background .2s,color .2s,box-shadow .2s;
+}
+.bloom-tool-picker button.active{
+  color:#321a29;
+  background:linear-gradient(135deg,#f9e3eb,#dda2bd);
+  box-shadow:0 4px 18px rgba(214,126,166,.18);
+}
+.bloom-settings-grid{
+  display:grid;
+  grid-template-columns:1fr;
+  gap:13px;
+}
+.bloom-setting{
+  display:block;
+  padding:0 2px;
+}
+.bloom-setting>span{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  color:#f4e7ef;
+  font:11px "Noto Sans SC",sans-serif;
+}
+.bloom-setting>span b{font-weight:500;letter-spacing:.5px}
+.bloom-setting output{
+  color:#f2bfd3;
+  font:12px/1 Inter,Arial,sans-serif;
+  font-variant-numeric:tabular-nums;
+}
+.bloom-setting input[type=range]{
+  display:block;
+  width:100%;
+  height:18px;
+  margin:7px 0 1px;
+  accent-color:#e5a2be;
+  cursor:pointer;
+}
+.bloom-setting small{
+  display:block;
+  color:#998998;
+  font:8px/1.45 Inter,"Noto Sans SC",sans-serif;
+  letter-spacing:.2px;
+}
+.bloom-settings-footer{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  margin-top:15px;
+  color:#bba9b8;
+  font:9px Inter,"Noto Sans SC",sans-serif;
+}
+.bloom-settings-footer>span{white-space:nowrap;letter-spacing:.4px}
+.bloom-settings-footer>small{
+  min-width:42px;
+  color:#e8bfd1;
+  text-align:right;
+  font:9px Inter,Arial,sans-serif;
+  font-variant-numeric:tabular-nums;
+}
+.bloom-setting-fps{
+  display:flex;
+  align-items:center;
+  flex-wrap:wrap;
+  gap:3px;
+  padding:3px;
+  border:1px solid rgba(255,255,255,.1);
+  border-radius:99px;
+  background:rgba(0,0,0,.17);
+}
+.bloom-setting-fps button{
+  min-width:31px;
+  min-height:25px;
+  padding:0 8px;
+  border:0;
+  border-radius:99px;
+  background:transparent;
+  color:#b9a8b7;
+  font:8px Inter,"Noto Sans SC",sans-serif;
+  cursor:pointer;
+}
+.bloom-setting-fps button.active{
+  color:#2b1624;
+  background:#eac1d2;
+}
+.bloom-orientation-row{margin-top:10px}
+.bloom-start-actions{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  gap:8px;
+  align-items:stretch;
+  margin-top:18px;
+}
+.bloom-control-panel .bloom-immersive-start{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  flex-direction:column;
+  gap:3px;
+  min-height:54px;
+  padding:7px 18px;
+  border-radius:16px;
+  font-size:14px;
+  letter-spacing:1.7px;
+  box-shadow:0 10px 30px rgba(213,126,164,.22),inset 0 1px 0 rgba(255,255,255,.5);
+}
+.bloom-immersive-start span{
+  color:rgba(49,24,40,.68);
+  font:8px Inter,"Noto Sans SC",sans-serif;
+  letter-spacing:1px;
+}
+.bloom-control-panel .bloom-preview-start{
+  min-height:54px;
+  padding:0 13px;
+  border-radius:16px;
+  font-size:9px;
+  letter-spacing:.5px;
+}
+.bloom-control-panel .bloom-privacy{
+  margin-top:10px;
+  color:#998998;
+  font-size:8px;
+  line-height:1.6;
+}
+.bloom-page:not(.is-active) .bloom-hud,
+.bloom-page:not(.is-active) .bloom-steps,
+.bloom-page:not(.is-active) .bloom-side-note,
+.bloom-page:not(.is-active) .bloom-mode-switch{
+  display:none!important;
+}
+@media(min-width:900px){
+  .bloom-page:not(.is-active) .bloom-intro.bloom-control-panel{
+    top:50%;
+    bottom:auto;
+    left:clamp(26px,5vw,84px);
+    width:min(470px,40vw);
+    max-height:calc(100dvh - 130px);
+    transform:translateY(-50%);
+  }
+}
+@media(max-width:700px){
+  .bloom-page:not(.is-active) .bloom-intro.bloom-control-panel{
+    left:12px;
+    right:12px;
+    bottom:calc(12px + env(safe-area-inset-bottom));
+    width:auto;
+    max-height:66dvh;
+    padding:18px 17px 16px;
+    border-radius:23px;
+  }
+  .bloom-control-panel h1{font-size:25px;letter-spacing:.8px}
+  .bloom-control-panel>p{font-size:10px;line-height:1.65}
+  .bloom-tool-picker{margin:12px 0}
+  .bloom-settings-grid{gap:9px}
+  .bloom-setting>span{font-size:10px}
+  .bloom-setting small{font-size:7px}
+  .bloom-settings-footer{margin-top:10px}
+  .bloom-start-actions{margin-top:13px;grid-template-columns:minmax(0,1fr) auto}
+  .bloom-control-panel .bloom-immersive-start{min-height:50px;font-size:12px}
+  .bloom-control-panel .bloom-preview-start{min-height:50px;padding:0 10px;font-size:8px}
+}
+@media(max-width:700px) and (orientation:landscape){
+  .bloom-page:not(.is-active) .bloom-intro.bloom-control-panel{
+    top:calc(58px + env(safe-area-inset-top));
+    bottom:calc(10px + env(safe-area-inset-bottom));
+    left:12px;
+    right:auto;
+    width:min(390px,53vw);
+    max-height:none;
+    padding:13px 15px;
+    transform:none;
+  }
+  .bloom-control-panel h1{font-size:21px}
+  .bloom-control-panel>p{font-size:9px}
+  .bloom-settings-grid{gap:7px}
+  .bloom-setting input[type=range]{height:14px;margin:4px 0 0}
+  .bloom-setting small{font-size:6px}
+  .bloom-settings-footer{margin-top:7px}
+  .bloom-start-actions{margin-top:8px}
+  .bloom-control-panel .bloom-immersive-start,.bloom-control-panel .bloom-preview-start{min-height:43px}
+}
+
+
+/* 花冠触碰反馈：手指命中哪一瓣，就让该瓣粒子向花心收拢。 */
+.bloom-page.is-active:not(.tool-write) .bloom-bloom-progress{
+  display:block!important;
+  position:absolute;
+  z-index:28;
+  left:clamp(18px,3vw,36px);
+  right:auto;
+  bottom:calc(20px + env(safe-area-inset-bottom));
+  width:205px;
+  padding:12px 14px 11px;
+  border:1px solid rgba(255,225,239,.2);
+  border-radius:16px;
+  background:linear-gradient(145deg,rgba(30,15,29,.62),rgba(17,10,20,.48));
+  box-shadow:0 12px 32px rgba(0,0,0,.2),inset 0 1px 0 rgba(255,255,255,.06);
+  backdrop-filter:blur(18px);
+  -webkit-backdrop-filter:blur(18px);
+  pointer-events:none;
+}
+.bloom-bloom-progress .bloom-hud-label{
+  color:#e5a6c2;
+  font-size:8px;
+  letter-spacing:1.8px;
+}
+.bloom-bloom-progress .bloom-hud-state{
+  margin-top:7px;
+  font-size:14px;
+  color:#fff0f5;
+}
+.bloom-bloom-progress .bloom-hud-number{
+  top:20px;
+  right:13px;
+  font-size:25px;
+}
+.bloom-bloom-progress .bloom-progress{
+  margin-top:9px;
+  height:3px;
+  border-radius:99px;
+  background:rgba(255,255,255,.16);
+  overflow:hidden;
+}
+.bloom-bloom-progress .bloom-progress span{
+  border-radius:inherit;
+  background:linear-gradient(90deg,#ffe3c7,#f5b2d0,#e879ad);
+  box-shadow:0 0 10px rgba(243,159,193,.6);
+}
+.bloom-bloom-progress .bloom-hud-meta{margin-top:7px;font-size:7px}
+.bloom-page.tool-write.is-active .bloom-bloom-progress{display:none!important}
+
+/* 空中书写是独立入口，不在花朵的模式选择器里。 */
+.bloom-air-ink-launch{
+  width:100%;
+  display:flex;
+  align-items:center;
+  gap:12px;
+  margin-top:10px;
+  padding:12px 15px;
+  border:1px solid rgba(240,192,215,.18);
+  border-radius:16px;
+  color:#f2dce8;
+  background:linear-gradient(110deg,rgba(230,167,197,.09),rgba(255,255,255,.025));
+  text-align:left;
+  cursor:pointer;
+  transition:background .2s,border-color .2s,transform .2s;
+}
+.bloom-air-ink-launch:active{
+  transform:scale(.985);
+  background:rgba(236,177,207,.13);
+  border-color:rgba(240,192,215,.34);
+}
+.bloom-air-ink-icon{
+  display:grid;
+  place-items:center;
+  width:34px;
+  height:34px;
+  flex:0 0 34px;
+  border:1px solid rgba(242,190,214,.22);
+  border-radius:11px;
+  color:#f4bad3;
+  background:rgba(236,169,202,.1);
+  font:20px/1 Inter,Arial,sans-serif;
+}
+.bloom-air-ink-launch>span:nth-child(2){display:flex;flex:1;flex-direction:column;gap:4px}
+.bloom-air-ink-launch b{
+  color:#f7e8f0;
+  font:11px "Noto Sans SC",sans-serif;
+  font-weight:500;
+  letter-spacing:.8px;
+}
+.bloom-air-ink-launch small{
+  color:#a993a5;
+  font:8px Inter,"Noto Sans SC",sans-serif;
+  letter-spacing:.2px;
+}
+.bloom-air-ink-arrow{color:#d7a7bf;font:17px Inter,Arial,sans-serif}
+@media(max-width:700px){
+  .bloom-page.is-active:not(.tool-write) .bloom-bloom-progress{
+    left:14px;
+    bottom:calc(16px + env(safe-area-inset-bottom));
+    width:164px;
+    padding:10px 11px;
+    border-radius:14px;
+  }
+  .bloom-bloom-progress .bloom-hud-number{top:19px;right:11px;font-size:23px}
+  .bloom-bloom-progress .bloom-hud-state{font-size:12px}
+  .bloom-bloom-progress .bloom-hud-meta{font-size:6px}
+  .bloom-air-ink-launch{margin-top:8px;padding:10px 12px}
+  .bloom-air-ink-icon{width:30px;height:30px;flex-basis:30px}
+}
+@media(max-width:700px) and (orientation:landscape){
+  .bloom-page.is-active:not(.tool-write) .bloom-bloom-progress{
+    left:14px;
+    right:auto;
+    bottom:calc(14px + env(safe-area-inset-bottom));
+    width:154px;
+  }
+}
+
+
+/* BLOOM STUDIO refinement: quality presets, focused HUD and live device telemetry. */
+.bloom-quality-presets{
+  display:flex;
+  align-items:center;
+  flex-wrap:wrap;
+  gap:5px;
+  margin:13px 0 15px;
+  padding:8px 9px;
+  border:1px solid rgba(255,255,255,.1);
+  border-radius:15px;
+  background:rgba(0,0,0,.16);
+}
+.bloom-quality-presets>span{
+  margin-right:auto;
+  color:#cdbac8;
+  font:9px "Noto Sans SC",sans-serif;
+  letter-spacing:.5px;
+}
+.bloom-quality-presets button{
+  min-height:28px;
+  padding:0 10px;
+  border:1px solid rgba(255,255,255,.1);
+  border-radius:999px;
+  background:rgba(255,255,255,.035);
+  color:#c5b1c0;
+  font:9px "Noto Sans SC",sans-serif;
+  cursor:pointer;
+  transition:background .2s,border-color .2s,color .2s,transform .2s;
+}
+.bloom-quality-presets button.active{
+  border-color:rgba(244,190,215,.35);
+  color:#ffeaf2;
+  background:linear-gradient(120deg,rgba(231,163,194,.24),rgba(255,237,229,.12));
+  box-shadow:0 0 16px rgba(226,143,181,.1),inset 0 1px 0 rgba(255,255,255,.08);
+}
+.bloom-quality-presets button:active{transform:scale(.96)}
+.bloom-focus-toggle{
+  position:absolute;
+  z-index:36;
+  top:calc(13px + env(safe-area-inset-top));
+  left:calc(13px + env(safe-area-inset-left));
+  min-height:34px;
+  padding:0 13px;
+  border:1px solid rgba(255,231,241,.2);
+  border-radius:999px;
+  color:#f5e2eb;
+  background:rgba(27,16,29,.45);
+  box-shadow:0 8px 24px rgba(0,0,0,.14),inset 0 1px 0 rgba(255,255,255,.07);
+  backdrop-filter:blur(18px);
+  -webkit-backdrop-filter:blur(18px);
+  font:10px "Noto Sans SC",sans-serif;
+  letter-spacing:.6px;
+  cursor:pointer;
+  transition:background .2s,border-color .2s,opacity .2s;
+}
+.bloom-focus-toggle:active{background:rgba(230,164,195,.24)}
+.bloom-telemetry{
+  position:absolute;
+  z-index:27;
+  top:calc(16px + env(safe-area-inset-top));
+  left:50%;
+  transform:translateX(-50%);
+  display:flex;
+  align-items:center;
+  gap:9px;
+  max-width:calc(100vw - 150px);
+  padding:8px 12px;
+  border:1px solid rgba(255,231,241,.12);
+  border-radius:999px;
+  color:rgba(246,226,237,.72);
+  background:rgba(23,14,26,.32);
+  backdrop-filter:blur(14px);
+  -webkit-backdrop-filter:blur(14px);
+  font:9px/1 Inter,"Noto Sans SC",sans-serif;
+  white-space:nowrap;
+  pointer-events:none;
+  transition:opacity .25s,transform .25s;
+}
+.bloom-telemetry i{
+  width:3px;height:3px;flex:0 0 3px;border-radius:50%;
+  background:rgba(243,179,207,.65);
+  box-shadow:0 0 7px rgba(243,179,207,.55);
+}
+.bloom-page.is-focused .bloom-hud,
+.bloom-page.is-focused .bloom-steps,
+.bloom-page.is-focused .bloom-side-note,
+.bloom-page.is-focused .bloom-telemetry{
+  opacity:0!important;
+  visibility:hidden!important;
+  pointer-events:none!important;
+}
+.bloom-page.is-focused .bloom-focus-toggle{
+  opacity:.22;
+  background:rgba(20,13,22,.18);
+}
+.bloom-page.is-focused .bloom-focus-toggle:active{opacity:1}
+.bloom-page.tool-write .bloom-telemetry{top:auto;bottom:calc(18px + env(safe-area-inset-bottom))}
+@media(max-width:700px){
+  .bloom-quality-presets{gap:4px;margin:10px 0 12px;padding:7px}
+  .bloom-quality-presets>span{width:100%;margin:0 0 2px}
+  .bloom-quality-presets button{flex:1;min-width:0;padding:0 7px;font-size:8px}
+  .bloom-focus-toggle{
+    top:calc(10px + env(safe-area-inset-top));
+    left:calc(10px + env(safe-area-inset-left));
+    min-height:30px;padding:0 10px;font-size:9px
+  }
+  .bloom-telemetry{
+    top:calc(12px + env(safe-area-inset-top));
+    gap:6px;padding:7px 9px;font-size:8px;
+    max-width:calc(100vw - 130px)
+  }
+  .bloom-page.tool-write .bloom-telemetry{
+    left:12px;right:auto;bottom:calc(12px + env(safe-area-inset-bottom));
+    top:auto;transform:none;max-width:calc(100vw - 24px)
+  }
+}
+@media(max-width:700px) and (orientation:landscape){
+  .bloom-quality-presets{margin:7px 0 8px;padding:6px}
+  .bloom-quality-presets>span{width:auto;margin:0 5px 0 0}
+  .bloom-quality-presets button{flex:0 0 auto;min-height:25px}
+}
+@media(prefers-reduced-motion:reduce){
+  .bloom-quality-presets button,.bloom-focus-toggle,.bloom-telemetry{transition:none}
+}
+
+
+/* Air Ink draws into the main canvas; keep that canvas visible in writing mode. */
+.bloom-page.tool-write .bloom-canvas{
+  opacity:1!important;
+  visibility:visible!important;
+  z-index:2!important;
+}
+
+
+/* Art Studio v2 — responsive creator controls, four palettes, and local作品管理. */
+.bloom-theme-picker{
+  display:flex;align-items:center;flex-wrap:wrap;gap:6px;
+  margin:12px 0 14px;padding:9px;
+  border:1px solid rgba(255,255,255,.1);border-radius:15px;background:rgba(0,0,0,.15)
+}
+.bloom-theme-picker>span{width:100%;color:#cdbac8;font:9px "Noto Sans SC",sans-serif;letter-spacing:.6px}
+.bloom-theme-picker button{
+  flex:1;min-width:0;min-height:31px;padding:0 9px;border:1px solid rgba(255,255,255,.12);
+  border-radius:10px;background:rgba(255,255,255,.035);color:#c9b8c4;
+  font:9px "Noto Sans SC",sans-serif;white-space:nowrap;cursor:pointer;
+  transition:background .2s,border-color .2s,color .2s,transform .2s
+}
+.bloom-theme-picker button.active{color:#fff2f7;border-color:rgba(255,220,238,.42);background:rgba(230,164,196,.2);box-shadow:inset 0 1px 0 rgba(255,255,255,.08)}
+.bloom-theme-picker button.theme-gold.active{border-color:rgba(255,220,150,.48);background:rgba(217,165,77,.2)}
+.bloom-theme-picker button.theme-blue.active{border-color:rgba(151,219,255,.48);background:rgba(91,166,223,.2)}
+.bloom-theme-picker button.theme-glass.active{border-color:rgba(195,238,239,.48);background:rgba(150,205,211,.18)}
+.bloom-theme-picker button:active{transform:scale(.96)}
+.bloom-signature-field{display:grid;grid-template-columns:72px minmax(0,1fr);align-items:center;gap:8px;margin-top:13px}
+.bloom-signature-field>span{color:#cbb8c7;font:9px "Noto Sans SC",sans-serif}
+.bloom-signature-field input{
+  min-width:0;width:100%;height:34px;padding:0 11px;border:1px solid rgba(255,255,255,.13);
+  border-radius:11px;outline:none;color:#f6e6ef;background:rgba(0,0,0,.18);
+  font:10px "Noto Sans SC",sans-serif
+}
+.bloom-signature-field input:focus{border-color:rgba(241,180,207,.48);box-shadow:0 0 0 3px rgba(228,155,188,.08)}
+.bloom-signature-field input::placeholder{color:#887887}
+.bloom-auto-demo{
+  width:100%;min-height:38px;margin-top:9px;border:1px solid rgba(242,190,214,.2);
+  border-radius:13px;color:#f5dce9;background:linear-gradient(100deg,rgba(231,159,194,.14),rgba(255,255,255,.035));
+  font:10px "Noto Sans SC",sans-serif;letter-spacing:.7px;cursor:pointer
+}
+.bloom-artwork-library{margin-top:16px;padding-top:13px;border-top:1px solid rgba(255,255,255,.1)}
+.bloom-artwork-library-title{display:flex;justify-content:space-between;align-items:center;margin-bottom:9px;color:#eddae5;font:10px "Noto Sans SC",sans-serif}
+.bloom-artwork-library-title small{color:#a88fa1;font:9px Inter,Arial,sans-serif}
+.bloom-artwork-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px}
+.bloom-artwork-grid a{display:block;min-width:0;color:#d4c0ce;text-decoration:none;font:8px "Noto Sans SC",sans-serif}
+.bloom-artwork-grid img{display:block;width:100%;aspect-ratio:1;border:1px solid rgba(255,255,255,.12);border-radius:9px;object-fit:cover;background:#100b16}
+.bloom-artwork-grid span{display:block;overflow:hidden;margin-top:4px;text-overflow:ellipsis;white-space:nowrap}
+.bloom-art-actions{
+  position:absolute;z-index:29;right:clamp(16px,3vw,34px);bottom:calc(20px + env(safe-area-inset-bottom));
+  display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:6px;
+  max-width:min(560px,calc(100vw - 250px));pointer-events:auto
+}
+.bloom-art-actions button{
+  min-height:34px;padding:0 12px;border:1px solid rgba(255,228,239,.18);border-radius:999px;
+  color:#f4e0eb;background:rgba(28,16,29,.48);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+  font:9px "Noto Sans SC",sans-serif;cursor:pointer;transition:background .2s,border-color .2s
+}
+.bloom-art-actions button:active{background:rgba(232,161,195,.25)}
+.bloom-art-actions button.recording{border-color:rgba(255,130,154,.58);color:#ffe5eb;background:rgba(145,42,65,.48)}
+.bloom-art-actions small{flex-basis:100%;min-height:12px;color:rgba(246,218,233,.66);text-align:right;font:8px "Noto Sans SC",sans-serif}
+.bloom-page:not(.tool-write) .bloom-hud{bottom:calc(76px + env(safe-area-inset-bottom))}
+.bloom-page:not(.is-active) .bloom-intro.bloom-control-panel{
+  left:auto;right:clamp(24px,4vw,64px);width:min(440px,40vw);
+  top:50%;bottom:auto;max-height:calc(100dvh - 120px);transform:translateY(-50%)
+}
+.bloom-page:not(.is-active) .bloom-header{left:clamp(28px,5vw,76px);right:auto;top:clamp(32px,7vh,64px)}
+.bloom-page:not(.is-active) .bloom-canvas{opacity:1}
+@media(max-width:900px){
+  .bloom-page:not(.is-active) .bloom-intro.bloom-control-panel{
+    left:12px;right:12px;top:auto;bottom:calc(12px + env(safe-area-inset-bottom));
+    width:auto;max-height:69dvh;transform:none
+  }
+  .bloom-page:not(.is-active) .bloom-header{left:18px;right:18px;top:18px}
+  .bloom-art-actions{right:12px;left:12px;bottom:calc(12px + env(safe-area-inset-bottom));max-width:none;gap:5px}
+  .bloom-art-actions button{min-height:31px;padding:0 10px;font-size:8px}
+  .bloom-art-actions small{text-align:left}
+  .bloom-page:not(.tool-write) .bloom-hud{bottom:calc(62px + env(safe-area-inset-bottom))}
+}
+@media(max-width:700px){
+  .bloom-theme-picker{gap:4px;margin:9px 0 10px;padding:7px}
+  .bloom-theme-picker button{min-height:29px;padding:0 5px;font-size:8px}
+  .bloom-signature-field{grid-template-columns:58px minmax(0,1fr);margin-top:9px}
+  .bloom-signature-field input{height:32px;font-size:9px}
+  .bloom-auto-demo{min-height:35px}
+  .bloom-artwork-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:5px}
+  .bloom-artwork-grid span{font-size:7px}
+}
+@media(max-width:700px) and (orientation:landscape){
+  .bloom-page:not(.is-active) .bloom-intro.bloom-control-panel{
+    top:calc(54px + env(safe-area-inset-top));bottom:calc(8px + env(safe-area-inset-bottom));
+    right:10px;left:auto;width:min(390px,54vw);max-height:none;padding:12px 13px
+  }
+  .bloom-page:not(.is-active) .bloom-header{top:12px;left:14px}
+  .bloom-theme-picker{margin:6px 0;padding:5px}
+  .bloom-theme-picker button{min-height:24px}
+  .bloom-signature-field{margin-top:6px}
+  .bloom-auto-demo{min-height:29px;margin-top:6px}
+  .bloom-page:not(.tool-write) .bloom-hud{left:12px;bottom:calc(58px + env(safe-area-inset-bottom))}
+  .bloom-art-actions{left:12px;right:auto;bottom:calc(10px + env(safe-area-inset-bottom));max-width:48vw;justify-content:flex-start}
+  .bloom-art-actions button{min-height:27px;padding:0 8px}
+}
+@media(prefers-reduced-motion:reduce){
+  .bloom-theme-picker button,.bloom-art-actions button{transition:none}
+}
+
+
+.bloom-artwork-card{position:relative;min-width:0;padding-bottom:18px}
+.bloom-artwork-card>button{
+  position:absolute;right:2px;bottom:0;min-height:16px;padding:0 7px;
+  border:1px solid rgba(255,255,255,.09);border-radius:999px;
+  color:#b99eae;background:rgba(255,255,255,.045);font:7px "Noto Sans SC",sans-serif;cursor:pointer
+}
+.bloom-gesture-guide{
+  display:flex;align-items:center;justify-content:center;flex-wrap:wrap;
+  gap:7px 12px;max-width:min(920px,calc(100vw - 250px));
+  left:50%;right:auto;transform:translateX(-50%)
+}
+.bloom-gesture-guide>div{display:flex;align-items:center;gap:6px;white-space:nowrap}
+.bloom-gesture-guide>div b{color:#e9afc8;font:9px Inter,Arial,sans-serif}
+.bloom-gesture-guide>div span{color:#cdbbc9;font:9px "Noto Sans SC",sans-serif}
+.bloom-gesture-guide>i{width:3px;height:3px;flex:0 0 3px}
+@media(max-width:900px){
+  .bloom-gesture-guide{left:12px;right:12px;bottom:calc(56px + env(safe-area-inset-bottom));transform:none;max-width:none;gap:6px 9px}
+  .bloom-gesture-guide>div{gap:4px}
+  .bloom-gesture-guide>div span{font-size:8px}
+}
+@media(max-width:700px) and (orientation:portrait){
+  .bloom-gesture-guide{bottom:calc(58px + env(safe-area-inset-bottom));justify-content:flex-start;gap:5px 8px}
+  .bloom-gesture-guide>div b{font-size:8px}
+  .bloom-gesture-guide>div span{font-size:7px}
+  .bloom-art-actions{bottom:calc(12px + env(safe-area-inset-bottom))}
+  .bloom-page:not(.tool-write) .bloom-hud{bottom:calc(102px + env(safe-area-inset-bottom))}
+}
+@media(max-width:700px) and (orientation:landscape){
+  .bloom-gesture-guide{left:12px;right:12px;bottom:calc(49px + env(safe-area-inset-bottom));justify-content:flex-start}
+  .bloom-gesture-guide>div span{font-size:7px}
+  .bloom-artwork-card{padding-bottom:15px}
+}
+
+
+/* Fix visibility and theme consistency for the expanded flower controls. */
+.bloom-page.is-active:not(.is-focused) .bloom-gesture-guide{
+  display:flex!important;opacity:.82!important;visibility:visible!important;
+  transform:translateX(-50%)!important;pointer-events:none!important
+}
+.bloom-page.is-focused .bloom-art-actions,
+.bloom-page.is-focused .bloom-gesture-guide{
+  display:none!important;opacity:0!important;visibility:hidden!important;pointer-events:none!important
+}
+@media(max-width:900px){
+  .bloom-page.is-active:not(.is-focused) .bloom-gesture-guide{
+    transform:none!important;left:12px;right:12px;max-width:none
+  }
+}
+.bloom-page.theme-gold .bloom-bloom-progress .bloom-progress span{
+  background:linear-gradient(90deg,#fff0b7,#f5cd79,#d99a3c);
+  box-shadow:0 0 10px rgba(241,197,115,.55)
+}
+.bloom-page.theme-starsea .bloom-bloom-progress .bloom-progress span{
+  background:linear-gradient(90deg,#d8f8ff,#82d5f4,#788de8);
+  box-shadow:0 0 10px rgba(123,208,244,.55)
+}
+.bloom-page.theme-glass .bloom-bloom-progress .bloom-progress span{
+  background:linear-gradient(90deg,#efffff,#b8e4e8,#bdb2eb);
+  box-shadow:0 0 10px rgba(174,224,231,.55)
+}
+.bloom-page.theme-gold .bloom-bloom-progress .bloom-hud-state{color:#fff3cf}
+.bloom-page.theme-starsea .bloom-bloom-progress .bloom-hud-state{color:#e2f7ff}
+.bloom-page.theme-glass .bloom-bloom-progress .bloom-hud-state{color:#ecffff}

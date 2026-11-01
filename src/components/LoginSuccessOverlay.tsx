@@ -11,6 +11,7 @@ export default function LoginSuccessOverlay({ realName, durationMs, onDone }: Lo
   const reduce = useReducedMotion();
   const duration = reduce ? 0.16 : Math.min(3.4, Math.max(1.35, 0.9 + Math.max(0, durationMs) / 1000 * 0.35));
   const fadeAt = 0.76;
+  const maskedName = '*'.repeat(Math.max(1, Array.from(realName.trim()).length));
 
   return (
     <motion.div
@@ -73,12 +74,12 @@ export default function LoginSuccessOverlay({ realName, durationMs, onDone }: Lo
           }}
         >
           <span style={{ maxWidth: 230, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#245d68', fontSize: 17, fontWeight: 800, letterSpacing: '.04em' }}>
-            {realName || '同学'}
+            {maskedName}
           </span>
           <span title="隐私保护" aria-label="隐私保护" style={{ display: 'inline-flex', alignItems: 'center', color: '#438d91' }}>
             <svg width="19" height="19" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path d="M3 13c2.2-4.9 15.8-4.9 18 0" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-              <path d="M6 11.5 4.8 9.8M10 9.5 9.5 7.5M14 9.5l.5-2M18 11.5l1.2-1.7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+              <path d="M3 12c2.4 2.7 5.4 4 9 4s6.6-1.3 9-4" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" />
+              <path d="m7 8-1.2-1.5M12 7V5M17 8l1.2-1.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
             </svg>
           </span>
         </motion.div>

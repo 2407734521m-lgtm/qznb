@@ -12,9 +12,9 @@ type Particle = {
 type Mode = 'gesture' | 'demo';
 type ExperienceTool = 'flower' | 'write';
 type InkPoint = { x: number; y: number };
-type InkStroke = { points: InkPoint[] };
+type InkStroke = { points: InkPoint[]; liftedAt?: number };
 type HanziCandidate = { hanzi: string; score: number };
-type InkGlyph = { character: string; x: number; y: number; size: number };
+type InkGlyph = { character: string; strokes: InkStroke[] };
 type LayoutOrientation = 'portrait' | 'landscape';
 type FpsLimit = 30 | 60 | 90 | 120 | 0;
 
@@ -170,7 +170,6 @@ function drawSkeletonPreview(canvas: HTMLCanvasElement | null, landmarks: any[] 
 
 
 const HANZI_LOOKUP_BASE = 'https://cdn.jsdelivr.net/gh/gugray/hanzi_lookup@01f90c3ab99a8fadf0696c28e5eb097223c500db/web_demo';
-const glyphPointCache = new Map<string, InkPoint[]>();
 
 function makeHanziLookupWorker(): Worker {
   const source = `
@@ -216,111 +215,60 @@ function normalizeInkForRecognition(strokes: InkStroke[]) {
     ]));
 }
 
-function sampleGlyphPoints(character: string): InkPoint[] {
-  const cached = glyphPointCache.get(character);
-  if (cached) return cached;
-  const canvas = document.createElement('canvas');
-  canvas.width = 144; canvas.height = 144;
-  const ctx = canvas.getContext('2d', { willReadFrequently: true });
-  if (!ctx) return [];
-  ctx.fillStyle = '#fff';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.font = '600 116px "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif';
-  ctx.fillText(character, 72, 73, 126);
-  const data = ctx.getImageData(0, 0, 144, 144).data;
-  const points: InkPoint[] = [];
-  for (let y = 8; y < 136; y += 3) {
-    for (let x = 8; x < 136; x += 3) {
-      if (data[(y * 144 + x) * 4 + 3] > 150) points.push({ x: x / 144 - 0.5, y: y / 144 - 0.5 });
-    }
-  }
-  glyphPointCache.set(character, points);
-  return points;
-}
-
-function drawRaisedGlyph(ctx: CanvasRenderingContext2D, character: string, cx: number, cy: number, size: number, alpha: number, time: number) {
-  if (!character || alpha <= 0) return;
-  const points = sampleGlyphPoints(character);
-  if (!points.length) return;
-  ctx.save();
-  for (let i = 0; i < points.length; i++) {
-    const point = points[i];
-    const phase = i * 0.37 + time * 1.1;
-    const z = 1.0 + (0.5 + 0.5 * Math.sin(phase)) * 1.6;
-    const x = cx + point.x * size + Math.sin(phase * 0.43) * 0.35;
-    const y = cy + point.y * size;
-    const hue = clamp((point.x + 0.5) * 1.1, 0, 1);
-    const r = Math.round(248 - hue * 19), g = Math.round(221 - hue * 91), b = Math.round(190 + hue * 16);
-    ctx.globalAlpha = alpha * 0.20;
-    ctx.fillStyle = 'rgba(23,10,25,.9)';
-    ctx.beginPath(); ctx.arc(x + 0.2, y + z * 1.25, 1.05, 0, Math.PI * 2); ctx.fill();
-    ctx.globalAlpha = alpha * (0.52 + Math.sin(phase) * 0.08);
-    ctx.fillStyle = 'rgba(' + r + ',' + g + ',' + b + ',.92)';
-    ctx.beginPath(); ctx.arc(x, y - z * 0.55, 1.02 + z * 0.12, 0, Math.PI * 2); ctx.fill();
-    ctx.globalAlpha = alpha * 0.55;
-    ctx.fillStyle = 'rgba(255,248,235,.92)';
-    ctx.beginPath(); ctx.arc(x - 0.28, y - z, 0.42, 0, Math.PI * 2); ctx.fill();
-  }
-  ctx.restore();
-}
-
-function drawAirInkScene(ctx: CanvasRenderingContext2D, strokes: InkStroke[], committed: InkGlyph[], candidate: string, width: number, height: number, time: number, candidateStartedAt: number) {
+function drawAirInkScene(ctx: CanvasRenderingContext2D, strokes: InkStroke[], committed: InkGlyph[], width: number, height: number, time: number) {
   ctx.save();
   ctx.globalCompositeOperation = 'source-over';
-  for (const glyph of committed) drawRaisedGlyph(ctx, glyph.character, glyph.x, glyph.y, glyph.size, 0.95, time);
-
-  for (let strokeIndex = 0; strokeIndex < strokes.length; strokeIndex++) {
-    const points = strokes[strokeIndex].points;
-    if (!points.length) continue;
-    let dotIndex = 0;
-    const drawDot = (x: number, y: number) => {
-      const phase = time * 1.4 + dotIndex++ * 0.21 + strokeIndex * 2.1;
-      const lift = 1.1 + (0.5 + 0.5 * Math.sin(phase)) * 1.2;
-      const tone = (dotIndex % 7) / 6;
-      const r = Math.round(250 - tone * 18), g = Math.round(220 - tone * 70), b = Math.round(190 + tone * 18);
-      ctx.globalAlpha = 0.25;
-      ctx.fillStyle = 'rgba(20,10,24,.65)';
-      ctx.beginPath(); ctx.arc(x + 0.3, y + lift * 1.3, 1.3, 0, Math.PI * 2); ctx.fill();
-      ctx.globalAlpha = 0.82;
-      ctx.fillStyle = 'rgba(' + r + ',' + g + ',' + b + ',.9)';
-      ctx.beginPath(); ctx.arc(x, y - lift * 0.45, 1.25, 0, Math.PI * 2); ctx.fill();
-      ctx.globalAlpha = 0.52;
-      ctx.fillStyle = 'rgba(255,247,233,.9)';
-      ctx.beginPath(); ctx.arc(x - 0.25, y - lift, 0.48, 0, Math.PI * 2); ctx.fill();
-    };
-    if (points.length === 1) drawDot(points[0].x, points[0].y);
-    for (let i = 1; i < points.length; i++) {
-      const a = points[i - 1], b = points[i];
-      const length = Math.hypot(b.x - a.x, b.y - a.y);
-      const steps = Math.max(1, Math.ceil(length / 5.5));
-      for (let step = 0; step <= steps; step++) {
-        const t = step / steps;
-        drawDot(a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t);
+  // Draw original handwritten strokes only; never replace them with a typeset glyph.
+  const drawStrokeCollection = (items: InkStroke[], groupOffset: number) => {
+    for (let strokeIndex = 0; strokeIndex < items.length; strokeIndex++) {
+      const stroke = items[strokeIndex];
+      const points = stroke.points;
+      if (!points.length) continue;
+      const rawProgress = stroke.liftedAt === undefined ? 0 : clamp((time - stroke.liftedAt) / 1.35, 0, 1);
+      const liftProgress = rawProgress * rawProgress * (3 - 2 * rawProgress);
+      let dotIndex = 0;
+      const drawDot = (x: number, y: number) => {
+        const phase = time * 1.15 + dotIndex++ * 0.19 + (strokeIndex + groupOffset) * 2.1;
+        const depthWave = 0.5 + 0.5 * Math.sin(phase);
+        const elevation = liftProgress * (4.5 + depthWave * 2.2);
+        const drift = Math.sin(phase * 0.47) * liftProgress * 0.45;
+        const tone = (dotIndex % 7) / 6;
+        const r = Math.round(250 - tone * 18), g = Math.round(220 - tone * 70), b = Math.round(190 + tone * 18);
+        ctx.globalAlpha = 0.12 + liftProgress * 0.12;
+        ctx.fillStyle = 'rgba(20,10,24,.72)';
+        ctx.beginPath(); ctx.arc(x + 0.4, y + elevation + 2.0, 1.25, 0, Math.PI * 2); ctx.fill();
+        ctx.globalAlpha = 0.72 + liftProgress * 0.12;
+        ctx.fillStyle = 'rgba(' + r + ',' + g + ',' + b + ',.94)';
+        ctx.beginPath(); ctx.arc(x + drift, y - elevation * 0.58, 1.05 + liftProgress * 0.34, 0, Math.PI * 2); ctx.fill();
+        ctx.globalAlpha = 0.38 + liftProgress * 0.22;
+        ctx.fillStyle = 'rgba(255,247,233,.96)';
+        ctx.beginPath(); ctx.arc(x - 0.28, y - elevation - 0.65, 0.38 + liftProgress * 0.12, 0, Math.PI * 2); ctx.fill();
+        if (liftProgress > 0.72 && dotIndex % 11 === 0) {
+          ctx.globalAlpha = (liftProgress - 0.72) * 0.8;
+          ctx.fillStyle = 'rgba(255,224,239,.9)';
+          ctx.beginPath(); ctx.arc(x + Math.sin(phase) * 2.2, y - elevation - 3.2, 0.55, 0, Math.PI * 2); ctx.fill();
+        }
+      };
+      if (points.length === 1) drawDot(points[0].x, points[0].y);
+      for (let i = 1; i < points.length; i++) {
+        const a = points[i - 1], b = points[i];
+        const length = Math.hypot(b.x - a.x, b.y - a.y);
+        const steps = Math.max(1, Math.ceil(length / 5.5));
+        for (let step = 0; step <= steps; step++) {
+          const t = step / steps;
+          drawDot(a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t);
+        }
       }
     }
-  }
-
-  if (candidate && strokes.length) {
-    const points = strokes.flatMap(stroke => stroke.points);
-    if (points.length) {
-      const minX = Math.min(...points.map(point => point.x));
-      const maxX = Math.max(...points.map(point => point.x));
-      const minY = Math.min(...points.map(point => point.y));
-      const maxY = Math.max(...points.map(point => point.y));
-      const span = Math.max(56, Math.min(150, Math.max(maxX - minX, maxY - minY) * 0.9));
-      const progress = clamp((time - candidateStartedAt) / 1.5, 0, 1);
-      drawRaisedGlyph(ctx, candidate, (minX + maxX) * 0.5, (minY + maxY) * 0.5, span, 0.28 * progress, time);
-    }
-  }
-
+  };
+  committed.forEach((glyph, index) => drawStrokeCollection(glyph.strokes, index * 17 + 11));
+  drawStrokeCollection(strokes, committed.length * 17);
   ctx.globalAlpha = 0.18;
   ctx.strokeStyle = 'rgba(246,190,214,.28)';
   ctx.lineWidth = 0.7;
   ctx.beginPath(); ctx.moveTo(width * 0.18, height * 0.84); ctx.lineTo(width * 0.82, height * 0.84); ctx.stroke();
   ctx.restore();
 }
-
 function renderInkLayer(canvas: HTMLCanvasElement | null, width: number, height: number, strokes: InkStroke[]) {
   if (!canvas || width <= 0 || height <= 0) return;
   const ctx = canvas.getContext('2d');
@@ -390,11 +338,11 @@ export default function ParticleFlower() {
   const recognitionRequestIdRef = useRef(0);
   const recognizedCandidateRef = useRef('');
   const committedGlyphsRef = useRef<InkGlyph[]>([]);
-  const recognitionStartedAtRef = useRef(0);
   const [recognitionStatus, setRecognitionStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
   const [recognitionCandidates, setRecognitionCandidates] = useState<HanziCandidate[]>([]);
   const [recognizedCandidate, setRecognizedCandidate] = useState('');
   const [recognizedText, setRecognizedText] = useState('');
+  const [inkPhase, setInkPhase] = useState<'idle' | 'drawing' | 'lifting' | 'recognizing' | 'candidate' | 'unmatched'>('idle');
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const handsRef = useRef<any>(null);
@@ -435,6 +383,26 @@ export default function ParticleFlower() {
   const [hasHand, setHasHand] = useState(false);
   const lastHudRef = useRef(0);
 
+  const scheduleInkRecognition = useCallback(() => {
+    if (recognitionTimerRef.current) window.clearTimeout(recognitionTimerRef.current);
+    setInkPhase('lifting');
+    recognitionTimerRef.current = window.setTimeout(() => {
+      if (!recognitionReadyRef.current || recognitionBusyRef.current) {
+        if (!recognitionReadyRef.current) setInkPhase('unmatched');
+        return;
+      }
+      const normalizedStrokes = normalizeInkForRecognition(inkStrokesRef.current);
+      if (!normalizedStrokes.length) {
+        setInkPhase('idle');
+        return;
+      }
+      recognitionBusyRef.current = true;
+      setInkPhase('recognizing');
+      const requestId = ++recognitionRequestIdRef.current;
+      recognitionWorkerRef.current?.postMessage({ type: 'lookup', requestId, strokes: normalizedStrokes, limit: 8 });
+    }, 1550);
+  }, []);
+
   const stopCamera = useCallback(() => {
     if (cameraRafRef.current) cancelAnimationFrame(cameraRafRef.current);
     cameraRafRef.current = 0;
@@ -451,6 +419,7 @@ export default function ParticleFlower() {
     recognitionReadyRef.current = false;
     recognitionBusyRef.current = false;
     setRecognitionStatus('idle');
+    setInkPhase('idle');
     setCameraLive(false);
     setHasHand(false); hasHandRef.current = false;
     landmarksRef.current = null;
@@ -494,6 +463,7 @@ export default function ParticleFlower() {
     setRecognitionCandidates([]);
     setRecognizedCandidate('');
     setRecognizedText('');
+    setInkPhase('idle');
     setRecognitionStatus(tool === 'write' ? 'loading' : 'idle');
     if (tool === 'write') {
       inkStrokesRef.current = [];
@@ -515,17 +485,19 @@ export default function ParticleFlower() {
             const best = matches[0]?.hanzi || '';
             recognizedCandidateRef.current = best;
             setRecognizedCandidate(best);
-            recognitionStartedAtRef.current = performance.now() / 1000;
+            setInkPhase(best ? 'candidate' : 'unmatched');
           } else if (message.type === 'error') {
             recognitionBusyRef.current = false;
             recognitionReadyRef.current = false;
             setRecognitionStatus('error');
+            setInkPhase('unmatched');
           }
         };
         worker.onerror = () => {
           recognitionReadyRef.current = false;
           recognitionBusyRef.current = false;
           setRecognitionStatus('error');
+          setInkPhase('unmatched');
         };
         worker.postMessage({ type: 'init' });
       } catch {
@@ -572,18 +544,11 @@ export default function ParticleFlower() {
           landmarksRef.current = null; fingerRef.current = null;
           if (pinchingRef.current) {
             pinchingRef.current = false;
+            if (currentInkStrokeRef.current) currentInkStrokeRef.current.liftedAt = performance.now() / 1000;
             currentInkStrokeRef.current = null;
             smoothedInkPointRef.current = null;
             setIsWriting(false);
-            if (recognitionTimerRef.current) window.clearTimeout(recognitionTimerRef.current);
-            recognitionTimerRef.current = window.setTimeout(() => {
-              if (!recognitionReadyRef.current || recognitionBusyRef.current) return;
-              const normalizedStrokes = normalizeInkForRecognition(inkStrokesRef.current);
-              if (!normalizedStrokes.length) return;
-              recognitionBusyRef.current = true;
-              const requestId = ++recognitionRequestIdRef.current;
-              recognitionWorkerRef.current?.postMessage({ type: 'lookup', requestId, strokes: normalizedStrokes, limit: 8 });
-            }, 1100);
+            scheduleInkRecognition();
           }
           targetRef.current = 0.18; hasHandRef.current = false; setHasHand(false); return;
         }
@@ -603,6 +568,7 @@ export default function ParticleFlower() {
           const pinchRatio = distance(hand[4], hand[8]) / base;
           const drawNow = pinchingRef.current ? pinchRatio < 0.48 : pinchRatio < 0.34;
           if (drawNow) {
+            if (recognizedCandidateRef.current) return;
             const previous = smoothedInkPointRef.current;
             const smooth = previous
               ? { x: lerp(previous.x, screenPoint.x, 0.48), y: lerp(previous.y, screenPoint.y, 0.48) }
@@ -612,28 +578,8 @@ export default function ParticleFlower() {
               recognitionRequestIdRef.current += 1;
               recognitionBusyRef.current = false;
               if (recognitionTimerRef.current) window.clearTimeout(recognitionTimerRef.current);
-              // A new stroke after a candidate begins the next character.
-              if (recognizedCandidateRef.current) {
-                const bounds = inkStrokesRef.current.flatMap(item => item.points);
-                if (bounds.length) {
-                  const minX = Math.min(...bounds.map(point => point.x));
-                  const maxX = Math.max(...bounds.map(point => point.x));
-                  const minY = Math.min(...bounds.map(point => point.y));
-                  const maxY = Math.max(...bounds.map(point => point.y));
-                  const size = Math.max(56, Math.min(150, Math.max(maxX - minX, maxY - minY) * 0.9));
-                  committedGlyphsRef.current.push({
-                    character: recognizedCandidateRef.current,
-                    x: (minX + maxX) * 0.5,
-                    y: (minY + maxY) * 0.5,
-                    size
-                  });
-                  setRecognizedText(committedGlyphsRef.current.map(glyph => glyph.character).join(''));
-                  inkStrokesRef.current = [];
-                  recognizedCandidateRef.current = '';
-                  setRecognizedCandidate('');
-                  setRecognitionCandidates([]);
-                }
-              }
+              setInkPhase('drawing');
+              setRecognitionCandidates([]);
               const stroke: InkStroke = { points: [smooth] };
               inkStrokesRef.current.push(stroke);
               currentInkStrokeRef.current = stroke;
@@ -647,18 +593,11 @@ export default function ParticleFlower() {
             renderInkLayer(inkCanvasRef.current, viewportRef.current.width, viewportRef.current.height, inkStrokesRef.current);
           } else if (pinchingRef.current) {
             pinchingRef.current = false;
+            if (currentInkStrokeRef.current) currentInkStrokeRef.current.liftedAt = performance.now() / 1000;
             currentInkStrokeRef.current = null;
             smoothedInkPointRef.current = null;
             setIsWriting(false);
-            if (recognitionTimerRef.current) window.clearTimeout(recognitionTimerRef.current);
-            recognitionTimerRef.current = window.setTimeout(() => {
-              if (!recognitionReadyRef.current || recognitionBusyRef.current) return;
-              const normalizedStrokes = normalizeInkForRecognition(inkStrokesRef.current);
-              if (!normalizedStrokes.length) return;
-              recognitionBusyRef.current = true;
-              const requestId = ++recognitionRequestIdRef.current;
-              recognitionWorkerRef.current?.postMessage({ type: 'lookup', requestId, strokes: normalizedStrokes, limit: 8 });
-            }, 1100);
+            scheduleInkRecognition();
           }
         }
         hasHandRef.current = true; setHasHand(true);
@@ -694,7 +633,7 @@ export default function ParticleFlower() {
       setLoading(false);
       startGuardRef.current = false;
     }
-  }, [loading, stopCamera]);
+  }, [loading, stopCamera, scheduleInkRecognition]);
 
   useEffect(() => {
     if (!loading) return;
@@ -904,11 +843,9 @@ export default function ParticleFlower() {
           ctx,
           inkStrokesRef.current,
           committedGlyphsRef.current,
-          recognizedCandidateRef.current,
           width,
           height,
-          now,
-          recognitionStartedAtRef.current
+          now
         );
         drawSkeletonPreview(handPreviewCanvasRef.current, landmarksRef.current && modeRef.current === 'gesture' ? landmarksRef.current : null);
       }
@@ -1001,8 +938,8 @@ export default function ParticleFlower() {
       {experienceStarted && experienceTool === 'write' && (
         <div className="bloom-ink-tools">
           <div className={'bloom-ink-status' + (isWriting ? ' drawing' : '')}>
-            <i />{isWriting ? '正在书写 · 松开即可换笔画' : hasHand ? '捏合开始 · 停顿识字' : '请将手掌放入镜头'}
-            <small>{recognitionStatus === 'ready' ? '本地识字已就绪' : recognitionStatus === 'loading' ? '识字模型准备中' : recognitionStatus === 'error' ? '识字暂不可用，仍可书写' : ''}</small>
+            <i />{isWriting ? '正在书写 · 松开让笔迹升起' : hasHand ? '捏合开始书写' : '请将手掌放入镜头'}
+            <small>{inkPhase === 'drawing' ? '松开后，原始粒子笔迹会缓慢升起' : inkPhase === 'lifting' ? '粒子正在慢慢升起…' : inkPhase === 'recognizing' ? '正在根据笔迹整体形状推断…' : inkPhase === 'candidate' ? '请判断候选字是否符合你的笔迹' : inkPhase === 'unmatched' ? '暂时没有合适候选，可以重新书写' : recognitionStatus === 'ready' ? '粒子先成形，再分析字形' : recognitionStatus === 'loading' ? '识字模型准备中' : recognitionStatus === 'error' ? '识字暂不可用，仍可书写' : ''}</small>
           </div>
           {recognitionCandidates.length > 0 && (
             <div className="bloom-ink-candidates">
@@ -1011,36 +948,45 @@ export default function ParticleFlower() {
                 <button type="button" key={item.hanzi} className={recognizedCandidate === item.hanzi ? 'selected' : ''} onClick={() => {
                   recognizedCandidateRef.current = item.hanzi;
                   setRecognizedCandidate(item.hanzi);
-                  recognitionStartedAtRef.current = performance.now() / 1000;
+                  setInkPhase('candidate');
                 }}>{item.hanzi}</button>
               ))}
             </div>
           )}
-          {recognizedCandidate && (
+          {(recognizedCandidate || inkPhase === 'unmatched') && (
             <>
-            <button type="button" className="bloom-ink-continue" onClick={() => {
-              recognizedCandidateRef.current = '';
-              setRecognizedCandidate('');
-              setRecognitionCandidates([]);
-              recognitionRequestIdRef.current += 1;
-              recognitionBusyRef.current = false;
-            }}>继续当前字</button>
-            <button type="button" className="bloom-ink-confirm" onClick={() => {
-              const bounds = inkStrokesRef.current.flatMap(item => item.points);
-              if (bounds.length) {
-                const minX = Math.min(...bounds.map(point => point.x));
-                const maxX = Math.max(...bounds.map(point => point.x));
-                const minY = Math.min(...bounds.map(point => point.y));
-                const maxY = Math.max(...bounds.map(point => point.y));
-                const size = Math.max(56, Math.min(150, Math.max(maxX - minX, maxY - minY) * 0.9));
-                committedGlyphsRef.current.push({ character: recognizedCandidate, x: (minX + maxX) * 0.5, y: (minY + maxY) * 0.5, size });
-                setRecognizedText(committedGlyphsRef.current.map(glyph => glyph.character).join(''));
+              {recognizedCandidate && (
+                <button type="button" className="bloom-ink-confirm" onClick={() => {
+                  const confirmedStrokes = inkStrokesRef.current.map(stroke => ({
+                    points: stroke.points.map(point => ({ ...point })),
+                    liftedAt: stroke.liftedAt ?? performance.now() / 1000
+                  }));
+                  if (confirmedStrokes.length) {
+                    committedGlyphsRef.current.push({ character: recognizedCandidate, strokes: confirmedStrokes });
+                    setRecognizedText(committedGlyphsRef.current.map(glyph => glyph.character).join(''));
+                    inkStrokesRef.current = [];
+                    currentInkStrokeRef.current = null;
+                    recognizedCandidateRef.current = '';
+                    setRecognizedCandidate('');
+                    setRecognitionCandidates([]);
+                    setInkPhase('idle');
+                  }
+                }}>确认这个字</button>
+              )}
+              <button type="button" className="bloom-ink-rewrite" onClick={() => {
+                if (recognitionTimerRef.current) window.clearTimeout(recognitionTimerRef.current);
+                recognitionRequestIdRef.current += 1;
+                recognitionBusyRef.current = false;
                 inkStrokesRef.current = [];
                 recognizedCandidateRef.current = '';
                 setRecognizedCandidate('');
                 setRecognitionCandidates([]);
-              }
-            }}>确认这个字</button>
+                currentInkStrokeRef.current = null;
+                pinchingRef.current = false;
+                smoothedInkPointRef.current = null;
+                setIsWriting(false);
+                setInkPhase('idle');
+              }}>重新书写</button>
             </>
           )}
           {recognizedText && <span className="bloom-ink-word">{recognizedText}</span>}
@@ -1054,6 +1000,7 @@ export default function ParticleFlower() {
             recognizedCandidateRef.current = '';
             setRecognizedCandidate('');
             setRecognitionCandidates([]);
+            setInkPhase('idle');
             currentInkStrokeRef.current = null;
             pinchingRef.current = false;
             smoothedInkPointRef.current = null;
@@ -1070,6 +1017,7 @@ export default function ParticleFlower() {
             setRecognizedCandidate('');
             setRecognitionCandidates([]);
             setRecognizedText('');
+            setInkPhase('idle');
             currentInkStrokeRef.current = null;
             pinchingRef.current = false;
             smoothedInkPointRef.current = null;

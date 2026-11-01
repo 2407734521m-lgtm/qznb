@@ -6,6 +6,7 @@ import PasswordField from '../components/PasswordField';
 import { downscaleImage } from '../lib/media';
 import bgDefault from '../assets/cow.jpg';
 import { alertDialog } from '../lib/dialog';
+import './Login.polish.css';
 
 const BG_KEY = 'ca_login_bg_v2';
 const DEFAULT_BG = bgDefault; // 默认壁纸（纯牛马）

@@ -178,3 +178,42 @@
 .bloom-page.orientation-fallback .bloom-intro{left:clamp(24px,5vw,76px);top:clamp(42px,10vh,84px);max-width:42vw}
 .bloom-page.orientation-fallback .bloom-hud{left:24px;bottom:24px}
 .bloom-page.orientation-fallback .bloom-steps{right:24px;left:auto;bottom:24px}
+
+
+/* AIR INK：空中书写模式的独立笔迹层与轻量工具栏。 */
+.bloom-writing-note{
+  margin-top:10px;color:#c9a9bc;font:10px/1.7 Inter,"Noto Sans SC",sans-serif;letter-spacing:.4px
+}
+.bloom-ink-canvas{
+  position:absolute;inset:0;width:100%;height:100%;z-index:2;pointer-events:none
+}
+.bloom-page.tool-write .bloom-canvas{z-index:2}
+.bloom-page.tool-write .bloom-ink-canvas{z-index:3}
+.bloom-page.tool-write .bloom-vignette{
+  background:radial-gradient(ellipse at 50% 48%,transparent 22%,rgba(11,7,16,.08) 65%,rgba(11,7,16,.42) 100%)
+}
+.bloom-page.tool-write .bloom-camera.is-live{opacity:.1}
+.bloom-ink-tools{
+  position:absolute;z-index:31;left:50%;bottom:calc(22px + env(safe-area-inset-bottom));transform:translateX(-50%);
+  display:flex;align-items:center;gap:7px;max-width:calc(100vw - 28px);padding:8px 10px;
+  border:1px solid rgba(255,255,255,.2);border-radius:999px;background:rgba(25,13,27,.62);
+  color:#f4e5ed;backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
+  box-shadow:0 12px 34px rgba(0,0,0,.22);font:11px Inter,"Noto Sans SC",sans-serif
+}
+.bloom-ink-status{
+  display:flex;align-items:center;gap:7px;padding:0 8px;color:#d8c4d1;white-space:nowrap;font-size:10px
+}
+.bloom-ink-status i{width:7px;height:7px;border-radius:50%;background:#a891a2;box-shadow:0 0 8px #a891a2}
+.bloom-ink-status.drawing i{background:#f3b4cf;box-shadow:0 0 11px #f3b4cf}
+.bloom-ink-tools button{
+  border:1px solid rgba(255,255,255,.18);border-radius:999px;padding:8px 12px;
+  background:rgba(255,255,255,.06);color:#f5dce8;font:10px "Noto Sans SC",sans-serif;white-space:nowrap
+}
+.bloom-ink-tools button:active{background:rgba(246,181,208,.28);transform:scale(.97)}
+.bloom-page.tool-write.is-active .bloom-exit{z-index:32}
+@media(max-width:700px){
+  .bloom-writing-note{max-width:310px;font-size:9px}
+  .bloom-ink-tools{bottom:calc(14px + env(safe-area-inset-bottom));gap:5px;padding:7px}
+  .bloom-ink-status{font-size:9px;padding:0 4px;white-space:normal;max-width:150px;line-height:1.45}
+  .bloom-ink-tools button{padding:8px 10px;font-size:9px}
+}

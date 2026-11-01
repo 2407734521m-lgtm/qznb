@@ -47,15 +47,25 @@ export default function Members() {
     setLayout(k); localStorage.setItem('ca_members_layout', k); setLopen(false);
   }
   const [state, setState] = useState<'loading' | 'ok' | 'error'>('loading'); const [more, setMore] = useState(false);
+  const requestSeq = useRef(0);
 
   async function load(reset: boolean, query: string, base: MemberListItem[]) {
+    const requestId = ++requestSeq.current;
     setState('loading');
     const { data, error } = await supabase.rpc('member_directory', { q: query, lim: PAGE, skip: reset ? 0 : base.length });
+    // 搜索条件变化或组件卸载后，忽略已经过期的响应，避免旧结果覆盖新结果。
+    if (requestId !== requestSeq.current) return;
     if (error) return setState('error');
     const list = data ?? [];
     setRows(reset ? list : [...base, ...list]); setMore(list.length === PAGE); setState('ok');
   }
-  useEffect(() => { const t = setTimeout(() => load(true, q, []), 300); return () => clearTimeout(t); }, [q]);
+  useEffect(() => {
+    const t = setTimeout(() => void load(true, q, []), 300);
+    return () => {
+      clearTimeout(t);
+      requestSeq.current += 1;
+    };
+  }, [q]);
   useEffect(() => {
     supabase.rpc('game_badges').then(({ data }) => {
       const map: Record<string, string> = {};

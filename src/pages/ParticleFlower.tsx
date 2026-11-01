@@ -351,6 +351,11 @@ export default function ParticleFlower() {
     return () => window.clearInterval(timer);
   }, [loading]);
 
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(() => window.dispatchEvent(new Event('resize')));
+    return () => window.cancelAnimationFrame(frame);
+  }, [layoutOrientation, orientationFallback]);
+
   const changeOrientation = useCallback(async (next: LayoutOrientation) => {
     layoutOrientationRef.current = next;
     setLayoutOrientation(next);

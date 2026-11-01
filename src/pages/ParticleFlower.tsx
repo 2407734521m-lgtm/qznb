@@ -77,7 +77,7 @@ function makeParticles(count: number): Particle[] {
     const bloomZ = dome * 0.16 + (2 - layer) * 0.012 + depth * 0.018;
 
     out.push({
-      seed, angle, depth, size: 0.55 + Math.random() * 1.35, phase: Math.random() * Math.PI * 2,
+      seed, angle, depth, size: 0.34 + Math.random() * 0.72, phase: Math.random() * Math.PI * 2,
       budX, budY, budZ, bloomX, bloomY, bloomZ,
       x: 0, y: 0, vx: 0, vy: 0
     });
@@ -88,10 +88,10 @@ function makeParticles(count: number): Particle[] {
 function drawGlowSprite(): HTMLCanvasElement {
   const sprite = document.createElement('canvas'); sprite.width = 64; sprite.height = 64;
   const c = sprite.getContext('2d')!;
-  const g = c.createRadialGradient(32,32,0,32,32,32);
-  g.addColorStop(0, 'rgba(255,248,232,1)');
-  g.addColorStop(0.12, 'rgba(255,225,238,.92)');
-  g.addColorStop(0.34, 'rgba(247,139,187,.34)');
+  const g = c.createRadialGradient(32,32,1,32,32,32);
+  g.addColorStop(0, 'rgba(255,226,226,.62)');
+  g.addColorStop(0.18, 'rgba(255,190,207,.42)');
+  g.addColorStop(0.48, 'rgba(239,122,171,.15)');
   g.addColorStop(1, 'rgba(231,84,154,0)');
   c.fillStyle = g; c.fillRect(0,0,64,64);
   return sprite;
@@ -105,6 +105,82 @@ function drawSkeleton(ctx: CanvasRenderingContext2D, landmarks: any[], w: number
   }
   for (const p of landmarks) {
     ctx.beginPath(); ctx.arc((1-p.x)*w,p.y*h,2.1,0,Math.PI*2); ctx.fill();
+  }
+  ctx.restore();
+}
+
+
+function drawPetalFlower(ctx: CanvasRenderingContext2D, cx: number, cy: number, scale: number, openness: number, time: number) {
+  const bloom = clamp((openness - 0.08) / 0.92, 0, 1);
+  const layers = [
+    { count: 7, length: 0.45, width: 0.175, start: 0.00, turn: 0.00, alpha: 0.78, stops: ['#b95782', '#e88eb0', '#f5bed0'] },
+    { count: 6, length: 0.385, width: 0.154, start: 0.045, turn: Math.PI / 6, alpha: 0.84, stops: ['#d8759e', '#f2aec5', '#f8d2dc'] },
+    { count: 5, length: 0.315, width: 0.132, start: 0.09, turn: Math.PI / 5, alpha: 0.9, stops: ['#e99ab4', '#f7c3d0', '#fff0df'] }
+  ];
+
+  ctx.save();
+  ctx.translate(cx, cy);
+  for (let layerIndex = 0; layerIndex < layers.length; layerIndex++) {
+    const layer = layers[layerIndex];
+    for (let i = 0; i < layer.count; i++) {
+      const baseAngle = (i / layer.count) * Math.PI * 2 + layer.turn;
+      const angle = baseAngle * (0.34 + bloom * 0.66) + Math.sin(time * 0.32 + i * 1.7 + layerIndex) * 0.009;
+      const petalLength = scale * layer.length * (0.62 + bloom * 0.38);
+      const petalWidth = scale * layer.width * (0.55 + bloom * 0.45);
+      const rootOffset = scale * layer.start * (0.45 + bloom * 0.55);
+
+      ctx.save();
+      ctx.rotate(angle);
+      ctx.translate(0, -rootOffset);
+      ctx.globalAlpha = layer.alpha;
+      ctx.shadowColor = 'rgba(224,105,151,.18)';
+      ctx.shadowBlur = scale * 0.012;
+
+      const gradient = ctx.createLinearGradient(0, 0, 0, -petalLength);
+      gradient.addColorStop(0, layer.stops[0]);
+      gradient.addColorStop(0.54, layer.stops[1]);
+      gradient.addColorStop(1, layer.stops[2]);
+
+      ctx.beginPath();
+      ctx.moveTo(-petalWidth * 0.22, 0);
+      ctx.bezierCurveTo(-petalWidth * 0.92, -petalLength * 0.22, -petalWidth * 0.72, -petalLength * 0.78, 0, -petalLength);
+      ctx.bezierCurveTo(petalWidth * 0.72, -petalLength * 0.78, petalWidth * 0.92, -petalLength * 0.22, petalWidth * 0.22, 0);
+      ctx.quadraticCurveTo(0, petalLength * 0.12, -petalWidth * 0.22, 0);
+      ctx.closePath();
+      ctx.fillStyle = gradient;
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      ctx.strokeStyle = 'rgba(255,238,235,.26)';
+      ctx.lineWidth = Math.max(0.7, scale * 0.0018);
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.moveTo(0, -petalLength * 0.08);
+      ctx.quadraticCurveTo(petalWidth * 0.025, -petalLength * 0.48, 0, -petalLength * 0.88);
+      ctx.strokeStyle = 'rgba(255,244,236,.24)';
+      ctx.lineWidth = Math.max(0.55, scale * 0.00135);
+      ctx.stroke();
+      ctx.restore();
+    }
+  }
+
+  const coreRadius = scale * (0.035 + bloom * 0.012);
+  const core = ctx.createRadialGradient(0, 0, 0, 0, 0, coreRadius * 2.5);
+  core.addColorStop(0, 'rgba(255,238,205,.96)');
+  core.addColorStop(0.38, 'rgba(248,190,172,.72)');
+  core.addColorStop(1, 'rgba(220,111,151,0)');
+  ctx.fillStyle = core;
+  ctx.beginPath();
+  ctx.arc(0, 0, coreRadius * 2.5, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = 'rgba(255,231,196,.68)';
+  for (let i = 0; i < 17; i++) {
+    const a = i * Math.PI * 2 / 17;
+    const r = coreRadius * (0.72 + (i % 3) * 0.12);
+    ctx.beginPath();
+    ctx.arc(Math.cos(a) * r, Math.sin(a) * r, Math.max(0.6, scale * 0.0022), 0, Math.PI * 2);
+    ctx.fill();
   }
   ctx.restore();
 }
@@ -139,6 +215,14 @@ export default function ParticleFlower() {
   const [cameraLive, setCameraLive] = useState(false);
   const [experienceStarted, setExperienceStarted] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [loadingStage, setLoadingStage] = useState('准备手势模型');
+  const [loadingProgress, setLoadingProgress] = useState(0);
+  const [loadingElapsed, setLoadingElapsed] = useState(0);
+  const loadingStartedAtRef = useRef(0);
+  const [orientationFallback, setOrientationFallback] = useState(false);
+  const layoutOrientationRef = useRef<LayoutOrientation>(layoutOrientation);
+  const orientationFullscreenRef = useRef(false);
+  const viewportRef = useRef({ width: window.innerWidth, height: window.innerHeight });
   const [error, setError] = useState('');
   const [particleCount, setParticleCount] = useState(3000);
   const [hasHand, setHasHand] = useState(false);
@@ -177,15 +261,23 @@ export default function ParticleFlower() {
   const startCamera = useCallback(async () => {
     if (loading || startGuardRef.current) return;
     startGuardRef.current = true;
+    loadingStartedAtRef.current = Date.now();
+    setLoadingElapsed(0);
+    setLoadingStage('准备手势识别');
+    setLoadingProgress(8);
     setError(''); setLoading(true);
     try {
       if (!navigator.mediaDevices?.getUserMedia) throw new Error('当前浏览器不支持摄像头，或页面不是 HTTPS 安全连接。');
       const w = window as any;
       if (!w.Hands) {
+        setLoadingStage('正在下载手势识别脚本');
+        setLoadingProgress(22);
         await loadScript(CDN + '/hands.js');
       }
       const HandsCtor = (window as any).Hands;
       if (!HandsCtor) throw new Error('手部模型未能初始化，请刷新页面重试。');
+      setLoadingStage('等待摄像头授权');
+      setLoadingProgress(42);
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: false,
         video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 60, max: 60 } }
@@ -193,10 +285,14 @@ export default function ParticleFlower() {
       streamRef.current = stream;
       const video = videoRef.current;
       if (!video) throw new Error('摄像头画面容器尚未准备好。');
+      setLoadingStage('正在启动摄像头');
+      setLoadingProgress(62);
       video.srcObject = stream;
       await video.play();
       const hands = new HandsCtor({ locateFile: (file: string) => CDN + '/' + file });
       hands.setOptions({ maxNumHands: 1, modelComplexity: 1, minDetectionConfidence: 0.62, minTrackingConfidence: 0.58 });
+      setLoadingStage('正在初始化手势模型');
+      setLoadingProgress(82);
       hands.onResults((results: any) => {
         const hand = results.multiHandLandmarks?.[0];
         if (!hand) {
@@ -211,12 +307,14 @@ export default function ParticleFlower() {
         const raw = clamp((ratio - 1.02) / 1.12, 0, 1);
         targetRef.current = lerp(targetRef.current, raw, 0.2);
         const index = hand[8];
-        fingerRef.current = { x: (1-index.x) * window.innerWidth, y: index.y * window.innerHeight, z: index.z || 0 };
+        fingerRef.current = { x: (1-index.x) * viewportRef.current.width, y: index.y * viewportRef.current.height, z: index.z || 0 };
         hasHandRef.current = true; setHasHand(true);
       });
       handsRef.current = hands;
       // 首帧 send 会触发 MediaPipe 的 WASM/模型初始化；完成后才撤下唤醒遮罩。
       await hands.send({ image: video });
+      setLoadingStage('手势识别已就绪');
+      setLoadingProgress(100);
       modeRef.current = 'gesture'; setMode('gesture');
       setCameraLive(true); setStatus('等待手掌');
       experienceStartedRef.current = true;
@@ -246,6 +344,56 @@ export default function ParticleFlower() {
   }, [loading, stopCamera]);
 
   useEffect(() => {
+    if (!loading) return;
+    const timer = window.setInterval(() => {
+      setLoadingElapsed(Math.max(0, (Date.now() - loadingStartedAtRef.current) / 1000));
+    }, 250);
+    return () => window.clearInterval(timer);
+  }, [loading]);
+
+  const changeOrientation = useCallback(async (next: LayoutOrientation) => {
+    layoutOrientationRef.current = next;
+    setLayoutOrientation(next);
+    if (next === 'portrait') {
+      setOrientationFallback(false);
+      try { (screen as any).orientation?.unlock?.(); } catch {}
+      if (orientationFullscreenRef.current && document.fullscreenElement) {
+        try { await document.exitFullscreen(); } catch {}
+      }
+      orientationFullscreenRef.current = false;
+      return;
+    }
+
+    let enteredFullscreen = !!document.fullscreenElement;
+    if (!enteredFullscreen && document.documentElement.requestFullscreen) {
+      try {
+        await document.documentElement.requestFullscreen({ navigationUI: 'hide' } as FullscreenOptions);
+        enteredFullscreen = true;
+        orientationFullscreenRef.current = true;
+      } catch { /* 部分浏览器禁止网页请求全屏，继续尝试方向锁定并提供旋转布局回退。 */ }
+    }
+    let locked = false;
+    try {
+      const orientation = (screen as any).orientation;
+      if (orientation?.lock) {
+        await orientation.lock('landscape');
+        locked = true;
+      }
+    } catch { /* 浏览器或系统可能不允许网页锁定方向。 */ }
+    setOrientationFallback(!locked && !window.matchMedia('(orientation: landscape)').matches);
+  }, []);
+
+  const exitExperience = useCallback(async () => {
+    stopCamera();
+    try { (screen as any).orientation?.unlock?.(); } catch {}
+    if (orientationFullscreenRef.current && document.fullscreenElement) {
+      try { await document.exitFullscreen(); } catch {}
+    }
+    orientationFullscreenRef.current = false;
+    navigate('/explore');
+  }, [navigate, stopCamera]);
+
+  useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d', { alpha: true, desynchronized: true });
@@ -260,7 +408,10 @@ export default function ParticleFlower() {
     setParticleCount(count);
     const sprite = drawGlowSprite();
     const resize = () => {
-      width = window.innerWidth; height = window.innerHeight;
+      const forcedLandscape = layoutOrientationRef.current === 'landscape' && window.innerWidth < window.innerHeight;
+      width = forcedLandscape ? window.innerHeight : window.innerWidth;
+      height = forcedLandscape ? window.innerWidth : window.innerHeight;
+      viewportRef.current = { width, height };
       dpr = Math.min(window.devicePixelRatio || 1, mobile ? (lowEnd ? 1 : 1.25) : 1.6);
       canvas.width = Math.round(width*dpr); canvas.height = Math.round(height*dpr);
       canvas.style.width = width + 'px'; canvas.style.height = height + 'px';
@@ -282,8 +433,10 @@ export default function ParticleFlower() {
       currentRef.current = clamp(currentRef.current + velocityRef.current*dt, 0, 1);
       const opennessNow = currentRef.current;
       const now = time * 0.001;
-      const cx = width * (!experienceStartedRef.current && !mobile ? 0.68 : 0.5), cy = height*0.49;
-      const scale = Math.min(width,height) * (mobile ? 0.79 : 0.83);
+      const cx = width * 0.5;
+      const cy = height * (!experienceStartedRef.current && mobile ? 0.53 : 0.5);
+      const scale = Math.min(width * 0.88, height * 1.05);
+
       const finger = modeRef.current === 'gesture' ? fingerRef.current : pointerRef.current;
       // 轻量残影衰减：保留上一帧的光迹，形成指尖牵引的流动感。
       ctx.globalCompositeOperation='destination-out';
@@ -294,18 +447,20 @@ export default function ParticleFlower() {
       halo.addColorStop(0,'rgba(226,105,161,'+(0.07+opennessNow*0.08)+')');
       halo.addColorStop(1,'rgba(120,50,105,0)');
       ctx.fillStyle = halo; ctx.fillRect(0,0,width,height);
-      ctx.globalCompositeOperation = 'lighter';
+      // 花瓣是主体：三层有独立轮廓与渐变，不再用白芯粒子团冒充花瓣。
+      drawPetalFlower(ctx, cx, cy, scale, opennessNow, now);
+      // 粒子只作为花瓣边缘的光尘，使用柔和叠加，避免中心过曝。
+      ctx.globalCompositeOperation = 'source-over';
       const ps = particlesRef.current;
       for (let i=0;i<ps.length;i++) {
         const p=ps[i];
-        const breath = 1 + Math.sin(now*1.35+p.phase)*0.018;
+        const breath = 1 + Math.sin(now*1.35+p.phase)*0.014;
         let nx = lerp(p.budX,p.bloomX,opennessNow)*scale*breath;
         let ny = lerp(p.budY,p.bloomY,opennessNow)*scale*breath;
         let nz = lerp(p.budZ,p.bloomZ,opennessNow)*scale;
         const wander = Math.sin(now*0.7+p.seed)*1.8 + Math.cos(now*0.43+p.phase)*1.2;
         nx += Math.cos(p.angle+now*0.16)*wander;
         ny += Math.sin(p.angle+now*0.16)*wander;
-        // 食指指尖的局部牵引：随绽放程度增强，保留轻柔拖曳。
         if (finger && opennessNow > 0.25) {
           const dx=finger.x-(cx+nx), dy=finger.y-(cy+ny);
           const d2=dx*dx+dy*dy, radius=scale*0.31;
@@ -317,17 +472,16 @@ export default function ParticleFlower() {
         const x=cx+nx, y=cy+ny+nz*0.2;
         p.x=x; p.y=y;
         const normalized=clamp(Math.hypot(nx,ny)/(scale*0.48),0,1);
-        const cream=1-normalized, pink=clamp(1-Math.abs(normalized-0.53)*2.05,0,1), edge=normalized;
-        const midMix=clamp(normalized*2,0,1), edgeMix=clamp((normalized-.5)*2,0,1);
-        const r=Math.round(normalized<.5?lerp(255,247,midMix):lerp(247,231,edgeMix));
-        const g=Math.round(normalized<.5?lerp(243,168,midMix):lerp(168,84,edgeMix));
-        const b=Math.round(normalized<.5?lerp(214,196,midMix):lerp(196,154,edgeMix));
-        const alpha=0.35+cream*0.42+pink*0.18;
-        const size=p.size*(0.65+opennessNow*0.4);
+        const r=Math.round(246-normalized*18);
+        const g=Math.round(190-normalized*70);
+        const b=Math.round(204-normalized*38);
+        const alpha=0.10+normalized*0.14;
+        const size=p.size*(0.72+opennessNow*0.22);
         ctx.globalAlpha=alpha;
-        ctx.drawImage(sprite,x-size*7,y-size*7,size*14,size*14);
-        ctx.fillStyle='rgba('+r+','+g+','+b+',.88)';
-        ctx.beginPath(); ctx.arc(x,y,Math.max(.45,size*.72),0,Math.PI*2); ctx.fill();
+        ctx.drawImage(sprite,x-size*2.1,y-size*2.1,size*4.2,size*4.2);
+        ctx.globalAlpha=alpha*0.9;
+        ctx.fillStyle='rgba('+r+','+g+','+b+',.5)';
+        ctx.beginPath(); ctx.arc(x,y,Math.max(.3,size*.46),0,Math.PI*2); ctx.fill();
       }
       ctx.globalAlpha=1; ctx.globalCompositeOperation='source-over';
       if (landmarksRef.current && modeRef.current==='gesture') drawSkeleton(ctx,landmarksRef.current,width,height);
@@ -382,17 +536,25 @@ export default function ParticleFlower() {
     }
   }, [mode]);
 
+  const getLocalPointer = (clientX: number, clientY: number): Point => {
+    const forcedLandscape = layoutOrientationRef.current === 'landscape' && window.innerWidth < window.innerHeight;
+    return forcedLandscape
+      ? { x: clientY, y: window.innerWidth - clientX, z: 0 }
+      : { x: clientX, y: clientY, z: 0 };
+  };
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     if (modeRef.current!=='demo' || (e.target as HTMLElement).closest('button')) return;
     pointerDownRef.current=true;
     (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
-    pointerRef.current={x:e.clientX,y:e.clientY,z:0};
-    targetRef.current=clamp(1-(e.clientY/window.innerHeight),0,1);
+    const point = getLocalPointer(e.clientX, e.clientY);
+    pointerRef.current=point;
+    targetRef.current=clamp(1-(point.y/viewportRef.current.height),0,1);
   };
   const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
     if (modeRef.current!=='demo' || (e.target as HTMLElement).closest('button')) return;
-    pointerRef.current={x:e.clientX,y:e.clientY,z:0};
-    if (pointerDownRef.current) targetRef.current=clamp(1-(e.clientY/window.innerHeight),0,1);
+    const point = getLocalPointer(e.clientX, e.clientY);
+    pointerRef.current=point;
+    if (pointerDownRef.current) targetRef.current=clamp(1-(point.y/viewportRef.current.height),0,1);
   };
   const handlePointerUp = () => {
     if (modeRef.current!=='demo') return;
@@ -406,8 +568,9 @@ export default function ParticleFlower() {
   const statusChinese = mode==='demo' ? '演示模式' : !hasHand ? '等待手掌' : openness<28 ? '花苞' : openness>68 ? '绽放' : '舒展中';
 
   return (
-    <main className={'bloom-page ' + (layoutOrientation === 'landscape' ? 'orientation-landscape ' : 'orientation-portrait ') + (experienceStarted ? 'is-active' : '')} onPointerDown={handlePointerDown} onPointerMove={handlePointerMove} onPointerUp={handlePointerUp} onPointerCancel={handlePointerUp}>
+    <main className={'bloom-page ' + (layoutOrientation === 'landscape' ? 'orientation-landscape ' : 'orientation-portrait ') + (orientationFallback ? 'orientation-fallback ' : '') + (experienceStarted ? 'is-active' : '')} onPointerDown={handlePointerDown} onPointerMove={handlePointerMove} onPointerUp={handlePointerUp} onPointerCancel={handlePointerUp}>
       <video ref={videoRef} className={'bloom-camera' + (cameraLive ? ' is-live' : '')} playsInline muted />
+      <button type="button" className="bloom-exit" onClick={() => void exitExperience()} aria-label="退出指尖生花体验">× <span>退出</span></button>
       <canvas ref={canvasRef} className="bloom-canvas" aria-label="由粒子组成的互动花朵" />
       <div className="bloom-vignette" />
       <header className="bloom-header">
@@ -452,14 +615,32 @@ export default function ParticleFlower() {
       </div>
       <div className="bloom-orientation-switch" role="group" aria-label="画面布局方向">
         <span>布局</span>
-        <button className={layoutOrientation === 'portrait' ? 'active' : ''} onClick={() => setLayoutOrientation('portrait')} aria-pressed={layoutOrientation === 'portrait'}>竖屏</button>
-        <button className={layoutOrientation === 'landscape' ? 'active' : ''} onClick={() => setLayoutOrientation('landscape')} aria-pressed={layoutOrientation === 'landscape'}>横屏</button>
+        <button className={layoutOrientation === 'portrait' ? 'active' : ''} onClick={() => void changeOrientation('portrait')} aria-pressed={layoutOrientation === 'portrait'}>竖屏</button>
+        <button className={layoutOrientation === 'landscape' ? 'active' : ''} onClick={() => void changeOrientation('landscape')} aria-pressed={layoutOrientation === 'landscape'}>横屏</button>
       </div>
       <div className="bloom-mode-switch">
         <button className={mode==='gesture'?'active':''} onClick={() => cameraLive ? setExperienceMode('gesture') : void startCamera()}>手势</button>
         <button className={mode==='demo'?'active':''} onClick={() => setExperienceMode('demo')}>演示</button>
       </div>
-      {loading && <div className="bloom-loading"><div className="bloom-loader-flower">✿</div><span>正在唤醒手部模型</span><small>INITIALIZING MEDIAPIPE HANDS</small></div>}
+      {loading && (
+        <div className="bloom-loading" role="status" aria-live="polite">
+          <div className="bloom-loader-flower">✿</div>
+          <span>{loadingStage}</span>
+          <div className="bloom-load-track" role="progressbar" aria-label="手势模型加载进度" aria-valuemin={0} aria-valuemax={100} aria-valuenow={loadingProgress}>
+            <span style={{ width: loadingProgress + '%' }} />
+          </div>
+          <small>
+            {loadingStage === '等待摄像头授权'
+              ? '请在浏览器弹窗中选择允许'
+              : loadingStage === '正在初始化手势模型'
+                ? '预计剩余约 2–6 秒 · 设备不同会有差异'
+                : loadingStage === '正在下载手势识别脚本'
+                  ? '预计剩余约 1–3 秒'
+                  : '已用时 ' + loadingElapsed.toFixed(1) + ' 秒'}
+          </small>
+          <em>首次加载需要准备识别模型，请保持页面打开</em>
+        </div>
+      )}
     </main>
   );
 }

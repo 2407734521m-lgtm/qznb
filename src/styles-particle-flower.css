@@ -131,3 +131,8 @@
 @media(max-width:700px){
  .bloom-page.orientation-landscape .bloom-fps-switch{right:16px;bottom:calc(116px + env(safe-area-inset-bottom))}
 }
+
+/* 横屏沉浸模式把状态面板放到左下，避免与右侧帧率/方向控制重叠。 */
+@media(max-width:700px){
+ .bloom-page.orientation-landscape.is-active .bloom-hud{left:18px;right:auto;bottom:calc(78px + env(safe-area-inset-bottom));width:150px}
+}

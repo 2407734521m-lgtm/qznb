@@ -267,11 +267,11 @@
 /* The previous selector only caught direct children and one exact 160deg card.
    These rules also cover nested panels used by the account, analytics,
    release, approval, backup and moderation modules. */
-.admin-shell .admin-content :is(div, section, article)[style*="linear-gradient(145deg,#171e33"],
-.admin-shell .admin-content :is(div, section, article)[style*="linear-gradient(145deg,#17243a"],
+.admin-shell .admin-content :is(div, section, article)[style*="linear-gradient(145deg"],
 .admin-shell .admin-content :is(div, section, article)[style*="linear-gradient(155deg"],
 .admin-shell .admin-content :is(div, section, article)[style*="linear-gradient(160deg"],
-.admin-shell .admin-content :is(div, section, article)[style*="linear-gradient(135deg,#17213b"] {
+.admin-shell .admin-content :is(div, section, article)[style*="#171e33"],
+.admin-shell .admin-content :is(div, section, article)[style*="#17213b"] {
   color: var(--admin-ink) !important;
   background: linear-gradient(150deg, rgba(29, 43, 65, .97), rgba(18, 29, 47, .99)) !important;
   border-color: var(--admin-border) !important;

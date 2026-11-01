@@ -10,31 +10,34 @@ type Particle = {
 };
 type Mode = 'gesture' | 'demo';
 type LayoutOrientation = 'portrait' | 'landscape';
-type FpsLimit = 30 | 60 | 90 | 120 | 0;
 
 const HAND_CONNECTIONS: number[][] = [
   [0,1],[1,2],[2,3],[3,4], [0,5],[5,6],[6,7],[7,8],
   [5,9],[9,10],[10,11],[11,12], [9,13],[13,14],[14,15],[15,16],
   [13,17],[17,18],[18,19],[19,20],[0,17]
 ];
-const CDN = 'https://cdn.jsdelivr.net/npm/@mediapipe/hands';
+const MODEL_CDNS = ['https://cdn.jsdelivr.net/npm/@mediapipe/hands', 'https://unpkg.com/@mediapipe/hands'];
+const MODEL_TIMEOUT_MS = 12000;
 
 function clamp(v: number, min: number, max: number) { return Math.max(min, Math.min(max, v)); }
 function lerp(a: number, b: number, t: number) { return a + (b - a) * t; }
 function distance(a: any, b: any) { return Math.hypot(a.x - b.x, a.y - b.y); }
-function loadScript(src: string) {
+function loadScript(src: string, timeoutMs = MODEL_TIMEOUT_MS) {
   return new Promise<void>((resolve, reject) => {
     const existing = document.querySelector('script[data-bloom-src="' + src + '"]') as HTMLScriptElement | null;
     if (existing) {
-      if ((existing as any).dataset.loaded === '1') resolve();
-      else { existing.addEventListener('load', () => resolve(), { once: true }); existing.addEventListener('error', () => reject(new Error('模型脚本加载失败')), { once: true }); }
+      if ((existing as any).dataset.loaded === '1') { resolve(); return; }
+      const timer = window.setTimeout(() => reject(new Error('模型脚本加载超时')), timeoutMs);
+      existing.addEventListener('load', () => { window.clearTimeout(timer); resolve(); }, { once: true });
+      existing.addEventListener('error', () => { window.clearTimeout(timer); reject(new Error('模型脚本加载失败')); }, { once: true });
       return;
     }
     const script = document.createElement('script');
     script.src = src; script.async = true; script.crossOrigin = 'anonymous';
     script.dataset.bloomSrc = src;
-    script.onload = () => { script.dataset.loaded = '1'; resolve(); };
-    script.onerror = () => reject(new Error('无法加载 MediaPipe 手部模型，请检查网络后重试'));
+    const timer = window.setTimeout(() => { script.remove(); reject(new Error('模型脚本加载超时')); }, timeoutMs);
+    script.onload = () => { window.clearTimeout(timer); script.dataset.loaded = '1'; resolve(); };
+    script.onerror = () => { window.clearTimeout(timer); script.remove(); reject(new Error('模型脚本加载失败')); };
     document.head.appendChild(script);
   });
 }
@@ -57,11 +60,11 @@ function makeParticles(count: number): Particle[] {
     // 三层花瓣以不同瓣数、半径和高度交叠，形成视频中蓬松的伞形花冠。
     const layerRoll = Math.random();
     const layer = layerRoll < 0.48 ? 0 : layerRoll < 0.82 ? 1 : 2;
-    const layerScale = layer === 0 ? 1 : layer === 1 ? 0.91 : 0.82;
+    const layerScale = layer === 0 ? 1 : layer === 1 ? 0.93 : 0.85;
     const petalCount = layer === 0 ? 7 : layer === 1 ? 6 : 5;
     const petalWave = 0.5 + 0.5 * Math.cos(angle * petalCount + layer * 0.86 + seed * 0.008);
     const scallopedEdge = 0.79 + 0.21 * Math.pow(petalWave, 1.28);
-    const radial = Math.pow(Math.random(), 0.76);
+    const radial = Math.pow(Math.random(), 0.70);
     const petalR = radial * scallopedEdge * layerScale;
     const fold = Math.sin(angle * petalCount + layer * 0.86) * 0.028 * radial;
     const warpedAngle = angle + fold;
@@ -70,10 +73,10 @@ function makeParticles(count: number): Particle[] {
     const drift = Math.random() < 0.17 ? 0.07 + Math.random() * 0.17 : 0;
     const layerLift = layer === 0 ? 0.058 : layer === 1 ? 0.018 : -0.026;
     const dome = Math.sqrt(Math.max(0, 1 - radial * radial));
-    const bloomX = Math.cos(warpedAngle) * petalR * 0.53
-      + Math.cos(angle) * drift * 0.22;
-    const bloomY = Math.sin(warpedAngle) * petalR * 0.42
-      + radial * radial * 0.035 + layerLift + drift;
+    const bloomX = Math.cos(warpedAngle) * petalR * 0.55
+      + Math.cos(angle) * drift * 0.26;
+    const bloomY = Math.sin(warpedAngle) * petalR * 0.44
+      + radial * radial * 0.042 + layerLift + drift * 1.08;
     const bloomZ = dome * 0.16 + (2 - layer) * 0.012 + depth * 0.018;
 
     out.push({
@@ -85,16 +88,12 @@ function makeParticles(count: number): Particle[] {
 
   return out;
 }
-function drawGlowSprite(): HTMLCanvasElement {
-  const sprite = document.createElement('canvas'); sprite.width = 32; sprite.height = 32;
-  const c = sprite.getContext('2d')!;
-  const g = c.createRadialGradient(16,16,0,16,16,16);
-  g.addColorStop(0, 'rgba(255,239,226,.22)');
-  g.addColorStop(0.22, 'rgba(244,166,193,.13)');
-  g.addColorStop(0.48, 'rgba(230,112,163,.045)');
-  g.addColorStop(1, 'rgba(230,112,163,0)');
-  c.fillStyle = g; c.fillRect(0,0,32,32);
-  return sprite;
+function mapCoverPoint(point: any, video: HTMLVideoElement, width: number, height: number) {
+  const vw = video.videoWidth || width, vh = video.videoHeight || height;
+  const scale = Math.max(width / vw, height / vh);
+  const renderedWidth = vw * scale, renderedHeight = vh * scale;
+  const offsetX = (width - renderedWidth) / 2, offsetY = (height - renderedHeight) / 2;
+  return { x: (1 - point.x) * renderedWidth + offsetX, y: point.y * renderedHeight + offsetY };
 }
 function drawSkeletonPreview(ctx: CanvasRenderingContext2D, landmarks: any[] | null, w: number, h: number) {
   ctx.clearRect(0, 0, w, h);
@@ -127,7 +126,6 @@ export default function ParticleFlower() {
   const streamRef = useRef<MediaStream | null>(null);
   const handsRef = useRef<any>(null);
   const rafRef = useRef<number>(0);
-  const fpsLimitRef = useRef<FpsLimit>(0);
   const startGuardRef = useRef(false);
   const cameraRafRef = useRef<number>(0);
   const particlesRef = useRef<Particle[]>([]);
@@ -143,19 +141,29 @@ export default function ParticleFlower() {
   const modeRef = useRef<Mode>('demo');
   const [mode, setMode] = useState<Mode>('demo');
   const [layoutOrientation, setLayoutOrientation] = useState<LayoutOrientation>(() => window.matchMedia('(orientation: landscape)').matches ? 'landscape' : 'portrait');
-  const [fpsLimit, setFpsLimit] = useState<FpsLimit>(0);
-  const [actualFps, setActualFps] = useState(0);
-  const [openness, setOpenness] = useState(18);
-  const [status, setStatus] = useState('等待手掌');
   const [cameraLive, setCameraLive] = useState(false);
   const [experienceStarted, setExperienceStarted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [particleCount, setParticleCount] = useState(3000);
   const [hasHand, setHasHand] = useState(false);
   const [orientationMessage, setOrientationMessage] = useState('');
   const ownedFullscreenRef = useRef(false);
   const lastHudRef = useRef(0);
+  const lastInferenceRef = useRef(0);
+  const hudNumberRef = useRef<HTMLSpanElement>(null);
+  const hudStateRef = useRef<HTMLDivElement>(null);
+  const hudEnglishRef = useRef<HTMLDivElement>(null);
+  const hudProgressRef = useRef<HTMLSpanElement>(null);
+  const activeCdnRef = useRef(MODEL_CDNS[0]);
+
+  useEffect(() => {
+    const syncCameraVisibility = () => {
+      const enabled = !document.hidden;
+      streamRef.current?.getVideoTracks().forEach(track => { track.enabled = enabled; });
+    };
+    document.addEventListener('visibilitychange', syncCameraVisibility);
+    return () => document.removeEventListener('visibilitychange', syncCameraVisibility);
+  }, []);
 
   useEffect(() => {
     const syncOrientation = () => {
@@ -197,10 +205,8 @@ export default function ParticleFlower() {
     if (next === 'demo') {
       stopCamera();
       targetRef.current = 0.18;
-      setStatus('演示模式');
     } else {
       targetRef.current = 0.18;
-      setStatus('等待手掌');
     }
   }, [stopCamera]);
 
@@ -247,56 +253,81 @@ export default function ParticleFlower() {
       if (!navigator.mediaDevices?.getUserMedia) throw new Error('当前浏览器不支持摄像头，或页面不是 HTTPS 安全连接。');
       const w = window as any;
       if (!w.Hands) {
-        await loadScript(CDN + '/hands.js');
+        let loaded = false;
+        for (const cdn of MODEL_CDNS) {
+          try { await loadScript(cdn + '/hands.js'); activeCdnRef.current = cdn; loaded = true; break; }
+          catch { /* try the next public mirror */ }
+        }
+        if (!loaded) throw new Error('手部模型加载失败：已尝试两个资源源并设置超时。请检查网络，或在系统浏览器中打开后重试。');
       }
       const HandsCtor = (window as any).Hands;
-      if (!HandsCtor) throw new Error('手部模型未能初始化，请刷新页面重试。');
+      if (!HandsCtor) throw new Error('手部模型脚本已加载，但初始化失败。请刷新页面重试。');
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: false,
-        video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 60, max: 60 } }
+        video: { facingMode: 'user', width: { ideal: 640, max: 960 }, height: { ideal: 480, max: 540 }, frameRate: { ideal: 30, max: 30 } }
       });
       streamRef.current = stream;
       const video = videoRef.current;
       if (!video) throw new Error('摄像头画面容器尚未准备好。');
       video.srcObject = stream;
       await video.play();
-      const hands = new HandsCtor({ locateFile: (file: string) => CDN + '/' + file });
-      hands.setOptions({ maxNumHands: 1, modelComplexity: 1, minDetectionConfidence: 0.62, minTrackingConfidence: 0.58 });
-      hands.onResults((results: any) => {
+      const handleResults = (results: any) => {
         const hand = results.multiHandLandmarks?.[0];
         if (!hand) {
           landmarksRef.current = null; fingerRef.current = null;
           targetRef.current = 0.18; hasHandRef.current = false; setHasHand(false); return;
         }
         landmarksRef.current = hand;
-        const wrist = hand[0], middleBase = hand[9];
-        const tips = [4,8,12,16,20].map(i => hand[i]);
-        const base = Math.max(0.001, distance(wrist, middleBase));
-        const ratio = tips.reduce((sum, p) => sum + distance(wrist,p), 0) / tips.length / base;
-        const raw = clamp((ratio - 1.02) / 1.12, 0, 1);
-        targetRef.current = lerp(targetRef.current, raw, 0.2);
+        const wrist = hand[0];
+        const fingerPairs = [[5,6,8],[9,10,12],[13,14,16],[17,18,20]];
+        const scores = fingerPairs.map(([mcp,pip,tip]) => {
+          const direct = Math.max(0.001, distance(hand[mcp], hand[tip]));
+          const path = distance(hand[mcp], hand[pip]) + distance(hand[pip], hand[tip]);
+          const straight = direct / Math.max(0.001, path);
+          const radial = distance(wrist, hand[tip]) / Math.max(0.001, distance(wrist, hand[mcp]));
+          return clamp((straight - 0.70) / 0.27, 0, 1) * 0.72 + clamp((radial - 1.0) / 0.72, 0, 1) * 0.28;
+        });
+        const thumb = clamp((distance(hand[4],hand[5]) / Math.max(0.001,distance(hand[2],hand[5])*.9) - .25) / .8,0,1);
+        const raw = clamp(scores.reduce((a,b)=>a+b,0)/scores.length*.88 + thumb*.12,0,1);
+        targetRef.current = lerp(targetRef.current, raw, 0.24);
         const index = hand[8];
-        fingerRef.current = { x: (1-index.x) * window.innerWidth, y: index.y * window.innerHeight, z: index.z || 0 };
+        const mapped = mapCoverPoint(index, video, window.innerWidth, window.innerHeight);
+        fingerRef.current = { x: mapped.x, y: mapped.y, z: index.z || 0 };
         hasHandRef.current = true; setHasHand(true);
-      });
+      };
+      const makeHands = () => {
+        const instance = new HandsCtor({ locateFile: (file: string) => activeCdnRef.current + '/' + file });
+        instance.setOptions({ maxNumHands: 1, modelComplexity: 1, minDetectionConfidence: 0.62, minTrackingConfidence: 0.58 });
+        instance.onResults(handleResults);
+        return instance;
+      };
+      let hands = makeHands();
       handsRef.current = hands;
-      // 首帧 send 会触发 MediaPipe 的 WASM/模型初始化；完成后才撤下唤醒遮罩。
-      await hands.send({ image: video });
+      try {
+        await Promise.race([hands.send({ image: video }), new Promise((_, reject) => window.setTimeout(() => reject(new Error('手部模型初始化超时')), 15000))]);
+      } catch (firstError) {
+        try { await hands.close(); } catch {}
+        if (activeCdnRef.current !== MODEL_CDNS[0]) throw firstError;
+        activeCdnRef.current = MODEL_CDNS[1];
+        hands = makeHands(); handsRef.current = hands;
+        await Promise.race([hands.send({ image: video }), new Promise((_, reject) => window.setTimeout(() => reject(new Error('备用模型源初始化超时，请检查网络后重试。')), 15000))]);
+      }
       modeRef.current = 'gesture'; setMode('gesture');
-      setCameraLive(true); setStatus('等待手掌');
+      setCameraLive(true);
       experienceStartedRef.current = true;
       setExperienceStarted(true);
       setLoading(false);
       startGuardRef.current = false;
       let busy = false;
       let lastVideoTime = -1;
+      let failures = 0;
       const process = async () => {
         const currentVideo = videoRef.current;
         if (!streamRef.current || !currentVideo || !handsRef.current) return;
-        if (!busy && currentVideo.readyState >= 2 && currentVideo.currentTime !== lastVideoTime) {
-          lastVideoTime = currentVideo.currentTime;
-          busy = true;
-          try { await handsRef.current.send({ image: currentVideo }); } catch {}
+        if (!document.hidden && !busy && currentVideo.readyState >= 2 && currentVideo.currentTime !== lastVideoTime && performance.now()-lastInferenceRef.current >= 1000/24) {
+          lastVideoTime = currentVideo.currentTime; lastInferenceRef.current = performance.now(); busy = true;
+          try { await handsRef.current.send({ image: currentVideo }); failures = 0; }
+          catch { failures++; if (failures >= 3) { setError('手部识别连续失败，请重新开启手势。'); stopCamera(); return; } }
           finally { busy = false; }
         }
         if (streamRef.current) cameraRafRef.current = requestAnimationFrame(process);
@@ -304,7 +335,8 @@ export default function ParticleFlower() {
       cameraRafRef.current = requestAnimationFrame(process);
     } catch (e: any) {
       stopCamera();
-      setError(e?.message || '摄像头启动失败。请检查浏览器权限。');
+      const inWeChat = /MicroMessenger/i.test(navigator.userAgent || '');
+      setError(inWeChat ? '微信内置浏览器可能限制摄像头。请点右上角菜单，选择“在浏览器打开”，再允许摄像头权限。' : (e?.message || '摄像头启动失败。请检查浏览器权限。'));
       setLoading(false);
       startGuardRef.current = false;
     }
@@ -315,15 +347,20 @@ export default function ParticleFlower() {
     if (!canvas) return;
     const ctx = canvas.getContext('2d', { alpha: true, desynchronized: true });
     if (!ctx) return;
-    let width = 0, height = 0, dpr = 1, lastTime = 0, lastRenderedTime = 0, fpsWindowStart = 0, fpsFrames = 0;
+    let width = 0, height = 0, dpr = 1, lastTime = 0;
     const mobile = window.matchMedia('(max-width: 700px)').matches;
     const cores = navigator.hardwareConcurrency || 4;
     const memory = (navigator as any).deviceMemory || 4;
     const lowEnd = cores <= 4 || memory <= 4;
     const count = mobile ? (lowEnd ? 1400 : 1900) : (lowEnd ? 2200 : 3000);
     particlesRef.current = makeParticles(count);
-    setParticleCount(count);
-    const sprite = drawGlowSprite();
+    const palette = Array.from({length:64},(_,i)=>{
+      const t=i/63;
+      const r=Math.round(t<.5?lerp(255,247,t*2):lerp(247,231,(t-.5)*2));
+      const g=Math.round(t<.5?lerp(243,168,t*2):lerp(168,84,(t-.5)*2));
+      const b=Math.round(t<.5?lerp(214,196,t*2):lerp(196,154,(t-.5)*2));
+      return 'rgb('+r+','+g+','+b+')';
+    });
     const resize = () => {
       width = window.innerWidth; height = window.innerHeight;
       dpr = Math.min(window.devicePixelRatio || 1, mobile ? (lowEnd ? 1 : 1.25) : 1.6);
@@ -334,12 +371,8 @@ export default function ParticleFlower() {
     resize();
     const render = (time: number) => {
       rafRef.current = requestAnimationFrame(render);
-      const targetFps = fpsLimitRef.current;
-      const frameInterval = targetFps > 0 ? 1000 / targetFps : 0;
-      if (frameInterval && time - lastRenderedTime < frameInterval - 0.5) return;
       const elapsed = lastTime ? (time-lastTime)/1000 : 1/60;
       const dt = Math.min(0.05, Math.max(0.001, elapsed));
-      lastRenderedTime = time;
       lastTime = time;
       const spring = 18, damping = 8.5;
       const accel = (targetRef.current-currentRef.current)*spring - velocityRef.current*damping;
@@ -382,17 +415,11 @@ export default function ParticleFlower() {
         const x=cx+nx, y=cy+ny+nz*0.2;
         p.x=x; p.y=y;
         const normalized=clamp(Math.hypot(nx,ny)/(scale*0.48),0,1);
-        const cream=1-normalized, pink=clamp(1-Math.abs(normalized-0.53)*2.05,0,1), edge=normalized;
-        const midMix=clamp(normalized*2,0,1), edgeMix=clamp((normalized-.5)*2,0,1);
-        const r=Math.round(normalized<.5?lerp(255,247,midMix):lerp(247,231,edgeMix));
-        const g=Math.round(normalized<.5?lerp(243,168,midMix):lerp(168,84,edgeMix));
-        const b=Math.round(normalized<.5?lerp(214,196,midMix):lerp(196,154,edgeMix));
+        const cream=1-normalized, pink=clamp(1-Math.abs(normalized-0.53)*2.05,0,1);
         const alpha=0.42+cream*0.14+pink*0.08;
         const size=p.size*(0.62+opennessNow*0.34);
-        ctx.globalAlpha=alpha*0.62;
-        ctx.drawImage(sprite,x-size*2,y-size*2,size*4,size*4);
         ctx.globalAlpha=alpha;
-        ctx.fillStyle='rgba('+r+','+g+','+b+',.82)';
+        ctx.fillStyle=palette[Math.min(63,Math.round(normalized*63))];
         ctx.beginPath(); ctx.arc(x,y,Math.max(.45,size*.72),0,Math.PI*2); ctx.fill();
       }
       ctx.globalAlpha=1; ctx.globalCompositeOperation='source-over';
@@ -439,18 +466,15 @@ export default function ParticleFlower() {
         ctx.beginPath(); ctx.moveTo(p.x-8,p.y); ctx.lineTo(p.x+8,p.y); ctx.moveTo(p.x,p.y-8); ctx.lineTo(p.x,p.y+8); ctx.stroke();
         ctx.beginPath(); ctx.arc(p.x,p.y,13,0,Math.PI*2); ctx.strokeStyle='rgba(255,244,235,.22)'; ctx.stroke(); ctx.restore();
       }
-      fpsFrames++;
-      if (!fpsWindowStart) fpsWindowStart = time;
-      if (time - fpsWindowStart >= 500) {
-        setActualFps(Math.round(fpsFrames * 1000 / (time - fpsWindowStart)));
-        fpsFrames = 0; fpsWindowStart = time;
-      }
-      if (time-lastHudRef.current>250) {
+      if (time-lastHudRef.current>50) {
         lastHudRef.current=time;
-        const percent=Math.round(opennessNow*100);
-        setOpenness(percent);
-        if (modeRef.current==='gesture') setStatus(!hasHandRef.current ? '等待手掌' : percent<28 ? '花苞' : percent>68 ? '绽放' : '舒展中');
-        else setStatus('演示模式');
+        const percent=opennessNow*100, rounded=Math.round(percent);
+        const cn=modeRef.current==='demo' ? '演示模式' : !hasHandRef.current ? '等待手掌' : percent<28 ? '花苞' : percent>68 ? '绽放' : '舒展中';
+        const en=modeRef.current==='demo' ? 'DEMO EXPERIENCE' : !hasHandRef.current ? 'WAITING FOR HAND' : percent<28 ? 'CLOSED · FIST' : percent>68 ? 'BLOOM · OPEN' : 'OPENING · FLOW';
+        if (hudNumberRef.current) hudNumberRef.current.textContent=String(rounded);
+        if (hudProgressRef.current) hudProgressRef.current.style.width=percent.toFixed(1)+'%';
+        if (hudStateRef.current) hudStateRef.current.textContent=cn;
+        if (hudEnglishRef.current) hudEnglishRef.current.textContent=en;
       }
     };
     rafRef.current=requestAnimationFrame(render);
@@ -462,7 +486,6 @@ export default function ParticleFlower() {
     modeRef.current=mode;
     if (mode==='demo') {
       targetRef.current=0.18;
-      setStatus('演示模式');
     }
   }, [mode]);
 
@@ -486,8 +509,8 @@ export default function ParticleFlower() {
 
   useEffect(() => () => stopCamera(), [stopCamera]);
 
-  const statusEnglish = mode==='demo' ? 'DEMO EXPERIENCE' : !hasHand ? 'WAITING FOR HAND' : openness<28 ? 'CLOSED · FIST' : openness>68 ? 'BLOOM · OPEN' : 'OPENING · FLOW';
-  const statusChinese = mode==='demo' ? '演示模式' : !hasHand ? '等待手掌' : openness<28 ? '花苞' : openness>68 ? '绽放' : '舒展中';
+  const statusEnglish = mode==='demo' ? 'DEMO EXPERIENCE' : !hasHand ? 'WAITING FOR HAND' : 'HAND TRACKING';
+  const statusChinese = mode==='demo' ? '演示模式' : !hasHand ? '等待手掌' : '手势追踪';
 
   return (
     <main className={'bloom-page ' + (layoutOrientation === 'landscape' ? 'orientation-landscape ' : 'orientation-portrait ') + (experienceStarted ? 'is-active' : '')} onPointerDown={handlePointerDown} onPointerMove={handlePointerMove} onPointerUp={handlePointerUp} onPointerCancel={handlePointerUp}>
@@ -508,7 +531,7 @@ export default function ParticleFlower() {
       <section className="bloom-intro">
         <div className="bloom-kicker">AN INTERACTIVE LIGHT GARDEN</div>
         <h1>让花，在指尖醒来。</h1>
-        <p>握拳，收拢成一颗花苞；张掌，让三千粒光一起舒展。</p>
+        <p>握拳，收拢成一颗花苞；张掌，让粒子花冠舒展。</p>
         {!cameraLive && (
           <div className="bloom-actions">
             <button className="bloom-primary" onClick={startCamera} disabled={loading}>
@@ -528,22 +551,13 @@ export default function ParticleFlower() {
       </footer>
       <aside className="bloom-hud">
         <div className="bloom-hud-label">GESTURE <span>/ 手势</span></div>
-        <div className="bloom-hud-state">{statusChinese}</div>
-        <div className="bloom-hud-en">{statusEnglish}</div>
-        <div className="bloom-hud-number">{openness}<small>%</small></div>
-        <div className="bloom-progress"><span style={{width:openness+'%'}} /></div>
-        <div className="bloom-hud-meta">{particleCount.toLocaleString()} LIGHT PARTICLES</div>
+        <div className="bloom-hud-state" ref={hudStateRef}>{statusChinese}</div>
+        <div className="bloom-hud-en" ref={hudEnglishRef}>{statusEnglish}</div>
+        <div className="bloom-hud-number"><span ref={hudNumberRef}>18</span><small>%</small></div>
+        <div className="bloom-progress"><span ref={hudProgressRef} style={{width:'18%'}} /></div>
+        <div className="bloom-hud-meta">PARTICLE FLOW · LIVE</div>
       </aside>
-      <div className="bloom-fps-switch" role="group" aria-label="动画帧率上限">
-        <span>FPS</span>
-        {([30, 60, 90, 120, 0] as FpsLimit[]).map(value => <button key={value} className={fpsLimit === value ? 'active' : ''} onClick={() => { fpsLimitRef.current = value; setFpsLimit(value); }} aria-pressed={fpsLimit === value}>{value === 0 ? '自动' : value}</button>)}
-        <small>{actualFps}</small>
-      </div>
-      <div className="bloom-orientation-switch" role="group" aria-label="屏幕方向">
-        <span>屏幕</span>
-        <button className={layoutOrientation === 'portrait' ? 'active' : ''} onClick={() => void requestOrientation('portrait')} aria-pressed={layoutOrientation === 'portrait'}>竖屏</button>
-        <button className={layoutOrientation === 'landscape' ? 'active' : ''} onClick={() => void requestOrientation('landscape')} aria-pressed={layoutOrientation === 'landscape'}>横屏</button>
-      </div>
+      <button className="bloom-landscape-toggle" onClick={() => void requestOrientation(layoutOrientation === 'landscape' ? 'portrait' : 'landscape')} aria-label="切换屏幕方向">{layoutOrientation === 'landscape' ? '退出横屏' : '横屏'}</button>
       {orientationMessage && <div className="bloom-orientation-note" role="status">{orientationMessage}</div>}
       <div className="bloom-mode-switch">
         <button className={mode==='gesture'?'active':''} onClick={() => cameraLive ? setExperienceMode('gesture') : void startCamera()}>手势</button>

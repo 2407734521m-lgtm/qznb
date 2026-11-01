@@ -47,6 +47,7 @@ import LoveWall from './pages/LoveWall';
 import Explore from './pages/Explore';
 import SongWall from './pages/SongWall';
 import Daily from './pages/Daily';
+import ParticleFlower from './pages/ParticleFlower';
 import { alertDialog } from './lib/dialog';
 import GlobalSearch from './components/GlobalSearch';
 
@@ -78,7 +79,7 @@ function parseDevice(ua: string): string {
 function isTabActive(tab: string, path: string) {
   if (tab === '/board') return path.startsWith('/board');
   if (tab === '/members') return path.startsWith('/members');
-  if (tab === '/explore') return ['/explore','/feed','/albums','/hot','/greetings','/events','/capsule','/wishes'].some(p => path.startsWith(p));
+  if (tab === '/explore') return ['/explore','/feed','/albums','/hot','/greetings','/events','/capsule','/wishes','/particle-flower'].some(p => path.startsWith(p));
   if (tab === '/friends') return ['/friends','/chat'].some(p => path.startsWith(p));
   if (tab === '/songs') return path.startsWith('/songs');
   if (tab === '/love-wall') return path.startsWith('/love-wall');
@@ -304,7 +305,7 @@ function PublicLanding({ data, onLogin }: { data: any; onLogin: () => void }) {
 // 校徽位置按页面设计：锚在页面顶部随内容滚动（absolute），每页按页头版式给不同的位置与大小；
 // 聊天对话页不放，保持对话界面干净。返回 null 表示该页不显示。
 function emblemSpot(path: string): { top: number; right: number; width: number; opacity: number } | null {
-  if (path.startsWith('/chat')) return null;
+  if (path.startsWith('/chat') || path.startsWith('/particle-flower')) return null;
   if (path.startsWith('/love-wall')) return { top: 54, right: 12, width: 118, opacity: 0.32 };
   if (path.startsWith('/songs')) return { top: 58, right: 12, width: 98, opacity: 0.32 };
   if (path.startsWith('/explore')) return { top: 96, right: 16, width: 106, opacity: 0.30 };
@@ -336,6 +337,7 @@ function Shell() {
   const isAdmin = role === 'admin' || role === 'super_admin';
   const isAdminPage = loc.pathname === '/admin';
   const isChatPage = loc.pathname.startsWith('/chat/');
+  const isBloomPage = loc.pathname === '/particle-flower';
   const nav = useNavigate();
   const barRef = useRef<HTMLElement>(null);
   const [dockCollapsed, setDockCollapsed] = useState(() => {
@@ -716,7 +718,7 @@ function Shell() {
           <NavLink to="/members" style={{ fontSize: 13, color: '#303642', textDecoration: 'none' }}>← 回站点</NavLink>
           <button className="mini ghost" onClick={logout}>退出</button>
         </div>
-      ) : !isChatPage ? (
+      ) : !isChatPage && !isBloomPage ? (
       <nav className="topnav">
         <span className="links">
           {TABS.map(t => (
@@ -742,6 +744,7 @@ function Shell() {
               <Route path="/" element={<Navigate to="/home" replace />} />
               <Route path="/board" element={<Board />} />
               <Route path="/explore" element={<Explore />} />
+              <Route path="/particle-flower" element={<ParticleFlower />} />
               <Route path="/love-wall" element={<LoveWall />} />
               <Route path="/songs" element={<SongWall />} />
               <Route path="/daily" element={<Daily searchQuery={typeof (loc.state as any)?.searchQuery === 'string' ? (loc.state as any).searchQuery : ''} />} />
@@ -779,7 +782,7 @@ function Shell() {
         </AnimatePresence>
       </div>
 
-      {!isAdminPage && !isChatPage && (
+      {!isAdminPage && !isChatPage && !isBloomPage && (
         <nav
           ref={barRef}
           className={`tabbar ${dockCollapsed ? 'dock-collapsed dock-side-' + dockSide : ''}`}

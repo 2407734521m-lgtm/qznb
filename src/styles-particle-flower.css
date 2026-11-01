@@ -894,3 +894,11 @@
 @media(prefers-reduced-motion:reduce){
   .bloom-quality-presets button,.bloom-focus-toggle,.bloom-telemetry{transition:none}
 }
+
+
+/* Air Ink draws into the main canvas; keep that canvas visible in writing mode. */
+.bloom-page.tool-write .bloom-canvas{
+  opacity:1!important;
+  visibility:visible!important;
+  z-index:2!important;
+}

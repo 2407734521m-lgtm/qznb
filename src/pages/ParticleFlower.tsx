@@ -33,6 +33,12 @@ const THEME_CORE_COLORS: Record<ArtTheme, [string, string]> = {
   sakura: ['255,245,224', '255,205,205'], gold: ['255,249,207', '255,208,126'],
   starsea: ['231,252,255', '121,211,255'], glass: ['250,255,255', '181,226,237']
 };
+const THEME_CORE_DOT_COLORS: Record<ArtTheme, string> = {
+  sakura: '255,242,219', gold: '255,239,190', starsea: '222,249,255', glass: '238,255,255'
+};
+const THEME_POLLEN_COLORS: Record<ArtTheme, string> = {
+  sakura: '#ffe6ef', gold: '#ffe6a6', starsea: '#bdeeff', glass: '#dcfbff'
+};
 
 const HAND_CONNECTIONS: number[][] = [
   [0,1],[1,2],[2,3],[3,4], [0,5],[5,6],[6,7],[7,8],
@@ -368,6 +374,7 @@ export default function ParticleFlower() {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const recordingChunksRef = useRef<Blob[]>([]);
   const recordingTimerRef = useRef<number>(0);
+  const recordingDiscardRef = useRef(false);
   const landmarksRef = useRef<any[] | null>(null);
   const hasHandRef = useRef(false);
   const experienceStartedRef = useRef(false);
@@ -442,7 +449,10 @@ export default function ParticleFlower() {
     cameraRafRef.current = 0;
     if (recognitionTimerRef.current) window.clearTimeout(recognitionTimerRef.current);
     if (recordingTimerRef.current) window.clearTimeout(recordingTimerRef.current);
-    if (mediaRecorderRef.current?.state === 'recording') mediaRecorderRef.current.stop();
+    if (mediaRecorderRef.current?.state === 'recording') {
+      recordingDiscardRef.current = true;
+      mediaRecorderRef.current.stop();
+    }
     streamRef.current?.getTracks().forEach(track => track.stop());
     streamRef.current = null;
     if (videoRef.current) videoRef.current.srcObject = null;
@@ -592,7 +602,7 @@ export default function ParticleFlower() {
         const detectedHands = results.multiHandLandmarks || [];
         const hand = detectedHands[0];
         const secondHand = detectedHands[1];
-        twoHandBoostRef.current = secondHand?.[8]
+        twoHandBoostRef.current = hand?.[8] && secondHand?.[8]
           ? lerp(twoHandBoostRef.current, clamp(1 - distance(hand[8], secondHand[8]) / 0.72, 0, 1), 0.16)
           : lerp(twoHandBoostRef.current, 0, 0.08);
         if (!hand) {
@@ -849,7 +859,7 @@ export default function ParticleFlower() {
         coreGlow.addColorStop(1, 'rgba(244,144,190,0)');
         ctx.save(); ctx.globalCompositeOperation = 'lighter';
         ctx.fillStyle = coreGlow; ctx.beginPath(); ctx.arc(cx, cy, coreRadius * 4.2, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = 'rgba(255,242,219,.42)'; ctx.beginPath(); ctx.arc(cx, cy, coreRadius * .55, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = 'rgba('+THEME_CORE_DOT_COLORS[artThemeRef.current]+',.42)'; ctx.beginPath(); ctx.arc(cx, cy, coreRadius * .55, 0, Math.PI * 2); ctx.fill();
         ctx.restore();
 
         // Additive prebuilt sprites avoid per-frame sorting and per-particle canvas paths.
@@ -917,7 +927,7 @@ export default function ParticleFlower() {
           const y = (mote.y * height + now * mote.speed) % Math.max(1, height);
           const alpha = 0.12 + 0.1 * (0.5 + 0.5 * Math.sin(now + mote.phase));
           ctx.globalAlpha = alpha * (0.65 + opennessNow * 0.55) * glowIntensityRef.current;
-          ctx.fillStyle = artThemeRef.current === 'gold' ? '#ffe6a6' : artThemeRef.current === 'starsea' ? '#bdeeff' : '#ffe6ef';
+          ctx.fillStyle = THEME_POLLEN_COLORS[artThemeRef.current];
           ctx.beginPath(); ctx.arc(x, y, mote.size, 0, Math.PI * 2); ctx.fill();
         }
         if (opennessNow > 0.72 && now - lastPetalReleaseRef.current > 3.4 && fallingPetals.length < 14) {
@@ -1111,10 +1121,10 @@ export default function ParticleFlower() {
       const file = new File([blob], '指尖生花.png', { type: 'image/png' });
       if (navigator.share && navigator.canShare?.({ files: [file] })) {
         await navigator.share({ title: '我的粒子花作品', files: [file] });
-      } else if (navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(window.location.href);
-        setMediaMessage('分享链接已复制，也可以直接保存作品图片');
-      } else setMediaMessage('当前浏览器不支持系统分享，请先保存作品图片');
+      } else {
+        saveArtworkToDevice();
+        setMediaMessage('当前浏览器不支持文件分享，已改为保存 PNG 图片');
+      }
     } catch (error: any) {
       if (error?.name !== 'AbortError') setMediaMessage('分享暂不可用，请先保存作品图片');
     }
@@ -1130,29 +1140,41 @@ export default function ParticleFlower() {
     if (!canvas || typeof MediaRecorder === 'undefined' || !canvas.captureStream) {
       setMediaMessage('当前浏览器不支持动画录制'); return;
     }
+    let captureStream: MediaStream | null = null;
     try {
-      const stream = canvas.captureStream(30);
-      const mimeType = ['video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm'].find(type => MediaRecorder.isTypeSupported(type));
-      const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
+      captureStream = canvas.captureStream(30);
+      const supportedTypes = ['video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm', 'video/mp4'];
+      const mimeType = typeof MediaRecorder.isTypeSupported === 'function'
+        ? supportedTypes.find(type => MediaRecorder.isTypeSupported(type))
+        : undefined;
+      const recorder = new MediaRecorder(captureStream, mimeType ? { mimeType } : undefined);
+      recordingDiscardRef.current = false;
       mediaRecorderRef.current = recorder; recordingChunksRef.current = [];
       recorder.ondataavailable = event => { if (event.data.size) recordingChunksRef.current.push(event.data); };
       recorder.onstop = () => {
         if (recordingTimerRef.current) window.clearTimeout(recordingTimerRef.current);
-        const blob = new Blob(recordingChunksRef.current, { type: recorder.mimeType || 'video/webm' });
-        if (blob.size) {
+        const discard = recordingDiscardRef.current;
+        recordingDiscardRef.current = false;
+        const outputType = recorder.mimeType || mimeType || 'video/webm';
+        const blob = new Blob(recordingChunksRef.current, { type: outputType });
+        if (blob.size && !discard) {
+          const extension = outputType.includes('mp4') ? 'mp4' : 'webm';
           const url = URL.createObjectURL(blob); const link = document.createElement('a');
-          link.href = url; link.download = '指尖生花-动态作品.webm'; link.click();
+          link.href = url; link.download = '指尖生花-动态作品.' + extension; link.click();
           window.setTimeout(() => URL.revokeObjectURL(url), 30000);
           setMediaMessage('动态作品已导出');
         }
-        stream.getTracks().forEach(track => track.stop());
+        captureStream?.getTracks().forEach(track => track.stop());
         mediaRecorderRef.current = null; setIsRecording(false);
       };
+      recorder.onerror = () => setMediaMessage('录制出现问题，请尝试降低画质后重试');
       recorder.start(250); setIsRecording(true); setMediaMessage('正在录制，最长 15 秒');
       recordingTimerRef.current = window.setTimeout(() => {
         if (recorder.state === 'recording') recorder.stop();
       }, 15000);
     } catch {
+      captureStream?.getTracks().forEach(track => track.stop());
+      mediaRecorderRef.current = null;
       setMediaMessage('启动录制失败，可能是浏览器编码器不支持'); setIsRecording(false);
     }
   }, []);

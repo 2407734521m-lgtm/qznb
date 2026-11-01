@@ -1,5 +1,7 @@
 name: Verify pull request
 on:
+  push:
+    branches: ['feat/admin-workspace-*']
   pull_request:
     branches: [main]
 permissions:

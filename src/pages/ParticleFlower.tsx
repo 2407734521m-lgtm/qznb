@@ -443,9 +443,9 @@ export default function ParticleFlower() {
       const scale = Math.min(width * 0.88, height * 1.05);
 
       const finger = modeRef.current === 'gesture' ? fingerRef.current : pointerRef.current;
-      // 轻量残影衰减：保留上一帧的光迹，形成指尖牵引的流动感。
-      ctx.globalCompositeOperation='destination-out';
-      ctx.fillStyle='rgba(0,0,0,.17)'; ctx.fillRect(0,0,width,height);
+      // 每帧清理画布，避免半透明花瓣在 60/120Hz 下反复叠加而再次过曝。
+      // 光尘本身持续移动，不依赖残影也能保持流动感。
+      ctx.clearRect(0, 0, width, height);
       ctx.globalCompositeOperation='source-over';
       // 柔和的环境光晕。
       const halo = ctx.createRadialGradient(cx,cy,scale*0.04,cx,cy,scale*0.78);

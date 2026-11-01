@@ -22,6 +22,9 @@ export default function Moderate({ setMsg }: { setMsg: (s: string) => void }) {
   const [contentStatus, setContentStatus] = useState<'all' | 'visible' | 'hidden'>('all');
   const [reportStatus, setReportStatus] = useState<'all' | 'pending' | 'done' | 'rejected'>('all');
   const [refreshing, setRefreshing] = useState(false);
+  const [selectedPosts, setSelectedPosts] = useState<Set<Post['id']>>(new Set());
+  const [selectedComments, setSelectedComments] = useState<Set<Cmt['id']>>(new Set());
+  const [batchBusy, setBatchBusy] = useState(false);
 
   async function load() {
     const [p, c, r, tp, tc, tb] = await Promise.all([
@@ -55,6 +58,11 @@ export default function Moderate({ setMsg }: { setMsg: (s: string) => void }) {
     }
   }
   useEffect(() => { load(); }, []);
+
+  useEffect(() => {
+    setSelectedPosts(new Set());
+    setSelectedComments(new Set());
+  }, [sub, query, contentStatus]);
 
   async function refresh() {
     setRefreshing(true);
@@ -130,6 +138,70 @@ export default function Moderate({ setMsg }: { setMsg: (s: string) => void }) {
   const filteredTrashP = trashP.filter(p => matches(p.content) || matches(names[p.author_id]) || matches(String(p.id)));
   const filteredTrashC = trashC.filter(comment => matches(comment.content) || matches(names[comment.author_id]) || matches(String(comment.post_id)));
   const filteredTrashB = trashB.filter(b => matches(b.title) || matches(b.content) || matches(names[b.author_id || '']));
+
+  async function batchSetPostsHidden(hide: boolean) {
+    const targets = filteredPosts.filter(post =>
+      selectedPosts.has(post.id) && (hide ? !post.deleted_at : !!post.deleted_at)
+    );
+    if (!targets.length) {
+      setMsg('当前选择中没有可' + (hide ? '隐藏' : '恢复') + '的帖子。');
+      return;
+    }
+    const verb = hide ? '隐藏' : '恢复';
+    if (!(await confirmDialog('确认' + verb + '选中的 ' + targets.length + ' 条帖子？'))) return;
+
+    setBatchBusy(true);
+    let success = 0;
+    let failed = 0;
+    for (const post of targets) {
+      const { error } = await supabase.rpc('admin_set_post_hidden', {
+        p_id: post.id,
+        p_hidden: hide,
+      });
+      if (error) {
+        failed++;
+        continue;
+      }
+      success++;
+      await alog(hide ? 'post_hide' : 'post_restore', { id: post.id, batch: true });
+    }
+    setBatchBusy(false);
+    setSelectedPosts(new Set());
+    await load();
+    setMsg(verb + '帖子完成：成功 ' + success + ' 条，失败 ' + failed + ' 条。');
+  }
+
+  async function batchSetCommentsHidden(hide: boolean) {
+    const targets = filteredComments.filter(comment =>
+      selectedComments.has(comment.id) && (hide ? !comment.deleted_at : !!comment.deleted_at)
+    );
+    if (!targets.length) {
+      setMsg('当前选择中没有可' + (hide ? '隐藏' : '恢复') + '的评论。');
+      return;
+    }
+    const verb = hide ? '隐藏' : '恢复';
+    if (!(await confirmDialog('确认' + verb + '选中的 ' + targets.length + ' 条评论？'))) return;
+
+    setBatchBusy(true);
+    let success = 0;
+    let failed = 0;
+    for (const comment of targets) {
+      const { error } = await supabase.rpc('admin_set_comment_hidden', {
+        p_id: comment.id,
+        p_hidden: hide,
+      });
+      if (error) {
+        failed++;
+        continue;
+      }
+      success++;
+      await alog(hide ? 'comment_hide' : 'comment_restore', { id: comment.id, batch: true });
+    }
+    setBatchBusy(false);
+    setSelectedComments(new Set());
+    await load();
+    setMsg(verb + '评论完成：成功 ' + success + ' 条，失败 ' + failed + ' 条。');
+  }
   const pending = reports.filter(r => r.status === 'pending').length;
   const trashCount = trashP.length + trashC.length + trashB.length;
   return (<>
@@ -154,6 +226,46 @@ export default function Moderate({ setMsg }: { setMsg: (s: string) => void }) {
           <button key={value} className={'mini' + (reportStatus === value ? '' : ' ghost')} onClick={() => setReportStatus(value)}>{label}</button>
         )}
       </div> : null}
+      {sub === 'posts' && <div className="admin-moderation-batchbar">
+        <div className="admin-moderation-batchbar-copy">
+          <strong>已选 {filteredPosts.filter(post => selectedPosts.has(post.id)).length} 条帖子</strong>
+          <span>当前筛选 {filteredPosts.length} 条；列表最多载入最近 50 条</span>
+        </div>
+        <div className="admin-moderation-batchbar-actions">
+          <button className="mini ghost" disabled={batchBusy || filteredPosts.length === 0}
+            onClick={() => setSelectedPosts(new Set(filteredPosts.map(post => post.id)))}>选择当前筛选</button>
+          <button className="mini ghost" disabled={batchBusy || selectedPosts.size === 0}
+            onClick={() => setSelectedPosts(new Set())}>清空</button>
+          {filteredPosts.some(post => selectedPosts.has(post.id) && !post.deleted_at) &&
+            <button className="mini ghost" disabled={batchBusy} onClick={() => void batchSetPostsHidden(true)}>
+              {batchBusy ? '处理中…' : '批量隐藏'}
+            </button>}
+          {filteredPosts.some(post => selectedPosts.has(post.id) && !!post.deleted_at) &&
+            <button className="mini" disabled={batchBusy} onClick={() => void batchSetPostsHidden(false)}>
+              {batchBusy ? '处理中…' : '批量恢复'}
+            </button>}
+        </div>
+      </div>}
+      {sub === 'comments' && <div className="admin-moderation-batchbar">
+        <div className="admin-moderation-batchbar-copy">
+          <strong>已选 {filteredComments.filter(comment => selectedComments.has(comment.id)).length} 条评论</strong>
+          <span>当前筛选 {filteredComments.length} 条；列表最多载入最近 50 条</span>
+        </div>
+        <div className="admin-moderation-batchbar-actions">
+          <button className="mini ghost" disabled={batchBusy || filteredComments.length === 0}
+            onClick={() => setSelectedComments(new Set(filteredComments.map(comment => comment.id)))}>选择当前筛选</button>
+          <button className="mini ghost" disabled={batchBusy || selectedComments.size === 0}
+            onClick={() => setSelectedComments(new Set())}>清空</button>
+          {filteredComments.some(comment => selectedComments.has(comment.id) && !comment.deleted_at) &&
+            <button className="mini ghost" disabled={batchBusy} onClick={() => void batchSetCommentsHidden(true)}>
+              {batchBusy ? '处理中…' : '批量隐藏'}
+            </button>}
+          {filteredComments.some(comment => selectedComments.has(comment.id) && !!comment.deleted_at) &&
+            <button className="mini" disabled={batchBusy} onClick={() => void batchSetCommentsHidden(false)}>
+              {batchBusy ? '处理中…' : '批量恢复'}
+            </button>}
+        </div>
+      </div>}
       <p style={{ ...mut, margin: '8px 0 0' }}>搜索范围会随当前分类变化；隐藏与永久删除仍保留二次确认。</p>
     </div>
 
@@ -180,6 +292,15 @@ export default function Moderate({ setMsg }: { setMsg: (s: string) => void }) {
     {sub === 'posts' && (<>
       {filteredPosts.map(p => (
         <div key={p.id} style={{ ...card, opacity: p.deleted_at ? 0.55 : 1 }}>
+          <label className="admin-moderation-item-select">
+            <input type="checkbox" checked={selectedPosts.has(p.id)}
+              onChange={event => setSelectedPosts(current => {
+                const next = new Set(current);
+                if (event.target.checked) next.add(p.id); else next.delete(p.id);
+                return next;
+              })} />
+            <span>选择帖子 #{p.id}</span>
+          </label>
           <div style={{ fontSize: 11.5, color: '#9aa4c7', marginBottom: 4 }}>{p.section === 'daily' ? '日常' : '动态'}</div>
           <div style={{ fontSize: 13.5 }}>{(p.content || '').slice(0, 120)}</div>
           <div style={mut}>{names[p.author_id] || '…'} · {timeAgo(p.created_at)}{p.deleted_at ? ' · 已隐藏' : ''}</div>
@@ -197,6 +318,15 @@ export default function Moderate({ setMsg }: { setMsg: (s: string) => void }) {
     {sub === 'comments' && (<>
       {filteredComments.map(c => (
         <div key={c.id} style={{ ...card, opacity: c.deleted_at ? 0.55 : 1 }}>
+          <label className="admin-moderation-item-select">
+            <input type="checkbox" checked={selectedComments.has(c.id)}
+              onChange={event => setSelectedComments(current => {
+                const next = new Set(current);
+                if (event.target.checked) next.add(c.id); else next.delete(c.id);
+                return next;
+              })} />
+            <span>选择评论 #{c.id}</span>
+          </label>
           <div style={{ fontSize: 13.5 }}>{(c.content || '').slice(0, 120)}</div>
           <div style={mut}>{names[c.author_id] || '…'} · {postSections[c.post_id] === 'daily' ? '日常' : postSections[c.post_id] === 'feed' ? '动态' : '帖子'} #{c.post_id} · {timeAgo(c.created_at)}{c.deleted_at ? ' · 已隐藏' : ''}</div>
           <div style={rowBtn}>

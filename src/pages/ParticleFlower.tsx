@@ -965,7 +965,7 @@ export default function ParticleFlower() {
           if (petal.life > 5.5 || petal.y > height + 30) { fallingPetals.splice(i, 1); continue; }
           const fade = clamp(1 - petal.life / 5.5, 0, 1), color = petalColors[petal.tone];
           ctx.save(); ctx.translate(petal.x, petal.y); ctx.rotate(petal.rotation);
-          ctx.globalAlpha = fade * 0.72 * glowIntensityRef.current;
+          ctx.globalAlpha = clamp(fade * 0.72 * glowIntensityRef.current, 0, 1);
           ctx.fillStyle = 'rgba('+color[0]+','+color[1]+','+color[2]+',.88)';
           ctx.shadowColor = 'rgba('+color[0]+','+color[1]+','+color[2]+',.7)'; ctx.shadowBlur = 10 * glowIntensityRef.current;
           ctx.beginPath(); ctx.moveTo(0, -petal.size);

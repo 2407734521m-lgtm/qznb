@@ -108,7 +108,7 @@ export default function AdminBulkEmail({ setMsg }: { setMsg: (s: string) => void
       <input value={subject} onChange={e => setSubject(e.target.value)} maxLength={160} placeholder="例如：班级活动通知" style={field} />
       <label style={label}>邮件内容</label>
       <textarea value={body} onChange={e => setBody(e.target.value)} maxLength={10000} rows={6} placeholder="写下邮件正文…" style={{ ...field, resize: 'vertical' }} />
-      <button disabled={busy} onClick={() => void send()} style={{ ...sendBtn, opacity: busy ? .6 : 1, ...(confirming ? { background: 'linear-gradient(135deg,#f59e0b,#ef4444)' } : {}) }}>{busy ? '发送中…' : confirming ? `确认发送？将发送给 ${selected.length} 个账号` : `发送给已选择的 ${selected.length} 个账号`}</button>
+      <button className={`admin-email-send-button${confirming ? ' is-confirming' : ''}`} disabled={busy} onClick={() => void send()} style={{ ...sendBtn, opacity: busy ? .6 : 1 }}>{busy ? '发送中…' : confirming ? `确认发送？将发送给 ${selected.length} 个账号` : `发送给已选择的 ${selected.length} 个账号`}</button>
       <p style={{ color: '#8994b2', fontSize: 10, lineHeight: 1.6, marginBottom: 0 }}>只向你明确勾选的账号发送；请勿发送骚扰、敏感或与社区无关的邮件。发送记录只保存邮件主题、数量和状态，不保存正文或邮箱地址。</p>
     </div>
     <div className="admin-email-panel" style={{ ...panel, marginTop: 12 }}>

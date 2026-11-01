@@ -10,7 +10,6 @@ type Particle = {
 };
 type Mode = 'gesture' | 'demo';
 type LayoutOrientation = 'portrait' | 'landscape';
-type FpsLimit = 30 | 60 | 90 | 120 | 0;
 
 const HAND_CONNECTIONS: number[][] = [
   [0,1],[1,2],[2,3],[3,4], [0,5],[5,6],[6,7],[7,8],
@@ -138,7 +137,6 @@ export default function ParticleFlower() {
   const streamRef = useRef<MediaStream | null>(null);
   const handsRef = useRef<any>(null);
   const rafRef = useRef<number>(0);
-  const fpsLimitRef = useRef<FpsLimit>(0);
   const startGuardRef = useRef(false);
   const cameraRafRef = useRef<number>(0);
   const particlesRef = useRef<Particle[]>([]);
@@ -342,13 +340,20 @@ export default function ParticleFlower() {
     if (!canvas) return;
     const ctx = canvas.getContext('2d', { alpha: true, desynchronized: true });
     if (!ctx) return;
-    let width = 0, height = 0, dpr = 1, lastTime = 0, lastRenderedTime = 0, fpsWindowStart = 0, fpsFrames = 0;
+    let width = 0, height = 0, dpr = 1, lastTime = 0;
     const mobile = window.matchMedia('(max-width: 700px)').matches;
     const cores = navigator.hardwareConcurrency || 4;
     const memory = (navigator as any).deviceMemory || 4;
     const lowEnd = cores <= 4 || memory <= 4;
     const count = mobile ? (lowEnd ? 1400 : 1900) : (lowEnd ? 2200 : 3000);
     particlesRef.current = makeParticles(count);
+    const palette = Array.from({length:64},(_,i)=>{
+      const t=i/63;
+      const r=Math.round(t<.5?lerp(255,247,t*2):lerp(247,231,(t-.5)*2));
+      const g=Math.round(t<.5?lerp(243,168,t*2):lerp(168,84,(t-.5)*2));
+      const b=Math.round(t<.5?lerp(214,196,t*2):lerp(196,154,(t-.5)*2));
+      return 'rgb('+r+','+g+','+b+')';
+    });
     const resize = () => {
       width = window.innerWidth; height = window.innerHeight;
       dpr = Math.min(window.devicePixelRatio || 1, mobile ? (lowEnd ? 1 : 1.25) : 1.6);
@@ -403,15 +408,11 @@ export default function ParticleFlower() {
         const x=cx+nx, y=cy+ny+nz*0.2;
         p.x=x; p.y=y;
         const normalized=clamp(Math.hypot(nx,ny)/(scale*0.48),0,1);
-        const cream=1-normalized, pink=clamp(1-Math.abs(normalized-0.53)*2.05,0,1), edge=normalized;
-        const midMix=clamp(normalized*2,0,1), edgeMix=clamp((normalized-.5)*2,0,1);
-        const r=Math.round(normalized<.5?lerp(255,247,midMix):lerp(247,231,edgeMix));
-        const g=Math.round(normalized<.5?lerp(243,168,midMix):lerp(168,84,edgeMix));
-        const b=Math.round(normalized<.5?lerp(214,196,midMix):lerp(196,154,edgeMix));
+        const cream=1-normalized, pink=clamp(1-Math.abs(normalized-0.53)*2.05,0,1);
         const alpha=0.42+cream*0.14+pink*0.08;
         const size=p.size*(0.62+opennessNow*0.34);
         ctx.globalAlpha=alpha;
-        ctx.fillStyle='rgb('+r+','+g+','+b+')';
+        ctx.fillStyle=palette[Math.min(63,Math.round(normalized*63))];
         ctx.beginPath(); ctx.arc(x,y,Math.max(.45,size*.72),0,Math.PI*2); ctx.fill();
       }
       ctx.globalAlpha=1; ctx.globalCompositeOperation='source-over';
@@ -457,11 +458,6 @@ export default function ParticleFlower() {
         ctx.save(); ctx.strokeStyle='rgba(255,244,235,.75)'; ctx.lineWidth=1;
         ctx.beginPath(); ctx.moveTo(p.x-8,p.y); ctx.lineTo(p.x+8,p.y); ctx.moveTo(p.x,p.y-8); ctx.lineTo(p.x,p.y+8); ctx.stroke();
         ctx.beginPath(); ctx.arc(p.x,p.y,13,0,Math.PI*2); ctx.strokeStyle='rgba(255,244,235,.22)'; ctx.stroke(); ctx.restore();
-      }
-      fpsFrames++;
-      if (!fpsWindowStart) fpsWindowStart = time;
-      if (time - fpsWindowStart >= 1000) {
-        fpsFrames = 0; fpsWindowStart = time;
       }
       if (time-lastHudRef.current>50) {
         lastHudRef.current=time;
@@ -555,11 +551,7 @@ export default function ParticleFlower() {
         <div className="bloom-progress"><span ref={hudProgressRef} style={{width:'18%'}} /></div>
         <div className="bloom-hud-meta">PARTICLE FLOW · LIVE</div>
       </aside>
-      <div className="bloom-orientation-switch" role="group" aria-label="屏幕方向">
-        <span>屏幕</span>
-        <button className={layoutOrientation === 'portrait' ? 'active' : ''} onClick={() => void requestOrientation('portrait')} aria-pressed={layoutOrientation === 'portrait'}>竖屏</button>
-        <button className={layoutOrientation === 'landscape' ? 'active' : ''} onClick={() => void requestOrientation('landscape')} aria-pressed={layoutOrientation === 'landscape'}>横屏</button>
-      </div>
+      <button className="bloom-landscape-toggle" onClick={() => void requestOrientation(layoutOrientation === 'landscape' ? 'portrait' : 'landscape')} aria-label="切换屏幕方向">{layoutOrientation === 'landscape' ? '退出横屏' : '横屏'}</button>
       {orientationMessage && <div className="bloom-orientation-note" role="status">{orientationMessage}</div>}
       <div className="bloom-mode-switch">
         <button className={mode==='gesture'?'active':''} onClick={() => cameraLive ? setExperienceMode('gesture') : void startCamera()}>手势</button>

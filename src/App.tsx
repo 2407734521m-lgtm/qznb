@@ -342,6 +342,12 @@ function Shell() {
     try { return localStorage.getItem('ca_dock_collapsed') === '1'; } catch { return false; }
   });
   const [searchOpen, setSearchOpen] = useState(false);
+  // 搜索入口已从 dock 移到首页：首页搜索条发这个事件打开全站搜索。
+  useEffect(() => {
+    const open = () => setSearchOpen(true);
+    window.addEventListener('qznb:open-search', open);
+    return () => window.removeEventListener('qznb:open-search', open);
+  }, []);
   const [dockSide, setDockSide] = useState<'left' | 'right'>(() => {
     try { return localStorage.getItem('ca_dock_side') === 'left' ? 'left' : 'right'; } catch { return 'right'; }
   });
@@ -771,15 +777,7 @@ function Shell() {
             })}
           </AnimatePresence>
           </div>
-          {!dockCollapsed && (
-            <button
-              type="button"
-              className="dock-action dock-search"
-              aria-label="搜索全站内容"
-              title="搜索全站内容"
-              onClick={() => setSearchOpen(true)}
-            >⌕</button>
-          )}
+
           <button
             type="button"
             className="dock-action dock-toggle"

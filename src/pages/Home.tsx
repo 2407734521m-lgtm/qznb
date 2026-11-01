@@ -131,6 +131,14 @@ export default function Home() {
         </section>
       </Reveal>
 
+      <Reveal enter delay={0.05}>
+        <button type="button" className="vh-search" aria-label="搜索全站内容"
+          onClick={() => window.dispatchEvent(new CustomEvent('qznb:open-search'))}>
+          <span className="vh-search-icon" aria-hidden="true">⌕</span>
+          <span>搜索成员、动态、相册或公告</span>
+        </button>
+      </Reveal>
+
       <Reveal enter delay={0.08}>
         <header className="vh-intro">
           <div>

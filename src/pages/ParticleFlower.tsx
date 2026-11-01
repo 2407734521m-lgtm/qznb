@@ -462,6 +462,7 @@ export default function ParticleFlower() {
     setExperienceStarted(true);
     modeRef.current = next; setMode(next);
     if (next === 'demo') {
+      autoDemoRef.current = false; setAutoDemo(false);
       experienceToolRef.current = 'flower';
       setExperienceTool('flower');
       stopCamera();
@@ -759,7 +760,14 @@ export default function ParticleFlower() {
     const lowEnd = cores <= 4 || memory <= 4;
     const count = particleCountRef.current;
     particlesRef.current = makeParticles(count);
-    const particleSprites = drawParticleSprites();
+    const spritePalettes: Record<ArtTheme, HTMLCanvasElement[]> = {
+      sakura: drawParticleSprites(THEME_COLORS.sakura),
+      gold: drawParticleSprites(THEME_COLORS.gold),
+      starsea: drawParticleSprites(THEME_COLORS.starsea),
+      glass: drawParticleSprites(THEME_COLORS.glass)
+    };
+    const fallingPetals: FallingPetal[] = [];
+    const pollen = Array.from({ length: mobile ? 26 : 54 }, () => ({ x: Math.random(), y: Math.random(), speed: 5 + Math.random() * 12, phase: Math.random() * Math.PI * 2, size: 0.5 + Math.random() * 1.5 }));
     const petalTouchTargets = new Float32Array(24);
     const petalTouchCurrent = new Float32Array(24);
     const resize = () => {
@@ -791,6 +799,10 @@ export default function ParticleFlower() {
       const dt = Math.min(0.05, Math.max(0.001, elapsed));
       lastRenderedTime = time;
       lastTime = time;
+      if (autoDemoRef.current && modeRef.current === 'demo' && experienceToolRef.current === 'flower') {
+        const cycle = (time / 1000) * 0.42;
+        targetRef.current = 0.18 + 0.78 * (0.5 - 0.5 * Math.cos(cycle));
+      }
       const spring = 18, damping = 8.5;
       const accel = (targetRef.current-currentRef.current)*spring - velocityRef.current*damping;
       velocityRef.current += accel*dt;
@@ -798,7 +810,7 @@ export default function ParticleFlower() {
       const opennessNow = currentRef.current;
       const now = time * 0.001;
       const cx = width * 0.5;
-      const cy = height * (!experienceStartedRef.current && mobile ? 0.53 : 0.5);
+      const cy = height * (!experienceStartedRef.current && mobile ? 0.53 : 0.5) - gestureLiftRef.current * height;
       const scale = Math.min(width * 0.88, height * 1.05);
 
       const finger = modeRef.current === 'gesture' ? fingerRef.current : pointerRef.current;
@@ -814,15 +826,21 @@ export default function ParticleFlower() {
         const cosPitch=Math.cos(pitch),sinPitch=Math.sin(pitch);
         const cameraDistance=2.65,breathing=1+Math.sin(now*.68)*.006;
         const halo=ctx.createRadialGradient(cx,cy,scale*.08,cx,cy,scale*.82);
-        halo.addColorStop(0,'rgba(226,105,161,'+(.075+opennessNow*.07)+')');
+        const haloColors: Record<ArtTheme, string> = { sakura: '226,105,161', gold: '232,174,81', starsea: '94,180,235', glass: '175,213,222' };
+        const haloBoost = twoHandBoostRef.current * 0.055;
+        halo.addColorStop(0,'rgba('+haloColors[artThemeRef.current]+','+(.075+opennessNow*.07+haloBoost)+')');
         halo.addColorStop(1,'rgba(120,50,105,0)');
         ctx.fillStyle=halo;ctx.fillRect(0,0,width,height);
         // A warm inner light gives the layered flower a visible centre and a gentle breathing pulse.
         const corePulse = 0.92 + Math.sin(now * 1.15) * 0.08;
         const coreRadius = scale * (0.025 + opennessNow * 0.012) * corePulse;
         const coreGlow = ctx.createRadialGradient(cx, cy, 0, cx, cy, coreRadius * 4.2);
-        coreGlow.addColorStop(0, 'rgba(255,245,224,.42)');
-        coreGlow.addColorStop(.18, 'rgba(255,205,205,.19)');
+        const coreColors: Record<ArtTheme, [string, string]> = {
+          sakura: ['255,245,224', '255,205,205'], gold: ['255,249,207', '255,208,126'],
+          starsea: ['231,252,255', '121,211,255'], glass: ['250,255,255', '181,226,237']
+        };
+        coreGlow.addColorStop(0, 'rgba('+coreColors[artThemeRef.current][0]+','+(.42+haloBoost)+')');
+        coreGlow.addColorStop(.18, 'rgba('+coreColors[artThemeRef.current][1]+',.19)');
         coreGlow.addColorStop(1, 'rgba(244,144,190,0)');
         ctx.save(); ctx.globalCompositeOperation = 'lighter';
         ctx.fillStyle = coreGlow; ctx.beginPath(); ctx.arc(cx, cy, coreRadius * 4.2, 0, Math.PI * 2); ctx.fill();
@@ -878,7 +896,7 @@ export default function ParticleFlower() {
           const depthScale=.82+p.projectionScale*.2;
           const size=p.size*particleSizeRef.current*depthScale*(1+touch*.14);
           const alpha=clamp((.34+opennessNow*.16)*twinkle*glowIntensityRef.current*(1+touch*.42),0,.96);
-          const sprite=particleSprites[p.tone],diameter=size*7.2;
+          const sprite=spritePalettes[artThemeRef.current][p.tone],diameter=size*7.2;
           ctx.globalAlpha=alpha;
           ctx.drawImage(sprite,x-diameter*.5,y-diameter*.5,diameter,diameter);
           if (p.rim) {
@@ -888,6 +906,41 @@ export default function ParticleFlower() {
           }
         }
         ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';
+        ctx.save(); ctx.globalCompositeOperation = 'lighter';
+        for (const mote of pollen) {
+          const x = mote.x * width + Math.sin(now * 0.22 + mote.phase) * 8;
+          const y = (mote.y * height + now * mote.speed) % Math.max(1, height);
+          const alpha = 0.12 + 0.1 * (0.5 + 0.5 * Math.sin(now + mote.phase));
+          ctx.globalAlpha = alpha * (0.65 + opennessNow * 0.55) * glowIntensityRef.current;
+          ctx.fillStyle = artThemeRef.current === 'gold' ? '#ffe6a6' : artThemeRef.current === 'starsea' ? '#bdeeff' : '#ffe6ef';
+          ctx.beginPath(); ctx.arc(x, y, mote.size, 0, Math.PI * 2); ctx.fill();
+        }
+        if (opennessNow > 0.72 && now - lastPetalReleaseRef.current > 3.4 && fallingPetals.length < 14) {
+          lastPetalReleaseRef.current = now;
+          for (let i = 0; i < 3; i++) fallingPetals.push({
+            x: cx + (Math.random() - 0.5) * scale * 0.52, y: cy + (Math.random() - 0.5) * scale * 0.28,
+            vx: (Math.random() - 0.5) * 22, vy: 10 + Math.random() * 18,
+            rotation: Math.random() * Math.PI * 2, spin: (Math.random() - 0.5) * 1.2,
+            size: 4 + Math.random() * 7, tone: 1 + Math.floor(Math.random() * 3), life: 0
+          });
+        }
+        const petalColors = THEME_COLORS[artThemeRef.current];
+        for (let i = fallingPetals.length - 1; i >= 0; i--) {
+          const petal = fallingPetals[i];
+          petal.life += dt; petal.x += petal.vx * dt; petal.y += petal.vy * dt;
+          petal.vx += Math.sin(now * 1.4 + i) * 3 * dt; petal.vy += 5 * dt; petal.rotation += petal.spin * dt;
+          if (petal.life > 5.5 || petal.y > height + 30) { fallingPetals.splice(i, 1); continue; }
+          const fade = clamp(1 - petal.life / 5.5, 0, 1), color = petalColors[petal.tone];
+          ctx.save(); ctx.translate(petal.x, petal.y); ctx.rotate(petal.rotation);
+          ctx.globalAlpha = fade * 0.72 * glowIntensityRef.current;
+          ctx.fillStyle = 'rgba('+color[0]+','+color[1]+','+color[2]+',.88)';
+          ctx.shadowColor = 'rgba('+color[0]+','+color[1]+','+color[2]+',.7)'; ctx.shadowBlur = 10 * glowIntensityRef.current;
+          ctx.beginPath(); ctx.moveTo(0, -petal.size);
+          ctx.bezierCurveTo(petal.size * .9, -petal.size * .65, petal.size * .9, petal.size * .55, 0, petal.size);
+          ctx.bezierCurveTo(-petal.size * .9, petal.size * .55, -petal.size * .9, -petal.size * .65, 0, -petal.size);
+          ctx.fill(); ctx.restore();
+        }
+        ctx.restore();
       }
       if (experienceToolRef.current !== 'write' && landmarksRef.current && modeRef.current==='gesture') {
         drawSkeleton(ctx,landmarksRef.current,width,height);
@@ -936,7 +989,7 @@ export default function ParticleFlower() {
           ctx.restore();
         }
       }
-      if (modeRef.current==='demo') {
+      if (modeRef.current==='demo' && !autoDemoRef.current) {
         const p=pointerRef.current || {x:cx,y:cy};
         ctx.save(); ctx.strokeStyle='rgba(255,244,235,.75)'; ctx.lineWidth=1;
         ctx.beginPath(); ctx.moveTo(p.x-8,p.y); ctx.lineTo(p.x+8,p.y); ctx.moveTo(p.x,p.y-8); ctx.lineTo(p.x,p.y+8); ctx.stroke();
@@ -952,6 +1005,7 @@ export default function ParticleFlower() {
         lastHudRef.current=time;
         const percent=Math.round(opennessNow*100);
         setOpenness(percent);
+        setBloomPhase(fallingPetals.length > 0 && opennessNow > 0.62 ? '花瓣飘散' : percent > 68 ? '盛放' : percent > 30 ? '初绽' : '花苞');
         if (modeRef.current==='gesture') setStatus(!hasHandRef.current ? '等待手掌' : percent<28 ? '花苞' : percent>68 ? '绽放' : '舒展中');
         else setStatus('演示模式');
       }

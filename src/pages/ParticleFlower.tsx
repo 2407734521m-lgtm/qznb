@@ -107,7 +107,7 @@ function drawParticleSprites(): HTMLCanvasElement[] {
   });
 }
 
-function drawSkeleton(function drawSkeleton(ctx: CanvasRenderingContext2D, landmarks: any[], w: number, h: number) {
+function drawSkeleton(ctx: CanvasRenderingContext2D, landmarks: any[], w: number, h: number) {
   ctx.save(); ctx.lineWidth = 1.15; ctx.strokeStyle = 'rgba(255,255,255,.64)';
   ctx.fillStyle = 'rgba(255,255,255,.82)';
   for (const [a,b] of HAND_CONNECTIONS) {
@@ -260,7 +260,7 @@ function cacheInkStrokeParticles(stroke: InkStroke) {
   }
   stroke.particleCanvas=canvas;stroke.particleLeft=left;stroke.particleTop=top;
 }
-function drawAirInkScene(ctx:CanvasRenderingContext2D,strokes:InkStroke[],committed:InkGlyph[],width:number,height:number,time:number,sizeMultiplier:number,glowMultiplier:number){
+function drawAirInkScene(ctx:CanvasRenderingContext2D,strokes:InkStroke[],committed:InkGlyph[],time:number,sizeMultiplier:number,glowMultiplier:number){
   ctx.save();ctx.globalCompositeOperation='lighter';
   const drawStroke=(stroke:InkStroke,phase:number)=>{
     const points=stroke.points;if(!points.length)return;
@@ -785,7 +785,6 @@ export default function ParticleFlower() {
           ctx.drawImage(sprite,x-diameter*.5,y-diameter*.5,diameter,diameter);
         }
         ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';
-      }        ctx.globalAlpha=1; ctx.globalCompositeOperation='source-over';
       }
       if (experienceToolRef.current !== 'write' && landmarksRef.current && modeRef.current==='gesture') {
         drawSkeleton(ctx,landmarksRef.current,width,height);
@@ -795,8 +794,6 @@ export default function ParticleFlower() {
           ctx,
           inkStrokesRef.current,
           committedGlyphsRef.current,
-          width,
-          height,
           now,
           particleSizeRef.current,
           glowIntensityRef.current

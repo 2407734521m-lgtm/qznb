@@ -4,6 +4,7 @@ import { confirmDialog, promptDialog } from '../lib/dialog';
 import { alog } from '../pages/admin/shared';
 import AdminMemberModal from './AdminMemberModal';
 import AdminMemberModeration from './AdminMemberModeration';
+import AdminMemberMessageComposer from './AdminMemberMessageComposer';
 
 type Account = {
   id: string;
@@ -46,6 +47,7 @@ export default function AdminAccountManagement({
   const [sortBy, setSortBy] = useState<'newest' | 'recent_login' | 'oldest'>('newest');
   const [detailId, setDetailId] = useState<string | null>(null);
   const [moderationId, setModerationId] = useState<string | null>(null);
+  const [messageRecipients, setMessageRecipients] = useState<Array<{ id: string; name: string }> | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
@@ -280,6 +282,7 @@ export default function AdminAccountManagement({
       </div>
       {filtered.some(account => selected.has(account.id)) && <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap', marginTop: 9, alignItems: 'center' }}>
         <span style={{ ...muted, alignSelf: 'center' }}>当前筛选已选 {filtered.filter(account => selected.has(account.id)).length} 个</span>
+        <button style={btn} onClick={() => setMessageRecipients(filtered.filter(account => selected.has(account.id) && account.role === 'member').map(account => ({ id: account.id, name: account.display_name || account.username })))}>发送给已选成员</button>
         <button style={btn} disabled={batchBusy} onClick={exportSelected}>导出已选 CSV</button>
         <button style={{ ...btn, color: '#8de0b7' }} disabled={batchBusy} onClick={() => void batchSetJoined(true)}>批量恢复</button>
         <button style={{ ...btn, color: '#ffb5c1' }} disabled={batchBusy} onClick={() => void batchSetJoined(false)}>批量暂停权限</button>
@@ -324,6 +327,8 @@ export default function AdminAccountManagement({
       </div>}
 
       <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap', marginTop: 10 }}>
+        {isSuper && r.role === 'member' && <button style={{ ...btn, borderColor: '#6abac766', color: '#9de3e2' }}
+          onClick={() => setMessageRecipients([{ id: r.id, name: r.display_name || r.username }])}>发送消息</button>}
         {isSuper && r.role === 'member' && <button style={{ ...btn, borderColor: '#e6a85c66', color: '#f1c37d' }}
           onClick={() => setModerationId(current => current === r.id ? null : r.id)}>纪律管理</button>}
         <button style={btn} onClick={() => setDetailId(r.id)}>成员档案 / 活动记录</button>
@@ -347,6 +352,11 @@ export default function AdminAccountManagement({
       memberId={moderationTarget.id}
       memberName={moderationTarget.display_name || moderationTarget.username}
       onClose={() => setModerationId(null)}
+      setMsg={setMsg}
+    />}
+    {messageRecipients && <AdminMemberMessageComposer
+      recipients={messageRecipients}
+      onClose={() => setMessageRecipients(null)}
       setMsg={setMsg}
     />}
     {pageCount > 1 && <div style={{ ...panel, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 12 }}>

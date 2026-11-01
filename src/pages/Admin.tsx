@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { startSitePresence } from '../lib/sitePresence';
 import { useAuth } from '../auth';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import '../styles-admin-cinematic.css';
 import '../styles-admin-unified.css';
 import '../styles-admin-scaffold.css';
@@ -64,6 +65,7 @@ const TABS_ALL: [string, string, boolean][] = [
 
 export default function Admin() {
   const { session } = useAuth();
+  const reduceMotion = useReducedMotion();
   const me = session?.user.id ?? '';
   const isDedicatedAdminHost = window.location.hostname.split('.')[0].toLowerCase() === 'admin';
 
@@ -181,7 +183,16 @@ export default function Admin() {
         onMemberSearchSubmit={() => switchTab('accounts')}
       >
         {msg && <p className="priv-note admin-global-message" role="status">{msg}</p>}
-        <div className="admin-content" key={tab} aria-live="polite">
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.div
+            className="admin-content"
+            key={tab}
+            aria-live="polite"
+            initial={reduceMotion ? false : { opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={reduceMotion ? undefined : { opacity: 0, y: -4 }}
+            transition={reduceMotion ? { duration: 0 } : { duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+          >
           {tab === 'overview' && <Overview setMsg={setMsg} go={setTab} />}
           {tab === 'analytics' && isSuper && <AdminAnalyticsCenter setMsg={setMsg} />}
           {tab === 'backups' && isSuper && <AdminBackupCenter setMsg={setMsg} />}
@@ -204,7 +215,8 @@ export default function Admin() {
           {tab === 'feedback' && <FeedbackTab me={me} isSuper={isSuper} setMsg={setMsg} />}
           {tab === 'game' && <GameTab setMsg={setMsg} />}
           {tab === 'test' && isSuper && <TestTab setMsg={setMsg} />}
-        </div>
+          </motion.div>
+        </AnimatePresence>
       </AdminWorkspace>
     </div>
   );

@@ -76,11 +76,21 @@ export default function KaiboxDialog({ onClose }: { onClose: () => void }) {
           </details>
         </div>
         <div style={{ marginTop: 18, display: 'grid', gap: 12 }}>
-          <label style={{ fontSize: 13, fontWeight: 700 }}>申请类型
-            <select value={type} onChange={e => setType(e.target.value)} style={{ display: 'block', width: '100%', marginTop: 7, padding: 12, borderRadius: 13, border: '1px solid #dce3ec', background: '#fff', color: '#202632' }}>
-              {TYPES.map(x => <option key={x.value} value={x.value}>{x.label}</option>)}
-            </select>
-          </label>
+          <div>
+            <span style={{ fontSize: 13, fontWeight: 700 }}>申请类型</span>
+            <div role="radiogroup" aria-label="申请类型" style={{ display: 'grid', gap: 8, marginTop: 7 }}>
+              {TYPES.map(x => {
+                const on = type === x.value;
+                return (
+                  <button key={x.value} type="button" role="radio" aria-checked={on} onClick={() => setType(x.value)}
+                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, width: '100%', padding: 12, borderRadius: 13, border: `1px solid ${on ? '#58aeb0' : '#dce3ec'}`, background: on ? 'rgba(88,174,176,.08)' : '#fff', color: '#202632', fontSize: 14, fontFamily: 'inherit', cursor: 'pointer', textAlign: 'left' }}>
+                    <span>{x.label}</span>
+                    <span aria-hidden="true" style={{ flexShrink: 0, width: 20, height: 20, borderRadius: '50%', border: `2px solid ${on ? '#2a9d9f' : '#c3cedb'}`, background: on ? '#2a9d9f' : '#fff', boxShadow: 'inset 0 0 0 3px #fff' }} />
+                  </button>
+                );
+              })}
+            </div>
+          </div>
           <label style={{ fontSize: 13, fontWeight: 700 }}>申请说明
             <textarea value={description} onChange={e => setDescription(e.target.value)} maxLength={500} rows={4} placeholder="说明资料归属、授权情况和核验目的；不要填写第三方敏感个人信息。" style={{ display: 'block', width: '100%', boxSizing: 'border-box', marginTop: 7, padding: 12, borderRadius: 13, border: '1px solid #dce3ec', resize: 'vertical', background: '#fff', color: '#202632' }} />
           </label>

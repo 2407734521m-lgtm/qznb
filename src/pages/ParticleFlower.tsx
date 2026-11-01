@@ -86,25 +86,35 @@ function makeParticles(count: number): Particle[] {
   return out;
 }
 function drawGlowSprite(): HTMLCanvasElement {
-  const sprite = document.createElement('canvas'); sprite.width = 64; sprite.height = 64;
+  const sprite = document.createElement('canvas'); sprite.width = 32; sprite.height = 32;
   const c = sprite.getContext('2d')!;
-  const g = c.createRadialGradient(32,32,0,32,32,32);
-  g.addColorStop(0, 'rgba(255,248,232,1)');
-  g.addColorStop(0.12, 'rgba(255,225,238,.92)');
-  g.addColorStop(0.34, 'rgba(247,139,187,.34)');
-  g.addColorStop(1, 'rgba(231,84,154,0)');
-  c.fillStyle = g; c.fillRect(0,0,64,64);
+  const g = c.createRadialGradient(16,16,0,16,16,16);
+  g.addColorStop(0, 'rgba(255,239,226,.22)');
+  g.addColorStop(0.22, 'rgba(244,166,193,.13)');
+  g.addColorStop(0.48, 'rgba(230,112,163,.045)');
+  g.addColorStop(1, 'rgba(230,112,163,0)');
+  c.fillStyle = g; c.fillRect(0,0,32,32);
   return sprite;
 }
-function drawSkeleton(ctx: CanvasRenderingContext2D, landmarks: any[], w: number, h: number) {
-  ctx.save(); ctx.lineWidth = 1.15; ctx.strokeStyle = 'rgba(255,255,255,.52)';
-  ctx.fillStyle = 'rgba(255,255,255,.72)';
+function drawSkeletonPreview(ctx: CanvasRenderingContext2D, landmarks: any[] | null, w: number, h: number) {
+  ctx.clearRect(0, 0, w, h);
+  if (!landmarks || landmarks.length < 21) return;
+  const point = (p: any) => ({ x: (1 - p.x) * (w - 20) + 10, y: p.y * (h - 20) + 10 });
+  ctx.save();
+  ctx.lineWidth = 1.25;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.strokeStyle = 'rgba(255,239,246,.82)';
   for (const [a,b] of HAND_CONNECTIONS) {
-    const p = landmarks[a], q = landmarks[b];
-    ctx.beginPath(); ctx.moveTo((1-p.x)*w,p.y*h); ctx.lineTo((1-q.x)*w,q.y*h); ctx.stroke();
+    const p = point(landmarks[a]), q = point(landmarks[b]);
+    ctx.beginPath(); ctx.moveTo(p.x,p.y); ctx.lineTo(q.x,q.y); ctx.stroke();
   }
-  for (const p of landmarks) {
-    ctx.beginPath(); ctx.arc((1-p.x)*w,p.y*h,2.1,0,Math.PI*2); ctx.fill();
+  for (let i = 0; i < landmarks.length; i++) {
+    const p = point(landmarks[i]);
+    ctx.beginPath();
+    ctx.arc(p.x,p.y,i === 0 ? 3.1 : 2.35,0,Math.PI*2);
+    ctx.fillStyle = [4,8,12,16,20].includes(i) ? 'rgba(255,190,215,.98)' : 'rgba(245,249,255,.94)';
+    ctx.fill();
   }
   ctx.restore();
 }
@@ -112,6 +122,7 @@ function drawSkeleton(ctx: CanvasRenderingContext2D, landmarks: any[], w: number
 export default function ParticleFlower() {
   const navigate = useNavigate();
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const skeletonCanvasRef = useRef<HTMLCanvasElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const handsRef = useRef<any>(null);
@@ -142,7 +153,26 @@ export default function ParticleFlower() {
   const [error, setError] = useState('');
   const [particleCount, setParticleCount] = useState(3000);
   const [hasHand, setHasHand] = useState(false);
+  const [orientationMessage, setOrientationMessage] = useState('');
+  const ownedFullscreenRef = useRef(false);
   const lastHudRef = useRef(0);
+
+  useEffect(() => {
+    const syncOrientation = () => {
+      setLayoutOrientation(window.matchMedia('(orientation: landscape)').matches ? 'landscape' : 'portrait');
+    };
+    const orientationApi = (window.screen as any).orientation;
+    window.addEventListener('resize', syncOrientation);
+    orientationApi?.addEventListener?.('change', syncOrientation);
+    return () => {
+      window.removeEventListener('resize', syncOrientation);
+      orientationApi?.removeEventListener?.('change', syncOrientation);
+      try { orientationApi?.unlock?.(); } catch {}
+      if (ownedFullscreenRef.current && document.fullscreenElement) {
+        void document.exitFullscreen().catch(() => {});
+      }
+    };
+  }, []);
 
   const stopCamera = useCallback(() => {
     if (cameraRafRef.current) cancelAnimationFrame(cameraRafRef.current);
@@ -173,6 +203,41 @@ export default function ParticleFlower() {
       setStatus('等待手掌');
     }
   }, [stopCamera]);
+
+  const requestOrientation = async (next: LayoutOrientation) => {
+    setOrientationMessage('');
+    const isLandscape = window.matchMedia('(orientation: landscape)').matches;
+    const alreadyCorrect = next === 'landscape' ? isLandscape : !isLandscape;
+    if (alreadyCorrect) {
+      setLayoutOrientation(next);
+      return;
+    }
+
+    const orientationApi = (window.screen as any).orientation as
+      | { lock?: (value: 'landscape' | 'portrait') => Promise<void>; unlock?: () => void }
+      | undefined;
+    try {
+      if (!document.fullscreenElement) {
+        const root = document.documentElement as HTMLElement & { requestFullscreen?: () => Promise<void> };
+        if (!root.requestFullscreen) throw new Error('fullscreen-unavailable');
+        await root.requestFullscreen();
+        ownedFullscreenRef.current = true;
+      }
+      if (!orientationApi?.lock) throw new Error('orientation-lock-unavailable');
+      await orientationApi.lock(next);
+      setLayoutOrientation(window.matchMedia('(orientation: landscape)').matches ? 'landscape' : 'portrait');
+    } catch {
+      const actual = window.matchMedia('(orientation: landscape)').matches ? 'landscape' : 'portrait';
+      setLayoutOrientation(actual);
+      if (ownedFullscreenRef.current && document.fullscreenElement) {
+        await document.exitFullscreen().catch(() => {});
+        ownedFullscreenRef.current = false;
+      }
+      setOrientationMessage(next === 'landscape'
+        ? '当前浏览器不支持网页自动横屏。请开启手机“自动旋转”，再将手机横过来。'
+        : '当前浏览器不支持网页自动竖屏，请将手机转回竖向。');
+    }
+  };
 
   const startCamera = useCallback(async () => {
     if (loading || startGuardRef.current) return;
@@ -287,14 +352,14 @@ export default function ParticleFlower() {
       const finger = modeRef.current === 'gesture' ? fingerRef.current : pointerRef.current;
       // 轻量残影衰减：保留上一帧的光迹，形成指尖牵引的流动感。
       ctx.globalCompositeOperation='destination-out';
-      ctx.fillStyle='rgba(0,0,0,.17)'; ctx.fillRect(0,0,width,height);
+      ctx.fillStyle='rgba(0,0,0,.34)'; ctx.fillRect(0,0,width,height);
       ctx.globalCompositeOperation='source-over';
       // 柔和的环境光晕。
       const halo = ctx.createRadialGradient(cx,cy,scale*0.04,cx,cy,scale*0.78);
-      halo.addColorStop(0,'rgba(226,105,161,'+(0.07+opennessNow*0.08)+')');
+      halo.addColorStop(0,'rgba(226,105,161,'+(0.025+opennessNow*0.035)+')');
       halo.addColorStop(1,'rgba(120,50,105,0)');
       ctx.fillStyle = halo; ctx.fillRect(0,0,width,height);
-      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalCompositeOperation = 'source-over';
       const ps = particlesRef.current;
       for (let i=0;i<ps.length;i++) {
         const p=ps[i];
@@ -322,30 +387,49 @@ export default function ParticleFlower() {
         const r=Math.round(normalized<.5?lerp(255,247,midMix):lerp(247,231,edgeMix));
         const g=Math.round(normalized<.5?lerp(243,168,midMix):lerp(168,84,edgeMix));
         const b=Math.round(normalized<.5?lerp(214,196,midMix):lerp(196,154,edgeMix));
-        const alpha=0.35+cream*0.42+pink*0.18;
-        const size=p.size*(0.65+opennessNow*0.4);
+        const alpha=0.42+cream*0.14+pink*0.08;
+        const size=p.size*(0.62+opennessNow*0.34);
+        ctx.globalAlpha=alpha*0.62;
+        ctx.drawImage(sprite,x-size*2,y-size*2,size*4,size*4);
         ctx.globalAlpha=alpha;
-        ctx.drawImage(sprite,x-size*7,y-size*7,size*14,size*14);
-        ctx.fillStyle='rgba('+r+','+g+','+b+',.88)';
+        ctx.fillStyle='rgba('+r+','+g+','+b+',.82)';
         ctx.beginPath(); ctx.arc(x,y,Math.max(.45,size*.72),0,Math.PI*2); ctx.fill();
       }
       ctx.globalAlpha=1; ctx.globalCompositeOperation='source-over';
-      if (landmarksRef.current && modeRef.current==='gesture') drawSkeleton(ctx,landmarksRef.current,width,height);
+      const skeletonCanvas = skeletonCanvasRef.current;
+      if (skeletonCanvas) {
+        const previewWidth = skeletonCanvas.clientWidth || 144;
+        const previewHeight = skeletonCanvas.clientHeight || 144;
+        const previewDpr = Math.min(window.devicePixelRatio || 1, 2);
+        const pixelWidth = Math.round(previewWidth * previewDpr);
+        const pixelHeight = Math.round(previewHeight * previewDpr);
+        if (skeletonCanvas.width !== pixelWidth || skeletonCanvas.height !== pixelHeight) {
+          skeletonCanvas.width = pixelWidth;
+          skeletonCanvas.height = pixelHeight;
+        }
+        const previewCtx = skeletonCanvas.getContext('2d');
+        if (previewCtx) {
+          previewCtx.setTransform(previewDpr, 0, 0, previewDpr, 0, 0);
+          drawSkeletonPreview(previewCtx,
+            modeRef.current === 'gesture' ? landmarksRef.current : null,
+            previewWidth, previewHeight);
+        }
+      }
       // 食指尖端增加一圈柔和的玫瑰色光晕，让牵引点在暗背景中清晰可见。
       if (finger && modeRef.current === 'gesture') {
         ctx.save();
-        ctx.globalCompositeOperation = 'lighter';
-        const tipGlow = ctx.createRadialGradient(finger.x, finger.y, 0, finger.x, finger.y, 34);
-        tipGlow.addColorStop(0, 'rgba(255,238,224,.92)');
-        tipGlow.addColorStop(0.16, 'rgba(255,164,204,.48)');
+        ctx.globalCompositeOperation = 'source-over';
+        const tipGlow = ctx.createRadialGradient(finger.x, finger.y, 0, finger.x, finger.y, 18);
+        tipGlow.addColorStop(0, 'rgba(255,238,224,.52)');
+        tipGlow.addColorStop(0.22, 'rgba(255,164,204,.18)');
         tipGlow.addColorStop(1, 'rgba(231,84,154,0)');
         ctx.fillStyle = tipGlow;
         ctx.beginPath();
-        ctx.arc(finger.x, finger.y, 34, 0, Math.PI * 2);
+        ctx.arc(finger.x, finger.y, 18, 0, Math.PI * 2);
         ctx.fill();
         ctx.fillStyle = 'rgba(255,247,235,.95)';
         ctx.beginPath();
-        ctx.arc(finger.x, finger.y, 2.2, 0, Math.PI * 2);
+        ctx.arc(finger.x, finger.y, 1.8, 0, Math.PI * 2);
         ctx.fill();
         ctx.restore();
       }
@@ -416,6 +500,11 @@ export default function ParticleFlower() {
         </button>
         <div className={'bloom-pill' + (cameraLive ? ' live' : '')}><i />{cameraLive ? 'CAMERA LIVE' : 'STANDBY ｜ NO.01'}</div>
       </header>
+      <aside className={'bloom-skeleton-preview' + (cameraLive ? ' is-visible' : '') + (hasHand ? ' is-tracking' : '')} aria-label="手部 21 点骨骼预览">
+        <div className="bloom-skeleton-title">21-POINT SKELETON</div>
+        <canvas ref={skeletonCanvasRef} width={288} height={288} aria-hidden="true" />
+        <div className="bloom-skeleton-status">{hasHand ? '已识别 · 21 个关键点' : cameraLive ? '等待手部进入画面' : '开启手势后显示'}</div>
+      </aside>
       <section className="bloom-intro">
         <div className="bloom-kicker">AN INTERACTIVE LIGHT GARDEN</div>
         <h1>让花，在指尖醒来。</h1>
@@ -450,11 +539,12 @@ export default function ParticleFlower() {
         {([30, 60, 90, 120, 0] as FpsLimit[]).map(value => <button key={value} className={fpsLimit === value ? 'active' : ''} onClick={() => { fpsLimitRef.current = value; setFpsLimit(value); }} aria-pressed={fpsLimit === value}>{value === 0 ? '自动' : value}</button>)}
         <small>{actualFps}</small>
       </div>
-      <div className="bloom-orientation-switch" role="group" aria-label="画面布局方向">
-        <span>布局</span>
-        <button className={layoutOrientation === 'portrait' ? 'active' : ''} onClick={() => setLayoutOrientation('portrait')} aria-pressed={layoutOrientation === 'portrait'}>竖屏</button>
-        <button className={layoutOrientation === 'landscape' ? 'active' : ''} onClick={() => setLayoutOrientation('landscape')} aria-pressed={layoutOrientation === 'landscape'}>横屏</button>
+      <div className="bloom-orientation-switch" role="group" aria-label="屏幕方向">
+        <span>屏幕</span>
+        <button className={layoutOrientation === 'portrait' ? 'active' : ''} onClick={() => void requestOrientation('portrait')} aria-pressed={layoutOrientation === 'portrait'}>竖屏</button>
+        <button className={layoutOrientation === 'landscape' ? 'active' : ''} onClick={() => void requestOrientation('landscape')} aria-pressed={layoutOrientation === 'landscape'}>横屏</button>
       </div>
+      {orientationMessage && <div className="bloom-orientation-note" role="status">{orientationMessage}</div>}
       <div className="bloom-mode-switch">
         <button className={mode==='gesture'?'active':''} onClick={() => cameraLive ? setExperienceMode('gesture') : void startCamera()}>手势</button>
         <button className={mode==='demo'?'active':''} onClick={() => setExperienceMode('demo')}>演示</button>

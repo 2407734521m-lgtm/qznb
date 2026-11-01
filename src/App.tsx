@@ -735,11 +735,11 @@ function Shell() {
 
       <div className={isChatPage ? "wrap chat-shell" : loc.pathname === '/friends' ? "wrap inbox-shell" : "wrap"}>
         <AnimatePresence mode="wait">
-          <motion.div key={loc.pathname}
-            initial={reduce ? false : { opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={reduce ? { opacity: 1, y: 0 } : { opacity: 0, y: -10 }}
-            transition={{ duration: reduce ? 0 : DUR.base, ease: EASE }}>
+          <motion.div key={loc.pathname} className="qz-route-transition"
+            initial={reduce ? false : { opacity: 0, y: 12, scale: 0.992 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={reduce ? { opacity: 1, y: 0, scale: 1 } : { opacity: 0, y: -7, scale: 0.996 }}
+            transition={{ duration: reduce ? 0 : DUR.base + 0.06, ease: EASE }}>
             <Routes location={loc}>
               <Route path="/" element={<Navigate to="/home" replace />} />
               <Route path="/board" element={<Board />} />
@@ -804,6 +804,7 @@ function Shell() {
                   }}
                   transition={{ duration: reduce ? 0 : DUR.fast, ease: EASE, delay: reduce ? 0 : (dockSide === 'left' ? i * 0.02 : (TABS.length - 1 - i) * 0.02) }}>
                   <NavLink to={t.to} className={on ? 'on' : ''}>
+                    {on && <motion.span layoutId="qz-dock-active-indicator" className="dock-active-indicator" transition={{ type: 'spring', stiffness: 420, damping: 34 }} aria-hidden="true" />}
                     <span className="dock-tab-label">{t.label}</span>
                     {((t.to === '/board' && boardUnread) || (t.to === '/me/notifications' && notifUnread)) && <span className="dock-unread-dot" />}
                   </NavLink>

@@ -1200,6 +1200,7 @@ export type Database = {
           theme: Json
           created_at: string
           real_name: string | null
+          phone: string | null
           intro_video_path: string | null
           intro_video_status: string
         }
@@ -1218,6 +1219,7 @@ export type Database = {
           theme?: Json
           created_at?: string
           real_name?: string | null
+          phone?: string | null
           intro_video_path?: string | null
           intro_video_status?: string
         }
@@ -1236,6 +1238,7 @@ export type Database = {
           theme?: Json
           created_at?: string
           real_name?: string | null
+          phone?: string | null
           intro_video_path?: string | null
           intro_video_status?: string
         }

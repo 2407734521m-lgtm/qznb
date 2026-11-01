@@ -295,9 +295,7 @@ export default function Admin() {
 function Members({ me, isSuper, canRequest, setMsg, extQ }: { me: string; isSuper: boolean; canRequest: boolean; setMsg: (s: string) => void; extQ: string }) {
   const [list, setList] = useState<Member[]>([]);
   const [q, setQ] = useState(extQ);
-  useEffect(() => { if (extQ) setQ(extQ); }, [extQ]);
-  const [fRole, setFRole] = useState('all');
-  const [fJoined, setFJoined] = useState('all');
+  useEffect(() => { setQ(extQ); }, [extQ]);
   const [sel, setSel] = useState<Set<string>>(new Set());
   const [memberActionBusy, setMemberActionBusy] = useState(false);
   const [page, setPage] = useState(0);
@@ -313,15 +311,11 @@ function Members({ me, isSuper, canRequest, setMsg, extQ }: { me: string; isSupe
   useEffect(() => { load(); }, []);
 
   const filtered = list.filter(m => {
-    if (fRole !== 'all' && m.role !== fRole) return false;
-    if (fJoined === 'joined' && !m.joined) return false;
-    if (fJoined === 'unjoined' && m.joined) return false;
-    if (q) {
-      const s = (q || '').toLowerCase();
-      return (m.display_name || '').toLowerCase().includes(s) || m.username.toLowerCase().includes(s)
-        || (m.real_name || '').toLowerCase().includes(s);
-    }
-    return true;
+    const query = q.trim().toLowerCase();
+    if (!query) return true;
+    return (m.display_name || '').toLowerCase().includes(query)
+      || m.username.toLowerCase().includes(query)
+      || (m.real_name || '').toLowerCase().includes(query);
   });
   const pages = Math.max(1, Math.ceil(filtered.length / PER));
   const shown = filtered.slice(page * PER, (page + 1) * PER);
@@ -417,31 +411,16 @@ function Members({ me, isSuper, canRequest, setMsg, extQ }: { me: string; isSupe
   }
 
   return (<>
-    <div style={{ ...card }}>
-      <h3 style={h3}>成员（{filtered.length}）</h3>
-      <input value={q} onChange={e => { setQ(e.target.value); setPage(0); }} placeholder="搜索名字 / 用户名 / 真实姓名" style={{ marginBottom: 8 }} />
-      <div className="row" style={{ gap: 6, marginBottom: 8, flexWrap: 'nowrap', overflowX: 'auto', scrollbarWidth: 'none' }}>
-        {([['all', '全部角色'], ['member', '成员'], ['admin', '内容管理员'], ['super_admin', '超级管理员']] as const).map(([k, l]) => (
-          <button key={k} className={'mini' + (fRole === k ? '' : ' ghost')} style={{ whiteSpace: 'nowrap', flexShrink: 0 }}
-            onClick={() => { setFRole(k); setPage(0); }}>{l}</button>
-        ))}
+    {sel.size > 0 && (
+      <div className="row" style={{ ...card, gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
+        <span style={mut}>已选择 {sel.size} 位成员</span>
+        {isSuper && <>
+          <button className="mini" disabled={memberActionBusy} onClick={() => setJoined([...sel], true)}>{memberActionBusy ? '处理中…' : `恢复选中（${sel.size}）`}</button>
+          <button className="mini danger" disabled={memberActionBusy} onClick={() => setJoined([...sel], false)}>{memberActionBusy ? '处理中…' : `暂停选中（${sel.size}）`}</button>
+        </>}
+        <button className="mini ghost" disabled={memberActionBusy} onClick={() => setSel(new Set())}>取消选择</button>
       </div>
-      <div className="row" style={{ gap: 6, marginBottom: 4, flexWrap: 'nowrap', overflowX: 'auto', scrollbarWidth: 'none' }}>
-        {([['all', '全部状态'], ['joined', '正常'], ['unjoined', '班级权限已暂停']] as const).map(([k, l]) => (
-          <button key={k} className={'mini' + (fJoined === k ? '' : ' ghost')} style={{ whiteSpace: 'nowrap', flexShrink: 0 }}
-            onClick={() => { setFJoined(k); setPage(0); }}>{l}</button>
-        ))}
-      </div>
-      {sel.size > 0 && (
-        <div className="row" style={{ gap: 8, marginTop: 8 }}>
-          {isSuper && <>
-            <button className="mini" disabled={memberActionBusy} onClick={() => setJoined([...sel], true)}>{memberActionBusy ? '处理中…' : `恢复选中（${sel.size}）`}</button>
-            <button className="mini danger" disabled={memberActionBusy} onClick={() => setJoined([...sel], false)}>{memberActionBusy ? '处理中…' : `暂停选中（${sel.size}）`}</button>
-          </>}
-          <button className="mini ghost" disabled={memberActionBusy} onClick={() => setSel(new Set())}>取消选择</button>
-        </div>
-      )}
-    </div>
+    )}
     {shown.map(m => (
       <div key={m.id} style={{ ...card, opacity: m.joined ? 1 : 0.72 }}>
         <div className="row" style={{ gap: 8, alignItems: 'center' }}>

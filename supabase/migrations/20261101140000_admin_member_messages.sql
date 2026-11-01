@@ -66,6 +66,7 @@ begin
     from public.profiles p
     where p.id = any(v_ids)
       and p.role = 'member'
+      and p.joined = true
   ) <> v_requested_count then
     raise exception 'one or more recipients are unavailable or are not regular members' using errcode = '22023';
   end if;

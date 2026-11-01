@@ -22,10 +22,11 @@
 }
 .admin-shell .admin-search input::placeholder{color:#7f8b9c!important}
 .admin-shell .admin-content{color:#e8edf5!important}
-.admin-shell .admin-content>div[style*="linear-gradient(160deg"],
-.admin-shell .admin-content>div[style*="border-radius"]{
-  color:#e8edf5!important;background:rgba(255,255,255,.07)!important;border:1px solid rgba(255,255,255,.10)!important;
-  box-shadow:0 8px 24px rgba(0,0,0,.25)!important;
+.admin-shell .admin-content>div[style*="linear-gradient(160deg"]{
+  color:#e8edf5!important;
+  background:linear-gradient(155deg,rgba(24,34,56,.96),rgba(12,18,33,.98))!important;
+  border:1px solid rgba(148,176,255,.16)!important;
+  box-shadow:0 12px 30px rgba(0,0,0,.24),inset 0 1px 0 rgba(255,255,255,.035)!important;
 }
 .admin-shell .admin-content h3,
 .admin-shell .admin-content h2,
@@ -113,8 +114,9 @@
     color:#e8edf5!important;
   }
   .admin-shell .admin-content>div[style*="linear-gradient(160deg"]{
-    background:rgba(255,255,255,.07)!important;border-color:rgba(255,255,255,.10)!important;
-    box-shadow:0 8px 24px rgba(0,0,0,.25)!important;
+    background:linear-gradient(155deg,rgba(24,34,56,.96),rgba(12,18,33,.98))!important;
+    border-color:rgba(148,176,255,.16)!important;
+    box-shadow:0 12px 30px rgba(0,0,0,.24),inset 0 1px 0 rgba(255,255,255,.035)!important;
   }
   .admin-shell .admin-mobile-dock button[aria-current="page"] .admin-mobile-dock-dot{background:#fff!important}
 }

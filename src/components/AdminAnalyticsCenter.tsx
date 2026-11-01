@@ -63,9 +63,12 @@ function Metric({ label, value, hint }: { label: string; value: number; hint?: s
 function TrendChart({ data }: { data: DailyPoint[] }) {
   const width = 620, height = 220, left = 34, right = 12, top = 14, bottom = 34;
   const values = data.flatMap(item => [item.posts, item.comments, item.photos, item.chat_messages]);
-  const max = Math.max(1, ...values);
+  const maxValue = Math.max(0, ...values);
+  const tickStep = Math.max(1, Math.ceil(maxValue / 4));
+  const axisMax = Math.max(1, Math.ceil(maxValue / tickStep) * tickStep);
+  const ticks = Array.from({ length: Math.round(axisMax / tickStep) + 1 }, (_, index) => index * tickStep);
   const x = (i: number) => left + (data.length <= 1 ? 0 : i / (data.length - 1) * (width - left - right));
-  const y = (value: number) => height - bottom - value / max * (height - top - bottom);
+  const y = (value: number) => height - bottom - value / axisMax * (height - top - bottom);
   const lines = [
     { key: 'posts', label: '动态', color: '#77a7ff' },
     { key: 'comments', label: '评论', color: '#b49aff' },
@@ -75,11 +78,11 @@ function TrendChart({ data }: { data: DailyPoint[] }) {
   const labelIndexes = [...new Set([0, Math.floor((data.length - 1) / 3), Math.floor((data.length - 1) * 2 / 3), data.length - 1])];
   return <div style={{ overflowX: 'auto' }}>
     <svg viewBox={`0 0 ${width} ${height}`} role="img" aria-label="每日动态、评论、照片和聊天消息趋势" style={{ display: 'block', width: '100%', minWidth: 310, height: 'auto' }}>
-      {[0, .25, .5, .75, 1].map(t => {
-        const yy = height - bottom - t * (height - top - bottom);
-        return <g key={t}>
+      {ticks.map(tick => {
+        const yy = y(tick);
+        return <g key={tick}>
           <line x1={left} x2={width - right} y1={yy} y2={yy} stroke="#ffffff18" strokeDasharray="3 5" />
-          <text x={left - 7} y={yy + 3} fill="#8292af" fontSize="9" textAnchor="end">{Math.round(max * t)}</text>
+          <text x={left - 7} y={yy + 3} fill="#8292af" fontSize="9" textAnchor="end">{tick.toLocaleString()}</text>
         </g>;
       })}
       {lines.map(line => {

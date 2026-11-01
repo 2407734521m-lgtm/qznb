@@ -1544,6 +1544,10 @@ export type Database = {
         Args: { p_action_type: string; p_target_user_id: string; p_requested_role: string | null; p_reason: string }
         Returns: string
       }
+      admin_execute_sensitive_action: {
+        Args: { p_action_type: string; p_target_user_id: string; p_requested_role: string | null; p_reason: string }
+        Returns: undefined
+      }
       admin_decide_sensitive_action: {
         Args: { p_request_id: string; p_approve: boolean; p_note?: string | null }
         Returns: undefined

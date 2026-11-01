@@ -3,7 +3,6 @@ import { motion, useReducedMotion } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import FeedbackModal from '../components/FeedbackModal';
 import PasswordField from '../components/PasswordField';
-import { downscaleImage } from '../lib/media';
 import bgDefault from '../assets/cow.jpg';
 import { alertDialog } from '../lib/dialog';
 import './Login.polish.css';
@@ -33,8 +32,7 @@ export default function Login() {
   const [real, setReal] = useState('');
   const [email, setEmail] = useState('');
   const [pw2, setPw2] = useState('');
-  const [avatar, setAvatar] = useState<File | null>(null);
-  const [avatarPrev, setAvatarPrev] = useState<string | null>(null);
+  const [phone, setPhone] = useState('');
   const [err, setErr] = useState(''); const [busy, setBusy] = useState(false);
   const [fbOpen, setFbOpen] = useState(false);
   // 邮箱验证码
@@ -51,7 +49,7 @@ export default function Login() {
   const [bg, setBg] = useState<string>(() => { try { return localStorage.getItem(BG_KEY) || DEFAULT_BG; } catch { return DEFAULT_BG; } });
   const [blur, setBlur] = useState(3); const [dark, setDark] = useState(45);
   const [showBg, setShowBg] = useState(false);
-  const fileRef = useRef<HTMLInputElement>(null); const bgRef = useRef<HTMLInputElement>(null);
+  const bgRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => { try { localStorage.setItem(BG_KEY, bg); } catch {} }, [bg]);
 
@@ -68,13 +66,6 @@ export default function Login() {
     const t = setInterval(() => setWaitSec(v => v + 1), 1000);
     return () => clearInterval(t);
   }, [verifyEmail]);
-
-  function pickAvatar(f: File | undefined) {
-    if (!f) return;
-    if (!/^image\/(jpeg|png|webp)$/.test(f.type)) return setErr('头像只支持 jpg / png / webp');
-    if (f.size > 2 * 1024 * 1024) return setErr('头像不能超过 2MB');
-    setAvatar(f); setAvatarPrev(URL.createObjectURL(f)); setErr('');
-  }
 
   async function doLogin() {
     const id = ident.trim();
@@ -136,15 +127,7 @@ export default function Login() {
     } finally { setBusy(false); }
   }
 
-  async function uploadAvatar(uid: string) {
-    if (!avatar) return;
-    const small = await downscaleImage(avatar);
-    const path = `${uid}/${Date.now()}.jpg`;
-    const up = await supabase.storage.from('avatars').upload(path, small, { contentType: 'image/jpeg' });
-    if (!up.error) await supabase.from('profiles').update({ avatar_path: path }).eq('id', uid);
-  }
-
-  // 注册/验证拿到 session 后补做的事：展示名、头像、用邀请码加入班级
+  // 注册/验证拿到 session 后补做的事：展示名、用邀请码加入班级
   // （欢迎动画递给 App 层播，这里播会被登录跳转直接卸载）
   async function finishJoin(uid: string) {
     // 仅在新注册完成后安排一次自愿 GPS 说明；这里不请求位置，也不记录坐标。
@@ -152,7 +135,6 @@ export default function Login() {
     const nm = name.trim();
     // 注意：username / real_name 由注册触发器写入，列级权限不允许前端直接改，这里只更新展示名
     if (nm) supabase.from('profiles').update({ display_name: nm }).eq('id', uid).then(() => {});
-    await uploadAvatar(uid);
     const iv = invite.trim();
     if (!iv) return;
     const { data: nick, error: e3 } = await supabase.rpc('join_with_code', { code: iv });
@@ -171,6 +153,7 @@ export default function Login() {
     const nm = name.trim(), rl = real.trim(), em = email.trim();
     if (nm.length < 1 || nm.length > 30) return setErr('用户名 1～30 个字');
     if (!rl || rl.length > 30) return setErr('请填写真实姓名（仅管理员可见）');
+    const ph = phone.trim(); if (ph && !/^1\d{10}$/.test(ph)) return setErr('手机号填 11 位数字，也可以留空');
     if (!/^[1-9]\d{4,10}@qq\.com$/i.test(em)) return setErr('请填写正确的 QQ 邮箱');
     if (pw.length < 8) return setErr('密码至少 8 位');
     if (pw !== pw2) return setErr('两次输入的密码不一致');
@@ -182,7 +165,7 @@ export default function Login() {
       } else {
         const { data, error } = await supabase.auth.signUp({
           email: em, password: pw,
-          options: { data: { username: nm, real_name: rl, privacy_policy_version: PRIVACY_POLICY_VERSION, privacy_policy_accepted_at: new Date().toISOString() } },
+          options: { data: { username: nm, real_name: rl, ...(ph ? { phone: ph } : {}), privacy_policy_version: PRIVACY_POLICY_VERSION, privacy_policy_accepted_at: new Date().toISOString() } },
         });
         if (error) throw error;
         // 已注册过的邮箱：Supabase 为防枚举不报错、也不发码，返回的 identities 为空。
@@ -203,7 +186,7 @@ export default function Login() {
     } finally { setBusy(false); }
   }
 
-  // 注册表单上填码后点“验证并进入”：核对 Resend 发来的 6 位码，通过后补做头像和邀请码加入。
+  // 注册表单上填码后点“验证并进入”：核对 Resend 发来的 6 位码，通过后补做展示名和邀请码加入。
   async function doVerifyReg() {
     const c = code.trim();
     if (!/^\d{6,10}$/.test(c)) return setErr('请输入邮箱收到的数字验证码');
@@ -225,6 +208,7 @@ export default function Login() {
     const nm = name.trim(), rl = real.trim(), em = email.trim();
     if (nm.length < 1 || nm.length > 30) return setErr('用户名 1～30 个字');
     if (!rl || rl.length > 30) return setErr('请填写真实姓名（仅管理员可见）');
+    const ph = phone.trim(); if (ph && !/^1\d{10}$/.test(ph)) return setErr('手机号填 11 位数字，也可以留空');
     if (!/^[1-9]\d{4,10}@qq\.com$/i.test(em)) return setErr('请填写正确的 QQ 邮箱');
     if (pw.length < 8) return setErr('密码至少 8 位');
     if (pw !== pw2) return setErr('两次输入的密码不一致');
@@ -232,7 +216,7 @@ export default function Login() {
     try {
       const { data, error } = await supabase.auth.signUp({
         email: em, password: pw,
-        options: { data: { username: nm, real_name: rl, privacy_policy_version: PRIVACY_POLICY_VERSION, privacy_policy_accepted_at: new Date().toISOString() } },
+        options: { data: { username: nm, real_name: rl, ...(ph ? { phone: ph } : {}), privacy_policy_version: PRIVACY_POLICY_VERSION, privacy_policy_accepted_at: new Date().toISOString() } },
       });
       if (error) throw error;
       if (data.user && Array.isArray((data.user as any).identities) && (data.user as any).identities.length === 0) {
@@ -240,7 +224,7 @@ export default function Login() {
         return;
       }
       if (!data.session) {
-        // 邮箱验证已打开：没有 session，先转到验证屏；头像和邀请码加入等验证成功后在 doVerify 里补做
+        // 邮箱验证已打开：没有 session，先转到验证屏；展示名和邀请码加入等验证成功后在 doVerify 里补做
         setVerifyEmail(em); setCode(''); setResendIn(60);
         return;
       }
@@ -396,13 +380,8 @@ export default function Login() {
               <input value={real} onChange={e => setReal(e.target.value)} placeholder="仅管理员可见，不会公开" maxLength={30} />
               <p className="priv-note">真实姓名只用于后台统计，普通成员看不到</p>
             </>)}
-            <label>头像（可选）</label>
-            <div className="avatar-pick">
-              <div className="prev">{avatarPrev ? <img src={avatarPrev} alt="" /> : ''}</div>
-              <button className="ghost" onClick={() => fileRef.current?.click()}>选择照片</button>
-              <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" hidden
-                onChange={e => pickAvatar(e.target.files?.[0])} />
-            </div>
+            <label>手机号（选填）</label>
+            <input value={phone} onChange={e => setPhone(e.target.value.replace(/\D/g, '').slice(0, 11))} placeholder="11 位手机号，没有可不填" inputMode="tel" />
             <label>QQ 邮箱</label>
             <input value={email} onChange={e => { setEmail(e.target.value); if (codeSent) { setCodeSent(false); setCode(''); } }} placeholder="123456@qq.com" inputMode="email" />
             <button className="ghost" style={{ width: '100%', marginTop: 8 }} disabled={busy || resendIn > 0} onClick={sendCode}>

@@ -11,7 +11,7 @@ as $function$
 declare
   v_result jsonb;
 begin
-  if auth.uid() is null or public.my_role() <> 'super_admin' then
+  if auth.uid() is null or coalesce(public.my_role(), '') <> 'super_admin' then
     raise exception 'super administrator required' using errcode = '42501';
   end if;
 

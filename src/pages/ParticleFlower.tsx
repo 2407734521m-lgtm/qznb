@@ -387,6 +387,7 @@ export default function ParticleFlower() {
   const gestureLiftRef = useRef(0);
   const twoHandBoostRef = useRef(0);
   const autoDemoRef = useRef(false);
+  const autoDemoStartedAtRef = useRef(0);
   const lastPetalReleaseRef = useRef(0);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const recordingChunksRef = useRef<Blob[]>([]);
@@ -837,7 +838,7 @@ export default function ParticleFlower() {
       lastRenderedTime = time;
       lastTime = time;
       if (autoDemoRef.current && modeRef.current === 'demo' && experienceToolRef.current === 'flower') {
-        const cycle = (time / 1000) * 0.42;
+        const cycle = Math.max(0, time - autoDemoStartedAtRef.current) * 0.001 * 0.42;
         targetRef.current = 0.18 + 0.78 * (0.5 - 0.5 * Math.cos(cycle));
       }
       const spring = 18, damping = 8.5;
@@ -1423,7 +1424,7 @@ export default function ParticleFlower() {
             <span><b>单独进入空中书写</b><small>独立书写空间 · 不与花苞动画联动</small></span>
             <span className="bloom-air-ink-arrow">↗</span>
           </button>
-          <button type="button" className="bloom-auto-demo" onClick={() => { setExperienceMode('demo'); autoDemoRef.current=true; setAutoDemo(true); setStatus('自动演示'); }}>✦ 自动演示完整花期</button>
+          <button type="button" className="bloom-auto-demo" onClick={() => { setExperienceMode('demo'); autoDemoStartedAtRef.current=performance.now(); autoDemoRef.current=true; setAutoDemo(true); setStatus('自动演示'); }}>✦ 自动演示完整花期</button>
           <div className="bloom-privacy">摄像头与手势数据只在本地浏览器处理，不会上传；作品收藏仅保存在本机</div>
           {savedArtworks.length>0 && <section className="bloom-artwork-library"><div className="bloom-artwork-library-title">本机作品集 <small>{savedArtworks.length}/8</small></div><div className="bloom-artwork-grid">{savedArtworks.map(item=><div className="bloom-artwork-card" key={item.id}><a href={item.dataUrl} download={item.name+'.jpg'}><img src={item.dataUrl} alt={item.name}/><span>{item.name}</span></a><button type="button" aria-label={'删除'+item.name} onClick={()=>{const next=savedArtworks.filter(saved=>saved.id!==item.id);setSavedArtworks(next);try{window.localStorage.setItem('qznb-bloom-artworks',JSON.stringify(next));}catch{setMediaMessage('删除失败，请检查浏览器存储权限');}}}>删除</button></div>)}</div></section>}
           {error&&<div className="bloom-error" role="alert">{error}</div>}

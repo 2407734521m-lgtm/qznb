@@ -17,15 +17,38 @@ export default function MeNotifications() {
   const [notificationPrefs, setNotificationPrefs] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
-    const sync = () => {
+    let active = true;
+    const syncLocal = () => {
       try {
         const raw = JSON.parse(localStorage.getItem('qznb_user_preferences_v1:' + me) || 'null');
         setNotificationPrefs(raw?.notifications && typeof raw.notifications === 'object' ? raw.notifications : {});
       } catch { setNotificationPrefs({}); }
     };
-    sync();
-    window.addEventListener('qznb-settings-changed', sync);
-    return () => window.removeEventListener('qznb-settings-changed', sync);
+    const syncCloud = async () => {
+      const { data, error } = await (supabase as any)
+        .from('profile_notification_preferences')
+        .select('preferences')
+        .eq('profile_id', me)
+        .maybeSingle();
+      if (!active || error || !data?.preferences?.notifications) return;
+      setNotificationPrefs(data.preferences.notifications);
+      try {
+        const raw = JSON.parse(localStorage.getItem('qznb_user_preferences_v1:' + me) || 'null');
+        localStorage.setItem('qznb_user_preferences_v1:' + me, JSON.stringify({
+          ...(raw && typeof raw === 'object' ? raw : {}),
+          notifications: data.preferences.notifications,
+        }));
+      } catch { /* 云端仍是主数据源；本地缓存不可用不影响通知过滤 */ }
+    };
+    syncLocal();
+    void syncCloud();
+    window.addEventListener('qznb-settings-changed', syncLocal);
+    window.addEventListener('focus', syncCloud);
+    return () => {
+      active = false;
+      window.removeEventListener('qznb-settings-changed', syncLocal);
+      window.removeEventListener('focus', syncCloud);
+    };
   }, [me]);
 
   async function load() {

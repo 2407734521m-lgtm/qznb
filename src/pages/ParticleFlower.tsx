@@ -4,7 +4,7 @@ import '../styles-particle-flower.css';
 
 type Point = { x: number; y: number; z: number };
 type Particle = {
-  seed: number; angle: number; depth: number; size: number; phase: number; tone: number;
+  seed: number; angle: number; depth: number; size: number; phase: number; tone: number; petalId: number;
   budX: number; budY: number; budZ: number; bloomX: number; bloomY: number; bloomZ: number;
   x: number; y: number; vx: number; vy: number;
 };
@@ -78,6 +78,7 @@ function makeParticles(count: number): Particle[] {
       size: 0.62 + Math.pow(Math.random(), 1.6) * 1.18,
       phase: Math.random() * TAU,
       tone: along < 0.35 ? 0 : layer === 0 ? 1 : layer === 1 ? 2 : 3,
+      petalId: layer * 8 + petalIndex,
       budX, budY, budZ, bloomX, bloomY, bloomZ, x: 0, y: 0, vx: 0, vy: 0
     });
   }
@@ -372,7 +373,6 @@ export default function ParticleFlower() {
   const particleSizeRef = useRef(1);
   const [glowIntensity, setGlowIntensity] = useState(1);
   const glowIntensityRef = useRef(1);
-  const [selectedTool, setSelectedTool] = useState<ExperienceTool>('flower');
   const [hasHand, setHasHand] = useState(false);
   const lastHudRef = useRef(0);
 
@@ -680,6 +680,8 @@ export default function ParticleFlower() {
     const count = particleCountRef.current;
     particlesRef.current = makeParticles(count);
     const particleSprites = drawParticleSprites();
+    const petalTouchTargets = new Float32Array(24);
+    const petalTouchCurrent = new Float32Array(24);
     const resize = () => {
       const forcedLandscape = layoutOrientationRef.current === 'landscape' && window.innerWidth < window.innerHeight;
       width = forcedLandscape ? window.innerHeight : window.innerWidth;
@@ -737,7 +739,10 @@ export default function ParticleFlower() {
         ctx.fillStyle=halo;ctx.fillRect(0,0,width,height);
 
         // Additive prebuilt sprites avoid per-frame sorting and per-particle canvas paths.
-        ctx.globalCompositeOperation='lighter';
+        // Detect the touched petal first; then pull that entire petal gently toward the bloom centre.
+        petalTouchTargets.fill(0);
+        const contactRadius = scale * 0.072;
+        const contactRadiusSquared = contactRadius * contactRadius;
         for(let i=0;i<ps.length;i++){
           const p=ps[i];
           let worldX=lerp(p.budX,p.bloomX,opennessNow)*breathing;
@@ -750,20 +755,43 @@ export default function ParticleFlower() {
           const rotatedX=worldX*cosYaw-worldZ*sinYaw,rotatedZ=worldX*sinYaw+worldZ*cosYaw;
           const cameraY=worldY*cosPitch-rotatedZ*sinPitch,cameraZ=worldY*sinPitch+rotatedZ*cosPitch;
           const perspective=clamp(cameraDistance/(cameraDistance-cameraZ),.78,1.28);
-          let x=cx+rotatedX*scale*perspective,y=cy+cameraY*scale*perspective;
+          p.x=cx+rotatedX*scale*perspective;
+          p.y=cy+cameraY*scale*perspective;
+
           if(finger&&opennessNow>.25){
-            const dx=finger.x-x,dy=finger.y-y,d2=dx*dx+dy*dy,radius=scale*.31;
-            if(d2<radius*radius){const pull=(1-Math.sqrt(d2)/radius)*.14*opennessNow;x+=dx*pull;y+=dy*pull}
+            const dx=finger.x-p.x,dy=finger.y-p.y,d2=dx*dx+dy*dy;
+            if(d2<contactRadiusSquared){
+              const touch=1-d2/contactRadiusSquared;
+              const strength=touch*touch*(3-2*touch);
+              if(strength>petalTouchTargets[p.petalId])petalTouchTargets[p.petalId]=strength;
+            }
           }
+        }
+        // Fast response on contact, slower release for a soft elastic return.
+        for(let petal=0;petal<petalTouchCurrent.length;petal++){
+          const target=petalTouchTargets[petal];
+          const speed=target>petalTouchCurrent[petal]?.34:.095;
+          petalTouchCurrent[petal]=lerp(petalTouchCurrent[petal],target,speed);
+        }
+
+        ctx.globalCompositeOperation='lighter';
+        for(let i=0;i<ps.length;i++){
+          const p=ps[i];
+          const touch=petalTouchCurrent[p.petalId];
+          const contraction=touch*.48;
+          // The petal folds radially toward its own flower centre, not toward the fingertip.
+          const x=cx+(p.x-cx)*(1-contraction);
+          const y=cy+(p.y-cy)*(1-contraction);
           const twinkle=.78+Math.sin(p.phase+now*(.75+p.tone*.08))*.12;
-          const depthScale=.82+perspective*.2;
-          const size=p.size*particleSizeRef.current*depthScale;
-          const alpha=clamp((.34+opennessNow*.16)*twinkle*glowIntensityRef.current,0,.92);
+          const depthScale=.82+(.82)*.2;
+          const size=p.size*particleSizeRef.current*depthScale*(1+touch*.14);
+          const alpha=clamp((.34+opennessNow*.16)*twinkle*glowIntensityRef.current*(1+touch*.42),0,.96);
           const sprite=particleSprites[p.tone],diameter=size*7.2;
           ctx.globalAlpha=alpha;
           ctx.drawImage(sprite,x-diameter*.5,y-diameter*.5,diameter,diameter);
         }
         ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';
+      }        ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';
       }
       if (experienceToolRef.current !== 'write' && landmarksRef.current && modeRef.current==='gesture') {
         drawSkeleton(ctx,landmarksRef.current,width,height);
@@ -981,12 +1009,8 @@ export default function ParticleFlower() {
       {!experienceStarted && (
         <section className="bloom-intro bloom-control-panel" aria-label="粒子效果设置">
           <div className="bloom-kicker">BLOOM STUDIO / 光粒子工作台</div>
-          <h1>把光，调成你喜欢的样子。</h1>
-          <p>先设置粒子的密度、大小和光感。进入沉浸体验后，所有控制面板都会收起。</p>
-          <div className="bloom-tool-picker" role="group" aria-label="体验模式">
-            <button type="button" className={selectedTool==='flower'?'active':''} onClick={()=>setSelectedTool('flower')}>指尖生花</button>
-            <button type="button" className={selectedTool==='write'?'active':''} onClick={()=>setSelectedTool('write')}>空中书写</button>
-          </div>
+          <h1>让花，在指尖醒来。</h1>
+          <p>调节花冠粒子的密度、大小与光感，然后进入独立的沉浸式生花体验。</p>
           <div className="bloom-settings-grid">
             <label className="bloom-setting">
               <span><b>粒子密度</b><output>{particleCount.toLocaleString()}</output></span>
@@ -1027,11 +1051,16 @@ export default function ParticleFlower() {
             </div>
           </div>
           <div className="bloom-start-actions">
-            <button className="bloom-primary bloom-immersive-start" onClick={()=>void startCamera(selectedTool)} disabled={loading}>
+            <button className="bloom-primary bloom-immersive-start" onClick={()=>void startCamera('flower')} disabled={loading}>
               {loading?'正在准备沉浸空间…':'沉浸式开始'}<span>进入全屏互动</span>
             </button>
             <button className="bloom-secondary bloom-preview-start" onClick={()=>setExperienceMode('demo')} disabled={loading}>先看粒子预览</button>
           </div>
+          <button type="button" className="bloom-air-ink-launch" onClick={()=>void startCamera('write')} disabled={loading}>
+            <span className="bloom-air-ink-icon">✧</span>
+            <span><b>单独进入空中书写</b><small>独立书写空间 · 不与花苞动画联动</small></span>
+            <span className="bloom-air-ink-arrow">↗</span>
+          </button>
           <div className="bloom-privacy">摄像头与手势数据只在本地浏览器处理，不会上传</div>
           {error&&<div className="bloom-error" role="alert">{error}</div>}
         </section>
@@ -1042,14 +1071,14 @@ export default function ParticleFlower() {
         <div><b>02</b><span>张掌·绽放</span></div><i />
         <div><b>03</b><span>指尖·牵引</span></div>
       </footer>}
-      <aside className="bloom-hud">
-        <div className="bloom-hud-label">GESTURE <span>/ 手势</span></div>
+      {experienceStarted && experienceTool === 'flower' && <aside className="bloom-hud bloom-bloom-progress">
+        <div className="bloom-hud-label">BLOOM PROGRESS <span>/ 花苞绽放</span></div>
         <div className="bloom-hud-state">{statusChinese}</div>
         <div className="bloom-hud-en">{statusEnglish}</div>
         <div className="bloom-hud-number">{openness}<small>%</small></div>
         <div className="bloom-progress"><span style={{width:openness+'%'}} /></div>
         <div className="bloom-hud-meta">{particleCount.toLocaleString()} LIGHT PARTICLES</div>
-      </aside>
+      </aside>}
       {loading && (
         <div className="bloom-loading" role="status" aria-live="polite">
           <div className="bloom-loader-flower">✿</div>

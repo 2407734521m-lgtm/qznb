@@ -169,6 +169,15 @@ export default function ParticleFlower() {
   const activeCdnRef = useRef(MODEL_CDNS[0]);
 
   useEffect(() => {
+    const syncCameraVisibility = () => {
+      const enabled = !document.hidden;
+      streamRef.current?.getVideoTracks().forEach(track => { track.enabled = enabled; });
+    };
+    document.addEventListener('visibilitychange', syncCameraVisibility);
+    return () => document.removeEventListener('visibilitychange', syncCameraVisibility);
+  }, []);
+
+  useEffect(() => {
     const syncOrientation = () => {
       setLayoutOrientation(window.matchMedia('(orientation: landscape)').matches ? 'landscape' : 'portrait');
     };
@@ -276,9 +285,7 @@ export default function ParticleFlower() {
       if (!video) throw new Error('摄像头画面容器尚未准备好。');
       video.srcObject = stream;
       await video.play();
-      const hands = new HandsCtor({ locateFile: (file: string) => activeCdnRef.current + '/' + file });
-      hands.setOptions({ maxNumHands: 1, modelComplexity: 1, minDetectionConfidence: 0.62, minTrackingConfidence: 0.58 });
-      hands.onResults((results: any) => {
+      const handleResults = (results: any) => {
         const hand = results.multiHandLandmarks?.[0];
         if (!hand) {
           landmarksRef.current = null; fingerRef.current = null;
@@ -301,10 +308,24 @@ export default function ParticleFlower() {
         const mapped = mapCoverPoint(index, video, window.innerWidth, window.innerHeight);
         fingerRef.current = { x: mapped.x, y: mapped.y, z: index.z || 0 };
         hasHandRef.current = true; setHasHand(true);
-      });
+      };
+      const makeHands = () => {
+        const instance = new HandsCtor({ locateFile: (file: string) => activeCdnRef.current + '/' + file });
+        instance.setOptions({ maxNumHands: 1, modelComplexity: 1, minDetectionConfidence: 0.62, minTrackingConfidence: 0.58 });
+        instance.onResults(handleResults);
+        return instance;
+      };
+      let hands = makeHands();
       handsRef.current = hands;
-      // 首帧 send 会触发 MediaPipe 的 WASM/模型初始化；完成后才撤下唤醒遮罩。
-      await Promise.race([hands.send({ image: video }), new Promise((_, reject) => window.setTimeout(() => reject(new Error('手部模型初始化超时，请检查网络或更换浏览器后重试。')), 15000))]);
+      try {
+        await Promise.race([hands.send({ image: video }), new Promise((_, reject) => window.setTimeout(() => reject(new Error('手部模型初始化超时')), 15000))]);
+      } catch (firstError) {
+        try { await hands.close(); } catch {}
+        if (activeCdnRef.current !== MODEL_CDNS[0]) throw firstError;
+        activeCdnRef.current = MODEL_CDNS[1];
+        hands = makeHands(); handsRef.current = hands;
+        await Promise.race([hands.send({ image: video }), new Promise((_, reject) => window.setTimeout(() => reject(new Error('备用模型源初始化超时，请检查网络后重试。')), 15000))]);
+      }
       modeRef.current = 'gesture'; setMode('gesture');
       setCameraLive(true); setStatus('等待手掌');
       experienceStartedRef.current = true;

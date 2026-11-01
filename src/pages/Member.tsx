@@ -10,6 +10,7 @@ import { setShot, takeShot, shotFrom, flyTo } from '../lib/transition';
 import { badgeText } from '../data/games';
 import { parseSocial } from '../data/social';
 import type { Dir } from '../lib/transition';
+import './Member.polish.css';
 import type { MemberListItem } from '../types/profile';
 
 const REV: Record<Dir, Dir> = { left: 'right', right: 'left', down: 'down' };
@@ -147,10 +148,10 @@ export default function Member() {
   };
 
   return (
-    <div className="page">
-      <button className="backbtn" onClick={goBack}>← 返回成员墙</button>
-      <div className={pcls}>
-        <div className="info">
+    <div className="page member-profile-page">
+      <button className="backbtn member-backbtn" onClick={goBack}>← 返回成员墙</button>
+      <div className={pcls + " member-profile-card"}>
+        <div className="info member-info">
           <motion.h1 {...itemProps(0)}>{name || '…'}</motion.h1>
           {gbadge && <motion.div {...itemProps(1)} style={{ marginBottom: 6 }}>
             <span className="gbadge">{badgeText(gbadge.game_name, gbadge.rank)}</span>
@@ -199,7 +200,7 @@ export default function Member() {
             </motion.div>
           )}
         </div>
-        <div className="head-photo">
+        <div className="head-photo member-photo-panel">
           <motion.div ref={photoRef} layout="position"
             initial={reduce ? false : { opacity: 0.72, scale: 0.985 }}
             animate={{ opacity: flying ? 0 : 1, scale: 1 }}

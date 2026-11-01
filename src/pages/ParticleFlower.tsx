@@ -169,7 +169,7 @@ function drawSkeletonPreview(canvas: HTMLCanvasElement | null, landmarks: any[] 
 }
 
 
-const HANZI_LOOKUP_BASE = 'https://cdn.jsdelivr.net/gh/gugray/hanzi_lookup@master/web_demo';
+const HANZI_LOOKUP_BASE = 'https://cdn.jsdelivr.net/gh/gugray/hanzi_lookup@01f90c3ab99a8fadf0696c28e5eb097223c500db/web_demo';
 const glyphPointCache = new Map<string, InkPoint[]>();
 
 function makeHanziLookupWorker(): Worker {
@@ -1017,6 +1017,14 @@ export default function ParticleFlower() {
             </div>
           )}
           {recognizedCandidate && (
+            <>
+            <button type="button" className="bloom-ink-continue" onClick={() => {
+              recognizedCandidateRef.current = '';
+              setRecognizedCandidate('');
+              setRecognitionCandidates([]);
+              recognitionRequestIdRef.current += 1;
+              recognitionBusyRef.current = false;
+            }}>继续当前字</button>
             <button type="button" className="bloom-ink-confirm" onClick={() => {
               const bounds = inkStrokesRef.current.flatMap(item => item.points);
               if (bounds.length) {
@@ -1033,6 +1041,7 @@ export default function ParticleFlower() {
                 setRecognitionCandidates([]);
               }
             }}>确认这个字</button>
+            </>
           )}
           {recognizedText && <span className="bloom-ink-word">{recognizedText}</span>}
           <button type="button" onClick={() => {

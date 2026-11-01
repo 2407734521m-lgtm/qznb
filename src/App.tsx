@@ -692,7 +692,7 @@ function Shell() {
       </nav>
       ) : null}
 
-      <div className={isChatPage ? "wrap chat-shell" : "wrap"}>
+      <div className={isChatPage ? "wrap chat-shell" : loc.pathname === '/friends' ? "wrap inbox-shell" : "wrap"}>
         <AnimatePresence mode="wait">
           <motion.div key={loc.pathname}
             initial={reduce ? false : { opacity: 0, y: 16 }}

@@ -6,7 +6,7 @@ type Point = { x: number; y: number; z: number };
 type Particle = {
   seed: number; angle: number; depth: number; size: number; phase: number; tone: number; petalId: number;
   budX: number; budY: number; budZ: number; bloomX: number; bloomY: number; bloomZ: number;
-  x: number; y: number; vx: number; vy: number;
+  x: number; y: number; vx: number; vy: number; projectionScale: number;
 };
 type Mode = 'gesture' | 'demo';
 type ExperienceTool = 'flower' | 'write';
@@ -79,7 +79,7 @@ function makeParticles(count: number): Particle[] {
       phase: Math.random() * TAU,
       tone: along < 0.35 ? 0 : layer === 0 ? 1 : layer === 1 ? 2 : 3,
       petalId: layer * 8 + petalIndex,
-      budX, budY, budZ, bloomX, bloomY, bloomZ, x: 0, y: 0, vx: 0, vy: 0
+      budX, budY, budZ, bloomX, bloomY, bloomZ, x: 0, y: 0, vx: 0, vy: 0, projectionScale: 1
     });
   }
   return out;
@@ -757,6 +757,7 @@ export default function ParticleFlower() {
           const perspective=clamp(cameraDistance/(cameraDistance-cameraZ),.78,1.28);
           p.x=cx+rotatedX*scale*perspective;
           p.y=cy+cameraY*scale*perspective;
+          p.projectionScale=perspective;
 
           if(finger&&opennessNow>.25){
             const dx=finger.x-p.x,dy=finger.y-p.y,d2=dx*dx+dy*dy;
@@ -770,7 +771,7 @@ export default function ParticleFlower() {
         // Fast response on contact, slower release for a soft elastic return.
         for(let petal=0;petal<petalTouchCurrent.length;petal++){
           const target=petalTouchTargets[petal];
-          const speed=target>petalTouchCurrent[petal]?.34:.095;
+          const speed = target > petalTouchCurrent[petal] ? 0.34 : 0.095;
           petalTouchCurrent[petal]=lerp(petalTouchCurrent[petal],target,speed);
         }
 
@@ -783,7 +784,7 @@ export default function ParticleFlower() {
           const x=cx+(p.x-cx)*(1-contraction);
           const y=cy+(p.y-cy)*(1-contraction);
           const twinkle=.78+Math.sin(p.phase+now*(.75+p.tone*.08))*.12;
-          const depthScale=.82+(.82)*.2;
+          const depthScale=.82+p.projectionScale*.2;
           const size=p.size*particleSizeRef.current*depthScale*(1+touch*.14);
           const alpha=clamp((.34+opennessNow*.16)*twinkle*glowIntensityRef.current*(1+touch*.42),0,.96);
           const sprite=particleSprites[p.tone],diameter=size*7.2;

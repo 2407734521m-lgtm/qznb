@@ -37,10 +37,10 @@
 .bloom-hud-number{position:absolute;right:15px;top:30px;font:25px/1 Inter,Arial,sans-serif;color:#f4c3d6}
 .bloom-hud-number small{font-size:10px;margin-left:2px;color:#bba8b5}
 .bloom-progress{height:2px;margin-top:12px;background:#ffffff1b;overflow:hidden}
-.bloom-progress span{display:block;height:100%;background:linear-gradient(90deg,#f8d9e6,#e7549a);transition:width .12s linear}
+.bloom-progress span{display:block;height:100%;background:linear-gradient(90deg,#f8d9e6,#e7549a)}
 .bloom-hud-meta{margin-top:8px;color:#8f7c8c;font:7px Inter,Arial,sans-serif;letter-spacing:1.3px}
 .bloom-mode-switch{position:absolute;z-index:4;right:clamp(20px,4vw,56px);bottom:calc(30px + env(safe-area-inset-bottom));display:flex;gap:4px;padding:4px;border:1px solid #ffffff24;border-radius:99px;background:#1b101dcc;backdrop-filter:blur(16px)}
-.bloom-mode-switch button{border:0;border-radius:99px;padding:8px 15px;background:transparent;color:#bcaab8;font:11px "Noto Serif SC","Songti SC",serif;letter-spacing:1px}
+.bloom-mode-switch button{border:0;border-radius:99px;padding:8px 15px;background:transparent;color:#bcaab8;font:11px "Noto Serif SC","Songti SC",serif;letter-spacing:1px;cursor:pointer}
 .bloom-mode-switch button.active{background:#f0c5d8;color:#2a1421}
 .bloom-loading{position:absolute;z-index:10;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:rgba(11,7,16,.94);backdrop-filter:blur(20px);font:14px "Noto Serif SC","Songti SC",serif;letter-spacing:2px;color:#f8dce8}
 .bloom-loader-flower{font-size:38px;animation:bloom-spin 2.4s linear infinite;text-shadow:0 0 25px #ed8bb8}
@@ -60,7 +60,6 @@
  .bloom-hud{left:18px;bottom:calc(83px + env(safe-area-inset-bottom));width:162px;padding:11px 12px}
  .bloom-hud-state{font-size:14px}
  .bloom-hud-number{right:12px;top:26px;font-size:22px}
- .bloom-hud-meta{font-size:6px}
  .bloom-mode-switch{right:18px;bottom:calc(27px + env(safe-area-inset-bottom))}
  .bloom-mode-switch button{padding:8px 12px;font-size:10px}
 }
@@ -70,9 +69,9 @@
  .bloom-hud{bottom:80px}
  .bloom-steps{bottom:20px}
 }
-@media(prefers-reduced-motion:reduce){.bloom-primary,.bloom-secondary,.bloom-progress span{transition:none}.bloom-loader-flower{animation-duration:8s}}
+@media(prefers-reduced-motion:reduce){.bloom-primary,.bloom-secondary{transition:none}.bloom-loader-flower{animation-duration:8s}}
 
-/* 进入互动后，切换为参考作品的沉浸式画廊布局。 */
+/* 进入互动后切换为沉浸式画廊布局：HUD 去框靠左下，与右下模式切换分置两侧，不再重叠。 */
 .bloom-page.is-active .bloom-intro,
 .bloom-page.is-active .bloom-steps{opacity:0;visibility:hidden;transform:translateY(10px);pointer-events:none}
 .bloom-page.is-active .bloom-hud{left:clamp(24px,4vw,52px);bottom:calc(38px + env(safe-area-inset-bottom));width:210px;padding:0;border:0;border-radius:0;background:transparent;backdrop-filter:none}
@@ -83,56 +82,8 @@
 .bloom-page.is-active .bloom-brand-en{font-size:7px;letter-spacing:2px}
 .bloom-page.is-active .bloom-side-note{opacity:.42}
 @media(max-width:700px){
- .bloom-page.is-active .bloom-hud{left:20px;bottom:calc(34px + env(safe-area-inset-bottom));width:174px}
+ .bloom-page.is-active .bloom-hud{left:20px;width:174px}
  .bloom-page.is-active .bloom-hud-number{right:5px;top:22px;font-size:23px}
  .bloom-page.is-active .bloom-mode-switch{right:16px;bottom:calc(28px + env(safe-area-inset-bottom))}
  .bloom-page.is-active .bloom-brand-cn{font-size:12px}
-}
-
-/* 方向布局仅调整作品内部排版，不强制旋转设备。 */
-.bloom-orientation-switch{position:absolute;z-index:4;right:clamp(20px,4vw,56px);bottom:calc(82px + env(safe-area-inset-bottom));display:flex;align-items:center;gap:3px;padding:4px 5px;border:1px solid #ffffff20;border-radius:99px;background:rgba(27,16,29,.72);backdrop-filter:blur(16px);color:#bcaab8;font:10px Inter,"Noto Sans SC",sans-serif}
-.bloom-orientation-switch span{padding:0 7px;letter-spacing:1px;color:#9e8a9b}
-.bloom-orientation-switch button{border:0;border-radius:99px;padding:7px 11px;background:transparent;color:#cbb9c7;font:10px "Noto Serif SC","Songti SC",serif;cursor:pointer}
-.bloom-orientation-switch button.active{background:#f0c5d8;color:#2a1421}
-.bloom-page.orientation-landscape .bloom-intro{top:clamp(92px,15vh,145px);left:clamp(24px,5vw,76px);max-width:min(410px,42vw)}
-.bloom-page.orientation-landscape .bloom-intro h1{font-size:clamp(28px,3.7vw,46px)}
-.bloom-page.orientation-landscape .bloom-intro p{max-width:360px}
-.bloom-page.orientation-landscape .bloom-steps{left:auto;right:clamp(24px,5vw,70px);bottom:calc(30px + env(safe-area-inset-bottom))}
-.bloom-page.orientation-landscape .bloom-hud{left:clamp(24px,5vw,70px);bottom:calc(32px + env(safe-area-inset-bottom))}
-.bloom-page.orientation-landscape .bloom-mode-switch{right:clamp(24px,5vw,70px);bottom:calc(28px + env(safe-area-inset-bottom))}
-.bloom-page.orientation-landscape .bloom-orientation-switch{right:clamp(24px,5vw,70px);bottom:calc(78px + env(safe-area-inset-bottom))}
-@media(max-width:700px){
- .bloom-orientation-switch{right:16px;bottom:calc(78px + env(safe-area-inset-bottom))}
- .bloom-page.orientation-landscape .bloom-intro{top:calc(82px + env(safe-area-inset-top));left:22px;right:22px;max-width:54vw}
- .bloom-page.orientation-landscape .bloom-intro h1{font-size:clamp(24px,5.5vw,34px)}
- .bloom-page.orientation-landscape .bloom-intro p{font-size:10px;max-width:300px}
- .bloom-page.orientation-landscape .bloom-actions{margin-top:12px}
- .bloom-page.orientation-landscape .bloom-steps{left:22px;right:auto;bottom:calc(18px + env(safe-area-inset-bottom));gap:7px}
- .bloom-page.orientation-landscape .bloom-steps span{font-size:9px}
- .bloom-page.orientation-landscape .bloom-hud{left:auto;right:18px;bottom:calc(100px + env(safe-area-inset-bottom));width:150px}
- .bloom-page.orientation-landscape .bloom-mode-switch{right:16px;bottom:calc(24px + env(safe-area-inset-bottom))}
- .bloom-page.orientation-landscape .bloom-orientation-switch{right:16px;bottom:calc(72px + env(safe-area-inset-bottom))}
- .bloom-page.orientation-landscape.is-active .bloom-hud{left:auto;right:18px;bottom:calc(90px + env(safe-area-inset-bottom));width:150px}
-}
-
-/* 可选帧率是渲染上限；自动模式跟随屏幕刷新率。实际 FPS 显示当前绘制速度。 */
-.bloom-fps-switch{position:absolute;z-index:4;right:clamp(20px,4vw,56px);bottom:calc(132px + env(safe-area-inset-bottom));display:flex;align-items:center;gap:3px;padding:4px 5px;border:1px solid #ffffff20;border-radius:99px;background:rgba(27,16,29,.72);backdrop-filter:blur(16px);color:#bcaab8;font:9px Inter,Arial,sans-serif}
-.bloom-fps-switch>span{padding:0 6px;color:#c9a9bc;letter-spacing:1px}
-.bloom-fps-switch button{min-width:27px;border:0;border-radius:99px;padding:6px 7px;background:transparent;color:#cbb9c7;font:9px Inter,Arial,sans-serif;cursor:pointer}
-.bloom-fps-switch button.active{background:#f0c5d8;color:#2a1421}
-.bloom-fps-switch small{min-width:23px;text-align:center;color:#f4c3d6;font:9px Inter,Arial,sans-serif}
-@media(max-width:700px){
- .bloom-fps-switch{right:16px;bottom:calc(124px + env(safe-area-inset-bottom));gap:1px}
- .bloom-fps-switch button{min-width:24px;padding:6px 5px;font-size:8px}
- .bloom-fps-switch>span{padding:0 4px;font-size:8px}
- .bloom-page.orientation-landscape .bloom-fps-switch{right:16px;bottom:calc(116px + env(safe-area-inset-bottom))}
-}
-.bloom-page.orientation-landscape .bloom-fps-switch{right:clamp(24px,5vw,70px);bottom:calc(132px + env(safe-area-inset-bottom))}
-@media(max-width:700px){
- .bloom-page.orientation-landscape .bloom-fps-switch{right:16px;bottom:calc(116px + env(safe-area-inset-bottom))}
-}
-
-/* 横屏沉浸模式把状态面板放到左下，避免与右侧帧率/方向控制重叠。 */
-@media(max-width:700px){
- .bloom-page.orientation-landscape.is-active .bloom-hud{left:18px;right:auto;bottom:calc(78px + env(safe-area-inset-bottom));width:150px}
 }

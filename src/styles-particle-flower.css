@@ -371,3 +371,35 @@
     right:10px;bottom:calc(72px + env(safe-area-inset-bottom));width:128px
   }
 }
+
+
+/* Air Ink：骨骼预览固定右上角；底部工具栏不再为右下角预览预留空位。 */
+.bloom-hand-preview{
+  top:calc(64px + env(safe-area-inset-top));
+  bottom:auto;
+  right:clamp(14px,2.4vw,28px);
+}
+.bloom-ink-tools{right:clamp(16px,3vw,40px)}
+.bloom-ink-tools .bloom-ink-rewrite{
+  border-color:rgba(255,226,238,.24);
+  background:rgba(255,255,255,.055);
+  color:#f2d9e5;
+}
+@media(max-width:700px){
+  .bloom-hand-preview{
+    top:calc(58px + env(safe-area-inset-top));
+    bottom:auto;
+    right:12px;
+    width:146px;
+  }
+  .bloom-ink-tools{right:12px}
+}
+@media(max-width:700px) and (orientation:landscape){
+  .bloom-hand-preview{
+    top:calc(54px + env(safe-area-inset-top));
+    bottom:auto;
+    right:10px;
+    width:128px;
+  }
+  .bloom-ink-tools{right:12px}
+}

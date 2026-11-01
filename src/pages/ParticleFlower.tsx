@@ -4,15 +4,14 @@ import '../styles-particle-flower.css';
 
 type Point = { x: number; y: number; z: number };
 type Particle = {
-  seed: number; angle: number; depth: number; size: number; phase: number;
+  seed: number; angle: number; depth: number; size: number; phase: number; tone: number;
   budX: number; budY: number; budZ: number; bloomX: number; bloomY: number; bloomZ: number;
   x: number; y: number; vx: number; vy: number;
-  cameraDepth: number; projectionScale: number; radial: number;
 };
 type Mode = 'gesture' | 'demo';
 type ExperienceTool = 'flower' | 'write';
 type InkPoint = { x: number; y: number };
-type InkStroke = { points: InkPoint[]; liftedAt?: number };
+type InkStroke = { points: InkPoint[]; liftedAt?: number; particleCanvas?: HTMLCanvasElement; particleLeft?: number; particleTop?: number };
 type HanziCandidate = { hanzi: string; score: number };
 type InkGlyph = { character: string; strokes: InkStroke[] };
 type LayoutOrientation = 'portrait' | 'landscape';
@@ -45,69 +44,70 @@ function loadScript(src: string) {
   });
 }
 function makeParticles(count: number): Particle[] {
-  const out: Particle[] = [];
-  const TAU = Math.PI * 2;
-
+  const out: Particle[] = [], TAU = Math.PI * 2;
   for (let i = 0; i < count; i++) {
-    const seed = Math.random() * 1000;
-    const angle = Math.random() * TAU;
-    const depth = Math.random() * 2 - 1;
-
-    // 花苞是有纵深的紧凑椭球，张掌后每颗粒子沿自己的空间轨迹展开。
-    const budR = Math.pow(Math.random(), 1.55);
-    const budTheta = Math.acos(2 * Math.random() - 1);
+    const seed = Math.random() * 1000, angle = Math.random() * TAU, depth = Math.random() * 2 - 1;
+    const budR = Math.pow(Math.random(), 1.55), budTheta = Math.acos(2 * Math.random() - 1);
     const budX = Math.sin(budTheta) * Math.cos(angle) * budR * 0.22;
     const budY = Math.cos(budTheta) * budR * 0.34;
     const budZ = Math.sin(budTheta) * Math.sin(angle) * budR * 0.18;
 
-    // 粒子花冠不是平面圆盘：7/6/5 瓣三层在 X-Z 平面错位铺开，
-    // Y 轴形成穹顶与下垂外沿，Z 轴保留前后层次。
+    // Three interleaved petal layers. Points fill individual petal surfaces,
+    // rather than a uniform circular disk.
     const layerRoll = Math.random();
-    const layer = layerRoll < 0.46 ? 0 : layerRoll < 0.82 ? 1 : 2;
+    const layer = layerRoll < 0.44 ? 0 : layerRoll < 0.8 ? 1 : 2;
     const layerScale = layer === 0 ? 1 : layer === 1 ? 0.88 : 0.76;
     const petalCount = layer === 0 ? 7 : layer === 1 ? 6 : 5;
+    const petalIndex = Math.floor(Math.random() * petalCount);
     const petalPhase = layer === 0 ? 0 : layer === 1 ? Math.PI / 6 : Math.PI / 5;
-    const wave = Math.cos(angle * petalCount + petalPhase + layer * 0.31);
-    const petalRidge = Math.pow(Math.max(0, (wave + 1) * 0.5), 1.45);
-    const scallopedEdge = 0.76 + 0.24 * petalRidge;
-    const radial = Math.pow(Math.random(), 0.72);
-    const petalR = radial * scallopedEdge * layerScale;
-    const fold = Math.sin(angle * petalCount + petalPhase) * 0.032 * radial;
-    const warpedAngle = angle + fold;
-
-    // 外沿粒子形成自然下垂的粒子帘，不绘制实体花瓣。
-    const isHanging = radial > 0.68 && Math.random() < 0.22;
-    const hanging = isHanging ? 0.05 + Math.random() * 0.2 : 0;
+    const along = 0.10 + Math.pow(Math.random(), 0.78) * 0.9;
+    const widthProfile = Math.pow(Math.max(0, Math.sin(along * Math.PI)), 0.72);
+    const across = (Math.random() * 2 - 1) * widthProfile * 0.105 * layerScale;
+    const petalAngle = petalIndex * TAU / petalCount + petalPhase;
+    const warpedAngle = petalAngle + (along - 0.5) * 0.12 + across * 0.24;
+    const petalR = (0.13 + along * 0.78) * layerScale;
+    const hanging = along > 0.82 && Math.random() < 0.12 ? Math.random() * 0.055 : 0;
     const layerLift = layer === 0 ? -0.035 : layer === 1 ? 0.008 : 0.052;
-    const dome = Math.sqrt(Math.max(0, 1 - radial * radial));
-    const bloomX = Math.cos(warpedAngle) * petalR * 0.62
-      + Math.cos(angle) * hanging * 0.08;
-    const bloomY = -dome * 0.145 + radial * radial * 0.145 + layerLift + hanging;
-    const bloomZ = Math.sin(warpedAngle) * petalR * 0.43
-      + depth * 0.026 + (layer - 1) * 0.018;
-
+    const dome = Math.sin(along * Math.PI);
+    const bloomX = Math.cos(warpedAngle) * petalR * 0.56 - Math.sin(warpedAngle) * across * 1.55;
+    const bloomY = -dome * 0.095 + along * along * 0.11 + layerLift + hanging + across * 0.12;
+    const bloomZ = Math.sin(warpedAngle) * petalR * 0.39 + Math.cos(warpedAngle) * across * 1.25
+      + depth * 0.025 + (layer - 1) * 0.018;
     out.push({
-      seed, angle, depth, size: 0.38 + Math.random() * 0.64, phase: Math.random() * TAU,
-      budX, budY, budZ, bloomX, bloomY, bloomZ,
-      x: 0, y: 0, vx: 0, vy: 0,
-      cameraDepth: 0, projectionScale: 1, radial: 0
+      seed, angle: petalAngle, depth,
+      size: 0.62 + Math.pow(Math.random(), 1.6) * 1.18,
+      phase: Math.random() * TAU,
+      tone: along < 0.35 ? 0 : layer === 0 ? 1 : layer === 1 ? 2 : 3,
+      budX, budY, budZ, bloomX, bloomY, bloomZ, x: 0, y: 0, vx: 0, vy: 0
     });
   }
-
   return out;
 }
-function drawGlowSprite(): HTMLCanvasElement {
-  const sprite = document.createElement('canvas'); sprite.width = 64; sprite.height = 64;
-  const c = sprite.getContext('2d')!;
-  const g = c.createRadialGradient(32,32,1,32,32,32);
-  g.addColorStop(0, 'rgba(255,228,190,.42)');
-  g.addColorStop(0.18, 'rgba(255,187,205,.28)');
-  g.addColorStop(0.48, 'rgba(239,122,171,.10)');
-  g.addColorStop(1, 'rgba(231,84,154,0)');
-  c.fillStyle = g; c.fillRect(0,0,64,64);
-  return sprite;
+
+function drawParticleSprites(): HTMLCanvasElement[] {
+  const colors = [[255,246,224],[255,215,224],[250,167,198],[238,126,177]];
+  return colors.map(([r,g,b], index) => {
+    const sprite = document.createElement('canvas'); sprite.width = 48; sprite.height = 48;
+    const ctx = sprite.getContext('2d')!;
+    const glow = ctx.createRadialGradient(24,24,0.5,24,24,23);
+    glow.addColorStop(0,'rgba(255,255,246,.98)');
+    glow.addColorStop(0.09,'rgba('+r+','+g+','+b+',.92)');
+    glow.addColorStop(0.28,'rgba('+r+','+g+','+b+',.42)');
+    glow.addColorStop(0.62,'rgba('+r+','+g+','+b+',.12)');
+    glow.addColorStop(1,'rgba('+r+','+g+','+b+',0)');
+    ctx.fillStyle=glow; ctx.fillRect(0,0,48,48);
+    ctx.globalCompositeOperation='lighter';
+    const core=ctx.createRadialGradient(24,24,0,24,24,index===0?4.8:3.8);
+    core.addColorStop(0,'rgba(255,255,248,.98)');
+    core.addColorStop(0.45,'rgba('+r+','+g+','+b+',.72)');
+    core.addColorStop(1,'rgba('+r+','+g+','+b+',0)');
+    ctx.fillStyle=core; ctx.beginPath(); ctx.arc(24,24,5,0,Math.PI*2); ctx.fill();
+    if(index===0||index===2){ctx.globalAlpha=.24;ctx.fillStyle='rgba(255,245,231,.9)';ctx.fillRect(23.6,10,.8,28);ctx.fillRect(10,23.6,28,.8)}
+    return sprite;
+  });
 }
-function drawSkeleton(ctx: CanvasRenderingContext2D, landmarks: any[], w: number, h: number) {
+
+function drawSkeleton(function drawSkeleton(ctx: CanvasRenderingContext2D, landmarks: any[], w: number, h: number) {
   ctx.save(); ctx.lineWidth = 1.15; ctx.strokeStyle = 'rgba(255,255,255,.64)';
   ctx.fillStyle = 'rgba(255,255,255,.82)';
   for (const [a,b] of HAND_CONNECTIONS) {
@@ -215,114 +215,98 @@ function normalizeInkForRecognition(strokes: InkStroke[]) {
     ]));
 }
 
-function drawAirInkScene(ctx: CanvasRenderingContext2D, strokes: InkStroke[], committed: InkGlyph[], width: number, height: number, time: number) {
-  ctx.save();
-  ctx.globalCompositeOperation = 'source-over';
-  // Draw original handwritten strokes only; never replace them with a typeset glyph.
-  const drawStrokeCollection = (items: InkStroke[], groupOffset: number) => {
-    for (let strokeIndex = 0; strokeIndex < items.length; strokeIndex++) {
-      const stroke = items[strokeIndex];
-      const points = stroke.points;
-      if (!points.length) continue;
-      const rawProgress = stroke.liftedAt === undefined ? 0 : clamp((time - stroke.liftedAt) / 1.35, 0, 1);
-      const liftProgress = rawProgress * rawProgress * (3 - 2 * rawProgress);
-      let dotIndex = 0;
-      const drawDot = (x: number, y: number) => {
-        const phase = time * 1.15 + dotIndex++ * 0.19 + (strokeIndex + groupOffset) * 2.1;
-        const depthWave = 0.5 + 0.5 * Math.sin(phase);
-        const elevation = liftProgress * (4.5 + depthWave * 2.2);
-        const drift = Math.sin(phase * 0.47) * liftProgress * 0.45;
-        const tone = (dotIndex % 7) / 6;
-        const r = Math.round(250 - tone * 18), g = Math.round(220 - tone * 70), b = Math.round(190 + tone * 18);
-        ctx.globalAlpha = 0.12 + liftProgress * 0.12;
-        ctx.fillStyle = 'rgba(20,10,24,.72)';
-        ctx.beginPath(); ctx.arc(x + 0.4, y + elevation + 2.0, 1.25, 0, Math.PI * 2); ctx.fill();
-        ctx.globalAlpha = 0.72 + liftProgress * 0.12;
-        ctx.fillStyle = 'rgba(' + r + ',' + g + ',' + b + ',.94)';
-        ctx.beginPath(); ctx.arc(x + drift, y - elevation * 0.58, 1.05 + liftProgress * 0.34, 0, Math.PI * 2); ctx.fill();
-        ctx.globalAlpha = 0.38 + liftProgress * 0.22;
-        ctx.fillStyle = 'rgba(255,247,233,.96)';
-        ctx.beginPath(); ctx.arc(x - 0.28, y - elevation - 0.65, 0.38 + liftProgress * 0.12, 0, Math.PI * 2); ctx.fill();
-        if (liftProgress > 0.72 && dotIndex % 11 === 0) {
-          ctx.globalAlpha = (liftProgress - 0.72) * 0.8;
-          ctx.fillStyle = 'rgba(255,224,239,.9)';
-          ctx.beginPath(); ctx.arc(x + Math.sin(phase) * 2.2, y - elevation - 3.2, 0.55, 0, Math.PI * 2); ctx.fill();
-        }
-      };
-      if (points.length === 1) drawDot(points[0].x, points[0].y);
-      for (let i = 1; i < points.length; i++) {
-        const a = points[i - 1], b = points[i];
-        const length = Math.hypot(b.x - a.x, b.y - a.y);
-        const steps = Math.max(1, Math.ceil(length / 5.5));
-        for (let step = 0; step <= steps; step++) {
-          const t = step / steps;
-          drawDot(a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t);
-        }
+let inkParticleStamp: HTMLCanvasElement | null = null;
+function getInkParticleStamp(): HTMLCanvasElement {
+  if (inkParticleStamp) return inkParticleStamp;
+  const canvas=document.createElement('canvas');canvas.width=32;canvas.height=32;
+  const ctx=canvas.getContext('2d')!;
+  const glow=ctx.createRadialGradient(16,16,.2,16,16,15);
+  glow.addColorStop(0,'rgba(255,255,247,1)');
+  glow.addColorStop(.12,'rgba(255,229,212,.94)');
+  glow.addColorStop(.3,'rgba(250,172,203,.58)');
+  glow.addColorStop(.66,'rgba(239,116,174,.15)');
+  glow.addColorStop(1,'rgba(239,116,174,0)');
+  ctx.fillStyle=glow;ctx.fillRect(0,0,32,32);inkParticleStamp=canvas;return canvas;
+}
+function cacheInkStrokeParticles(stroke: InkStroke) {
+  if(stroke.particleCanvas||stroke.points.length<2)return;
+  const points=stroke.points;
+  const minX=Math.min(...points.map(p=>p.x)),maxX=Math.max(...points.map(p=>p.x));
+  const minY=Math.min(...points.map(p=>p.y)),maxY=Math.max(...points.map(p=>p.y));
+  const padding=18,left=Math.floor(minX-padding),top=Math.floor(minY-padding);
+  const canvas=document.createElement('canvas');
+  canvas.width=Math.max(24,Math.ceil(maxX-minX+padding*2));
+  canvas.height=Math.max(24,Math.ceil(maxY-minY+padding*2));
+  const ctx=canvas.getContext('2d');if(!ctx)return;
+  const stamp=getInkParticleStamp();ctx.globalCompositeOperation='lighter';
+  let particleIndex=0;
+  const add=(x:number,y:number)=>{
+    const index=particleIndex++;
+    const jitterX=Math.sin(index*12.9898+points.length)*1.1;
+    const jitterY=Math.cos(index*7.233+points.length*.7)*1.1;
+    const size=4.2+(0.5+0.5*Math.sin(index*2.17))*3.7;
+    ctx.globalAlpha=.48+(0.5+0.5*Math.sin(index*1.71))*.4;
+    ctx.drawImage(stamp,x+jitterX-size*.5,y+jitterY-size*.5,size,size);
+    if(index%3===0){
+      const satellite=2.2+(index%5)*.42;
+      ctx.globalAlpha=.22+(index%4)*.07;
+      ctx.drawImage(stamp,x-jitterY*1.8-satellite*.5,y+jitterX*1.8-satellite*.5,satellite,satellite);
+    }
+  };
+  for(let i=1;i<points.length;i++){
+    const a=points[i-1],b=points[i],length=Math.hypot(b.x-a.x,b.y-a.y);
+    const steps=Math.max(1,Math.ceil(length/4.6));
+    for(let step=0;step<=steps;step++){const t=step/steps;add(a.x+(b.x-a.x)*t-left,a.y+(b.y-a.y)*t-top)}
+  }
+  stroke.particleCanvas=canvas;stroke.particleLeft=left;stroke.particleTop=top;
+}
+function drawAirInkScene(ctx:CanvasRenderingContext2D,strokes:InkStroke[],committed:InkGlyph[],width:number,height:number,time:number,sizeMultiplier:number,glowMultiplier:number){
+  ctx.save();ctx.globalCompositeOperation='lighter';
+  const drawStroke=(stroke:InkStroke,phase:number)=>{
+    const points=stroke.points;if(!points.length)return;
+    if(stroke.liftedAt===undefined){
+      if(points.length>1){
+        const first=points[0],last=points[points.length-1];
+        const gradient=ctx.createLinearGradient(first.x,first.y,last.x,last.y);
+        gradient.addColorStop(0,'rgba(255,229,205,.28)');
+        gradient.addColorStop(.52,'rgba(247,173,206,.48)');
+        gradient.addColorStop(1,'rgba(240,128,179,.26)');
+        ctx.strokeStyle=gradient;ctx.lineWidth=Math.max(1.1,1.7*sizeMultiplier);
+        ctx.shadowColor='rgba(244,145,190,.36)';ctx.shadowBlur=8*glowMultiplier;
+        ctx.beginPath();ctx.moveTo(first.x,first.y);
+        for(let i=1;i<points.length-1;i++){const p=points[i],n=points[i+1];ctx.quadraticCurveTo(p.x,p.y,(p.x+n.x)*.5,(p.y+n.y)*.5)}
+        ctx.lineTo(last.x,last.y);ctx.stroke();ctx.shadowBlur=0;
+      }
+      return;
+    }
+    cacheInkStrokeParticles(stroke);
+    if(!stroke.particleCanvas||stroke.particleLeft===undefined||stroke.particleTop===undefined)return;
+    const progress=clamp((time-stroke.liftedAt)/1.35,0,1),eased=progress*progress*(3-2*progress);
+    const drift=Math.sin(time*.72+phase)*eased*.8,rise=eased*10,canvas=stroke.particleCanvas;
+    const drawWidth=canvas.width*sizeMultiplier,drawHeight=canvas.height*sizeMultiplier;
+    const centerX=stroke.particleLeft+canvas.width*.5,centerY=stroke.particleTop+canvas.height*.5;
+    ctx.globalAlpha=clamp((.72+eased*.16)*glowMultiplier,.15,1);
+    ctx.drawImage(canvas,centerX-drawWidth*.5+drift,centerY-drawHeight*.5-rise,drawWidth,drawHeight);
+    if(progress>.78){
+      for(let mote=0;mote<3;mote++){
+        const x=centerX+Math.sin(time*.38+phase+mote*2.1)*(18+mote*5);
+        const y=centerY-rise-8-((time*7+mote*13)%20);
+        ctx.globalAlpha=.16*glowMultiplier;ctx.fillStyle='rgba(255,226,238,.85)';
+        ctx.beginPath();ctx.arc(x,y,.7+mote*.22,0,Math.PI*2);ctx.fill();
       }
     }
   };
-  committed.forEach((glyph, index) => drawStrokeCollection(glyph.strokes, index * 17 + 11));
-  drawStrokeCollection(strokes, committed.length * 17);
-  ctx.globalAlpha = 0.18;
-  ctx.strokeStyle = 'rgba(246,190,214,.28)';
-  ctx.lineWidth = 0.7;
-  ctx.beginPath(); ctx.moveTo(width * 0.18, height * 0.84); ctx.lineTo(width * 0.82, height * 0.84); ctx.stroke();
-  ctx.restore();
+  committed.forEach((glyph,index)=>glyph.strokes.forEach((stroke,strokeIndex)=>drawStroke(stroke,index*7+strokeIndex*1.7)));
+  strokes.forEach((stroke,index)=>drawStroke(stroke,index*1.7+.4));
+  ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';ctx.restore();
 }
-function renderInkLayer(canvas: HTMLCanvasElement | null, width: number, height: number, strokes: InkStroke[]) {
-  if (!canvas || width <= 0 || height <= 0) return;
-  const ctx = canvas.getContext('2d');
-  if (!ctx) return;
-  const sx = canvas.width / width, sy = canvas.height / height;
-  ctx.setTransform(sx, 0, 0, sy, 0, 0);
-  ctx.clearRect(0, 0, width, height);
-  ctx.lineCap = 'round';
-  ctx.lineJoin = 'round';
-  for (const stroke of strokes) {
-    const points = stroke.points;
-    if (!points.length) continue;
-    const first = points[0], last = points[points.length - 1];
-    const gradient = ctx.createLinearGradient(first.x, first.y, last.x, last.y);
-    gradient.addColorStop(0, '#ffe4bd');
-    gradient.addColorStop(0.46, '#f6b5d0');
-    gradient.addColorStop(1, '#e879ad');
-    ctx.save();
-    ctx.strokeStyle = gradient;
-    ctx.fillStyle = '#ffe8cf';
-    ctx.lineWidth = 5.2;
-    ctx.shadowColor = 'rgba(244,145,190,.68)';
-    ctx.shadowBlur = 13;
-    if (points.length === 1) {
-      ctx.beginPath(); ctx.arc(first.x, first.y, 2.6, 0, Math.PI * 2); ctx.fill();
-    } else {
-      ctx.beginPath(); ctx.moveTo(first.x, first.y);
-      for (let i = 1; i < points.length - 1; i++) {
-        const current = points[i], next = points[i + 1];
-        ctx.quadraticCurveTo(current.x, current.y, (current.x + next.x) * 0.5, (current.y + next.y) * 0.5);
-      }
-      ctx.lineTo(last.x, last.y); ctx.stroke();
-    }
-    ctx.shadowBlur = 0;
-    ctx.strokeStyle = 'rgba(255,247,237,.78)';
-    ctx.lineWidth = 1.15;
-    if (points.length > 1) {
-      ctx.beginPath(); ctx.moveTo(first.x, first.y);
-      for (let i = 1; i < points.length - 1; i++) {
-        const current = points[i], next = points[i + 1];
-        ctx.quadraticCurveTo(current.x, current.y, (current.x + next.x) * 0.5, (current.y + next.y) * 0.5);
-      }
-      ctx.lineTo(last.x, last.y); ctx.stroke();
-    }
-    ctx.restore();
-  }
-}
+
 
 
 
 export default function ParticleFlower() {
   const navigate = useNavigate();
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const inkCanvasRef = useRef<HTMLCanvasElement>(null);
   const handPreviewCanvasRef = useRef<HTMLCanvasElement>(null);
   const inkStrokesRef = useRef<InkStroke[]>([]);
   const currentInkStrokeRef = useRef<InkStroke | null>(null);
@@ -347,7 +331,8 @@ export default function ParticleFlower() {
   const streamRef = useRef<MediaStream | null>(null);
   const handsRef = useRef<any>(null);
   const rafRef = useRef<number>(0);
-  const fpsLimitRef = useRef<FpsLimit>(0);
+  const initialFpsLimit: FpsLimit = window.matchMedia('(max-width: 700px)').matches ? 60 : 0;
+  const fpsLimitRef = useRef<FpsLimit>(initialFpsLimit);
   const startGuardRef = useRef(false);
   const cameraRafRef = useRef<number>(0);
   const particlesRef = useRef<Particle[]>([]);
@@ -363,7 +348,7 @@ export default function ParticleFlower() {
   const modeRef = useRef<Mode>('demo');
   const [mode, setMode] = useState<Mode>('demo');
   const [layoutOrientation, setLayoutOrientation] = useState<LayoutOrientation>(() => window.matchMedia('(orientation: landscape)').matches ? 'landscape' : 'portrait');
-  const [fpsLimit, setFpsLimit] = useState<FpsLimit>(0);
+  const [fpsLimit, setFpsLimit] = useState<FpsLimit>(initialFpsLimit);
   const [actualFps, setActualFps] = useState(0);
   const [openness, setOpenness] = useState(18);
   const [status, setStatus] = useState('等待手掌');
@@ -379,7 +364,14 @@ export default function ParticleFlower() {
   const orientationFullscreenRef = useRef(false);
   const viewportRef = useRef({ width: window.innerWidth, height: window.innerHeight });
   const [error, setError] = useState('');
-  const [particleCount, setParticleCount] = useState(3000);
+  const [particleCount, setParticleCount] = useState(() => window.matchMedia('(max-width: 700px)').matches ? 1800 : 3200);
+  const particleCountRef = useRef(particleCount);
+  const particleRebuildTimerRef = useRef<number>(0);
+  const [particleSize, setParticleSize] = useState(1);
+  const particleSizeRef = useRef(1);
+  const [glowIntensity, setGlowIntensity] = useState(1);
+  const glowIntensityRef = useRef(1);
+  const [selectedTool, setSelectedTool] = useState<ExperienceTool>('flower');
   const [hasHand, setHasHand] = useState(false);
   const lastHudRef = useRef(0);
 
@@ -435,6 +427,8 @@ export default function ParticleFlower() {
     setExperienceStarted(true);
     modeRef.current = next; setMode(next);
     if (next === 'demo') {
+      experienceToolRef.current = 'flower';
+      setExperienceTool('flower');
       stopCamera();
       targetRef.current = 0.18;
       setStatus('演示模式');
@@ -503,7 +497,6 @@ export default function ParticleFlower() {
       } catch {
         setRecognitionStatus('error');
       }
-      renderInkLayer(inkCanvasRef.current, viewportRef.current.width, viewportRef.current.height, inkStrokesRef.current);
     }
     startGuardRef.current = true;
     loadingStartedAtRef.current = Date.now();
@@ -596,8 +589,7 @@ export default function ParticleFlower() {
               if (!last || Math.hypot(smooth.x - last.x, smooth.y - last.y) > 1.2) points.push(smooth);
             }
             smoothedInkPointRef.current = smooth;
-            renderInkLayer(inkCanvasRef.current, viewportRef.current.width, viewportRef.current.height, inkStrokesRef.current);
-          } else if (pinchingRef.current) {
+                } else if (pinchingRef.current) {
             pinchingRef.current = false;
             if (currentInkStrokeRef.current) currentInkStrokeRef.current.liftedAt = performance.now() / 1000;
             currentInkStrokeRef.current = null;
@@ -706,10 +698,9 @@ export default function ParticleFlower() {
     const cores = navigator.hardwareConcurrency || 4;
     const memory = (navigator as any).deviceMemory || 4;
     const lowEnd = cores <= 4 || memory <= 4;
-    const count = mobile ? (lowEnd ? 1400 : 1900) : (lowEnd ? 2200 : 3000);
+    const count = particleCountRef.current;
     particlesRef.current = makeParticles(count);
-    setParticleCount(count);
-    const sprite = drawGlowSprite();
+    const particleSprites = drawParticleSprites();
     const resize = () => {
       const forcedLandscape = layoutOrientationRef.current === 'landscape' && window.innerWidth < window.innerHeight;
       width = forcedLandscape ? window.innerHeight : window.innerWidth;
@@ -719,14 +710,6 @@ export default function ParticleFlower() {
       canvas.width = Math.round(width*dpr); canvas.height = Math.round(height*dpr);
       canvas.style.width = width + 'px'; canvas.style.height = height + 'px';
       ctx.setTransform(dpr,0,0,dpr,0,0);
-      const inkCanvas = inkCanvasRef.current;
-      if (inkCanvas) {
-        inkCanvas.width = Math.round(width*dpr);
-        inkCanvas.height = Math.round(height*dpr);
-        inkCanvas.style.width = width + 'px';
-        inkCanvas.style.height = height + 'px';
-        renderInkLayer(inkCanvas, width, height, inkStrokesRef.current);
-      }
       const previewCanvas = handPreviewCanvasRef.current;
       if (previewCanvas) {
         const previewWidth = Math.round(280 * Math.min(dpr, 2));
@@ -764,82 +747,45 @@ export default function ParticleFlower() {
 
       if (experienceToolRef.current === 'flower') {
         const ps = particlesRef.current;
-        // 轻微绕 Y 轴缓慢环绕，配合透视与前后景深，让花冠始终显出 3D 体积。
-        const yaw = now * 0.085 + Math.sin(now * 0.17) * 0.025;
-        const cosYaw = Math.cos(yaw), sinYaw = Math.sin(yaw);
-        const pitch = 0.2 + Math.sin(now * 0.13) * 0.018;
-        const cosPitch = Math.cos(pitch), sinPitch = Math.sin(pitch);
-        const cameraDistance = 2.65;
-        const breathing = 1 + Math.sin(now * 0.68) * 0.006;
-  
-        // 第一遍：在真正的三维空间中更新每个粒子，再投影到屏幕。
-        // 旋转、轻微湍流和透视变化都是连续函数，不使用随机跳点，避免抖动。
-        for (let i = 0; i < ps.length; i++) {
-          const p = ps[i];
-          let worldX = lerp(p.budX, p.bloomX, opennessNow) * breathing;
-          let worldY = lerp(p.budY, p.bloomY, opennessNow) * breathing;
-          let worldZ = lerp(p.budZ, p.bloomZ, opennessNow);
-          const flow = Math.sin(now * 0.38 + p.seed * 0.013 + p.phase) * 0.0045
-            + Math.cos(now * 0.23 + p.seed * 0.009) * 0.0025;
-          worldX += Math.cos(p.angle + now * 0.12) * flow;
-          worldY += Math.sin(now * 0.31 + p.phase) * 0.003;
-          worldZ += Math.sin(p.angle * 1.4 + now * 0.29 + p.phase) * 0.004;
-  
-          const rotatedX = worldX * cosYaw - worldZ * sinYaw;
-          const rotatedZ = worldX * sinYaw + worldZ * cosYaw;
-          const cameraY = worldY * cosPitch - rotatedZ * sinPitch;
-          const cameraZ = worldY * sinPitch + rotatedZ * cosPitch;
-          const perspective = clamp(cameraDistance / (cameraDistance - cameraZ), 0.78, 1.28);
-  
-          p.x = cx + rotatedX * scale * perspective;
-          p.y = cy + cameraY * scale * perspective;
-          p.cameraDepth = cameraZ;
-          p.projectionScale = perspective;
-          p.radial = clamp(Math.hypot(worldX, worldZ) / 0.72, 0, 1);
-        }
-  
-        // 先画远处粒子，后画靠近镜头的粒子；同一颗粒子的前后关系随花冠旋转自然变化。
-        ps.sort((a, b) => a.cameraDepth - b.cameraDepth);
-  
-        // 柔和环境光只烘托花冠轮廓，不覆盖粒子中心。
-        const halo = ctx.createRadialGradient(cx, cy, scale * 0.08, cx, cy, scale * 0.82);
-        halo.addColorStop(0, 'rgba(226,105,161,' + (0.055 + opennessNow * 0.055) + ')');
-        halo.addColorStop(1, 'rgba(120,50,105,0)');
-        ctx.fillStyle = halo;
-        ctx.fillRect(0, 0, width, height);
-  
-        // 第二遍：绘制体积粒子。中心偏香槟金，中层柔粉，外缘玫瑰色。
-        for (let i = 0; i < ps.length; i++) {
-          const p = ps[i];
-          let x = p.x, y = p.y;
-          if (finger && opennessNow > 0.25) {
-            const dx = finger.x - x, dy = finger.y - y;
-            const d2 = dx * dx + dy * dy, radius = scale * 0.31;
-            if (d2 < radius * radius) {
-              const pull = (1 - Math.sqrt(d2) / radius) * 0.14 * opennessNow;
-              x += dx * pull;
-              y += dy * pull;
-            }
+        const yaw = now*.085 + Math.sin(now*.17)*.025;
+        const cosYaw=Math.cos(yaw),sinYaw=Math.sin(yaw);
+        const pitch=.2+Math.sin(now*.13)*.018;
+        const cosPitch=Math.cos(pitch),sinPitch=Math.sin(pitch);
+        const cameraDistance=2.65,breathing=1+Math.sin(now*.68)*.006;
+        const halo=ctx.createRadialGradient(cx,cy,scale*.08,cx,cy,scale*.82);
+        halo.addColorStop(0,'rgba(226,105,161,'+(.075+opennessNow*.07)+')');
+        halo.addColorStop(1,'rgba(120,50,105,0)');
+        ctx.fillStyle=halo;ctx.fillRect(0,0,width,height);
+
+        // Additive prebuilt sprites avoid per-frame sorting and per-particle canvas paths.
+        ctx.globalCompositeOperation='lighter';
+        for(let i=0;i<ps.length;i++){
+          const p=ps[i];
+          let worldX=lerp(p.budX,p.bloomX,opennessNow)*breathing;
+          let worldY=lerp(p.budY,p.bloomY,opennessNow)*breathing;
+          let worldZ=lerp(p.budZ,p.bloomZ,opennessNow);
+          const flow=Math.sin(now*.38+p.seed*.013+p.phase)*.0058+Math.cos(now*.23+p.seed*.009)*.0034;
+          worldX+=Math.cos(p.angle+now*.12)*flow;
+          worldY+=Math.sin(now*.31+p.phase)*.004;
+          worldZ+=Math.sin(p.angle*1.4+now*.29+p.phase)*.005;
+          const rotatedX=worldX*cosYaw-worldZ*sinYaw,rotatedZ=worldX*sinYaw+worldZ*cosYaw;
+          const cameraY=worldY*cosPitch-rotatedZ*sinPitch,cameraZ=worldY*sinPitch+rotatedZ*cosPitch;
+          const perspective=clamp(cameraDistance/(cameraDistance-cameraZ),.78,1.28);
+          let x=cx+rotatedX*scale*perspective,y=cy+cameraY*scale*perspective;
+          if(finger&&opennessNow>.25){
+            const dx=finger.x-x,dy=finger.y-y,d2=dx*dx+dy*dy,radius=scale*.31;
+            if(d2<radius*radius){const pull=(1-Math.sqrt(d2)/radius)*.14*opennessNow;x+=dx*pull;y+=dy*pull}
           }
-          p.x = x; p.y = y;
-          const normalized = p.radial;
-          const r = Math.round(250 - normalized * 27);
-          const g = Math.round(218 - normalized * 111);
-          const b = Math.round(174 + normalized * 31);
-          const twinkle = 0.9 + Math.sin(p.phase + now * 1.15) * 0.08;
-          const depthLight = clamp(0.92 + p.projectionScale * 0.09, 0.88, 1.08);
-          const alpha = (0.105 + normalized * 0.105) * twinkle * depthLight;
-          const size = p.size * (0.78 + opennessNow * 0.22) * (0.82 + p.projectionScale * 0.18);
-  
-          ctx.globalAlpha = alpha;
-          ctx.drawImage(sprite, x - size * 1.45, y - size * 1.45, size * 2.9, size * 2.9);
-          ctx.globalAlpha = alpha * 0.94;
-          ctx.fillStyle = 'rgba(' + r + ',' + g + ',' + b + ',.86)';
-          ctx.beginPath();
-          ctx.arc(x, y, Math.max(0.38, size * 0.46), 0, Math.PI * 2);
-          ctx.fill();
+          const twinkle=.78+Math.sin(p.phase+now*(.75+p.tone*.08))*.12;
+          const depthScale=.82+perspective*.2;
+          const size=p.size*particleSizeRef.current*depthScale;
+          const alpha=clamp((.34+opennessNow*.16)*twinkle*glowIntensityRef.current,0,.92);
+          const sprite=particleSprites[p.tone],diameter=size*7.2;
+          ctx.globalAlpha=alpha;
+          ctx.drawImage(sprite,x-diameter*.5,y-diameter*.5,diameter,diameter);
         }
-        ctx.globalAlpha=1; ctx.globalCompositeOperation='source-over';
+        ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';
+      }        ctx.globalAlpha=1; ctx.globalCompositeOperation='source-over';
       }
       if (experienceToolRef.current !== 'write' && landmarksRef.current && modeRef.current==='gesture') {
         drawSkeleton(ctx,landmarksRef.current,width,height);
@@ -851,7 +797,9 @@ export default function ParticleFlower() {
           committedGlyphsRef.current,
           width,
           height,
-          now
+          now,
+          particleSizeRef.current,
+          glowIntensityRef.current
         );
         drawSkeletonPreview(handPreviewCanvasRef.current, landmarksRef.current && modeRef.current === 'gesture' ? landmarksRef.current : null);
       }
@@ -932,7 +880,10 @@ export default function ParticleFlower() {
     targetRef.current=0.18;
   };
 
-  useEffect(() => () => stopCamera(), [stopCamera]);
+  useEffect(() => () => {
+    stopCamera();
+    if (particleRebuildTimerRef.current) window.clearTimeout(particleRebuildTimerRef.current);
+  }, [stopCamera]);
 
   const statusEnglish = mode==='demo' ? 'DEMO EXPERIENCE' : !hasHand ? 'WAITING FOR HAND' : openness<28 ? 'CLOSED · FIST' : openness>68 ? 'BLOOM · OPEN' : 'OPENING · FLOW';
   const statusChinese = mode==='demo' ? '演示模式' : !hasHand ? '等待手掌' : openness<28 ? '花苞' : openness>68 ? '绽放' : '舒展中';
@@ -1011,8 +962,7 @@ export default function ParticleFlower() {
             pinchingRef.current = false;
             smoothedInkPointRef.current = null;
             setIsWriting(false);
-            renderInkLayer(inkCanvasRef.current, viewportRef.current.width, viewportRef.current.height, inkStrokesRef.current);
-          }}>撤销</button>
+                }}>撤销</button>
           <button type="button" onClick={() => {
             if (recognitionTimerRef.current) window.clearTimeout(recognitionTimerRef.current);
             recognitionRequestIdRef.current += 1;
@@ -1028,13 +978,11 @@ export default function ParticleFlower() {
             pinchingRef.current = false;
             smoothedInkPointRef.current = null;
             setIsWriting(false);
-            renderInkLayer(inkCanvasRef.current, viewportRef.current.width, viewportRef.current.height, inkStrokesRef.current);
-          }}>清空</button>
+                }}>清空</button>
         </div>
       )}
       <canvas ref={canvasRef} className="bloom-canvas" aria-label="互动粒子与手势画面" />
       <div className="bloom-vignette" />
-      <canvas ref={inkCanvasRef} className="bloom-ink-canvas" aria-label="空中书写笔迹" />
       {experienceStarted && experienceTool === 'write' && (
         <section className="bloom-hand-preview" aria-label="手部骨骼预览">
           <div className="bloom-hand-preview-heading">
@@ -1047,37 +995,76 @@ export default function ParticleFlower() {
           </div>
         </section>
       )}
-      <header className="bloom-header">
+      {!experienceStarted&&<header className="bloom-header">
         <button className="bloom-brand" onClick={() => navigate('/explore')} aria-label="返回探索空间">
           <span className="bloom-brand-cn">指尖生花</span><span className="bloom-brand-en">BLOOM AT YOUR FINGERTIPS</span>
         </button>
         <div className={'bloom-pill' + (cameraLive ? ' live' : '')}><i />{cameraLive ? 'CAMERA LIVE' : 'STANDBY ｜ NO.01'}</div>
-      </header>
-      <section className="bloom-intro">
-        <div className="bloom-kicker">AN INTERACTIVE LIGHT GARDEN</div>
-        <h1>让花，在指尖醒来。</h1>
-        <p>握拳，收拢成一颗花苞；张掌，让三千粒光一起舒展。</p>
-        {!cameraLive && (
-          <>
-            <div className="bloom-actions">
-              <button className="bloom-primary" onClick={() => void startCamera('flower')} disabled={loading}>
-                {loading ? '正在唤醒…' : '开启手势'}
-              </button>
-              <button className="bloom-secondary" onClick={() => void startCamera('write')} disabled={loading}>空中书写</button>
-              <button className="bloom-secondary" onClick={() => setExperienceMode('demo')}>无摄像头体验</button>
+      </header>}
+      {!experienceStarted && (
+        <section className="bloom-intro bloom-control-panel" aria-label="粒子效果设置">
+          <div className="bloom-kicker">BLOOM STUDIO / 光粒子工作台</div>
+          <h1>把光，调成你喜欢的样子。</h1>
+          <p>先设置粒子的密度、大小和光感。进入沉浸体验后，所有控制面板都会收起。</p>
+          <div className="bloom-tool-picker" role="group" aria-label="体验模式">
+            <button type="button" className={selectedTool==='flower'?'active':''} onClick={()=>setSelectedTool('flower')}>指尖生花</button>
+            <button type="button" className={selectedTool==='write'?'active':''} onClick={()=>setSelectedTool('write')}>空中书写</button>
+          </div>
+          <div className="bloom-settings-grid">
+            <label className="bloom-setting">
+              <span><b>粒子密度</b><output>{particleCount.toLocaleString()}</output></span>
+              <input aria-label="粒子密度" type="range" min="800" max="6000" step="200" value={particleCount} onChange={event=>{
+                const next=Number(event.target.value);particleCountRef.current=next;setParticleCount(next);
+                if(particleRebuildTimerRef.current)window.clearTimeout(particleRebuildTimerRef.current);
+                particleRebuildTimerRef.current=window.setTimeout(()=>{particlesRef.current=makeParticles(next)},160);
+              }}/>
+              <small>越高越细腻，也越考验设备</small>
+            </label>
+            <label className="bloom-setting">
+              <span><b>粒子大小</b><output>{particleSize.toFixed(1)}×</output></span>
+              <input aria-label="粒子大小" type="range" min="0.5" max="2.0" step="0.1" value={particleSize} onChange={event=>{
+                const next=Number(event.target.value);particleSizeRef.current=next;setParticleSize(next);
+              }}/>
+              <small>控制光点颗粒感和扩散范围</small>
+            </label>
+            <label className="bloom-setting">
+              <span><b>光晕强度</b><output>{glowIntensity.toFixed(1)}×</output></span>
+              <input aria-label="光晕强度" type="range" min="0.4" max="1.6" step="0.1" value={glowIntensity} onChange={event=>{
+                const next=Number(event.target.value);glowIntensityRef.current=next;setGlowIntensity(next);
+              }}/>
+              <small>调整柔光、亮点与层次感</small>
+            </label>
+          </div>
+          <div className="bloom-settings-footer">
+            <span>刷新上限</span>
+            <div className="bloom-setting-fps" role="group" aria-label="刷新上限">
+              {([30,60,90,120,0] as FpsLimit[]).map(value=><button type="button" key={value} className={fpsLimit===value?'active':''} onClick={()=>{fpsLimitRef.current=value;setFpsLimit(value)}}>{value===0?'自动':value}</button>)}
             </div>
-            <div className="bloom-writing-note">AIR INK · 捏合拇指与食指开始书写，松开即可换笔画</div>
-          </>
-        )}
-        <div className="bloom-privacy">画面仅在本地浏览器运算，不会上传</div>
-        {error && <div className="bloom-error" role="alert">{error}</div>}
-      </section>
-      <div className="bloom-side-note">循光而行 · LET THE LIGHT BLOOM</div>
-      <footer className="bloom-steps">
+            <small>{actualFps} FPS</small>
+          </div>
+          <div className="bloom-settings-footer bloom-orientation-row">
+            <span>画面构图</span>
+            <div className="bloom-setting-fps" role="group" aria-label="画面构图">
+              <button type="button" className={layoutOrientation==='portrait'?'active':''} onClick={()=>void changeOrientation('portrait')}>竖屏</button>
+              <button type="button" className={layoutOrientation==='landscape'?'active':''} onClick={()=>void changeOrientation('landscape')}>横屏</button>
+            </div>
+          </div>
+          <div className="bloom-start-actions">
+            <button className="bloom-primary bloom-immersive-start" onClick={()=>void startCamera(selectedTool)} disabled={loading}>
+              {loading?'正在准备沉浸空间…':'沉浸式开始'}<span>进入全屏互动</span>
+            </button>
+            <button className="bloom-secondary bloom-preview-start" onClick={()=>setExperienceMode('demo')} disabled={loading}>先看粒子预览</button>
+          </div>
+          <div className="bloom-privacy">摄像头与手势数据只在本地浏览器处理，不会上传</div>
+          {error&&<div className="bloom-error" role="alert">{error}</div>}
+        </section>
+      )}
+      {experienceStarted&&<div className="bloom-side-note">循光而行 · LET THE LIGHT BLOOM</div>}
+      {experienceStarted&&<footer className="bloom-steps">
         <div><b>01</b><span>握拳·闭合</span></div><i />
         <div><b>02</b><span>张掌·绽放</span></div><i />
         <div><b>03</b><span>指尖·牵引</span></div>
-      </footer>
+      </footer>}
       <aside className="bloom-hud">
         <div className="bloom-hud-label">GESTURE <span>/ 手势</span></div>
         <div className="bloom-hud-state">{statusChinese}</div>
@@ -1086,20 +1073,6 @@ export default function ParticleFlower() {
         <div className="bloom-progress"><span style={{width:openness+'%'}} /></div>
         <div className="bloom-hud-meta">{particleCount.toLocaleString()} LIGHT PARTICLES</div>
       </aside>
-      <div className="bloom-fps-switch" role="group" aria-label="动画帧率上限">
-        <span>FPS</span>
-        {([30, 60, 90, 120, 0] as FpsLimit[]).map(value => <button key={value} className={fpsLimit === value ? 'active' : ''} onClick={() => { fpsLimitRef.current = value; setFpsLimit(value); }} aria-pressed={fpsLimit === value}>{value === 0 ? '自动' : value}</button>)}
-        <small>{actualFps}</small>
-      </div>
-      <div className="bloom-orientation-switch" role="group" aria-label="画面布局方向">
-        <span>布局</span>
-        <button className={layoutOrientation === 'portrait' ? 'active' : ''} onClick={() => void changeOrientation('portrait')} aria-pressed={layoutOrientation === 'portrait'}>竖屏</button>
-        <button className={layoutOrientation === 'landscape' ? 'active' : ''} onClick={() => void changeOrientation('landscape')} aria-pressed={layoutOrientation === 'landscape'}>横屏</button>
-      </div>
-      <div className="bloom-mode-switch">
-        <button className={mode==='gesture'?'active':''} onClick={() => cameraLive ? setExperienceMode('gesture') : void startCamera()}>手势</button>
-        <button className={mode==='demo'?'active':''} onClick={() => setExperienceMode('demo')}>演示</button>
-      </div>
       {loading && (
         <div className="bloom-loading" role="status" aria-live="polite">
           <div className="bloom-loader-flower">✿</div>

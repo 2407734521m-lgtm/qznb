@@ -70,7 +70,7 @@ declare
   v_target_role text;
   v_request_id uuid;
 begin
-  if v_actor is null or coalesce(public.my_role(), '') <> 'super_admin' then
+  if v_actor is null or coalesce(public.my_role(), '') <> 'admin' then
     raise exception 'super administrator required' using errcode = '42501';
   end if;
 
@@ -262,5 +262,98 @@ $function$
 
 revoke all on function public.admin_decide_sensitive_action(uuid, boolean, text) from public, anon;
 grant execute on function public.admin_decide_sensitive_action(uuid, boolean, text) to authenticated;
+
+
+-- Super administrators execute sensitive actions directly without creating
+-- an approval request. This remains distinct from the admin-only request RPC.
+create or replace function public.admin_execute_sensitive_action(
+  p_action_type text,
+  p_target_user_id uuid,
+  p_requested_role text,
+  p_reason text
+)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $function$
+declare
+  v_actor uuid := auth.uid();
+  v_target_role text;
+  v_target_username text;
+begin
+  if v_actor is null or coalesce(public.my_role(), '') <> 'super_admin' then
+    raise exception 'super administrator required' using errcode = '42501';
+  end if;
+
+  if p_action_type is null
+     or p_action_type not in ('delete_member_account', 'set_role')
+     or p_target_user_id is null
+     or p_target_user_id = v_actor
+     or p_reason is null
+     or pg_catalog.char_length(pg_catalog.btrim(p_reason)) < 8
+     or pg_catalog.char_length(pg_catalog.btrim(p_reason)) > 300 then
+    raise exception 'invalid sensitive action';
+  end if;
+
+  select p.role, p.username::text
+    into v_target_role, v_target_username
+    from public.profiles p
+   where p.id = p_target_user_id
+   for update;
+
+  if not found then
+    raise exception 'target account not found';
+  end if;
+
+  if p_action_type = 'delete_member_account' then
+    if v_target_role <> 'member' or p_requested_role is not null then
+      raise exception 'only regular member accounts can be deleted';
+    end if;
+
+    insert into public.admin_audit_logs(actor, action, target, detail)
+    values (
+      v_actor, 'delete_member_account_super_admin', p_target_user_id,
+      pg_catalog.jsonb_build_object(
+        'execution', 'direct',
+        'username', v_target_username,
+        'reason', pg_catalog.btrim(p_reason)
+      )
+    );
+
+    delete from auth.users where id = p_target_user_id;
+    if not found then
+      raise exception 'auth account not found';
+    end if;
+  elsif p_action_type = 'set_role' then
+    if p_requested_role is null
+       or p_requested_role not in ('member', 'admin')
+       or v_target_role = 'super_admin'
+       or p_requested_role = v_target_role then
+      raise exception 'invalid role change target';
+    end if;
+
+    update public.profiles
+       set role = p_requested_role
+     where id = p_target_user_id;
+
+    insert into public.admin_audit_logs(actor, action, target, detail)
+    values (
+      v_actor, 'set_role_super_admin_direct', p_target_user_id,
+      pg_catalog.jsonb_build_object(
+        'execution', 'direct',
+        'username', v_target_username,
+        'from', v_target_role,
+        'to', p_requested_role,
+        'reason', pg_catalog.btrim(p_reason)
+      )
+    );
+  end if;
+end;
+$function$;
+
+revoke all on function public.admin_execute_sensitive_action(text, uuid, text, text) from public, anon;
+grant execute on function public.admin_execute_sensitive_action(text, uuid, text, text) to authenticated;
+
 
 commit;

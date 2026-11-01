@@ -38,10 +38,14 @@ function stamp(value: string | null) {
 }
 
 export default function AdminAccountManagement({
-  me, isSuper, setMsg,
-}: { me: string; isSuper: boolean; setMsg: (message: string) => void }) {
+  me, isSuper, setMsg, extQ = '',
+}: { me: string; isSuper: boolean; setMsg: (message: string) => void; extQ?: string }) {
   const [rows, setRows] = useState<Account[]>([]);
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState(extQ);
+  useEffect(() => {
+    setQuery(extQ);
+    setPage(0);
+  }, [extQ]);
   const [status, setStatus] = useState<'all' | 'active' | 'disabled'>('all');
   const [roleFilter, setRoleFilter] = useState<'all' | 'member' | 'admin' | 'super_admin'>('all');
   const [sortBy, setSortBy] = useState<'newest' | 'recent_login' | 'oldest'>('newest');

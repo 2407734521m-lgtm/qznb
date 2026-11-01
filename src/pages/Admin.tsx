@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import AdminMemberModal from '../components/AdminMemberModal';
-import { supabase, supabaseBaseUrl } from '../lib/supabase';
+import { supabase } from '../lib/supabase';
 import { startSitePresence } from '../lib/sitePresence';
 import { useAuth } from '../auth';
 import '../styles-admin-cinematic.css';
@@ -17,8 +16,6 @@ import AdminAuthorizedRequests from '../components/AdminAuthorizedRequests';
 import AdminSongWall from '../components/AdminSongWall';
 import AdminBulkEmail from '../components/AdminBulkEmail';
 import AdminAccountManagement from '../components/AdminAccountManagement';
-import type { AdminPost as Post, AdminComment as Cmt } from '../types/content';
-import { card, h3, mut, rowBtn, alog, timeAgo } from './admin/shared';
 import Logs from './admin/Logs';
 import MaintenanceAccessManager from './admin/MaintenanceAccessManager';
 import InviteTab from './admin/InviteTab';
@@ -30,7 +27,6 @@ import Moderate from './admin/Moderate';
 import Settings from './admin/Settings';
 import Overview from './admin/Overview';
 import BoardMgr from './admin/BoardMgr';
-import { confirmDialog, promptDialog } from '../lib/dialog';
 
 /**
  * 管理后台测试版（V2）：高级管理控制中心
@@ -38,17 +34,11 @@ import { confirmDialog, promptDialog } from '../lib/dialog';
  * 设计：深色玻璃拟态，文字按钮无 emoji，手机优先
  */
 
-type Member = {
-  id: string; username: string; display_name: string | null; real_name: string | null;
-  role: string; joined: boolean; created_at: string;
-};
-
 const TABS_ALL: [string, string, boolean][] = [
   ['overview', '总览', false],
   ['analytics', '数据分析', true],
   ['backups', '备份与恢复', true],
   ['release', '版本发布', true],
-  ['members', '成员', false],
   ['accounts', '账号管理', true],
   ['invite', '邀请码', false],
   ['moderate', '审核', false],
@@ -128,7 +118,6 @@ export default function Admin() {
   const [msg, setMsg] = useState('');
   const [q0, setQ0] = useState('');
   const isSuper = role === 'super_admin';
-  const canRequestSensitiveAction = role === 'admin';
   const tabs = TABS_ALL.filter(([, , sup]) => !sup || isSuper);
 
   useEffect(() => {
@@ -210,14 +199,16 @@ export default function Admin() {
         </span>
       </div>
 
-      <form className="admin-search" onSubmit={e => { e.preventDefault(); switchTab('members'); }} style={{ marginBottom: 12 }}>
-        <input value={q0} onChange={e => setQ0(e.target.value)} placeholder="搜索成员姓名 / 用户名…"
-          style={{
-            width: '100%', boxSizing: 'border-box', background: '#ffffff0d',
-            border: '1px solid #ffffff14', borderRadius: 10, padding: '9px 12px',
-            color: '#fff', fontSize: 13, outline: 'none',
-          }} />
-      </form>
+      {isSuper && (
+        <form className="admin-search" onSubmit={e => { e.preventDefault(); switchTab('accounts'); }} style={{ marginBottom: 12 }}>
+          <input value={q0} onChange={e => setQ0(e.target.value)} placeholder="搜索成员姓名 / 用户名 / 邮箱 / ID…"
+            style={{
+              width: '100%', boxSizing: 'border-box', background: '#ffffff0d',
+              border: '1px solid #ffffff14', borderRadius: 10, padding: '9px 12px',
+              color: '#fff', fontSize: 13, outline: 'none',
+            }} />
+        </form>
+      )}
 
       {msg && <p className="priv-note" style={{ margin: '0 0 10px' }}>{msg}</p>}
 
@@ -226,8 +217,7 @@ export default function Admin() {
         {tab === 'analytics' && isSuper && <AdminAnalyticsCenter setMsg={setMsg} />}
         {tab === 'backups' && isSuper && <AdminBackupCenter setMsg={setMsg} />}
         {tab === 'release' && isSuper && <AdminReleaseCenter />}
-              {tab === 'members' && <Members me={me} isSuper={isSuper} canRequest={canRequestSensitiveAction} setMsg={setMsg} extQ={q0} />}
-              {tab === 'accounts' && isSuper && <AdminAccountManagement me={me} isSuper={isSuper} setMsg={setMsg} />}
+              {tab === 'accounts' && isSuper && <AdminAccountManagement me={me} isSuper={isSuper} setMsg={setMsg} extQ={q0} />}
               {tab === 'moderate' && <Moderate setMsg={setMsg} />}
               {tab === 'loveWall' && <AdminLoveWall setMsg={setMsg} />}
               {tab === 'notifications' && <AdminNotificationCenter setMsg={setMsg} />}
@@ -290,176 +280,3 @@ export default function Admin() {
     </div>
   );
 }
-
-/* ---------------- 成员管理 ---------------- */
-function Members({ me, isSuper, canRequest, setMsg, extQ }: { me: string; isSuper: boolean; canRequest: boolean; setMsg: (s: string) => void; extQ: string }) {
-  const [list, setList] = useState<Member[]>([]);
-  const [q, setQ] = useState(extQ);
-  useEffect(() => { setQ(extQ); }, [extQ]);
-  const [sel, setSel] = useState<Set<string>>(new Set());
-  const [memberActionBusy, setMemberActionBusy] = useState(false);
-  const [page, setPage] = useState(0);
-  const [detailId, setDetailId] = useState<string | null>(null);
-  const PER = 20;
-
-  async function load() {
-    const { data } = await supabase.from('profiles')
-      .select('id, username, display_name, real_name, role, joined, created_at')
-      .order('created_at', { ascending: false }).limit(500);
-    setList((data ?? []) as Member[]);
-  }
-  useEffect(() => { load(); }, []);
-
-  const filtered = list.filter(m => {
-    const query = q.trim().toLowerCase();
-    if (!query) return true;
-    return (m.display_name || '').toLowerCase().includes(query)
-      || m.username.toLowerCase().includes(query)
-      || (m.real_name || '').toLowerCase().includes(query);
-  });
-  const pages = Math.max(1, Math.ceil(filtered.length / PER));
-  const shown = filtered.slice(page * PER, (page + 1) * PER);
-
-  async function setJoined(ids: string[], joined: boolean) {
-    if (!isSuper) return setMsg('暂停或恢复成员权限仅限超级管理员操作。');
-    if (memberActionBusy) return;
-    const targets = [...new Set(ids)].filter(id => {
-      const member = list.find(item => item.id === id);
-      return id !== me && member?.role === 'member' && member.joined !== joined;
-    });
-    if (!targets.length) return setMsg('没有可执行的普通成员账号。');
-    if (!(await confirmDialog(`${joined ? '恢复' : '暂停'}选中的 ${targets.length} 个普通成员账号的班级权限？`))) return;
-    setMemberActionBusy(true);
-    let success = 0;
-    const failures: string[] = [];
-    try {
-      for (const id of targets) {
-        const { error } = await supabase.rpc('set_joined', { target: id, j: joined });
-        if (error) failures.push(id + '：' + error.message);
-        else success++;
-      }
-      setSel(new Set());
-      await load();
-      setMsg(`批量${joined ? '恢复' : '暂停'}完成：成功 ${success} 个，失败 ${failures.length} 个。`
-        + (failures.length ? ' 首个失败原因：' + failures[0].slice(0, 100) : ''));
-    } catch (error) {
-      setMsg('批量操作未能完成：' + (error instanceof Error ? error.message : '请稍后重试。'));
-    } finally {
-      setMemberActionBusy(false);
-    }
-  }
-  async function requestDelete(id: string, name: string) {
-    if (id === me) return setMsg('不能删除自己的账号。');
-    if (isSuper) {
-      if (!(await confirmDialog(`超级管理员将直接永久删除成员「${name}」。此操作不可撤销，关联内容也可能按数据库规则删除。`, { danger: true, confirmText: '直接永久删除' }))) return;
-      const reason = await promptDialog('填写直接删除原因（至少 8 个字）', { placeholder: '说明删除原因及必要性' });
-      if (!reason || reason.trim().length < 8) return setMsg('未执行：请填写至少 8 个字的操作原因。');
-      const { error } = await supabase.rpc('admin_execute_sensitive_action', {
-        p_action_type: 'delete_member_account',
-        p_target_user_id: id,
-        p_requested_role: null,
-        p_reason: reason.trim(),
-      });
-      if (error) return setMsg('直接删除失败：' + error.message);
-      setMsg('超级管理员已直接删除该成员账号，操作已写入审计日志。');
-      await load();
-      return;
-    }
-    if (!canRequest) return setMsg('只有管理员可以发起永久删除申请。');
-    if (!(await confirmDialog(`提交永久删除成员「${name}」的审批申请？批准前不会删除账号。`, { danger: true }))) return;
-    const reason = await promptDialog('填写永久删除申请原因（至少 8 个字）', { placeholder: '说明删除原因及必要性' });
-    if (!reason || reason.trim().length < 8) return setMsg('未提交：请填写至少 8 个字的审批原因。');
-    const { data, error } = await supabase.rpc('admin_request_sensitive_action', {
-      p_action_type: 'delete_member_account',
-      p_target_user_id: id,
-      p_requested_role: null,
-      p_reason: reason.trim(),
-    });
-    setMsg(error ? '提交删除审批失败：' + error.message : '已提交删除申请，等待超级管理员审批（' + String(data).slice(0, 8) + '）。');
-  }
-
-  async function setRole(id: string, newRole: string, name: string) {
-    if (id === me) return setMsg('不能修改自己的角色');
-    if (newRole !== 'admin' && newRole !== 'member') return setMsg('不支持设置该角色。');
-    const nextLabel = newRole === 'admin' ? '内容管理员' : '普通成员';
-    if (isSuper) {
-      if (!(await confirmDialog(`超级管理员将直接把 ${name} 调整为「${nextLabel}」。`))) return;
-      const reason = await promptDialog('填写角色调整原因（至少 8 个字）', { placeholder: '说明调整原因与必要性' });
-      if (!reason || reason.trim().length < 8) return setMsg('未执行：请填写至少 8 个字的操作原因。');
-      const { error } = await supabase.rpc('admin_execute_sensitive_action', {
-        p_action_type: 'set_role',
-        p_target_user_id: id,
-        p_requested_role: newRole,
-        p_reason: reason.trim(),
-      });
-      if (error) return setMsg('直接调整角色失败：' + error.message);
-      setMsg('超级管理员已直接调整角色，操作已写入审计日志。');
-      await load();
-      return;
-    }
-    if (!canRequest) return setMsg('只有管理员可以发起角色调整申请。');
-    if (!(await confirmDialog(`提交将 ${name} 调整为${nextLabel} 的审批申请？批准前不会改变角色。`))) return;
-    const reason = await promptDialog('填写角色调整申请原因（至少 8 个字）', { placeholder: '说明调整原因与必要性' });
-    if (!reason || reason.trim().length < 8) return setMsg('未提交：请填写至少 8 个字的审批原因。');
-    const { data, error } = await supabase.rpc('admin_request_sensitive_action', {
-      p_action_type: 'set_role',
-      p_target_user_id: id,
-      p_requested_role: newRole,
-      p_reason: reason.trim(),
-    });
-    setMsg(error ? '提交审批失败：' + error.message : '已提交审批申请（' + String(data).slice(0, 8) + '），等待超级管理员审批。');
-  }
-
-  return (<>
-    {sel.size > 0 && (
-      <div className="row" style={{ ...card, gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
-        <span style={mut}>已选择 {sel.size} 位成员</span>
-        {isSuper && <>
-          <button className="mini" disabled={memberActionBusy} onClick={() => setJoined([...sel], true)}>{memberActionBusy ? '处理中…' : `恢复选中（${sel.size}）`}</button>
-          <button className="mini danger" disabled={memberActionBusy} onClick={() => setJoined([...sel], false)}>{memberActionBusy ? '处理中…' : `暂停选中（${sel.size}）`}</button>
-        </>}
-        <button className="mini ghost" disabled={memberActionBusy} onClick={() => setSel(new Set())}>取消选择</button>
-      </div>
-    )}
-    {shown.map(m => (
-      <div key={m.id} style={{ ...card, opacity: m.joined ? 1 : 0.72 }}>
-        <div className="row" style={{ gap: 8, alignItems: 'center' }}>
-          <input type="checkbox" checked={sel.has(m.id)}
-            onChange={e => { const n = new Set(sel); e.target.checked ? n.add(m.id) : n.delete(m.id); setSel(n); }} />
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 14, fontWeight: 700 }}>
-              <span onClick={() => setDetailId(m.id)} style={{ cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: 3 }}>{m.display_name || m.username}</span>
-              <span style={{ ...mut, marginLeft: 8 }}>{m.role === 'super_admin' ? '超级管理员' : m.role === 'admin' ? '内容管理员' : '成员'}</span>
-              {!m.joined && <span style={{ color: '#ff8080', fontSize: 12 }}> · 已禁用</span>}
-            </div>
-            <div style={mut}>@{m.username}{m.real_name ? ` · ${m.real_name}` : ''} · {timeAgo(m.created_at)}</div>
-          </div>
-        </div>
-        <div style={rowBtn}>
-          {(canRequest || isSuper) && m.role === 'member' && <button className="mini danger" disabled={m.id === me || memberActionBusy} onClick={() => void requestDelete(m.id, m.display_name || m.username)}>{isSuper ? '直接永久删除' : '申请永久删除'}</button>}
-          {isSuper && (m.joined
-            ? <button className="mini danger" disabled={m.id === me || memberActionBusy || m.role !== 'member'} onClick={() => setJoined([m.id], false)}>暂停班级权限</button>
-            : <button className="mini" disabled={memberActionBusy || m.role !== 'member'} onClick={() => setJoined([m.id], true)}>恢复班级权限</button>)}
-          {(canRequest || isSuper) && m.role !== 'super_admin' && (
-            <select value={m.role} onChange={e => setRole(m.id, e.target.value, m.display_name || m.username)}
-              style={{ width: 'auto', padding: '6px 8px', fontSize: 12.5 }} disabled={m.id === me}>
-              <option value="member">普通成员</option>
-              <option value="admin">内容管理员</option>
-            </select>
-          )}
-        </div>
-      </div>
-    ))}
-    {pages > 1 && (
-      <div className="row" style={{ gap: 8, justifyContent: 'center', marginTop: 4 }}>
-        <button className="mini ghost" disabled={page === 0} onClick={() => setPage(p => p - 1)}>上一页</button>
-        <span style={mut}>{page + 1} / {pages}</span>
-        <button className="mini ghost" disabled={page >= pages - 1} onClick={() => setPage(p => p + 1)}>下一页</button>
-      </div>
-    )}
-    {detailId && <AdminMemberModal memberId={detailId} onClose={() => setDetailId(null)} onChanged={load} isSuper={isSuper} />}
-  </>);
-}
-
-/* ---------------- 日志 ---------------- */
-/* ---------------- 系统设置（仅超管） ---------------- */

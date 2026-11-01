@@ -735,16 +735,17 @@ function Shell() {
 
       <div className={isChatPage ? "wrap chat-shell" : loc.pathname === '/friends' ? "wrap inbox-shell" : "wrap"}>
         <AnimatePresence mode="wait">
-          <motion.div key={loc.pathname} className="qz-route-transition"
-            initial={reduce ? false : { opacity: 0, y: 12, scale: 0.992 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={reduce ? { opacity: 1, y: 0, scale: 1 } : { opacity: 0, y: -7, scale: 0.996 }}
+          <motion.div key={loc.pathname}
+            className={isBloomPage ? "qz-route-transition qz-route-transition--fullscreen" : "qz-route-transition"}
+            initial={reduce ? false : isBloomPage ? { opacity: 0 } : { opacity: 0, y: 12, scale: 0.992 }}
+            animate={isBloomPage ? { opacity: 1 } : { opacity: 1, y: 0, scale: 1 }}
+            exit={reduce ? { opacity: 1 } : isBloomPage ? { opacity: 0 } : { opacity: 0, y: -7, scale: 0.996 }}
             transition={{ duration: reduce ? 0 : DUR.base + 0.06, ease: EASE }}>
             <Routes location={loc}>
               <Route path="/" element={<Navigate to="/home" replace />} />
               <Route path="/board" element={<Board />} />
               <Route path="/explore" element={<Explore />} />
-              <Route path="/particle-flower" element={<ParticleFlower />} />
+              <Route path="/particle-flower" element={<ErrorBoundary><ParticleFlower /></ErrorBoundary>} />
               <Route path="/love-wall" element={<LoveWall />} />
               <Route path="/songs" element={<SongWall />} />
               <Route path="/daily" element={<Daily searchQuery={typeof (loc.state as any)?.searchQuery === 'string' ? (loc.state as any).searchQuery : ''} />} />

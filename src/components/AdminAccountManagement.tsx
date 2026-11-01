@@ -197,13 +197,13 @@ export default function AdminAccountManagement({
       { danger: true }
     );
     if (!confirmed) return;
-    const reason = await promptDialog('填写永久删除原因（至少 8 个字）', { placeholder: '说明删除原因及必要性' });
+    const reason = await promptDialog('填写直接永久删除原因（至少 8 个字）', { placeholder: '说明删除原因及必要性' });
     if (!reason || reason.trim().length < 8) {
       setMsg('未提交：请填写至少 8 个字的审批原因。');
       return;
     }
     setBusy(account.id);
-    const { data, error } = await supabase.rpc('admin_request_sensitive_action', {
+    const { error } = await supabase.rpc('admin_execute_sensitive_action', {
       p_action_type: 'delete_member_account',
       p_target_user_id: account.id,
       p_requested_role: null,
@@ -211,10 +211,11 @@ export default function AdminAccountManagement({
     });
     setBusy(null);
     if (error) {
-      setMsg(`提交删除审批失败：${error.message}`);
+      setMsg(`超级管理员直接删除失败：${error.message}`);
       return;
     }
-    setMsg(`已提交「${label}」的永久删除审批（${String(data).slice(0, 8)}）。另一位超级管理员批准后才会真正删除账号。`);
+    setMsg(`已直接删除「${label}」的成员账号，操作已写入审计日志。`);
+    await load();
   }
 
   function toggleDetails(id: string) {
@@ -350,7 +351,7 @@ export default function AdminAccountManagement({
           style={{ ...btn, borderColor: '#ff5d6c88', color: '#ff9da7', background: '#ff5d6c12' }}
           disabled={r.id === me || busy === r.id}
           onClick={() => void deleteAccount(r)}>
-          {busy === r.id ? '处理中…' : '提交永久删除审批'}
+          {busy === r.id ? '处理中…' : '直接永久删除'}
         </button>}
         {!isSuper && <span style={muted}>账号管理操作仅超级管理员可用</span>}
       </div>

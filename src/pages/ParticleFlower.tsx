@@ -1216,7 +1216,7 @@ export default function ParticleFlower() {
   const statusChinese = mode==='demo' ? '演示模式' : !hasHand ? '等待手掌' : openness<28 ? '花苞' : openness>68 ? '绽放' : '舒展中';
 
   return (
-    <main className={'bloom-page ' + (layoutOrientation === 'landscape' ? 'orientation-landscape ' : 'orientation-portrait ') + (orientationFallback ? 'orientation-fallback ' : '') + (experienceTool === 'write' ? 'tool-write ' : '') + (experienceStarted ? 'is-active ' : '') + (focusMode ? 'is-focused' : '')} onPointerDown={handlePointerDown} onPointerMove={handlePointerMove} onPointerUp={handlePointerUp} onPointerCancel={handlePointerUp}>
+    <main className={'bloom-page theme-' + artTheme + ' ' + (layoutOrientation === 'landscape' ? 'orientation-landscape ' : 'orientation-portrait ') + (orientationFallback ? 'orientation-fallback ' : '') + (experienceTool === 'write' ? 'tool-write ' : '') + (experienceStarted ? 'is-active ' : '') + (focusMode ? 'is-focused' : '')} onPointerDown={handlePointerDown} onPointerMove={handlePointerMove} onPointerUp={handlePointerUp} onPointerCancel={handlePointerUp}>
       <video ref={videoRef} className={'bloom-camera' + (cameraLive ? ' is-live' : '')} playsInline muted />
       <button type="button" className="bloom-exit" onClick={() => void exitExperience()} aria-label="退出指尖生花体验">× <span>退出</span></button>
       {experienceStarted && <button type="button" className="bloom-focus-toggle" aria-pressed={focusMode} onClick={() => setFocusMode(value => !value)}>{focusMode ? '恢复界面' : '专注模式'}</button>}

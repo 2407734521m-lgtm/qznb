@@ -67,7 +67,9 @@ export default function Album() {
       {show && <div className="card" style={{ marginTop: 12 }}>
         <label>相册名称</label><input value={title} onChange={e => setTitle(e.target.value)} placeholder="如：2025 春游" maxLength={60} />
         <label>分类</label>
-        <select value={cat} onChange={e => setCat(e.target.value)}>{CATS.map(c => <option key={c}>{c}</option>)}</select>
+        <div className="album-categories" role="group" aria-label="相册分类" style={{ margin: '6px 0 2px' }}>
+          {CATS.map(c => <button type="button" key={c} className={cat === c ? 'on' : ''} onClick={() => setCat(c)}>{c}</button>)}
+        </div>
         {cat === '自定义' && <input value={custom} onChange={e => setCustom(e.target.value)} placeholder="输入自定义分类" maxLength={20} />}
         {err && <p className="err">{err}</p>}
         <button className="pri" onClick={create}>创建相册</button>

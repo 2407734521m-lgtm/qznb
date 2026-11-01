@@ -480,6 +480,7 @@ export default function ParticleFlower() {
     if (loading || startGuardRef.current) return;
     experienceToolRef.current = tool;
     setExperienceTool(tool);
+    autoDemoRef.current = false; setAutoDemo(false);
     setFocusMode(false);
     targetRef.current = 0.18;
     currentRef.current = 0.18;

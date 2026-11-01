@@ -1,139 +1,13 @@
 /* Motion reference polish
- * MotionSites: editorial restraint in the hero / page hierarchy (kept in Home.vibe.css).
- * React Bits: soft ambient light remains CSS-first for low-end mobile performance.
- * Uiverse: small, tactile control feedback without replacing existing controls.
- * Anime.js: not added; Framer Motion already owns route and dock sequencing.
- * Aceternity UI: clearer liquid-glass treatment for the existing mobile dock.
+ * Keep shared easing and reduced-motion support.
+ * The Dock deliberately inherits its established visual style from
+ * styles-premium.css; no second palette or active-state skin is applied here.
  */
 :root {
   --qz-motion-ease: cubic-bezier(.22, 1, .36, 1);
 }
 
-/* Keep the existing navigation geometry, but give the glass a readable light edge
-   and a slightly clearer translucent surface so content can still show through. */
-.tabbar {
-  isolation: isolate;
-  background:
-    linear-gradient(145deg,
-      rgba(39, 79, 98, .74) 0%,
-      rgba(8, 29, 46, .62) 52%,
-      rgba(7, 27, 43, .76) 100%) !important;
-  border-color: rgba(177, 231, 232, .28) !important;
-  box-shadow:
-    0 20px 54px rgba(0, 10, 22, .42),
-    0 3px 14px rgba(17, 151, 153, .10),
-    inset 0 1px 0 rgba(255, 255, 255, .22),
-    inset 0 -1px 0 rgba(255, 255, 255, .045) !important;
-  -webkit-backdrop-filter: blur(36px) saturate(1.72) contrast(1.04) !important;
-  backdrop-filter: blur(36px) saturate(1.72) contrast(1.04) !important;
-}
-
-.tabbar::before {
-  content: "";
-  position: absolute;
-  z-index: 2;
-  top: 1px;
-  left: 14px;
-  right: 14px;
-  height: 1px;
-  border-radius: 999px;
-  pointer-events: none;
-  background: linear-gradient(90deg,
-    transparent,
-    rgba(218, 255, 252, .42) 18%,
-    rgba(255, 255, 255, .72) 50%,
-    rgba(218, 255, 252, .42) 82%,
-    transparent);
-  opacity: .82;
-}
-
-.tabbar .dock-scroll {
-  position: relative;
-  z-index: 1;
-}
-
-.tabbar .dock-item > a {
-  position: relative;
-  isolation: isolate;
-  min-height: 42px;
-  border: 1px solid transparent;
-  transition:
-    transform .24s var(--qz-motion-ease),
-    color .20s ease,
-    background .24s ease,
-    border-color .24s ease,
-    box-shadow .24s ease;
-}
-
-.tabbar .dock-item > a::before {
-  content: "";
-  position: absolute;
-  z-index: -1;
-  inset: 0;
-  border-radius: inherit;
-  background: linear-gradient(125deg, #66e5d2 0%, #86c9f4 100%);
-  box-shadow:
-    0 6px 20px rgba(54, 197, 184, .24),
-    inset 0 1px 0 rgba(255, 255, 255, .58);
-  opacity: 0;
-  transform: scale(.94);
-  transition: opacity .2s ease, transform .28s var(--qz-motion-ease);
-}
-
-.tabbar .dock-item > a.on,
-.tabbar .dock-item > a[aria-current="page"] {
-  color: #06212b !important;
-  background: transparent !important;
-  border-color: transparent !important;
-  box-shadow: none !important;
-  font-weight: 750;
-}
-
-.tabbar .dock-item > a.on::before,
-.tabbar .dock-item > a[aria-current="page"]::before {
-  opacity: 1;
-  transform: scale(1);
-}
-
-.tabbar .dock-unread-dot {
-  box-shadow:
-    0 0 0 3px rgba(8, 27, 43, .82),
-    0 0 13px rgba(255, 105, 130, .62);
-}
-
-/* Motion is restricted to hover-capable pointers; touch users get a short press cue. */
-@media (hover: hover) and (pointer: fine) {
-  .tabbar .dock-item > a:not(.on):hover {
-    color: #f1ffff;
-    background: rgba(235, 255, 255, .09);
-    border-color: rgba(190, 238, 236, .13);
-    transform: translateY(-1px);
-  }
-
-  .tabbar .dock-toggle:hover {
-    border-color: rgba(180, 238, 234, .32);
-    background: rgba(255, 255, 255, .12);
-  }
-}
-
-.tabbar .dock-item > a:active,
-.tabbar .dock-toggle:active {
-  transform: scale(.965);
-}
-
-.tabbar .dock-toggle {
-  border: 1px solid rgba(190, 231, 236, .18);
-  border-radius: 999px;
-  background: rgba(255, 255, 255, .075);
-  color: rgba(235, 250, 255, .94);
-  transition:
-    transform .2s var(--qz-motion-ease),
-    background .2s ease,
-    border-color .2s ease;
-}
-
-/* Use the same easing vocabulary across existing cards and controls;
-   component durations and their current layouts remain untouched. */
+/* Consistent timing for existing controls without changing their appearance. */
 :where(
   .topnav a,
   .topnav button,
@@ -151,15 +25,9 @@
   transition-timing-function: var(--qz-motion-ease);
 }
 
-@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  .tabbar {
-    background: rgba(7, 25, 40, .96) !important;
-  }
-}
-
+/* Keep the Dock's existing interactions accessible. */
 @media (prefers-reduced-motion: reduce) {
   .tabbar .dock-item > a,
-  .tabbar .dock-item > a::before,
   .tabbar .dock-toggle {
     transition: none !important;
   }

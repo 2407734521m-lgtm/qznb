@@ -57,4 +57,210 @@ $function$;
 revoke all on function public.admin_sensitive_action_requests() from public, anon;
 grant execute on function public.admin_sensitive_action_requests() to authenticated;
 
+-- Harden existing request/decision RPCs against NULL role values. A missing
+-- profile must never fall through a PL/pgSQL IF check as an authorized caller.
+CREATE OR REPLACE FUNCTION public.admin_request_sensitive_action(p_action_type text, p_target_user_id uuid, p_requested_role text, p_reason text)
+ RETURNS uuid
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO ''
+AS $function$
+declare
+  v_actor uuid := auth.uid();
+  v_target_role text;
+  v_request_id uuid;
+begin
+  if v_actor is null or coalesce(public.my_role(), '') <> 'super_admin' then
+    raise exception 'super administrator required' using errcode = '42501';
+  end if;
+
+  if p_action_type is null
+     or p_action_type not in ('delete_member_account', 'set_role')
+     or p_target_user_id is null
+     or p_target_user_id = v_actor
+     or p_reason is null
+     or pg_catalog.char_length(pg_catalog.btrim(p_reason)) < 8
+     or pg_catalog.char_length(pg_catalog.btrim(p_reason)) > 300 then
+    raise exception 'invalid approval request';
+  end if;
+
+  update admin_private.sensitive_action_requests
+     set status = 'expired'
+   where status = 'pending' and expires_at <= pg_catalog.now();
+
+  select p.role into v_target_role
+    from public.profiles p
+   where p.id = p_target_user_id
+   for update;
+
+  if not found then
+    raise exception 'target account not found';
+  end if;
+
+  if p_action_type = 'delete_member_account' then
+    if v_target_role <> 'member' or p_requested_role is not null then
+      raise exception 'only regular member accounts can be deleted';
+    end if;
+  elsif p_requested_role is null
+        or p_requested_role not in ('member', 'admin')
+        or v_target_role = 'super_admin'
+        or p_requested_role = v_target_role then
+    raise exception 'invalid role change target';
+  end if;
+
+  insert into admin_private.sensitive_action_requests (
+    action_type, target_user_id, requested_role, requester_id, reason
+  ) values (
+    p_action_type, p_target_user_id, p_requested_role, v_actor, pg_catalog.btrim(p_reason)
+  ) returning id into v_request_id;
+
+  insert into public.admin_audit_logs(actor, action, target, detail)
+  values (
+    v_actor, 'sensitive_action_requested', p_target_user_id,
+    pg_catalog.jsonb_build_object('request_id', v_request_id, 'action_type', p_action_type)
+  );
+
+  return v_request_id;
+end;
+$function$
+;
+
+revoke all on function public.admin_request_sensitive_action(text, uuid, text, text) from public, anon;
+grant execute on function public.admin_request_sensitive_action(text, uuid, text, text) to authenticated;
+
+CREATE OR REPLACE FUNCTION public.admin_decide_sensitive_action(p_request_id uuid, p_approve boolean, p_note text DEFAULT NULL::text)
+ RETURNS void
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO ''
+AS $function$
+declare
+  v_actor uuid := auth.uid();
+  v_request admin_private.sensitive_action_requests%rowtype;
+  v_target_role text;
+  v_target_username text;
+begin
+  if v_actor is null or coalesce(public.my_role(), '') <> 'super_admin' then
+    raise exception 'super administrator required' using errcode = '42501';
+  end if;
+
+  select * into v_request
+    from admin_private.sensitive_action_requests
+   where id = p_request_id
+   for update;
+
+  if not found then
+    raise exception 'approval request not found';
+  end if;
+  if p_approve is null then
+    raise exception 'approval decision is required';
+  end if;
+  if v_request.status <> 'pending' then
+    raise exception 'approval request is no longer pending';
+  end if;
+  if v_request.requester_id = v_actor then
+    raise exception 'requester cannot approve their own request';
+  end if;
+  if v_request.expires_at <= pg_catalog.now() then
+    update admin_private.sensitive_action_requests
+       set status = 'expired'
+     where id = p_request_id;
+    raise exception 'approval request expired';
+  end if;
+  if p_note is not null and pg_catalog.char_length(pg_catalog.btrim(p_note)) > 300 then
+    raise exception 'decision note too long';
+  end if;
+
+  select p.role, p.username::text
+    into v_target_role, v_target_username
+    from public.profiles p
+   where p.id = v_request.target_user_id
+   for update;
+
+  if not found then
+    raise exception 'target account no longer exists';
+  end if;
+
+  if p_approve then
+    if v_request.action_type = 'delete_member_account' then
+      if v_target_role <> 'member' then
+        raise exception 'target is no longer a regular member';
+      end if;
+
+      insert into public.admin_audit_logs(actor, action, target, detail)
+      values (
+        v_actor, 'delete_member_account_approved', v_request.target_user_id,
+        pg_catalog.jsonb_build_object(
+          'request_id', v_request.id,
+          'requested_by', v_request.requester_id,
+          'approved_by', v_actor,
+          'username', v_target_username,
+          'reason', v_request.reason
+        )
+      );
+
+      delete from auth.users where id = v_request.target_user_id;
+      if not found then
+        raise exception 'auth account not found';
+      end if;
+    elsif v_request.action_type = 'set_role' then
+      if v_target_role = 'super_admin'
+         or v_request.requested_role not in ('member', 'admin')
+         or v_request.requested_role = v_target_role then
+        raise exception 'role change is no longer valid';
+      end if;
+
+      update public.profiles
+         set role = v_request.requested_role
+       where id = v_request.target_user_id;
+
+      insert into public.admin_audit_logs(actor, action, target, detail)
+      values (
+        v_actor, 'set_role_approved', v_request.target_user_id,
+        pg_catalog.jsonb_build_object(
+          'request_id', v_request.id,
+          'requested_by', v_request.requester_id,
+          'approved_by', v_actor,
+          'from', v_target_role,
+          'to', v_request.requested_role,
+          'reason', v_request.reason
+        )
+      );
+    else
+      raise exception 'unsupported action type';
+    end if;
+
+    update admin_private.sensitive_action_requests
+       set status = 'approved',
+           decided_by = v_actor,
+           decided_at = pg_catalog.now(),
+           decision_note = nullif(pg_catalog.btrim(p_note), '')
+     where id = p_request_id;
+  else
+    update admin_private.sensitive_action_requests
+       set status = 'rejected',
+           decided_by = v_actor,
+           decided_at = pg_catalog.now(),
+           decision_note = nullif(pg_catalog.btrim(p_note), '')
+     where id = p_request_id;
+
+    insert into public.admin_audit_logs(actor, action, target, detail)
+    values (
+      v_actor, 'sensitive_action_rejected', v_request.target_user_id,
+      pg_catalog.jsonb_build_object(
+        'request_id', v_request.id,
+        'requested_by', v_request.requester_id,
+        'rejected_by', v_actor,
+        'action_type', v_request.action_type,
+        'note', nullif(pg_catalog.btrim(p_note), '')
+      )
+    );
+  end if;
+end;
+$function$
+;
+
+revoke all on function public.admin_decide_sensitive_action(uuid, boolean, text) from public, anon;
+grant execute on function public.admin_decide_sensitive_action(uuid, boolean, text) to authenticated;
+
 commit;

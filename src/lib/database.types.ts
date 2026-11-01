@@ -1434,6 +1434,39 @@ export type Database = {
           },
         ]
       }
+      user_blocks: {
+        Row: {
+          blocker_id: string
+          blocked_id: string
+          created_at: string
+        }
+        Insert: {
+          blocker_id: string
+          blocked_id: string
+          created_at?: string
+        }
+        Update: {
+          blocker_id?: string
+          blocked_id?: string
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_blocks_blocker_id_fkey"
+            columns: ["blocker_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_blocks_blocked_id_fkey"
+            columns: ["blocked_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       wishes: {
         Row: {
           id: number
@@ -1683,17 +1716,48 @@ export type Database = {
         Args: { target: string }
         Returns: unknown
       }
+      block_member: {
+        Args: { target: string }
+        Returns: undefined
+      }
       friend_requests: {
         Args: Record<PropertyKey, never>
         Returns: unknown
+      }
+      my_blocked_members: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          id: string
+          username: string
+          display_name: string | null
+          avatar_path: string | null
+          blocked_at: string
+        }[]
       }
       game_badges: {
         Args: Record<PropertyKey, never>
         Returns: unknown
       }
+      relationship_state: {
+        Args: { target: string }
+        Returns: {
+          friend_status: string | null
+          friend_requester: string | null
+          blocked_by_me: boolean
+          blocked_me: boolean
+        }[]
+      }
       get_or_create_conversation: {
         Args: { other: string }
         Returns: unknown
+      }
+      remove_friend: {
+        Args: { target: string }
+        Returns: undefined
+      }
+      unblock_member: {
+        Args: { target: string }
+        Returns: undefined
       }
       my_conversations: {
         Args: Record<PropertyKey, never>

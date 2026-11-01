@@ -8,12 +8,20 @@ import AvatarCropper from '../components/AvatarCropper';
 import Photo from '../components/Photo';
 import { setShot, takeShot, shotFrom, flyTo } from '../lib/transition';
 import { badgeText } from '../data/games';
+import { confirmDialog } from '../lib/dialog';
 import { parseSocial } from '../data/social';
 import type { Dir } from '../lib/transition';
 import './Member.polish.css';
 import type { MemberListItem } from '../types/profile';
 
 const REV: Record<Dir, Dir> = { left: 'right', right: 'left', down: 'down' };
+
+type RelationshipState = {
+  friend_status: string | null;
+  friend_requester: string | null;
+  blocked_by_me: boolean;
+  blocked_me: boolean;
+};
 
 export default function Member() {
   const { id = '' } = useParams(); const nav = useNavigate(); const reduce = useReducedMotion();
@@ -24,7 +32,7 @@ export default function Member() {
   const [enterDir, setEnterDir] = useState<Dir>('down');
   const [upMsg, setUpMsg] = useState('');
   const [cropSrc, setCropSrc] = useState<string | null>(null);
-  const [fstat, setFstat] = useState<{ requester: string; status: string } | null>(null);
+  const [fstat, setFstat] = useState<RelationshipState | null>(null);
   const [fbusy, setFbusy] = useState(false);
   const [gbadge, setGbadge] = useState<{ game_name: string; game_uid: string | null; rank: string } | null>(null);
   const [gx, setGx] = useState<'game' | 'social' | null>(null);
@@ -74,13 +82,18 @@ export default function Member() {
     nav(-1);
   }
 
-  // 好友状态
+  // 好友与拉黑状态由受限 RPC 返回，不直接读取关系表。
   async function loadFriend() {
     if (!uid || uid === id) return;
-    const { data } = await supabase.from('friendships').select('requester,status')
-      .or(`and(requester.eq.${uid},addressee.eq.${id}),and(requester.eq.${id},addressee.eq.${uid})`)
-      .maybeSingle();
-    setFstat((data as any) ?? null);
+    const { data, error } = await supabase.rpc('relationship_state', { target: id });
+    if (error) {
+      setFstat(null);
+      setUpMsg('好友状态暂时无法读取，请稍后刷新。');
+      return;
+    }
+    setFstat(((data ?? []) as RelationshipState[])[0] ?? {
+      friend_status: null, friend_requester: null, blocked_by_me: false, blocked_me: false,
+    });
   }
   useEffect(() => { loadFriend(); }, [id, uid]);
   useEffect(() => {
@@ -108,6 +121,47 @@ export default function Member() {
     setFbusy(false);
     if (error) return setUpMsg('打开聊天失败：' + error.message);
     nav(`/chat/${data}`, { state: { name } });
+  }
+
+  async function relationshipAction(action: 'remove_friend' | 'block_member' | 'unblock_member') {
+    if (fbusy) return;
+    const title = action === 'remove_friend'
+      ? `确定解除与「${name}」的好友关系吗？历史消息不会删除，但双方将暂时无法继续进入这段私聊；重新成为好友后可恢复访问。`
+      : action === 'block_member'
+        ? `确定拉黑「${name}」吗？双方将无法互相申请好友，也无法查看或发送彼此的私聊。取消拉黑不会自动恢复好友关系。`
+        : `确定解除对「${name}」的拉黑吗？解除后不会自动恢复好友关系。`;
+    if (!(await confirmDialog(title, { danger: true }))) return;
+
+    setFbusy(true);
+    setUpMsg('');
+    try {
+      let error: { message: string } | null = null;
+      if (action === 'remove_friend') {
+        const result = await supabase.rpc('remove_friend', { target: id });
+        error = result.error;
+      } else if (action === 'block_member') {
+        const result = await supabase.rpc('block_member', { target: id });
+        error = result.error;
+      } else {
+        const result = await supabase.rpc('unblock_member', { target: id });
+        error = result.error;
+      }
+      if (error) {
+        setUpMsg('操作失败：' + error.message);
+        return;
+      }
+      await loadFriend();
+      setUpMsg(action === 'remove_friend'
+        ? '已解除好友关系。'
+        : action === 'block_member'
+          ? '已拉黑该成员。双方私聊访问已停止。'
+          : '已解除拉黑。需要重新发送好友申请才能恢复好友关系。');
+    } catch (error) {
+      console.error('member relationship action failed', error);
+      setUpMsg('操作失败，请检查网络后重试。');
+    } finally {
+      setFbusy(false);
+    }
   }
   function pickPhoto(f?: File) {
     if (!f || !isMe) return;
@@ -214,12 +268,35 @@ export default function Member() {
           </label>}
           {isMe && upMsg && <p className="mut" style={{ fontSize: 12, margin: '6px 0 0' }}>{upMsg}</p>}
           {!isMe && uid && (
-            !fstat ? <button className="ghost upbtn" disabled={fbusy} onClick={addFriend}>＋ 加好友</button>
-            : fstat.status === 'accepted'
-              ? <button className="pri upbtn" style={{ width: 'auto', padding: '8px 18px' }} disabled={fbusy} onClick={goChat}>去聊天</button>
-              : fstat.status === 'pending' && fstat.requester === uid
-                ? <button className="ghost upbtn" disabled>已申请，等待通过</button>
-                : <button className="pri upbtn" style={{ width: 'auto', padding: '8px 18px' }} onClick={() => nav('/friends')}>对方想加你，去看看</button>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, marginTop: 10, alignItems: 'center' }}>
+              {!fstat ? (
+                <span className="mut" style={{ fontSize: 12 }}>正在读取好友状态…</span>
+              ) : fstat.blocked_by_me ? (
+                <button className="ghost upbtn" style={{ width: 'auto', padding: '8px 14px' }}
+                  disabled={fbusy} onClick={() => void relationshipAction('unblock_member')}>解除拉黑</button>
+              ) : fstat.blocked_me ? (
+                <span className="mut" style={{ fontSize: 12 }}>对方已限制联系，无法互相申请好友或私聊。</span>
+              ) : (
+                <>
+                  {fstat.friend_status === 'accepted' ? (
+                    <>
+                      <button className="pri upbtn" style={{ width: 'auto', padding: '8px 18px' }} disabled={fbusy} onClick={goChat}>去聊天</button>
+                      <button className="ghost upbtn" style={{ width: 'auto', padding: '8px 14px' }}
+                        disabled={fbusy} onClick={() => void relationshipAction('remove_friend')}>解除好友</button>
+                    </>
+                  ) : fstat.friend_status === 'pending' && fstat.friend_requester === uid ? (
+                    <button className="ghost upbtn" style={{ width: 'auto', padding: '8px 14px' }} disabled>已申请，等待通过</button>
+                  ) : fstat.friend_status === 'pending' ? (
+                    <button className="pri upbtn" style={{ width: 'auto', padding: '8px 14px' }} onClick={() => nav('/friends')}>对方想加你，去看看</button>
+                  ) : (
+                    <button className="ghost upbtn" style={{ width: 'auto', padding: '8px 14px' }}
+                      disabled={fbusy} onClick={addFriend}>＋ 加好友</button>
+                  )}
+                  <button className="ghost upbtn" style={{ width: 'auto', padding: '8px 14px', borderColor: 'rgba(235,105,120,.4)', color: '#ffb4bd' }}
+                    disabled={fbusy} onClick={() => void relationshipAction('block_member')}>拉黑</button>
+                </>
+              )}
+            </div>
           )}
           {!isMe && upMsg && <p className="mut" style={{ fontSize: 12, margin: '6px 0 0' }}>{upMsg}</p>}
         </div>

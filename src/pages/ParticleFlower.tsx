@@ -1176,7 +1176,7 @@ export default function ParticleFlower() {
       <video ref={videoRef} className={'bloom-camera' + (cameraLive ? ' is-live' : '')} playsInline muted />
       <button type="button" className="bloom-exit" onClick={() => void exitExperience()} aria-label="退出指尖生花体验">× <span>退出</span></button>
       {experienceStarted && <button type="button" className="bloom-focus-toggle" aria-pressed={focusMode} onClick={() => setFocusMode(value => !value)}>{focusMode ? '恢复界面' : '专注模式'}</button>}
-      {experienceStarted && <aside className="bloom-telemetry" aria-live="off"><span>{actualFps} FPS</span><i /> <span>{particleCount.toLocaleString()} 粒子</span><i /> <span>{hasHand ? '手势已连接' : mode === 'demo' ? '触屏演示' : '等待手势'}</span></aside>}
+      {experienceStarted && <aside className="bloom-telemetry" aria-live="off"><span>{actualFps} FPS</span><i /> <span>{particleCount.toLocaleString()} 粒子</span><i /> <span>{twoHandBoostRef.current > 0.08 ? '双手联动' : hasHand ? '手势已连接' : autoDemo ? '自动演示' : mode === 'demo' ? '触屏演示' : '等待手势'}</span></aside>}
       {experienceStarted && experienceTool === 'write' && (
         <div className="bloom-ink-tools">
           <div className={'bloom-ink-status' + (isWriting ? ' drawing' : '')}>
@@ -1305,6 +1305,12 @@ export default function ParticleFlower() {
               <button type="button" key={item.value} className={qualityPreset === item.value ? 'active' : ''} onClick={() => applyQualityPreset(item.value)}>{item.label}</button>
             ))}
           </div>
+          <div className="bloom-theme-picker" role="group" aria-label="艺术主题">
+            <span>艺术主题</span>
+            {([{ value: 'sakura', label: '樱花', tone: 'pink' }, { value: 'gold', label: '金色花园', tone: 'gold' }, { value: 'starsea', label: '星海', tone: 'blue' }, { value: 'glass', label: '玻璃花', tone: 'glass' }] as const).map(item => (
+              <button type="button" key={item.value} className={'theme-'+item.tone+(artTheme===item.value?' active':'')} onClick={() => { artThemeRef.current=item.value; setArtTheme(item.value); }}>{item.label}</button>
+            ))}
+          </div>
           <div className="bloom-settings-grid">
             <label className="bloom-setting">
               <span><b>粒子密度</b><output>{particleCount.toLocaleString()}</output></span>
@@ -1344,6 +1350,7 @@ export default function ParticleFlower() {
               <button type="button" className={layoutOrientation==='landscape'?'active':''} onClick={()=>void changeOrientation('landscape')}>横屏</button>
             </div>
           </div>
+          <label className="bloom-signature-field"><span>作品签名</span><input maxLength={24} value={signature} onChange={event=>setSignature(event.target.value)} placeholder="为作品留下名字或一句话" /></label>
           <div className="bloom-start-actions">
             <button className="bloom-primary bloom-immersive-start" onClick={()=>void startCamera('flower')} disabled={loading}>
               {loading?'正在准备沉浸空间…':'沉浸式开始'}<span>进入全屏互动</span>
@@ -1355,7 +1362,9 @@ export default function ParticleFlower() {
             <span><b>单独进入空中书写</b><small>独立书写空间 · 不与花苞动画联动</small></span>
             <span className="bloom-air-ink-arrow">↗</span>
           </button>
-          <div className="bloom-privacy">摄像头与手势数据只在本地浏览器处理，不会上传</div>
+          <button type="button" className="bloom-auto-demo" onClick={() => { setExperienceMode('demo'); autoDemoRef.current=true; setAutoDemo(true); setStatus('自动演示'); }}>✦ 自动演示完整花期</button>
+          <div className="bloom-privacy">摄像头与手势数据只在本地浏览器处理，不会上传；作品收藏仅保存在本机</div>
+          {savedArtworks.length>0 && <section className="bloom-artwork-library"><div className="bloom-artwork-library-title">本机作品集 <small>{savedArtworks.length}/8</small></div><div className="bloom-artwork-grid">{savedArtworks.map(item=><a href={item.dataUrl} download={item.name+'.png'} key={item.id}><img src={item.dataUrl} alt={item.name}/><span>{item.name}</span></a>)}</div></section>}
           {error&&<div className="bloom-error" role="alert">{error}</div>}
         </section>
       )}
@@ -1365,13 +1374,20 @@ export default function ParticleFlower() {
         <div><b>02</b><span>张掌·绽放</span></div><i />
         <div><b>03</b><span>指尖·牵引</span></div>
       </footer>}
+      {experienceStarted && experienceTool === 'flower' && <div className="bloom-art-actions">
+        <button type="button" onClick={saveArtworkToDevice}>保存图片</button>
+        <button type="button" onClick={collectArtwork}>收藏作品</button>
+        <button type="button" onClick={shareArtwork}>分享</button>
+        <button type="button" className={isRecording?'recording':''} onClick={toggleRecording}>{isRecording?'结束录制':'录制 15 秒'}</button>
+        <small>{mediaMessage}</small>
+      </div>}
       {experienceStarted && experienceTool === 'flower' && <aside className="bloom-hud bloom-bloom-progress">
         <div className="bloom-hud-label">BLOOM PROGRESS <span>/ 花苞绽放</span></div>
-        <div className="bloom-hud-state">{statusChinese}</div>
+        <div className="bloom-hud-state">{bloomPhase}</div>
         <div className="bloom-hud-en">{statusEnglish}</div>
         <div className="bloom-hud-number">{openness}<small>%</small></div>
         <div className="bloom-progress"><span style={{width:openness+'%'}} /></div>
-        <div className="bloom-hud-meta">{particleCount.toLocaleString()} LIGHT PARTICLES</div>
+        <div className="bloom-hud-meta">{particleCount.toLocaleString()} LIGHT PARTICLES · {THEME_NAMES[artTheme]}</div>
       </aside>}
       {loading && (
         <div className="bloom-loading" role="status" aria-live="polite">

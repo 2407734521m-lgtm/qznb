@@ -154,15 +154,11 @@ export default function ParticleFlower() {
   const modeRef = useRef<Mode>('demo');
   const [mode, setMode] = useState<Mode>('demo');
   const [layoutOrientation, setLayoutOrientation] = useState<LayoutOrientation>(() => window.matchMedia('(orientation: landscape)').matches ? 'landscape' : 'portrait');
-  const [fpsLimit, setFpsLimit] = useState<FpsLimit>(0);
-  const [actualFps, setActualFps] = useState(0);
-  const [openness, setOpenness] = useState(18);
   const [status, setStatus] = useState('等待手掌');
   const [cameraLive, setCameraLive] = useState(false);
   const [experienceStarted, setExperienceStarted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [particleCount, setParticleCount] = useState(3000);
   const [hasHand, setHasHand] = useState(false);
   const [orientationMessage, setOrientationMessage] = useState('');
   const ownedFullscreenRef = useRef(false);
@@ -172,7 +168,6 @@ export default function ParticleFlower() {
   const hudStateRef = useRef<HTMLDivElement>(null);
   const hudEnglishRef = useRef<HTMLDivElement>(null);
   const hudProgressRef = useRef<HTMLSpanElement>(null);
-  const fpsReadoutRef = useRef<HTMLElement>(null);
   const activeCdnRef = useRef(MODEL_CDNS[0]);
 
   useEffect(() => {
@@ -354,8 +349,6 @@ export default function ParticleFlower() {
     const lowEnd = cores <= 4 || memory <= 4;
     const count = mobile ? (lowEnd ? 1400 : 1900) : (lowEnd ? 2200 : 3000);
     particlesRef.current = makeParticles(count);
-    setParticleCount(count);
-    const sprite = drawGlowSprite();
     const resize = () => {
       width = window.innerWidth; height = window.innerHeight;
       dpr = Math.min(window.devicePixelRatio || 1, mobile ? (lowEnd ? 1 : 1.25) : 1.6);
@@ -366,12 +359,8 @@ export default function ParticleFlower() {
     resize();
     const render = (time: number) => {
       rafRef.current = requestAnimationFrame(render);
-      const targetFps = fpsLimitRef.current;
-      const frameInterval = targetFps > 0 ? 1000 / targetFps : 0;
-      if (frameInterval && time - lastRenderedTime < frameInterval - 0.5) return;
       const elapsed = lastTime ? (time-lastTime)/1000 : 1/60;
       const dt = Math.min(0.05, Math.max(0.001, elapsed));
-      lastRenderedTime = time;
       lastTime = time;
       const spring = 18, damping = 8.5;
       const accel = (targetRef.current-currentRef.current)*spring - velocityRef.current*damping;
@@ -421,10 +410,8 @@ export default function ParticleFlower() {
         const b=Math.round(normalized<.5?lerp(214,196,midMix):lerp(196,154,edgeMix));
         const alpha=0.42+cream*0.14+pink*0.08;
         const size=p.size*(0.62+opennessNow*0.34);
-        ctx.globalAlpha=alpha*0.62;
-        ctx.drawImage(sprite,x-size*2,y-size*2,size*4,size*4);
         ctx.globalAlpha=alpha;
-        ctx.fillStyle='rgba('+r+','+g+','+b+',.82)';
+        ctx.fillStyle='rgb('+r+','+g+','+b+')';
         ctx.beginPath(); ctx.arc(x,y,Math.max(.45,size*.72),0,Math.PI*2); ctx.fill();
       }
       ctx.globalAlpha=1; ctx.globalCompositeOperation='source-over';
@@ -474,8 +461,6 @@ export default function ParticleFlower() {
       fpsFrames++;
       if (!fpsWindowStart) fpsWindowStart = time;
       if (time - fpsWindowStart >= 1000) {
-        const fps = Math.round(fpsFrames * 1000 / (time - fpsWindowStart));
-        if (fpsReadoutRef.current) fpsReadoutRef.current.textContent=String(fps);
         fpsFrames = 0; fpsWindowStart = time;
       }
       if (time-lastHudRef.current>50) {

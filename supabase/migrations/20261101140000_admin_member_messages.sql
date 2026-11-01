@@ -38,7 +38,7 @@ begin
   if p_recipient_ids is null
      or pg_catalog.cardinality(p_recipient_ids) < 1
      or pg_catalog.cardinality(p_recipient_ids) > 100
-     or array_position(p_recipient_ids, null) is not null then
+     or pg_catalog.array_position(p_recipient_ids, null::uuid) is not null then
     raise exception 'recipient count must be between 1 and 100' using errcode = '22023';
   end if;
 
@@ -58,7 +58,7 @@ begin
       and l.action = 'admin_member_message_sent'
       and l.created_at >= pg_catalog.now() - interval '1 hour'
   ) >= 20 then
-    raise exception 'member message rate limit reached' using errcode = '42900';
+    raise exception 'member message rate limit reached' using errcode = 'P0001';
   end if;
 
   if (

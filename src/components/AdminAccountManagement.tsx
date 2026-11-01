@@ -336,18 +336,6 @@ export default function AdminAccountManagement({
         </button>}
         {!isSuper && <span style={muted}>账号管理操作仅超级管理员可用</span>}
       </div>
-          disabled={!isSuper || r.id === me || busy === r.id}
-          onClick={() => void toggleAccount(r)}>
-          {busy === r.id ? '处理中…' : r.joined ? '禁用账号' : '恢复账号'}
-        </button>
-        {isSuper && r.role === 'member' && <button
-          style={{ ...btn, borderColor: '#ff5d6c88', color: '#ff9da7', background: '#ff5d6c12' }}
-          disabled={r.id === me || busy === r.id}
-          onClick={() => void deleteAccount(r)}>
-          {busy === r.id ? '处理中…' : '永久删除'}
-        </button>}
-        {!isSuper && <span style={muted}>账号管理操作仅超级管理员可用</span>}
-      </div>
     </article>)}
     {detailId && <AdminMemberModal memberId={detailId} onClose={() => setDetailId(null)} onChanged={load} isSuper={isSuper} />}
     {pageCount > 1 && <div style={{ ...panel, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 12 }}>
@@ -357,7 +345,7 @@ export default function AdminAccountManagement({
     </div>}
     <div style={{ ...panel, ...muted }}>
       <strong style={{ color: '#dce5ff' }}>管理边界说明</strong>
-      <div>本版的““暂停班级权限”沿用现有 set_joined 权限函数，只限制班级成员权限，不会阻止 Supabase 登录，也不等同于远程撤销会话。</div>
+      <div>本版的“暂停班级权限”沿用现有 set_joined 权限函数，只限制班级成员权限，不会阻止 Supabase 登录，也不等同于远程撤销会话。</div>
       <div>禁言需要单独的发言限制和数据库策略；本版不会把禁用账号伪装成禁言，也不会假装已经采集到真实 IP 定位。</div>
     </div>
   </section>;

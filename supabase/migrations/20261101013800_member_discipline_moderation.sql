@@ -368,6 +368,16 @@ create policy md_love_wall_comments_update_guard
   using (public.member_moderation_allows('community'))
   with check (public.member_moderation_allows('community'));
 
+create policy md_albums_update_guard
+  on public.albums as restrictive for update to authenticated
+  using (public.member_moderation_allows('community'))
+  with check (public.member_moderation_allows('community'));
+
+create policy md_wishes_update_guard
+  on public.wishes as restrictive for update to authenticated
+  using (public.member_moderation_allows('community'))
+  with check (public.member_moderation_allows('community'));
+
 create policy md_messages_insert_guard
   on public.messages as restrictive for insert to authenticated
   with check (public.member_moderation_allows('chat'));

@@ -238,7 +238,10 @@ export default function ParticleFlower() {
       const cx = width*0.5, cy = height*0.49;
       const scale = Math.min(width,height) * (mobile ? 0.79 : 0.83);
       const finger = modeRef.current === 'gesture' ? fingerRef.current : pointerRef.current;
-      ctx.clearRect(0,0,width,height);
+      // 轻量残影衰减：保留上一帧的光迹，形成指尖牵引的流动感。
+      ctx.globalCompositeOperation='destination-out';
+      ctx.fillStyle='rgba(0,0,0,.17)'; ctx.fillRect(0,0,width,height);
+      ctx.globalCompositeOperation='source-over';
       // 柔和的环境光晕。
       const halo = ctx.createRadialGradient(cx,cy,scale*0.04,cx,cy,scale*0.78);
       halo.addColorStop(0,'rgba(226,105,161,'+(0.07+opennessNow*0.08)+')');

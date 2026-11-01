@@ -355,10 +355,25 @@ function Members({ me, isSuper, canRequest, setMsg, extQ }: { me: string; isSupe
     }
   }
   async function requestDelete(id: string, name: string) {
+    if (id === me) return setMsg('不能删除自己的账号。');
+    if (isSuper) {
+      if (!(await confirmDialog(`超级管理员将直接永久删除成员「${name}」。此操作不可撤销，关联内容也可能按数据库规则删除。`, { danger: true, confirmText: '直接永久删除' }))) return;
+      const reason = await promptDialog('填写直接删除原因（至少 8 个字）', { placeholder: '说明删除原因及必要性' });
+      if (!reason || reason.trim().length < 8) return setMsg('未执行：请填写至少 8 个字的操作原因。');
+      const { error } = await supabase.rpc('admin_execute_sensitive_action', {
+        p_action_type: 'delete_member_account',
+        p_target_user_id: id,
+        p_requested_role: null,
+        p_reason: reason.trim(),
+      });
+      if (error) return setMsg('直接删除失败：' + error.message);
+      setMsg('超级管理员已直接删除该成员账号，操作已写入审计日志。');
+      await load();
+      return;
+    }
     if (!canRequest) return setMsg('只有管理员可以发起永久删除申请。');
-    if (id === me) return setMsg('不能申请删除自己的账号。');
     if (!(await confirmDialog(`提交永久删除成员「${name}」的审批申请？批准前不会删除账号。`, { danger: true }))) return;
-    const reason = await promptDialog('填写永久删除原因（至少 8 个字）', { placeholder: '说明删除原因及必要性' });
+    const reason = await promptDialog('填写永久删除申请原因（至少 8 个字）', { placeholder: '说明删除原因及必要性' });
     if (!reason || reason.trim().length < 8) return setMsg('未提交：请填写至少 8 个字的审批原因。');
     const { data, error } = await supabase.rpc('admin_request_sensitive_action', {
       p_action_type: 'delete_member_account',
@@ -371,9 +386,26 @@ function Members({ me, isSuper, canRequest, setMsg, extQ }: { me: string; isSupe
 
   async function setRole(id: string, newRole: string, name: string) {
     if (id === me) return setMsg('不能修改自己的角色');
-    if (newRole !== 'admin' && newRole !== 'member') return setMsg('该角色变更暂不支持直接申请');
-    if (!(await confirmDialog(`提交将 ${name} 调整为${newRole === 'admin' ? '内容管理员' : '普通成员'} 的审批申请？批准前不会改变角色。`))) return;
-    const reason = await promptDialog('填写角色调整原因（至少 8 个字）', { placeholder: '说明调整原因与必要性' });
+    if (newRole !== 'admin' && newRole !== 'member') return setMsg('不支持设置该角色。');
+    const nextLabel = newRole === 'admin' ? '内容管理员' : '普通成员';
+    if (isSuper) {
+      if (!(await confirmDialog(`超级管理员将直接把 ${name} 调整为「${nextLabel}」。`))) return;
+      const reason = await promptDialog('填写角色调整原因（至少 8 个字）', { placeholder: '说明调整原因与必要性' });
+      if (!reason || reason.trim().length < 8) return setMsg('未执行：请填写至少 8 个字的操作原因。');
+      const { error } = await supabase.rpc('admin_execute_sensitive_action', {
+        p_action_type: 'set_role',
+        p_target_user_id: id,
+        p_requested_role: newRole,
+        p_reason: reason.trim(),
+      });
+      if (error) return setMsg('直接调整角色失败：' + error.message);
+      setMsg('超级管理员已直接调整角色，操作已写入审计日志。');
+      await load();
+      return;
+    }
+    if (!canRequest) return setMsg('只有管理员可以发起角色调整申请。');
+    if (!(await confirmDialog(`提交将 ${name} 调整为${nextLabel} 的审批申请？批准前不会改变角色。`))) return;
+    const reason = await promptDialog('填写角色调整申请原因（至少 8 个字）', { placeholder: '说明调整原因与必要性' });
     if (!reason || reason.trim().length < 8) return setMsg('未提交：请填写至少 8 个字的审批原因。');
     const { data, error } = await supabase.rpc('admin_request_sensitive_action', {
       p_action_type: 'set_role',
@@ -381,7 +413,7 @@ function Members({ me, isSuper, canRequest, setMsg, extQ }: { me: string; isSupe
       p_requested_role: newRole,
       p_reason: reason.trim(),
     });
-    setMsg(error ? '提交审批失败：' + error.message : '已提交审批申请（' + String(data).slice(0, 8) + '），需另一位超级管理员批准后生效。');
+    setMsg(error ? '提交审批失败：' + error.message : '已提交审批申请（' + String(data).slice(0, 8) + '），等待超级管理员审批。');
   }
 
   return (<>
@@ -425,11 +457,11 @@ function Members({ me, isSuper, canRequest, setMsg, extQ }: { me: string; isSupe
           </div>
         </div>
         <div style={rowBtn}>
-          {canRequest && m.role === 'member' && <button className="mini danger" disabled={m.id === me} onClick={() => void requestDelete(m.id, m.display_name || m.username)}>申请永久删除</button>}
+          {(canRequest || isSuper) && m.role === 'member' && <button className="mini danger" disabled={m.id === me || memberActionBusy} onClick={() => void requestDelete(m.id, m.display_name || m.username)}>{isSuper ? '直接永久删除' : '申请永久删除'}</button>}
           {isSuper && (m.joined
             ? <button className="mini danger" disabled={m.id === me || memberActionBusy || m.role !== 'member'} onClick={() => setJoined([m.id], false)}>暂停班级权限</button>
             : <button className="mini" disabled={memberActionBusy || m.role !== 'member'} onClick={() => setJoined([m.id], true)}>恢复班级权限</button>)}
-          {canRequest && m.role !== 'super_admin' && (
+          {(canRequest || isSuper) && m.role !== 'super_admin' && (
             <select value={m.role} onChange={e => setRole(m.id, e.target.value, m.display_name || m.username)}
               style={{ width: 'auto', padding: '6px 8px', fontSize: 12.5 }} disabled={m.id === me}>
               <option value="member">普通成员</option>

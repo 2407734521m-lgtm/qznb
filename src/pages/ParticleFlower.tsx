@@ -100,6 +100,7 @@ export default function ParticleFlower() {
   const velocityRef = useRef(0);
   const fingerRef = useRef<Point | null>(null);
   const landmarksRef = useRef<any[] | null>(null);
+  const hasHandRef = useRef(false);
   const pointerRef = useRef<Point | null>(null);
   const pointerDownRef = useRef(false);
   const modeRef = useRef<Mode>('demo');
@@ -124,7 +125,7 @@ export default function ParticleFlower() {
       handsRef.current = null;
     }
     setCameraLive(false);
-    setHasHand(false);
+    setHasHand(false); hasHandRef.current = false;
     landmarksRef.current = null;
     fingerRef.current = null;
   }, []);
@@ -167,7 +168,7 @@ export default function ParticleFlower() {
         const hand = results.multiHandLandmarks?.[0];
         if (!hand) {
           landmarksRef.current = null; fingerRef.current = null;
-          targetRef.current = 0.18; setHasHand(false); return;
+          targetRef.current = 0.18; hasHandRef.current = false; setHasHand(false); return;
         }
         landmarksRef.current = hand;
         const wrist = hand[0], middleBase = hand[9];
@@ -178,7 +179,7 @@ export default function ParticleFlower() {
         targetRef.current = lerp(targetRef.current, raw, 0.2);
         const index = hand[8];
         fingerRef.current = { x: (1-index.x) * window.innerWidth, y: index.y * window.innerHeight, z: index.z || 0 };
-        setHasHand(true);
+        hasHandRef.current = true; setHasHand(true);
       });
       handsRef.current = hands;
       // 首帧 send 会触发 MediaPipe 的 WASM/模型初始化；完成后才撤下唤醒遮罩。
@@ -290,14 +291,14 @@ export default function ParticleFlower() {
         lastHudRef.current=time;
         const percent=Math.round(opennessNow*100);
         setOpenness(percent);
-        if (modeRef.current==='gesture') setStatus(!hasHand ? '等待手掌' : percent<28 ? '花苞' : percent>68 ? '绽放' : '舒展中');
+        if (modeRef.current==='gesture') setStatus(!hasHandRef.current ? '等待手掌' : percent<28 ? '花苞' : percent>68 ? '绽放' : '舒展中');
         else setStatus('演示模式');
       }
     };
     rafRef.current=requestAnimationFrame(render);
     window.addEventListener('resize',resize);
     return () => { cancelAnimationFrame(rafRef.current); window.removeEventListener('resize',resize); };
-  }, [hasHand]);
+  }, []);
 
   useEffect(() => {
     modeRef.current=mode;

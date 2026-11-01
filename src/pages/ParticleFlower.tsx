@@ -141,7 +141,6 @@ export default function ParticleFlower() {
   const modeRef = useRef<Mode>('demo');
   const [mode, setMode] = useState<Mode>('demo');
   const [layoutOrientation, setLayoutOrientation] = useState<LayoutOrientation>(() => window.matchMedia('(orientation: landscape)').matches ? 'landscape' : 'portrait');
-  const [status, setStatus] = useState('等待手掌');
   const [cameraLive, setCameraLive] = useState(false);
   const [experienceStarted, setExperienceStarted] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -206,10 +205,8 @@ export default function ParticleFlower() {
     if (next === 'demo') {
       stopCamera();
       targetRef.current = 0.18;
-      setStatus('演示模式');
     } else {
       targetRef.current = 0.18;
-      setStatus('等待手掌');
     }
   }, [stopCamera]);
 
@@ -316,7 +313,7 @@ export default function ParticleFlower() {
         await Promise.race([hands.send({ image: video }), new Promise((_, reject) => window.setTimeout(() => reject(new Error('备用模型源初始化超时，请检查网络后重试。')), 15000))]);
       }
       modeRef.current = 'gesture'; setMode('gesture');
-      setCameraLive(true); setStatus('等待手掌');
+      setCameraLive(true);
       experienceStartedRef.current = true;
       setExperienceStarted(true);
       setLoading(false);
@@ -330,7 +327,7 @@ export default function ParticleFlower() {
         if (!document.hidden && !busy && currentVideo.readyState >= 2 && currentVideo.currentTime !== lastVideoTime && performance.now()-lastInferenceRef.current >= 1000/24) {
           lastVideoTime = currentVideo.currentTime; lastInferenceRef.current = performance.now(); busy = true;
           try { await handsRef.current.send({ image: currentVideo }); failures = 0; }
-          catch { failures++; if (failures >= 3) { setError('手部识别连续失败，请重新开启手势。'); setStatus('识别异常'); stopCamera(); return; } }
+          catch { failures++; if (failures >= 3) { setError('手部识别连续失败，请重新开启手势。'); stopCamera(); return; } }
           finally { busy = false; }
         }
         if (streamRef.current) cameraRafRef.current = requestAnimationFrame(process);
@@ -489,7 +486,6 @@ export default function ParticleFlower() {
     modeRef.current=mode;
     if (mode==='demo') {
       targetRef.current=0.18;
-      setStatus('演示模式');
     }
   }, [mode]);
 

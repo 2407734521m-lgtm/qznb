@@ -16,30 +16,27 @@ const HAND_CONNECTIONS: number[][] = [
   [5,9],[9,10],[10,11],[11,12], [9,13],[13,14],[14,15],[15,16],
   [13,17],[17,18],[18,19],[19,20],[0,17]
 ];
-const MODEL_CDNS = ['https://cdn.jsdelivr.net/npm/@mediapipe/hands', 'https://unpkg.com/@mediapipe/hands'];
-const MODEL_TIMEOUT_MS = 12000;
+// 新版 MediaPipe（Tasks Vision / HandLandmarker），版本写死避免 CDN 漂移。
+// 旧版 @mediapipe/hands 必须靠 WebGL 送帧，部分浏览器建不出 WebGL 就直接崩；
+// 新版支持 CPU 推理兜底，建不出 GPU 管线时自动降级，不再报错退回演示模式。
+const VISION_VERSION = '0.10.14';
+const VISION_CDNS = [
+  'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@' + VISION_VERSION,
+  'https://unpkg.com/@mediapipe/tasks-vision@' + VISION_VERSION,
+];
+const MODEL_URL = 'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task';
+const MODEL_TIMEOUT_MS = 20000;
 
 function clamp(v: number, min: number, max: number) { return Math.max(min, Math.min(max, v)); }
 function lerp(a: number, b: number, t: number) { return a + (b - a) * t; }
 function distance(a: any, b: any) { return Math.hypot(a.x - b.x, a.y - b.y); }
-function loadScript(src: string, timeoutMs = MODEL_TIMEOUT_MS) {
-  return new Promise<void>((resolve, reject) => {
-    const existing = document.querySelector('script[data-bloom-src="' + src + '"]') as HTMLScriptElement | null;
-    if (existing) {
-      if ((existing as any).dataset.loaded === '1') { resolve(); return; }
-      const timer = window.setTimeout(() => reject(new Error('模型脚本加载超时')), timeoutMs);
-      existing.addEventListener('load', () => { window.clearTimeout(timer); resolve(); }, { once: true });
-      existing.addEventListener('error', () => { window.clearTimeout(timer); reject(new Error('模型脚本加载失败')); }, { once: true });
-      return;
-    }
-    const script = document.createElement('script');
-    script.src = src; script.async = true; script.crossOrigin = 'anonymous';
-    script.dataset.bloomSrc = src;
-    const timer = window.setTimeout(() => { script.remove(); reject(new Error('模型脚本加载超时')); }, timeoutMs);
-    script.onload = () => { window.clearTimeout(timer); script.dataset.loaded = '1'; resolve(); };
-    script.onerror = () => { window.clearTimeout(timer); script.remove(); reject(new Error('模型脚本加载失败')); };
-    document.head.appendChild(script);
-  });
+function withTimeout<T>(p: Promise<T>, ms: number, message: string): Promise<T> {
+  return Promise.race([p, new Promise<T>((_, reject) => window.setTimeout(() => reject(new Error(message)), ms))]);
+}
+async function loadVision(base: string) {
+  const mod: any = await import(/* @vite-ignore */ base + '/vision_bundle.mjs');
+  const fileset = await mod.FilesetResolver.forVisionTasks(base + '/wasm');
+  return { HandLandmarker: mod.HandLandmarker, fileset };
 }
 function makeParticles(count: number): Particle[] {
   const out: Particle[] = [];
@@ -122,7 +119,8 @@ export default function ParticleFlower() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
-  const handsRef = useRef<any>(null);
+  const landmarkerRef = useRef<any>(null);
+  const delegateRef = useRef<'GPU' | 'CPU'>('GPU');
   const rafRef = useRef<number>(0);
   const startGuardRef = useRef(false);
   const cameraRafRef = useRef<number>(0);
@@ -152,7 +150,7 @@ export default function ParticleFlower() {
   const hudStateRef = useRef<HTMLDivElement>(null);
   const hudEnglishRef = useRef<HTMLDivElement>(null);
   const hudProgressRef = useRef<HTMLSpanElement>(null);
-  const activeCdnRef = useRef(MODEL_CDNS[0]);
+  const activeCdnRef = useRef(VISION_CDNS[0]);
 
   useEffect(() => {
     const syncCameraVisibility = () => {
@@ -186,9 +184,9 @@ export default function ParticleFlower() {
     streamRef.current?.getTracks().forEach(track => track.stop());
     streamRef.current = null;
     if (videoRef.current) videoRef.current.srcObject = null;
-    if (handsRef.current) {
-      try { void handsRef.current.close(); } catch {}
-      handsRef.current = null;
+    if (landmarkerRef.current) {
+      try { landmarkerRef.current.close(); } catch {}
+      landmarkerRef.current = null;
     }
     setCameraLive(false);
     setHasHand(false); hasHandRef.current = false;
@@ -249,17 +247,32 @@ export default function ParticleFlower() {
     setError(''); setLoading(true);
     try {
       if (!navigator.mediaDevices?.getUserMedia) throw new Error('当前浏览器不支持摄像头，或页面不是 HTTPS 安全连接。');
-      const w = window as any;
-      if (!w.Hands) {
-        let loaded = false;
-        for (const cdn of MODEL_CDNS) {
-          try { await loadScript(cdn + '/hands.js'); activeCdnRef.current = cdn; loaded = true; break; }
-          catch { /* try the next public mirror */ }
-        }
-        if (!loaded) throw new Error('手部模型加载失败：已尝试两个资源源并设置超时。请检查网络，或在系统浏览器中打开后重试。');
+      // 先建识别器再开摄像头：两个资源源 × GPU/CPU 两种推理方式依次尝试，
+      // GPU 建不出来（WebGL 不可用）时自动落到 CPU，不再直接失败。
+      let landmarker: any = null;
+      let lastError: any = null;
+      for (const base of VISION_CDNS) {
+        try {
+          const vision = await withTimeout(loadVision(base), MODEL_TIMEOUT_MS, '识别库加载超时');
+          for (const delegate of ['GPU', 'CPU'] as const) {
+            try {
+              landmarker = await withTimeout(vision.HandLandmarker.createFromOptions(vision.fileset, {
+                baseOptions: { modelAssetPath: MODEL_URL, delegate },
+                runningMode: 'VIDEO',
+                numHands: 1,
+                minHandDetectionConfidence: 0.6,
+                minHandPresenceConfidence: 0.5,
+                minTrackingConfidence: 0.55,
+              }), MODEL_TIMEOUT_MS, '识别器初始化超时');
+              delegateRef.current = delegate;
+              break;
+            } catch (e) { lastError = e; }
+          }
+          if (landmarker) { activeCdnRef.current = base; break; }
+        } catch (e) { lastError = e; }
       }
-      const HandsCtor = (window as any).Hands;
-      if (!HandsCtor) throw new Error('手部模型脚本已加载，但初始化失败。请刷新页面重试。');
+      if (!landmarker) throw new Error('手部识别初始化失败' + (lastError?.message ? '：' + lastError.message : '') + '。请检查网络后重试。');
+      landmarkerRef.current = landmarker;
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: false,
         video: { facingMode: 'user', width: { ideal: 640, max: 960 }, height: { ideal: 480, max: 540 }, frameRate: { ideal: 30, max: 30 } }
@@ -269,8 +282,7 @@ export default function ParticleFlower() {
       if (!video) throw new Error('摄像头画面容器尚未准备好。');
       video.srcObject = stream;
       await video.play();
-      const handleResults = (results: any) => {
-        const hand = results.multiHandLandmarks?.[0];
+      const handleLandmarks = (hand: any[] | null) => {
         if (!hand) {
           landmarksRef.current = null; fingerRef.current = null;
           targetRef.current = 0.18; hasHandRef.current = false; setHasHand(false); return;
@@ -293,40 +305,29 @@ export default function ParticleFlower() {
         fingerRef.current = { x: mapped.x, y: mapped.y, z: index.z || 0 };
         hasHandRef.current = true; setHasHand(true);
       };
-      const makeHands = () => {
-        const instance = new HandsCtor({ locateFile: (file: string) => activeCdnRef.current + '/' + file });
-        instance.setOptions({ maxNumHands: 1, modelComplexity: 1, minDetectionConfidence: 0.62, minTrackingConfidence: 0.58 });
-        instance.onResults(handleResults);
-        return instance;
-      };
-      let hands = makeHands();
-      handsRef.current = hands;
-      try {
-        await Promise.race([hands.send({ image: video }), new Promise((_, reject) => window.setTimeout(() => reject(new Error('手部模型初始化超时')), 15000))]);
-      } catch (firstError) {
-        try { await hands.close(); } catch {}
-        if (activeCdnRef.current !== MODEL_CDNS[0]) throw firstError;
-        activeCdnRef.current = MODEL_CDNS[1];
-        hands = makeHands(); handsRef.current = hands;
-        await Promise.race([hands.send({ image: video }), new Promise((_, reject) => window.setTimeout(() => reject(new Error('备用模型源初始化超时，请检查网络后重试。')), 15000))]);
-      }
       modeRef.current = 'gesture'; setMode('gesture');
       setCameraLive(true);
       experienceStartedRef.current = true;
       setExperienceStarted(true);
       setLoading(false);
       startGuardRef.current = false;
-      let busy = false;
       let lastVideoTime = -1;
       let failures = 0;
-      const process = async () => {
+      const process = () => {
         const currentVideo = videoRef.current;
-        if (!streamRef.current || !currentVideo || !handsRef.current) return;
-        if (!document.hidden && !busy && currentVideo.readyState >= 2 && currentVideo.currentTime !== lastVideoTime && performance.now()-lastInferenceRef.current >= 1000/24) {
-          lastVideoTime = currentVideo.currentTime; lastInferenceRef.current = performance.now(); busy = true;
-          try { await handsRef.current.send({ image: currentVideo }); failures = 0; }
-          catch { failures++; if (failures >= 3) { setError('手部识别连续失败，请重新开启手势。'); stopCamera(); return; } }
-          finally { busy = false; }
+        if (!streamRef.current || !currentVideo || !landmarkerRef.current) return;
+        // CPU 推理更吃力，帧率放低一档；GPU 保持原节奏。
+        const interval = delegateRef.current === 'CPU' ? 1000 / 20 : 1000 / 24;
+        if (!document.hidden && currentVideo.readyState >= 2 && currentVideo.currentTime !== lastVideoTime && performance.now() - lastInferenceRef.current >= interval) {
+          lastVideoTime = currentVideo.currentTime; lastInferenceRef.current = performance.now();
+          try {
+            const res = landmarkerRef.current.detectForVideo(currentVideo, performance.now());
+            handleLandmarks(res?.landmarks?.[0] || null);
+            failures = 0;
+          } catch {
+            failures++;
+            if (failures >= 3) { setError('手部识别连续失败，请重新开启手势。'); stopCamera(); return; }
+          }
         }
         if (streamRef.current) cameraRafRef.current = requestAnimationFrame(process);
       };

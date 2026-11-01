@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { motion, useReducedMotion } from 'framer-motion';
 
 const groups = [
   { title: '校园社区', desc: '看看校园里正在发生什么', items: [['校园贴吧','/feed','发帖、评论、点赞和参与话题'],['歌声墙','/songs','发布自己的歌声与原创录音'],['热门话题','/hot','发现有趣内容和热门讨论'],['校园问答','/board','查看公告并参与校园交流'],['班级相册','/albums','按分类浏览班级照片与共同回忆']] },
@@ -8,13 +9,40 @@ const groups = [
   { title: '个人', desc: '管理自己的班级档案', items: [['我的主页','/me','查看个人中心'],['编辑资料','/me/edit','更新个人档案'],['我的收藏','/me/favorites','找回收藏内容'],['通知消息','/me/notifications','查看站内通知'],['账号设置','/me/account','管理账号信息']] },
 ];
 export default function Explore() {
-  return <main style={{ maxWidth: 850, margin: '0 auto', padding: '12px 0 28px', color: '#202124' }}>
-    <div style={{ padding: '18px 4px 20px' }}><div style={{ color: '#737b89', fontSize: 11, letterSpacing: 3 }}>DISCOVER YOUR CLASS</div><h1 style={{ fontSize: 27, margin: '8px 0' }}>探索空间</h1><p style={{ color: '#606673', fontSize: 13 }}>按分类找到你想去的地方。</p></div>
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,270px),1fr))', gap: 14 }}>
-      {groups.map(g => <section key={g.title} style={{ border: '1px solid #e9ebf0', borderRadius: 20, padding: 16, background: '#fff' }}>
+  const reduce = useReducedMotion();
+  const reveal = {
+    hidden: { opacity: 0, y: 14 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.38, ease: [0.22, 1, 0.36, 1], staggerChildren: 0.055 } }
+  };
+  const itemReveal = {
+    hidden: { opacity: 0, y: 9 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.28, ease: [0.22, 1, 0.36, 1] } }
+  };
+  return <motion.main initial={reduce ? false : "hidden"} animate="visible" variants={reveal}
+    style={{ maxWidth: 850, margin: '0 auto', padding: '12px 0 28px', color: '#202124' }}>
+    <motion.div variants={itemReveal} style={{ padding: '18px 4px 20px' }}>
+      <div style={{ color: '#737b89', fontSize: 11, letterSpacing: 3 }}>DISCOVER YOUR CLASS</div>
+      <h1 style={{ fontSize: 27, margin: '8px 0' }}>探索空间</h1>
+      <p style={{ color: '#606673', fontSize: 13 }}>按分类找到你想去的地方。</p>
+    </motion.div>
+    <motion.div variants={reveal} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,270px),1fr))', gap: 14 }}>
+      {groups.map(g => <motion.section key={g.title} variants={itemReveal}
+        whileHover={reduce ? undefined : { y: -3 }}
+        transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+        style={{ border: '1px solid #e9ebf0', borderRadius: 20, padding: 16, background: '#fff', boxShadow: '0 8px 24px rgba(25,42,70,.035)' }}>
         <h2 style={{ margin: '0 0 4px', fontSize: 18 }}>{g.title}</h2><p style={{ margin: '0 0 12px', color: '#606673', fontSize: 12 }}>{g.desc}</p>
-        {g.items.map(([name,to,desc]) => <Link key={to+name} to={to} style={{ display: 'block', textDecoration: 'none', color: 'inherit', padding: '12px 2px', borderTop: '1px solid #edf0f4' }}><div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, fontSize: 14, fontWeight: 700 }}>{name}<span style={{ color: '#2f54eb' }}>↗</span></div><div style={{ color: '#606673', fontSize: 11, marginTop: 4 }}>{desc}</div></Link>)}
-      </section>)}
-    </div>
-  </main>;
+        {g.items.map(([name,to,desc]) => <motion.div key={to+name} variants={itemReveal}
+          whileHover={reduce ? undefined : { x: 3 }} whileTap={reduce ? undefined : { scale: 0.99 }}
+          style={{ borderTop: '1px solid #edf0f4' }}>
+          <Link to={to} style={{ display: 'block', textDecoration: 'none', color: 'inherit', padding: '12px 2px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, fontSize: 14, fontWeight: 700 }}>
+              {name}<motion.span aria-hidden style={{ color: '#2f54eb', display: 'inline-block' }}
+                animate={reduce ? undefined : { x: 0 }} whileHover={reduce ? undefined : { x: 3 }}>↗</motion.span>
+            </div>
+            <div style={{ color: '#606673', fontSize: 11, marginTop: 4 }}>{desc}</div>
+          </Link>
+        </motion.div>)}
+      </motion.section>)}
+    </motion.div>
+  </motion.main>;
 }

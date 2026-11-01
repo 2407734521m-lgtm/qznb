@@ -11,7 +11,8 @@ export default function LoginSuccessOverlay({ realName, durationMs, onDone }: Lo
   const reduce = useReducedMotion();
   const duration = reduce ? 0.16 : Math.min(3.4, Math.max(1.35, 0.9 + Math.max(0, durationMs) / 1000 * 0.35));
   const fadeAt = 0.76;
-  const maskedName = '*'.repeat(Math.max(1, Array.from(realName.trim()).length));
+  const nameChars = Array.from(realName.trim());
+  const maskedName = nameChars.length ? `${nameChars[0]}${'*'.repeat(Math.max(0, nameChars.length - 1))}` : '同学';
 
   return (
     <motion.div

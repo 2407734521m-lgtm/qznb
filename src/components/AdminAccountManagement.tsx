@@ -283,7 +283,7 @@ export default function AdminAccountManagement({
       {filtered.some(account => selected.has(account.id)) && <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap', marginTop: 9, alignItems: 'center' }}>
         <span style={{ ...muted, alignSelf: 'center' }}>当前筛选已选 {filtered.filter(account => selected.has(account.id)).length} 个</span>
         <button style={btn} onClick={() => {
-          const recipients = filtered.filter(account => selected.has(account.id) && account.role === 'member')
+          const recipients = filtered.filter(account => selected.has(account.id) && account.role === 'member' && account.joined)
             .map(account => ({ id: account.id, name: account.display_name || account.username }));
           if (recipients.length > 100) {
             setMsg('每次最多向 100 位成员发送消息，请减少选中人数后重试。');
@@ -335,7 +335,7 @@ export default function AdminAccountManagement({
       </div>}
 
       <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap', marginTop: 10 }}>
-        {isSuper && r.role === 'member' && <button style={{ ...btn, borderColor: '#6abac766', color: '#9de3e2' }}
+        {isSuper && r.role === 'member' && r.joined && <button style={{ ...btn, borderColor: '#6abac766', color: '#9de3e2' }}
           onClick={() => setMessageRecipients([{ id: r.id, name: r.display_name || r.username }])}>发送消息</button>}
         {isSuper && r.role === 'member' && <button style={{ ...btn, borderColor: '#e6a85c66', color: '#f1c37d' }}
           onClick={() => setModerationId(current => current === r.id ? null : r.id)}>纪律管理</button>}

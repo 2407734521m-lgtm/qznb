@@ -228,7 +228,7 @@ function getInkParticleStamp(): HTMLCanvasElement {
   glow.addColorStop(1,'rgba(239,116,174,0)');
   ctx.fillStyle=glow;ctx.fillRect(0,0,32,32);inkParticleStamp=canvas;return canvas;
 }
-function cacheInkStrokeParticles(stroke: InkStroke) {
+function cacheInkStrokeParticles(stroke: InkStroke, density: number) {
   if(stroke.particleCanvas||stroke.points.length<2)return;
   const points=stroke.points;
   const minX=Math.min(...points.map(p=>p.x)),maxX=Math.max(...points.map(p=>p.x));
@@ -255,12 +255,13 @@ function cacheInkStrokeParticles(stroke: InkStroke) {
   };
   for(let i=1;i<points.length;i++){
     const a=points[i-1],b=points[i],length=Math.hypot(b.x-a.x,b.y-a.y);
-    const steps=Math.max(1,Math.ceil(length/4.6));
+    const spacing=clamp(5.8*(3200/density),2.3,12);
+    const steps=Math.max(1,Math.ceil(length/spacing));
     for(let step=0;step<=steps;step++){const t=step/steps;add(a.x+(b.x-a.x)*t-left,a.y+(b.y-a.y)*t-top)}
   }
   stroke.particleCanvas=canvas;stroke.particleLeft=left;stroke.particleTop=top;
 }
-function drawAirInkScene(ctx:CanvasRenderingContext2D,strokes:InkStroke[],committed:InkGlyph[],time:number,sizeMultiplier:number,glowMultiplier:number){
+function drawAirInkScene(ctx:CanvasRenderingContext2D,strokes:InkStroke[],committed:InkGlyph[],time:number,density:number,sizeMultiplier:number,glowMultiplier:number){
   ctx.save();ctx.globalCompositeOperation='lighter';
   const drawStroke=(stroke:InkStroke,phase:number)=>{
     const points=stroke.points;if(!points.length)return;
@@ -279,7 +280,7 @@ function drawAirInkScene(ctx:CanvasRenderingContext2D,strokes:InkStroke[],commit
       }
       return;
     }
-    cacheInkStrokeParticles(stroke);
+    cacheInkStrokeParticles(stroke,density);
     if(!stroke.particleCanvas||stroke.particleLeft===undefined||stroke.particleTop===undefined)return;
     const progress=clamp((time-stroke.liftedAt)/1.35,0,1),eased=progress*progress*(3-2*progress);
     const drift=Math.sin(time*.72+phase)*eased*.8,rise=eased*10,canvas=stroke.particleCanvas;
@@ -773,6 +774,7 @@ export default function ParticleFlower() {
           inkStrokesRef.current,
           committedGlyphsRef.current,
           now,
+          particleCountRef.current,
           particleSizeRef.current,
           glowIntensityRef.current
         );
@@ -993,7 +995,7 @@ export default function ParticleFlower() {
                 if(particleRebuildTimerRef.current)window.clearTimeout(particleRebuildTimerRef.current);
                 particleRebuildTimerRef.current=window.setTimeout(()=>{particlesRef.current=makeParticles(next)},160);
               }}/>
-              <small>越高越细腻，也越考验设备</small>
+              <small>同时影响花冠与书写粒子的密度</small>
             </label>
             <label className="bloom-setting">
               <span><b>粒子大小</b><output>{particleSize.toFixed(1)}×</output></span>

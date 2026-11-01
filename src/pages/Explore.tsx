@@ -12,11 +12,11 @@ export default function Explore() {
   const reduce = useReducedMotion();
   const reveal = {
     hidden: { opacity: 0, y: 14 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.38, ease: [0.22, 1, 0.36, 1], staggerChildren: 0.055 } }
+    visible: { opacity: 1, y: 0, transition: { duration: 0.38, ease: [0.22, 1, 0.36, 1] as const, staggerChildren: 0.055 } }
   };
   const itemReveal = {
     hidden: { opacity: 0, y: 9 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.28, ease: [0.22, 1, 0.36, 1] } }
+    visible: { opacity: 1, y: 0, transition: { duration: 0.28, ease: [0.22, 1, 0.36, 1] as const } }
   };
   return <motion.main initial={reduce ? false : "hidden"} animate="visible" variants={reveal}
     style={{ maxWidth: 850, margin: '0 auto', padding: '12px 0 28px', color: '#202124' }}>
@@ -28,7 +28,7 @@ export default function Explore() {
     <motion.div variants={reveal} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,270px),1fr))', gap: 14 }}>
       {groups.map(g => <motion.section key={g.title} variants={itemReveal}
         whileHover={reduce ? undefined : { y: -3 }}
-        transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+        transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] as const }}
         style={{ border: '1px solid #e9ebf0', borderRadius: 20, padding: 16, background: '#fff', boxShadow: '0 8px 24px rgba(25,42,70,.035)' }}>
         <h2 style={{ margin: '0 0 4px', fontSize: 18 }}>{g.title}</h2><p style={{ margin: '0 0 12px', color: '#606673', fontSize: 12 }}>{g.desc}</p>
         {g.items.map(([name,to,desc]) => <motion.div key={to+name} variants={itemReveal}

@@ -198,7 +198,7 @@ export default function AdminMemberModeration({
           >
             <option value="community_mute">社区禁言 · 禁止动态、评论、留言等</option>
             <option value="chat_mute">私聊禁言 · 禁止发送私信及消息互动</option>
-            <option value="interaction_suspend">全站互动限制 · 同时限制社区和私聊</option>
+            <option value="interaction_suspend">全站互动限制 · 社区、私聊和好友申请</option>
             <option value="warning">成员警告 · 只记录，不限制功能</option>
           </select>
 

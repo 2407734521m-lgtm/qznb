@@ -223,15 +223,15 @@ export default function Overview({ setMsg, go }: { setMsg: (s: string) => void; 
 
       <nav className="admin-overview-shortcuts" aria-label="常用管理入口">
         <button type="button" onClick={() => go('board')}>
-          <span className="admin-overview-shortcut-icon" aria-hidden="true">↗</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 19V5h14v14H5Z"/><path d="M8 9h8M8 13h5M8 17h8"/></svg>
           <span><strong>发布公告</strong><small>更新首页与社区公告</small></span>
         </button>
         <button type="button" onClick={() => go('notifications')}>
-          <span className="admin-overview-shortcut-icon" aria-hidden="true">◌</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9ZM10 21h4"/></svg>
           <span><strong>发送通知</strong><small>向成员发送站内消息</small></span>
         </button>
         <button type="button" onClick={() => go('feedback')}>
-          <span className="admin-overview-shortcut-icon" aria-hidden="true">⌁</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 5h16v11H8l-4 4V5Z"/><path d="M8 9h8M8 13h5"/></svg>
           <span><strong>查看反馈</strong><small>跟进建议与问题报告</small></span>
         </button>
       </nav>

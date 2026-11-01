@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../auth';
@@ -15,6 +15,7 @@ export default function MeNotifications() {
   const [filter, setFilter] = useState<'all' | 'unread'>('all');
   const [actionBusy, setActionBusy] = useState(false);
   const [notificationPrefs, setNotificationPrefs] = useState<Record<string, boolean>>({});
+  const loadSequenceRef = useRef(0);
 
   useEffect(() => {
     let active = true;
@@ -52,6 +53,7 @@ export default function MeNotifications() {
   }, [me]);
 
   async function load() {
+    const requestId = ++loadSequenceRef.current;
     setLoading(true);
     setLoadError('');
     try {
@@ -60,6 +62,7 @@ export default function MeNotifications() {
         .eq('profile_id', me)
         .order('created_at', { ascending: false })
         .limit(50);
+      if (requestId !== loadSequenceRef.current) return;
       if (error) {
         setLoadError(error.code === '42501' || error.code === 'PGRST301'
           ? '当前账号没有读取通知的权限。'
@@ -68,14 +71,15 @@ export default function MeNotifications() {
         setList(data ?? []);
       }
     } catch {
-      setLoadError('网络暂时不可用，请检查连接后重试。');
+      if (requestId === loadSequenceRef.current) setLoadError('网络暂时不可用，请检查连接后重试。');
     } finally {
-      setLoading(false);
+      if (requestId === loadSequenceRef.current) setLoading(false);
     }
   }
 
   useEffect(() => {
     void load();
+    return () => { loadSequenceRef.current += 1; };
   }, [me]);
 
   async function markRead(id: number) {
@@ -96,7 +100,8 @@ export default function MeNotifications() {
 
   async function openNotification(item: any) {
     setActionError('');
-    await markRead(item.id);
+    const marked = await markRead(item.id);
+    if (!marked) return;
     const target = typeof item.link === 'string' ? item.link.trim() : '';
     // 通知只允许站内相对路径，避免数据库内容意外触发外部跳转。
     if (target.startsWith('/') && !target.startsWith('//')) nav(target);

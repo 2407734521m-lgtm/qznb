@@ -117,6 +117,55 @@ function drawSkeleton(ctx: CanvasRenderingContext2D, landmarks: any[], w: number
   }
   ctx.restore();
 }
+function drawSkeletonPreview(canvas: HTMLCanvasElement | null, landmarks: any[] | null) {
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+  const width = canvas.width, height = canvas.height;
+  ctx.clearRect(0, 0, width, height);
+  if (!landmarks || landmarks.length < 21) return;
+
+  // Fit the visible hand bounds into the small preview instead of showing a tiny full-camera coordinate map.
+  const points = landmarks.map(point => ({ x: 1 - point.x, y: point.y }));
+  const minX = Math.min(...points.map(point => point.x));
+  const maxX = Math.max(...points.map(point => point.x));
+  const minY = Math.min(...points.map(point => point.y));
+  const maxY = Math.max(...points.map(point => point.y));
+  const rangeX = Math.max(0.08, maxX - minX);
+  const rangeY = Math.max(0.08, maxY - minY);
+  const scale = Math.min((width - 44) / rangeX, (height - 34) / rangeY);
+  const offsetX = (width - rangeX * scale) / 2 - minX * scale;
+  const offsetY = (height - rangeY * scale) / 2 - minY * scale;
+  const project = (point: { x: number; y: number }) => ({ x: offsetX + point.x * scale, y: offsetY + point.y * scale });
+
+  ctx.save();
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.strokeStyle = 'rgba(255,220,236,.66)';
+  ctx.lineWidth = Math.max(2.2, width * 0.009);
+  ctx.shadowColor = 'rgba(240,151,194,.45)';
+  ctx.shadowBlur = 7;
+  for (const [a, b] of HAND_CONNECTIONS) {
+    const start = project(points[a]), end = project(points[b]);
+    ctx.beginPath();
+    ctx.moveTo(start.x, start.y);
+    ctx.lineTo(end.x, end.y);
+    ctx.stroke();
+  }
+  ctx.shadowBlur = 0;
+  for (let i = 0; i < points.length; i++) {
+    const point = project(points[i]);
+    const isIndexTip = i === 8;
+    ctx.beginPath();
+    ctx.arc(point.x, point.y, isIndexTip ? Math.max(4.2, width * 0.016) : Math.max(2.4, width * 0.009), 0, Math.PI * 2);
+    ctx.fillStyle = isIndexTip ? '#f5b3d0' : 'rgba(255,245,249,.92)';
+    ctx.shadowColor = isIndexTip ? 'rgba(245,157,197,.9)' : 'rgba(255,255,255,.25)';
+    ctx.shadowBlur = isIndexTip ? 12 : 4;
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
 function renderInkLayer(canvas: HTMLCanvasElement | null, width: number, height: number, strokes: InkStroke[]) {
   if (!canvas || width <= 0 || height <= 0) return;
   const ctx = canvas.getContext('2d');
@@ -171,6 +220,7 @@ export default function ParticleFlower() {
   const navigate = useNavigate();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const inkCanvasRef = useRef<HTMLCanvasElement>(null);
+  const handPreviewCanvasRef = useRef<HTMLCanvasElement>(null);
   const inkStrokesRef = useRef<InkStroke[]>([]);
   const currentInkStrokeRef = useRef<InkStroke | null>(null);
   const pinchingRef = useRef(false);
@@ -470,6 +520,15 @@ export default function ParticleFlower() {
         inkCanvas.style.height = height + 'px';
         renderInkLayer(inkCanvas, width, height, inkStrokesRef.current);
       }
+      const previewCanvas = handPreviewCanvasRef.current;
+      if (previewCanvas) {
+        const previewWidth = Math.round(280 * Math.min(dpr, 2));
+        const previewHeight = Math.round(190 * Math.min(dpr, 2));
+        if (previewCanvas.width !== previewWidth || previewCanvas.height !== previewHeight) {
+          previewCanvas.width = previewWidth;
+          previewCanvas.height = previewHeight;
+        }
+      }
     };
     resize();
     const render = (time: number) => {
@@ -575,9 +634,14 @@ export default function ParticleFlower() {
         }
         ctx.globalAlpha=1; ctx.globalCompositeOperation='source-over';
       }
-      if (landmarksRef.current && modeRef.current==='gesture') drawSkeleton(ctx,landmarksRef.current,width,height);
-      // 食指尖端增加一圈柔和的玫瑰色光晕，让牵引点在暗背景中清晰可见。
-      if (finger && modeRef.current === 'gesture') {
+      if (experienceToolRef.current !== 'write' && landmarksRef.current && modeRef.current==='gesture') {
+        drawSkeleton(ctx,landmarksRef.current,width,height);
+      }
+      if (experienceToolRef.current === 'write') {
+        drawSkeletonPreview(handPreviewCanvasRef.current, landmarksRef.current && modeRef.current === 'gesture' ? landmarksRef.current : null);
+      }
+      // 花朵模式才在主画布显示食指牵引光点；书写模式把手势骨骼独立收纳到角落预览窗。
+      if (experienceToolRef.current !== 'write' && finger && modeRef.current === 'gesture') {
         ctx.save();
         ctx.globalCompositeOperation = 'lighter';
         const tipGlow = ctx.createRadialGradient(finger.x, finger.y, 0, finger.x, finger.y, 34);
@@ -685,9 +749,21 @@ export default function ParticleFlower() {
           }}>清空</button>
         </div>
       )}
-      <canvas ref={canvasRef} className="bloom-canvas" aria-label="手势骨架与互动粒子画面" />
+      <canvas ref={canvasRef} className="bloom-canvas" aria-label="互动粒子与手势画面" />
       <div className="bloom-vignette" />
       <canvas ref={inkCanvasRef} className="bloom-ink-canvas" aria-label="空中书写笔迹" />
+      {experienceStarted && experienceTool === 'write' && (
+        <section className="bloom-hand-preview" aria-label="手部骨骼预览">
+          <div className="bloom-hand-preview-heading">
+            <span>手势骨骼</span>
+            <small>21 POINTS</small>
+          </div>
+          <canvas ref={handPreviewCanvasRef} className="bloom-hand-preview-canvas" aria-label="实时手部骨骼模型" />
+          <div className={'bloom-hand-preview-state' + (hasHand ? ' detected' : '')}>
+            <i />{hasHand ? '已识别 · 食指追踪中' : '等待手部进入画面'}
+          </div>
+        </section>
+      )}
       <header className="bloom-header">
         <button className="bloom-brand" onClick={() => navigate('/explore')} aria-label="返回探索空间">
           <span className="bloom-brand-cn">指尖生花</span><span className="bloom-brand-en">BLOOM AT YOUR FINGERTIPS</span>

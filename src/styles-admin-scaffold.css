@@ -598,3 +598,31 @@
 @media(prefers-reduced-motion:reduce){
   .admin-shell-v3 .admin-number-ticker{transition:none!important}
 }
+
+
+/* Phase 4: semantically honest category totals (not a misleading mixed pie chart). */
+.admin-shell-v3 .admin-overview-category-list{
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;
+  min-height:170px;align-content:center;
+}
+.admin-shell-v3 .admin-overview-category-list>div{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  min-width:0;padding:12px 13px;border:1px solid rgba(190,215,245,.10);
+  border-radius:12px;background:rgba(255,255,255,.035);
+}
+.admin-shell-v3 .admin-overview-category-list span{
+  overflow:hidden;color:#9fb0c8;font-size:10.5px;text-overflow:ellipsis;white-space:nowrap;
+}
+.admin-shell-v3 .admin-overview-category-list strong{
+  flex:0 0 auto;color:#eaf2ff;font-size:14px;font-weight:780;
+  font-variant-numeric:tabular-nums;
+}
+.admin-shell-v3 .admin-command-palette:focus{outline:none}
+.admin-shell-v3 .admin-command-palette button:focus-visible,
+.admin-shell-v3 .admin-command-palette input:focus-visible{
+  outline:2px solid #87b8ff;outline-offset:2px;
+}
+@media(max-width:420px){
+  .admin-shell-v3 .admin-overview-category-list{grid-template-columns:1fr;gap:7px;min-height:0}
+  .admin-shell-v3 .admin-overview-category-list>div{padding:10px 11px}
+}

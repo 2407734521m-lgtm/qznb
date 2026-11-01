@@ -3,7 +3,7 @@ import { supabase } from '../../lib/supabase';
 import { startSitePresence, type SitePresenceSnapshot } from '../../lib/sitePresence';
 import { card, h3, mut, timeAgo, bucket14 } from './shared';
 import AdminNumberTicker from '../../components/admin/AdminNumberTicker';
-import { Spark, TrendChart, Donut } from './charts';
+import { Spark, TrendChart } from './charts';
 
 /* ---------------- 总览（仪表盘） ---------------- */
 // 总览顶部待办中心：五个待处理队列的计数汇总在一处，点一行直达对应页签处理。
@@ -12,6 +12,7 @@ function TodoCenter({ go }: { go: (tab: string) => void }) {
   const [err, setErr] = useState(false);
 
   async function load() {
+    try {
     const queries = [
       supabase.from('love_wall_posts').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
       supabase.from('song_posts').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
@@ -20,9 +21,13 @@ function TodoCenter({ go }: { go: (tab: string) => void }) {
       supabase.from('feedbacks').select('id', { count: 'exact', head: true }).eq('status', 'open'),
     ];
     const res = await Promise.all(queries);
-    if (res.some(r => r.error)) { setErr(true); return; }
+    if (res.some(r => r.error)) { setCounts(null); setErr(true); return; }
     setErr(false);
     setCounts({ love: res[0].count ?? 0, song: res[1].count ?? 0, game: res[2].count ?? 0, report: res[3].count ?? 0, feedback: res[4].count ?? 0 });
+    } catch {
+      setCounts(null);
+      setErr(true);
+    }
   }
   useEffect(() => { void load(); }, []);
 
@@ -146,9 +151,13 @@ export default function Overview({ setMsg, go }: { setMsg: (s: string) => void; 
           supabase.from('posts').select('id', { count: 'exact', head: true }).eq('section', 'daily').is('deleted_at', null),
           supabase.from('posts').select('created_at').eq('section', 'daily').gte('created_at', since14).is('deleted_at', null),
         ]);
+        const critical = [m, p, c, ph, r, nm, pr, por, phr, pd, pdr];
+        if (critical.some(result => result.error)) throw new Error('部分核心统计读取失败，请检查权限或网络后重试。');
         const week = new Date(Date.now() - 7 * 864e5).toISOString();
-        const { count: new7 } = await supabase.from('profiles').select('id', { count: 'exact', head: true }).gte('created_at', week);
-        const { data: logs } = await supabase.from('admin_audit_logs')
+        const { count: new7, error: new7Error } = await supabase.from('profiles')
+          .select('id', { count: 'exact', head: true }).gte('created_at', week);
+        if (new7Error) throw new Error('近 7 天新增成员统计读取失败，请重试。');
+        const { data: logs, error: logsError } = await supabase.from('admin_audit_logs')
           .select('id, action, created_at').order('created_at', { ascending: false }).limit(5);
         const t0 = Date.now();
         const { error: pingErr } = await supabase.from('profiles').select('id', { head: true }).limit(1);
@@ -163,7 +172,7 @@ export default function Overview({ setMsg, go }: { setMsg: (s: string) => void; 
           loadedAt: new Date().toISOString(),
           members: m.count ?? 0, posts: p.count ?? 0, dailyPosts: pd.count ?? 0, comments: c.count ?? 0,
           photos: ph.count ?? 0, pendingReports: r.count ?? 0, new7: new7 ?? 0,
-          newMembers: nm.data ?? [], recentLogs: logs ?? [],
+          newMembers: nm.data ?? [], recentLogs: logs ?? [], logsError: Boolean(logsError),
           dbOk: !pingErr, dbMs: Date.now() - t0,
           dPro, dPost, dDailyPost, dPhoto, cum,
         });
@@ -178,14 +187,10 @@ export default function Overview({ setMsg, go }: { setMsg: (s: string) => void; 
   }, [st, refreshSeq]);
   if (!st && !loadTimedOut) return <div className="admin-overview-loading" role="status"><span className="admin-loading-pulse" />正在整理总览数据…</div>;
   if (!st) return <div className="admin-overview-timeout"><strong>总览数据暂时没有响应</strong><p>后台其他功能仍可使用。请检查网络后重试。</p><button type="button" onClick={() => { setLoadTimedOut(false); setRefreshSeq(value => value + 1); }}>重新加载</button></div>;
-  const segs = [
-    { label: '成员', v: st.members, color: '#5b8cff' },
-    { label: '动态', v: st.posts, color: '#8b5cf6' },
-    { label: '日常', v: st.dailyPosts, color: '#38bdf8' },
-    { label: '照片', v: st.photos, color: '#4ade80' },
-    { label: '评论', v: st.comments, color: '#f5a623' },
+  const categories: [string, number][] = [
+    ['注册成员', st.members], ['班级动态', st.posts], ['日常帖子', st.dailyPosts],
+    ['相册照片', st.photos], ['评论', st.comments],
   ];
-  const tot = segs.reduce((a, s) => a + s.v, 0);
   const dlabels = [0, 3, 6, 10, 13].map(i => {
     const d = new Date(); d.setDate(d.getDate() - (13 - i));
     return `${d.getMonth() + 1}-${d.getDate()}`;
@@ -262,20 +267,15 @@ export default function Overview({ setMsg, go }: { setMsg: (s: string) => void; 
 
         <section className="admin-overview-panel admin-overview-mix-panel" style={card}>
           <div className="admin-overview-panel-heading">
-            <div><h3>内容构成</h3><p>当前累计内容分布</p></div>
+            <div><h3>分类数量</h3><p>各类数据独立统计，不混合计算占比</p></div>
           </div>
-          <div className="admin-overview-mix-content">
-            <Donut segs={segs} />
-            <div className="admin-overview-mix-legend">
-              {segs.map(s => (
-                <div key={s.label}>
-                  <span className="admin-overview-legend-dot" style={{ background: s.color }} />
-                  <span>{s.label}</span>
-                  <strong>{s.v.toLocaleString()}</strong>
-                  <small>{tot ? Math.round((s.v / tot) * 100) : 0}%</small>
-                </div>
-              ))}
-            </div>
+          <div className="admin-overview-category-list">
+            {categories.map(([label, value]) => (
+              <div key={label}>
+                <span>{label}</span>
+                <strong>{Number(value).toLocaleString('zh-CN')}</strong>
+              </div>
+            ))}
           </div>
         </section>
       </div>
@@ -284,17 +284,17 @@ export default function Overview({ setMsg, go }: { setMsg: (s: string) => void; 
         <section className="admin-overview-panel" style={card}>
           <div className="admin-overview-panel-heading">
             <div><h3>最近管理操作</h3><p>后台最近写入的审计记录</p></div>
-            <span className="admin-overview-count">{st.recentLogs.length} 条</span>
+            <span className="admin-overview-count">{st.logsError ? "暂不可用" : `${st.recentLogs.length} 条`}</span>
           </div>
           <div className="admin-overview-list">
-            {(st.recentLogs as any[]).map((l: any) => (
+            {st.logsError ? <p className="admin-overview-empty">审计记录读取失败，其他统计不受影响</p> : (st.recentLogs as any[]).map((l: any) => (
               <div key={l.id} className="admin-overview-list-row">
                 <span className="admin-overview-list-marker" />
                 <strong>{l.action}</strong>
                 <time>{(l.created_at || '').slice(5, 16).replace('T', ' ')}</time>
               </div>
             ))}
-            {st.recentLogs.length === 0 && <p className="admin-overview-empty">暂无管理操作记录</p>}
+            {!st.logsError && st.recentLogs.length === 0 && <p className="admin-overview-empty">暂无管理操作记录</p>}
           </div>
         </section>
 

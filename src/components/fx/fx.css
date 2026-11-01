@@ -31,6 +31,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .fx-shiny { animation: none; }
-  .fx-loader { animation-duration: 2.6s; }
+  .fx-shiny,
+  .fx-loader {
+    animation: none !important;
+  }
 }

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { confirmDialog, promptDialog } from '../lib/dialog';
 import { alog } from '../pages/admin/shared';
+import AdminMemberModal from './AdminMemberModal';
 
 type Account = {
   id: string;
@@ -40,6 +41,9 @@ export default function AdminAccountManagement({
   const [rows, setRows] = useState<Account[]>([]);
   const [query, setQuery] = useState('');
   const [status, setStatus] = useState<'all' | 'active' | 'disabled'>('all');
+  const [roleFilter, setRoleFilter] = useState<'all' | 'member' | 'admin' | 'super_admin'>('all');
+  const [sortBy, setSortBy] = useState<'newest' | 'recent_login' | 'oldest'>('newest');
+  const [detailId, setDetailId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
@@ -63,16 +67,26 @@ export default function AdminAccountManagement({
 
   const filtered = useMemo(() => {
     const q = query.trim().toLocaleLowerCase();
-    return rows.filter((r) => {
+    const matched = rows.filter((r) => {
       if (status === 'active' && !r.joined) return false;
       if (status === 'disabled' && r.joined) return false;
+      if (roleFilter !== 'all' && r.role !== roleFilter) return false;
       if (!q) return true;
       return [r.username, r.display_name, r.real_name, r.email, r.id]
         .some((v) => (v || '').toLocaleLowerCase().includes(q));
     });
-  }, [rows, query, status]);
+    const time = (value: string | null) => {
+      const parsed = value ? Date.parse(value) : 0;
+      return Number.isFinite(parsed) ? parsed : 0;
+    };
+    return matched.sort((a, b) => {
+      if (sortBy === 'recent_login') return time(b.last_sign_in_at) - time(a.last_sign_in_at);
+      if (sortBy === 'oldest') return time(a.created_at) - time(b.created_at);
+      return time(b.created_at) - time(a.created_at);
+    });
+  }, [rows, query, status, roleFilter, sortBy]);
 
-  useEffect(() => { setPage(0); }, [query, status]);
+  useEffect(() => { setPage(0); }, [query, status, roleFilter, sortBy]);
   const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
   const shown = filtered.slice(page * pageSize, (page + 1) * pageSize);
 
@@ -116,16 +130,50 @@ export default function AdminAccountManagement({
     setMsg('批量' + verb + '完成：成功 ' + success + ' 个，失败 ' + failed + ' 个。');
   }
 
-  function exportFiltered() {
-    const rows = [['显示名称', '用户名', '角色', '账号状态', '注册时间', '最近登录'], ...filtered.map(account => [account.display_name || account.username, account.username, account.role, account.joined ? '权限正常' : '班级权限已暂停', account.created_at, account.last_sign_in_at || ''])];
-    const csv = '\uFEFF' + rows.map(row => row.map(value => '"' + String(value ?? '').replace(/"/g, '""') + '"').join(',')).join('\r\n');
+  function exportAccounts(accounts: Account[], scope: 'filtered' | 'selected') {
+    if (!accounts.length) {
+      setMsg(scope === 'selected' ? '当前筛选中没有已选成员。' : '当前筛选没有可导出的账号。');
+      return;
+    }
+    const exportRows = [
+      ['显示名称', '用户名', '角色', '账号状态', '注册时间', '最近登录'],
+      ...accounts.map(account => [
+        account.display_name || account.username,
+        account.username,
+        account.role,
+        account.joined ? '权限正常' : '班级权限已暂停',
+        account.created_at,
+        account.last_sign_in_at || '',
+      ]),
+    ];
+    const csv = '\\uFEFF' + exportRows.map(row => row.map(value => '"' + String(value ?? '').replace(/"/g, '""') + '"').join(',')).join('\\r\\n');
     const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
-    const link = document.createElement('a'); link.href = url;
-    link.download = 'qznb-members-' + new Date().toISOString().slice(0, 10) + '.csv';
-    link.click(); URL.revokeObjectURL(url);
-    setMsg('已导出当前筛选的 ' + filtered.length + ' 条基础账号记录，不包含邮箱、联系方式或账号 ID。');
-    void alog('member_export', { count: filtered.length, scope: 'filtered_basic_fields' });
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'qznb-members-' + scope + '-' + new Date().toISOString().slice(0, 10) + '.csv';
+    link.click();
+    URL.revokeObjectURL(url);
+    setMsg('已导出 ' + accounts.length + ' 条基础账号记录，不包含邮箱、联系方式或账号 ID。');
+    void alog('member_export', { count: accounts.length, scope: scope + '_basic_fields' });
   }
+
+  function exportFiltered() {
+    exportAccounts(filtered, 'filtered');
+  }
+
+  function exportSelected() {
+    exportAccounts(filtered.filter(account => selected.has(account.id)), 'selected');
+  }
+
+  async function copyAccountId(account: Account) {
+    try {
+      await navigator.clipboard.writeText(account.id);
+      setMsg('已复制 ' + (account.display_name || account.username) + ' 的账号 ID。');
+    } catch {
+      setMsg('复制失败，请展开详细信息后手动复制账号 ID。');
+    }
+  }
+
   async function deleteAccount(account: Account) {
     if (!isSuper) {
       setMsg('删除账号仅限超级管理员操作。');
@@ -206,16 +254,32 @@ export default function AdminAccountManagement({
           <button key={value} style={{ ...btn, background: status === value ? '#5b8cff44' : '#ffffff08', borderColor: status === value ? '#7da0ff' : '#ffffff20' }}
             aria-pressed={status === value} onClick={() => setStatus(value)}>{label}</button>)}
       </div>
+      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', marginTop: 8 }}>
+        {([['all', '全部角色'], ['member', '普通成员'], ['admin', '内容管理员'], ['super_admin', '超级管理员']] as const).map(([value, label]) =>
+          <button key={value} style={{ ...btn, padding: '6px 9px', background: roleFilter === value ? '#278b9140' : '#ffffff08', borderColor: roleFilter === value ? '#54c4c9' : '#ffffff20' }}
+            aria-pressed={roleFilter === value} onClick={() => setRoleFilter(value)}>{label}</button>)}
+      </div>
+      <div style={{ display: 'flex', gap: 7, alignItems: 'center', flexWrap: 'wrap', marginTop: 8 }}>
+        <label htmlFor="admin-account-sort" style={{ ...muted, marginRight: 2 }}>排序</label>
+        <select id="admin-account-sort" value={sortBy} onChange={event => setSortBy(event.target.value as typeof sortBy)}
+          style={{ ...btn, color: '#eef0ff', background: '#ffffff08' }}>
+          <option value="newest">最新注册</option>
+          <option value="recent_login">最近登录</option>
+          <option value="oldest">最早注册</option>
+        </select>
+      </div>
       <p style={{ ...muted, margin: '8px 0 0' }}>当前 {filtered.length} 个账号 · 第 {page + 1}/{pageCount} 页。登录位置只显示用户在资料/设备功能中提供的记录，不会冒充 IP 定位。</p>
       <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap', marginTop: 9 }}>
         <button style={btn} onClick={exportFiltered}>导出当前筛选 CSV</button>
         <button style={btn} onClick={() => setSelected(new Set(shown.filter(account => account.role === 'member' && account.id !== me).map(account => account.id)))}>选择本页</button>
+        <button style={btn} onClick={() => setSelected(new Set(filtered.filter(account => account.role === 'member' && account.id !== me).map(account => account.id)))}>选择筛选结果</button>
         <button style={btn} onClick={() => setSelected(new Set())}>清空选择</button>
       </div>
-      {selected.size > 0 && <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap', marginTop: 9 }}>
-        <span style={{ ...muted, alignSelf: 'center' }}>已选 {selected.size} 个</span>
+      {filtered.some(account => selected.has(account.id)) && <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap', marginTop: 9, alignItems: 'center' }}>
+        <span style={{ ...muted, alignSelf: 'center' }}>当前筛选已选 {filtered.filter(account => selected.has(account.id)).length} 个</span>
+        <button style={btn} disabled={batchBusy} onClick={exportSelected}>导出已选 CSV</button>
         <button style={{ ...btn, color: '#8de0b7' }} disabled={batchBusy} onClick={() => void batchSetJoined(true)}>批量恢复</button>
-        <button style={{ ...btn, color: '#ffb5c1' }} disabled={batchBusy} onClick={() => void batchSetJoined(false)}>批量禁用</button>
+        <button style={{ ...btn, color: '#ffb5c1' }} disabled={batchBusy} onClick={() => void batchSetJoined(false)}>批量暂停权限</button>
       </div>}
     </div>
 
@@ -257,7 +321,21 @@ export default function AdminAccountManagement({
       </div>}
 
       <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap', marginTop: 10 }}>
+        <button style={btn} onClick={() => setDetailId(r.id)}>成员档案 / 活动记录</button>
+        <button style={btn} onClick={() => void copyAccountId(r)}>复制账号 ID</button>
         <button style={{ ...btn, borderColor: r.joined ? '#ff879655' : '#7ed9b055', color: r.joined ? '#ffb5c1' : '#8de0b7' }}
+          disabled={!isSuper || r.id === me || busy === r.id}
+          onClick={() => void toggleAccount(r)}>
+          {busy === r.id ? '处理中…' : r.joined ? '暂停班级权限' : '恢复班级权限'}
+        </button>
+        {isSuper && r.role === 'member' && <button
+          style={{ ...btn, borderColor: '#ff5d6c88', color: '#ff9da7', background: '#ff5d6c12' }}
+          disabled={r.id === me || busy === r.id}
+          onClick={() => void deleteAccount(r)}>
+          {busy === r.id ? '处理中…' : '提交永久删除审批'}
+        </button>}
+        {!isSuper && <span style={muted}>账号管理操作仅超级管理员可用</span>}
+      </div>
           disabled={!isSuper || r.id === me || busy === r.id}
           onClick={() => void toggleAccount(r)}>
           {busy === r.id ? '处理中…' : r.joined ? '禁用账号' : '恢复账号'}
@@ -271,6 +349,7 @@ export default function AdminAccountManagement({
         {!isSuper && <span style={muted}>账号管理操作仅超级管理员可用</span>}
       </div>
     </article>)}
+    {detailId && <AdminMemberModal memberId={detailId} onClose={() => setDetailId(null)} onChanged={load} isSuper={isSuper} />}
     {pageCount > 1 && <div style={{ ...panel, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 12 }}>
       <button style={btn} disabled={page === 0} onClick={() => setPage(value => Math.max(0, value - 1))}>上一页</button>
       <span style={muted}>{page + 1} / {pageCount}</span>

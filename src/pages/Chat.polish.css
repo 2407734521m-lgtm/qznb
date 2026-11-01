@@ -1,0 +1,305 @@
+/* Private chat visual polish.
+   The current full-screen layout, messages, subscriptions, media and voice logic stay intact. */
+.im-page {
+  --im-polish-ease: cubic-bezier(.22, 1, .36, 1);
+  background: #071b30 !important;
+}
+
+.im-page .im-head {
+  padding-left: max(15px, env(safe-area-inset-left));
+  padding-right: max(15px, env(safe-area-inset-right));
+  background:
+    linear-gradient(115deg, rgba(23, 76, 131, .72), rgba(12, 44, 83, .62)) !important;
+  border-bottom-color: rgba(201, 230, 255, .19);
+  box-shadow: 0 8px 28px rgba(0, 7, 22, .12);
+  -webkit-backdrop-filter: blur(24px) saturate(1.55);
+  backdrop-filter: blur(24px) saturate(1.55);
+}
+
+.im-page .im-back,
+.im-page .im-icon {
+  min-width: 44px !important;
+  width: 44px !important;
+  height: 44px !important;
+  border: 1px solid rgba(211, 236, 255, .21);
+  border-radius: 15px;
+  background: rgba(225, 242, 255, .105);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.10);
+  transition:
+    transform .22s var(--im-polish-ease),
+    background .2s ease,
+    border-color .2s ease;
+}
+
+.im-page .im-avatar {
+  width: 46px;
+  height: 46px;
+  border: 1px solid rgba(220, 240, 255, .34);
+  border-radius: 17px;
+  box-shadow: 0 7px 18px rgba(4, 20, 46, .28), inset 0 1px 0 rgba(255,255,255,.2);
+}
+
+.im-page .im-title {
+  font-size: 16px;
+  font-weight: 780;
+  letter-spacing: -.015em;
+}
+
+.im-page .im-sub {
+  letter-spacing: .015em;
+}
+
+.im-page .im-feed {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(192, 225, 255, .22) transparent;
+}
+
+.im-page .im-day {
+  padding: 6px 13px;
+  border-color: rgba(211, 236, 255, .18);
+  background: rgba(205, 226, 247, .105);
+  color: rgba(240, 248, 255, .84);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.07);
+  -webkit-backdrop-filter: blur(18px);
+  backdrop-filter: blur(18px);
+}
+
+.im-page .im-bubble {
+  position: relative;
+  max-width: min(76%, 560px);
+  padding: 12px 15px 8px;
+  border-radius: 21px;
+  font-size: 15px;
+  line-height: 1.52;
+  letter-spacing: .002em;
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+}
+
+.im-page .im-bubble.mine {
+  border: 1px solid rgba(190, 226, 255, .30);
+  border-bottom-right-radius: 8px;
+  background: linear-gradient(135deg, #399cff, #087dff 78%) !important;
+  box-shadow: 0 9px 24px rgba(0, 82, 190, .25), inset 0 1px 0 rgba(255,255,255,.20);
+}
+
+.im-page .im-bubble.theirs {
+  border: 1px solid rgba(218, 233, 247, .18);
+  border-bottom-left-radius: 8px;
+  background: linear-gradient(145deg, rgba(221, 234, 246, .16), rgba(170, 196, 222, .105)) !important;
+  color: #f1f7ff;
+  box-shadow: 0 8px 22px rgba(0, 7, 20, .13), inset 0 1px 0 rgba(255,255,255,.075);
+}
+
+.im-page .im-time {
+  color: rgba(235, 246, 255, .78);
+}
+
+.im-page .im-empty {
+  color: rgba(231, 244, 255, .80);
+}
+
+.im-page .im-empty-icon {
+  border-color: rgba(217, 238, 255, .22);
+  background: linear-gradient(145deg, rgba(218, 238, 255, .17), rgba(130, 175, 220, .09));
+  box-shadow: 0 14px 32px rgba(0, 9, 24, .22), inset 0 1px 0 rgba(255,255,255,.10);
+}
+
+.im-page .im-composer {
+  gap: 8px;
+  padding-left: max(12px, env(safe-area-inset-left));
+  padding-right: max(12px, env(safe-area-inset-right));
+  background: linear-gradient(145deg, rgba(7, 30, 58, .88), rgba(4, 18, 39, .84)) !important;
+  border-top-color: rgba(190, 226, 255, .19);
+  box-shadow: 0 -9px 28px rgba(0, 7, 22, .16);
+  -webkit-backdrop-filter: blur(26px) saturate(1.5);
+  backdrop-filter: blur(26px) saturate(1.5);
+}
+
+.im-page .im-plus,
+.im-page .im-icon,
+.im-page .im-mic {
+  width: 44px !important;
+  min-width: 44px !important;
+  height: 44px !important;
+  border: 1px solid rgba(208, 232, 255, .20);
+  background: rgba(216, 237, 255, .10);
+  color: #f4faff;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.09);
+  transition:
+    transform .2s var(--im-polish-ease),
+    background .2s ease,
+    border-color .2s ease,
+    box-shadow .2s ease;
+}
+
+.im-page .im-plus,
+.im-page .im-icon {
+  border-radius: 15px;
+}
+
+.im-page .im-mic {
+  border-radius: 50%;
+}
+
+.im-page .im-mic.recording {
+  border-color: rgba(255, 177, 185, .75);
+  background: linear-gradient(145deg, #f15b6d, #d9344c);
+  box-shadow: 0 0 0 4px rgba(240, 68, 85, .12), 0 7px 18px rgba(190, 35, 60, .23);
+}
+
+.im-page .im-input-wrap {
+  min-height: 46px;
+  padding-left: 15px;
+  border-color: rgba(204, 230, 250, .23);
+  border-radius: 24px;
+  background: rgba(3, 18, 38, .60);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.055);
+  transition: border-color .22s ease, box-shadow .22s ease, background .22s ease;
+}
+
+.im-page .im-input-wrap:focus-within {
+  border-color: rgba(143, 203, 255, .72);
+  background: rgba(5, 25, 51, .80);
+  box-shadow: 0 0 0 3px rgba(115, 184, 255, .14), inset 0 1px 0 rgba(255,255,255,.075);
+}
+
+.im-page .im-input {
+  min-height: 44px;
+  padding-top: 11px !important;
+  padding-bottom: 11px !important;
+  font-size: 16px;
+}
+
+.im-page .im-send {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #58a8ff, #087dff);
+  box-shadow: 0 5px 15px rgba(30, 120, 235, .28), inset 0 1px 0 rgba(255,255,255,.24);
+  transition: transform .2s var(--im-polish-ease), filter .2s ease, box-shadow .2s ease;
+}
+
+.im-page .im-send:disabled {
+  filter: saturate(.45);
+}
+
+.im-page .im-sticker-tray {
+  background: rgba(5, 24, 49, .88);
+  border-top-color: rgba(205, 230, 255, .15);
+  -webkit-backdrop-filter: blur(28px) saturate(1.45);
+  backdrop-filter: blur(28px) saturate(1.45);
+}
+
+.im-page .im-sticker-choice {
+  border-color: rgba(215, 236, 255, .17);
+  background: rgba(219, 238, 255, .09);
+  border-radius: 16px;
+  transition: transform .18s var(--im-polish-ease), background .18s ease;
+}
+
+.im-page .im-reply-banner {
+  border-top-color: rgba(205, 230, 255, .17);
+  background: rgba(9, 37, 70, .91);
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
+}
+
+.im-page .im-reply-banner button,
+.im-page .im-action-btn {
+  border: 1px solid rgba(210, 233, 255, .18);
+  background: rgba(218, 238, 255, .11);
+  color: #f1f8ff;
+  transition: transform .2s var(--im-polish-ease), background .2s ease;
+}
+
+.im-page .im-reaction-chip {
+  border-color: rgba(217, 237, 255, .22);
+  background: rgba(210, 232, 255, .105);
+  color: #f3f9ff;
+}
+
+.im-page .im-reaction-chip.mine {
+  border-color: rgba(133, 202, 255, .62);
+  background: rgba(80, 159, 245, .29);
+}
+
+.im-page .im-details {
+  border-bottom-color: rgba(205, 230, 255, .17);
+  background: rgba(7, 30, 58, .84);
+  -webkit-backdrop-filter: blur(24px);
+  backdrop-filter: blur(24px);
+}
+
+.im-page :where(button):focus-visible,
+.im-page .im-input:focus-visible {
+  outline: 2px solid rgba(157, 213, 255, .92);
+  outline-offset: 3px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .im-page .im-back:hover,
+  .im-page .im-icon:hover,
+  .im-page .im-plus:hover,
+  .im-page .im-mic:not(:disabled):hover {
+    border-color: rgba(195, 226, 255, .39);
+    background: rgba(221, 240, 255, .17);
+  }
+
+  .im-page .im-send:not(:disabled):hover {
+    transform: translateY(-1px) scale(1.04);
+    box-shadow: 0 8px 20px rgba(30, 120, 235, .34);
+  }
+}
+
+.im-page :where(button):active:not(:disabled),
+.im-page .im-sticker-choice:active {
+  transform: scale(.96);
+}
+
+@media (max-width: 600px) {
+  .im-page .im-bubble {
+    max-width: 84%;
+    padding: 11px 14px 8px;
+  }
+
+  .im-page .im-head {
+    gap: 9px;
+  }
+
+  .im-page .im-composer {
+    gap: 7px;
+  }
+
+  .im-page .im-plus,
+  .im-page .im-icon,
+  .im-page .im-mic {
+    width: 42px !important;
+    min-width: 42px !important;
+    height: 42px !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .im-page .im-row,
+  .im-page .im-mic.recording {
+    animation: none !important;
+  }
+
+  .im-page :where(button):active:not(:disabled),
+  .im-page .im-sticker-choice:active {
+    transform: none !important;
+  }
+
+  .im-page .im-back,
+  .im-page .im-icon,
+  .im-page .im-plus,
+  .im-page .im-mic,
+  .im-page .im-input-wrap,
+  .im-page .im-send,
+  .im-page .im-sticker-choice,
+  .im-page .im-action-btn,
+  .im-page .im-reply-banner button {
+    transition: none !important;
+  }
+}

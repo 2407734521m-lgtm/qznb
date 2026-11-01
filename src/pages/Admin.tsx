@@ -237,7 +237,7 @@ export default function Admin() {
               {tab === 'events' && <EventTab me={me} setMsg={setMsg} />}
               {tab === 'logs' && <Logs />}
               {tab === 'security' && isSuper && <AdminSecurityCenter session={session} setMsg={setMsg} />}
-              {tab === 'approvals' && isSuper && <AdminApprovalCenter setMsg={setMsg} />}
+              {tab === 'approvals' && isSuper && <AdminApprovalCenter setMsg={setMsg} me={me} />}
               {tab === 'system' && isSuper && <AdminSystemCenter setMsg={setMsg} go={switchTab} />}
               {tab === 'settings' && isSuper && <Settings me={me} setMsg={setMsg} />}
               {tab === 'invite' && <InviteTab isSuper={isSuper} setMsg={setMsg} />}
@@ -395,7 +395,7 @@ function Members({ me, isSuper, setMsg, extQ }: { me: string; isSuper: boolean; 
       )}
     </div>
     {shown.map(m => (
-      <div key={m.id} style={{ ...card, opacity: m.joined ? 1 : 0.55 }}>
+      <div key={m.id} style={{ ...card, opacity: m.joined ? 1 : 0.72 }}>
         <div className="row" style={{ gap: 8, alignItems: 'center' }}>
           <input type="checkbox" checked={sel.has(m.id)}
             onChange={e => { const n = new Set(sel); e.target.checked ? n.add(m.id) : n.delete(m.id); setSel(n); }} />

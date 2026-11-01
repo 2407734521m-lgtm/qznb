@@ -795,39 +795,69 @@ function Shell() {
       <GlobalSearch open={searchOpen} onClose={() => setSearchOpen(false)} />
       {gpsOffer && !isAdminPage && (
         <div role="dialog" aria-modal="true" aria-labelledby="gps-consent-title" onClick={closeGpsOffer} style={{
-          position: 'fixed', inset: 0, zIndex: 700, background: 'rgba(0,0,0,.78)',
+          position: 'fixed', inset: 0, zIndex: 700,
+          background: 'radial-gradient(ellipse at 16% 12%, rgba(52,166,162,.18), transparent 44%), rgba(239,247,248,.56)',
           display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 18,
-          backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)',
+          backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
         }}>
           <section onClick={e => e.stopPropagation()} style={{
             width: '100%', maxWidth: 520, maxHeight: '86vh', overflowY: 'auto',
-            padding: 24, borderRadius: 22, color: '#f4f6ff',
-            background: 'linear-gradient(155deg,#1a2340,#0b1020)',
-            border: '1px solid rgba(255,255,255,.16)', boxShadow: '0 24px 80px #000b',
+            padding: 'clamp(20px,4vw,26px)', borderRadius: 26, color: '#203b4b',
+            background: 'rgba(255,255,255,.96)',
+            border: '1px solid rgba(204,224,227,.92)',
+            boxShadow: '0 24px 76px rgba(20,65,76,.20)',
+            backdropFilter: 'blur(22px)', WebkitBackdropFilter: 'blur(22px)',
           }}>
-            <h2 id="gps-consent-title" style={{ margin: '0 0 10px', fontSize: 22 }}>精准位置授权（自愿）</h2>
-            <p style={{ lineHeight: 1.7, color: 'rgba(244,246,255,.82)' }}>
-              精准定位不是注册或登录的必需条件。只有你点击“同意并开启定位”后，浏览器才会请求设备的位置权限；你也可以直接跳过，不影响使用班级网站。
+            <div style={{
+              display: 'inline-flex', alignItems: 'center', gap: 7,
+              marginBottom: 10, padding: '5px 10px', borderRadius: 999,
+              background: '#eaf5f5', color: '#176477',
+              fontSize: 10, fontWeight: 800, letterSpacing: 1.2,
+            }}>
+              <span aria-hidden>⌖</span> LOCATION · OPTIONAL
+            </div>
+            <h2 id="gps-consent-title" style={{ margin: '0 0 10px', fontSize: 22, letterSpacing: '-.3px', color: '#203b4b' }}>
+              开启设备定位（自愿）
+            </h2>
+            <p style={{ margin: '0 0 14px', lineHeight: 1.75, color: '#607985', fontSize: 14 }}>
+              如果你想确认当前手机或浏览器能否正常定位，可以开启一次定位，在本页查看设备返回的位置和精度，帮助你检查设备定位设置是否正常。
             </p>
-            <ul style={{ paddingLeft: 20, lineHeight: 1.7, color: 'rgba(244,246,255,.82)' }}>
-              <li>定位由设备和浏览器提供，精度受 GPS、网络和设备环境影响。</li>
-              <li>本阶段只在当前页面临时显示坐标与精度，不上传服务器、不写入数据库，也不提供给管理员查看。</li>
-              <li>拒绝、关闭或浏览器不支持定位，都不会影响基本功能。</li>
-            </ul>
-            {gpsError && <p role="alert" style={{ color: '#ffb4b4', lineHeight: 1.6 }}>{gpsError}</p>}
+            <div style={{
+              padding: '14px 15px', borderRadius: 17,
+              background: 'linear-gradient(145deg,#f5fafb,#edf6f6)',
+              border: '1px solid #e0eeee',
+            }}>
+              <div style={{ fontSize: 13, fontWeight: 800, color: '#285b68', marginBottom: 8 }}>你可以放心选择</div>
+              <ul style={{ margin: 0, paddingLeft: 19, lineHeight: 1.75, color: '#607985', fontSize: 13 }}>
+                <li>定位结果只在当前页面临时显示，不上传服务器、不写入账号或数据库，管理员和其他成员都看不到。</li>
+                <li>只有点击下方按钮后，浏览器才会弹出自己的权限窗口；是否允许由你决定。</li>
+                <li>这不是签到、考勤或位置共享功能；拒绝授权也不会影响注册、登录和网站基本使用。</li>
+                <li>关闭此窗口会清除本页临时坐标；已授予的浏览器权限也可随时在设备或浏览器设置中撤回。</li>
+              </ul>
+            </div>
+            {gpsError && (
+              <p role="alert" style={{
+                margin: '12px 0 0', padding: '10px 12px', borderRadius: 12,
+                color: '#a33f48', background: '#fff2f2', border: '1px solid #f3d7da', lineHeight: 1.6,
+              }}>{gpsError}</p>
+            )}
             {gpsResult && (
-              <div style={{ padding: 12, borderRadius: 12, background: 'rgba(255,255,255,.07)', lineHeight: 1.7, overflowWrap: 'anywhere' }}>
-                <b>本页临时定位结果</b><br />
+              <div style={{
+                marginTop: 12, padding: 13, borderRadius: 14,
+                background: '#f7fbfb', border: '1px solid #dcebed',
+                color: '#456773', lineHeight: 1.8, overflowWrap: 'anywhere', fontSize: 13,
+              }}>
+                <b style={{ color: '#176477' }}>本页临时定位结果</b><br />
                 纬度：{gpsResult.latitude.toFixed(6)}<br />
                 经度：{gpsResult.longitude.toFixed(6)}<br />
                 设备报告精度：约 {Math.round(gpsResult.accuracy)} 米<br />
-                <small>关闭此弹窗或离开页面后，不会保存到网站账户。</small>
+                <small style={{ color: '#82959d' }}>仅供你在当前页面核对；关闭窗口后清除。</small>
               </div>
             )}
             <button className="pri" disabled={gpsBusy || !!gpsResult} onClick={() => {
               setGpsError('');
               if (!navigator.geolocation) {
-                setGpsError('当前浏览器不支持定位。你可以跳过，不影响使用。');
+                setGpsError('当前浏览器不支持定位。你可以跳过，不影响使用网站。');
                 return;
               }
               setGpsBusy(true);
@@ -850,12 +880,22 @@ function Shell() {
                 },
                 { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
               );
-            }} style={{ width: '100%', marginTop: 14 }}>
-              {gpsBusy ? '正在等待设备定位…' : gpsResult ? '已获取本页临时位置' : '同意并开启定位'}
+            }} style={{
+              width: '100%', marginTop: 14, padding: 13, borderRadius: 14,
+              background: 'linear-gradient(135deg,#176477,#2c9999)', color: '#fff',
+              boxShadow: '0 8px 22px rgba(22,100,117,.18)',
+            }}>
+              {gpsBusy ? '正在请求设备位置…' : gpsResult ? '已完成本页位置检查' : '继续，打开浏览器定位授权'}
             </button>
-            <button className="ghost" disabled={gpsBusy} onClick={closeGpsOffer} style={{ width: '100%', marginTop: 8 }}>
-              {gpsResult ? '关闭并清除本页坐标' : '暂不授权，继续使用网站'}
+            <button className="ghost" disabled={gpsBusy} onClick={closeGpsOffer} style={{
+              width: '100%', marginTop: 8, padding: 12, borderRadius: 14,
+              border: '1px solid #dce8eb', background: '#f5f9fa', color: '#56717d',
+            }}>
+              {gpsResult ? '关闭并清除本页坐标' : '暂不授权，直接进入网站'}
             </button>
+            <p style={{ margin: '10px 0 0', textAlign: 'center', color: '#8a9ba2', fontSize: 11, lineHeight: 1.5 }}>
+              完全自愿 · 不影响任何账号功能 · 不会替你自动同意系统权限
+            </p>
           </section>
         </div>
       )}

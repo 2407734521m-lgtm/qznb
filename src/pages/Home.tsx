@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { useSignedUrl } from '../lib/media';
+import { useSignedUrls } from '../lib/media';
 import Reveal from '../components/Reveal';
 import BlurText from '../components/fx/BlurText';
 import ShinyText from '../components/fx/ShinyText';
@@ -20,11 +20,10 @@ function timeAgo(s: string) {
   return new Date(s).toLocaleDateString();
 }
 
-function Av({ path, name }: { path: string | null; name: string }) {
-  const url = useSignedUrl('avatars', path);
+function Av({ path, name, signedUrl }: { path: string | null; name: string; signedUrl?: string }) {
   return (
     <div className="av" style={{ width: 44, height: 44 }}>
-      {url ? <img src={url} alt="" /> : <span>{(name || '?').slice(0, 1)}</span>}
+      {signedUrl ? <img src={signedUrl} alt="" loading="lazy" decoding="async" /> : <span>{(name || '?').slice(0, 1)}</span>}
     </div>
   );
 }
@@ -53,6 +52,7 @@ export default function Home() {
   const [wishes, setWishes] = useState<any[]>([]);
   const [names, setNames] = useState<Record<string, string>>({});
   const [annPop, setAnnPop] = useState<any>(null);
+  const memberAvatarUrls = useSignedUrls('avatars', members.map(member => member.avatar_path));
 
   useEffect(() => {
     let live = true;
@@ -76,7 +76,9 @@ export default function Home() {
           .order('created_at', { ascending: false }).limit(3),
         supabase.from('profiles').select('id, username, display_name, avatar_path, created_at')
           .eq('joined', true).order('created_at', { ascending: false }).limit(6),
-        supabase.from('events').select('id, title, event_at, location').order('event_at', { ascending: true }).limit(3),
+        supabase.from('events').select('id, title, event_at, location')
+          .or(`event_at.is.null,event_at.gte.${nowIso}`)
+          .order('event_at', { ascending: true }).limit(3),
         supabase.from('wishes').select('id, content, created_at').order('created_at', { ascending: false }).limit(3),
       ]);
       if (!live) return;
@@ -231,7 +233,8 @@ export default function Home() {
                 <div className="vh-members">
                   {members.map(m => (
                     <div className="vh-member" key={m.id} onClick={() => nav(`/member/${m.id}`)}>
-                      <Av path={m.avatar_path} name={m.display_name || m.username} />
+                      <Av path={m.avatar_path} name={m.display_name || m.username}
+                        signedUrl={m.avatar_path ? memberAvatarUrls[m.avatar_path] : undefined} />
                       <span>{m.display_name || m.username}</span>
                     </div>
                   ))}

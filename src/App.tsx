@@ -351,6 +351,16 @@ function Shell() {
   const [dockSide, setDockSide] = useState<'left' | 'right'>(() => {
     try { return localStorage.getItem('ca_dock_side') === 'left' ? 'left' : 'right'; } catch { return 'right'; }
   });
+  // 只在路由或 Dock 展开状态变化时定位活动项，避免每次 Shell 重渲染都触发滚动。
+  useEffect(() => {
+    if (dockCollapsed) return;
+    const active = barRef.current?.querySelector<HTMLAnchorElement>('.dock-item a.on');
+    active?.scrollIntoView({
+      inline: 'center',
+      block: 'nearest',
+      behavior: reduce ? 'auto' : 'smooth',
+    });
+  }, [loc.pathname, dockCollapsed, reduce]);
   useEffect(() => {
     try {
       localStorage.setItem('ca_dock_collapsed', dockCollapsed ? '1' : '0');
@@ -767,8 +777,7 @@ function Shell() {
                     transition: { duration: DUR.fast, ease: EASE, delay: dockSide === 'left' ? (TABS.length - 1 - i) * 0.02 : i * 0.02 }
                   }}
                   transition={{ duration: reduce ? 0 : DUR.fast, ease: EASE, delay: reduce ? 0 : (dockSide === 'left' ? i * 0.02 : (TABS.length - 1 - i) * 0.02) }}>
-                  <NavLink to={t.to} className={on ? 'on' : ''}
-                    ref={on ? (el: any) => { if (el) el.scrollIntoView({ inline: 'center', block: 'nearest' }); } : undefined}>
+                  <NavLink to={t.to} className={on ? 'on' : ''}>
                     <span className="dock-tab-label">{t.label}</span>
                     {((t.to === '/board' && boardUnread) || (t.to === '/me/notifications' && notifUnread)) && <span className="dock-unread-dot" />}
                   </NavLink>

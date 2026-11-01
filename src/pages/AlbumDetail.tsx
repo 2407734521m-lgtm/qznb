@@ -13,7 +13,7 @@ function Thumb({ p, url, onView }: { p: P; url?: string; onView: () => void }) {
   if (!url) return null;
   return (
     <figure onClick={onView}>
-      <img src={url} alt={p.caption ?? ''} loading="lazy" />
+      <img src={url} alt={p.caption ?? ''} loading="lazy" decoding="async" />
       {p.caption && <figcaption>{p.caption}</figcaption>}
     </figure>
   );

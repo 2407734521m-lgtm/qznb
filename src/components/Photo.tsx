@@ -11,7 +11,7 @@ export default function Photo({ id, path, name, bucket = 'avatars', className = 
   return (
     <div className={`photo ${className}`} data-photo={id}>
       {url && !bad
-        ? <img src={url} alt={name} loading="lazy" draggable={false} onError={() => setBad(true)} />
+        ? <img src={url} alt={name} loading="lazy" decoding="async" draggable={false} onError={() => setBad(true)} />
         : <span className="photo-fallback">{name.slice(0, 1).toUpperCase()}</span>}
     </div>
   );

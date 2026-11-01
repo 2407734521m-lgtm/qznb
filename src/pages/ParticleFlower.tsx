@@ -16,6 +16,16 @@ type HanziCandidate = { hanzi: string; score: number };
 type InkGlyph = { character: string; strokes: InkStroke[] };
 type LayoutOrientation = 'portrait' | 'landscape';
 type FpsLimit = 30 | 60 | 90 | 120 | 0;
+type ArtTheme = 'sakura' | 'gold' | 'starsea' | 'glass';
+type Artwork = { id: string; name: string; dataUrl: string; createdAt: number };
+type FallingPetal = { x: number; y: number; vx: number; vy: number; rotation: number; spin: number; size: number; tone: number; life: number };
+const THEME_COLORS: Record<ArtTheme, number[][]> = {
+  sakura: [[255,246,224],[255,215,224],[250,167,198],[238,126,177]],
+  gold: [[255,248,207],[255,222,142],[246,184,89],[218,139,48]],
+  starsea: [[225,250,255],[155,226,255],[83,178,232],[104,126,238]],
+  glass: [[245,255,255],[204,239,238],[169,213,224],[195,178,236]]
+};
+const THEME_NAMES: Record<ArtTheme, string> = { sakura: '樱花', gold: '金色花园', starsea: '星海', glass: '玻璃花' };
 
 const HAND_CONNECTIONS: number[][] = [
   [0,1],[1,2],[2,3],[3,4], [0,5],[5,6],[6,7],[7,8],
@@ -86,8 +96,7 @@ function makeParticles(count: number): Particle[] {
   return out;
 }
 
-function drawParticleSprites(): HTMLCanvasElement[] {
-  const colors = [[255,246,224],[255,215,224],[250,167,198],[238,126,177]];
+function drawParticleSprites(colors: number[][] = THEME_COLORS.sakura): HTMLCanvasElement[] {
   return colors.map(([r,g,b], index) => {
     const sprite = document.createElement('canvas'); sprite.width = 48; sprite.height = 48;
     const ctx = sprite.getContext('2d')!;
@@ -345,6 +354,13 @@ export default function ParticleFlower() {
   const fingerRef = useRef<Point | null>(null);
   const gestureRotationRef = useRef(0);
   const fingerTrailRef = useRef<Array<{ x: number; y: number; t: number }>>([]);
+  const gestureLiftRef = useRef(0);
+  const twoHandBoostRef = useRef(0);
+  const autoDemoRef = useRef(false);
+  const lastPetalReleaseRef = useRef(0);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const recordingChunksRef = useRef<Blob[]>([]);
+  const recordingTimerRef = useRef<number>(0);
   const landmarksRef = useRef<any[] | null>(null);
   const hasHandRef = useRef(false);
   const experienceStartedRef = useRef(false);
@@ -357,6 +373,17 @@ export default function ParticleFlower() {
   const [qualityPreset, setQualityPreset] = useState<'auto' | 'soft' | 'standard' | 'ultra' | 'custom'>('auto');
   const [focusMode, setFocusMode] = useState(false);
   const [performanceNotice, setPerformanceNotice] = useState('设备自适应已开启');
+  const [artTheme, setArtTheme] = useState<ArtTheme>('sakura');
+  const artThemeRef = useRef<ArtTheme>('sakura');
+  const [autoDemo, setAutoDemo] = useState(false);
+  const [bloomPhase, setBloomPhase] = useState('花苞');
+  const [signature, setSignature] = useState('');
+  const [savedArtworks, setSavedArtworks] = useState<Artwork[]>(() => {
+    try { return JSON.parse(window.localStorage.getItem('qznb-bloom-artworks') || '[]').slice(0, 8); }
+    catch { return []; }
+  });
+  const [isRecording, setIsRecording] = useState(false);
+  const [mediaMessage, setMediaMessage] = useState('');
   const autoFpsLowSamplesRef = useRef(0);
   const [actualFps, setActualFps] = useState(0);
   const [openness, setOpenness] = useState(18);
@@ -547,11 +574,16 @@ export default function ParticleFlower() {
       video.srcObject = stream;
       await video.play();
       const hands = new HandsCtor({ locateFile: (file: string) => CDN + '/' + file });
-      hands.setOptions({ maxNumHands: 1, modelComplexity: 1, minDetectionConfidence: 0.62, minTrackingConfidence: 0.58 });
+      hands.setOptions({ maxNumHands: 2, modelComplexity: 1, minDetectionConfidence: 0.62, minTrackingConfidence: 0.58 });
       setLoadingStage('正在初始化手势模型');
       setLoadingProgress(82);
       hands.onResults((results: any) => {
-        const hand = results.multiHandLandmarks?.[0];
+        const detectedHands = results.multiHandLandmarks || [];
+        const hand = detectedHands[0];
+        const secondHand = detectedHands[1];
+        twoHandBoostRef.current = secondHand?.[8]
+          ? lerp(twoHandBoostRef.current, clamp(1 - distance(hand[8], secondHand[8]) / 0.72, 0, 1), 0.16)
+          : lerp(twoHandBoostRef.current, 0, 0.08);
         if (!hand) {
           landmarksRef.current = null; fingerRef.current = null;
           if (pinchingRef.current) {
@@ -564,6 +596,7 @@ export default function ParticleFlower() {
           }
           targetRef.current = 0.18; hasHandRef.current = false; setHasHand(false);
           gestureRotationRef.current = lerp(gestureRotationRef.current, 0, 0.06);
+          gestureLiftRef.current = lerp(gestureLiftRef.current, 0, 0.06);
           return;
         }
         landmarksRef.current = hand;
@@ -576,6 +609,7 @@ export default function ParticleFlower() {
         const index = hand[8];
         const screenPoint = { x: (1-index.x) * viewportRef.current.width, y: index.y * viewportRef.current.height };
         fingerRef.current = { ...screenPoint, z: index.z || 0 };
+        gestureLiftRef.current = lerp(gestureLiftRef.current, clamp((0.5 - hand[9].y) * 0.42, -0.18, 0.18), 0.075);
         if (experienceToolRef.current === 'flower') {
           const horizontalOffset = screenPoint.x / Math.max(1, viewportRef.current.width) - 0.5;
           gestureRotationRef.current = lerp(gestureRotationRef.current, clamp(horizontalOffset * 0.3, -0.14, 0.14), 0.08);

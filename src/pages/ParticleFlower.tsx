@@ -7,6 +7,7 @@ type Particle = {
   seed: number; angle: number; depth: number; size: number; phase: number;
   budX: number; budY: number; budZ: number; bloomX: number; bloomY: number; bloomZ: number;
   x: number; y: number; vx: number; vy: number;
+  cameraDepth: number; projectionScale: number; radial: number;
 };
 type Mode = 'gesture' | 'demo';
 type LayoutOrientation = 'portrait' | 'landscape';
@@ -47,42 +48,44 @@ function makeParticles(count: number): Particle[] {
     const angle = Math.random() * TAU;
     const depth = Math.random() * 2 - 1;
 
-    // 花苞保持紧凑的椭球体，绽放态改为多层花冠，而不是一张均匀的圆盘。
-    const budR = Math.pow(Math.random(), 1.65);
+    // 花苞是有纵深的紧凑椭球，张掌后每颗粒子沿自己的空间轨迹展开。
+    const budR = Math.pow(Math.random(), 1.55);
     const budTheta = Math.acos(2 * Math.random() - 1);
-    const budX = Math.sin(budTheta) * Math.cos(angle) * budR * 0.24;
-    const budY = Math.cos(budTheta) * budR * 0.43;
-    const budZ = Math.sin(budTheta) * Math.sin(angle) * budR * 0.12;
+    const budX = Math.sin(budTheta) * Math.cos(angle) * budR * 0.22;
+    const budY = Math.cos(budTheta) * budR * 0.34;
+    const budZ = Math.sin(budTheta) * Math.sin(angle) * budR * 0.18;
 
-    // 粒子花冠：每个点随机落在一片粒子花瓣的内部，瓣与瓣之间保留细缝。
-    // 三层分别采用 7/6/5 瓣，错位叠放；所有花瓣均由独立粒子组成。
+    // 粒子花冠不是平面圆盘：7/6/5 瓣三层在 X-Z 平面错位铺开，
+    // Y 轴形成穹顶与下垂外沿，Z 轴保留前后层次。
     const layerRoll = Math.random();
-    const layer = layerRoll < 0.48 ? 0 : layerRoll < 0.82 ? 1 : 2;
-    const layerScale = layer === 0 ? 1 : layer === 1 ? 0.91 : 0.82;
+    const layer = layerRoll < 0.46 ? 0 : layerRoll < 0.82 ? 1 : 2;
+    const layerScale = layer === 0 ? 1 : layer === 1 ? 0.88 : 0.76;
     const petalCount = layer === 0 ? 7 : layer === 1 ? 6 : 5;
-    const petalPhase = layer * 0.86 + (layer === 1 ? Math.PI / 6 : layer === 2 ? Math.PI / 5 : 0);
-    const wave = Math.cos(angle * petalCount + petalPhase);
-    const petalRidge = Math.pow(Math.max(0, (wave + 1) * 0.5), 1.55);
-    const scallopedEdge = 0.73 + 0.27 * petalRidge;
+    const petalPhase = layer === 0 ? 0 : layer === 1 ? Math.PI / 6 : Math.PI / 5;
+    const wave = Math.cos(angle * petalCount + petalPhase + layer * 0.31);
+    const petalRidge = Math.pow(Math.max(0, (wave + 1) * 0.5), 1.45);
+    const scallopedEdge = 0.76 + 0.24 * petalRidge;
     const radial = Math.pow(Math.random(), 0.72);
     const petalR = radial * scallopedEdge * layerScale;
-    const fold = Math.sin(angle * petalCount + petalPhase) * 0.035 * radial;
+    const fold = Math.sin(angle * petalCount + petalPhase) * 0.032 * radial;
     const warpedAngle = angle + fold;
 
-    // 伞形花冠由上层、主层、下垂外层构成，外围少量粒子向下飘散。
-    const drift = Math.random() < 0.13 ? 0.06 + Math.random() * 0.18 : 0;
-    const layerLift = layer === 0 ? 0.072 : layer === 1 ? 0.012 : -0.052;
+    // 外沿粒子形成自然下垂的粒子帘，不绘制实体花瓣。
+    const isHanging = radial > 0.68 && Math.random() < 0.22;
+    const hanging = isHanging ? 0.05 + Math.random() * 0.2 : 0;
+    const layerLift = layer === 0 ? -0.035 : layer === 1 ? 0.008 : 0.052;
     const dome = Math.sqrt(Math.max(0, 1 - radial * radial));
-    const bloomX = Math.cos(warpedAngle) * petalR * 0.56
-      + Math.cos(angle) * drift * 0.18;
-    const bloomY = Math.sin(warpedAngle) * petalR * 0.39
-      + radial * radial * 0.052 + layerLift + drift;
-    const bloomZ = dome * 0.19 + (2 - layer) * 0.018 + depth * 0.014;
+    const bloomX = Math.cos(warpedAngle) * petalR * 0.62
+      + Math.cos(angle) * hanging * 0.08;
+    const bloomY = -dome * 0.145 + radial * radial * 0.145 + layerLift + hanging;
+    const bloomZ = Math.sin(warpedAngle) * petalR * 0.43
+      + depth * 0.026 + (layer - 1) * 0.018;
 
     out.push({
-      seed, angle, depth, size: 0.34 + Math.random() * 0.72, phase: Math.random() * Math.PI * 2,
+      seed, angle, depth, size: 0.38 + Math.random() * 0.64, phase: Math.random() * TAU,
       budX, budY, budZ, bloomX, bloomY, bloomZ,
-      x: 0, y: 0, vx: 0, vy: 0
+      x: 0, y: 0, vx: 0, vy: 0,
+      cameraDepth: 0, projectionScale: 1, radial: 0
     });
   }
 
@@ -92,9 +95,9 @@ function drawGlowSprite(): HTMLCanvasElement {
   const sprite = document.createElement('canvas'); sprite.width = 64; sprite.height = 64;
   const c = sprite.getContext('2d')!;
   const g = c.createRadialGradient(32,32,1,32,32,32);
-  g.addColorStop(0, 'rgba(255,226,226,.62)');
-  g.addColorStop(0.18, 'rgba(255,190,207,.42)');
-  g.addColorStop(0.48, 'rgba(239,122,171,.15)');
+  g.addColorStop(0, 'rgba(255,228,190,.42)');
+  g.addColorStop(0.18, 'rgba(255,187,205,.28)');
+  g.addColorStop(0.48, 'rgba(239,122,171,.10)');
   g.addColorStop(1, 'rgba(231,84,154,0)');
   c.fillStyle = g; c.fillRect(0,0,64,64);
   return sprite;
@@ -371,51 +374,85 @@ export default function ParticleFlower() {
       const scale = Math.min(width * 0.88, height * 1.05);
 
       const finger = modeRef.current === 'gesture' ? fingerRef.current : pointerRef.current;
-      // 每帧清理画布，避免半透明花瓣在 60/120Hz 下反复叠加而再次过曝。
-      // 光尘本身持续移动，不依赖残影也能保持流动感。
+      // 清屏后重绘，保证高刷下没有叠帧过曝或拖影残留。
       ctx.clearRect(0, 0, width, height);
       ctx.globalCompositeOperation='source-over';
-      // 柔和的环境光晕。
-      const halo = ctx.createRadialGradient(cx,cy,scale*0.04,cx,cy,scale*0.78);
-      halo.addColorStop(0,'rgba(226,105,161,'+(0.07+opennessNow*0.08)+')');
-      halo.addColorStop(1,'rgba(120,50,105,0)');
-      ctx.fillStyle = halo; ctx.fillRect(0,0,width,height);
-      // 花朵完全由粒子构成：不绘制任何实体花瓣或实心花冠。
-      // 三层粒子通过不同的花瓣瓣数、半径和高度形成层叠伞形轮廓。
-      ctx.globalCompositeOperation = 'source-over';
+
       const ps = particlesRef.current;
-      for (let i=0;i<ps.length;i++) {
-        const p=ps[i];
-        const breath = 1 + Math.sin(now*1.35+p.phase)*0.014;
-        let nx = lerp(p.budX,p.bloomX,opennessNow)*scale*breath;
-        let ny = lerp(p.budY,p.bloomY,opennessNow)*scale*breath;
-        let nz = lerp(p.budZ,p.bloomZ,opennessNow)*scale;
-        const wander = Math.sin(now*0.7+p.seed)*1.8 + Math.cos(now*0.43+p.phase)*1.2;
-        nx += Math.cos(p.angle+now*0.16)*wander;
-        ny += Math.sin(p.angle+now*0.16)*wander;
+      // 轻微绕 Y 轴缓慢环绕，配合透视与前后景深，让花冠始终显出 3D 体积。
+      const yaw = now * 0.085 + Math.sin(now * 0.17) * 0.025;
+      const cosYaw = Math.cos(yaw), sinYaw = Math.sin(yaw);
+      const pitch = 0.2 + Math.sin(now * 0.13) * 0.018;
+      const cosPitch = Math.cos(pitch), sinPitch = Math.sin(pitch);
+      const cameraDistance = 2.65;
+      const breathing = 1 + Math.sin(now * 0.68) * 0.006;
+
+      // 第一遍：在真正的三维空间中更新每个粒子，再投影到屏幕。
+      // 旋转、轻微湍流和透视变化都是连续函数，不使用随机跳点，避免抖动。
+      for (let i = 0; i < ps.length; i++) {
+        const p = ps[i];
+        let worldX = lerp(p.budX, p.bloomX, opennessNow) * breathing;
+        let worldY = lerp(p.budY, p.bloomY, opennessNow) * breathing;
+        let worldZ = lerp(p.budZ, p.bloomZ, opennessNow);
+        const flow = Math.sin(now * 0.38 + p.seed * 0.013 + p.phase) * 0.0045
+          + Math.cos(now * 0.23 + p.seed * 0.009) * 0.0025;
+        worldX += Math.cos(p.angle + now * 0.12) * flow;
+        worldY += Math.sin(now * 0.31 + p.phase) * 0.003;
+        worldZ += Math.sin(p.angle * 1.4 + now * 0.29 + p.phase) * 0.004;
+
+        const rotatedX = worldX * cosYaw - worldZ * sinYaw;
+        const rotatedZ = worldX * sinYaw + worldZ * cosYaw;
+        const cameraY = worldY * cosPitch - rotatedZ * sinPitch;
+        const cameraZ = worldY * sinPitch + rotatedZ * cosPitch;
+        const perspective = clamp(cameraDistance / (cameraDistance - cameraZ), 0.78, 1.28);
+
+        p.x = cx + rotatedX * scale * perspective;
+        p.y = cy + cameraY * scale * perspective;
+        p.cameraDepth = cameraZ;
+        p.projectionScale = perspective;
+        p.radial = clamp(Math.hypot(worldX, worldZ) / 0.72, 0, 1);
+      }
+
+      // 先画远处粒子，后画靠近镜头的粒子；同一颗粒子的前后关系随花冠旋转自然变化。
+      ps.sort((a, b) => a.cameraDepth - b.cameraDepth);
+
+      // 柔和环境光只烘托花冠轮廓，不覆盖粒子中心。
+      const halo = ctx.createRadialGradient(cx, cy, scale * 0.08, cx, cy, scale * 0.82);
+      halo.addColorStop(0, 'rgba(226,105,161,' + (0.055 + opennessNow * 0.055) + ')');
+      halo.addColorStop(1, 'rgba(120,50,105,0)');
+      ctx.fillStyle = halo;
+      ctx.fillRect(0, 0, width, height);
+
+      // 第二遍：绘制体积粒子。中心偏香槟金，中层柔粉，外缘玫瑰色。
+      for (let i = 0; i < ps.length; i++) {
+        const p = ps[i];
+        let x = p.x, y = p.y;
         if (finger && opennessNow > 0.25) {
-          const dx=finger.x-(cx+nx), dy=finger.y-(cy+ny);
-          const d2=dx*dx+dy*dy, radius=scale*0.31;
-          if (d2<radius*radius) {
-            const pull=(1-Math.sqrt(d2)/radius)*0.16*opennessNow;
-            nx += dx*pull; ny += dy*pull;
+          const dx = finger.x - x, dy = finger.y - y;
+          const d2 = dx * dx + dy * dy, radius = scale * 0.31;
+          if (d2 < radius * radius) {
+            const pull = (1 - Math.sqrt(d2) / radius) * 0.14 * opennessNow;
+            x += dx * pull;
+            y += dy * pull;
           }
         }
-        const x=cx+nx, y=cy+ny+nz*0.2;
-        p.x=x; p.y=y;
-        const normalized=clamp(Math.hypot(nx,ny)/(scale*0.58),0,1);
-        // 中心香槟金 -> 花瓣粉 -> 外缘玫瑰粉，避免白色高亮芯。
-        const r=Math.round(246-normalized*18);
-        const g=Math.round(205-normalized*91);
-        const b=Math.round(177+normalized*31);
-        const centerWarmth=1-normalized;
-        const alpha=(0.24+normalized*0.18)*(0.82+Math.sin(p.phase+now*1.1)*0.12);
-        const size=p.size*(0.82+opennessNow*0.32);
-        ctx.globalAlpha=alpha;
-        ctx.drawImage(sprite,x-size*1.75,y-size*1.75,size*3.5,size*3.5);
-        ctx.globalAlpha=alpha*0.82;
-        ctx.fillStyle='rgba('+r+','+g+','+b+',.78)';
-        ctx.beginPath(); ctx.arc(x,y,Math.max(.42,size*(0.52+centerWarmth*.12)),0,Math.PI*2); ctx.fill();
+        p.x = x; p.y = y;
+        const normalized = p.radial;
+        const r = Math.round(250 - normalized * 27);
+        const g = Math.round(218 - normalized * 111);
+        const b = Math.round(174 + normalized * 31);
+        const twinkle = 0.9 + Math.sin(p.phase + now * 1.15) * 0.08;
+        const depthLight = clamp(0.92 + p.projectionScale * 0.09, 0.88, 1.08);
+        const alpha = (0.105 + normalized * 0.105) * twinkle * depthLight;
+        const size = p.size * (0.78 + opennessNow * 0.22) * (0.82 + p.projectionScale * 0.18);
+
+        ctx.globalAlpha = alpha;
+        ctx.drawImage(sprite, x - size * 1.45, y - size * 1.45, size * 2.9, size * 2.9);
+        ctx.globalAlpha = alpha * 0.94;
+        ctx.fillStyle = 'rgba(' + r + ',' + g + ',' + b + ',.86)';
+        ctx.beginPath();
+        ctx.arc(x, y, Math.max(0.38, size * 0.46), 0, Math.PI * 2);
+        ctx.fill();
       }
       ctx.globalAlpha=1; ctx.globalCompositeOperation='source-over';
       if (landmarksRef.current && modeRef.current==='gesture') drawSkeleton(ctx,landmarksRef.current,width,height);

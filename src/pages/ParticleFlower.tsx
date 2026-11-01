@@ -350,7 +350,11 @@ export default function ParticleFlower() {
     const cores = navigator.hardwareConcurrency || 4;
     const memory = (navigator as any).deviceMemory || 4;
     const lowEnd = cores <= 4 || memory <= 4;
-    const count = mobile ? (lowEnd ? 1400 : 1900) : (lowEnd ? 2200 : 3000);
+    // 提高花冠默认粒子密度；按设备能力分档，避免低性能手机一次性承担桌面负载。
+    // 手机：基础 2200 / 高性能 2800；桌面：基础 3600 / 高性能 4600。
+    const count = mobile
+      ? (lowEnd ? 2200 : 2800)
+      : (lowEnd ? 3600 : 4600);
     particlesRef.current = makeParticles(count);
     const palette = Array.from({length:64},(_,i)=>{
       const t=i/63;

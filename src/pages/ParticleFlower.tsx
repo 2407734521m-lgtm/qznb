@@ -13,6 +13,8 @@ type Mode = 'gesture' | 'demo';
 type ExperienceTool = 'flower' | 'write';
 type InkPoint = { x: number; y: number };
 type InkStroke = { points: InkPoint[] };
+type HanziCandidate = { hanzi: string; score: number };
+type InkGlyph = { character: string; x: number; y: number; size: number };
 type LayoutOrientation = 'portrait' | 'landscape';
 type FpsLimit = 30 | 60 | 90 | 120 | 0;
 
@@ -163,6 +165,159 @@ function drawSkeletonPreview(canvas: HTMLCanvasElement | null, landmarks: any[] 
     ctx.shadowBlur = isIndexTip ? 12 : 4;
     ctx.fill();
   }
+  ctx.restore();
+}
+
+
+const HANZI_LOOKUP_BASE = 'https://cdn.jsdelivr.net/gh/gugray/hanzi_lookup@master/web_demo';
+const glyphPointCache = new Map<string, InkPoint[]>();
+
+function makeHanziLookupWorker(): Worker {
+  const source = `
+    const base = '${HANZI_LOOKUP_BASE}';
+    self.onmessage = async (event) => {
+      const data = event.data || {};
+      try {
+        if (data.type === 'init') {
+          importScripts(base + '/hanzi_lookup.js');
+          await self.wasm_bindgen(base + '/hanzi_lookup_bg.wasm');
+          self.postMessage({ type: 'ready' });
+        } else if (data.type === 'lookup') {
+          const raw = self.wasm_bindgen.lookup(data.strokes, 8);
+          self.postMessage({ type: 'matches', candidates: JSON.parse(raw) });
+        }
+      } catch (error) {
+        self.postMessage({ type: 'error', message: String(error && error.message || error) });
+      }
+    };
+  `;
+  const url = URL.createObjectURL(new Blob([source], { type: 'application/javascript' }));
+  const worker = new Worker(url);
+  worker.addEventListener('error', () => URL.revokeObjectURL(url), { once: true });
+  return worker;
+}
+
+function normalizeInkForRecognition(strokes: InkStroke[]) {
+  const points = strokes.flatMap(stroke => stroke.points);
+  if (points.length < 3) return [];
+  const minX = Math.min(...points.map(point => point.x));
+  const maxX = Math.max(...points.map(point => point.x));
+  const minY = Math.min(...points.map(point => point.y));
+  const maxY = Math.max(...points.map(point => point.y));
+  const span = Math.max(1, maxX - minX, maxY - minY);
+  const scale = 220 / span;
+  const offsetX = (256 - (maxX - minX) * scale) * 0.5;
+  const offsetY = (256 - (maxY - minY) * scale) * 0.5;
+  return strokes
+    .filter(stroke => stroke.points.length > 1)
+    .map(stroke => stroke.points.map(point => [
+      Math.round(offsetX + (point.x - minX) * scale),
+      Math.round(offsetY + (point.y - minY) * scale)
+    ]));
+}
+
+function sampleGlyphPoints(character: string): InkPoint[] {
+  const cached = glyphPointCache.get(character);
+  if (cached) return cached;
+  const canvas = document.createElement('canvas');
+  canvas.width = 144; canvas.height = 144;
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+  if (!ctx) return [];
+  ctx.fillStyle = '#fff';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.font = '600 116px "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif';
+  ctx.fillText(character, 72, 73, 126);
+  const data = ctx.getImageData(0, 0, 144, 144).data;
+  const points: InkPoint[] = [];
+  for (let y = 8; y < 136; y += 3) {
+    for (let x = 8; x < 136; x += 3) {
+      if (data[(y * 144 + x) * 4 + 3] > 150) points.push({ x: x / 144 - 0.5, y: y / 144 - 0.5 });
+    }
+  }
+  glyphPointCache.set(character, points);
+  return points;
+}
+
+function drawRaisedGlyph(ctx: CanvasRenderingContext2D, character: string, cx: number, cy: number, size: number, alpha: number, time: number) {
+  if (!character || alpha <= 0) return;
+  const points = sampleGlyphPoints(character);
+  if (!points.length) return;
+  ctx.save();
+  for (let i = 0; i < points.length; i++) {
+    const point = points[i];
+    const phase = i * 0.37 + time * 1.1;
+    const z = 1.0 + (0.5 + 0.5 * Math.sin(phase)) * 1.6;
+    const x = cx + point.x * size + Math.sin(phase * 0.43) * 0.35;
+    const y = cy + point.y * size;
+    const hue = clamp((point.x + 0.5) * 1.1, 0, 1);
+    const r = Math.round(248 - hue * 19), g = Math.round(221 - hue * 91), b = Math.round(190 + hue * 16);
+    ctx.globalAlpha = alpha * 0.20;
+    ctx.fillStyle = 'rgba(23,10,25,.9)';
+    ctx.beginPath(); ctx.arc(x + 0.2, y + z * 1.25, 1.05, 0, Math.PI * 2); ctx.fill();
+    ctx.globalAlpha = alpha * (0.52 + Math.sin(phase) * 0.08);
+    ctx.fillStyle = 'rgba(' + r + ',' + g + ',' + b + ',.92)';
+    ctx.beginPath(); ctx.arc(x, y - z * 0.55, 1.02 + z * 0.12, 0, Math.PI * 2); ctx.fill();
+    ctx.globalAlpha = alpha * 0.55;
+    ctx.fillStyle = 'rgba(255,248,235,.92)';
+    ctx.beginPath(); ctx.arc(x - 0.28, y - z, 0.42, 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.restore();
+}
+
+function drawAirInkScene(ctx: CanvasRenderingContext2D, strokes: InkStroke[], committed: InkGlyph[], candidate: string, width: number, height: number, time: number, candidateStartedAt: number) {
+  ctx.save();
+  ctx.globalCompositeOperation = 'source-over';
+  for (const glyph of committed) drawRaisedGlyph(ctx, glyph.character, glyph.x, glyph.y, glyph.size, 0.95, time);
+
+  for (let strokeIndex = 0; strokeIndex < strokes.length; strokeIndex++) {
+    const points = strokes[strokeIndex].points;
+    if (!points.length) continue;
+    let dotIndex = 0;
+    const drawDot = (x: number, y: number) => {
+      const phase = time * 1.4 + dotIndex++ * 0.21 + strokeIndex * 2.1;
+      const lift = 1.1 + (0.5 + 0.5 * Math.sin(phase)) * 1.2;
+      const tone = (dotIndex % 7) / 6;
+      const r = Math.round(250 - tone * 18), g = Math.round(220 - tone * 70), b = Math.round(190 + tone * 18);
+      ctx.globalAlpha = 0.25;
+      ctx.fillStyle = 'rgba(20,10,24,.65)';
+      ctx.beginPath(); ctx.arc(x + 0.3, y + lift * 1.3, 1.3, 0, Math.PI * 2); ctx.fill();
+      ctx.globalAlpha = 0.82;
+      ctx.fillStyle = 'rgba(' + r + ',' + g + ',' + b + ',.9)';
+      ctx.beginPath(); ctx.arc(x, y - lift * 0.45, 1.25, 0, Math.PI * 2); ctx.fill();
+      ctx.globalAlpha = 0.52;
+      ctx.fillStyle = 'rgba(255,247,233,.9)';
+      ctx.beginPath(); ctx.arc(x - 0.25, y - lift, 0.48, 0, Math.PI * 2); ctx.fill();
+    };
+    if (points.length === 1) drawDot(points[0].x, points[0].y);
+    for (let i = 1; i < points.length; i++) {
+      const a = points[i - 1], b = points[i];
+      const length = Math.hypot(b.x - a.x, b.y - a.y);
+      const steps = Math.max(1, Math.ceil(length / 5.5));
+      for (let step = 0; step <= steps; step++) {
+        const t = step / steps;
+        drawDot(a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t);
+      }
+    }
+  }
+
+  if (candidate && strokes.length) {
+    const points = strokes.flatMap(stroke => stroke.points);
+    if (points.length) {
+      const minX = Math.min(...points.map(point => point.x));
+      const maxX = Math.max(...points.map(point => point.x));
+      const minY = Math.min(...points.map(point => point.y));
+      const maxY = Math.max(...points.map(point => point.y));
+      const span = Math.max(56, Math.min(150, Math.max(maxX - minX, maxY - minY) * 0.9));
+      const progress = clamp((time - candidateStartedAt) / 1.5, 0, 1);
+      drawRaisedGlyph(ctx, candidate, (minX + maxX) * 0.5, (minY + maxY) * 0.5, span, 0.28 * progress, time);
+    }
+  }
+
+  ctx.globalAlpha = 0.18;
+  ctx.strokeStyle = 'rgba(246,190,214,.28)';
+  ctx.lineWidth = 0.7;
+  ctx.beginPath(); ctx.moveTo(width * 0.18, height * 0.84); ctx.lineTo(width * 0.82, height * 0.84); ctx.stroke();
   ctx.restore();
 }
 

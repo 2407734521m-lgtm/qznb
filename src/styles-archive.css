@@ -99,3 +99,76 @@
   background: rgba(233, 223, 201, 0.08);
   transform: rotate(-2deg);
 }
+
+/* ===== 第三批：把剩下的玻璃与渐变都收掉 ===== */
+
+/* 全站主按钮：深色时代的双色渐变改为藏青纯色、白字。 */
+button.pri {
+  background: #22314a !important;
+  color: #ffffff !important;
+  box-shadow: none !important;
+}
+
+/* 游戏段位选择器：原来是深紫黑面板（选中段位还是紫色渐变），
+   与浅色站格格不入，整套改回纸面。 */
+.gexpand {
+  background: #fffdf9 !important;
+  border-color: rgba(34, 49, 74, 0.12) !important;
+  box-shadow: 0 24px 60px rgba(30, 40, 60, 0.28) !important;
+  color: #22314a;
+  color-scheme: light;
+}
+.gpick-head b { color: #22314a; }
+.gexpand .ghost {
+  border-color: rgba(34, 49, 74, 0.18) !important;
+  background: #ffffff !important;
+  color: #43536a !important;
+}
+.grow {
+  background: #f7f5ef !important;
+  border-color: rgba(34, 49, 74, 0.1) !important;
+  color: #22314a !important;
+}
+.grow.sel {
+  background: #eef1f4 !important;
+  border-color: rgba(34, 49, 74, 0.28) !important;
+}
+.gprof {
+  background: #f7f5ef !important;
+  border-color: rgba(34, 49, 74, 0.1) !important;
+  color: #22314a;
+}
+.rankchip {
+  background: #ffffff !important;
+  border-color: rgba(34, 49, 74, 0.16) !important;
+  color: #43536a !important;
+}
+.rankchip.on {
+  background: #22314a !important;
+  border-color: #22314a !important;
+  color: #ffffff !important;
+}
+
+/* 底部导航：液态玻璃悬浮胶囊改为纸面长条。
+   杀掉折射/模糊层，壳改全宽贴底、白纸底、顶部细线；
+   里面的栏目与滑动高亮是独立渲染，不受影响。 */
+.qz-rdev-dock {
+  left: 0 !important;
+  right: 0 !important;
+  top: auto !important;
+  bottom: 0 !important;
+  width: 100% !important;
+  height: calc(56px + env(safe-area-inset-bottom)) !important;
+  border-radius: 0 !important;
+  background: rgba(255, 253, 249, 0.98) !important;
+  box-shadow: 0 -1px 0 rgba(34, 49, 74, 0.1), 0 -10px 28px rgba(30, 40, 60, 0.05) !important;
+}
+.qz-rdev-dock .glass,
+.qz-rdev-dock .glass * {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  filter: none !important;
+}
+.qz-rdev-dock canvas {
+  display: none !important;
+}

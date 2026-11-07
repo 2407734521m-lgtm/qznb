@@ -46,15 +46,15 @@ function TodoCenter({ go }: { go: (tab: string) => void }) {
     </div>
     {err && <p style={mut}>待办计数读取失败，点刷新重试。</p>}
     {!counts && !err && <p style={mut}>正在统计…</p>}
-    {counts && total === 0 && !err && <p style={{ fontSize: 13.5, color: '#7ee2a8', margin: '6px 0 2px' }}>全部处理完了，没有积压。</p>}
+    {counts && total === 0 && !err && <p style={{ fontSize: 13.5, color: '#2e7d4f', margin: '6px 0 2px' }}>全部处理完了，没有积压。</p>}
     {counts && items.map(([k, label, tab]) => (
       <button key={k} onClick={() => go(tab)}
-        style={{ display: 'flex', width: '100%', alignItems: 'center', gap: 8, padding: '9px 2px', background: 'transparent', border: 0, borderBottom: '1px solid #ffffff0a', cursor: 'pointer', textAlign: 'left' }}>
-        <span style={{ flex: 1, fontSize: 13.5, color: (counts[k] || 0) === 0 ? '#8b93b0' : '#eef0ff' }}>{label}</span>
+        style={{ display: 'flex', width: '100%', alignItems: 'center', gap: 8, padding: '9px 2px', background: 'transparent', border: 0, borderBottom: '1px solid rgba(34,49,74,.08)', cursor: 'pointer', textAlign: 'left' }}>
+        <span style={{ flex: 1, fontSize: 13.5, color: (counts[k] || 0) === 0 ? '#8a8271' : '#22314a' }}>{label}</span>
         {(counts[k] || 0) > 0
           ? <span style={{ background: '#f5c26b', color: '#231a04', fontWeight: 800, fontSize: 12, borderRadius: 999, padding: '2px 9px' }}>{counts[k]}</span>
-          : <span style={{ fontSize: 12, color: '#69718c' }}>无</span>}
-        <span style={{ color: '#8b93b0', fontSize: 13 }}>›</span>
+          : <span style={{ fontSize: 12, color: '#8a8271' }}>无</span>}
+        <span style={{ color: '#a39a83', fontSize: 13 }}>›</span>
       </button>
     ))}
   </div>;
@@ -196,18 +196,18 @@ export default function Overview({ setMsg, go }: { setMsg: (s: string) => void; 
     return `${d.getMonth() + 1}-${d.getDate()}`;
   });
   const statSub: Record<string, React.ReactNode> = {
-    '注册成员': <span style={{ color: '#4ade80' }}>较7天前 +{st.new7}</span>,
-    '近7天新增': <span style={{ color: '#4ade80' }}>新增注册</span>,
-    '班级动态': st.posts === 0 ? <span style={{ color: '#8b93b0' }}>暂无新动态</span> : <span style={{ color: '#4ade80' }}>持续更新中</span>,
-    '日常帖子': st.dailyPosts === 0 ? <span style={{ color: '#8b93b0' }}>暂无日常</span> : <span style={{ color: '#4ade80' }}>持续更新中</span>,
-    '班级照片': st.photos === 0 ? <span style={{ color: '#8b93b0' }}>暂无新照片</span> : <span style={{ color: '#4ade80' }}>持续更新中</span>,
+    '注册成员': <span style={{ color: '#5f7350' }}>较7天前 +{st.new7}</span>,
+    '近7天新增': <span style={{ color: '#5f7350' }}>新增注册</span>,
+    '班级动态': st.posts === 0 ? <span style={{ color: '#8b93b0' }}>暂无新动态</span> : <span style={{ color: '#5f7350' }}>持续更新中</span>,
+    '日常帖子': st.dailyPosts === 0 ? <span style={{ color: '#8b93b0' }}>暂无日常</span> : <span style={{ color: '#5f7350' }}>持续更新中</span>,
+    '班级照片': st.photos === 0 ? <span style={{ color: '#8b93b0' }}>暂无新照片</span> : <span style={{ color: '#5f7350' }}>持续更新中</span>,
   };
   const stats: [string, number, number[], string][] = [
-    ['注册成员', st.members, st.cum, '#5b8cff'],
-    ['近7天新增', st.new7, st.dPro.slice(-7), '#8b5cf6'],
-    ['班级动态', st.posts, st.dPost, '#4ade80'],
-    ['日常帖子', st.dailyPosts, st.dDailyPost, '#38bdf8'],
-    ['班级照片', st.photos, st.dPhoto, '#f5a623'],
+    ['注册成员', st.members, st.cum, '#22314a'],
+    ['近7天新增', st.new7, st.dPro.slice(-7), '#54687f'],
+    ['班级动态', st.posts, st.dPost, '#5f7350'],
+    ['日常帖子', st.dailyPosts, st.dDailyPost, '#a67c3d'],
+    ['班级照片', st.photos, st.dPhoto, '#9c5a44'],
   ];
   return (
     <div className="admin-overview-dashboard">

@@ -263,12 +263,12 @@ export default function AdminAccountManagement({
         style={{ width: '100%', boxSizing: 'border-box', padding: '10px 11px', borderRadius: 10, border: '1px solid #ffffff1c', background: '#ffffff08', color: '#fff', fontSize: 13 }} />
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 9 }}>
         {([['all', '全部'], ['active', '正常'], ['disabled', '已禁用']] as const).map(([value, label]) =>
-          <button key={value} style={{ ...btn, background: status === value ? '#5b8cff44' : '#ffffff08', borderColor: status === value ? '#7da0ff' : '#ffffff20' }}
+          <button key={value} style={{ ...btn, background: status === value ? '#f3ead6' : '#ffffff08', borderColor: status === value ? 'rgba(34,49,74,.38)' : '#ffffff20' }}
             aria-pressed={status === value} onClick={() => setStatus(value)}>{label}</button>)}
       </div>
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', marginTop: 8 }}>
         {([['all', '全部角色'], ['member', '普通成员'], ['admin', '内容管理员'], ['super_admin', '超级管理员']] as const).map(([value, label]) =>
-          <button key={value} style={{ ...btn, padding: '6px 9px', background: roleFilter === value ? '#278b9140' : '#ffffff08', borderColor: roleFilter === value ? '#54c4c9' : '#ffffff20' }}
+          <button key={value} style={{ ...btn, padding: '6px 9px', background: roleFilter === value ? '#f3ead6' : '#ffffff08', borderColor: roleFilter === value ? 'rgba(34,49,74,.38)' : '#ffffff20' }}
             aria-pressed={roleFilter === value} onClick={() => setRoleFilter(value)}>{label}</button>)}
       </div>
       <div style={{ display: 'flex', gap: 7, alignItems: 'center', flexWrap: 'wrap', marginTop: 8 }}>
@@ -317,7 +317,7 @@ export default function AdminAccountManagement({
           <div style={{ ...muted, overflowWrap: 'anywhere' }}>@{r.username} · {r.real_name || '未填写真实姓名'}</div>
           <div style={{ ...muted, overflowWrap: 'anywhere' }}>{r.email || '未取得邮箱记录'}</div>
         </div>
-        {r.client && <span style={{ flexShrink: 0, fontSize: 10.5, padding: '4px 7px', borderRadius: 999, border: '1px solid #ffffff20', color: r.client.startsWith('app:') ? '#9fc3ff' : '#aeb9c6', background: '#ffffff08' }}>
+        {r.client && <span style={{ flexShrink: 0, fontSize: 10.5, padding: '4px 7px', borderRadius: 999, border: r.client.startsWith('app:') ? '1px solid rgba(34,49,74,.2)' : '1px solid rgba(34,49,74,.14)', color: r.client.startsWith('app:') ? '#22314a' : '#6d6a5e', background: r.client.startsWith('app:') ? '#f3ead6' : '#f1ede2' }}>
           {r.client.startsWith('app:') ? '软件版 ' + r.client.slice(4) : '网页版'}
         </span>}
         <span style={{ flexShrink: 0, fontSize: 10.5, padding: '4px 7px', borderRadius: 999, border: '1px solid #ffffff20', color: r.joined ? '#8de0b7' : '#ffb5c1', background: r.joined ? '#4ade8010' : '#ff879610' }}>

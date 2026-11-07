@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import PrimeAskCard, { CameraIcon, CameraPrimePreview } from '../components/PrimeAskCard';
 import '../styles-particle-flower.css';
 
 type Point = { x: number; y: number; z: number };
@@ -435,6 +436,8 @@ export default function ParticleFlower() {
   const [cameraLive, setCameraLive] = useState(false);
   const [experienceStarted, setExperienceStarted] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [primeOpen, setPrimeOpen] = useState(false);
+  const [pendingTool, setPendingTool] = useState<ExperienceTool>('flower');
   const [loadingStage, setLoadingStage] = useState('准备手势模型');
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [loadingElapsed, setLoadingElapsed] = useState(0);
@@ -1324,6 +1327,16 @@ export default function ParticleFlower() {
   const statusEnglish = mode==='demo' ? 'DEMO EXPERIENCE' : !hasHand ? 'WAITING FOR HAND' : openness<28 ? 'CLOSED · FIST' : openness>68 ? 'BLOOM · OPEN' : 'OPENING · FLOW';
   const statusChinese = mode==='demo' ? '演示模式' : !hasHand ? '等待手掌' : openness<28 ? '花苞' : openness>68 ? '绽放' : '舒展中';
 
+  // 先弹说明卡讲清用途，点「好的」才真正调起系统摄像头询问；已授权过则直接开
+  async function askStart(tool: ExperienceTool) {
+    try {
+      const p = await navigator.permissions?.query({ name: 'camera' as PermissionName });
+      if (p?.state === 'granted') { void startCamera(tool); return; }
+    } catch { /* 查不到权限状态就走说明卡 */ }
+    setPendingTool(tool);
+    setPrimeOpen(true);
+  }
+
   return (
     <main className={'bloom-page theme-' + artTheme + ' ' + (layoutOrientation === 'landscape' ? 'orientation-landscape ' : 'orientation-portrait ') + (orientationFallback ? 'orientation-fallback ' : '') + (experienceTool === 'write' ? 'tool-write ' : '') + (experienceStarted ? 'is-active ' : '') + (focusMode ? 'is-focused' : '')} onPointerDown={handlePointerDown} onPointerMove={handlePointerMove} onPointerUp={handlePointerUp} onPointerCancel={handlePointerUp}>
       <video ref={videoRef} className={'bloom-camera' + (cameraLive ? ' is-live' : '')} playsInline muted />
@@ -1505,12 +1518,12 @@ export default function ParticleFlower() {
           </div>
           <label className="bloom-signature-field"><span>作品签名</span><input maxLength={24} value={signature} onChange={event=>setSignature(event.target.value)} placeholder="为作品留下名字或一句话" /></label>
           <div className="bloom-start-actions">
-            <button className="bloom-primary bloom-immersive-start" onClick={()=>void startCamera('flower')} disabled={loading}>
+            <button className="bloom-primary bloom-immersive-start" onClick={()=>void askStart('flower')} disabled={loading}>
               {loading?'正在准备沉浸空间…':'沉浸式开始'}<span>进入全屏互动</span>
             </button>
             <button className="bloom-secondary bloom-preview-start" onClick={()=>setExperienceMode('demo')} disabled={loading}>先看粒子预览</button>
           </div>
-          <button type="button" className="bloom-air-ink-launch" onClick={()=>void startCamera('write')} disabled={loading}>
+          <button type="button" className="bloom-air-ink-launch" onClick={()=>void askStart('write')} disabled={loading}>
             <span className="bloom-air-ink-icon">✧</span>
             <span><b>单独进入空中书写</b><small>独立书写空间 · 不与花苞动画联动</small></span>
             <span className="bloom-air-ink-arrow">↗</span>
@@ -1563,6 +1576,16 @@ export default function ParticleFlower() {
           <em>首次加载需要准备识别模型，请保持页面打开</em>
         </div>
       )}
+      <PrimeAskCard
+        open={primeOpen}
+        icon={<CameraIcon />}
+        title={pendingTool === 'write' ? '空中书写要用一下摄像头' : '指尖生花要用一下摄像头'}
+        desc="摄像头只用来认你的手势，画面就在这台手机上处理——不录像、不上传。点「好的」之后，浏览器会再正式问你一次。"
+        preview={<CameraPrimePreview />}
+        confirmText="好的，开启摄像头"
+        onConfirm={() => { setPrimeOpen(false); void startCamera(pendingTool); }}
+        onCancel={() => setPrimeOpen(false)}
+      />
     </main>
   );
 }

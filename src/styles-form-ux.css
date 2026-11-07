@@ -228,3 +228,18 @@
 }
 .login-wrap .login-card .float-hint { color: #6e7585; }
 .login-wrap .login-card .float-tag { color: #6e7585; }
+
+/* 协议复选框修正：styles-cinematic 的通用 input 规则（min-height:48px + 深色底）
+   没排除 checkbox，把它撑成一条深灰竖框、原生勾选方块嵌在中间。这里钉回
+   18×18 透明底，只保留 accent-color 着色。 */
+.login-wrap .login-card input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  accent-color: #2456c8;
+}

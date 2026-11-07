@@ -597,7 +597,7 @@ body:has(.vibe-home) .glow { display: none !important; }
   .vh-load-spinner { animation: none; }
 }
 
-/* Quiet white UI: keep the canvas clean and the real announcement media intact. */
+/* Quiet white UI: preserve the shared wallpaper layer, paint only the page canvas. */
 body:has(.vibe-home),
 body:has(.vibe-home) #root,
 body:has(.vibe-home) .qz-ios26-scene,
@@ -605,11 +605,7 @@ body:has(.vibe-home) .qz-ios26-scene,
   background: #fff !important;
   color: #202733 !important;
 }
-body:has(.vibe-home) .app-bg,
-body:has(.vibe-home) .qz-ios26-backdrop,
-body:has(.vibe-home) .glow {
-  display: none !important;
-}
+body:has(.vibe-home) .glow { display: none !important; }
 .vibe-home {
   --vh-ink: #202733;
   --vh-muted: #747d89;

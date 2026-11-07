@@ -19,10 +19,7 @@ Deno.serve(async (req: Request) => {
   const url = Deno.env.get('SUPABASE_URL');
   const anonKey = Deno.env.get('SUPABASE_ANON_KEY');
   const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-  const resendKey = Deno.env.get('RESEND_API_KEY');
-  const from = Deno.env.get('EMAIL_FROM');
   if (!url || !anonKey || !serviceKey) return response({ error: 'Supabase 函数环境变量未配置。' }, 500);
-  if (!resendKey || !from) return response({ error: '邮件服务尚未配置：请设置 RESEND_API_KEY 和 EMAIL_FROM。' }, 503);
 
   const caller = createClient(url, anonKey, { global: { headers: { Authorization: authHeader } }, auth: { persistSession: false } });
   const { data: userData, error: userError } = await caller.auth.getUser();
@@ -103,21 +100,36 @@ Deno.serve(async (req: Request) => {
     let providerMessageId: string | null = null;
 
     try {
-      const r = await fetch('https://api.resend.com/emails', {
+      const r = await fetch(`${url}/functions/v1/email-dispatch`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ from, to: [recipient.email], subject, text: bodyText }),
+        headers: {
+          Authorization: `Bearer ${serviceKey}`,
+          apikey: anonKey,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          to: recipient.email,
+          subject,
+          text: bodyText,
+          category: 'admin_broadcast',
+          source: 'admin-bulk-email',
+          eventKey: `admin-email-campaign:${campaign.id}:${recipient.id}`,
+          actorId: userData.user.id,
+          recipientUserId: recipient.id,
+        }),
       });
-      if (r.ok) {
+      const dispatchResult = await r.json().catch(() => ({}));
+      if (r.ok && dispatchResult?.ok === true) {
         status = 'sent';
         sent++;
-        try {
-          const result = await r.json();
-          if (typeof result?.id === 'string') providerMessageId = result.id;
-        } catch { /* Provider accepted the request; message id is optional. */ }
+        if (typeof dispatchResult.providerMessageId === 'string') {
+          providerMessageId = dispatchResult.providerMessageId;
+        }
       } else {
         providerFailed++;
-        errorCode = `resend_http_${r.status}`;
+        errorCode = typeof dispatchResult?.errorCode === 'string'
+          ? dispatchResult.errorCode
+          : `email_dispatch_http_${r.status}`;
       }
     } catch {
       providerFailed++;

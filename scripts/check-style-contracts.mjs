@@ -6,6 +6,8 @@ const wallpaper = read('../src/lib/wallpaper.ts');
 const app = read('../src/App.tsx');
 const home = read('../src/pages/Home.tsx');
 const homeCss = read('../src/pages/Home.vibe.css');
+const baseStyles = read('../src/styles.css');
+const editorialStyles = read('../src/styles-editorial.css');
 
 function assert(condition, message) {
   if (!condition) {
@@ -26,6 +28,9 @@ assert(home.includes('setReloadKey(value => value + 1)'), 'the homepage error st
 assert(home.includes('<Link') && homeCss.includes('.vh-hero:focus-visible') && homeCss.includes('.vh-feed-row:focus-visible'), 'homepage navigation links must have visible keyboard focus');
 assert(/body:has\(\.vibe-home\)\s*\{[^}]*background:\s*#ffffff\s*!important/s.test(homeCss), 'the homepage canvas must stay white');
 assert(!/body:has\(\.vibe-home\)\s+\.app-bg[^}]*display:\s*none\s*!important/s.test(homeCss), 'the homepage must not hide the user wallpaper layer');
+assert(!/\.glow\s*,\s*\.app-bg\s*\{[^}]*display:\s*none\s*!important/s.test(baseStyles), 'the base white theme must not hide the wallpaper layer');
+assert(!/\.glow\s*,\s*\.app-bg\s*\{[^}]*display:\s*none\s*!important/s.test(editorialStyles), 'the editorial theme must not hide the wallpaper layer');
+assert(!/\.app-bg\s*\{[^}]*filter\s*:[^;]*!important/s.test(editorialStyles), 'the editorial theme must not override user blur or brightness settings');
 
 if (process.exitCode) process.exit(process.exitCode);
 console.log('Visual contracts passed: white default canvas, preserved user wallpaper, and accessible homepage states.');

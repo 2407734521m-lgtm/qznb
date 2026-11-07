@@ -112,8 +112,14 @@ with check (
   and (
     love_private.can_upload_love_media(name)
     or (
-      (storage.foldername(name))[1] = (select auth.uid())::text
-      and coalesce((storage.foldername(name))[2], '') <> 'love'
+      (
+        (storage.foldername(name))[1] = (select auth.uid())::text
+        and coalesce((storage.foldername(name))[2], '') <> 'love'
+      )
+      or (
+        (storage.foldername(name))[1] = (select auth.uid())::text
+        and (storage.foldername(name))[2] = 'love'
+      )
       and public.site_feature_enabled('album_photos')
     )
   )

@@ -9,7 +9,7 @@ grant usage on schema love_private to authenticated;
 create table if not exists love_private.media_objects (
   object_path text primary key,
   owner_id uuid not null references auth.users(id) on delete cascade,
-  post_id bigint references public.love_wall_posts(id) on delete set null,
+  post_id uuid references public.love_wall_posts(id) on delete set null,
   created_at timestamptz not null default now()
 );
 revoke all on love_private.media_objects from public, anon, authenticated;
@@ -79,7 +79,7 @@ begin
 end;
 $function$;
 
-create or replace function public.link_love_wall_media_post(p_path text, p_post_id bigint)
+create or replace function public.link_love_wall_media_post(p_path text, p_post_id uuid)
 returns void
 language plpgsql security definer set search_path = ''
 as $function$

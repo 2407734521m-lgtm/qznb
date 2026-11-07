@@ -87,6 +87,7 @@ function previewText(item: ConversationPreview, myId: string) {
   const body = item.last_message_body ?? '';
   if (body.startsWith('[[im-image:')) return item.last_message_sender_id === myId ? '你发送了一张图片' : '发送了一张图片';
   if (body.startsWith('[[im-audio:')) return item.last_message_sender_id === myId ? '你发送了一段语音' : '发送了一段语音';
+  if (body.startsWith('[[im-file:')) return item.last_message_sender_id === myId ? '你发送了一个文件' : '发送了一个文件';
   return body || '消息';
 }
 

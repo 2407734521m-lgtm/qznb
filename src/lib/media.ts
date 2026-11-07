@@ -63,8 +63,20 @@ const uploadMimeTypes: Record<string, readonly string[]> = {
   ],
   videos: ['video/mp4', 'video/webm', 'video/quicktime', 'video/ogg', 'video/x-m4v', 'video/3gpp'],
   'chat-media': [
-    'image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/heic',
+    'image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/heic', 'image/avif',
     'audio/webm', 'audio/mp4', 'audio/ogg', 'audio/aac', 'audio/mpeg', 'audio/x-m4a',
+    'video/mp4', 'video/webm', 'video/quicktime', 'video/3gpp',
+    'application/pdf', 'application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'application/vnd.ms-excel',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'application/vnd.ms-powerpoint',
+    'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    'application/vnd.oasis.opendocument.text', 'application/vnd.oasis.opendocument.spreadsheet',
+    'text/plain', 'text/csv',
+    'application/zip', 'application/x-zip-compressed', 'application/vnd.rar',
+    'application/x-rar-compressed', 'application/x-7z-compressed',
+    'application/octet-stream',
   ],
 };
 
@@ -73,14 +85,15 @@ export async function uploadMedia(bucket: string, file: File, folder?: string): 
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('未登录');
   const allowedTypes = uploadMimeTypes[bucket];
-  if (allowedTypes && !allowedTypes.includes(file.type)) {
+  const mime = file.type || 'application/octet-stream';
+  if (allowedTypes && !allowedTypes.includes(mime)) {
     throw new Error('文件格式不受支持，请选择常见图片、MP4/WebM 视频或支持的聊天音频格式。');
   }
   const ext = (file.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
   const r = await withRetry(async () => {
     const path = `${folder ? `${folder.replace(/^\/+|\/+$/g, '')}/` : `${user.id}/`}${Date.now()}.${ext}`;
     const { error } = await supabase.storage.from(bucket).upload(path, file, {
-      contentType: file.type || undefined, upsert: false,
+      contentType: mime, upsert: false,
     });
     return { path, error };
   });

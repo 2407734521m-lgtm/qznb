@@ -1388,3 +1388,12 @@
 @media (prefers-reduced-motion: reduce) {
   .im-page .im-photo-trigger .im-photo { transition: none; }
 }
+
+/* 文件消息卡片：纸面 */
+.im-file-card{display:flex;align-items:center;gap:11px;min-width:210px;max-width:280px;padding:10px 12px;border-radius:14px;background:#fffdf9;border:1px solid rgba(122,100,66,.28);color:#22314a;text-decoration:none;box-shadow:0 2px 8px rgba(74,58,32,.08)}
+.im-file-card:active{background:#f7f2e4}
+.im-file-icon{flex:none;display:grid;place-items:center;width:42px;height:42px;border-radius:10px;background:#22314a;color:#fdf9ef;font-size:11px;font-weight:700;letter-spacing:.04em}
+.im-file-main{flex:1;min-width:0;display:grid;gap:2px}
+.im-file-name{font-size:13.5px;font-weight:600;color:#22314a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.im-file-meta{font-size:11.5px;color:#8a7c66}
+.im-file-open{flex:none;color:#a2937f;font-size:19px;line-height:1}

@@ -79,7 +79,28 @@ function mapCoverPoint(point: any, video: HTMLVideoElement, width: number, heigh
 }
 function makeParticles(count: number): Particle[] {
   const out: Particle[] = [], TAU = Math.PI * 2;
+  // 花心改用 Vogel 黄金角螺旋（phyllotaxis）生成——GitHub 上手势粒子花项目
+  // （如 fuguther/gesture-christmas-tree-2）用的正是这套点阵模型：真实花心
+  // 本就是 137.508° 黄金角排布，比原来的随机球状花苞更像一朵真花的心。
+  // 心部粒子占约 16%，触摸槽位 21（24 个槽位里花瓣用到 0–20）。
+  const heartCount = Math.round(count * 0.16);
+  const GOLDEN_ANGLE = 2.399963229728653;
   for (let i = 0; i < count; i++) {
+    if (i < heartCount) {
+      const frac = (i + 0.5) / heartCount, r = Math.sqrt(frac), ang = i * GOLDEN_ANGLE;
+      const cosA = Math.cos(ang), sinA = Math.sin(ang);
+      out.push({
+        seed: Math.random() * 1000, angle: ang, depth: r * 2 - 1,
+        size: 0.5 + Math.pow(Math.random(), 1.5) * 0.55,
+        phase: Math.random() * TAU,
+        tone: r < 0.55 ? 0 : 1,
+        petalId: 21,
+        budX: cosA * r * 0.08, budY: 0.015 + (1 - r) * 0.03, budZ: sinA * r * 0.06,
+        bloomX: cosA * r * 0.165, bloomY: -0.028 + (1 - r) * 0.02 - r * 0.006, bloomZ: sinA * r * 0.118,
+        x: 0, y: 0, vx: 0, vy: 0, projectionScale: 1, rim: false
+      });
+      continue;
+    }
     const seed = Math.random() * 1000, angle = Math.random() * TAU, depth = Math.random() * 2 - 1;
     const budR = Math.pow(Math.random(), 1.55), budTheta = Math.acos(2 * Math.random() - 1);
     const budX = Math.sin(budTheta) * Math.cos(angle) * budR * 0.22;
@@ -138,6 +159,30 @@ function drawParticleSprites(colors: number[][] = THEME_COLORS.sakura): HTMLCanv
     core.addColorStop(1,'rgba('+r+','+g+','+b+',0)');
     ctx.fillStyle=core; ctx.beginPath(); ctx.arc(24,24,5,0,Math.PI*2); ctx.fill();
     if(index===0||index===2){ctx.globalAlpha=.24;ctx.fillStyle='rgba(255,245,231,.9)';ctx.fillRect(23.6,10,.8,28);ctx.fillRect(10,23.6,28,.8)}
+    return sprite;
+  });
+}
+
+// 花瓣形精灵：给花瓣边缘（rim）粒子用。圆点光斑看起来像灰尘，
+// 带尖带弧的花瓣剪影才读得出「这是花瓣」；形状比例与飘落花瓣的路径一致。
+function drawPetalSprites(colors: number[][] = THEME_COLORS.sakura): HTMLCanvasElement[] {
+  return colors.map(([r, g, b]) => {
+    const sprite = document.createElement('canvas'); sprite.width = 64; sprite.height = 64;
+    const ctx = sprite.getContext('2d')!;
+    ctx.translate(32, 32);
+    ctx.beginPath();
+    ctx.moveTo(0, -21);
+    ctx.bezierCurveTo(13.5, -14, 15.5, 6, 0, 22);
+    ctx.bezierCurveTo(-15.5, 6, -13.5, -14, 0, -21);
+    ctx.closePath();
+    const fill = ctx.createRadialGradient(0, 2, 1, 0, 2, 24);
+    fill.addColorStop(0, 'rgba(255,255,248,.95)');
+    fill.addColorStop(0.35, 'rgba(' + r + ',' + g + ',' + b + ',.85)');
+    fill.addColorStop(0.8, 'rgba(' + r + ',' + g + ',' + b + ',.38)');
+    fill.addColorStop(1, 'rgba(' + r + ',' + g + ',' + b + ',0)');
+    ctx.fillStyle = fill; ctx.fill();
+    ctx.globalAlpha = .3; ctx.strokeStyle = 'rgba(255,250,244,.8)'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(0, -17); ctx.quadraticCurveTo(1.5, 0, 0, 18); ctx.stroke();
     return sprite;
   });
 }
@@ -919,6 +964,12 @@ export default function ParticleFlower() {
       starsea: drawParticleSprites(THEME_COLORS.starsea),
       glass: drawParticleSprites(THEME_COLORS.glass)
     };
+    const petalPalettes: Record<ArtTheme, HTMLCanvasElement[]> = {
+      sakura: drawPetalSprites(THEME_COLORS.sakura),
+      gold: drawPetalSprites(THEME_COLORS.gold),
+      starsea: drawPetalSprites(THEME_COLORS.starsea),
+      glass: drawPetalSprites(THEME_COLORS.glass)
+    };
     const fallingPetals: FallingPetal[] = [];
     const pollen = Array.from({ length: mobile ? 26 : 54 }, () => ({ x: Math.random(), y: Math.random(), speed: 5 + Math.random() * 12, phase: Math.random() * Math.PI * 2, size: 0.5 + Math.random() * 1.5 }));
     const petalTouchTargets = new Float32Array(24);
@@ -1052,9 +1103,16 @@ export default function ParticleFlower() {
           ctx.globalAlpha=alpha;
           ctx.drawImage(sprite,x-diameter*.5,y-diameter*.5,diameter,diameter);
           if (p.rim) {
-            ctx.globalAlpha = Math.min(0.24, alpha * 0.26);
-            ctx.fillStyle = 'rgba(255,242,231,.92)';
-            ctx.beginPath(); ctx.arc(x, y, Math.max(0.45, diameter * 0.045), 0, Math.PI * 2); ctx.fill();
+            // Rim particles wear a petal silhouette over their glow, swaying
+            // with the same phase that drives their twinkle.
+            const petalSprite = petalPalettes[artThemeRef.current][p.tone];
+            const pd = diameter * 1.18;
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.rotate(p.angle + Math.sin(now * .6 + p.phase) * .35);
+            ctx.globalAlpha = Math.min(.92, alpha * 1.1);
+            ctx.drawImage(petalSprite, -pd * .5, -pd * .5, pd, pd);
+            ctx.restore();
           }
         }
         ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';

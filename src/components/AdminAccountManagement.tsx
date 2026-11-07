@@ -5,6 +5,13 @@ import { alog } from '../pages/admin/shared';
 import AdminMemberModal from './AdminMemberModal';
 import AdminMemberModeration from './AdminMemberModeration';
 import AdminMemberMessageComposer from './AdminMemberMessageComposer';
+import OptionSheet from './OptionSheet';
+
+const SORT_OPTIONS = [
+  { value: 'newest', label: '最新注册' },
+  { value: 'recent_login', label: '最近登录' },
+  { value: 'oldest', label: '最早注册' },
+] as const;
 
 type Account = {
   id: string;
@@ -272,13 +279,11 @@ export default function AdminAccountManagement({
             aria-pressed={roleFilter === value} onClick={() => setRoleFilter(value)}>{label}</button>)}
       </div>
       <div style={{ display: 'flex', gap: 7, alignItems: 'center', flexWrap: 'wrap', marginTop: 8 }}>
-        <label htmlFor="admin-account-sort" style={{ ...muted, marginRight: 2 }}>排序</label>
-        <select id="admin-account-sort" value={sortBy} onChange={event => setSortBy(event.target.value as typeof sortBy)}
-          style={{ ...btn, color: '#eef0ff', background: '#ffffff08' }}>
-          <option value="newest">最新注册</option>
-          <option value="recent_login">最近登录</option>
-          <option value="oldest">最早注册</option>
-        </select>
+        <span style={{ ...muted, marginRight: 2 }}>排序</span>
+        <OptionSheet title="排序" value={sortBy} options={[...SORT_OPTIONS]}
+          onChange={v => setSortBy(v as typeof sortBy)}
+          buttonText={SORT_OPTIONS.find(o => o.value === sortBy)?.label ?? '最新注册'}
+          buttonStyle={{ ...btn, padding: '6px 9px' }} />
       </div>
       <p style={{ ...muted, margin: '8px 0 0' }}>当前 {filtered.length} 个账号 · 第 {page + 1}/{pageCount} 页。所在地区来自成员主动分享，仅超级管理员可查看；不采集 IP 定位。</p>
       <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap', marginTop: 9 }}>

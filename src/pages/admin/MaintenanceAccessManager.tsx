@@ -2,6 +2,25 @@ import { useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { card, h3, mut, alog } from './shared';
 import { confirmDialog } from '../../lib/dialog';
+import OptionSheet from '../../components/OptionSheet';
+
+const MINUTE_OPTIONS = [
+  { value: '5', label: '5 分钟' },
+  { value: '15', label: '15 分钟' },
+  { value: '30', label: '30 分钟' },
+  { value: '60', label: '1 小时' },
+  { value: '360', label: '6 小时' },
+  { value: '1440', label: '24 小时' },
+];
+const USES_OPTIONS = [
+  { value: '1', label: '1 次' },
+  { value: '3', label: '3 次' },
+  { value: '5', label: '5 次' },
+  { value: '10', label: '10 次' },
+  { value: '30', label: '30 次' },
+  { value: '100', label: '100 次' },
+];
+const SHEET_BTN = { padding: '8px 10px', borderRadius: 10, border: '1px solid rgba(34,49,74,.25)', background: '#fff', color: '#22314a', fontSize: 13.5, justifyContent: 'space-between' } as const;
 
 export default function MaintenanceAccessManager({ setMsg }: { setMsg: (s: string) => void }) {
   const [minutes, setMinutes] = useState('15');
@@ -65,14 +84,12 @@ export default function MaintenanceAccessManager({ setMsg }: { setMsg: (s: strin
     <p style={{ ...mut, margin: '0 0 12px' }}>独立于管理员登录。仅绕过维护页面，不授予管理员权限；撤销后已进入的临时会话也会失效。</p>
     <div className="row" style={{ gap: 8, flexWrap: 'wrap', marginBottom: 10 }}>
       <label style={{ ...mut, display: 'flex', alignItems: 'center', gap: 6 }}>有效期
-        <select value={minutes} onChange={e => setMinutes(e.target.value)} style={{ minWidth: 112 }}>
-          <option value="5">5 分钟</option><option value="15">15 分钟</option><option value="30">30 分钟</option><option value="60">1 小时</option><option value="360">6 小时</option><option value="1440">24 小时</option>
-        </select>
+        <OptionSheet title="通行码有效期" value={minutes} options={MINUTE_OPTIONS} onChange={setMinutes}
+          buttonText={MINUTE_OPTIONS.find(o => o.value === minutes)?.label ?? ''} buttonStyle={{ ...SHEET_BTN, minWidth: 112 }} />
       </label>
       <label style={{ ...mut, display: 'flex', alignItems: 'center', gap: 6 }}>可使用次数
-        <select value={maxUses} onChange={e => setMaxUses(e.target.value)} style={{ minWidth: 100 }}>
-          <option value="1">1 次</option><option value="3">3 次</option><option value="5">5 次</option><option value="10">10 次</option><option value="30">30 次</option><option value="100">100 次</option>
-        </select>
+        <OptionSheet title="可使用次数" value={maxUses} options={USES_OPTIONS} onChange={setMaxUses}
+          buttonText={USES_OPTIONS.find(o => o.value === maxUses)?.label ?? ''} buttonStyle={{ ...SHEET_BTN, minWidth: 100 }} />
       </label>
     </div>
     <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>

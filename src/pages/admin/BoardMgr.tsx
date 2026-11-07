@@ -2,6 +2,23 @@ import { useEffect, useRef, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { card, h3, mut, rowBtn, alog } from './shared';
 import { confirmDialog } from '../../lib/dialog';
+import OptionSheet from '../../components/OptionSheet';
+
+const EXP_OPTIONS = [
+  { value: '0', label: '不过期' },
+  { value: '1', label: '1 天' },
+  { value: '3', label: '3 天' },
+  { value: '7', label: '7 天' },
+  { value: '30', label: '30 天' },
+];
+const POPUP_OPTIONS = [
+  { value: '0', label: '不弹窗' },
+  { value: '1', label: '弹1次' },
+  { value: '2', label: '弹2次' },
+  { value: '3', label: '弹3次' },
+  { value: '999', label: '每次都弹' },
+];
+const SHEET_BTN = { padding: '8px 10px', borderRadius: 10, border: '1px solid rgba(34,49,74,.25)', background: '#fff', color: '#22314a', fontSize: 13.5 } as const;
 
 /* ---------------- 内容审核 ---------------- */
 export default function BoardMgr({ me, setMsg }: { me: string; setMsg: (s: string) => void }) {
@@ -104,16 +121,11 @@ export default function BoardMgr({ me, setMsg }: { me: string; setMsg: (s: strin
       <div className="row" style={{ gap: 8, marginTop: 8, alignItems: 'center', flexWrap: 'wrap' }}>
         <button className="pri" style={{ width: 'auto', padding: '10px 26px' }} onClick={post}>发布公告</button>
         <span style={mut}>过期：</span>
-        <select value={exp} onChange={e => setExp(e.target.value)} style={{ width: 'auto', padding: '8px' }}>
-          <option value="0">不过期</option><option value="1">1 天</option>
-          <option value="3">3 天</option><option value="7">7 天</option><option value="30">30 天</option>
-        </select>
+        <OptionSheet title="公告过期" value={exp} options={EXP_OPTIONS} onChange={setExp}
+          buttonText={EXP_OPTIONS.find(o => o.value === exp)?.label ?? '不过期'} buttonStyle={SHEET_BTN} />
         <span style={mut}>登录弹窗：</span>
-        <select value={popupTimes} onChange={e => setPopupTimes(e.target.value)} style={{ width: 'auto', padding: '8px' }}>
-          <option value="0">不弹窗</option><option value="1">弹1次</option>
-          <option value="2">弹2次</option><option value="3">弹3次</option>
-          <option value="999">每次都弹</option>
-        </select>
+        <OptionSheet title="登录弹窗次数" value={popupTimes} options={POPUP_OPTIONS} onChange={setPopupTimes}
+          buttonText={POPUP_OPTIONS.find(o => o.value === popupTimes)?.label ?? '不弹窗'} buttonStyle={SHEET_BTN} />
         <span style={mut}>可见：</span>
         <button className="mini" aria-pressed={audience === 'all'} style={audience === 'all' ? { borderColor: 'rgba(34,49,74,.4)', color: '#22314a', background: '#f3ead6' } : undefined} onClick={() => setAudience('all')}>全部</button>
         <button className="mini" aria-pressed={audience === 'app'} style={audience === 'app' ? { borderColor: 'rgba(34,49,74,.4)', color: '#22314a', background: '#f3ead6' } : undefined} onClick={() => setAudience('app')}>仅软件版</button>

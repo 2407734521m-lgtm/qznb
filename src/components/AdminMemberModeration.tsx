@@ -1,6 +1,22 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { confirmDialog, promptDialog } from '../lib/dialog';
+import OptionSheet from './OptionSheet';
+
+const ACTION_TYPE_OPTIONS = [
+  { value: 'community_mute', label: '社区禁言 · 禁止动态、评论、留言等' },
+  { value: 'chat_mute', label: '私聊禁言 · 禁止发送私信及消息互动' },
+  { value: 'interaction_suspend', label: '全站互动限制 · 社区、私聊和好友申请' },
+  { value: 'warning', label: '成员警告 · 只记录，不限制功能' },
+];
+const DURATION_OPTIONS = [
+  { value: '1', label: '1 小时' },
+  { value: '24', label: '24 小时' },
+  { value: '72', label: '3 天' },
+  { value: '168', label: '7 天' },
+  { value: 'unlimited', label: '长期，直到手动解除' },
+];
+const DARK_FIELD_STYLE = { width: '100%', boxSizing: 'border-box', padding: 10, borderRadius: 9, color: '#edf3f8', background: '#101c2d', border: '1px solid #ffffff22' } as const;
 
 type ActionType = 'warning' | 'community_mute' | 'chat_mute' | 'interaction_suspend';
 
@@ -189,31 +205,20 @@ export default function AdminMemberModeration({
         <div style={{ marginTop: 14, border: '1px solid #ffffff18', borderRadius: 13, padding: 12, background: '#ffffff07' }}>
           <div style={{ fontWeight: 750, fontSize: 13, marginBottom: 8 }}>新增处理</div>
           <label style={{ ...muted, display: 'block', marginBottom: 5 }}>处理类型</label>
-          <select
-            value={actionType}
-            onChange={event => setActionType(event.target.value as ActionType)}
-            style={{ width: '100%', boxSizing: 'border-box', padding: 10, borderRadius: 9, color: '#edf3f8', background: '#101c2d', border: '1px solid #ffffff22' }}
-          >
-            <option value="community_mute">社区禁言 · 禁止动态、评论、留言等</option>
-            <option value="chat_mute">私聊禁言 · 禁止发送私信及消息互动</option>
-            <option value="interaction_suspend">全站互动限制 · 社区、私聊和好友申请</option>
-            <option value="warning">成员警告 · 只记录，不限制功能</option>
-          </select>
+          <OptionSheet title="处理类型" value={actionType} options={ACTION_TYPE_OPTIONS}
+            onChange={v => setActionType(v as ActionType)}
+            buttonText={ACTION_TYPE_OPTIONS.find(o => o.value === actionType)?.label ?? ''}
+            buttonStyle={{ ...DARK_FIELD_STYLE, justifyContent: 'space-between', fontSize: 14 }} />
 
           <label style={{ ...muted, display: 'block', margin: '10px 0 5px' }}>限制时长</label>
-          <select
-            value={actionType === 'warning' ? 'record' : duration}
-            disabled={actionType === 'warning'}
-            onChange={event => setDuration(event.target.value)}
-            style={{ width: '100%', boxSizing: 'border-box', padding: 10, borderRadius: 9, color: '#edf3f8', background: '#101c2d', border: '1px solid #ffffff22', opacity: actionType === 'warning' ? .55 : 1 }}
-          >
-            {actionType === 'warning' && <option value="record">警告记录，不设时长</option>}
-            <option value="1">1 小时</option>
-            <option value="24">24 小时</option>
-            <option value="72">3 天</option>
-            <option value="168">7 天</option>
-            <option value="unlimited">长期，直到手动解除</option>
-          </select>
+          {actionType === 'warning' ? (
+            <div style={{ ...DARK_FIELD_STYLE, opacity: .55, fontSize: 14 }}>警告记录，不设时长</div>
+          ) : (
+            <OptionSheet title="限制时长" value={duration} options={DURATION_OPTIONS}
+              onChange={setDuration}
+              buttonText={DURATION_OPTIONS.find(o => o.value === duration)?.label ?? ''}
+              buttonStyle={{ ...DARK_FIELD_STYLE, justifyContent: 'space-between', fontSize: 14 }} />
+          )}
 
           <label style={{ ...muted, display: 'block', margin: '10px 0 5px' }}>处理原因（至少 8 个字）</label>
           <textarea

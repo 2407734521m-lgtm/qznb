@@ -349,8 +349,8 @@ export default function Login({ siteTitle, siteSubtitle }: { siteTitle?: string;
           {verifyEmail ? (<>
             <h1 style={{ fontSize: 22 }}>验证邮箱</h1>
             <p className="sub">注 册 验 证</p>
-            <p className="priv-note" style={{ margin: '0 0 4px' }}>验证码已发送到 <b style={{ color: '#fff' }}>{verifyEmail}</b><br />
-              打开 QQ 邮箱，找标题是「我们的班级 · 青春档案 — 你的验证码」的邮件，把里面的 <b style={{ color: '#fff' }}>6 位数字验证码</b> 填到下面<br />
+            <p className="priv-note" style={{ margin: '0 0 4px' }}>验证码已发送到 <b style={{ color: '#2456c8' }}>{verifyEmail}</b><br />
+              打开 QQ 邮箱，找标题是「我们的班级 · 青春档案 — 你的验证码」的邮件，把里面的 <b style={{ color: '#2456c8' }}>6 位数字验证码</b> 填到下面<br />
               没看到就翻一下垃圾箱；也可以点邮件里的「确认邮箱」链接直接完成验证</p>
             <p className="priv-note" style={{ margin: '0 0 6px' }}>已等待 {waitSec} 秒 · 邮件通常 1 分钟内到达
               <motion.span animate={reduce ? {} : { opacity: [0.2, 1, 0.2] }} transition={{ repeat: Infinity, duration: 1.2 }}>…</motion.span>
@@ -440,7 +440,7 @@ export default function Login({ siteTitle, siteSubtitle }: { siteTitle?: string;
             <div style={{ margin: '14px 0 10px', padding: '12px 13px', borderRadius: 12, background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.12)' }}>
               <label style={{ display: 'flex', alignItems: 'flex-start', gap: 9, lineHeight: 1.6, cursor: 'pointer' }}>
                 <input type="checkbox" checked={policyAccepted} onChange={e => setPolicyAccepted(e.target.checked)} style={{ width: 18, height: 18, marginTop: 3, flexShrink: 0 }} />
-                <span>我已阅读并同意 <button type="button" className="linklike" onClick={() => setShowPrivacyPolicy(true)} style={{ border: 0, padding: 0, background: 'none', color: '#a9c2ff', textDecoration: 'underline', cursor: 'pointer', font: 'inherit' }}>《隐私政策与用户协议》</button></span>
+                <span>我已阅读并同意 <button type="button" className="linklike" onClick={() => setShowPrivacyPolicy(true)} style={{ border: 0, padding: 0, background: 'none', color: '#2f5fd0', textDecoration: 'underline', cursor: 'pointer', font: 'inherit' }}>《隐私政策与用户协议》</button></span>
               </label>
               <p className="priv-note" style={{ margin: '7px 0 0', lineHeight: 1.65 }}>政策说明账号、设备信息及 IP 推算地区的处理方式。GPS 精确位置不会由本协议自动授权。</p>
             </div>

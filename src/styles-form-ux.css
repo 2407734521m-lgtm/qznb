@@ -211,3 +211,20 @@
   -webkit-overflow-scrolling: touch;
   touch-action: pan-y;
 }
+
+/* ===== 登录卡文字配色（白卡深字）=====
+   styles-cinematic 里深色卡时代的浅字规则（.priv-note/.login-switch/.err/button.ghost）
+   还在层叠里，白卡上发淡看不清。这里以更高优先级统一钉成深色，只改颜色不动布局。 */
+.login-wrap .login-card .priv-note { color: #5d6575; }
+.login-wrap .login-card .login-switch { color: #5d6575; }
+.login-wrap .login-card .login-switch button,
+.login-wrap .login-card .linklike { color: #2f5fd0; }
+.login-wrap .login-card .err { color: #c22f47; }
+.login-wrap .login-card label { color: #3a4152; }
+.login-wrap .login-card button.ghost {
+  color: #3a4152;
+  background: rgba(32, 36, 44, .05);
+  border: 1px solid rgba(32, 36, 44, .14);
+}
+.login-wrap .login-card .float-hint { color: #6e7585; }
+.login-wrap .login-card .float-tag { color: #6e7585; }

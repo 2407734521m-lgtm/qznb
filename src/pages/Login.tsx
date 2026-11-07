@@ -3,6 +3,8 @@ import { motion, useReducedMotion } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import FeedbackModal from '../components/FeedbackModal';
 import PasswordField from '../components/PasswordField';
+import CodeInput from '../components/CodeInput';
+import FloatField from '../components/FloatField';
 import bgDefault from '../assets/cow.jpg';
 import { alertDialog } from '../lib/dialog';
 import './Login.polish.css';
@@ -337,10 +339,7 @@ export default function Login({ siteTitle, siteSubtitle }: { siteTitle?: string;
               <motion.span animate={reduce ? {} : { opacity: [0.2, 1, 0.2] }} transition={{ repeat: Infinity, duration: 1.2 }}>…</motion.span>
             </p>
             <label>验证码</label>
-            <input value={code} onChange={e => setCode(e.target.value.replace(/\D/g, '').slice(0, 10))}
-              placeholder="邮箱收到的数字码" inputMode="numeric" autoComplete="one-time-code"
-              style={{ letterSpacing: 10, textAlign: 'center', fontSize: 22, fontWeight: 700 }}
-              onKeyDown={e => e.key === 'Enter' && doVerify()} />
+            <CodeInput value={code} onChange={setCode} onEnter={doVerify} autoFocus />
             {err && <p className="err">{err}</p>}
             <button className="pri" disabled={busy} onClick={doVerify}>{busy ? <><Spin />验证中…</> : '验证并进入'}</button>
             <button className="ghost" style={{ width: '100%', marginTop: 8 }} disabled={busy || resendIn > 0} onClick={doResend}>
@@ -352,11 +351,13 @@ export default function Login({ siteTitle, siteSubtitle }: { siteTitle?: string;
             )}
             <p className="login-switch"><button onClick={() => { setVerifyEmail(null); setCode(''); setErr(''); }}>← 返回</button></p>
           </>) : mode === 'login' ? (<>
-            <label>账号</label>
-            <input value={ident} onChange={e => setIdent(e.target.value)} placeholder="QQ 邮箱 / 用户名" autoComplete="username" />
-            <label>密码</label>
-            <PasswordField value={pw} onChange={setPw} placeholder="密码" autoComplete="current-password"
-              onKeyDown={e => e.key === 'Enter' && doLogin()} />
+            <FloatField label="账号" value={ident}>
+              <input value={ident} onChange={e => setIdent(e.target.value)} placeholder="QQ 邮箱 / 用户名" autoComplete="username" aria-label="账号" />
+            </FloatField>
+            <FloatField label="密码" value={pw}>
+              <PasswordField value={pw} onChange={setPw} placeholder="密码" autoComplete="current-password"
+                onKeyDown={e => e.key === 'Enter' && doLogin()} />
+            </FloatField>
             {err && <p className="err">{err}</p>}
             <button className="pri" disabled={busy} onClick={doLogin}>{busy ? <><Spin />登录中…</> : '进入班级'}</button>
             <p className="login-switch">忘记密码了？<button onClick={() => { setMode('forgot'); setErr(''); setForgotSent(false); }}>点我重置</button></p>
@@ -366,52 +367,61 @@ export default function Login({ siteTitle, siteSubtitle }: { siteTitle?: string;
             <h1 style={{ fontSize: 22 }}>重置密码</h1>
             <p className="sub">找 回 密 码</p>
             <p className="priv-note" style={{ margin: '0 0 4px' }}>输入注册时的 QQ 邮箱，我们会发一个 6 位重置验证码给你<br />不用点邮件里的链接，在下面填码、设新密码就行</p>
-            <label>QQ 邮箱</label>
-            <input value={email} onChange={e => { setEmail(e.target.value); if (forgotSent) { setForgotSent(false); setForgotCode(''); } }} placeholder="123456@qq.com" inputMode="email"
-              onKeyDown={e => e.key === 'Enter' && doForgot()} />
+            <FloatField label="QQ 邮箱" value={email}>
+              <input value={email} onChange={e => { setEmail(e.target.value); if (forgotSent) { setForgotSent(false); setForgotCode(''); } }} placeholder="123456@qq.com" inputMode="email" aria-label="QQ 邮箱"
+                onKeyDown={e => e.key === 'Enter' && doForgot()} />
+            </FloatField>
             <button className="ghost" style={{ width: '100%', marginTop: 8 }} disabled={busy || resendIn > 0} onClick={doForgot}>
               {busy ? '发送中…' : resendIn > 0 ? `重新发送验证码（${resendIn}s）` : forgotSent ? '重新发送验证码' : '发送验证码'}
             </button>
             {forgotSent && <p className="priv-note" style={{ margin: '4px 0 0' }}>验证码已发到上面这个 QQ 邮箱，找标题是「我们的班级 · 青春档案 — 你的重置密码验证码」的邮件，没看到就翻一下垃圾箱；如果这个邮箱没注册过，是不会收到码的</p>}
             {forgotSent && (<>
               <label>邮箱验证码</label>
-              <input value={forgotCode} onChange={e => setForgotCode(e.target.value.replace(/\D/g, '').slice(0, 10))} placeholder="6 位数字验证码" inputMode="numeric" />
-              <label>新密码</label>
-              <PasswordField value={forgotNewPw} onChange={setForgotNewPw} placeholder="至少 8 位" autoComplete="new-password" />
-              <label>确认新密码</label>
-              <PasswordField value={forgotNewPw2} onChange={setForgotNewPw2} placeholder="再输一次" autoComplete="new-password"
-                onKeyDown={e => e.key === 'Enter' && doForgotVerify()} />
+              <CodeInput value={forgotCode} onChange={setForgotCode} onEnter={doForgotVerify} />
+              <FloatField label="新密码" value={forgotNewPw}>
+                <PasswordField value={forgotNewPw} onChange={setForgotNewPw} placeholder="至少 8 位" autoComplete="new-password" ariaLabel="新密码" />
+              </FloatField>
+              <FloatField label="确认新密码" value={forgotNewPw2}>
+                <PasswordField value={forgotNewPw2} onChange={setForgotNewPw2} placeholder="再输一次" autoComplete="new-password" ariaLabel="确认新密码"
+                  onKeyDown={e => e.key === 'Enter' && doForgotVerify()} />
+              </FloatField>
             </>)}
             {err && <p className="err">{err}</p>}
             {forgotSent && <button className="pri" disabled={busy} onClick={doForgotVerify}>{busy ? <><Spin />重设中…</> : '验证并重设密码'}</button>}
             <p className="login-switch"><button onClick={() => { setMode('login'); setErr(''); setForgotSent(false); }}>← 返回登录</button></p>
           </>) : (<>
-            <label>用户名</label>
-            <input value={name} onChange={e => setName(e.target.value)} placeholder="班级里显示的名字，可重复" maxLength={30} />
+            <FloatField label="用户名" value={name}>
+              <input value={name} onChange={e => setName(e.target.value)} placeholder="班级里显示的名字，可重复" maxLength={30} aria-label="用户名" />
+            </FloatField>
             {name.trim() && (<>
-              <label>真实姓名</label>
-              <input value={real} onChange={e => setReal(e.target.value)} placeholder="仅管理员可见，不会公开" maxLength={30} />
+              <FloatField label="真实姓名" value={real}>
+                <input value={real} onChange={e => setReal(e.target.value)} placeholder="仅管理员可见，不会公开" maxLength={30} aria-label="真实姓名" />
+              </FloatField>
               <p className="priv-note">真实姓名只用于后台统计，普通成员看不到</p>
             </>)}
-            <label>手机号（选填）</label>
-            <input value={phone} onChange={e => setPhone(e.target.value.replace(/\D/g, '').slice(0, 11))} placeholder="11 位手机号，没有可不填" inputMode="tel" />
-            <label>QQ 邮箱</label>
-            <input value={email} onChange={e => { setEmail(e.target.value); if (codeSent) { setCodeSent(false); setCode(''); } }} placeholder="123456@qq.com" inputMode="email" />
+            <FloatField label="手机号（选填）" value={phone}>
+              <input value={phone} onChange={e => setPhone(e.target.value.replace(/\D/g, '').slice(0, 11))} placeholder="11 位手机号，没有可不填" inputMode="tel" aria-label="手机号（选填）" />
+            </FloatField>
+            <FloatField label="QQ 邮箱" value={email}>
+              <input value={email} onChange={e => { setEmail(e.target.value); if (codeSent) { setCodeSent(false); setCode(''); } }} placeholder="123456@qq.com" inputMode="email" aria-label="QQ 邮箱" />
+            </FloatField>
             <button className="ghost" style={{ width: '100%', marginTop: 8 }} disabled={busy || resendIn > 0} onClick={sendCode}>
               {busy ? '发送中…' : resendIn > 0 ? `重新发送验证码（${resendIn}s）` : codeSent ? '重新发送验证码' : '发送验证码'}
             </button>
             {codeSent && <p className="priv-note" style={{ margin: '4px 0 0' }}>验证码已通过 Resend 发到上面这个 QQ 邮箱，找标题是「我们的班级 · 青春档案 — 你的验证码」的邮件，没看到就翻一下垃圾箱</p>}
             {codeSent && (<>
               <label>邮箱验证码</label>
-              <input value={code} onChange={e => setCode(e.target.value)} placeholder="6 位数字验证码" inputMode="numeric"
-                onKeyDown={e => e.key === 'Enter' && doVerifyReg()} />
+              <CodeInput value={code} onChange={setCode} onEnter={doVerifyReg} />
             </>)}
-            <label>密码</label>
-            <PasswordField value={pw} onChange={setPw} placeholder="至少 8 位" autoComplete="new-password" />
-            <label>确认密码</label>
-            <PasswordField value={pw2} onChange={setPw2} placeholder="再输一次" autoComplete="new-password" />
-            <label>邀请码（选填）</label>
-            <input value={invite} onChange={e => setInvite(e.target.value)} placeholder="有就填，没有先不填，注册后在个人中心补填" />
+            <FloatField label="密码" value={pw}>
+              <PasswordField value={pw} onChange={setPw} placeholder="至少 8 位" autoComplete="new-password" />
+            </FloatField>
+            <FloatField label="确认密码" value={pw2}>
+              <PasswordField value={pw2} onChange={setPw2} placeholder="再输一次" autoComplete="new-password" ariaLabel="确认密码" />
+            </FloatField>
+            <FloatField label="邀请码（选填）" value={invite}>
+              <input value={invite} onChange={e => setInvite(e.target.value)} placeholder="有就填，没有先不填，注册后在个人中心补填" aria-label="邀请码（选填）" />
+            </FloatField>
             <div style={{ margin: '14px 0 10px', padding: '12px 13px', borderRadius: 12, background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.12)' }}>
               <label style={{ display: 'flex', alignItems: 'flex-start', gap: 9, lineHeight: 1.6, cursor: 'pointer' }}>
                 <input type="checkbox" checked={policyAccepted} onChange={e => setPolicyAccepted(e.target.checked)} style={{ width: 18, height: 18, marginTop: 3, flexShrink: 0 }} />

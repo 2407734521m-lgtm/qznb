@@ -50,6 +50,26 @@ function FriendAvatar({ person, size = 48 }: { person: Friend; size?: number }) 
   );
 }
 
+// 点头像进对方主页（用户定规：私聊里点头像就呈现主页）。
+// 用在普通行里是真按钮；嵌在整行按钮（会话行）里时用 asSpan 版，靠 stopPropagation 分流。
+function ProfileAvatar({ person, size = 48, asSpan = false }: { person: Friend; size?: number; asSpan?: boolean }) {
+  const nav = useNavigate();
+  const label = '查看' + (person.display_name ?? person.username) + '的主页';
+  const open = (event: React.SyntheticEvent) => { event.stopPropagation(); nav('/members/' + person.id); };
+  if (asSpan) {
+    return (
+      <span className="im-avatar-link" role="button" aria-label={label} title={label} onClick={open}>
+        <FriendAvatar person={person} size={size} />
+      </span>
+    );
+  }
+  return (
+    <button type="button" className="im-avatar-link" aria-label={label} title={label} onClick={open}>
+      <FriendAvatar person={person} size={size} />
+    </button>
+  );
+}
+
 function formatInboxTime(value: string | null, fallback: string) {
   if (!value) return new Date(fallback).toLocaleDateString('zh-CN', { month: 'numeric', day: 'numeric' });
   const date = new Date(value);
@@ -548,6 +568,8 @@ export default function Friends() {
         button.im-inbox-row:active{transform:scale(.985);background:rgba(45,112,210,.38);border-color:rgba(160,213,255,.36)}
         .im-list-avatar{flex:none;display:grid;place-items:center;border-radius:50%;overflow:hidden;color:white;font-size:18px;font-weight:700;background:linear-gradient(135deg,#61baff,#6578ff 58%,#a17bff);border:2px solid rgba(218,239,255,.28);box-shadow:0 0 0 4px rgba(92,157,255,.09)}
         .im-list-avatar img{width:100%;height:100%;object-fit:cover}
+        .im-avatar-link{flex:none;display:inline-block;padding:0;border:0;background:none;border-radius:50%;cursor:pointer;line-height:0;-webkit-tap-highlight-color:transparent}
+        .im-avatar-link:active{transform:scale(.94)}
         .im-inbox-person{flex:1;min-width:0}
         .im-inbox-name{font-size:14px;font-weight:700;color:#f7fbff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
         .im-inbox-preview{font-size:12px;color:rgba(218,234,255,.7);margin-top:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -646,7 +668,7 @@ export default function Friends() {
             const busy = friendActionId === person.id;
             return (
               <div key={person.id} className="im-inbox-row" style={{ cursor: 'default' }}>
-                <FriendAvatar person={person} />
+                <ProfileAvatar person={person} />
                 <span className="im-inbox-person">
                   <span className="im-inbox-name" style={{ display: 'block' }}>{person.display_name ?? person.username}</span>
                   <span className="im-inbox-preview" style={{ display: 'block' }}>@{person.username}</span>
@@ -684,7 +706,7 @@ export default function Friends() {
                 </div>
               ) : filteredConversations.map(conversation => (
                 <button key={conversation.conversation_id} type="button" className="im-inbox-row" onClick={() => openConversation(conversation)}>
-                  <FriendAvatar person={{ id: conversation.other_profile_id, username: conversation.username, display_name: conversation.display_name, avatar_path: conversation.avatar_path }} />
+                  <ProfileAvatar asSpan person={{ id: conversation.other_profile_id, username: conversation.username, display_name: conversation.display_name, avatar_path: conversation.avatar_path }} />
                   <span className="im-inbox-person">
                     <span className="im-inbox-name" style={{ display: 'block' }}>{conversation.display_name ?? conversation.username}</span>
                     <span className="im-inbox-preview" style={{ display: 'block' }}>
@@ -710,7 +732,7 @@ export default function Friends() {
                 </div>
               ) : filteredFriends.map(friend => (
                 <div key={friend.id} className="im-inbox-row" style={{ cursor: 'default' }}>
-                  <FriendAvatar person={friend} />
+                  <ProfileAvatar person={friend} />
                   <span className="im-inbox-person">
                     <span className="im-inbox-name" style={{ display: 'block' }}>{friend.display_name ?? friend.username}</span>
                     <span className="im-inbox-preview" style={{ display: 'block' }}>@{friend.username} · 已成为好友</span>
@@ -734,7 +756,7 @@ export default function Friends() {
                 </div>
               ) : filteredBlocked.map(person => (
                 <div key={person.id} className="im-inbox-row" style={{ cursor: 'default' }}>
-                  <FriendAvatar person={person} />
+                  <ProfileAvatar person={person} />
                   <span className="im-inbox-person">
                     <span className="im-inbox-name" style={{ display: 'block' }}>{person.display_name ?? person.username}</span>
                     <span className="im-inbox-preview" style={{ display: 'block' }}>@{person.username} · 已被你拉黑</span>
@@ -756,7 +778,7 @@ export default function Friends() {
                 </div>
               ) : filteredRequests.map(friend => (
                 <div key={friend.id} className="im-inbox-row" style={{ cursor: 'default' }}>
-                  <FriendAvatar person={friend} />
+                  <ProfileAvatar person={friend} />
                   <span className="im-inbox-person">
                     <span className="im-inbox-name" style={{ display: 'block' }}>{friend.display_name ?? friend.username}</span>
                     <span className="im-inbox-preview" style={{ display: 'block' }}>@{friend.username} 想加你为好友</span>

@@ -724,7 +724,8 @@ export default function Chat() {
           <span className="im-back-label">信息</span>
         </button>
         <button type="button" className="im-contact-stack" aria-label="查看会话资料" onClick={() => setShowDetails(true)}>
-          <span className="im-avatar im-avatar-open">
+          <span className="im-avatar im-avatar-open" role="button" aria-label={'查看' + name + '的主页'}
+            onClick={event => { event.stopPropagation(); if (peer) nav('/members/' + peer.id); }}>
             {peerAvatarUrl ? <img src={peerAvatarUrl} alt="" /> : (name.trim().charAt(0).toUpperCase() || '友')}
           </span>
           <span className="im-contact-name-pill">
@@ -747,9 +748,10 @@ export default function Chat() {
           </header>
           <div className="im-profile-scroll">
             <div className="im-profile-hero">
-              <div className="im-profile-avatar">
+              <button type="button" className="im-profile-avatar im-profile-avatar-btn" aria-label={'查看' + name + '的主页'}
+                onClick={() => { setShowDetails(false); if (peer) nav('/members/' + peer.id); }}>
                 {peerAvatarUrl ? <img src={peerAvatarUrl} alt="" /> : <span>{name.trim().charAt(0).toUpperCase() || '友'}</span>}
-              </div>
+              </button>
               <div className="im-profile-name">{peer?.display_name ?? name}</div>
               <div className="im-profile-username">{peer?.username ? '@' + peer.username : '一对一私密会话'}</div>
               <span className="im-private-label">仅对话成员可见</span>
@@ -759,6 +761,11 @@ export default function Chat() {
               <div><strong>{msgs.filter(m => !m.deleted_at && m.body.startsWith('[[im-image:')).length}</strong><span>张照片</span></div>
               <div><strong>{msgs.filter(m => !m.deleted_at && m.body.startsWith('[[im-audio:')).length}</strong><span>条语音</span></div>
             </div>
+            <button type="button" className="im-profile-home-link"
+              onClick={() => { setShowDetails(false); if (peer) nav('/members/' + peer.id); }}>
+              <span>查看主页</span>
+              <span aria-hidden="true">›</span>
+            </button>
             <section className="im-profile-section">
               <div className="im-profile-section-heading">聊天背景</div>
               <div className="im-wallpaper-grid">

@@ -607,6 +607,17 @@
   font-weight: 800;
 }
 .im-profile-avatar img { width:100%;height:100%;object-fit:cover; }
+.im-page .im-profile-avatar-btn { padding:0; font-family:inherit; cursor:pointer; -webkit-tap-highlight-color:transparent; }
+.im-page .im-profile-avatar-btn:active { transform:scale(.96); }
+.im-page .im-profile-home-link {
+  display:flex; align-items:center; justify-content:space-between;
+  width:100%; margin:0 0 15px; padding:13px 16px;
+  border:1px solid rgba(255,255,255,.98); border-radius:19px;
+  background:rgba(255,255,255,.82); color:#25364f;
+  font:inherit; font-size:14.5px; font-weight:700; cursor:pointer;
+  box-shadow:0 6px 18px rgba(48,68,104,.04), inset 0 1px 0 #fff;
+}
+.im-page .im-profile-home-link:active { transform:scale(.99); }
 .im-profile-name { color:#25364f;font-size:21px;font-weight:780;letter-spacing:-.025em; }
 .im-profile-username { margin-top:4px;color:#8794a7;font-size:12px; }
 .im-private-label {

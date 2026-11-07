@@ -21,9 +21,9 @@ function getBrowserLabel(ua: string) {
   if (/Firefox\//i.test(ua)) return 'Firefox';
   if (/CriOS\//i.test(ua)) return 'Chrome（iOS）';
   if (/FxiOS\//i.test(ua)) return 'Firefox（iOS）';
+  if (/wv\)/i.test(ua)) return 'Android WebView';
   if (/Chrome\//i.test(ua)) return 'Chrome';
   if (/Safari\//i.test(ua) && !/Chrome\//i.test(ua)) return 'Safari';
-  if (/wv\)/i.test(ua)) return 'Android WebView';
   return '当前浏览器';
 }
 

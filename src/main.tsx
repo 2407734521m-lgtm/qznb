@@ -37,6 +37,7 @@ import './styles-quiet-premium.css';
 import './styles-quiet-editorial-detail.css';
 import './styles-quiet-community-detail.css';
 import './styles-archive.css';
+import './styles-motion-premium.css'; // Final motion layer: keep after all visual overrides.
 
 // 只有精确匹配的管理员域名可以挂载后台；其他任何域名都不能加载 AdminShell。
 const isAdminHost = window.location.hostname.toLowerCase() === 'admin.qianzhi.pw';

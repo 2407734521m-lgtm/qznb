@@ -348,8 +348,8 @@ export default function Login({ siteTitle, siteSubtitle }: { siteTitle?: string;
             className="qz-rdev-login-card"
             displacementScale={48}
             blurAmount={0.12}
-            saturation={160}
-            aberrationIntensity={2}
+            saturation={140}
+            aberrationIntensity={0}
             elasticity={0}
             cornerRadius={30}
             padding="0px"

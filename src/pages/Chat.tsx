@@ -9,6 +9,7 @@ import { goBackOr } from '../components/BackButton';
 import { confirmDialog } from '../lib/dialog';
 import type { ChatMessage } from '../types/message';
 import { useUserPreferences } from '../lib/userPreferences';
+import { SPRING_SNAPPY } from '../lib/motion';
 import './Chat.polish.css';
 
 type ChatReaction = { message_id: number; profile_id: string; reaction: string; created_at: string };
@@ -946,7 +947,7 @@ export default function Chat() {
       <main className="im-feed">
         {msgs.length === 0 && outbox.length === 0 ? (
           <div className="im-empty"><div style={{fontWeight:750,color:'#f5fbff',fontSize:16}}>新的开始</div><p style={{fontSize:13,lineHeight:1.7}}>发出第一条消息，开启你们的对话吧。</p></div>
-        ) : (<>{msgs.map((m, i) => {
+        ) : (<AnimatePresence initial={false}>{msgs.map((m, i) => {
           const parent = m.reply_to_id ? msgs.find(item => item.id === m.reply_to_id) : null;
           const groups = reactionGroups(m.id);
           const mine = m.sender_id === me;
@@ -968,7 +969,11 @@ export default function Chat() {
             ? (otherLastReadMessageId !== null && otherLastReadMessageId >= m.id ? '已读' : '已送达')
             : '';
           return (
-            <div key={m.id}>
+            <motion.div key={m.id}
+              initial={reduceMotion ? false : { opacity: 0, y: 8, scale: 0.985 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: -4, scale: 0.99 }}
+              transition={reduceMotion ? { duration: 0.01 } : SPRING_SNAPPY}>
               {dateLabel(m.created_at, msgs[i - 1]?.created_at) && <div className="im-day">{dateLabel(m.created_at, msgs[i - 1]?.created_at)}</div>}
               <div className={'im-row ' + (mine ? 'mine ' : '') + (mine && m.id === latestOutgoingMessageId && userPreferences.chat.showReadReceipts ? 'im-row-has-receipt ' : '') + (samePrevious ? 'im-row-grouped-prev ' : '') + (sameNext ? 'im-row-grouped-next ' : '') + (swappedIdsRef.current.has(m.id) ? 'im-row-static' : '')}>
                 <div className={'im-message-column ' + (mine ? 'mine' : 'theirs')}>
@@ -1005,14 +1010,18 @@ export default function Chat() {
                   </div>}
                 </div>
               </div>
-            </div>
+            </motion.div>
           );
         })}
         {outbox.map(e => {
           const inlineMeta = canShowInlineMeta(e.body, e.replyToId !== null);
           const phaseLabel = e.phase === 'sending' ? '发送中' : e.phase === 'failed' ? '发送失败' : '已送达';
           return (
-          <div key={e.tempKey}>
+          <motion.div key={e.tempKey}
+            initial={reduceMotion ? false : { opacity: 0, y: 8, scale: 0.985 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 5, scale: 0.99 }}
+            transition={reduceMotion ? { duration: 0.01 } : SPRING_SNAPPY}>
             <div className="im-row mine im-row-out">
               <div className="im-out-col im-message-column mine">
                 <div className={'im-bubble mine' + (e.phase === 'failed' ? ' im-bubble-failed' : '')}>
@@ -1032,10 +1041,10 @@ export default function Chat() {
                 {e.phase === 'failed' && <button type="button" className="im-retry" onClick={() => retryEntry(e.tempKey)}><span className="im-retry-dot">↻</span>点击重试</button>}
               </div>
             </div>
-          </div>
+          </motion.div>
           );
         })}
-        </>)}
+        </AnimatePresence>)}
         {otherTyping && <div className="im-typing" role="status" aria-live="polite">
           <span className="im-typing-dots"><i /><i /><i /></span>
           <span>{name} 正在输入</span>
@@ -1088,15 +1097,26 @@ export default function Chat() {
         </div>;
       })()}
       {error && <div className="im-error">{error}</div>}
-      {showStickers && <div className="im-sticker-tray" role="group" aria-label="附件与贴纸">
-        <button type="button" className="im-attach-choice" onClick={() => imageRef.current?.click()}>
-          <span aria-hidden="true">▧</span><span>照片</span>
-        </button>
-        <button type="button" className="im-attach-choice" onClick={() => fileRef.current?.click()}>
-          <span aria-hidden="true">▤</span><span>文件</span>
-        </button>
-        {['🥹','😂','❤️','😍','🐱','🐻','✨','🎉','👍','😭','🫶','🌸','💖','😎'].map(sticker => <button key={sticker} type="button" className="im-sticker-choice" aria-label={'发送贴纸 ' + sticker} onClick={() => sendSticker(sticker)}>{sticker}</button>)}
-      </div>}
+      <AnimatePresence initial={false}>
+        {showStickers && <motion.div
+          key="chat-attachment-tray"
+          className="im-sticker-tray"
+          role="group"
+          aria-label="附件与贴纸"
+          initial={reduceMotion ? false : { opacity: 0, y: 10, scale: 0.985 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 7, scale: 0.99 }}
+          transition={reduceMotion ? { duration: 0.01 } : SPRING_SNAPPY}
+        >
+          <button type="button" className="im-attach-choice" onClick={() => imageRef.current?.click()}>
+            <span aria-hidden="true">▧</span><span>照片</span>
+          </button>
+          <button type="button" className="im-attach-choice" onClick={() => fileRef.current?.click()}>
+            <span aria-hidden="true">▤</span><span>文件</span>
+          </button>
+          {['🥹','😂','❤️','😍','🐱','🐻','✨','🎉','👍','😭','🫶','🌸','💖','😎'].map(sticker => <button key={sticker} type="button" className="im-sticker-choice" aria-label={'发送贴纸 ' + sticker} onClick={() => sendSticker(sticker)}>{sticker}</button>)}
+        </motion.div>}
+      </AnimatePresence>
       {replyTarget && <div className="im-reply-banner">
         <span>回复</span>
         <span className="im-reply-banner-main">{messageSummary(replyTarget)}</span>

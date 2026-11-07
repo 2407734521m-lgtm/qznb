@@ -36,7 +36,7 @@ function canShowInlineMeta(body: string, hasReply: boolean) {
     && !hasReply
     && !content.startsWith('[[im-image:')
     && !content.startsWith('[[im-audio:')
-    && !content.includes('\\n')
+    && !content.includes('\n')
     && Array.from(content).length <= 18;
 }
 
@@ -869,7 +869,7 @@ export default function Chat() {
                         </div>
                       </>
                     ) : (
-                      <MessageContent body={deleted ? (mine ? '你撤回了一条消息' : '对方撤回了一条消息') : m.body} />
+                      <MessageContent body={displayBody} />
                     )}
                     {inlineMeta && <span className={'im-inline-meta ' + (mine ? 'mine' : 'theirs')}>{messageTimeLabel(m.created_at)}{receiptLabel ? ' · ' + receiptLabel : ''}</span>}
                     {m.edited_at && !deleted && <div className="im-edited-mark">已编辑</div>}

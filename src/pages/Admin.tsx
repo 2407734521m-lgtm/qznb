@@ -8,6 +8,7 @@ import '../styles-admin-unified.css';
 import '../styles-admin-scaffold.css';
 import '../styles-admin-ops.css';
 import '../styles-admin-tokens.css';
+import '../styles-admin-pages.css';
 import AdminWorkspace from '../components/AdminWorkspace';
 import AdminSystemCenter from '../components/AdminSystemCenter';
 import AdminAnalyticsCenter from '../components/AdminAnalyticsCenter';

@@ -1,12 +1,12 @@
 import { supabase } from '../../lib/supabase';
 
 export const card: React.CSSProperties = {
-  background: 'linear-gradient(160deg,#131a30,#0e1428)',
-  border: '1px solid #ffffff12', borderRadius: 14, padding: 14, marginBottom: 12,
-  boxShadow: '0 8px 32px #0008',
+  background: 'var(--admin-surface, #ffffff)',
+  border: '1px solid var(--admin-border, #e2e8f0)', borderRadius: 16, padding: 15, marginBottom: 12,
+  boxShadow: 'var(--admin-shadow-card, 0 8px 24px rgba(15,23,42,.045))',
 };
 export const h3: React.CSSProperties = { margin: '0 0 10px', fontSize: 15, fontWeight: 700 };
-export const mut: React.CSSProperties = { color: 'var(--mut)', fontSize: 12.5 };
+export const mut: React.CSSProperties = { color: 'var(--admin-muted, #64748b)', fontSize: 12.5, lineHeight: 1.6 };
 export const rowBtn: React.CSSProperties = { display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 8 };
 
 export async function alog(action: string, detail: unknown) {

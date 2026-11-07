@@ -204,7 +204,7 @@ export default function Moderate({ setMsg }: { setMsg: (s: string) => void }) {
   }
   const pending = reports.filter(r => r.status === 'pending').length;
   const trashCount = trashP.length + trashC.length + trashB.length;
-  return (<>
+  return (<div className="admin-moderation-page">
     <div className="row" style={{ gap: 6, marginBottom: 12 }}>
       <button className={'mini' + (sub === 'reports' ? '' : ' ghost')} onClick={() => setSub('reports')}>举报{pending ? `（${pending}）` : ''}</button>
       <button className={'mini' + (sub === 'posts' ? '' : ' ghost')} onClick={() => setSub('posts')}>帖子</button>
@@ -376,7 +376,7 @@ export default function Moderate({ setMsg }: { setMsg: (s: string) => void }) {
         </div>
       ))}
     </>)}
-  </>);
+  </div>);
 }
 
 /* ---------------- 公告管理 ---------------- */

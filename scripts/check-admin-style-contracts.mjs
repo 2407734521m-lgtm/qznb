@@ -8,6 +8,10 @@ const unified=read('../src/styles-admin-unified.css');
 const scaffold=read('../src/styles-admin-scaffold.css');
 const ops=read('../src/styles-admin-ops.css');
 const tokens=read('../src/styles-admin-tokens.css');
+const pages=read('../src/styles-admin-pages.css');
+const accounts=read('../src/components/AdminAccountManagement.tsx');
+const notifications=read('../src/components/AdminNotificationCenter.tsx');
+const moderate=read('../src/pages/admin/Moderate.tsx');
 function assert(ok,message){if(!ok){console.error(`Admin style contract failed: ${message}`);process.exitCode=1;}}
 assert(main.includes("supabase.rpc('my_role')"),'dedicated host must verify the role before mounting admin');
 assert(main.includes("setVerifiedUid(uid)")&&main.includes("verifiedUid !== session.user.id"),'role result must be bound to the active session user');
@@ -24,6 +28,12 @@ const unscoped=/(^|[{},])\s*\.(admin-content|admin-header|admin-search|admin-loa
 for(const [name,css] of [['cinematic',cinematic],['unified',unified]]){
  assert(!unscoped.test(css),`${name} legacy selectors must stay under admin root`);
 }
-assert(tokens.includes('--admin-bg-0: #f7f9fc;')&&tokens.includes('.admin-shell-v3 .admin-sidebar'),'admin tokens must define isolated light shell');
+assert(tokens.includes('--admin-bg-0: #f7f9fc;')&&tokens.includes('--admin-surface: #ffffff;'),'admin tokens must define light surfaces');
+assert(admin.includes("import '../styles-admin-pages.css';"),'admin page refinements must load from the admin entry');
+assert(accounts.includes('className=\"admin-accounts-page\"'),'account page must have a local style root');
+assert(notifications.includes('className=\"admin-notifications-page\"'),'notification page must have a local style root');
+assert(moderate.includes('className=\"admin-moderation-page\"'),'moderation page must have a local style root');
+assert(pages.includes('.admin-shell-v3 .admin-overview-dashboard')&&pages.includes('.admin-shell-v3 .admin-accounts-page'),'page refinements must be scoped to the admin shell');
+assert(!/^\\s*\\.admin-(?:overview|accounts|notifications|moderation|email)/m.test(pages),'admin page CSS must not leak into public pages');
 if(process.exitCode)process.exit(process.exitCode);
 console.log('Admin style contracts passed: isolated selectors, session-bound role verification, and current admin branding.');

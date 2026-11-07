@@ -4,6 +4,10 @@
   --admin-bg-0: #f7f9fc;
   --admin-bg-1: #ffffff;
   --admin-bg-2: #f1f5f9;
+  --admin-surface: #ffffff;
+  --admin-surface-muted: #f8fafc;
+  --admin-field-bg: #ffffff;
+  --admin-shadow-card: 0 8px 24px rgba(15, 23, 42, .045);
   --admin-line: #e5eaf2;
   --admin-border: #e2e8f0;
   --admin-text: #172033;

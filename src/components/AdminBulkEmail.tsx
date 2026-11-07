@@ -88,7 +88,7 @@ export default function AdminBulkEmail({ setMsg }: { setMsg: (s: string) => void
     } catch (e: any) { setMsg(e.message || '发送失败。'); }
     finally { setBusy(false); }
   }
-  return <section className="admin-email-glass" style={{ color: '#eef1ff' }}>
+  return <section className="admin-email-glass admin-email-page">
     <div className="admin-email-panel" style={panel}>
       <h2 style={{ fontSize: 14, margin: '0 0 4px' }}>批量发送邮件</h2>
       <p style={{ color: '#9da6c3', fontSize: 11, lineHeight: 1.65, margin: '0 0 12px' }}>搜索并勾选收件账号，再填写邮件标题和正文。系统会逐个发送，不会把其他收件人的邮箱地址暴露给彼此。每次最多 100 个账号。</p>
@@ -144,10 +144,10 @@ export default function AdminBulkEmail({ setMsg }: { setMsg: (s: string) => void
     </div>
   </section>;
 }
-const panel: React.CSSProperties = { background: 'linear-gradient(145deg,#171e33,#0d1222)', border: '1px solid #ffffff18', borderRadius: 20, padding: 12 };
-const field: React.CSSProperties = { width: '100%', boxSizing: 'border-box', background: '#080d1c', border: '1px solid #ffffff20', borderRadius: 12, padding: '8px 10px', color: '#fff', font: 'inherit', fontSize: 12, outline: 'none' };
-const label: React.CSSProperties = { display: 'block', color: '#b9c2dd', fontSize: 10.5, margin: '8px 0 4px' };
-const small: React.CSSProperties = { border: '1px solid #ffffff20', borderRadius: 999, padding: '6px 9px', background: '#ffffff0c', color: '#dfe4f7', fontSize: 10, cursor: 'pointer' };
+const panel: React.CSSProperties = { background: 'var(--admin-surface, #ffffff)', border: '1px solid var(--admin-border, #e2e8f0)', borderRadius: 16, padding: 15, boxShadow: 'var(--admin-shadow-card, 0 8px 24px rgba(15,23,42,.045))' };
+const field: React.CSSProperties = { width: '100%', boxSizing: 'border-box', background: 'var(--admin-field-bg, #ffffff)', border: '1px solid var(--admin-border, #e2e8f0)', borderRadius: 11, padding: '10px 12px', color: 'var(--admin-text, #172033)', font: 'inherit', fontSize: 13, outline: 'none' };
+const label: React.CSSProperties = { display: 'block', color: 'var(--admin-muted, #64748b)', fontSize: 11, fontWeight: 650, margin: '10px 0 5px' };
+const small: React.CSSProperties = { border: '1px solid var(--admin-border, #e2e8f0)', borderRadius: 999, padding: '7px 11px', background: 'var(--admin-surface-muted, #f8fafc)', color: 'var(--admin-text, #172033)', fontSize: 11, cursor: 'pointer' };
 const sendBtn: React.CSSProperties = { width: '100%', marginTop: 12, border: 0, borderRadius: 999, padding: '9px 12px', background: 'linear-gradient(135deg,#5b8cff,#8b5cf6)', color: '#fff', fontSize: 11.5, fontWeight: 700, cursor: 'pointer' };
 const person: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 8, padding: '6px 2px', borderBottom: '1px solid #ffffff0c', cursor: 'pointer' };
-const muted: React.CSSProperties = { color: '#9da6c3', fontSize: 11, textAlign: 'center', padding: 10 };
+const muted: React.CSSProperties = { color: 'var(--admin-muted, #64748b)', fontSize: 11, textAlign: 'center', padding: 10 };

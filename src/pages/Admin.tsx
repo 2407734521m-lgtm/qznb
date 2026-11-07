@@ -10,6 +10,7 @@ import '../styles-admin-ops.css';
 import '../styles-admin-tokens.css';
 import '../styles-admin-pages.css';
 import AdminWorkspace from '../components/AdminWorkspace';
+import AdminGuestAccess from '../components/AdminGuestAccess';
 import AdminSystemCenter from '../components/AdminSystemCenter';
 import AdminAnalyticsCenter from '../components/AdminAnalyticsCenter';
 import AdminBackupCenter from '../components/AdminBackupCenter';
@@ -58,6 +59,7 @@ const TABS_ALL: [string, string, boolean][] = [
   ['security', '安全防护', true],
   ['approvals', '审批中心', true],
   ['system', '安全与监控', true],
+  ['guestAccess', '游客管理', false],
   ['settings', '设置', true], // 仅超管
   ['test', '测试', true], // 仅超管
 ];
@@ -175,7 +177,8 @@ export default function Admin({ verifiedRole }: { verifiedRole: 'admin' | 'super
           {tab === 'security' && isSuper && <AdminSecurityCenter session={session} setMsg={setMsg} />}
           {tab === 'approvals' && isSuper && <AdminApprovalCenter setMsg={setMsg} me={me} />}
           {tab === 'system' && isSuper && <AdminSystemCenter setMsg={setMsg} go={switchTab} />}
-          {tab === 'settings' && isSuper && <Settings me={me} setMsg={setMsg} />}
+          {tab === 'guestAccess' && <AdminGuestAccess setMsg={setMsg} />}
+          {tab === 'settings' && isSuper && <Settings me={me} setMsg={setMsg} />
           {tab === 'invite' && <InviteTab isSuper={isSuper} setMsg={setMsg} />}
           {tab === 'feedback' && <FeedbackTab me={me} isSuper={isSuper} setMsg={setMsg} />}
           {tab === 'game' && <GameTab setMsg={setMsg} />}

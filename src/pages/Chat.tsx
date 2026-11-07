@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../auth';
 import { downscaleImage, uploadMedia, useSignedUrl } from '../lib/media';
 import { goBackOr } from '../components/BackButton';
+import { confirmDialog } from '../lib/dialog';
 import type { ChatMessage } from '../types/message';
 import { useUserPreferences } from '../lib/userPreferences';
 import './Chat.polish.css';
@@ -414,7 +415,8 @@ export default function Chat() {
   }
 
   async function withdrawMessage(messageId: number) {
-    if (!window.confirm('确定撤回这条消息吗？撤回后对话双方都无法再查看原内容。')) return;
+    const ok = await confirmDialog('确定撤回这条消息吗？撤回后对话双方都无法再查看原内容。', { confirmText: '确认撤回', danger: true });
+    if (!ok) return;
     const { error: deleteError } = await supabase.rpc('delete_chat_message', {
       p_message_id: messageId,
     });

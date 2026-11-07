@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../auth';
-import { useSignedUrls, uploadMedia, downscaleImage } from '../lib/media';
+import { useSignedUrls, uploadMedia, uploadMediaWithProgress, downscaleImage } from '../lib/media';
 import { withRetry } from '../lib/retry';
 import type { ProfileSummary as Profile } from '../types/profile';
 import type { FeedPost as Post, FeedComment as Cmt } from '../types/content';
@@ -49,6 +49,7 @@ export default function Feed({ searchQuery = '' }: { searchQuery?: string }) {
   const [openCmt, setOpenCmt] = useState<Record<number, boolean>>({});
   const [cmtText, setCmtText] = useState<Record<number, string>>({});
   const [text, setText] = useState(''); const [img, setImg] = useState<File | null>(null);
+  const [upPct, setUpPct] = useState<number | null>(null);
   const [busy, setBusy] = useState(false); const [err, setErr] = useState('');
   const [isAdmin, setIsAdmin] = useState(false);
   const [editPostId, setEditPostId] = useState<number | null>(null);
@@ -113,12 +114,12 @@ export default function Feed({ searchQuery = '' }: { searchQuery?: string }) {
     setBusy(true); setErr('');
     try {
       let image_url: string | null = null;
-      if (img) image_url = await uploadMedia('media', await downscaleImage(img));
+      if (img) image_url = await uploadMediaWithProgress('media', await downscaleImage(img), undefined, pct => setUpPct(pct));
       const { error } = await withRetry(() => supabase.from('posts').insert({ author_id: me, content: text.trim(), image_url }));
       if (error) throw error;
       setText(''); setImg(null); load();
     } catch (e: any) { setErr('发布失败：' + (e.message || '网络错误')); }
-    finally { setBusy(false); }
+    finally { setBusy(false); setUpPct(null); }
   }
 
   async function toggleLike(p: Post) {
@@ -255,12 +256,26 @@ export default function Feed({ searchQuery = '' }: { searchQuery?: string }) {
       <div className="composer">
         <textarea value={text} onChange={e => setText(e.target.value)} placeholder="分享今天的班级故事…" rows={3} maxLength={2000} />
         <div className="row">
-          <button className="ghost" onClick={() => fref.current?.click()}>{img ? '已选图片 ✓' : '＋ 图片'}</button>
+          <button className="ghost" onClick={() => fref.current?.click()}>{img ? '重新选图' : '＋ 图片'}</button>
           <input ref={fref} type="file" accept="image/*" hidden onChange={e => setImg(e.target.files?.[0] ?? null)} />
           <div className="sp" style={{ flex: 1 }} />
           <button className="pri" style={{ width: 'auto', padding: '10px 28px' }} disabled={busy} onClick={publish}>
             {busy ? '发布中…' : '发布'}</button>
         </div>
+        {img && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8, fontSize: 12.5, color: '#5b6472' }}>
+            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>已选：{img.name}（{(img.size / 1024).toFixed(0)} KB，发布时自动压缩）</span>
+            <button type="button" className="ghost" style={{ padding: '2px 10px', flexShrink: 0 }} disabled={busy} onClick={() => setImg(null)}>删除</button>
+          </div>
+        )}
+        {busy && upPct !== null && (
+          <div style={{ marginTop: 8 }}>
+            <div style={{ height: 6, borderRadius: 3, background: '#edf0f4', overflow: 'hidden' }}>
+              <div style={{ height: '100%', width: `${upPct}%`, background: '#58aeb0', transition: 'width .15s ease' }} />
+            </div>
+            <div style={{ fontSize: 12, color: '#8a93a1', marginTop: 4 }}>图片上传中 {upPct}%</div>
+          </div>
+        )}
         {err && <p className="err">{err}</p>}
       </div>
 

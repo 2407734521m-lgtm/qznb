@@ -95,6 +95,106 @@
   box-shadow: 0 0 0 3px rgba(198, 139, 105, .18) !important;
 }
 
+/* 失焦校验：报错就写在框正下方，说清怎么改；有报错时框变红 */
+.login-card .float-error {
+  display: block;
+  margin: 4px 2px 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #c0392b;
+}
+
+.login-card .float-field.has-error input:not([type="checkbox"]):not([type="range"]):not([type="file"]) {
+  border-color: #d9534f !important;
+}
+
+.login-card .float-field.has-error .float-tag {
+  color: #c0392b;
+}
+
+/* 密码强度条 */
+.login-card .pw-strength {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 6px 2px 0;
+}
+
+.login-card .pw-strength-bar {
+  flex: 1;
+  height: 4px;
+  border-radius: 2px;
+  background: #eee7db;
+  overflow: hidden;
+}
+
+.login-card .pw-strength-bar > span {
+  display: block;
+  height: 100%;
+  border-radius: 2px;
+  transition: width 200ms ease, background-color 200ms ease;
+}
+
+.login-card .pw-strength-txt {
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* 标签输入（兴趣爱好）：回车生成标签，点叉删除 */
+.tag-input {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  border: 1px solid #e2e5ec;
+  border-radius: 10px;
+  background: #fff;
+  padding: 7px 9px;
+  margin-top: 6px;
+}
+
+.tag-input:focus-within {
+  border-color: #8b95a7;
+  box-shadow: 0 0 0 3px rgba(100, 116, 139, .11);
+}
+
+.tag-input .tag-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #eef2f7;
+  color: #202632;
+  border-radius: 999px;
+  padding: 4px 6px 4px 11px;
+  font-size: 13px;
+  line-height: 1.3;
+}
+
+.tag-input .tag-chip button {
+  border: 0;
+  background: rgba(32, 38, 50, .08);
+  color: #5b6472;
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  font-size: 11px;
+  line-height: 17px;
+  padding: 0;
+  cursor: pointer;
+}
+
+.tag-input input.tag-draft {
+  flex: 1 1 110px;
+  min-width: 0;
+  border: 0 !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  padding: 5px 2px !important;
+  margin: 0 !important;
+  font-size: 14px;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .login-card .float-tag { transition: none; }
 }

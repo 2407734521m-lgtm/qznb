@@ -12,6 +12,7 @@ import WelcomeOverlay from '../components/WelcomeOverlay';
 import BackButton from '../components/BackButton';
 import { fetchReviewEstimates, estimateText, type ReviewEstimates } from '../lib/reviewEstimate';
 import { confirmDialog } from '../lib/dialog';
+import TagInput from '../components/TagInput';
 
 const PROFILE_FIELDS = [['display_name', '名字', 'show_name'], ['age', '年龄', 'show_age'],
   ['personality', '性格', 'show_personality'], ['signature', '个性签名', 'show_signature'],
@@ -306,7 +307,9 @@ export default function MyProfile() {
   const fieldInput = (k: string, label: string, ph?: string) => (
     <label key={k}>{label}{k === 'bio'
       ? <textarea rows={3} maxLength={1000} placeholder={ph} value={v[k] ?? ''} onChange={e => setV({ ...v, [k]: e.target.value })} />
-      : <input value={v[k] ?? ''} maxLength={100} placeholder={ph} onChange={e => setV({ ...v, [k]: e.target.value })} />}</label>
+      : k === 'hobbies'
+        ? <><TagInput value={v[k] ?? ''} onChange={val => setV({ ...v, [k]: val })} placeholder="输入爱好，按回车添加，如：篮球" /><span style={{ display: 'block', fontSize: 12, opacity: .65, marginTop: 5 }}>回车生成一个标签，最多 10 个</span></>
+        : <input value={v[k] ?? ''} maxLength={100} placeholder={ph} onChange={e => setV({ ...v, [k]: e.target.value })} />}</label>
   );
 
   return (

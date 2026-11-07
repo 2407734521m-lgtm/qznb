@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../auth';
 import { confirmDialog } from '../lib/dialog';
-import { getSignedUrls, downscaleImage } from '../lib/media';
+import { getSignedUrls, downscaleImage, uploadWithProgress } from '../lib/media';
 import { fetchReviewEstimates, estimateText, type ReviewEstimates } from '../lib/reviewEstimate';
 import OptionSheet from '../components/OptionSheet';
 
@@ -65,6 +65,7 @@ export default function LoveWall() {
   const [recipientOptions, setRecipientOptions] = useState<RecipientOption[]>([]);
   const [category, setCategory] = useState(categories[0]);
   const [busy, setBusy] = useState(false);
+  const [upPct, setUpPct] = useState<Record<number, number>>({});
   const [notice, setNotice] = useState('');
   const [formErr, setFormErr] = useState('');
   const [mine, setMine] = useState(searchParams.get('mine') === '1');
@@ -286,13 +287,15 @@ export default function LoveWall() {
     let attachmentsCommitted = false;
     try {
       // 先把附件传到 media 桶自己的 love/ 目录，再写帖子与附件记录。
+      setUpPct({});
       for (let i = 0; i < pick.length; i++) {
         const it = pick[i];
         const f = it.kind === 'image' ? await downscaleImage(it.file) : it.file;
         const ext = (f.name.split('.').pop() || (it.kind === 'image' ? 'jpg' : 'mp4')).toLowerCase().replace(/[^a-z0-9]/g, '') || 'bin';
         const path = `${session.user.id}/love/${Date.now()}-${i}.${ext}`;
-        const { error: upErr } = await supabase.storage.from('media').upload(path, f, { contentType: f.type || undefined, upsert: false });
-        if (upErr) throw new Error('附件上传失败，请检查网络后重试。');
+        try {
+          await uploadWithProgress('media', path, f, pct => setUpPct(prev => ({ ...prev, [i]: pct })));
+        } catch { throw new Error('附件上传失败，请检查网络后重试。'); }
         uploaded.push({ path, kind: it.kind });
       }
       // 匿名与否由发布表单里的开关决定（打开表单时按个人隐私设置初始化默认值）；历史帖子不受影响。
@@ -458,11 +461,19 @@ export default function LoveWall() {
                   ? <img src={x.url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   : <video src={x.url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} muted playsInline />}
                 <button onClick={() => removePick(i)} aria-label="移除附件" style={{ position: 'absolute', top: 3, right: 3, width: 20, height: 20, borderRadius: '50%', border: 0, background: 'rgba(16,20,28,.65)', color: '#fff', fontSize: 11, cursor: 'pointer', lineHeight: '20px', padding: 0 }}>✕</button>
+                {busy && upPct[i] !== undefined && (
+                  <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, background: 'rgba(16,20,28,.55)', padding: '3px 5px' }}>
+                    <div style={{ height: 4, borderRadius: 2, background: 'rgba(255,255,255,.3)', overflow: 'hidden' }}>
+                      <div style={{ height: '100%', width: `${upPct[i]}%`, background: '#fff', transition: 'width .15s ease' }} />
+                    </div>
+                    <div style={{ fontSize: 10, color: '#fff', marginTop: 2, textAlign: 'center' }}>{upPct[i] >= 100 ? '已上传' : `上传中 ${upPct[i]}%`}</div>
+                  </div>
+                )}
               </div>
             ))}
             <button onClick={() => fileRef.current?.click()} style={{ width: 76, height: 76, borderRadius: 12, border: '1px dashed #c9d1de', background: '#fbfcfe', color: '#606673', fontSize: 22, cursor: 'pointer' }}>＋</button>
           </div>
-          <div style={{ fontSize: 11.5, color: '#8a93a1', marginTop: 6 }}>照片最多 9 张，视频最多 3 个（单个不超过 50MB）</div>
+          <div style={{ fontSize: 11.5, color: '#8a93a1', marginTop: 6 }}>照片最多 9 张（单张不超过 10MB，发之前会自动压缩），视频最多 3 个（单个不超过 50MB）</div>
           <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif,image/heic,image/avif,video/mp4,video/webm,video/quicktime,video/ogg,video/x-m4v,video/3gpp" multiple hidden onChange={onPickFiles} />
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, margin: '14px 0 4px' }}>
             <div>

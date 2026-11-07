@@ -464,6 +464,8 @@ export default function Friends() {
       console.error('send friend request failed', error);
       setMsg('好友申请发送失败，请检查网络后重试。');
     } finally {
+      // “仅本次申请”的选择无论成功、失败或网络异常，都不沿用到下一位成员。
+      setSendRequestEmailReminder(false);
       setFriendActionId(null);
     }
   }
@@ -500,8 +502,6 @@ export default function Friends() {
       console.error('friend relationship action failed', error);
       setMsg('操作失败，请检查网络后重试。');
     } finally {
-      // 这是“仅本次申请”的选择；无论成功、失败或网络异常，都不沿用到下一位成员。
-      setSendRequestEmailReminder(false);
       setFriendActionId(null);
     }
   }

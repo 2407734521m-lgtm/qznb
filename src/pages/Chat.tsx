@@ -737,7 +737,6 @@ export default function Chat() {
       <header className="im-head">
         <button className="im-back" aria-label="返回会话列表" onClick={() => goBackOr(nav, '/friends')}>
           <span aria-hidden="true">‹</span>
-          <span className="im-back-label">信息</span>
         </button>
         <button type="button" className="im-contact-stack" aria-label="查看会话资料" onClick={() => setShowDetails(true)}>
           <span className="im-avatar im-avatar-open" role="button" aria-label={'查看' + name + '的主页'}

@@ -82,9 +82,9 @@ returns jsonb
 language sql
 stable
 security definer
-set search_path = public, guest_api_private
-as $$
-  select jsonb_build_object(
+set search_path = ''
+as $
+  select pg_catalog.jsonb_build_object(
     'site_title', coalesce((select value from public.site_settings where key = 'site_title' limit 1), '堯'),
     'site_subtitle', coalesce((select value from public.site_settings where key = 'site_subtitle' limit 1), '公开浏览'),
     'home_banner_text', coalesce((select value from public.site_settings where key = 'home_banner_text' limit 1), '欢迎来到堯'),
@@ -92,7 +92,7 @@ as $$
     'close_login_entry', coalesce((select value from public.site_settings where key = 'close_login_entry' limit 1), 'false'),
     'skip_login_screen', coalesce((select value from public.site_settings where key = 'skip_login_screen' limit 1), 'false'),
     'guest_browse_available', guest_api_private.guest_browse_available(),
-    'guest_entry_visible', coalesce((select value from public.site_settings where key = 'guest_entry_visible' limit 1), 'true'),
+    'guest_entry_visible', coalesce((select value from public.site_settings where key = 'guest_entry_visible' limit 1), 'true') = 'true',
     'guest_session_minutes', case
       when (select value from public.site_settings where key = 'guest_session_minutes' limit 1)
         = any (array['15','30','60','120','240','480','720','1440']::text[])
@@ -100,8 +100,8 @@ as $$
       else '60'
     end,
     'guest_session_epoch', coalesce((select value from public.site_settings where key = 'guest_session_epoch' limit 1), '1'),
-    'guest_show_love_wall', coalesce((select value from public.site_settings where key = 'guest_show_love_wall' limit 1), 'true'),
-    'guest_show_announcements', coalesce((select value from public.site_settings where key = 'guest_show_announcements' limit 1), 'true'),
+    'guest_show_love_wall', coalesce((select value from public.site_settings where key = 'guest_show_love_wall' limit 1), 'true') = 'true',
+    'guest_show_announcements', coalesce((select value from public.site_settings where key = 'guest_show_announcements' limit 1), 'true') = 'true',
     'maintenance', case
       when coalesce((
         select coalesce((value::jsonb ->> 'enabled')::boolean, false)
@@ -126,8 +126,8 @@ as $$
     'notices', case
       when coalesce((select value from public.site_settings where key = 'guest_show_announcements' limit 1), 'true') = 'true'
       then coalesce((
-        select jsonb_agg(
-          jsonb_build_object('id', n.id, 'title', n.title, 'content', n.content, 'created_at', n.created_at)
+        select pg_catalog.jsonb_agg(
+          pg_catalog.jsonb_build_object('id', n.id, 'title', n.title, 'content', n.content, 'created_at', n.created_at)
           order by n.is_pinned desc, n.created_at desc
         )
         from (

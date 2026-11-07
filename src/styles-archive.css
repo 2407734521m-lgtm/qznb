@@ -151,12 +151,16 @@ button.pri {
 
 /* 底部导航：液态玻璃悬浮胶囊改为纸面长条。
    杀掉折射/模糊层，壳改全宽贴底、白纸底、顶部细线；
-   里面的栏目与滑动高亮是独立渲染，不受影响。 */
+   里面的栏目与滑动高亮是独立渲染，不受影响。
+   注意：玻璃库给壳写了行内 transform: translate(-50%,-50%) 自居中，
+   改成 left:0 全宽后必须一并清掉，否则整条左移半个身位、
+   左侧栏目被推出屏幕（2026-11-08 云浏览器实拍发现）。 */
 .qz-rdev-dock {
   left: 0 !important;
   right: 0 !important;
   top: auto !important;
   bottom: 0 !important;
+  transform: none !important;
   width: 100% !important;
   height: calc(56px + env(safe-area-inset-bottom)) !important;
   border-radius: 0 !important;

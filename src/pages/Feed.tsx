@@ -243,11 +243,13 @@ export default function Feed({ searchQuery = '' }: { searchQuery?: string }) {
   const visiblePosts = posts.filter(post => feedScope === 'all' || post.author_id === me || friendIds.includes(post.author_id));
 
   return (
-    <div className="page">
-      <div className="hero">
-        <h1>班级动态</h1>
-        <p>分 享 此 刻 · 留 住 感 动</p>
-      </div>
+    <div className="page feed-page">
+      <header className="community-page-heading">
+        <div>
+          <span className="community-eyebrow">ACTIVITY</span>
+          <h1>动态</h1>
+        </div>
+      </header>
       <div className="feed-filters" role="group" aria-label="动态筛选">
         <button type="button" className={feedScope === 'all' ? 'on' : ''} onClick={() => setFeedScope('all')}>全部动态</button>
         <button type="button" className={feedScope === 'friends' ? 'on' : ''} onClick={() => setFeedScope('friends')}>好友动态</button>
@@ -285,8 +287,8 @@ export default function Feed({ searchQuery = '' }: { searchQuery?: string }) {
         const open = !!openCmt[p.id];
         return (
           <motion.article key={p.id} className="post"
-            initial={reduce ? {} : { opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.45, delay: Math.min(i * 0.05, 0.3) }}>
+            initial={reduce ? {} : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.32, delay: Math.min(i * 0.025, 0.15) }}>
             <div className="hd">
               <Avatar p={a} url={a?.avatar_path ? avatarUrls[a.avatar_path] : undefined} />
               <div><div className="nm">{a ? (a.display_name ?? a.username) : '…'}</div>

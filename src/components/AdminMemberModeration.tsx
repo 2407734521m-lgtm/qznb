@@ -138,8 +138,7 @@ export default function AdminMemberModeration({
 
   async function revokeAction(action: ModerationAction) {
     const confirmed = await confirmDialog(
-      '确定解除该成员的「' + actionLabels[action.action_type] + '」吗？',
-    );
+      '确定解除该成员的「' + actionLabels[action.action_type] + '」吗？', { confirmText: '确认解除' });
     if (!confirmed) return;
     const revokeReason = await promptDialog('填写解除原因（至少 8 个字）', {
       placeholder: '说明为什么提前解除该限制',
@@ -170,7 +169,6 @@ export default function AdminMemberModeration({
         display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
         paddingTop: 'max(16px, env(safe-area-inset-top))',
       }}
-      onClick={onClose}
     >
       <section
         className="card admin-modal-card"

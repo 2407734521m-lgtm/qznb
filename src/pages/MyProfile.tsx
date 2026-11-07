@@ -169,7 +169,7 @@ export default function MyProfile() {
     setGprof((data as GameProfile) ?? null);
   }
   async function clearGame() {
-    if (!(await confirmDialog('清除游戏段位资料？成员卡片上的标签也会消失。', { danger: true }))) return;
+    if (!(await confirmDialog('清除游戏段位资料？成员卡片上的标签也会消失。', { danger: true, confirmText: '确认清除' }))) return;
     const { error } = await supabase.rpc('clear_game_profile');
     if (error) return setMsg('清除失败：' + error.message);
     setGprof(null); setMsg('已清除游戏资料');

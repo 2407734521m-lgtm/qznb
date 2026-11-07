@@ -150,7 +150,7 @@ export default function MeSettings() {
   }, [fontSize]);
 
   async function signOutOtherDevices() {
-    if (!(await confirmDialog('退出其他设备上的登录？当前这台设备会保持登录。'))) return;
+    if (!(await confirmDialog('退出其他设备上的登录？当前这台设备会保持登录。', { confirmText: '确认退出' }))) return;
     setDeviceBusy(true); setMessage('');
     const { error } = await supabase.auth.signOut({ scope: 'others' });
     setDeviceBusy(false);
@@ -170,7 +170,7 @@ export default function MeSettings() {
   }
 
   async function clearSearchHistory() {
-    if (!(await confirmDialog('清空最近搜索记录？此操作不会删除动态、帖子或其他内容。'))) return;
+    if (!(await confirmDialog('清空最近搜索记录？此操作不会删除动态、帖子或其他内容。', { confirmText: '确认清空' }))) return;
     try { localStorage.removeItem('qznb_search_history_v2:' + uid); } catch {}
     setSearchHistory([]);
   }

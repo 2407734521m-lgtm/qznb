@@ -26,7 +26,7 @@ export default function AdminAuthorizedRequests({ setMsg }: { setMsg: (s: string
 
   async function resolve(item: Item, found: boolean) {
     const prompt = found ? '确认将这项申请标记为已完成？' : '确认标记为未找到，并通知申请人、递补下一位？';
-    if (!(await confirmDialog(prompt, { danger: !found }))) return;
+    if (!(await confirmDialog(prompt, { danger: !found, confirmText: found ? '确认完成' : '确认未找到' }))) return;
     setBusy(item.id); setError('');
     const { data, error: e } = await (supabase as any).rpc('admin_resolve_authorized_request', {
       p_request_id: item.id, p_found: found,

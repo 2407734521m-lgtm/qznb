@@ -27,7 +27,7 @@ export default function MePosts() {
   useEffect(() => { load(); }, []);
 
   async function del(p: any) {
-    if (!(await confirmDialog('删除这条动态？评论和点赞会一起删除。', { danger: true }))) return;
+    if (!(await confirmDialog('删除这条动态？评论和点赞会一起删除。', { danger: true, confirmText: '确认删除' }))) return;
     const { data, error } = await supabase.from('posts').delete()
       .eq('id', p.id).eq('author_id', me).select('id').maybeSingle();
     if (error) { alertDialog('删除失败：' + error.message); return; }

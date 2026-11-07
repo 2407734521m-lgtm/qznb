@@ -46,7 +46,7 @@ export default function TestTab({ setMsg }: { setMsg: (s: string) => void }) {
   async function switchTo(a: TA) {
     const password = switchPassword;
     if (!password) return setMsg('请输入测试账号密码。');
-    if (!(await confirmDialog(`切换登录到 ${a.label || a.email}？`))) {
+    if (!(await confirmDialog(`切换登录到 ${a.label || a.email}？`, { confirmText: '确认切换' }))) {
       setSwitchPassword('');
       setSwitchingId(null);
       return;

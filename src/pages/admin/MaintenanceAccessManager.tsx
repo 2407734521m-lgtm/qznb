@@ -50,7 +50,7 @@ export default function MaintenanceAccessManager({ setMsg }: { setMsg: (s: strin
   }
 
   async function revoke() {
-    if (!(await confirmDialog('立即撤销当前所有临时通行码？已通过该码进入的访问会话也会失效。', { danger: true }))) return;
+    if (!(await confirmDialog('立即撤销当前所有临时通行码？已通过该码进入的访问会话也会失效。', { danger: true, confirmText: '确认撤销' }))) return;
     setBusy(true);
     const { data, error } = await supabase.rpc('admin_revoke_maintenance_codes');
     setBusy(false);

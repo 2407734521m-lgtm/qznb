@@ -104,7 +104,7 @@ export default function AdminMemberModal({ memberId, onClose, onChanged, isSuper
   const vStatus = f?.intro_video_status || 'none';
 
   return (
-    <div className="admin-modal-overlay" style={{ position: 'fixed', inset: 0, zIndex: 200, background: '#000a', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }} onClick={onClose}>
+    <div className="admin-modal-overlay" style={{ position: 'fixed', inset: 0, zIndex: 200, background: '#000a', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
       <div className="card admin-modal-card" onClick={e => e.stopPropagation()}
         style={{ width: '100%', maxWidth: 560, maxHeight: '88vh', overflowY: 'auto', borderRadius: '18px 18px 0 0', margin: 0 }}>
         <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>

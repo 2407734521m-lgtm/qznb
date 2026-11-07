@@ -25,7 +25,7 @@ export default function MeAccount() {
   }
 
   async function logout() {
-    if (!(await confirmDialog('确定退出登录？'))) return;
+    if (!(await confirmDialog('确定退出登录？', { confirmText: '确认退出' }))) return;
     await supabase.auth.signOut();
     nav('/login', { replace: true });
   }

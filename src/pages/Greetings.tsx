@@ -53,7 +53,7 @@ export default function Greetings() {
   }
 
   async function del(id: number) {
-    if (!(await confirmDialog('删除这条留言？', { danger: true }))) return;
+    if (!(await confirmDialog('删除这条留言？', { danger: true, confirmText: '确认删除' }))) return;
     const { error } = await supabase.from('greetings').delete().eq('id', id);
     if (!error) load(); else setMsg('删除失败：' + error.message);
   }

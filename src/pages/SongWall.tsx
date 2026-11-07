@@ -92,7 +92,7 @@ export default function SongWall() {
 
   async function deleteSong(song: Song) {
     if (!session || song.author_id !== session.user.id) return;
-    if (!(await confirmDialog(`确定删除《${song.title}》吗？删除后这条投稿和对应音频将无法恢复。`, { danger: true }))) return;
+    if (!(await confirmDialog(`确定删除《${song.title}》吗？删除后这条投稿和对应音频将无法恢复。`, { danger: true, confirmText: '确认删除' }))) return;
     setDeletingId(song.id);
     setNotice('');
     try {

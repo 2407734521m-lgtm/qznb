@@ -91,7 +91,7 @@ export default function Settings({ me, setMsg }: { me: string; setMsg: (s: strin
     if (!feature) return;
     if (!enabled && !(await confirmDialog(
       `暂停「${feature.label}」？用户将无法提交新的相关内容，但已有内容不会被删除。`,
-      { danger: true }
+      { danger: true, confirmText: '确认暂停' }
     ))) return;
     setFeatureBusy(key);
     const { error } = await supabase.from('site_settings').upsert(
@@ -133,7 +133,7 @@ export default function Settings({ me, setMsg }: { me: string; setMsg: (s: strin
   }
 
   async function clearMaintenanceSchedule() {
-    if (!(await confirmDialog('取消当前定时维护计划？不会改变手动维护开关的设置。'))) return;
+    if (!(await confirmDialog('取消当前定时维护计划？不会改变手动维护开关的设置。', { confirmText: '确认取消' }))) return;
     setScheduleBusy(true);
     const value = JSON.stringify({ enabled: false, start_at: null, end_at: null });
     const { error } = await supabase.from('site_settings').upsert({ key: 'maintenance_schedule', value }, { onConflict: 'key' });
@@ -165,7 +165,7 @@ export default function Settings({ me, setMsg }: { me: string; setMsg: (s: strin
   }
 
   async function backup() {
-    if (!(await confirmDialog('导出全部业务数据库数据与存储文件清单？此版本不包含照片、音频、视频等文件本体；不能替代 Supabase 完整备份。'))) return;
+    if (!(await confirmDialog('导出全部业务数据库数据与存储文件清单？此版本不包含照片、音频、视频等文件本体；不能替代 Supabase 完整备份。', { confirmText: '确认导出' }))) return;
     setMsg('正在逐表导出，请勿关闭页面…');
     const tableNames = [
       'profiles', 'profile_emails', 'profile_privacy', 'profile_contacts',
@@ -315,7 +315,7 @@ export default function Settings({ me, setMsg }: { me: string; setMsg: (s: strin
         <button className={'mini' + (vals.close_login_entry === 'true' ? '' : ' ghost')}
           onClick={async () => {
             const next = vals.close_login_entry === 'true' ? 'false' : 'true';
-            if (next === 'true' && !(await confirmDialog('关闭后，网站普通登录和注册入口将隐藏；已有登录会话不受影响，管理员后台入口仍保留。确定继续？'))) return;
+            if (next === 'true' && !(await confirmDialog('关闭后，网站普通登录和注册入口将隐藏；已有登录会话不受影响，管理员后台入口仍保留。确定继续？', { confirmText: '确认关闭' }))) return;
             save('close_login_entry', next);
           }}>
           {vals.close_login_entry === 'true' ? '已关闭' : '开放中'}
@@ -327,7 +327,7 @@ export default function Settings({ me, setMsg }: { me: string; setMsg: (s: strin
         <button className={'mini' + (vals.skip_login_screen === 'true' ? '' : ' ghost')}
           onClick={async () => {
             const next = vals.skip_login_screen === 'true' ? 'false' : 'true';
-            if (next === 'true' && !(await confirmDialog('开启后，未登录访客可直接查看公开首页和管理员公告；成员资料、动态、私聊、个人中心及所有互动仍需登录。确定开启？'))) return;
+            if (next === 'true' && !(await confirmDialog('开启后，未登录访客可直接查看公开首页和管理员公告；成员资料、动态、私聊、个人中心及所有互动仍需登录。确定开启？', { confirmText: '确认开启' }))) return;
             save('skip_login_screen', next);
           }}>
           {vals.skip_login_screen === 'true' ? '开启' : '关闭'}
@@ -338,7 +338,7 @@ export default function Settings({ me, setMsg }: { me: string; setMsg: (s: strin
         <span style={{ fontSize: 13.5 }}>维护模式（手动开关）</span>
         <button className={'mini' + (vals.maintenance === 'true' ? '' : ' ghost')}
           onClick={async () => {
-            if (vals.maintenance !== 'true' && !(await confirmDialog('开启维护模式？所有人打开网站都只看到维护页（后台入口除外）。'))) return;
+            if (vals.maintenance !== 'true' && !(await confirmDialog('开启维护模式？所有人打开网站都只看到维护页（后台入口除外）。', { confirmText: '确认开启' }))) return;
             save('maintenance', vals.maintenance === 'true' ? 'false' : 'true');
           }}>
           {vals.maintenance === 'true' ? '开' : '关'}

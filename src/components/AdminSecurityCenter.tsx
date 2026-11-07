@@ -66,7 +66,7 @@ export default function AdminSecurityCenter({ session, setMsg }: { session: Sess
     : '由 Supabase 自动刷新管理';
 
   async function signOutCurrentDevice() {
-    if (!(await confirmDialog('确定退出当前设备的管理员登录？其他设备的会话不会受到影响。', { danger: true }))) return;
+    if (!(await confirmDialog('确定退出当前设备的管理员登录？其他设备的会话不会受到影响。', { danger: true, confirmText: '确认退出' }))) return;
     setSigningOut(true);
     const { error: signOutError } = await supabase.auth.signOut({ scope: 'local' });
     setSigningOut(false);
@@ -75,7 +75,7 @@ export default function AdminSecurityCenter({ session, setMsg }: { session: Sess
   }
 
   async function signOutOtherDevices() {
-    if (!(await confirmDialog('确定退出此账号在其他设备和浏览器上的所有登录？当前设备会保持登录。', { danger: true }))) return;
+    if (!(await confirmDialog('确定退出此账号在其他设备和浏览器上的所有登录？当前设备会保持登录。', { danger: true, confirmText: '确认退出' }))) return;
     setSigningOutOthers(true);
     const { error: signOutError } = await supabase.auth.signOut({ scope: 'others' });
     setSigningOutOthers(false);

@@ -58,7 +58,7 @@ export default function Wishes() {
   }
 
   async function del(w: any) {
-    if (!(await confirmDialog('删除这条愿望？', { danger: true }))) return;
+    if (!(await confirmDialog('删除这条愿望？', { danger: true, confirmText: '确认删除' }))) return;
     const { data, error } = await supabase.from('wishes').delete()
       .eq('id', w.id).eq('author_id', me).select('id').maybeSingle();
     if (error) { alertDialog('删除失败：' + error.message); return; }

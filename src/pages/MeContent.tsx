@@ -70,7 +70,7 @@ export default function MeContent() {
   useEffect(() => { void load(); }, [me]);
 
   async function restoreAlbum(album: ArchivedAlbum) {
-    if (!(await confirmDialog(`恢复相册“${album.title}”？恢复后它会重新出现在相册列表中。`))) return;
+    if (!(await confirmDialog(`恢复相册“${album.title}”？恢复后它会重新出现在相册列表中。`, { confirmText: '确认恢复' }))) return;
     setRestoringId(album.id);
     try {
       const { data, error: updateError } = await supabase.from('albums')

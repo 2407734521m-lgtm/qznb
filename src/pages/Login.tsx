@@ -372,7 +372,7 @@ export default function Login({ siteTitle, siteSubtitle }: { siteTitle?: string;
               <input value={ident} onChange={e => setIdent(e.target.value)} onBlur={touch('ident')} placeholder="QQ 邮箱 / 用户名" autoComplete="username" aria-label="账号" />
             </FloatField>
             <FloatField label="密码" value={pw} error={terr('pwLogin', pw ? null : '请输入密码')}>
-              <PasswordField value={pw} onChange={setPw} onBlur={touch('pwLogin')} placeholder="密码" autoComplete="current-password"
+              <PasswordField disabled={codeSent} value={pw} onChange={setPw} onBlur={touch('pwLogin')} placeholder="密码" autoComplete="current-password"
                 onKeyDown={e => e.key === 'Enter' && doLogin()} />
             </FloatField>
             {err && <p className="err">{err}</p>}
@@ -385,7 +385,7 @@ export default function Login({ siteTitle, siteSubtitle }: { siteTitle?: string;
             <p className="sub">找 回 密 码</p>
             <p className="priv-note" style={{ margin: '0 0 4px' }}>输入注册时的 QQ 邮箱，我们会发一个 6 位重置验证码给你<br />不用点邮件里的链接，在下面填码、设新密码就行</p>
             <FloatField label="QQ 邮箱" value={email} error={terr('email', emailErr)}>
-              <input value={email} onChange={e => { setEmail(e.target.value); if (forgotSent) { setForgotSent(false); setForgotCode(''); } }} onBlur={touch('email')} placeholder="123456@qq.com" inputMode="email" aria-label="QQ 邮箱"
+              <input disabled={codeSent} value={email} onChange={e => { setEmail(e.target.value); if (forgotSent) { setForgotSent(false); setForgotCode(''); } }} onBlur={touch('email')} placeholder="123456@qq.com" inputMode="email" aria-label="QQ 邮箱"
                 onKeyDown={e => e.key === 'Enter' && doForgot()} />
             </FloatField>
             <button className="ghost" style={{ width: '100%', marginTop: 8 }} disabled={busy || resendIn > 0} onClick={doForgot}>
@@ -408,16 +408,16 @@ export default function Login({ siteTitle, siteSubtitle }: { siteTitle?: string;
             <p className="login-switch"><button onClick={() => { setMode('login'); setErr(''); setForgotSent(false); }}>← 返回登录</button></p>
           </>) : (<>
             <FloatField label="用户名" value={name} hint="班级里显示的名字，可重复" error={terr('name', name.trim().length >= 1 && name.trim().length <= 30 ? null : '用户名要 1～30 个字')}>
-              <input value={name} onChange={e => setName(e.target.value)} onBlur={touch('name')} placeholder="班级里显示的名字，可重复" maxLength={30} aria-label="用户名" />
+              <input disabled={codeSent} value={name} onChange={e => setName(e.target.value)} onBlur={touch('name')} placeholder="班级里显示的名字，可重复" maxLength={30} aria-label="用户名" />
             </FloatField>
             {name.trim() && (<>
               <FloatField label="真实姓名" value={real} error={terr('real', real.trim() ? null : '请填写真实姓名')}>
-                <input value={real} onChange={e => setReal(e.target.value)} onBlur={touch('real')} placeholder="仅管理员可见，不会公开" maxLength={30} aria-label="真实姓名" />
+                <input disabled={codeSent} value={real} onChange={e => setReal(e.target.value)} onBlur={touch('real')} placeholder="仅管理员可见，不会公开" maxLength={30} aria-label="真实姓名" />
               </FloatField>
               <p className="priv-note">真实姓名只用于后台统计，普通成员看不到</p>
             </>)}
             <FloatField label="手机号（选填）" value={phone} hint="11 位手机号，没有可不填" error={terr('phone', phoneErr)}>
-              <input value={phone} onChange={e => setPhone(e.target.value.replace(/\D/g, '').slice(0, 11))} onBlur={touch('phone')} placeholder="11 位手机号，没有可不填" inputMode="tel" aria-label="手机号（选填）" />
+              <input disabled={codeSent} value={phone} onChange={e => setPhone(e.target.value.replace(/\D/g, '').slice(0, 11))} onBlur={touch('phone')} placeholder="11 位手机号，没有可不填" inputMode="tel" aria-label="手机号（选填）" />
             </FloatField>
             <FloatField label="QQ 邮箱" value={email} error={terr('email', emailErr)}>
               <input value={email} onChange={e => { setEmail(e.target.value); if (codeSent) { setCodeSent(false); setCode(''); } }} onBlur={touch('email')} placeholder="123456@qq.com" inputMode="email" aria-label="QQ 邮箱" />
@@ -435,10 +435,10 @@ export default function Login({ siteTitle, siteSubtitle }: { siteTitle?: string;
               <PasswordField value={pw} onChange={setPw} onBlur={touch('pwReg')} placeholder="至少 8 位" autoComplete="new-password" strength />
             </FloatField>
             <FloatField label="确认密码" value={pw2} error={terr('pw2', pw2Err)}>
-              <PasswordField value={pw2} onChange={setPw2} onBlur={touch('pw2')} placeholder="再输一次" autoComplete="new-password" ariaLabel="确认密码" />
+              <PasswordField disabled={codeSent} value={pw2} onChange={setPw2} onBlur={touch('pw2')} placeholder="再输一次" autoComplete="new-password" ariaLabel="确认密码" />
             </FloatField>
             <FloatField label="邀请码（选填）" value={invite} hint="没有先不填，注册后在个人中心补填">
-              <input value={invite} onChange={e => setInvite(e.target.value)} placeholder="有就填，没有先不填，注册后在个人中心补填" aria-label="邀请码（选填）" />
+              <input disabled={codeSent} value={invite} onChange={e => setInvite(e.target.value)} placeholder="有就填，没有先不填，注册后在个人中心补填" aria-label="邀请码（选填）" />
             </FloatField>
             <div style={{ margin: '14px 0 10px', padding: '12px 13px', borderRadius: 12, background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.12)' }}>
               <label style={{ display: 'flex', alignItems: 'flex-start', gap: 9, lineHeight: 1.6, cursor: 'pointer' }}>

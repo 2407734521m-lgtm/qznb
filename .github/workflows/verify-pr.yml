@@ -25,6 +25,7 @@ jobs:
       - name: Type-check Supabase Edge Functions
         run: |
           deno check supabase/functions/email-dispatch/index.ts
+          deno check supabase/functions/friend-request-email/index.ts
           deno check supabase/functions/admin-bulk-email/index.ts
           deno check supabase/functions/maintenance-notify/index.ts
           deno check supabase/functions/dev-feedback/index.ts

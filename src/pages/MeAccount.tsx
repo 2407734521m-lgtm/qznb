@@ -25,9 +25,22 @@ export default function MeAccount() {
   }
 
   async function logout() {
-    if (!(await confirmDialog('确定退出登录？', { confirmText: '确认退出' }))) return;
-    await supabase.auth.signOut();
-    nav('/login', { replace: true });
+    if (busy) return;
+    if (!(await confirmDialog('只退出当前设备，其他设备会继续保持登录。确定退出吗？', { confirmText: '退出当前设备' }))) return;
+    setBusy(true);
+    setMsg('');
+    try {
+      const { error } = await supabase.auth.signOut({ scope: 'local' });
+      if (error) {
+        setMsg('退出失败：' + error.message);
+        return;
+      }
+      nav('/login', { replace: true });
+    } catch (error) {
+      setMsg('退出失败：' + (error instanceof Error ? error.message : '网络异常，请重试'));
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
@@ -44,7 +57,7 @@ export default function MeAccount() {
         {msg && <p className="priv-note" style={{ margin: '8px 0 0' }}>{msg}</p>}
       </div>
       <div className="card">
-        <button className="mini danger" style={{ width: '100%', padding: '10px 0' }} onClick={logout}>退出登录</button>
+        <button className="mini danger" style={{ width: '100%', padding: '10px 0' }} disabled={busy} onClick={logout}>退出当前设备</button>
       </div>
     </div>
   );

@@ -210,6 +210,7 @@ export default function Member() {
     <div className="page member-profile-page">
       <button className="backbtn member-backbtn" onClick={goBack}>← 返回成员墙</button>
       <section className="mp-hero">
+        <div className="mp-profile-top">
         <motion.div ref={photoRef} layout="position" className="mp-avatar"
           initial={reduce ? false : { opacity: 0.72, scale: 0.985 }}
           animate={{ opacity: flying ? 0 : 1, scale: 1 }}
@@ -217,9 +218,12 @@ export default function Member() {
           style={{ visibility: flying ? 'hidden' : 'visible', transformOrigin: 'center' }}>
           <Photo id={id} path={m?.avatar_path} name={name || '?'} />
         </motion.div>
+          <div className="mp-profile-identity">
         <h1 className="mp-name">{name || '…'}</h1>
         {sig && <p className="mp-sig">{sig}</p>}
         {gbadge && <div className="mp-badge-row"><span className="gbadge">{badgeText(gbadge.game_name, gbadge.rank)}</span></div>}
+          </div>
+        </div>
         {!isMe && fstat?.blocked_me && <p className="mp-note">对方已限制联系，无法互相申请好友或私聊。</p>}
         <div className="mp-actions">
           {isMe && (

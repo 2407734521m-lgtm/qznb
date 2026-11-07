@@ -111,7 +111,7 @@ export default function MyProfile() {
     setGpickOpen(true);
   }
   const loadedRef = useRef(false); const savingRef = useRef(false); const pendingRef = useRef(false);
-  const latestSaveRef = useRef<{ v: Record<string, string>; priv: Record<string, boolean>; theme: string; layout: string } | null>(null);
+  const latestSaveRef = useRef<{ v: any; priv: any; theme: string; layout: string } | null>(null);
   const [keys, setKeys] = useState<Array<{ id: string; friendly_name?: string | null; created_at?: string }>>([]);
   const [role, setRole] = useState('');
   const fileRef = useRef<HTMLInputElement>(null);
@@ -203,7 +203,7 @@ export default function MyProfile() {
     const r = await Promise.all([
       withRetry(() => supabase.from('profiles').update({ display_name: n(snapshot.v.display_name), age: age ? Number(age) : null,
         personality: n(snapshot.v.personality), signature: n(snapshot.v.signature), bio: n(snapshot.v.bio), hobbies: n(snapshot.v.hobbies),
-        snapshot.theme: { snapshot.theme, snapshot.layout } }).eq('id', uid)),
+        theme: { theme: snapshot.theme, layout: snapshot.layout } }).eq('id', uid)),
       withRetry(() => supabase.from('profile_privacy').update({
         show_name: !!snapshot.priv.show_name,
         show_age: !!snapshot.priv.show_age,

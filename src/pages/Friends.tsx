@@ -64,8 +64,14 @@ export default function Friends() {
   const nav = useNavigate();
   const [searchParams] = useSearchParams();
   const me = useAuth().session!.user.id;
-  const [tab, setTab] = useState<'messages' | 'friends' | 'reqs' | 'blocked'>(() => searchParams.get('tab') === 'reqs' ? 'reqs' : 'messages');
-  useEffect(() => { if (searchParams.get('tab') === 'reqs') setTab('reqs'); }, [searchParams]);
+  const [tab, setTab] = useState<'messages' | 'friends' | 'reqs' | 'blocked' | 'discover'>(() => {
+    const requestedTab = searchParams.get('tab');
+    return requestedTab === 'reqs' || requestedTab === 'discover' ? requestedTab : 'messages';
+  });
+  useEffect(() => {
+    const requestedTab = searchParams.get('tab');
+    if (requestedTab === 'reqs' || requestedTab === 'discover') setTab(requestedTab);
+  }, [searchParams]);
   const [friends, setFriends] = useState<Friend[]>([]);
   const [blockedMembers, setBlockedMembers] = useState<Friend[]>([]);
   const [reqs, setReqs] = useState<Friend[]>([]);
@@ -147,6 +153,8 @@ export default function Friends() {
 
   const normalizedQuery = query.trim().toLocaleLowerCase();
   const searchTerm = query.trim();
+  // The result rows display usernames as @handle, so accept that same format when searching.
+  const directoryQuery = searchTerm.replace(/^@+/, '').trim();
   const filteredFriends = useMemo(
     () => friends.filter(f => (f.display_name ?? f.username).toLocaleLowerCase().includes(normalizedQuery)
       || f.username.toLocaleLowerCase().includes(normalizedQuery)),
@@ -169,7 +177,7 @@ export default function Friends() {
   );
 
   useEffect(() => {
-    if (!searchTerm) {
+    if (!searchTerm && tab !== 'discover') {
       setSearchResults([]);
       setSearchError('');
       setSearchLoading(false);
@@ -182,7 +190,7 @@ export default function Friends() {
       void (async () => {
         try {
           const { data, error } = await supabase.rpc('member_directory', {
-            q: searchTerm,
+            q: directoryQuery,
             lim: 20,
             skip: 0,
           });
@@ -209,7 +217,7 @@ export default function Friends() {
       active = false;
       window.clearTimeout(timer);
     };
-  }, [searchTerm, me]);
+  }, [searchTerm, directoryQuery, me, tab]);
 
   async function openChat(friend: Friend) {
     setMsg('');
@@ -346,7 +354,7 @@ export default function Friends() {
         .im-search span{font-size:20px;color:#c6e1ff}
         .im-search input{flex:1;min-width:0;background:transparent!important;border:0!important;box-shadow:none!important;outline:none!important;color:#f4faff!important;padding:10px 0!important;font-size:14px}
         .im-search input::placeholder{color:rgba(224,239,255,.64)}
-        .im-inbox-tabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-bottom:14px}
+        .im-inbox-tabs{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin-bottom:14px}
         .im-inbox-tabs button{min-width:0;min-height:42px;border-radius:15px;border:1px solid rgba(215,237,255,.16);background:rgba(10,31,65,.36);color:rgba(226,240,255,.75);font-size:13px;backdrop-filter:blur(18px)}
         .im-inbox-tabs button.on{color:#fff;background:linear-gradient(120deg,rgba(35,135,255,.86),rgba(36,94,220,.82));border-color:rgba(168,216,255,.38);box-shadow:0 8px 24px rgba(0,94,255,.2)}
         .im-inbox-list{display:flex;flex-direction:column;gap:9px}
@@ -393,10 +401,11 @@ export default function Friends() {
 
       <label className="im-search">
         <span aria-hidden="true">⌕</span>
-        <input value={query} onChange={e => setQuery(e.target.value)} placeholder="搜索全站成员、好友或对话" aria-label="搜索全站成员、好友或对话" />
+        <input value={query} onChange={e => setQuery(e.target.value)} placeholder="搜索昵称或 @用户名（真实姓名不公开）" aria-label="搜索昵称或用户名；真实姓名不公开" />
       </label>
 
       <div className="im-inbox-tabs">
+        <button type="button" className={tab === 'discover' ? 'on' : ''} onClick={() => setTab('discover')}>找人</button>
         <button type="button" className={tab === 'messages' ? 'on' : ''} onClick={() => setTab('messages')}>消息 · {conversations.length}</button>
         <button type="button" className={tab === 'friends' ? 'on' : ''} onClick={() => setTab('friends')}>好友 · {friends.length}</button>
         <button type="button" className={tab === 'reqs' ? 'on' : ''} onClick={() => setTab('reqs')}>请求{reqs.length > 0 ? ' · ' + reqs.length : ''}</button>
@@ -405,11 +414,11 @@ export default function Friends() {
 
       {msg && <p className="im-inbox-message" role="status">{msg}</p>}
 
-      {searchTerm ? (
+      {searchTerm || tab === 'discover' ? (
         <div className="im-inbox-list" aria-live="polite">
           <div className="im-inbox-search-caption">
-            <span>搜索站内成员</span>
-            <small>只显示已加入的成员 · 最多 20 条</small>
+            <span>{searchTerm ? '搜索站内成员' : '发现成员'}</span>
+            <small>{searchTerm ? '支持昵称、用户名和 @用户名' : '只显示已完成加入的成员 · 最多 20 位'}</small>
           </div>
           {searchLoading ? (
             <div className="im-inbox-empty">
@@ -423,8 +432,12 @@ export default function Friends() {
             </div>
           ) : searchResults.length === 0 ? (
             <div className="im-inbox-empty">
-              <div className="im-inbox-empty-title">没有找到匹配成员</div>
-              <div className="im-inbox-empty-copy">试试昵称或完整用户名。你也可以检查拼写后再搜索。</div>
+              <div className="im-inbox-empty-title">{searchTerm ? '没有找到匹配成员' : '暂时没有其他可发现的成员'}</div>
+              <div className="im-inbox-empty-copy">
+                {searchTerm
+                  ? '请使用对方注册时的昵称或用户名（可以带 @）。真实姓名仅管理员可见；尚未完成加入的账号不会出现在搜索结果中。'
+                  : '这里会列出其他已完成加入的成员。尚未完成加入的账号暂时不会出现在好友搜索中。'}
+              </div>
             </div>
           ) : searchResults.map(person => {
             const isFriend = friends.some(friend => friend.id === person.id);
@@ -494,7 +507,7 @@ export default function Friends() {
               {filteredFriends.length === 0 ? (
                 <div className="im-inbox-empty">
                   <div className="im-inbox-empty-title">还没有好友</div>
-                  <div className="im-inbox-empty-copy">通过上方搜索框查找站内成员，发送好友申请后等待对方同意。</div>
+                  <div className="im-inbox-empty-copy">点击「找人」浏览所有已加入成员，也可以搜索对方的注册昵称或 @用户名。真实姓名仅管理员可见。</div>
                 </div>
               ) : filteredFriends.map(friend => (
                 <div key={friend.id} className="im-inbox-row" style={{ cursor: 'default' }}>

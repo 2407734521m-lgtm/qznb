@@ -122,14 +122,17 @@ export default function Members() {
         </div>
       </header>
       <div className="searchbar">
-        <input placeholder="搜索姓名、个性签名或兴趣" value={q} onChange={e => setQ(e.target.value)} />
+        <input type="search" aria-label="搜索成员" enterKeyHint="search" autoComplete="off"
+          placeholder="搜索姓名、个性签名或兴趣" value={q} onChange={e => setQ(e.target.value)} />
       </div>
       {state === 'error' && <p className="err">加载失败，请检查网络后重试。
         <button className="ghost" onClick={() => load(true, q, [])}>重试</button></p>}
       {state === 'ok' && rows.length === 0 && <div className="center"><div className="card">
-        {q ? '没有找到匹配的成员。' : '目前还没有公开的成员资料。'}</div></div>}
+        {q ? <>没有找到与「{q}」相关的成员。</> : '目前还没有公开的成员资料。'}</div></div>}
       <div className="mtoolbar">
-        <span className="mut" style={{ fontSize: 12.5 }}>{rows.length} 位成员</span>
+        <span className="mut" style={{ fontSize: 12.5 }} aria-live="polite">
+          {state === 'loading' ? '正在查找成员…' : state === 'error' ? '暂时无法获取成员' : `${rows.length} 位成员${more ? ' · 还有更多' : ''}`}
+        </span>
         <div className="lswitch">
           <button type="button" className="ghost" style={{ width: 'auto', padding: '8px 14px', fontSize: 13 }}
             onClick={() => setLopen(!lopen)}>视图</button>

@@ -199,3 +199,16 @@
 
 /* Personal-hub canvas and global navigation are owned by the shared iOS 26 theme.
    Keep the app wallpaper visible; never hide .app-bg from a page-level stylesheet. */
+
+/* 文字垫白（2026-11-07 按 Unslop 颜色层改）：styles-ios26-liquid-glass.css 把个人中心
+   卡片压成 55–76% 白的玻璃，壁纸里的人脸透在统计数字和正文后发虚。这里把六类卡面
+   提实到约九成暖白，留一点玻璃感，文字先保证看得清。选择器带 .me-hub 前缀抬高
+   优先级，压过 ios26 的同名 !important 规则（它在打包顺序里更靠后）。 */
+.me-hub .me-hub-hero,
+.me-hub .me-hub-stats,
+.me-hub .me-hub-shortcuts,
+.me-hub .me-hub-group,
+.me-hub .me-hub-feature,
+.me-hub .me-hub-tile {
+  background: linear-gradient(145deg, rgba(255,253,249,.94), rgba(248,243,236,.90)) !important;
+}

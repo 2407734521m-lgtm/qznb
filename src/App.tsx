@@ -349,6 +349,8 @@ function emblemSpot(path: string): { top: number; right: number; width: number; 
   if (path.startsWith('/explore')) return { top: 96, right: 16, width: 106, opacity: 0.30 };
   if (path.startsWith('/home')) return { top: 62, right: 14, width: 104, opacity: 0.30 };
   if (path.startsWith('/me/notifications')) return { top: 56, right: 12, width: 76, opacity: 0.28 };
+  // 个人中心页头右上是通知/设置两个按钮，校徽挪到标题与按钮之间的空档，不再压齿轮和红点
+  if (path === '/me') return { top: 72, right: 132, width: 68, opacity: 0.30 };
   if (path.startsWith('/me')) return { top: 68, right: 14, width: 82, opacity: 0.34 };
   if (path.startsWith('/friends')) return { top: 54, right: 12, width: 72, opacity: 0.26 };
   if (path.startsWith('/members')) return { top: 54, right: 12, width: 80, opacity: 0.30 };

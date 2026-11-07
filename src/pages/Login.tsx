@@ -345,8 +345,9 @@ export default function Login({ siteTitle, siteSubtitle }: { siteTitle?: string;
           initial={reduce ? {} : { opacity: 0, y: 24, scale: 0.98 }}
           animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}>
           <RdevLiquidGlass
+            key={verifyEmail ? 'verify' : mode}
             className="qz-rdev-login-card"
-            displacementScale={48}
+            displacementScale={36}
             blurAmount={0.12}
             saturation={140}
             aberrationIntensity={0}

@@ -196,30 +196,25 @@
   .me-hub :where(button):active:not(:disabled) { transform: none !important; }
 }
 
-
-/* Personal-hub canvas and global navigation are owned by the shared iOS 26 theme.
-   Keep the app wallpaper visible; never hide .app-bg from a page-level stylesheet. */
-
-/* 文字垫白（2026-11-07 按 Unslop 颜色层改）：styles-ios26-liquid-glass.css 把个人中心
-   卡片压成 55–76% 白的玻璃，壁纸里的人脸透在统计数字和正文后发虚。这里把六类卡面
-   提实到约九成暖白，留一点玻璃感，文字先保证看得清。选择器带 .me-hub 前缀抬高
-   优先级，压过 ios26 的同名 !important 规则（它在打包顺序里更靠后）。 */
-.me-hub .me-hub-hero,
-.me-hub .me-hub-stats,
-.me-hub .me-hub-shortcuts,
-.me-hub .me-hub-group,
-.me-hub .me-hub-feature,
-.me-hub .me-hub-tile {
-  background: linear-gradient(145deg, rgba(255,253,249,.94), rgba(248,243,236,.90)) !important;
+/* Quiet white account hub: use a clean canvas, simple surfaces and readable contrast. */
+body:has(.me-hub),
+body:has(.me-hub) #root,
+body:has(.me-hub) .qz-ios26-scene,
+.wrap:has(.me-hub) {
+  background: #fff !important;
+  color: #202733 !important;
 }
-
-
-/* Quiet account hub: one white surface language, clearer tap targets on phones. */
+body:has(.me-hub) .app-bg,
+body:has(.me-hub) .qz-ios26-backdrop,
+body:has(.me-hub) .glow {
+  display: none !important;
+}
 .me-hub {
-  --mh-ink: var(--qz-ink, #202733);
-  --mh-muted: var(--qz-muted, #737d8b);
-  --mh-line: var(--qz-line, #e7eaee);
+  --mh-ink: #202733;
+  --mh-muted: #747d89;
+  --mh-line: #e7eaee;
   color: var(--mh-ink);
+  background: #fff !important;
 }
 .me-hub .me-hub-hero,
 .me-hub .me-hub-stats,
@@ -227,21 +222,29 @@
 .me-hub .me-hub-group,
 .me-hub .me-hub-feature,
 .me-hub .me-hub-tile {
+  border: 1px solid var(--mh-line) !important;
+  border-radius: 13px !important;
   background: #fff !important;
   background-image: none !important;
-  border-color: var(--qz-line, #e7eaee) !important;
   box-shadow: none !important;
   -webkit-backdrop-filter: none !important;
   backdrop-filter: none !important;
 }
-.me-hub .me-hub-hero { border-radius: 18px !important; }
+.me-hub .me-hub-hero { padding: 20px; }
+.me-hub .me-hub-stats {
+  margin: 10px 0 16px;
+  border-radius: 13px !important;
+}
+.me-hub .me-hub-shortcuts,
+.me-hub .me-hub-group { padding: 15px; }
 .me-hub .me-hub-topbar h1,
 .me-hub .me-hub-identity strong,
 .me-hub .me-hub-stat-grid strong,
 .me-hub .me-hub-section-head h2,
 .me-hub .me-hub-group-head h2,
 .me-hub .me-hub-feature strong,
-.me-hub .me-hub-tile-copy strong { color: var(--qz-ink, #202733) !important; }
+.me-hub .me-hub-tile-copy strong,
+.me-hub .me-hub-shortcut strong { color: var(--mh-ink) !important; }
 .me-hub .me-hub-eyebrow,
 .me-hub .me-hub-identity span,
 .me-hub .me-hub-identity small,
@@ -251,92 +254,82 @@
 .me-hub .me-hub-photo-note,
 .me-hub .me-hub-feature-kicker,
 .me-hub .me-hub-feature small,
-.me-hub .me-hub-tile-copy small { color: var(--qz-muted, #737d8b) !important; }
+.me-hub .me-hub-tile-copy small,
+.me-hub .me-hub-shortcut small { color: var(--mh-muted) !important; }
 .me-hub .me-hub-head-icon,
 .me-hub .me-hub-edit {
-  border-color: var(--qz-line-strong, #d9dee5) !important;
-  border-radius: 10px !important;
-  background: var(--qz-surface-soft, #f6f7f9) !important;
-  color: var(--qz-accent, #526b8c) !important;
+  border: 1px solid var(--mh-line) !important;
+  border-radius: 9px !important;
+  background: #fff !important;
+  color: #526b8c !important;
   box-shadow: none !important;
 }
 .me-hub .me-hub-avatar {
   border-color: #fff !important;
-  background: #eef1f5 !important;
-  color: var(--qz-accent, #526b8c) !important;
-  box-shadow: 0 0 0 1px var(--qz-line, #e7eaee) !important;
+  background: #f1f3f5 !important;
+  color: #526b8c !important;
+  box-shadow: 0 0 0 1px var(--mh-line) !important;
 }
 .me-hub .me-hub-unread {
-  border-color: #dce4ed !important;
-  border-radius: 10px !important;
-  background: #f5f7fa !important;
-  color: var(--qz-accent, #526b8c) !important;
+  border: 1px solid var(--mh-line) !important;
+  border-radius: 9px !important;
+  background: #fff !important;
+  color: #526b8c !important;
 }
 .me-hub .me-hub-unread span,
-.me-hub .me-hub-group-head > span { color: var(--qz-muted, #737d8b) !important; }
-.me-hub .me-hub-stats { border-radius: 0 0 14px 14px !important; }
+.me-hub .me-hub-group-head > span,
+.me-hub .me-hub-arrow { color: var(--mh-muted) !important; }
 .me-hub .me-hub-photo-note,
-.me-hub .me-hub-stat-grid button { border-color: var(--qz-line, #e7eaee) !important; }
+.me-hub .me-hub-stat-grid button { border-color: var(--mh-line) !important; }
 .me-hub .me-hub-photo-note b,
 .me-hub .me-hub-photo-note button,
 .me-hub .me-hub-photo-mark,
 .me-hub .me-hub-feature-meta,
-.me-hub .me-hub-feature-arrow { color: var(--qz-accent, #526b8c) !important; }
-.me-hub .me-hub-shortcuts,
-.me-hub .me-hub-group { border-radius: 14px !important; }
+.me-hub .me-hub-feature-arrow { color: #526b8c !important; }
 .me-hub .me-hub-shortcut {
-  border-radius: 10px !important;
+  border: 0 !important;
+  border-radius: 9px !important;
   background: transparent !important;
 }
 .me-hub .me-hub-shortcut-icon,
 .me-hub .me-hub-mark {
-  border: 1px solid var(--qz-line, #e7eaee) !important;
-  border-radius: 9px !important;
-  background: var(--qz-surface-soft, #f6f7f9) !important;
-  color: var(--qz-accent, #526b8c) !important;
+  border: 1px solid var(--mh-line) !important;
+  border-radius: 8px !important;
+  background: #f7f8fa !important;
+  color: #526b8c !important;
   box-shadow: none !important;
 }
-.me-hub .me-hub-shortcut strong { color: var(--qz-ink, #202733) !important; }
-.me-hub .me-hub-feature {
-  border-radius: 14px !important;
-  color: var(--qz-ink, #202733) !important;
-}
+.me-hub .me-hub-feature { color: var(--mh-ink) !important; }
 .me-hub .me-hub-tile {
-  min-height: 66px;
-  border-radius: 10px !important;
-  background: #fff !important;
+  min-height: 62px;
+  border-radius: 9px !important;
 }
 .me-hub .me-hub-tile-copy strong { font-size: 12px !important; font-weight: 600 !important; }
 .me-hub .me-hub-tile-copy small { font-size: 11px !important; }
-.me-hub .me-hub-arrow { color: var(--qz-muted, #737d8b) !important; }
-.me-hub .me-hub-dot { box-shadow: 0 0 0 3px rgba(189, 93, 104, .10) !important; }
+.me-hub .me-hub-dot { box-shadow: 0 0 0 3px rgba(189, 93, 104, .09) !important; }
 .me-hub :where(button):focus-visible {
-  outline: 2px solid rgba(82, 107, 140, .72) !important;
+  outline: 2px solid rgba(82, 107, 140, .68) !important;
   outline-offset: 3px;
 }
 .me-hub :where(button):active:not(:disabled) { transform: scale(.99); }
 @media (hover: hover) and (pointer: fine) {
   .me-hub .me-hub-head-icon:hover,
-  .me-hub .me-hub-edit:hover {
-    border-color: var(--qz-line-strong, #d9dee5) !important;
-    background: #fff !important;
-  }
-  .me-hub .me-hub-shortcut:hover,
+  .me-hub .me-hub-edit:hover,
   .me-hub .me-hub-tile:hover,
   .me-hub .me-hub-feature:hover {
-    border-color: var(--qz-line-strong, #d9dee5) !important;
-    background: var(--qz-surface-soft, #f6f7f9) !important;
+    border-color: #cfd5dd !important;
+    background: #f8f9fb !important;
     box-shadow: none !important;
     transform: translateY(-1px);
   }
 }
 @media (max-width: 520px) {
-  .me-hub .me-hub-hero { padding: 18px 16px 16px; }
-  .me-hub .me-hub-feature-grid { grid-template-columns: 1fr; gap: 9px; }
-  .me-hub .me-hub-feature { min-height: 112px; }
+  .me-hub .me-hub-hero { padding: 17px 15px 15px; }
+  .me-hub .me-hub-feature-grid { grid-template-columns: 1fr; gap: 8px; }
+  .me-hub .me-hub-feature { min-height: 106px; }
   .me-hub .me-hub-grid { grid-template-columns: 1fr; gap: 7px; }
-  .me-hub .me-hub-tile { min-height: 60px; padding: 10px 11px; }
-  .me-hub .me-hub-mark { width: 32px; height: 32px; flex-basis: 32px; }
+  .me-hub .me-hub-tile { min-height: 58px; padding: 9px 10px; }
+  .me-hub .me-hub-mark { width: 31px; height: 31px; flex-basis: 31px; }
 }
 @media (prefers-reduced-motion: reduce) {
   .me-hub :where(button) { transition: none !important; }

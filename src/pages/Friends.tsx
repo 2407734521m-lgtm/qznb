@@ -569,9 +569,12 @@ export default function Friends() {
         .im-inbox-tabs{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin-bottom:14px}
         .im-inbox-tabs button{min-width:0;min-height:42px;border-radius:12px;border:1px solid rgba(34,49,74,.12);background:#ffffff;color:#5a6b7f;font-size:13px}
         .im-inbox-tabs button.on{color:#fff;background:#22314a;border-color:#22314a}
-        .im-primary-tabs{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:5px;margin:0 0 16px;border:1px solid rgba(34,49,74,.08);border-radius:14px;background:#eef1f4}
-        .im-primary-tabs button{min-height:43px;border:0;border-radius:10px;background:transparent;color:#5a6b7f;font-size:14px;font-weight:600;transition:background .18s ease,color .18s ease}
-        .im-primary-tabs button.on{background:#22314a;color:#fff}
+        .im-primary-tabs{position:relative;display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:4px;margin:0 0 16px;border:1px solid rgba(122,100,66,.18);border-radius:12px;background:#f1e8d5}
+        .im-primary-thumb{position:absolute;top:4px;left:4px;width:calc(50% - 6px);height:calc(100% - 8px);border-radius:9px;background:#fffdf9;border:1px solid rgba(122,100,66,.14);box-shadow:0 1px 3px rgba(74,58,32,.16);transition:transform .3s cubic-bezier(.45,0,.25,1)}
+        .im-primary-thumb::after{content:'';position:absolute;left:50%;bottom:5px;transform:translateX(-50%);width:16px;height:2.5px;border-radius:2px;background:#b0404f}
+        .im-primary-thumb.right{transform:translateX(calc(100% + 4px))}
+        .im-primary-tabs button{position:relative;z-index:1;min-height:40px;border:0;border-radius:9px;background:transparent;color:#7d7264;font-size:14px;font-weight:600;letter-spacing:.06em;transition:color .2s ease}
+        .im-primary-tabs button.on{background:transparent;color:#22314a}
         .im-primary-unread{display:inline-block;width:8px;height:8px;margin-left:8px;vertical-align:2px;border-radius:50%;background:#d94f5c;box-shadow:0 0 0 3px rgba(217,79,92,.15)}
         .im-notification-toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:2px 0 14px}
         .im-notification-toolbar button{min-height:36px;padding:7px 12px;border-radius:10px;border:1px solid rgba(34,49,74,.12);background:#ffffff;color:#5a6b7f;font-size:12px}
@@ -644,6 +647,7 @@ export default function Friends() {
       </header>
 
       <div className="im-primary-tabs" role="tablist" aria-label="消息分类">
+        <span aria-hidden="true" className={'im-primary-thumb' + (section === 'notifications' ? ' right' : '')} />
         <button type="button" role="tab" aria-selected={section === 'private'} className={section === 'private' ? 'on' : ''}
           onClick={() => { setSection('private'); setQuery(''); }}>私信</button>
         <button type="button" role="tab" aria-selected={section === 'notifications'} className={section === 'notifications' ? 'on' : ''}

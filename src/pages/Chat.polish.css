@@ -886,3 +886,132 @@
   .im-page .im-context-overlay { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
   .im-page .im-context-sheet { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; background: #f8faff !important; }
 }
+
+
+/* Anchored Tapback interaction: reactions float above the selected message. */
+.im-page .im-context-overlay {
+  align-items: flex-end !important;
+  justify-content: center !important;
+  padding: 18px 14px max(14px, env(safe-area-inset-bottom)) !important;
+  background: rgba(18, 29, 47, .10) !important;
+  -webkit-backdrop-filter: blur(7px) saturate(1.12) !important;
+  backdrop-filter: blur(7px) saturate(1.12) !important;
+}
+.im-page .im-tapback-preview {
+  position: fixed;
+  z-index: 2;
+  box-sizing: border-box;
+  max-width: calc(100vw - 16px);
+  max-height: 34vh;
+  overflow: hidden;
+  padding: 11px 14px 7px;
+  border-radius: 20px;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+  font-size: 15px;
+  line-height: 1.5;
+  box-shadow: 0 14px 36px rgba(20, 37, 66, .22), 0 0 0 2px rgba(255,255,255,.76);
+  animation: im-tapback-lift .24s cubic-bezier(.2,.9,.25,1.18) both;
+  pointer-events: none;
+}
+.im-page .im-tapback-preview.mine {
+  color: white;
+  background: #0a7cff;
+  border-bottom-right-radius: 6px;
+}
+.im-page .im-tapback-preview.theirs {
+  color: #101114;
+  background: #e9e9eb;
+  border-bottom-left-radius: 6px;
+}
+.im-page .im-tapback-preview .im-photo-link { max-width: 100%; }
+.im-page .im-tapback-preview .im-photo { max-height: 22vh; }
+.im-page .im-tapback-preview .im-audio-card { min-width: 0; }
+.im-page .im-tapback-preview-time {
+  margin-top: 4px;
+  font-size: 10px;
+  text-align: right;
+  opacity: .65;
+}
+.im-page .im-tapback-dock {
+  position: fixed;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 3px;
+  width: min(316px, calc(100vw - 24px));
+  min-height: 52px;
+  box-sizing: border-box;
+  padding: 6px 8px;
+  border: 1px solid rgba(255,255,255,.88);
+  border-radius: 999px;
+  background: rgba(250,252,255,.82);
+  box-shadow: 0 12px 34px rgba(21,39,70,.18), inset 0 1px 0 #fff;
+  -webkit-backdrop-filter: blur(28px) saturate(1.7);
+  backdrop-filter: blur(28px) saturate(1.7);
+  animation: im-tapback-dock-in .22s cubic-bezier(.2,.9,.25,1.18) both;
+}
+.im-page .im-tapback-dock button {
+  display: grid;
+  place-items: center;
+  flex: 1 1 0;
+  min-width: 0;
+  width: 43px;
+  height: 41px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  color: #26364d;
+  background: transparent;
+  font-size: 25px;
+  line-height: 1;
+  cursor: pointer;
+  transition: transform .17s cubic-bezier(.2,.9,.25,1.2), background .17s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.im-page .im-tapback-dock button:active {
+  transform: scale(1.28) translateY(-3px);
+  background: rgba(10,124,255,.09);
+}
+.im-page .im-context-sheet {
+  position: relative;
+  z-index: 1;
+  width: min(100%, 430px) !important;
+  max-height: min(42vh, 360px) !important;
+  margin: 0 auto;
+  animation: im-context-sheet-rise .2s cubic-bezier(.22,1,.36,1) both;
+}
+.im-page .im-context-label { text-align: center; margin-bottom: 8px; }
+@keyframes im-tapback-lift {
+  from { opacity: 0; transform: translateY(9px) scale(.94); }
+  to { opacity: 1; transform: translateY(-5px) scale(1.025); }
+}
+@keyframes im-tapback-dock-in {
+  from { opacity: 0; transform: translateY(8px) scale(.92); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes im-context-sheet-rise {
+  from { opacity: 0; transform: translateY(12px) scale(.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@media (max-width: 600px) {
+  .im-page .im-context-overlay {
+    align-items: flex-end !important;
+    padding: 12px 12px calc(12px + env(safe-area-inset-bottom)) !important;
+  }
+  .im-page .im-context-sheet {
+    width: 100% !important;
+    max-height: min(34vh, 300px) !important;
+    padding: 11px 13px calc(11px + env(safe-area-inset-bottom)) !important;
+    border-radius: 23px !important;
+  }
+  .im-page .im-context-actions button { min-height: 57px !important; }
+  .im-page .im-tapback-dock button { height: 43px; font-size: 24px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .im-page .im-tapback-preview,
+  .im-page .im-tapback-dock,
+  .im-page .im-context-sheet { animation: none !important; }
+  .im-page .im-tapback-dock button { transition: none !important; }
+}

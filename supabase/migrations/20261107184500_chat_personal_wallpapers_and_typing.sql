@@ -86,6 +86,7 @@ to authenticated
 with check (
   realtime.messages.extension = 'broadcast'
   and realtime.messages.private is true
+  and public.site_feature_enabled('chat')
   and case
     when (select realtime.topic()) ~ '^chat-typing:[0-9]+$'
     then chat_private.is_conversation_member(

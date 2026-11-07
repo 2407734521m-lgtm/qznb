@@ -6,6 +6,8 @@ const login = read('../src/pages/Login.tsx');
 const loginStyles = read('../src/pages/Login.polish.css');
 const loginBackdrop = read('../src/styles-liquid-backdrop.css');
 const visualRules = read('../src/styles-visual-rules.css');
+const homePageStyles = read('../src/pages/Home.vibe.css');
+const meHubStyles = read('../src/pages/MeHub.polish.css');
 const tokens = read('../src/styles-ios26-tokens.css');
 const mainEntry = read('../src/main.tsx');
 const wallpaper = read('../src/lib/wallpaper.ts');
@@ -54,7 +56,12 @@ assert(login.includes('LEGACY_DEFAULT_BACKGROUND') && login.includes('return LEG
 assert(login.includes('bg && <div className="login-bg"') && login.includes('setBg(c.toDataURL'), 'user-uploaded login wallpapers must remain supported');
 assert(!loginBackdrop.includes('flow-bg.webp') && !loginBackdrop.includes('qz-flow-drift'), 'the retired stock flow image and animation must be removed');
 assert(/\.login-flow\s*\{[^}]*background:\s*var\(--visual-bg,\s*#ffffff\)/s.test(loginBackdrop), 'the default login backdrop must use the white canvas');
-assert(!/(?:background|background-image)\s*:/i.test(loginStyles), 'login layout refinements must not override the canonical login material');
+assert(!/\.login-card\s*\{[^}]*background\s*:/s.test(loginStyles), 'login layout refinements must not paint over the canonical login material');
+assert((baseStyles.match(/\.gpick-head\s*\{/g) || []).length === 1, 'duplicate game-picker heading rules must be removed');
+assert((baseStyles.match(/\.priv-note\s*\{/g) || []).length === 1, 'duplicate privacy-note rules must be removed');
+assert(!/body:has\(\.me-hub\)[^{]*\{[^}]*background\s*:/s.test(meHubStyles), 'the personal hub must not restore a retired page background');
+assert(!/body:has\(\.me-hub\)\s+\.app-bg[^}]*display\s*:\s*none/s.test(meHubStyles), 'the personal hub must not hide the shared wallpaper layer');
+assert(!/body:has\(\.vibe-home\)\s+\.topnav\s*\{/s.test(homePageStyles), 'the homepage must not replace the shared glass navigation with an old theme surface');
 
 
 if (process.exitCode) process.exit(process.exitCode);

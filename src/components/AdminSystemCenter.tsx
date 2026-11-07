@@ -210,7 +210,7 @@ export default function AdminSystemCenter({ setMsg, go }: {
       const dbStarted = Date.now();
       const dbTask = supabase.from('profiles').select('id', { count: 'exact', head: true })
         .then(result => ({ ...result, responseMs: Date.now() - dbStarted }));
-      const [db, roleResult, authResult, settingsResult, auditResult, criticalResult, activityResult, exportResult] = await Promise.all([
+      const [db, roleResult, authResult, settingsResult, auditResult, criticalResult, activityResult, exportResult, securityResult, backupResult, emailResult] = await Promise.all([
         dbTask,
         supabase.rpc('my_role'),
         supabase.auth.getSession(),

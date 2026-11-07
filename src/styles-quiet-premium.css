@@ -107,7 +107,8 @@ a { color: var(--qz-accent); }
 }
 .page .mcard::after { display: none !important; }
 
-.page :where(button.pri, .btn-primary) {
+.page button.pri,
+.page .btn-primary {
   border: 1px solid var(--qz-accent) !important;
   border-radius: var(--qz-radius-sm) !important;
   background: var(--qz-accent) !important;
@@ -116,7 +117,8 @@ a { color: var(--qz-accent); }
   box-shadow: none !important;
   font-weight: 600;
 }
-.page :where(button.ghost, button.mini.ghost) {
+.page button.ghost,
+.page button.mini.ghost {
   border: 1px solid var(--qz-line-strong) !important;
   border-radius: var(--qz-radius-sm) !important;
   background: #fff !important;

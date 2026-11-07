@@ -148,7 +148,7 @@ export default function AdminAccountManagement({
       return;
     }
     const exportRows = [
-      ['显示名称', '用户名', '角色', '账号状态', '注册时间', '最近登录'],
+      ['显示名称', '用户名', '角色', '账号状态', '最近使用平台', '注册时间', '最近登录'],
       ...accounts.map(account => [
         account.display_name || account.username,
         account.username,

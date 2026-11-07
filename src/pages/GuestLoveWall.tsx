@@ -152,7 +152,7 @@ export default function GuestLoveWall({ onLoginRequired }: { onLoginRequired: ()
               )}
               <div style={{ fontSize: 11, color: '#606673' }}>{post.is_anonymous ? '匿名同学' : '班级同学'} · 已公开展示</div>
               <div style={{ display: 'flex', gap: 16, alignItems: 'center', marginTop: 12, paddingTop: 10, borderTop: '1px solid #f0f2f6' }}>
-                <button type="button" onClick={onLoginRequired} style={{ border: 0, background: 'transparent', color: '#5a6472', fontSize: 12.5, padding: 0 }}>♡ 点赞</button>
+                <button type="button" onClick={onLoginRequired} style={{ border: 0, background: 'transparent', color: '#5a6472', fontSize: 12.5, padding: 0 }}><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ width: 13, height: 13, verticalAlign: -2, marginRight: 3 }}><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21.2l7.8-7.8 1-1a5.5 5.5 0 0 0 0-7.8z"/></svg>点赞</button>
                 <button type="button" onClick={onLoginRequired} style={{ border: 0, background: 'transparent', color: '#5a6472', fontSize: 12.5, padding: 0 }}>评论（{Number(post.comment_count) || 0}）</button>
               </div>
             </article>

@@ -30,7 +30,7 @@ const cards = [
   {
     to: '/love-wall',
     className: 'discover-card--love',
-    eyebrow: 'LOVE WALL',
+    eyebrow: '表白墙',
     title: '表白墙',
     description: '把喜欢、感谢和没来得及说的话，认真地留在这里。',
     action: '写下心意',

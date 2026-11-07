@@ -301,7 +301,7 @@ export default function Daily({ searchQuery = '', embedded = false }: { searchQu
             ) : <><p className="bd">{p.content}</p>{p.image_url && <PostImg url={postImageUrls[p.image_url]} />}</>}
             <div className="ft">
               <button className={liked[p.id] ? 'liked' : ''} onClick={() => toggleLike(p)}>
-                {liked[p.id] ? '♥' : '♡'} {likes[p.id] || ''}
+                <svg className="like-ico" viewBox="0 0 24 24" aria-hidden="true" fill={liked[p.id] ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21.2l7.8-7.8 1-1a5.5 5.5 0 0 0 0-7.8z"/></svg>{likes[p.id] || ''}
               </button>
               <button onClick={() => setOpenCmt({ ...openCmt, [p.id]: !open })}>{list.length || ''} 评论</button>
               {p.author_id === me && <button className="mini ghost" onClick={() => beginEditPost(p)}>编辑</button>}

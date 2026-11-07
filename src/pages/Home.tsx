@@ -37,7 +37,7 @@ export default function Home() {
   const [title, setTitle] = useState('堯');
   const [subtitle, setSubtitle] = useState('连接人与内容');
   const [bannerUrl, setBannerUrl] = useState('');
-  const [bannerText, setBannerText] = useState('让重要内容，更容易被看见');
+  const [bannerText, setBannerText] = useState('把我们的青春，留在这里');
   const [notices, setNotices] = useState<any[]>([]);
   const [posts, setPosts] = useState<any[]>([]);
   const [members, setMembers] = useState<any[]>([]);
@@ -62,7 +62,7 @@ export default function Home() {
           if (x.key === 'site_title') setTitle(!x.value || ['我们的班级', 'class', 'class-youth-archive', '青春档案'].includes(x.value) ? '堯' : x.value);
           if (x.key === 'site_subtitle') setSubtitle(!x.value || x.value === '青春档案' ? '连接人与内容' : x.value);
           if (x.key === 'home_banner_url') setBannerUrl(x.value || '');
-          if (x.key === 'home_banner_text') setBannerText(!x.value || x.value === '把我们的青春，留在这里' ? '让重要内容，更容易被看见' : x.value);
+          if (x.key === 'home_banner_text') setBannerText(x.value && x.value !== '让重要内容，更容易被看见' ? x.value : '把我们的青春，留在这里');
         });
         const nowIso = new Date().toISOString();
         const [n, p, m, e, w] = await Promise.all([
@@ -134,7 +134,6 @@ export default function Home() {
         )}
         <header className="vh-intro">
           <div>
-            <div className="vh-eyebrow">内容空间</div>
             <h1>{title}</h1>
             <p>{subtitle}</p>
           </div>
@@ -195,13 +194,12 @@ export default function Home() {
             <div><h2>快速访问</h2><p>常用内容，一步到达</p></div>
           </div>
           <div className="vh-shortcuts">
-            {SHORTCUTS.map(([to, label], i) => (
+            {SHORTCUTS.map(([to, label]) => (
               <button
                 className="vh-shortcut"
                 key={to}
                 onClick={() => nav(to)}
               >
-                <span className="vh-shortcut-index">0{i + 1}</span>
                 <span className="vh-shortcut-name">{label}</span>
                 <span className="vh-shortcut-arrow" aria-hidden="true">↗</span>
               </button>
@@ -280,7 +278,6 @@ export default function Home() {
         <div className="vh-modal-backdrop" onClick={() => setAnnPop(null)}>
           <article className="vh-modal" onClick={e => e.stopPropagation()}>
             <button className="vh-modal-close" onClick={() => setAnnPop(null)}>关闭</button>
-            <div className="vh-eyebrow" style={{ marginBottom: 12 }}>公告详情</div>
             <h3>{annPop.title || '公告'}</h3>
             <p>{annPop.content}</p>
             <time style={{ color: '#97a3af', fontSize: 11 }}>{timeAgo(annPop.created_at)}</time>

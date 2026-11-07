@@ -66,6 +66,7 @@ import Daily from './pages/Daily';
 import ParticleFlower from './pages/ParticleFlower';
 import AirInk from './pages/AirInk';
 import { alertDialog } from './lib/dialog';
+import { resolveApproximateRegion, saveSharedRegion } from './lib/location';
 import GlobalSearch from './components/GlobalSearch';
 
 // Dock 保留四个最高频入口；其余页面通过长按 Dock 打开的玻璃快捷面板访问。
@@ -553,7 +554,8 @@ function Shell() {
   const [loginSuccess, setLoginSuccess] = useState<{ realName: string; durationMs: number } | null>(null);
   const [gpsOffer, setGpsOffer] = useState(false);
   const [gpsBusy, setGpsBusy] = useState(false);
-  const [gpsResult, setGpsResult] = useState<{ latitude: number; longitude: number; accuracy: number } | null>(null);
+  const [gpsResult, setGpsResult] = useState<string | null>(null);
+  const [gpsManualLocation, setGpsManualLocation] = useState('');
   const [gpsError, setGpsError] = useState('');
   const [pwReset, setPwReset] = useState(() => {
     try {
@@ -564,9 +566,18 @@ function Shell() {
   // 登录后首次：欢迎动画。壁纸不再登录后自动弹，改由「我的」换壁纸手动打开
   const [showWp, setShowWp] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
+  function consumeGpsOffer() {
+    try {
+      if (sessionStorage.getItem('ca_gps_offer') === '1') {
+        sessionStorage.removeItem('ca_gps_offer');
+        setGpsOffer(true);
+      }
+    } catch {}
+  }
   function guideDone() {
     try { localStorage.setItem('qz_guide_seen_v1', '1'); } catch {}
     setShowGuide(false);
+    consumeGpsOffer();
   }
   useEffect(() => {
     if (!session) return;
@@ -621,13 +632,8 @@ function Shell() {
         sessionStorage.removeItem('ca_login_elapsed_ms');
       } catch {}
     }
-    // 新注册后的 GPS 说明仅在用户主动选择时继续，不在登录时自动请求位置。
-    try {
-      if (sessionStorage.getItem('ca_gps_offer') === '1') {
-        sessionStorage.removeItem('ca_gps_offer');
-        setGpsOffer(true);
-      }
-    } catch {}
+    // 新注册后只显示一次自愿分享说明；浏览器定位仅在用户点击授权按钮后请求。
+    consumeGpsOffer();
   }, [session]);
   useEffect(() => {
     const open = () => setShowWp(true);
@@ -636,12 +642,7 @@ function Shell() {
   }, []);
   function welcomeDone() {
     setWelcome(null);
-    try {
-      if (sessionStorage.getItem('ca_gps_offer') === '1') {
-        sessionStorage.removeItem('ca_gps_offer');
-        setGpsOffer(true);
-      }
-    } catch {}
+    consumeGpsOffer();
   }
 
 
@@ -786,8 +787,40 @@ function Shell() {
   function closeGpsOffer() {
     setGpsOffer(false);
     setGpsResult(null);
+    setGpsManualLocation('');
     setGpsError('');
     setGpsBusy(false);
+  }
+
+  async function shareDeviceRegion() {
+    if (!session) return;
+    setGpsBusy(true);
+    setGpsError('');
+    try {
+      const region = await resolveApproximateRegion();
+      const saved = await saveSharedRegion(session.user.id, region);
+      setGpsResult(saved);
+      setGpsManualLocation('');
+    } catch (error) {
+      setGpsError(error instanceof Error ? error.message : '分享失败，请稍后重试或手动填写城市/地区。');
+    } finally {
+      setGpsBusy(false);
+    }
+  }
+
+  async function shareManualRegion() {
+    if (!session) return;
+    setGpsBusy(true);
+    setGpsError('');
+    try {
+      const saved = await saveSharedRegion(session.user.id, gpsManualLocation);
+      setGpsResult(saved);
+      setGpsManualLocation('');
+    } catch (error) {
+      setGpsError(error instanceof Error ? error.message : '保存失败，请检查城市/地区名称。');
+    } finally {
+      setGpsBusy(false);
+    }
   }
 
   async function logout() { await supabase.auth.signOut(); }
@@ -1101,7 +1134,7 @@ function Shell() {
         )}
       </AnimatePresence>
       <GlobalSearch open={searchOpen} onClose={() => setSearchOpen(false)} />
-      {gpsOffer && !isAdminPage && (
+      {gpsOffer && !isAdminPage && session && (
         <div role="dialog" aria-modal="true" aria-labelledby="gps-consent-title" onClick={closeGpsOffer} style={{
           position: 'fixed', inset: 0, zIndex: 700,
           background: 'radial-gradient(ellipse at 16% 12%, rgba(52,166,162,.18), transparent 44%), rgba(239,247,248,.56)',
@@ -1122,25 +1155,26 @@ function Shell() {
               background: '#eaf5f5', color: '#176477',
               fontSize: 10, fontWeight: 800, letterSpacing: 1.2,
             }}>
-              <span aria-hidden>⌖</span> LOCATION · OPTIONAL
+              <span aria-hidden>⌖</span> OPTIONAL LOCATION SHARING
             </div>
             <h2 id="gps-consent-title" style={{ margin: '0 0 10px', fontSize: 22, letterSpacing: '-.3px', color: '#203b4b' }}>
-              开启设备定位（自愿）
+              分享你所在的城市 / 地区
             </h2>
             <p style={{ margin: '0 0 14px', lineHeight: 1.75, color: '#607985', fontSize: 14 }}>
-              如果你想确认当前手机或浏览器能否正常定位，可以开启一次定位，在本页查看设备返回的位置和精度，帮助你检查设备定位设置是否正常。
+              这是自愿功能。分享后，你所在的城市或地区会显示在管理员后台的成员管理中，帮助管理员识别成员的大致所在地。
             </p>
             <div style={{
               padding: '14px 15px', borderRadius: 17,
               background: 'linear-gradient(145deg,#f5fafb,#edf6f6)',
               border: '1px solid #e0eeee',
             }}>
-              <div style={{ fontSize: 13, fontWeight: 800, color: '#285b68', marginBottom: 8 }}>你可以放心选择</div>
+              <div style={{ fontSize: 13, fontWeight: 800, color: '#285b68', marginBottom: 8 }}>分享前请了解</div>
               <ul style={{ margin: 0, paddingLeft: 19, lineHeight: 1.75, color: '#607985', fontSize: 13 }}>
-                <li>定位结果只在当前页面临时显示，不上传服务器、不写入账号或数据库，管理员和其他成员都看不到。</li>
-                <li>只有点击下方按钮后，网站才会向浏览器发起定位请求；浏览器会按当前站点权限状态处理，是否允许由你决定。</li>
-                <li>这不是签到、考勤或位置共享功能；拒绝授权也不会影响注册、登录和网站基本使用。</li>
-                <li>关闭此窗口会清除本页临时坐标；已授予的浏览器权限也可随时在设备或浏览器设置中撤回。</li>
+                <li>只有点击“获取并分享所在地区”后，浏览器才会请求一次设备定位；你可以在系统权限提示中拒绝。</li>
+                <li>发送给地区识别服务前，定位点会先粗略到约 10 公里级别；服务提供方 OpenStreetMap 会收到这个粗略点。</li>
+                <li>本站只保存识别出的城市 / 地区文字，不保存原始 GPS 坐标、街道或门牌号。</li>
+                <li>该地区仅在管理员后台成员管理中向超级管理员显示，其他普通成员看不到；拒绝分享不影响网站功能。</li>
+                <li>你可以随时到“我的 → 隐私设置”撤回分享，撤回后会删除已保存的地区。</li>
               </ul>
             </div>
             {gpsError && (
@@ -1152,58 +1186,49 @@ function Shell() {
             {gpsResult && (
               <div style={{
                 marginTop: 12, padding: 13, borderRadius: 14,
-                background: '#f7fbfb', border: '1px solid #dcebed',
-                color: '#456773', lineHeight: 1.8, overflowWrap: 'anywhere', fontSize: 13,
+                background: '#f0faf4', border: '1px solid #d3eadb',
+                color: '#315b43', lineHeight: 1.8, overflowWrap: 'anywhere', fontSize: 13,
               }}>
-                <b style={{ color: '#176477' }}>本页临时定位结果</b><br />
-                纬度：{gpsResult.latitude.toFixed(6)}<br />
-                经度：{gpsResult.longitude.toFixed(6)}<br />
-                设备报告精度：约 {Math.round(gpsResult.accuracy)} 米<br />
-                <small style={{ color: '#82959d' }}>仅供你在当前页面核对；关闭窗口后清除。</small>
+                <b>已保存分享地区</b><br />
+                {gpsResult}<br />
+                <small style={{ color: '#668574' }}>你可以在隐私设置中随时撤回。</small>
               </div>
             )}
-            <button className="pri" disabled={gpsBusy || !!gpsResult} onClick={() => {
-              setGpsError('');
-              if (!navigator.geolocation) {
-                setGpsError('当前浏览器不支持定位。你可以跳过，不影响使用网站。');
-                return;
-              }
-              setGpsBusy(true);
-              navigator.geolocation.getCurrentPosition(
-                position => {
-                  setGpsResult({
-                    latitude: position.coords.latitude,
-                    longitude: position.coords.longitude,
-                    accuracy: position.coords.accuracy,
-                  });
-                  setGpsBusy(false);
-                },
-                error => {
-                  setGpsError(error.code === error.PERMISSION_DENIED
-                    ? '你拒绝了浏览器的位置权限。网站不会继续尝试定位，你可以直接跳过。'
-                    : error.code === error.TIMEOUT
-                      ? '定位超时，请检查设备定位设置后自愿重试，或直接跳过。'
-                      : '暂时无法获取位置。你可以检查浏览器权限，或直接跳过。');
-                  setGpsBusy(false);
-                },
-                { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
-              );
-            }} style={{
-              width: '100%', marginTop: 14, padding: 13, borderRadius: 14,
-              background: 'linear-gradient(135deg,#176477,#2c9999)', color: '#fff',
-              boxShadow: '0 8px 22px rgba(22,100,117,.18)',
-            }}>
-              {gpsBusy ? '正在请求设备位置…' : gpsResult ? '已完成本页位置检查' : '继续，打开浏览器定位授权'}
-            </button>
+            {!gpsResult && (
+              <>
+                <button className="pri" disabled={gpsBusy} onClick={() => void shareDeviceRegion()} style={{
+                  width: '100%', marginTop: 14, padding: 13, borderRadius: 14,
+                  background: 'linear-gradient(135deg,#176477,#2c9999)', color: '#fff',
+                  boxShadow: '0 8px 22px rgba(22,100,117,.18)',
+                }}>
+                  {gpsBusy ? '正在识别城市 / 地区…' : '获取并分享所在地区'}
+                </button>
+                <div style={{ marginTop: 13, paddingTop: 13, borderTop: '1px solid #e7eff0' }}>
+                  <label htmlFor="gps-manual-region" style={{ display: 'block', color: '#456773', fontSize: 12, fontWeight: 700, marginBottom: 7 }}>
+                    也可以手动填写城市 / 地区
+                  </label>
+                  <input id="gps-manual-region" value={gpsManualLocation} onChange={event => setGpsManualLocation(event.target.value)}
+                    maxLength={80} placeholder="例如：四川省巴中市" autoComplete="off"
+                    style={{ width: '100%', boxSizing: 'border-box', padding: '11px 12px', borderRadius: 12, border: '1px solid #dce8eb', background: '#fff', color: '#203b4b' }} />
+                  <button className="ghost" disabled={gpsBusy || gpsManualLocation.trim().length < 2}
+                    onClick={() => void shareManualRegion()} style={{
+                      width: '100%', marginTop: 8, padding: 11, borderRadius: 12,
+                      border: '1px solid #dce8eb', background: '#f5f9fa', color: '#456773',
+                    }}>
+                    {gpsBusy ? '正在保存…' : '保存填写的地区'}
+                  </button>
+                </div>
+              </>
+            )}
+            <p style={{ margin: '10px 0 0', textAlign: 'center', color: '#8a9ba2', fontSize: 11, lineHeight: 1.5 }}>
+              地区识别：<a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer" style={{ color: '#557d89' }}>© OpenStreetMap contributors</a>
+            </p>
             <button className="ghost" disabled={gpsBusy} onClick={closeGpsOffer} style={{
               width: '100%', marginTop: 8, padding: 12, borderRadius: 14,
               border: '1px solid #dce8eb', background: '#f5f9fa', color: '#56717d',
             }}>
-              {gpsResult ? '关闭并清除本页坐标' : '暂不授权，直接进入网站'}
+              {gpsResult ? '完成' : '暂不分享，直接进入网站'}
             </button>
-            <p style={{ margin: '10px 0 0', textAlign: 'center', color: '#8a9ba2', fontSize: 11, lineHeight: 1.5 }}>
-              完全自愿 · 不影响任何账号功能 · 不会替你自动同意系统权限
-            </p>
           </section>
         </div>
       )}

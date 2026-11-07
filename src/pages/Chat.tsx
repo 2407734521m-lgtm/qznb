@@ -152,6 +152,7 @@ type OutboxEntry = {
 };
 
 export default function Chat() {
+  const reduceMotion = Boolean(useReducedMotion());
   const { cid } = useParams();
   const me = useAuth().session!.user.id;
   const userPreferences = useUserPreferences(me);

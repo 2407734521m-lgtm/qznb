@@ -279,7 +279,7 @@ export default function AdminAccountManagement({
           <option value="oldest">最早注册</option>
         </select>
       </div>
-      <p style={{ ...muted, margin: '8px 0 0' }}>当前 {filtered.length} 个账号 · 第 {page + 1}/{pageCount} 页。登录位置只显示用户在资料/设备功能中提供的记录，不会冒充 IP 定位。</p>
+      <p style={{ ...muted, margin: '8px 0 0' }}>当前 {filtered.length} 个账号 · 第 {page + 1}/{pageCount} 页。所在地区来自成员主动分享，仅超级管理员可查看；不采集 IP 定位。</p>
       <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap', marginTop: 9 }}>
         <button style={btn} onClick={exportFiltered}>导出当前筛选 CSV</button>
         <button style={btn} onClick={() => setSelected(new Set(shown.filter(account => account.role === 'member' && account.id !== me).map(account => account.id)))}>选择本页</button>
@@ -324,6 +324,7 @@ export default function AdminAccountManagement({
       <div style={{ ...muted, marginTop: 8 }}>
         <div>注册时间：{stamp(r.created_at)}</div>
         <div>最近登录：{stamp(r.last_sign_in_at)}</div>
+        <div>所在地区：{r.location || '未分享'}</div>
       </div>
 
       <button style={{ ...btn, marginTop: 9 }} onClick={() => toggleDetails(r.id)} aria-expanded={expanded.has(r.id)}>
@@ -333,7 +334,7 @@ export default function AdminAccountManagement({
         <div style={muted}>账号 ID：{r.id}</div>
         <div style={muted}>邮箱：{r.email || '暂无记录'}</div>
         <div style={muted}>真实姓名：{r.real_name || '未填写'}</div>
-        <div style={muted}>资料中的位置：{r.location || '用户未提供'}</div>
+        <div style={muted}>自愿分享的所在地区：{r.location || '未分享'}</div>
         <div style={muted}>设备信息：{r.device || '暂无记录'}</div>
         <div style={muted}>位置/设备资料更新时间：{stamp(r.presence_updated_at)}</div>
         <div style={muted}>账号注册时间：{stamp(r.created_at)}</div>

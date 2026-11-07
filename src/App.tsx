@@ -15,6 +15,7 @@ import WelcomeOverlay from './components/WelcomeOverlay';
 import LoginSuccessOverlay from './components/LoginSuccessOverlay';
 import bgUrl from './assets/bg.jpg';
 import emblemUrl from './assets/pingzhong-emblem.png';
+import flowBgUrl from './assets/flow-bg.webp';
 import Login from './pages/Login';
 import Members from './pages/Members';
 import Member from './pages/Member';
@@ -276,17 +277,20 @@ function PublicLanding({ data, onLogin }: { data: any; onLogin: () => void }) {
   const subtitle = data?.site_subtitle || '青春档案';
   const bannerText = data?.home_banner_text || '把我们的青春，留在这里';
   const bannerUrl = typeof data?.home_banner_url === 'string' && (data.home_banner_url.startsWith('https://') || data.home_banner_url.startsWith('http://')) ? data.home_banner_url : '';
+  const heroImg = bannerUrl || flowBgUrl;
   return (<><div className="glow" /><img src={emblemUrl} alt="" aria-hidden draggable={false}
       style={{ position: 'absolute', top: 68, right: 12, width: 88, opacity: 0.32, pointerEvents: 'none', userSelect: 'none', zIndex: 30 }} /><main style={{ width: 'min(100% - 28px, 820px)', margin: '0 auto', padding: '22px 0 48px', color: '#202632' }}>
     <header style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 18 }}>
       <div style={{ flex: 1 }}><div style={{ fontSize: 11, letterSpacing: 3, color: '#7b8492' }}>OUR CLASS · PUBLIC SPACE</div><h1 style={{ margin: '6px 0 0', fontSize: 24 }}>{title}</h1><p style={{ margin: '4px 0 0', color: '#737b89', fontSize: 13 }}><ShinyText text={subtitle} /></p></div>
       {data?.close_login_entry !== 'true' && <button className="pri" style={{ width: 'auto', padding: '10px 16px', whiteSpace: 'nowrap' }} onClick={onLogin}>登录 / 注册</button>}
     </header>
-    <section style={{ aspectRatio: '16 / 9', width: '100%', position: 'relative', overflow: 'hidden', borderRadius: 22, marginBottom: 18, background: bannerUrl ? '#e9edf3' : 'linear-gradient(135deg,#f5f7fa,#e4e9f1)', border: '1px solid #e5e8ee', boxShadow: '0 12px 34px #202a3d0c' }}>
-      {bannerUrl && <img src={bannerUrl} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />}
-      <div style={{ position: 'absolute', inset: 0, padding: 'clamp(18px,5vw,30px)', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', background: bannerUrl ? 'linear-gradient(90deg,#10182899,transparent)' : 'linear-gradient(120deg,#ffffff00,#dfe4ec55)' }}>
-        <div style={{ fontSize: 10, letterSpacing: 2, color: bannerUrl ? '#fff' : '#737b89' }}>ANNOUNCEMENTS</div>
-        <h2 style={{ margin: '8px 0 0', color: bannerUrl ? '#fff' : '#202632', fontSize: 'clamp(20px,5vw,30px)', lineHeight: 1.3 }}><BlurText key={bannerText} text={bannerText} /></h2>
+    <section style={{ aspectRatio: '16 / 9', width: '100%', position: 'relative', overflow: 'hidden', borderRadius: 22, marginBottom: 18, background: '#e9edf3', border: '1px solid #e5e8ee', boxShadow: '0 12px 34px #202a3d0c' }}>
+      <img src={heroImg} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
+      <div style={{ position: 'absolute', inset: 0, padding: 'clamp(18px,5vw,30px)', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', background: 'linear-gradient(90deg,#10182873,transparent 70%)' }}>
+        <div className="landing-hero-glass qz-liquid-glass-strong">
+          <div style={{ fontSize: 10, letterSpacing: 2, color: '#fff' }}>ANNOUNCEMENTS</div>
+          <h2 style={{ margin: '8px 0 0', color: '#fff', fontSize: 'clamp(20px,5vw,30px)', lineHeight: 1.3 }}><BlurText key={bannerText} text={bannerText} /></h2>
+        </div>
       </div>
     </section>
     <section style={{ background: '#fff', border: '1px solid #e9ebf0', borderRadius: 20, padding: '18px clamp(14px,4vw,22px)', boxShadow: '0 8px 28px #202a3d0a' }}>

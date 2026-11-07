@@ -317,6 +317,7 @@ export default function Login() {
   return (
     <>
       {bg && <div className="login-bg" style={{ backgroundImage: `url(${bg})`, filter: `blur(${blur}px) brightness(${100 - dark}%)`, transform: 'scale(1.1)' }} />}
+      {!bg && <div className="login-flow" aria-hidden="true" />}
       <div className="login-wrap">
         <motion.div className="login-card page"
           initial={reduce ? {} : { opacity: 0, y: 24, scale: 0.98 }}

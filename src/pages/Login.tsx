@@ -187,7 +187,12 @@ export default function Login({ siteTitle, siteSubtitle, onGuestLogin }: { siteT
     // 用户明确选择 QQ 头像后，服务端只会为当前已验证 QQ 邮箱导入对应公开头像。
     // 导入是非阻断操作：即使 QQ 服务暂时不可用，也不影响账号注册。
     if (useQqAvatar && qqNumber) {
-      void supabase.functions.invoke('qq-avatar-import', { body: { qq: qqNumber } }).catch(() => {});
+      try {
+        // Wait for the best-effort import so the first profile load can see its saved avatar.
+        await supabase.functions.invoke('qq-avatar-import', { body: { qq: qqNumber } });
+      } catch {
+        // Avatar import is optional and must never block account registration.
+      }
     }
     // 注意：username / real_name 由注册触发器写入，列级权限不允许前端直接改，这里只更新展示名
     if (nm) supabase.from('profiles').update({ display_name: nm }).eq('id', uid).then(() => {});

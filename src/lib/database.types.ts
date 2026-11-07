@@ -317,18 +317,21 @@ export type Database = {
           profile_id: string
           last_read_message_id: number | null
           last_receipt_message_id: number | null
+          chat_background: string
         }
         Insert: {
           conversation_id: number
           profile_id: string
           last_read_message_id?: number | null
           last_receipt_message_id?: number | null
+          chat_background?: string
         }
         Update: {
           conversation_id?: number
           profile_id?: string
           last_read_message_id?: number | null
           last_receipt_message_id?: number | null
+          chat_background?: string
         }
         Relationships: [
           {
@@ -1812,6 +1815,10 @@ export type Database = {
       mark_conversation_read: {
         Args: { p_conversation_id: number }
         Returns: number | null
+      }
+      set_chat_background: {
+        Args: { p_conversation_id: number; p_background: string }
+        Returns: undefined
       }
       edit_chat_message: {
         Args: { p_message_id: number; p_body: string }

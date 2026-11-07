@@ -125,13 +125,16 @@ for delete to authenticated
 using (
   bucket_id = 'media'
   and (
-    (
+    -- Preserve the existing administrator cleanup capability.
+    public.my_role() in ('admin', 'super_admin')
+    -- New opaque love/ paths are deletable only by their registered owner.
+    or (
       (storage.foldername(name))[1] = 'love'
       and exists (select 1 from love_private.media_objects m where m.object_path = name and m.owner_id = auth.uid())
     )
+    -- Preserve owner cleanup for legacy <user-id>/love/ paths and other user media.
     or (
       (storage.foldername(name))[1] = (select auth.uid())::text
-      and coalesce((storage.foldername(name))[2], '') <> 'love'
     )
   )
 );

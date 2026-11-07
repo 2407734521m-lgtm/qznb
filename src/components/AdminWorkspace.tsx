@@ -92,7 +92,7 @@ function descriptionFor(id: string) {
     settings: '配置全站管理设置。',
     test: '执行管理端测试与回归检查。',
   };
-  return descriptions[id] ?? '管理青春档案站点的相关功能。';
+  return descriptions[id] ?? '管理堯站点的相关功能。';
 }
 
 export default function AdminWorkspace({

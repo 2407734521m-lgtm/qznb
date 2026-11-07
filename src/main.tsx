@@ -49,15 +49,33 @@ window.addEventListener('hashchange', redirectLegacyAdminEntry);
 function AdminShell() {
   const { session, loading } = useAuth();
   const [role, setRole] = useState<string | null>(null);
+  const [verifiedUid, setVerifiedUid] = useState<string | null>(null);
   useEffect(() => {
-    if (!session) { setRole(null); return; }
+    setRole(null);
+    setVerifiedUid(null);
+    if (!session) return;
     let live = true;
-    const timer = setTimeout(() => { if (live) setRole(''); }, 8000);
+    const uid = session.user.id;
+    const markUnavailable = () => {
+      if (!live) return;
+      setRole('');
+      setVerifiedUid(uid);
+    };
+    const timer = setTimeout(markUnavailable, 8000);
     supabase.rpc('my_role').then(
-      ({ data, error }) => { clearTimeout(timer); if (live) setRole(error ? '' : (data ?? '')); },
-      () => { clearTimeout(timer); if (live) setRole(''); });
+      ({ data, error }) => {
+        clearTimeout(timer);
+        if (!live) return;
+        setRole(error ? '' : (data ?? ''));
+        setVerifiedUid(uid);
+      },
+      () => {
+        clearTimeout(timer);
+        markUnavailable();
+      }
+    );
     return () => { live = false; clearTimeout(timer); };
-  }, [session]);
+  }, [session?.user.id]);
   // 后台标签标题：跟随后台设置里的网站标题，格式为「<网站标题> · 管理后台」。
   useEffect(() => {
     let live = true;
@@ -69,8 +87,8 @@ function AdminShell() {
       });
     return () => { live = false; };
   }, []);
-  if (loading || (session && role === null)) return <div className="center">加载中…</div>;
-  const isAdmin = role === 'admin' || role === 'super_admin';
+  if (loading || (session && (role === null || verifiedUid !== session.user.id))) return <div className="center">加载中…</div>;
+  const isAdmin = Boolean(session) && (role === 'admin' || role === 'super_admin');
   if (!isAdmin) return (<><div className="glow" /><AdminLogin showBack={false} /></>);
   return (<>
     <div className="glow" />

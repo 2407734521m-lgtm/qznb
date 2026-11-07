@@ -10,6 +10,7 @@ const ops=read('../src/styles-admin-ops.css');
 const tokens=read('../src/styles-admin-tokens.css');
 function assert(ok,message){if(!ok){console.error(`Admin style contract failed: ${message}`);process.exitCode=1;}}
 assert(main.includes("supabase.rpc('my_role')"),'dedicated host must verify the role before mounting admin');
+assert(main.includes("setVerifiedUid(uid)")&&main.includes("verifiedUid !== session.user.id"),'role result must be bound to the active session user');
 assert(main.includes("<Admin verifiedRole={role === 'super_admin' ? 'super_admin' : 'admin'} />"),'verified role must be passed to the admin page');
 assert(!main.includes('我们的班级'),'admin title fallback must use current brand');
 assert(admin.includes('className="admin-shell-v3"'),'admin page must use one isolated root class');
@@ -19,8 +20,10 @@ assert(workspace.includes('<strong>堯</strong>')&&!workspace.includes('青春�
 for(const [name,css] of [['cinematic',cinematic],['unified',unified],['scaffold',scaffold],['ops',ops]]){
  assert(!/\.admin-shell(?!-v3)\b/.test(css),`${name} CSS must use isolated admin root`);
 }
-const leaks=[/^\s*\.admin-content(?=\s|[>:#,.])/m,/^\s*\.admin-header(?=\s|[>:#,.])/m,/^\s*\.admin-search(?=\s|[>:#,.])/m,/^\s*\.admin-loading-pulse(?=\s|[>:#,.])/m];
-for(const [name,css] of [['cinematic',cinematic],['unified',unified]])assert(!leaks.some(p=>p.test(css)),`${name} legacy selectors must stay under admin root`);
+const unscoped=/(^|[{},])\s*\.(admin-content|admin-header|admin-search|admin-loading-pulse)(?=\s|[>:#,.])/m;
+for(const [name,css] of [['cinematic',cinematic],['unified',unified]]){
+ assert(!unscoped.test(css),`${name} legacy selectors must stay under admin root`);
+}
 assert(tokens.includes('--admin-bg-0: #f7f9fc;')&&tokens.includes('.admin-shell-v3 .admin-sidebar'),'admin tokens must define isolated light shell');
 if(process.exitCode)process.exit(process.exitCode);
-console.log('Admin style contracts passed: isolated root, single role check, and current admin branding.');
+console.log('Admin style contracts passed: isolated selectors, session-bound role verification, and current admin branding.');

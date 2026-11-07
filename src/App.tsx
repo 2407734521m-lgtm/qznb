@@ -144,7 +144,7 @@ function isTabActive(tab: string, path: string) {
   if (tab === '/home') return path.startsWith('/home') || path.startsWith('/board');
   if (tab === '/board') return path.startsWith('/board');
   if (tab === '/members') return path.startsWith('/members');
-  if (tab === '/explore') return ['/explore','/feed','/albums','/hot','/greetings','/events','/capsule','/wishes','/particle-flower','/air-ink','/calendar','/fate-notebook'].some(p => path.startsWith(p));
+  if (tab === '/explore') return ['/explore','/feed','/albums','/hot','/greetings','/events','/capsule','/wishes','/particle-flower','/air-ink','/calendar','/love-wall','/fate-notebook'].some(p => path.startsWith(p));
   if (tab === '/friends') return ['/friends','/chat'].some(p => path.startsWith(p));
   if (tab === '/songs') return path.startsWith('/songs');
   if (tab === '/love-wall') return path.startsWith('/love-wall');

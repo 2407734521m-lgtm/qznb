@@ -429,3 +429,91 @@
   .feed-page .post,
   .member-profile-page .mp-act-circle { transition: none !important; }
 }
+
+
+/* Global search and result navigation */
+.global-search-panel {
+  border: 1px solid #e5eaf0 !important;
+  border-radius: 15px !important;
+  background: #fff !important;
+  box-shadow: 0 20px 56px rgba(25, 39, 56, .14) !important;
+}
+.global-search-eyebrow {
+  color: #8a95a3 !important;
+  font-size: 10px !important;
+  font-weight: 650 !important;
+  letter-spacing: .1em !important;
+}
+.global-search-head h2 { color: #222d3a !important; font-weight: 650 !important; }
+.global-search-close {
+  border: 1px solid #e7ebf0 !important;
+  border-radius: 9px !important;
+  background: #f7f8fa !important;
+  color: #6d7886 !important;
+}
+.global-search-input-wrap {
+  border: 1px solid #e3e8ee !important;
+  border-radius: 10px !important;
+  background: #fafbfc !important;
+}
+.global-search-input-wrap:focus-within {
+  border-color: #9aaabd !important;
+  box-shadow: 0 0 0 3px rgba(82, 107, 140, .09) !important;
+}
+.global-search-input-wrap > span { color: #73849a !important; }
+.global-search-input-wrap input { color: #273342 !important; }
+.global-search-input-wrap input::placeholder { color: #9aa3ad !important; }
+.global-search-input-wrap button { color: #62758d !important; }
+.global-search-section-title {
+  color: #8a95a3 !important;
+  font-size: 10px !important;
+  font-weight: 650 !important;
+  letter-spacing: .08em !important;
+}
+.global-search-result {
+  border: 1px solid #edf0f3 !important;
+  border-radius: 9px !important;
+  background: #fff !important;
+}
+.global-search-result:hover,
+.global-search-result:focus-visible {
+  border-color: #dbe2ea !important;
+  background: #f8f9fb !important;
+}
+.global-search-result-mark {
+  border-radius: 8px !important;
+  background: #f0f3f6 !important;
+  color: #66778d !important;
+}
+.global-search-result-copy strong { color: #2b3644 !important; }
+.global-search-result-copy small { color: #87919e !important; }
+.global-search-result-arrow { color: #9aa4b0 !important; }
+.global-search-hint,
+.global-search-foot { color: #929ba7 !important; }
+.global-search-foot { border-top-color: #edf0f3 !important; }
+
+/* A search result opens the exact post in context without creating a parallel detail route. */
+.post.post--focused {
+  border-color: #a9b8c9 !important;
+  box-shadow: 0 0 0 3px rgba(82, 107, 140, .09) !important;
+  animation: qz-post-focus 2.4s ease-out both;
+}
+@keyframes qz-post-focus {
+  0%, 100% { background-color: #fff; }
+  18%, 65% { background-color: #f5f7fa; }
+}
+.post:focus { outline: none; }
+.cmt-empty {
+  margin: 6px 0 10px;
+  color: #969faa;
+  font-size: 11px;
+  text-align: center;
+}
+.feed-page .cmt .box button:disabled,
+.page .cmt .box button:disabled {
+  opacity: .45;
+  cursor: not-allowed;
+}
+@media (prefers-reduced-motion: reduce) {
+  .post.post--focused { animation: none !important; }
+}

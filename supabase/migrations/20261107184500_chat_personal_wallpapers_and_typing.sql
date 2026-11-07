@@ -58,8 +58,8 @@ $function$;
 revoke all on function public.set_chat_background(bigint, text) from public, anon;
 grant execute on function public.set_chat_background(bigint, text) to authenticated;
 
--- The typing channel carries only a member UUID and a boolean; access is
--- restricted to authenticated members of the conversation encoded in the topic.
+-- The typing channel carries only a boolean; access is restricted to active
+-- members of the conversation encoded in the topic and enabled chat sessions.
 drop policy if exists chat_typing_member_read on realtime.messages;
 create policy chat_typing_member_read
 on realtime.messages
@@ -68,6 +68,7 @@ to authenticated
 using (
   realtime.messages.extension = 'broadcast'
   and realtime.messages.private is true
+  and public.site_feature_enabled('chat')
   and case
     when (select realtime.topic()) ~ '^chat-typing:[0-9]+$'
     then chat_private.is_conversation_member(

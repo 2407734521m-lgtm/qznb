@@ -11,8 +11,8 @@ import { useQuietHoursActive } from '../lib/userPreferences';
 
 type Entry = { mark: string; title: string; note: string; to: string; badge?: string; act?: 'feedback' | 'sponsor' };
 const groups: { title: string; note: string; entries: Entry[] }[] = [
-  { title: '个人资料', note: '让同学更好地认识你', entries: [
-    { mark: '名片', title: '我的主页', note: '查看同学看到的个人主页', to: 'profile' },
+  { title: '个人资料', note: '让其他人更了解你', entries: [
+    { mark: '名片', title: '我的主页', note: '查看其他人可见的个人主页', to: 'profile' },
     { mark: '编辑', title: '编辑资料', note: '修改昵称、签名与兴趣爱好', to: 'edit' },
     { mark: '主题', title: '主页装扮', note: '调整背景、主题与页面布局', to: 'look' },
   ]},
@@ -22,14 +22,14 @@ const groups: { title: string; note: string; entries: Entry[] }[] = [
     { mark: '收藏', title: '我的收藏', note: '找回保存过的精彩内容', to: '/me/favorites' },
     { mark: '投稿', title: '我的表白投稿', note: '查看投稿状态或删除自己的投稿', to: '/love-wall?mine=1' },
   ]},
-  { title: '青春记录', note: '回看共同留下的照片与成长足迹', entries: [
-    { mark: '相册', title: '班级相册', note: '按分类浏览照片与影像', to: '/albums' },
-    { mark: '活动', title: '班级活动', note: '查看近期活动与安排', to: '/events' },
-    { mark: '日历', title: '班级记忆日历', note: '按日期回看活动、动态和公告', to: '/calendar' },
+  { title: '内容与活动', note: '整理照片、活动和参与记录', entries: [
+    { mark: '相册', title: '我的相册', note: '按分类浏览照片与影像', to: '/albums' },
+    { mark: '活动', title: '活动', note: '查看近期活动与安排', to: '/events' },
+    { mark: '日历', title: '内容日历', note: '按日期回看活动、动态和公告', to: '/calendar' },
     { mark: '特效', title: '热门特效', note: '探索有趣的互动效果', to: '/hot' },
-    { mark: '成长', title: '成长档案', note: '活跃天数、贡献记录与纪念徽章', to: '/me/growth' },
+    { mark: '成长', title: '成长记录', note: '活跃天数、贡献记录与纪念徽章', to: '/me/growth' },
   ]},
-  { title: '消息互动', note: '查看同学留言与网站通知', entries: [
+  { title: '消息互动', note: '查看收到的留言与站内通知', entries: [
     { mark: '留言', title: '我的留言', note: '查看收到的留言', to: '/me/greetings' },
     { mark: '通知', title: '我的通知', note: '互动消息与系统提醒', to: '/me/notifications', badge: 'unread' },
   ]},
@@ -112,7 +112,7 @@ export default function MeHub() {
       <section className="me-hub-hero">
         <div className="me-hub-topbar">
           <div>
-            <div className="me-hub-eyebrow">MY SPACE <span>·</span> 青春档案</div>
+            <div className="me-hub-eyebrow">堯 <span>·</span> 个人空间</div>
             <h1>个人中心</h1>
           </div>
           <div className="me-hub-head-actions">
@@ -132,7 +132,7 @@ export default function MeHub() {
           </button>
           <div className="me-hub-identity">
             <strong>{name || '我的账号'}</strong>
-            <span>{username ? '@' + username : '青春档案成员'}</span>
+            <span>{username ? '@' + username : '堯用户'}</span>
             <small>把生活里的点滴，收藏成共同的回忆</small>
           </div>
           <button className="me-hub-edit" onClick={() => nav('/me/edit?sec=base')}>编辑资料 <span>›</span></button>
@@ -152,7 +152,7 @@ export default function MeHub() {
             <strong>{stats.loading ? '—' : stats.likes}</strong><span>收到点赞</span>
           </button>
         </div>
-        <div className="me-hub-photo-note"><span className="me-hub-photo-mark">▧</span> 已为青春档案留下 <b>{stats.loading ? '—' : stats.photos}</b> 张照片 <span>·</span> <button onClick={() => nav('/albums')}>去相册看看 ›</button></div>
+        <div className="me-hub-photo-note"><span className="me-hub-photo-mark">▧</span> 已分享 <b>{stats.loading ? '—' : stats.photos}</b> 张照片 <span>·</span> <button onClick={() => nav('/albums')}>去相册看看 ›</button></div>
       </section>
 
       <section className="me-hub-shortcuts">

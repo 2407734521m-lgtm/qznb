@@ -6,26 +6,26 @@ const cards = [
   {
     to: '/particle-flower',
     className: 'discover-card--bloom',
-    eyebrow: 'INTERACTIVE PLAY',
+    eyebrow: '互动体验',
     title: '指尖生花',
-    description: '用手势唤醒光影，让花朵随着指尖绽放。',
-    action: '开启体验',
+    description: '用手势画出一朵花，看看它如何回应你的动作。',
+    action: '试试看',
   },
   {
     to: '/air-ink',
     className: 'discover-card--ink',
-    eyebrow: 'AIR WRITING',
+    eyebrow: '创作工具',
     title: '空中书写',
-    description: '在空气里写下一个字，留下灵感。',
-    action: '开始书写',
+    description: '不需要触屏，在空中写下简单的笔画。',
+    action: '开始创作',
   },
   {
     to: '/hot',
     className: 'discover-card--hot',
-    eyebrow: 'WHAT’S NEW',
+    eyebrow: '社区话题',
     title: '热门话题',
-    description: '看看最近大家正在讨论什么。',
-    action: '看看大家在聊什么',
+    description: '最近大家关注的话题，都在这里。',
+    action: '查看话题',
   },
   {
     to: '/love-wall',
@@ -38,9 +38,9 @@ const cards = [
   {
     to: '/fate-notebook',
     className: 'discover-card--fate',
-    eyebrow: 'FORTUNE NOTE',
+    eyebrow: '趣味玩法',
     title: '命运笔记',
-    description: '写下一个虚构角色名，抽取一条神秘又好笑的判词。',
+    description: '写下虚构角色的名字，看看会抽到什么有趣结果。',
     action: '翻开笔记',
   },
 ];
@@ -121,11 +121,11 @@ export default function Explore() {
     >
       <header className="discover-heading">
         <div>
-          <span className="discover-eyebrow">DISCOVER</span>
+          <span className="discover-eyebrow">探索</span>
           <h1>发现</h1>
-          <p>换个方式，探索一点新鲜感。</p>
+          <p>一些可以体验、参与和分享的内容。</p>
         </div>
-        <span className="discover-heading-mark" aria-hidden="true">✳</span>
+        
       </header>
 
       <section className="discover-bento" aria-label="探索体验">

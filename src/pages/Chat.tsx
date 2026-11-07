@@ -820,7 +820,7 @@ export default function Chat() {
                 </div>
               ) : <div className="im-profile-empty">你们发送的照片会显示在这里。</div>}
             </section>
-            <div className="im-profile-footer">聊天背景只影响你自己的视图，不会更改对方的聊天界面。</div>
+            <div className="im-profile-footer">聊天背景由你们双方共享：谁设置了新背景，对方打开聊天时也会一起换上。</div>
           </div>
         </section>
       </div>}

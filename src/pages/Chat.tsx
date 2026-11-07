@@ -5,6 +5,7 @@ import { useAuth } from '../auth';
 import { downscaleImage, uploadMedia, useSignedUrl } from '../lib/media';
 import { goBackOr } from '../components/BackButton';
 import type { ChatMessage } from '../types/message';
+import { useUserPreferences } from '../lib/userPreferences';
 import './Chat.polish.css';
 
 type ChatReaction = { message_id: number; profile_id: string; reaction: string; created_at: string };
@@ -23,6 +24,7 @@ function MessageContent({ body }: { body: string }) {
 export default function Chat() {
   const { cid } = useParams();
   const me = useAuth().session!.user.id;
+  const userPreferences = useUserPreferences(me);
   const nav = useNavigate();
   const loc = useLocation() as { state?: { name?: string } };
   const [name, setName] = useState(loc.state?.name ?? '聊天');
@@ -123,11 +125,11 @@ export default function Chat() {
     }
 
     const { data: members } = await supabase.from('conversation_members')
-      .select('profile_id,last_read_message_id')
+      .select('profile_id,last_receipt_message_id')
       .eq('conversation_id', conversationId);
     if (requestId !== loadSequenceRef.current) return;
     const otherMember = (members ?? []).find(member => member.profile_id !== me);
-    setOtherLastReadMessageId(otherMember?.last_read_message_id ?? null);
+    setOtherLastReadMessageId(otherMember?.last_receipt_message_id ?? null);
 
     if (document.visibilityState === 'visible') {
       const { error: readError } = await supabase.rpc('mark_conversation_read', {
@@ -447,7 +449,7 @@ export default function Chat() {
                   )}
                   <div className="im-time">
                     {new Date(m.created_at).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}
-                    {mine ? <span className="im-read-status">{otherLastReadMessageId !== null && otherLastReadMessageId >= m.id ? '· 已读' : '· 已发送'}</span> : ''}
+                    {mine && userPreferences.chat.showReadReceipts ? <span className="im-read-status">{otherLastReadMessageId !== null && otherLastReadMessageId >= m.id ? '· 已读' : '· 已发送'}</span> : ''}
                     {m.edited_at && !deleted ? <span className="im-read-status">· 已编辑</span> : ''}
                   </div>
                   {groups.length > 0 && <div className="im-reaction-groups">

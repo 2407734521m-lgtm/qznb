@@ -7,6 +7,7 @@ import './MeHub.css';
 import './MeHub.polish.css';
 import FeedbackModal from '../components/FeedbackModal';
 import SponsorModal from '../components/SponsorModal';
+import { useQuietHoursActive } from '../lib/userPreferences';
 
 type Entry = { mark: string; title: string; note: string; to: string; badge?: string; act?: 'feedback' | 'sponsor' };
 const groups: { title: string; note: string; entries: Entry[] }[] = [
@@ -52,6 +53,7 @@ const shortcuts = [
 export default function MeHub() {
   const nav = useNavigate();
   const me = useAuth().session!.user.id;
+  const quietHoursActive = useQuietHoursActive(me);
   const [name, setName] = useState('');
   const [username, setUsername] = useState('');
   const [avatar, setAvatar] = useState<string | null>(null);
@@ -115,7 +117,7 @@ export default function MeHub() {
           <div className="me-hub-head-actions">
             <button className="me-hub-head-icon" aria-label="查看通知" title="查看通知" onClick={() => nav('/me/notifications')}>
               <span aria-hidden="true">♧</span>
-              {unread > 0 && <i />}
+              {unread > 0 && !quietHoursActive && <i />}
             </button>
             <button className="me-hub-head-icon" aria-label="设置中心" title="设置中心" onClick={() => nav('/me/settings')}>
               <span aria-hidden="true">⚙</span>
@@ -134,7 +136,7 @@ export default function MeHub() {
           </div>
           <button className="me-hub-edit" onClick={() => nav('/me/edit?sec=base')}>编辑资料 <span>›</span></button>
         </div>
-        {unread > 0 && <button className="me-hub-unread" onClick={() => nav('/me/notifications')}>{unread} 条未读通知 <span>查看 ›</span></button>}
+        {unread > 0 && !quietHoursActive && <button className="me-hub-unread" onClick={() => nav('/me/notifications')}>{unread} 条未读通知 <span>查看 ›</span></button>}
       </section>
 
       <section className="me-hub-stats" aria-label="我的社区数据">
@@ -200,7 +202,7 @@ export default function MeHub() {
                     <strong>{entry.title}</strong>
                     <small>{entry.note}</small>
                   </span>
-                  {entry.badge === 'unread' && unread > 0
+                  {entry.badge === 'unread' && unread > 0 && !quietHoursActive
                     ? <span className="me-hub-dot" aria-label={unread + ' 条未读'} />
                     : <span className="me-hub-arrow">›</span>}
                 </button>

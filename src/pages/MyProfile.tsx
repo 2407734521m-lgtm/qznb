@@ -73,11 +73,11 @@ export default function MyProfile() {
   const [gameOpen, setGameOpen] = usePersistedSec('ca_sec_game', true);
   const [keyOpen, setKeyOpen] = usePersistedSec('ca_sec_key', false);
   const [notifOpen, setNotifOpen] = usePersistedSec('ca_sec_notif', false);
-  // 个人中心 hub 跳转：?sec=base|game|look|priv 自动展开并滚动
+  // 个人中心与设置中心跳转：?sec=base|game|look|priv|key 自动展开并滚动
   useEffect(() => {
     const sec = new URLSearchParams(window.location.hash.split('?')[1] || '').get('sec');
     const map: Record<string, (v: boolean) => void> = {
-      base: setBaseOpen, game: setGameOpen, look: setLookOpen, priv: setPrivOpen,
+      base: setBaseOpen, game: setGameOpen, look: setLookOpen, priv: setPrivOpen, key: setKeyOpen,
     };
     if (sec && map[sec]) {
       map[sec](true);
@@ -418,7 +418,7 @@ export default function MyProfile() {
           onClick={() => window.dispatchEvent(new Event('ca:wallpaper:open'))}>换壁纸</button>
       </Collapsible>
 
-      <Collapsible title="通行密钥登录" open={keyOpen} onToggle={() => setKeyOpen(o => !o)}>
+      <Collapsible sid="sec-key" title="通行密钥登录" open={keyOpen} onToggle={() => setKeyOpen(o => !o)}>
         <p className="mut" style={{ fontSize: 12.5 }}>注册后，下次登录可用指纹 / 面容 ID 一键登录，不用输密码。</p>
         <button onClick={regKey}>注册通行密钥</button>
         {keys.map(k => (

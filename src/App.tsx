@@ -6,6 +6,7 @@ import { supabase } from './lib/supabase';
 import { startSitePresence } from './lib/sitePresence';
 import { useAuth } from './auth';
 import { getWallpaper } from './lib/wallpaper';
+import { useQuietHoursActive } from './lib/userPreferences';
 import WallpaperOnboarding from './components/WallpaperOnboarding';
 import BlurText from './components/fx/BlurText';
 import ShinyText from './components/fx/ShinyText';
@@ -320,7 +321,8 @@ function emblemSpot(path: string): { top: number; right: number; width: number; 
 }
 
 function Shell() {
-  const { session, loading } = useAuth();  const [role, setRole] = useState('');
+  const { session, loading } = useAuth();
+  const quietHoursActive = useQuietHoursActive(session?.user.id);  const [role, setRole] = useState('');
   const loc = useLocation();
   const emblem = emblemSpot(loc.pathname);
   const systemReduce = useReducedMotion();
@@ -816,7 +818,7 @@ function Shell() {
                   <NavLink to={t.to} className={on ? 'on' : ''}>
                     {on && <motion.span layoutId="qz-dock-active-indicator" className="dock-active-indicator" transition={{ type: 'spring', stiffness: 420, damping: 34 }} aria-hidden="true" />}
                     <span className="dock-tab-label">{t.label}</span>
-                    {((t.to === '/board' && boardUnread) || (t.to === '/me/notifications' && notifUnread)) && <span className="dock-unread-dot" />}
+                    {((t.to === '/board' && boardUnread) || (t.to === '/me/notifications' && notifUnread && !quietHoursActive)) && <span className="dock-unread-dot" />}
                   </NavLink>
                 </motion.div>
               );

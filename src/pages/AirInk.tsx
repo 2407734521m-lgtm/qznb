@@ -105,6 +105,25 @@ function drawHandPreview(canvas: HTMLCanvasElement | null, landmarks: any[] | nu
   });
   ctx.restore();
 }
+function drawHandSkeleton(ctx: CanvasRenderingContext2D, landmarks: any[] | null, video: HTMLVideoElement | null, width: number, height: number) {
+  if (!landmarks || landmarks.length < 21 || !video) return;
+  // 主画面骨骼贴手（用户定 2026-11-08）：与笔尖轨迹共用 mapPoint 映射
+  // （同一套 cover 对齐 + 镜像），21 个关节点正好落在真手上。
+  const pts = landmarks.map(p => mapPoint(p, video, width, height));
+  ctx.save(); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  ctx.strokeStyle = 'rgba(255,220,236,.55)'; ctx.lineWidth = 2;
+  ctx.shadowColor = 'rgba(240,151,194,.45)'; ctx.shadowBlur = 7;
+  for (const [a,b] of CONNECTIONS) {
+    const p = pts[a], q = pts[b];
+    ctx.beginPath(); ctx.moveTo(p.x,p.y); ctx.lineTo(q.x,q.y); ctx.stroke();
+  }
+  ctx.shadowBlur = 0;
+  pts.forEach((p,i) => {
+    ctx.beginPath(); ctx.arc(p.x,p.y,i===8?4:2.4,0,Math.PI*2);
+    ctx.fillStyle = i===8 ? '#f5b3d0' : 'rgba(255,245,249,.9)'; ctx.fill();
+  });
+  ctx.restore();
+}
 
 export default function AirInk() {
   const navigate = useNavigate();
@@ -346,6 +365,7 @@ export default function AirInk() {
       if (ctx) {
         ctx.setTransform(ratio,0,0,ratio,0,0); ctx.clearRect(0,0,width,height);
         const time = performance.now()/1000;
+        drawHandSkeleton(ctx, landmarksRef.current, videoRef.current, width, height);
         strokesRef.current.forEach((stroke) => {
           const points = stroke.points; if (!points.length) return;
           const lifted = stroke.liftedAt !== undefined;

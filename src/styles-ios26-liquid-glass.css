@@ -837,3 +837,36 @@ button:focus-visible, a:focus-visible {
   content: none !important;
   display: none !important;
 }
+
+/* Site-wide white canvas: keep translucent glass surfaces, make every page
+   backdrop pure white instead of the previous blue-gray atmospheric gradient. */
+:root {
+  --visual-bg: #ffffff;
+  --bg: #ffffff;
+}
+html, body, #root {
+  background: #ffffff !important;
+}
+body {
+  background: #ffffff !important;
+}
+.qz-ios26-scene {
+  background: #ffffff !important;
+}
+.qz-ios26-backdrop,
+.app-bg.qz-ios26-backdrop {
+  background: #ffffff !important;
+  background-image: none !important;
+  filter: none !important;
+  opacity: 1 !important;
+}
+.glow {
+  background: #ffffff !important;
+  background-image: none !important;
+  opacity: 1 !important;
+}
+.login-flow,
+.login-flow::after {
+  background: #ffffff !important;
+  background-image: none !important;
+}

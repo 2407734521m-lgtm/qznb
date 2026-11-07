@@ -117,11 +117,14 @@ export default function AdminSoftwareOperations({ setMsg }: { setMsg: (message: 
     });
     setBusy(false);
     if (error) return setMsg('发布失败：' + error.message);
-    const result = data as { recipient_count?: number } | null;
+    const result = data && typeof data === 'object' && !Array.isArray(data)
+      ? data as Record<string, unknown>
+      : {};
+    const recipientCount = typeof result.recipient_count === 'number' ? result.recipient_count : 0;
     setTitle('');
     setBody('');
     await load();
-    setMsg('软件公告已发布，已向 ' + (result?.recipient_count ?? 0) + ' 位软件成员发送站内消息。');
+    setMsg('软件公告已发布，已向 ' + recipientCount + ' 位软件成员发送站内消息。');
   }
 
   async function setStatus(item: Announcement) {

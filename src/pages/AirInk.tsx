@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import PrimeAskCard, { CameraIcon, CameraPrimePreview } from '../components/PrimeAskCard';
 import '../styles-air-ink.css';
 
 type Point = { x: number; y: number };
@@ -130,6 +131,7 @@ export default function AirInk() {
   const startGuardRef = useRef(false);
 
   const [active, setActive] = useState(false);
+  const [primeOpen, setPrimeOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [stage, setStage] = useState('准备手势识别');
@@ -378,6 +380,15 @@ export default function AirInk() {
 
   const exit = () => { stopCamera(); navigate('/particle-flower'); };
 
+  // 先弹说明卡讲清用途，点「好的」才真正调起系统摄像头询问；已授权过则直接开
+  async function askStart() {
+    try {
+      const p = await navigator.permissions?.query({ name: 'camera' as PermissionName });
+      if (p?.state === 'granted') { void startCamera(); return; }
+    } catch { /* 查不到权限状态就走说明卡 */ }
+    setPrimeOpen(true);
+  }
+
   return <main className="air-ink-page">
     <video ref={videoRef} className="air-ink-camera" playsInline muted />
     <canvas ref={canvasRef} className="air-ink-canvas" aria-label="粒子空中笔迹" />
@@ -389,7 +400,7 @@ export default function AirInk() {
     {!active && !loading && <section className="air-ink-start">
       <div className="air-ink-start-mark">✧</div><h2>让笔迹，留在光里。</h2>
       <p>摄像头与笔迹识别仅在当前浏览器本地运行，不会把手写轨迹上传到网站。</p>
-      <button type="button" className="air-ink-primary" onClick={()=>void startCamera()}>开启空中书写</button>
+      <button type="button" className="air-ink-primary" onClick={() => void askStart()}>开启空中书写</button>
       {error && <div className="air-ink-error" role="alert">{error}</div>}
       <div className="air-ink-hint">需要允许摄像头权限 · 建议使用系统浏览器</div>
     </section>}
@@ -415,5 +426,15 @@ export default function AirInk() {
       </aside>
       <div className="air-ink-bottom-note">原始手写轨迹保持不变 · 粒子仅作为视觉效果</div>
     </>}
+    <PrimeAskCard
+      open={primeOpen}
+      icon={<CameraIcon />}
+      title="空中书写要用一下摄像头"
+      desc="摄像头只用来认你的手势，画面就在这台手机上处理——不录像、不上传。点「好的」之后，浏览器会再正式问你一次。"
+      preview={<CameraPrimePreview />}
+      confirmText="好的，开启摄像头"
+      onConfirm={() => { setPrimeOpen(false); void startCamera(); }}
+      onCancel={() => setPrimeOpen(false)}
+    />
   </main>;
 }

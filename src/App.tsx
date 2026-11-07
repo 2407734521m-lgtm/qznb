@@ -18,6 +18,7 @@ import BlurText from './components/fx/BlurText';
 import ShinyText from './components/fx/ShinyText';
 import FxLoader from './components/fx/Loader';
 import WelcomeOverlay from './components/WelcomeOverlay';
+import GuideCarousel from './components/GuideCarousel';
 import LoginSuccessOverlay from './components/LoginSuccessOverlay';
 import bgUrl from './assets/bg.jpg';
 import emblemUrl from './assets/pingzhong-emblem.png';
@@ -557,6 +558,11 @@ function Shell() {
   });
   // 登录后首次：欢迎动画。壁纸不再登录后自动弹，改由「我的」换壁纸手动打开
   const [showWp, setShowWp] = useState(false);
+  const [showGuide, setShowGuide] = useState(false);
+  function guideDone() {
+    try { localStorage.setItem('qz_guide_seen_v1', '1'); } catch {}
+    setShowGuide(false);
+  }
   useEffect(() => {
     if (!session) return;
     let nick: string | null = null;
@@ -565,6 +571,21 @@ function Shell() {
       setWelcome(nick);
       setLoginSuccess(null);
       return;
+    }
+    // 新注册引导：注册完成时 Login 写下 ca_guide_pending，本机没看过才展示（优先于登录成功弹窗）
+    let guidePending = false;
+    try {
+      guidePending = sessionStorage.getItem('ca_guide_pending') === '1';
+      sessionStorage.removeItem('ca_guide_pending');
+    } catch {}
+    if (guidePending) {
+      let seen = false;
+      try { seen = !!localStorage.getItem('qz_guide_seen_v1'); } catch {}
+      if (!seen) {
+        setShowGuide(true);
+        setLoginSuccess(null);
+        return;
+      }
     }
     let shouldShowLoginSuccess = false;
     try {
@@ -1179,6 +1200,13 @@ function Shell() {
       {showWp && <WallpaperOnboarding onDone={() => setShowWp(false)} />}
       {loginSuccess && <LoginSuccessOverlay realName={loginSuccess.realName} durationMs={loginSuccess.durationMs} onDone={() => setLoginSuccess(null)} />}
       {welcome !== null && <WelcomeOverlay nick={welcome} onDone={welcomeDone} />}
+      {showGuide && (
+        <motion.div role="dialog" aria-modal="true" aria-label="班级网站功能引导"
+          initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }}
+          style={{ position: 'fixed', inset: 0, zIndex: 500, overflow: 'hidden', background: 'radial-gradient(ellipse at 50% 35%, #202b48 0%, #0a0d15 58%, #05060a 100%)' }}>
+          <GuideCarousel onDone={guideDone} />
+        </motion.div>
+      )}
       {loginPop && (
         <div onClick={closeLoginPop} style={{
           position: 'fixed', inset: 0, zIndex: 300, background: '#000b',

@@ -64,6 +64,7 @@ export default function Login({ siteTitle, siteSubtitle }: { siteTitle?: string;
   const [blur, setBlur] = useState(3); const [dark, setDark] = useState(45);
   const [showBg, setShowBg] = useState(false);
   const bgRef = useRef<HTMLInputElement>(null);
+  const errorRef = useRef<HTMLParagraphElement>(null);
 
   useEffect(() => { try { localStorage.setItem(BG_KEY, bg); } catch {} }, [bg]);
 
@@ -80,6 +81,12 @@ export default function Login({ siteTitle, siteSubtitle }: { siteTitle?: string;
     const t = setInterval(() => setWaitSec(v => v + 1), 1000);
     return () => clearInterval(t);
   }, [verifyEmail]);
+
+  // 注册校验错误会自动滚动到可见位置，避免按钮点击后错误出现在屏幕外。
+  useEffect(() => {
+    if (!err || mode !== 'reg') return;
+    errorRef.current?.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'center' });
+  }, [err, mode, reduce]);
 
   async function doLogin() {
     const id = ident.trim();
@@ -415,13 +422,13 @@ export default function Login({ siteTitle, siteSubtitle }: { siteTitle?: string;
             <FloatField label="QQ 邮箱" value={email} error={terr('email', emailErr)}>
               <input value={email} onChange={e => { setEmail(e.target.value); if (codeSent) { setCodeSent(false); setCode(''); } }} onBlur={touch('email')} placeholder="123456@qq.com" inputMode="email" aria-label="QQ 邮箱" />
             </FloatField>
-            <button className="ghost" style={{ width: '100%', marginTop: 8 }} disabled={busy || resendIn > 0} onClick={sendCode}>
-              {busy ? '发送中…' : resendIn > 0 ? `重新发送验证码（${resendIn}s）` : codeSent ? '重新发送验证码' : '发送验证码'}
-            </button>
             {codeSent && <p className="priv-note" style={{ margin: '4px 0 0' }}>验证码已通过 Resend 发到上面这个 QQ 邮箱，找标题是「我们的班级 · 青春档案 — 你的验证码」的邮件，没看到就翻一下垃圾箱</p>}
             {codeSent && (<>
               <label>邮箱验证码</label>
               <CodeInput value={code} onChange={setCode} onEnter={doVerifyReg} />
+              <button className="ghost" type="button" style={{ width: '100%', marginTop: 8 }} disabled={busy || resendIn > 0} onClick={sendCode}>
+                {busy ? '发送中…' : resendIn > 0 ? `重新发送验证码（${resendIn}s）` : '重新发送验证码'}
+              </button>
             </>)}
             <FloatField label="密码" value={pw} hint="至少 8 位" error={terr('pwReg', pwErr)}>
               <PasswordField value={pw} onChange={setPw} onBlur={touch('pwReg')} placeholder="至少 8 位" autoComplete="new-password" strength />
@@ -439,7 +446,7 @@ export default function Login({ siteTitle, siteSubtitle }: { siteTitle?: string;
               </label>
               <p className="priv-note" style={{ margin: '7px 0 0', lineHeight: 1.65 }}>政策说明账号、设备信息及 IP 推算地区的处理方式。GPS 精确位置不会由本协议自动授权。</p>
             </div>
-            {err && <p className="err">{err}</p>}
+            {err && <p ref={errorRef} className="err" role="alert" aria-live="polite">{err}</p>}
             <button className="pri" disabled={busy} onClick={codeSent ? doVerifyReg : sendCode}>{busy ? <><Spin />{codeSent ? '验证中…' : '发送中…'}</> : codeSent ? '验证并进入' : '发送验证码并注册'}</button>
             <p className="login-switch">已有账号？<button onClick={() => { setMode('login'); setErr(''); setCode(''); setInvite(''); setForgotSent(false); }}>去登录</button></p>
           </>)}

@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { Routes, Route, NavLink, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
+import { LiquidGlass } from 'simple-liquid-glass';
+import { LiquidGlassScene } from 'simple-liquid-glass/backdrop';
 import { DUR, EASE } from './lib/motion';
 import { supabase } from './lib/supabase';
 import { startSitePresence } from './lib/sitePresence';
@@ -719,9 +721,10 @@ function Shell() {
   }
 
   return (
-    <>
+    <LiquidGlassScene className="qz-ios26-scene">
+      <>
       <div className="glow" />
-      <div className="app-bg" style={wp.kind === 'grad'
+      <div className="app-bg qz-ios26-backdrop" style={wp.kind === 'grad'
         ? { background: wp.src, filter: `blur(${wp.blur}px) brightness(${100 - wp.dark}%)` }
         : { backgroundImage: `url(${wp.src === 'default' ? bgUrl : wp.src})`, filter: `blur(${wp.blur}px) brightness(${100 - wp.dark}%)` }} />
       {emblem && <img src={emblemUrl} alt="" aria-hidden draggable={false}
@@ -734,6 +737,27 @@ function Shell() {
           <button className="mini ghost" onClick={logout}>退出</button>
         </div>
       ) : !isChatPage && !isImmersivePage ? (
+      <LiquidGlass
+        className="qz-ios26-topnav-glass"
+        renderer="webgl"
+        autodetectquality
+        maxScale={1.35}
+        reveal="immediate"
+        radius={28}
+        blur={9}
+        dispersion={30}
+        aberrationIntensity={0.16}
+        saturation={158}
+        glassColor="rgba(255,255,255,0.34)"
+        style={{
+          position: 'sticky',
+          top: 'calc(env(safe-area-inset-top) + 10px)',
+          zIndex: 50,
+          width: 'min(1280px, calc(100% - 32px))',
+          margin: 'calc(env(safe-area-inset-top) + 10px) auto 18px',
+          display: 'block',
+        }}
+      >
       <nav className="topnav">
         <span className="links">
           {TABS.map(t => (
@@ -745,7 +769,7 @@ function Shell() {
         {isAdmin && <a href="#/admin" title="管理后台" className="mob-admin" style={{ textDecoration: 'none', marginRight: 4, fontSize: 13 }}>管理</a>}
         <button type="button" onClick={() => setSearchOpen(true)} title="搜索全站内容">⌕ 搜索</button>
         <button onClick={logout} title="退出登录">退出</button>
-      </nav>
+      </nav></LiquidGlass>
       ) : null}
 
       <div className={isChatPage ? "wrap chat-shell" : loc.pathname === '/friends' ? "wrap inbox-shell" : "wrap"}>
@@ -801,7 +825,31 @@ function Shell() {
       </div>
 
       {!isAdminPage && !isChatPage && !isBloomPage && (
-        <nav
+        <LiquidGlass
+        className={`qz-ios26-dock-glass ${dockCollapsed ? 'dock-collapsed dock-side-' + dockSide : ''}`}
+        renderer="webgl"
+        autodetectquality
+        maxScale={1.3}
+        reveal="immediate"
+        radius={32}
+        blur={8}
+        dispersion={36}
+        aberrationIntensity={0.18}
+        saturation={176}
+        glassColor="rgba(255,255,255,0.30)"
+        style={{
+          position: 'fixed',
+          left: '50%',
+          right: 'auto',
+          bottom: 'calc(14px + env(safe-area-inset-bottom))',
+          transform: 'translateX(-50%)',
+          zIndex: 50,
+          display: 'block',
+          width: 'max-content',
+          maxWidth: 'calc(100vw - 28px)',
+        }}
+      >
+      <nav
           ref={barRef}
           className={`tabbar ${dockCollapsed ? 'dock-collapsed dock-side-' + dockSide : ''}`}
           style={{ touchAction: 'pan-x pan-y' }}
@@ -849,7 +897,7 @@ function Shell() {
               ‹
             </motion.span>
           </button>
-        </nav>
+        </nav></LiquidGlass>
       )}
       <GlobalSearch open={searchOpen} onClose={() => setSearchOpen(false)} />
       {gpsOffer && !isAdminPage && (
@@ -987,7 +1035,8 @@ function Shell() {
         </div>
       )}
       <TestSwitchFab />
-    </>
+      </>
+    </LiquidGlassScene>
   );
 }
 

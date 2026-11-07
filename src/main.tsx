@@ -28,6 +28,9 @@ import './styles-ios26-liquid-glass.css';
 /* Form controls intentionally refine the shared component styles last. */
 import './styles-form-ux.css';
 
+/* rdev liquid-glass dock shell overrides (must stay after ios26 + form-ux). */
+import './styles-dock-rdev.css';
+
 // 只有精确匹配的管理员域名可以挂载后台；其他任何域名都不能加载 AdminShell。
 const isAdminHost = window.location.hostname.toLowerCase() === 'admin.qianzhi.pw';
 

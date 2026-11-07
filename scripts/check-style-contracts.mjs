@@ -24,6 +24,8 @@ assert(app.includes('className="app-bg qz-ios26-backdrop"') && app.includes('fil
 assert(home.includes('className="vh-load-state"') && home.includes('className="vh-load-error"'), 'the homepage must expose loading and error states');
 assert(home.includes('setReloadKey(value => value + 1)'), 'the homepage error state must offer a retry action');
 assert(home.includes('<Link') && homeCss.includes('.vh-hero:focus-visible') && homeCss.includes('.vh-feed-row:focus-visible'), 'homepage navigation links must have visible keyboard focus');
+assert(/body:has\\(\\.vibe-home\\)\\s*\\{[^}]*background:\\s*#ffffff\\s*!important/s.test(homeCss), 'the homepage canvas must stay white');
+assert(!/body:has\\(\\.vibe-home\\)\\s+\\.app-bg[^}]*display:\\s*none\\s*!important/s.test(homeCss), 'the homepage must not hide the user wallpaper layer');
 
 if (process.exitCode) process.exit(process.exitCode);
 console.log('Visual contracts passed: white default canvas, preserved user wallpaper, and accessible homepage states.');

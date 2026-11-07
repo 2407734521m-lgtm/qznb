@@ -58,8 +58,14 @@ export default function AdminMemberModal({ memberId, onClose, onChanged, isSuper
       if (em) setEmail((em as any).email || '');
       const { data: gp } = await supabase.from('game_profiles').select('game_name, rank, status').eq('profile_id', memberId).maybeSingle();
       if (gp) setGame(`${(gp as any).game_name}${(gp as any).rank ? ' · ' + (gp as any).rank : ''}（${(gp as any).status === 'approved' ? '已通过' : (gp as any).status === 'pending' ? '待审核' : '已驳回'}）`);
-      const { data: pr } = await supabase.from('member_presence').select('location, device, updated_at').eq('profile_id', memberId).maybeSingle();
-      if (pr) setPresence(`${(pr as any).location || ''}${(pr as any).location && (pr as any).device ? ' · ' : ''}${(pr as any).device || ''}`);
+      if (isSuper) {
+        const { data: accounts } = await supabase.rpc('admin_member_accounts');
+        const account = (accounts ?? []).find((row: any) => row.id === memberId);
+        if (account) {
+          const parts = [account.location, account.device].filter((value: unknown) => typeof value === 'string' && value.trim());
+          setPresence(parts.join(' · '));
+        }
+      }
       const { data: ct } = await supabase.from('profile_contacts').select('contact, social').eq('profile_id', memberId).maybeSingle();
       if (ct) {
         const parts: string[] = [];

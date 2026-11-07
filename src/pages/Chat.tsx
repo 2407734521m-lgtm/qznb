@@ -11,6 +11,7 @@ import './Chat.polish.css';
 
 type ChatReaction = { message_id: number; profile_id: string; reaction: string; created_at: string };
 type ChatPeer = { id: string; username: string; display_name: string | null; avatar_path: string | null };
+type TapbackAnchor = { left: number; top: number; width: number; dockLeft: number; dockTop: number };
 const QUICK_REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '🙏'];
 
 
@@ -71,6 +72,7 @@ export default function Chat() {
   const [backgroundSaving, setBackgroundSaving] = useState(false);
   const [otherTyping, setOtherTyping] = useState(false);
   const [actionFor, setActionFor] = useState<number | null>(null);
+  const [tapbackAnchor, setTapbackAnchor] = useState<TapbackAnchor | null>(null);
   const backgroundFileRef = useRef<HTMLInputElement>(null);
   const typingChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const typingStopTimerRef = useRef<number | null>(null);
@@ -305,12 +307,36 @@ export default function Chat() {
     }
   }
 
-  function startMessagePress(messageId: number) {
+  function openMessageActions(messageId: number, element?: HTMLElement) {
+    const rect = element?.getBoundingClientRect();
+    if (rect) {
+      const dockWidth = Math.min(316, Math.max(220, window.innerWidth - 24));
+      const dockLeft = Math.max(12, Math.min(
+        rect.left + rect.width / 2 - dockWidth / 2,
+        window.innerWidth - dockWidth - 12,
+      ));
+      const dockTop = rect.top >= 76
+        ? rect.top - 62
+        : Math.min(window.innerHeight - 58, rect.bottom + 10);
+      setTapbackAnchor({
+        left: Math.max(8, Math.min(rect.left, window.innerWidth - Math.max(1, rect.width) - 8)),
+        top: Math.max(8, Math.min(rect.top, window.innerHeight - Math.max(1, rect.height) - 8)),
+        width: Math.min(rect.width, window.innerWidth - 16),
+        dockLeft,
+        dockTop,
+      });
+    } else {
+      setTapbackAnchor(null);
+    }
+    setActionFor(messageId);
+  }
+
+  function startMessagePress(messageId: number, element: HTMLElement) {
     if (longPressTimerRef.current !== null) window.clearTimeout(longPressTimerRef.current);
     longPressTriggeredRef.current = false;
     longPressTimerRef.current = window.setTimeout(() => {
       longPressTriggeredRef.current = true;
-      setActionFor(messageId);
+      openMessageActions(messageId, element);
       longPressTimerRef.current = null;
     }, 480);
   }
@@ -609,6 +635,7 @@ export default function Chat() {
       if (event.key === 'Escape') {
         setShowDetails(false);
         setActionFor(null);
+        setTapbackAnchor(null);
       }
     };
     window.addEventListener('keydown', onKeyDown);
@@ -771,11 +798,11 @@ export default function Chat() {
               {dateLabel(m.created_at, msgs[i - 1]?.created_at) && <div className="im-day">{dateLabel(m.created_at, msgs[i - 1]?.created_at)}</div>}
               <div className={'im-row ' + (mine ? 'mine ' : '') + (samePrevious ? 'im-row-grouped-prev ' : '') + (sameNext ? 'im-row-grouped-next ' : '') + (swappedIdsRef.current.has(m.id) ? 'im-row-static' : '')}>
                 <div className={'im-bubble ' + (mine ? 'mine' : 'theirs') + (samePrevious ? ' im-bubble-grouped-prev' : '') + (sameNext ? ' im-bubble-grouped-next' : '')}
-                  onTouchStart={() => startMessagePress(m.id)}
+                  onTouchStart={event => startMessagePress(m.id, event.currentTarget)}
                   onTouchMove={clearMessagePress}
                   onTouchEnd={clearMessagePress}
                   onTouchCancel={clearMessagePress}
-                  onContextMenu={event => { event.preventDefault(); setActionFor(m.id); }}>
+                  onContextMenu={event => { event.preventDefault(); openMessageActions(m.id, event.currentTarget); }}>
                   {m.reply_to_id && <div className="im-reply-quote">回复：{messageSummary(parent)}</div>}
                   {editingId === m.id ? (
                     <>
@@ -837,32 +864,38 @@ export default function Chat() {
         const mine = message.sender_id === me;
         const deleted = Boolean(message.deleted_at);
         const canEdit = mine && !deleted && !message.body.startsWith('[[im-image:') && !message.body.startsWith('[[im-audio:');
-        return <div className="im-context-overlay" role="presentation" onClick={() => setActionFor(null)}>
+        return <div className="im-context-overlay" role="presentation" onClick={() => { setActionFor(null); setTapbackAnchor(null); }}>
+          {tapbackAnchor && <div className={'im-tapback-preview ' + (mine ? 'mine' : 'theirs')}
+            style={{ left: tapbackAnchor.left, top: tapbackAnchor.top, width: tapbackAnchor.width }}
+            aria-hidden="true">
+            {message.reply_to_id && <div className="im-reply-quote">回复：{messageSummary(msgs.find(item => item.id === message.reply_to_id))}</div>}
+            <MessageContent body={deleted ? (mine ? '你撤回了一条消息' : '对方撤回了一条消息') : message.body} />
+            <div className="im-tapback-preview-time">{new Date(message.created_at).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}</div>
+          </div>}
+          {!deleted && tapbackAnchor && <div className="im-tapback-dock"
+            style={{ left: tapbackAnchor.dockLeft, top: tapbackAnchor.dockTop }}
+            role="group" aria-label="快速回应" onClick={event => event.stopPropagation()}>
+            {QUICK_REACTIONS.map(reaction => <button key={reaction} type="button" aria-label={'回应 ' + reaction}
+              onClick={() => { setActionFor(null); setTapbackAnchor(null); void toggleReaction(message.id, reaction); }}>{reaction}</button>)}
+          </div>}
           <section className="im-context-sheet" role="dialog" aria-modal="true" aria-label="消息操作"
             onClick={event => event.stopPropagation()}>
             <div className="im-context-grabber" />
             <div className="im-context-label">{mine ? '你发送的消息' : name + ' 发送的消息'}</div>
-            <div className="im-context-preview">
-              {deleted ? '这条消息已撤回' : <MessageContent body={message.body} />}
-            </div>
-            {!deleted && <div className="im-context-reactions" aria-label="快速回应">
-              {QUICK_REACTIONS.map(reaction => <button key={reaction} type="button" aria-label={'回应 ' + reaction}
-                onClick={() => { setActionFor(null); void toggleReaction(message.id, reaction); }}>{reaction}</button>)}
-            </div>}
             <div className="im-context-actions">
-              {!deleted && <button type="button" onClick={() => { setActionFor(null); void copyMessage(message); }}>
+              {!deleted && <button type="button" onClick={() => { setActionFor(null); setTapbackAnchor(null); void copyMessage(message); }}>
                 <span className="im-context-action-icon">⧉</span><span>复制</span>
               </button>}
-              {!deleted && <button type="button" onClick={() => { setActionFor(null); beginReply(message); }}>
+              {!deleted && <button type="button" onClick={() => { setActionFor(null); setTapbackAnchor(null); beginReply(message); }}>
                 <span className="im-context-action-icon">↩</span><span>回复</span>
               </button>}
-              {canEdit && <button type="button" onClick={() => { setActionFor(null); setEditingId(message.id); setEditingText(message.body); }}>
+              {canEdit && <button type="button" onClick={() => { setActionFor(null); setTapbackAnchor(null); setEditingId(message.id); setEditingText(message.body); }}>
                 <span className="im-context-action-icon">✎</span><span>编辑</span>
               </button>}
-              {mine && !deleted && <button type="button" className="danger" onClick={() => { setActionFor(null); void withdrawMessage(message.id); }}>
+              {mine && !deleted && <button type="button" className="danger" onClick={() => { setActionFor(null); setTapbackAnchor(null); void withdrawMessage(message.id); }}>
                 <span className="im-context-action-icon">⌫</span><span>撤回</span>
               </button>}
-              <button type="button" onClick={() => setActionFor(null)}>
+              <button type="button" onClick={() => { setActionFor(null); setTapbackAnchor(null); }}>
                 <span className="im-context-action-icon">×</span><span>取消</span>
               </button>
             </div>

@@ -433,3 +433,21 @@
   }
 }
 
+/* Editorial motion accents inspired by React Bits / Hover.dev:
+   artwork follows the card without animating layout or expensive filters. */
+.discover-card .discover-art {
+  transform-origin: 50% 50%;
+  transition: transform 620ms cubic-bezier(.22, 1, .36, 1);
+}
+@media (hover: hover) and (pointer: fine) {
+  .discover-card:hover .discover-art,
+  .discover-card:focus-within .discover-art {
+    transform: translate3d(-5px, -5px, 0) rotate(-1.2deg) scale(1.035);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .discover-card .discover-art {
+    transition: none !important;
+    transform: none !important;
+  }
+}

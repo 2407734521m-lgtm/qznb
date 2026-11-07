@@ -9,7 +9,7 @@ grant usage on schema love_private to authenticated;
 create table if not exists love_private.media_objects (
   object_path text primary key,
   owner_id uuid not null references auth.users(id) on delete cascade,
-  post_id bigint references public.love_wall_posts(id) on delete cascade,
+  post_id bigint references public.love_wall_posts(id) on delete set null,
   created_at timestamptz not null default now()
 );
 revoke all on love_private.media_objects from public, anon, authenticated;
@@ -112,14 +112,8 @@ with check (
   and (
     love_private.can_upload_love_media(name)
     or (
-      (
-        (storage.foldername(name))[1] = (select auth.uid())::text
-        and coalesce((storage.foldername(name))[2], '') <> 'love'
-      )
-      or (
-        (storage.foldername(name))[1] = (select auth.uid())::text
-        and (storage.foldername(name))[2] = 'love'
-      )
+      (storage.foldername(name))[1] = (select auth.uid())::text
+      and coalesce((storage.foldername(name))[2], '') <> 'love'
       and public.site_feature_enabled('album_photos')
     )
   )

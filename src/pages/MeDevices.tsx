@@ -117,7 +117,6 @@ export default function MeDevices() {
       `}</style>
 
       <section className="qz-device-hero" aria-label="多设备登录说明">
-        <p className="qz-device-eyebrow">ACCOUNT ACCESS</p>
         <h2 className="qz-device-title">一个账号，多台设备同时使用</h2>
         <p className="qz-device-desc">
           手机、平板、电脑和已安装的应用都可以分别登录。同一浏览器的多个标签页通常共享一次登录，不会被重复计算成多台设备。

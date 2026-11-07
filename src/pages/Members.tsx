@@ -117,7 +117,6 @@ export default function Members() {
     <div className="page members-page">
       <header className="community-page-heading">
         <div>
-          <span className="community-eyebrow">MEMBERS</span>
           <h1>成员</h1>
         </div>
       </header>

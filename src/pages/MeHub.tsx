@@ -44,9 +44,9 @@ const groups: { title: string; note: string; entries: Entry[] }[] = [
 ];
 
 const shortcuts = [
-  { mark: '☆', title: '我的收藏', note: '留住喜欢的内容', to: '/me/favorites', tone: 'slate' },
-  { mark: '◉', title: '我的通知', note: '查看互动消息', to: '/me/notifications', tone: 'slate' },
-  { mark: '⚙', title: '设置中心', note: '账号与隐私', to: '/me/settings', tone: 'slate' },
+  { mark: '收藏', title: '我的收藏', note: '留住喜欢的内容', to: '/me/favorites', tone: 'slate' },
+  { mark: '通知', title: '我的通知', note: '查看互动消息', to: '/me/notifications', tone: 'slate' },
+  { mark: '设置', title: '设置中心', note: '账号与隐私', to: '/me/settings', tone: 'slate' },
 ];
 
 export default function MeHub() {
@@ -110,16 +110,15 @@ export default function MeHub() {
       <section className="me-hub-hero">
         <div className="me-hub-topbar">
           <div>
-            <div className="me-hub-eyebrow">堯 <span>·</span> 个人空间</div>
             <h1>个人中心</h1>
           </div>
           <div className="me-hub-head-actions">
             <button className="me-hub-head-icon" aria-label="查看通知" title="查看通知" onClick={() => nav('/me/notifications')}>
-              <span aria-hidden="true">♧</span>
+              <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
               {unread > 0 && !quietHoursActive && <i />}
             </button>
             <button className="me-hub-head-icon" aria-label="设置中心" title="设置中心" onClick={() => nav('/me/settings')}>
-              <span aria-hidden="true">⚙</span>
+              <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" aria-hidden="true"><line x1="4" y1="7" x2="20" y2="7"/><circle cx="9" cy="7" r="2.2" fill="#fff"/><line x1="4" y1="17" x2="20" y2="17"/><circle cx="15" cy="17" r="2.2" fill="#fff"/></svg>
             </button>
           </div>
         </div>
@@ -150,7 +149,7 @@ export default function MeHub() {
             <strong>{stats.loading ? '—' : stats.likes}</strong><span>收到点赞</span>
           </button>
         </div>
-        <div className="me-hub-photo-note"><span className="me-hub-photo-mark">▧</span> 已分享 <b>{stats.loading ? '—' : stats.photos}</b> 张照片 <span>·</span> <button onClick={() => nav('/albums')}>去相册看看 ›</button></div>
+        <div className="me-hub-photo-note">已分享 <b>{stats.loading ? '—' : stats.photos}</b> 张照片 <span>·</span> <button onClick={() => nav('/albums')}>去相册看看 ›</button></div>
       </section>
 
       <section className="me-hub-shortcuts">

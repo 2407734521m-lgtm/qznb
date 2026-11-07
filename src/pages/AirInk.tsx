@@ -394,7 +394,7 @@ export default function AirInk() {
     <canvas ref={canvasRef} className="air-ink-canvas" aria-label="粒子空中笔迹" />
     <div className="air-ink-vignette" />
     <header className="air-ink-header">
-      <div><div className="air-ink-eyebrow">BLOOM AT YOUR FINGERTIPS · AIR INK</div><h1>空中书写</h1><p>捏合拇指与食指开始书写，松开后让笔迹化作上升的光粒子。</p></div>
+      <div><h1>空中书写</h1><p>捏合拇指与食指开始书写，松开后让笔迹化作上升的光粒子。</p></div>
       <button type="button" className="air-ink-exit" onClick={exit}>× <span>退出</span></button>
     </header>
     {!active && !loading && <section className="air-ink-start">

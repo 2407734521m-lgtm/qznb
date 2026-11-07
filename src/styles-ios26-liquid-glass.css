@@ -823,3 +823,17 @@ button:focus-visible, a:focus-visible {
   transform: none;
 }
 
+
+
+/* Dock selection uses the moving glass lens only; never draw an underline beneath a tab. */
+.qz-ios26-liquid-dock .webgl-liquid-glass-tab,
+.qz-ios26-liquid-dock .webgl-liquid-glass-tab[aria-current="page"] {
+  text-decoration: none !important;
+  border-bottom: 0 !important;
+  background-image: none !important;
+}
+.qz-ios26-liquid-dock .webgl-liquid-glass-tab::before,
+.qz-ios26-liquid-dock .webgl-liquid-glass-tab::after {
+  content: none !important;
+  display: none !important;
+}

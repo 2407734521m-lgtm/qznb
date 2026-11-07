@@ -372,15 +372,16 @@ export default function LoveWall() {
   return <main style={{ maxWidth: 760, margin: '0 auto', padding: '12px 0 110px', color: '#202124' }}>
     <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', padding: '6px 2px 16px' }}>
       <div style={{ minWidth: 0 }}>
-        <div style={{ fontSize: 11, letterSpacing: 3, color: '#737b89' }}>OUR CLASS · COMMUNITY</div>
+        <div style={{ fontSize: 11, letterSpacing: 3, color: '#737b89' }}>COMMUNITY</div>
         <h1 style={{ fontSize: 26, lineHeight: 1.2, margin: '7px 0 0', letterSpacing: '-.5px' }}>{activeTab === 'confessions' ? '表白墙' : '帖子'}</h1>
       </div>
-      <div role="tablist" aria-label="表白墙内容类型" style={{ display: 'inline-flex', alignItems: 'center', gap: 2, padding: 4, borderRadius: 999, background: '#f1f3f6', border: '1px solid #e8ebf0', flexShrink: 0 }}>
-        <button type="button" role="tab" aria-selected={activeTab === 'confessions'} onClick={() => switchTab('confessions')} style={tabStyle(activeTab === 'confessions')}>表白墙</button>
-        <button type="button" role="tab" aria-selected={activeTab === 'posts'} onClick={() => switchTab('posts')} style={tabStyle(activeTab === 'posts')}>帖子</button>
+      <div role="tablist" aria-label="切换内容" style={{ display: 'inline-flex', alignItems: 'center', gap: 2, padding: 4, borderRadius: 999, background: '#f1f3f6', border: '1px solid #e8ebf0', flexShrink: 0 }}>
+        <button type="button" role="tab" aria-selected={activeTab === 'confessions'} onClick={() => switchTab('confessions')} aria-controls="love-wall-content" style={tabStyle(activeTab === 'confessions')}>表白墙</button>
+        <button type="button" role="tab" aria-selected={activeTab === 'posts'} onClick={() => switchTab('posts')} aria-controls="love-wall-content" style={tabStyle(activeTab === 'posts')}>帖子</button>
       </div>
     </header>
-    {activeTab === 'posts' ? <Daily /> : <>
+    <section id="love-wall-content" role="tabpanel" aria-label={activeTab === 'posts' ? '普通帖子' : '表白墙投稿'}>
+    {activeTab === 'posts' ? <Daily embedded /> : <>
       <p style={{ color: '#606673', lineHeight: 1.7, fontSize: 13, margin: '0 0 4px' }}>把喜欢、感谢和没来得及说的话，留在这里。</p>
 
     <div style={{ display: 'flex', gap: 8, margin: '16px 2px 14px' }}>
@@ -525,6 +526,7 @@ export default function LoveWall() {
       </div>
     )}
     </>}
+    </section>
   </main>;
 }
 

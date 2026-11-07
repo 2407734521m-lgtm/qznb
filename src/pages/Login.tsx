@@ -172,6 +172,8 @@ export default function Login({ siteTitle, siteSubtitle, onGuestLogin }: { siteT
   async function finishJoin(uid: string) {
     // 仅在新注册完成后安排一次自愿 GPS 说明；这里不请求位置，也不记录坐标。
     try { sessionStorage.setItem('ca_gps_offer', '1'); } catch {}
+    // 新注册：进站后展示一次 3 页功能引导（App 层消费，本机看过后不再展示）
+    try { sessionStorage.setItem('ca_guide_pending', '1'); } catch {}
     const nm = name.trim();
     // 注意：username / real_name 由注册触发器写入，列级权限不允许前端直接改，这里只更新展示名
     if (nm) supabase.from('profiles').update({ display_name: nm }).eq('id', uid).then(() => {});

@@ -10,7 +10,7 @@ import './Login.polish.css';
 
 const BG_KEY = 'ca_login_bg_v2';
 const DEFAULT_BG = '';
-const LEGACY_DEFAULT_BACKGROUND = /(?:^|\/)cow(?:[-.][^/?#]+)?\.jpe?g(?:[?#].*)?$/i;
+const LEGACY_DEFAULT_BACKGROUND = /(?:^|\/)(?:assets|src\/assets)\/cow(?:[-.][^/?#]+)?\.jpe?g(?:[?#].*)?$/i;
 function readLoginBackground() {
   try {
     const saved = localStorage.getItem(BG_KEY) || '';

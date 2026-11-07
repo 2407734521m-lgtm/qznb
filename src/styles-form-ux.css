@@ -198,3 +198,16 @@
 @media (prefers-reduced-motion: reduce) {
   .login-card .float-tag { transition: none; }
 }
+
+/* 登录/注册页滑不动修复：外层原先只有 min-height、没有确定高度，
+   容器被长表单撑高后它自己的 overflow-y:auto 不生效；
+   注册表单比屏幕长时，手机上就够不到底部按钮。
+   改为确定高度的滚动区，登录、注册、找回、验证四种状态共用。 */
+.login-wrap {
+  height: 100vh;
+  height: 100dvh;
+  max-height: 100dvh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+}

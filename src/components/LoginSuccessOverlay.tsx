@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 
 type LoginSuccessOverlayProps = {
@@ -7,12 +8,12 @@ type LoginSuccessOverlayProps = {
 };
 
 /**
- * Persistent post-login welcome screen.
- * The entrance animation is finite, but the screen stays visible until the
- * user explicitly presses the CTA. This avoids an automatic flash-and-dismiss.
+ * Post-login welcome screen. The real name is never exposed in full:
+ * only its first character is shown, with the remaining characters masked.
  */
 export default function LoginSuccessOverlay({ realName, durationMs, onDone }: LoginSuccessOverlayProps) {
   const reduce = useReducedMotion();
+  const [entering, setEntering] = useState(false);
   const entranceDuration = reduce
     ? 0
     : Math.min(1.25, Math.max(0.65, 0.65 + Math.max(0, durationMs) / 1000 * 0.06));
@@ -21,14 +22,23 @@ export default function LoginSuccessOverlay({ realName, durationMs, onDone }: Lo
     ? `${nameChars[0]}${'*'.repeat(Math.max(0, nameChars.length - 1))}`
     : '同学';
 
+  function enterArchive() {
+    if (entering) return;
+    setEntering(true);
+    // Let the full-screen transition finish before the parent removes this overlay.
+    window.setTimeout(onDone, reduce ? 0 : 820);
+  }
+
   return (
     <motion.div
       role="dialog"
       aria-modal="true"
       aria-label="登录成功"
       initial={reduce ? false : { opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: entranceDuration, ease: [0.22, 1, 0.36, 1] }}
+      animate={entering
+        ? { opacity: 0, scale: 1.025, filter: 'blur(8px)' }
+        : { opacity: 1, scale: 1, filter: 'blur(0px)' }}
+      transition={{ duration: entering ? (reduce ? 0 : 0.78) : entranceDuration, ease: [0.22, 1, 0.36, 1] }}
       style={{
         position: 'fixed', inset: 0, zIndex: 1200, display: 'grid', placeItems: 'center',
         overflow: 'hidden',
@@ -41,24 +51,26 @@ export default function LoginSuccessOverlay({ realName, durationMs, onDone }: Lo
       {!reduce && (
         <>
           <motion.div aria-hidden="true"
-            animate={{ opacity: [0.12, 0.34, 0.12], scale: [0.96, 1.12, 0.96] }}
-            transition={{ duration: 5.5, repeat: Infinity, ease: 'easeInOut' }}
+            animate={entering ? { opacity: 0, scale: 1.7 } : { opacity: [0.12, 0.34, 0.12], scale: [0.96, 1.12, 0.96] }}
+            transition={{ duration: entering ? 0.72 : 5.5, repeat: entering ? 0 : Infinity, ease: 'easeInOut' }}
             style={{ position: 'absolute', width: 230, height: 230, borderRadius: '50%', border: '1px solid rgba(59, 177, 171, .28)', boxShadow: '0 0 54px rgba(74, 193, 184, .12)', pointerEvents: 'none' }} />
           <motion.div aria-hidden="true"
-            animate={{ opacity: [0.08, 0.22, 0.08], scale: [1.08, 1.28, 1.08] }}
-            transition={{ duration: 7, repeat: Infinity, ease: 'easeInOut', delay: 0.4 }}
+            animate={entering ? { opacity: 0, scale: 1.9 } : { opacity: [0.08, 0.22, 0.08], scale: [1.08, 1.28, 1.08] }}
+            transition={{ duration: entering ? 0.78 : 7, repeat: entering ? 0 : Infinity, ease: 'easeInOut', delay: 0.4 }}
             style={{ position: 'absolute', width: 230, height: 230, borderRadius: '50%', border: '1px solid rgba(106, 164, 207, .20)', pointerEvents: 'none' }} />
         </>
       )}
 
       <motion.div
         initial={reduce ? false : { opacity: 0, y: 20, scale: 0.94 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ duration: entranceDuration, delay: reduce ? 0 : 0.08, ease: [0.22, 1, 0.36, 1] }}
+        animate={entering
+          ? { opacity: 0, y: -18, scale: 0.94 }
+          : { opacity: 1, y: 0, scale: 1 }}
+        transition={{ duration: entering ? (reduce ? 0 : 0.62) : entranceDuration, delay: reduce ? 0 : 0.08, ease: [0.22, 1, 0.36, 1] }}
         style={{ position: 'relative', zIndex: 1, width: 'min(100%, 340px)', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}
       >
         <motion.div
-          animate={reduce ? undefined : { y: [0, -5, 0], rotate: [0, 1.5, 0, -1.5, 0] }}
+          animate={reduce || entering ? undefined : { y: [0, -5, 0], rotate: [0, 1.5, 0, -1.5, 0] }}
           transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
           style={{
             width: 76, height: 76, display: 'grid', placeItems: 'center', marginBottom: 22,
@@ -83,14 +95,20 @@ export default function LoginSuccessOverlay({ realName, durationMs, onDone }: Lo
           boxShadow: '0 8px 24px rgba(44,112,119,.08)',
         }}>
           <span style={{ maxWidth: 230, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#245d68', fontSize: 17, fontWeight: 800, letterSpacing: '.04em' }}>
-            {maskedName}
+            {maskedName}同学
           </span>
-          <span title="隐私保护" aria-label="隐私保护" style={{ display: 'inline-flex', alignItems: 'center', color: '#438d91' }}>
-            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path d="M3 12c2.4 2.7 5.4 4 9 4s6.6-1.3 9-4" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" />
-              <path d="m7 8-1.2-1.5M12 7V5M17 8l1.2-1.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+          <motion.span
+            title="隐私保护" aria-label="隐私保护"
+            animate={reduce ? undefined : { scaleY: [1, 0.08, 1, 1] }}
+            transition={reduce ? undefined : { duration: 3.8, repeat: Infinity, repeatDelay: 0.45, times: [0, 0.045, 0.09, 1], ease: 'easeInOut' }}
+            style={{ display: 'inline-flex', alignItems: 'center', color: '#438d91', transformOrigin: 'center' }}
+          >
+            <svg width="23" height="23" viewBox="0 0 28 24" fill="none" aria-hidden="true">
+              <path d="M2.5 12c2.5-4.1 6.2-6.2 11.5-6.2s9 2.1 11.5 6.2c-2.5 4.1-6.2 6.2-11.5 6.2S5 16.1 2.5 12Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+              <circle cx="14" cy="12" r="3" fill="currentColor" />
+              <path d="M2.5 12c2.5 4.1 6.2 6.2 11.5 6.2s9-2.1 11.5-6.2" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
             </svg>
-          </span>
+          </motion.span>
         </div>
         <div style={{ marginTop: 9, color: 'rgba(39, 82, 96, .66)', fontSize: 11, fontWeight: 600 }}>
           仅自己与管理员可见 · 不向其他成员公开
@@ -103,20 +121,23 @@ export default function LoginSuccessOverlay({ realName, durationMs, onDone }: Lo
 
         <motion.button
           type="button"
-          onClick={onDone}
-          whileTap={reduce ? undefined : { scale: 0.97 }}
-          whileHover={reduce ? undefined : { y: -2, boxShadow: '0 16px 34px rgba(39,144,151,.28)' }}
+          onClick={enterArchive}
+          disabled={entering}
+          whileTap={reduce || entering ? undefined : { scale: 0.97 }}
+          whileHover={reduce || entering ? undefined : { y: -2, boxShadow: '0 16px 34px rgba(39,144,151,.28)' }}
+          animate={entering ? { scale: 0.96, opacity: 0.75 } : { scale: 1, opacity: 1 }}
+          transition={{ duration: 0.25 }}
           style={{
             width: '100%', marginTop: 30, padding: '15px 22px', border: '1px solid rgba(255,255,255,.72)',
             borderRadius: 16, color: '#fff', fontSize: 15, fontWeight: 800, letterSpacing: '.08em',
             background: 'linear-gradient(110deg, #36b7a9 0%, #329eac 52%, #478fc1 100%)',
-            boxShadow: '0 12px 28px rgba(39,144,151,.22)', cursor: 'pointer',
+            boxShadow: '0 12px 28px rgba(39,144,151,.22)', cursor: entering ? 'default' : 'pointer',
           }}
         >
-          立即登录
+          {entering ? '正在进入…' : '立即登录'}
         </motion.button>
         <div style={{ marginTop: 12, color: 'rgba(39, 82, 96, .52)', fontSize: 11 }}>
-          点击后进入青春档案
+          {entering ? '正在为你打开青春档案' : '点击后进入青春档案'}
         </div>
       </motion.div>
     </motion.div>

@@ -44,10 +44,8 @@ const groups: { title: string; note: string; entries: Entry[] }[] = [
 ];
 
 const shortcuts = [
-  { mark: '☆', title: '我的收藏', note: '留住喜欢的内容', to: '/me/favorites', tone: 'gold' },
-  { mark: '▤', title: '全部内容', note: '统一管理记录', to: '/me/content', tone: 'blue' },
-  { mark: '⌁', title: '成长档案', note: '查看成长足迹', to: '/me/growth', tone: 'teal' },
-  { mark: '◉', title: '我的通知', note: '查看互动消息', to: '/me/notifications', tone: 'violet' },
+  { mark: '☆', title: '我的收藏', note: '留住喜欢的内容', to: '/me/favorites', tone: 'slate' },
+  { mark: '◉', title: '我的通知', note: '查看互动消息', to: '/me/notifications', tone: 'slate' },
   { mark: '⚙', title: '设置中心', note: '账号与隐私', to: '/me/settings', tone: 'slate' },
 ];
 
@@ -133,7 +131,7 @@ export default function MeHub() {
           <div className="me-hub-identity">
             <strong>{name || '我的账号'}</strong>
             <span>{username ? '@' + username : '堯用户'}</span>
-            <small>把生活里的点滴，收藏成共同的回忆</small>
+            <small>管理你的资料、内容与账号设置</small>
           </div>
           <button className="me-hub-edit" onClick={() => nav('/me/edit?sec=base')}>编辑资料 <span>›</span></button>
         </div>
@@ -157,8 +155,8 @@ export default function MeHub() {
 
       <section className="me-hub-shortcuts">
         <div className="me-hub-section-head">
-          <div><h2>常用功能</h2><p>常用入口，一步直达</p></div>
-          <span>QUICK ACCESS</span>
+          <div><h2>常用功能</h2><p>收藏、通知与设置</p></div>
+          <span>快捷操作</span>
         </div>
         <div className="me-hub-shortcut-grid">
           {shortcuts.map(item => (
@@ -173,14 +171,14 @@ export default function MeHub() {
 
       <section className="me-hub-feature-grid">
         <button className="me-hub-feature me-hub-feature-primary" onClick={() => nav('/me/content')}>
-          <span className="me-hub-feature-kicker">CONTENT LIBRARY</span>
+          <span className="me-hub-feature-kicker">内容整理</span>
           <strong>我的全部内容</strong>
           <small>动态、照片、评论与投稿，统一整理</small>
           <span className="me-hub-feature-meta">{stats.loading ? '正在统计…' : stats.posts + ' 条动态 · ' + stats.photos + ' 张照片'}</span>
           <span className="me-hub-feature-arrow">↗</span>
         </button>
         <button className="me-hub-feature me-hub-feature-growth" onClick={() => nav('/me/growth')}>
-          <span className="me-hub-feature-kicker">GROWTH RECORD</span>
+          <span className="me-hub-feature-kicker">成长记录</span>
           <strong>成长档案</strong>
           <small>活跃天数、贡献记录与纪念徽章</small>
           <span className="me-hub-feature-meta">每一次参与，都值得被记住</span>

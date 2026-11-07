@@ -121,6 +121,7 @@ export default function Friends() {
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchError, setSearchError] = useState('');
   const [sentRequestIds, setSentRequestIds] = useState<string[]>([]);
+  const [sendRequestEmailReminder, setSendRequestEmailReminder] = useState(false);
   const [friendActionId, setFriendActionId] = useState<string | null>(null);
   const loadSequenceRef = useRef(0);
   const notificationsLoadSequenceRef = useRef(0);
@@ -420,6 +421,7 @@ export default function Friends() {
     if (friendActionId) return;
     setFriendActionId(person.id);
     setMsg('');
+    const reminderRequested = sendRequestEmailReminder;
     try {
       const { data, error } = await supabase.rpc('send_friend_request', { target: person.id });
       if (error) {
@@ -427,8 +429,33 @@ export default function Friends() {
         return;
       }
       const outcome = String(data ?? '');
+      let reminderMessage = '';
+      if (outcome === 'sent' && reminderRequested) {
+        // 邮件提醒仅作为额外步骤；邮件失败不能回滚已经成功创建的好友申请。
+        setSendRequestEmailReminder(false);
+        try {
+          const { data: emailResult, error: emailError } = await supabase.functions.invoke('friend-request-email', {
+            body: { target: person.id },
+          });
+          if (emailError) {
+            console.warn('friend request email reminder failed', emailError);
+            reminderMessage = '但邮件提醒暂时发送失败。';
+          } else if (emailResult?.sent === true) {
+            reminderMessage = '邮件提醒已提交。';
+          } else if (emailResult?.reason === 'recipient_email_unavailable') {
+            reminderMessage = '对方没有可用的已验证邮箱，未发送邮件。';
+          } else if (emailResult?.reason === 'rate_limited') {
+            reminderMessage = '邮件提醒已达到发送频率限制，未发送邮件。';
+          } else {
+            reminderMessage = '邮件提醒暂未发送。';
+          }
+        } catch (emailError) {
+          console.warn('friend request email reminder failed', emailError);
+          reminderMessage = '但邮件提醒暂时发送失败。';
+        }
+      }
       await load();
-      if (outcome === 'sent') setMsg('好友申请已发送，等待对方同意。');
+      if (outcome === 'sent') setMsg('好友申请已发送，等待对方同意。' + (reminderMessage ? ' ' + reminderMessage : ''));
       else if (outcome === 'accepted') setMsg('对方之前已向你发送申请，现在你们已成为好友。');
       else if (outcome === 'already_friends') setMsg('你们已经是好友，可以直接开始聊天。');
       else if (outcome === 'already_pending') setMsg('好友申请已经发送，请等待对方同意。');
@@ -641,6 +668,16 @@ export default function Friends() {
             <span>{searchTerm ? '搜索站内成员' : '发现成员'}</span>
             <small>{searchTerm ? '支持昵称、用户名和 @用户名' : '只显示已完成加入的成员 · 最多 20 位'}</small>
           </div>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 9, margin: '0 12px 10px', padding: '10px 12px', borderRadius: 12, background: 'var(--panel, #f5f6f8)', color: 'var(--text, #252a33)', fontSize: 13, cursor: 'pointer' }}>
+            <input
+              type="checkbox"
+              checked={sendRequestEmailReminder}
+              onChange={event => setSendRequestEmailReminder(event.target.checked)}
+              style={{ width: 16, height: 16, margin: 0, accentColor: 'var(--accent, #3978d6)', flex: '0 0 auto' }}
+            />
+            <span>本次申请同时通过邮件提醒对方</span>
+            <small style={{ marginLeft: 'auto', color: 'var(--muted, #858b96)', fontSize: 11, whiteSpace: 'nowrap' }}>可选</small>
+          </label>
           {searchLoading ? (
             <div className="im-inbox-empty">
               <div className="im-inbox-empty-title">正在搜索…</div>

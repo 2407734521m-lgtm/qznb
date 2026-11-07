@@ -886,6 +886,9 @@ export type Database = {
         Update: {
           profile_id?: string
           device?: string | null
+          client_platform?: string
+          app_version_name?: string | null
+          app_version_code?: number | null
           location?: string | null
           location_share_enabled?: boolean
           location_consented_at?: string | null

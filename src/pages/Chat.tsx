@@ -78,11 +78,37 @@ function MessageImagePreview({ url }: { url: string }) {
   );
 }
 
+function formatFileSize(bytes: number) {
+  if (!Number.isFinite(bytes) || bytes <= 0) return '';
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1).replace(/\.0$/, '') + ' KB';
+  return (bytes / 1024 / 1024).toFixed(1).replace(/\.0$/, '') + ' MB';
+}
+
+function fileExtLabel(name: string) {
+  const ext = (name.split('.').pop() || '').toUpperCase();
+  return ext && ext.length <= 5 ? ext : '文件';
+}
+
 function MessageContent({ body }: { body: string }) {
   const imagePath = body.startsWith('[[im-image:') && body.endsWith(']]') ? body.slice(11, -2) : null;
   const audioPath = body.startsWith('[[im-audio:') && body.endsWith(']]') ? body.slice(11, -2) : null;
-  const url = useSignedUrl('chat-media', imagePath ?? audioPath);
+  const fileParts = body.startsWith('[[im-file:') && body.endsWith(']]') ? body.slice(10, -2).split('|') : null;
+  const filePath = fileParts ? fileParts[0] : null;
+  const fileName = fileParts && fileParts[1] ? fileParts[1] : '文件';
+  const fileSize = fileParts && fileParts[2] ? Number(fileParts[2]) : 0;
+  const url = useSignedUrl('chat-media', imagePath ?? audioPath ?? filePath);
   if (imagePath) return url ? <MessageImagePreview url={url} /> : <div className="im-photo-loading">图片加载中…</div>;
+  if (filePath) return url ? (
+    <a className="im-file-card" href={url} target="_blank" rel="noreferrer">
+      <span className="im-file-icon" aria-hidden="true">{fileExtLabel(fileName)}</span>
+      <span className="im-file-main">
+        <span className="im-file-name">{fileName}</span>
+        <span className="im-file-meta">{[formatFileSize(fileSize), '点按打开'].filter(Boolean).join(' · ')}</span>
+      </span>
+      <span className="im-file-open" aria-hidden="true">›</span>
+    </a>
+  ) : <div className="im-photo-loading">文件加载中…</div>;
   if (audioPath) return url ? <div className="im-audio-card"><div className="im-audio-symbol">▶</div><div className="im-audio-main"><div className="im-waveform" aria-hidden="true">{Array.from({ length: 34 }, (_, i) => <i key={i} style={{ height: (5 + ((i * 7 + 3) % 17)) + 'px' }} />)}</div><audio controls preload="metadata" src={url} aria-label="语音消息播放" /></div></div> : <div className="im-photo-loading">语音加载中…</div>;
   return <>{body}</>;
 }
@@ -144,6 +170,7 @@ export default function Chat() {
   const chunksRef = useRef<Blob[]>([]);
   const recordTimerRef = useRef<number | null>(null);
   const imageRef = useRef<HTMLInputElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState('');
   const [showDetails, setShowDetails] = useState(false);
   const [showStickers, setShowStickers] = useState(false);
@@ -502,6 +529,29 @@ export default function Chat() {
     }
   }
 
+  async function sendFile(file?: File) {
+    if (!file || uploading || !cid) return;
+    if (file.size > 50 * 1024 * 1024) { setError('文件不能超过 50 MB。'); return; }
+    if (/\.(exe|apk|bat|cmd|sh|com|msi|scr)$/i.test(file.name)) { setError('这类程序文件不能发送。'); return; }
+    setUploading(true); setError('');
+    try {
+      const path = await uploadMedia('chat-media', file, Number(cid) + '/' + me);
+      const safeName = file.name.replace(/[|\]]/g, '_').slice(0, 80) || '文件';
+      const body = '[[im-file:' + path + '|' + safeName + '|' + file.size + ']]';
+      const { error: sendError } = await supabase.from('messages').insert({ conversation_id: Number(cid), sender_id: me, body, reply_to_id: replyTarget?.id ?? null });
+      if (sendError) throw sendError;
+      setReplyTarget(null);
+      setShowStickers(false);
+      await load();
+    } catch (e) {
+      console.error('chat file upload failed', e);
+      setError('文件发送失败，请重试。');
+    } finally {
+      setUploading(false);
+      if (fileRef.current) fileRef.current.value = '';
+    }
+  }
+
   function stopRecording() {
     const recorder = recorderRef.current;
     if (!recorder || recorder.state === 'inactive') return;
@@ -705,6 +755,7 @@ export default function Chat() {
     if (!message || message.deleted_at) return '消息已撤回';
     if (message.body.startsWith('[[im-image:')) return '图片';
     if (message.body.startsWith('[[im-audio:')) return '语音';
+    if (message.body.startsWith('[[im-file:')) return '文件';
     return message.body;
   }
 
@@ -1035,6 +1086,9 @@ export default function Chat() {
         <button type="button" className="im-attach-choice" onClick={() => imageRef.current?.click()}>
           <span aria-hidden="true">▧</span><span>照片</span>
         </button>
+        <button type="button" className="im-attach-choice" onClick={() => fileRef.current?.click()}>
+          <span aria-hidden="true">▤</span><span>文件</span>
+        </button>
         {['🥹','😂','❤️','😍','🐱','🐻','✨','🎉','👍','😭','🫶','🌸','💖','😎'].map(sticker => <button key={sticker} type="button" className="im-sticker-choice" aria-label={'发送贴纸 ' + sticker} onClick={() => sendSticker(sticker)}>{sticker}</button>)}
       </div>}
       {replyTarget && <div className="im-reply-banner">
@@ -1044,6 +1098,7 @@ export default function Chat() {
       </div>}
       <form className="im-composer" onSubmit={e => { e.preventDefault(); send(); }}>
         <input ref={imageRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif,image/heic" hidden onChange={e => sendImage(e.target.files?.[0])} />
+        <input ref={fileRef} type="file" hidden onChange={e => sendFile(e.target.files?.[0])} />
         <button type="button" className="im-plus" aria-label="打开附件菜单" title="打开附件菜单" disabled={uploading || recording} onClick={() => setShowStickers(v => !v)}>{showStickers ? '×' : '＋'}</button>
         <div className="im-input-wrap">
           <input ref={inputRef} className="im-input" value={text} onChange={e => { setText(e.target.value); notifyTyping(e.target.value); }}

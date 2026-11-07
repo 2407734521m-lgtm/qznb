@@ -59,7 +59,7 @@ export default function KaiboxDialog({ onClose }: { onClose: () => void }) {
   return (
     <div role="presentation" onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 500, background: 'rgba(8,14,28,.48)', backdropFilter: 'blur(14px)', display: 'grid', placeItems: 'center', padding: 16 }}>
       <section role="dialog" aria-modal="true" aria-labelledby="kaibox-title" onClick={e => e.stopPropagation()}
-        style={{ width: 'min(100%, 560px)', maxHeight: 'min(86dvh, 820px)', overflowY: 'auto', borderRadius: 26, padding: 22, color: '#202632', background: 'rgba(255,255,255,.94)', border: '1px solid rgba(255,255,255,.82)', boxShadow: '0 28px 90px rgba(15,23,42,.24)' }}>
+        style={{ width: 'min(100%, 560px)', maxHeight: 'calc(100dvh - 24px)', overflowY: 'auto', borderRadius: 26, padding: 22, color: '#202632', background: 'rgba(255,255,255,.94)', border: '1px solid rgba(255,255,255,.82)', boxShadow: '0 28px 90px rgba(15,23,42,.24)' }}>
         <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
           <div><div style={{ fontSize: 10, letterSpacing: 3, color: '#82909e' }}>PRIVATE REQUEST CENTER</div><h2 id="kaibox-title" style={{ margin: '5px 0 0', fontSize: 25 }}>开盒</h2></div>
           <button className="mini ghost" onClick={onClose} aria-label="关闭">关闭</button>

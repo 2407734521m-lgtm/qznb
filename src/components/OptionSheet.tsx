@@ -59,7 +59,7 @@ export default function OptionSheet({ value, options, onChange, buttonText, titl
                 initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
                 transition={{ type: 'spring', stiffness: 400, damping: 40 }}
                 onDragEnd={onDragEnd}
-                style={{ position: 'fixed', left: 0, right: 0, bottom: 0, margin: '0 auto', width: '100%', maxWidth: 620, maxHeight: '70dvh', overflowY: 'auto', background: '#fff', borderRadius: '22px 22px 0 0', padding: '8px 16px calc(16px + env(safe-area-inset-bottom))', boxSizing: 'border-box', zIndex: 601 }}>
+                style={{ position: 'fixed', left: 0, right: 0, bottom: 0, margin: '0 auto', width: '100%', maxWidth: 620, maxHeight: 'calc(100dvh - 12px)', overflowY: 'auto', background: '#fff', borderRadius: '22px 22px 0 0', padding: '8px 16px calc(16px + env(safe-area-inset-bottom))', boxSizing: 'border-box', zIndex: 601 }}>
                 <div onPointerDown={e => controls.start(e)} style={{ touchAction: 'none', cursor: 'grab' }}>
                   <div aria-hidden="true" style={{ width: 40, height: 5, borderRadius: 999, background: '#dfe3e9', margin: '2px auto 10px' }} />
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>

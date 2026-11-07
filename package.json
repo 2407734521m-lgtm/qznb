@@ -16,7 +16,8 @@
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "react-router-dom": "^7.18.5",
-    "simple-liquid-glass": "^5.7.0"
+    "simple-liquid-glass": "^5.7.0",
+    "webgl-liquid-glass": "^0.3.0"
   },
   "devDependencies": {
     "@types/react": "^19.3.0",

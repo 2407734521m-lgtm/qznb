@@ -836,6 +836,7 @@ export default function Friends() {
             </div>
           )}
         </>
+      )}
     </div>
   );
 }

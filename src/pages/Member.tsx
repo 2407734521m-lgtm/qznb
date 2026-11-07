@@ -185,122 +185,138 @@ export default function Member() {
 
   if (err) return <div className="page"><div className="center"><div className="card">{err}</div></div></div>;
   const name = m?.display_name ?? m?.username ?? '';
-  const layout = m?.theme?.layout ?? 'right'; // 默认照片在右
-  const pcls = 'profile compact' + (layout === 'left' ? ' rev' : layout === 'center' ? ' center' : '');
   const rows = m ? ([['性格', m.personality], ['年龄', m.age], ['个性签名', m.signature],
     ['简介', m.bio], ['兴趣爱好', m.hobbies], ['联系方式', m.contact]] as [string, any][])
     .filter(([, v]) => v) : [];
+  // 个性签名放到 hero 名字下方当状态行（参考图版式），资料卡里不再重复。
+  const sig = m?.signature ? String(m.signature) : '';
+  const infoRows = rows.filter(([k]) => k !== '个性签名');
 
   const itemProps = (i: number) => {
-    // 基本信息从左侧滑入，贴到照片旁边
-    const init = reduce ? { opacity: 0 } : { opacity: 0, x: -48 };
+    // 资料卡从下方轻轻升入
+    const init = reduce ? { opacity: 0 } : { opacity: 0, y: 16 };
     return {
       initial: init,
       animate: { opacity: 1, x: 0, y: 0 },
-      transition: { duration: reduce ? 0 : 0.5, delay: reduce ? 0 : 0.35 + i * 0.07, ease: [0.22, 1, 0.36, 1] as [number, number, number, number] },
+      transition: { duration: reduce ? 0 : 0.45, delay: reduce ? 0 : 0.22 + i * 0.06, ease: [0.22, 1, 0.36, 1] as [number, number, number, number] },
     };
   };
+
+  const actIcon = (paths: React.ReactNode) => (
+    <svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{paths}</svg>
+  );
 
   return (
     <div className="page member-profile-page">
       <button className="backbtn member-backbtn" onClick={goBack}>← 返回成员墙</button>
-      <div className={pcls + " member-profile-card"}>
-        <div className="info member-info">
-          <motion.h1 {...itemProps(0)}>{name || '…'}</motion.h1>
-          {gbadge && <motion.div {...itemProps(1)} style={{ marginBottom: 6 }}>
-            <span className="gbadge">{badgeText(gbadge.game_name, gbadge.rank)}</span>
-          </motion.div>}
-          {rows.length === 0 && <motion.p className="mut" {...itemProps(1)} style={{ fontSize: 13, lineHeight: 1.7 }}>这位同学暂未公开更多个人资料。</motion.p>}
-          {rows.map(([k, v], i) => k === '个性签名'
-            ? <motion.p key={k} className="sig" {...itemProps(i + 1)}>{v}</motion.p>
-            : <motion.div key={k} className="kv" {...itemProps(i + 1)}><b>{k}</b><div>{v}</div></motion.div>)}
-          {videoUrl && (
-            <motion.div {...itemProps(rows.length + 1)}>
-              <div className="kv"><b>自我介绍视频</b></div>
-              <video src={videoUrl} controls playsInline style={{ width: '100%', borderRadius: 10, background: '#000', marginTop: 6 }} />
-            </motion.div>
+      <section className="mp-hero">
+        <motion.div ref={photoRef} layout="position" className="mp-avatar"
+          initial={reduce ? false : { opacity: 0.72, scale: 0.985 }}
+          animate={{ opacity: flying ? 0 : 1, scale: 1 }}
+          transition={{ duration: reduce ? 0 : 0.38, ease: [0.22, 1, 0.36, 1] }}
+          style={{ visibility: flying ? 'hidden' : 'visible', transformOrigin: 'center' }}>
+          <Photo id={id} path={m?.avatar_path} name={name || '?'} />
+        </motion.div>
+        <h1 className="mp-name">{name || '…'}</h1>
+        {sig && <p className="mp-sig">{sig}</p>}
+        {gbadge && <div className="mp-badge-row"><span className="gbadge">{badgeText(gbadge.game_name, gbadge.rank)}</span></div>}
+        {!isMe && fstat?.blocked_me && <p className="mp-note">对方已限制联系，无法互相申请好友或私聊。</p>}
+        <div className="mp-actions">
+          {isMe && (
+            <label className="mp-act">
+              <span className="mp-act-circle">{actIcon(<><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" /><circle cx="12" cy="13" r="4" /></>)}</span>
+              <span className="mp-act-label">上传照片</span>
+              <input type="file" hidden accept="image/jpeg,image/png,image/webp"
+                onChange={e => { pickPhoto(e.target.files?.[0]); e.target.value = ''; }} />
+            </label>
           )}
-          {(gbadge || m?.social) && (
-            <motion.div {...itemProps(rows.length + 1)} className="xbtns">
-              {gbadge && <button type="button" className={'xbtn' + (gx === 'game' ? ' on' : '')}
-                onClick={() => setGx(gx === 'game' ? null : 'game')}>游戏</button>}
-              {m?.social && <button type="button" className={'xbtn' + (gx === 'social' ? ' on' : '')}
-                onClick={() => setGx(gx === 'social' ? null : 'social')}>社交</button>}
-            </motion.div>
+          {!isMe && uid && !fstat && <span className="mp-loading">正在读取好友状态…</span>}
+          {!isMe && uid && fstat && !fstat.blocked_me && (
+            fstat.blocked_by_me ? (
+              <button type="button" className="mp-act" disabled={fbusy} onClick={() => void relationshipAction('unblock_member')}>
+                <span className="mp-act-circle">{actIcon(<><rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 9.9-1" /></>)}</span>
+                <span className="mp-act-label">解除拉黑</span>
+              </button>
+            ) : fstat.friend_status === 'accepted' ? (
+              <button type="button" className="mp-act primary" disabled={fbusy} onClick={goChat}>
+                <span className="mp-act-circle">{actIcon(<path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />)}</span>
+                <span className="mp-act-label">发消息</span>
+              </button>
+            ) : fstat.friend_status === 'pending' && fstat.friend_requester === uid ? (
+              <button type="button" className="mp-act" disabled>
+                <span className="mp-act-circle">{actIcon(<><circle cx="12" cy="12" r="9" /><polyline points="12 7 12 12 15.5 14" /></>)}</span>
+                <span className="mp-act-label">已申请</span>
+              </button>
+            ) : fstat.friend_status === 'pending' ? (
+              <button type="button" className="mp-act primary" onClick={() => nav('/friends')}>
+                <span className="mp-act-circle">{actIcon(<><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 0 1-3.46 0" /></>)}</span>
+                <span className="mp-act-label">去处理</span>
+              </button>
+            ) : (
+              <button type="button" className="mp-act primary" disabled={fbusy} onClick={addFriend}>
+                <span className="mp-act-circle">{actIcon(<><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="8.5" cy="7" r="4" /><line x1="20" y1="8" x2="20" y2="14" /><line x1="23" y1="11" x2="17" y2="11" /></>)}</span>
+                <span className="mp-act-label">加好友</span>
+              </button>
+            )
           )}
-          <div className={'xpanel' + (gx ? ' open' : '')}>
-            <div>
-              {gx === 'game' && gbadge && (
-                <div className="xbody">
-                  <div className="xrow"><b>游戏</b><span>{gbadge.game_name}</span></div>
-                  <div className="xrow"><b>段位</b><span>{gbadge.rank}</span></div>
-                  {gbadge.game_uid && <div className="xrow"><b>ID</b><span>{gbadge.game_uid}</span></div>}
-                </div>
-              )}
-              {gx === 'social' && m?.social && (
-                <div className="xbody">
-                  {parseSocial(m.social).map((it, i) => (
-                    <div key={i} className="xrow"><b>{it.p || '账号'}</b><span>{it.a}</span></div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
           {m && (
-            <motion.div {...itemProps(rows.length + 1)}>
-              <Link to={`/timeline/${id}`} className="ghost" style={{ display: 'inline-block', textDecoration: 'none', marginTop: 8 }}>
-                看{name}的青春时间线
-              </Link>
-            </motion.div>
+            <Link to={`/timeline/${id}`} className="mp-act">
+              <span className="mp-act-circle">{actIcon(<><path d="M3 3v5h5" /><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8" /><path d="M12 7v5l4 2" /></>)}</span>
+              <span className="mp-act-label">时间线</span>
+            </Link>
+          )}
+          {gbadge && (
+            <button type="button" className={'mp-act' + (gx === 'game' ? ' on' : '')} onClick={() => setGx(gx === 'game' ? null : 'game')}>
+              <span className="mp-act-circle">{actIcon(<><line x1="6" y1="12" x2="10" y2="12" /><line x1="8" y1="10" x2="8" y2="14" /><line x1="15" y1="13" x2="15.01" y2="13" /><line x1="18" y1="11" x2="18.01" y2="11" /><path d="M17.32 5H6.68a4 4 0 0 0-3.98 3.6C2.7 8.8 2.68 9 2.68 9.2L2.68 19a2 2 0 0 0 3.6 1.4L8.5 18h7l2.22 2.6A2 2 0 0 0 21.32 19l0-9.8c0-.2-.02-.4-.02-.6A4 4 0 0 0 17.32 5z" /></>)}</span>
+              <span className="mp-act-label">游戏</span>
+            </button>
+          )}
+          {m?.social && (
+            <button type="button" className={'mp-act' + (gx === 'social' ? ' on' : '')} onClick={() => setGx(gx === 'social' ? null : 'social')}>
+              <span className="mp-act-circle">{actIcon(<><circle cx="12" cy="12" r="4" /><path d="M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-3.92 7.94" /></>)}</span>
+              <span className="mp-act-label">社交</span>
+            </button>
           )}
         </div>
-        <div className="head-photo member-photo-panel">
-          <motion.div ref={photoRef} layout="position"
-            initial={reduce ? false : { opacity: 0.72, scale: 0.985 }}
-            animate={{ opacity: flying ? 0 : 1, scale: 1 }}
-            transition={{ duration: reduce ? 0 : 0.38, ease: [0.22, 1, 0.36, 1] }}
-            style={{ visibility: flying ? 'hidden' : 'visible', transformOrigin: 'center' }}>
-            <Photo id={id} path={m?.avatar_path} name={name || '?'} />
-          </motion.div>
-          {isMe && <label className="ghost upbtn">上传照片
-            <input type="file" hidden accept="image/jpeg,image/png,image/webp"
-              onChange={e => { pickPhoto(e.target.files?.[0]); e.target.value = ''; }} />
-          </label>}
-          {isMe && upMsg && <p className="mut" style={{ fontSize: 12, margin: '6px 0 0' }}>{upMsg}</p>}
-          {!isMe && uid && (
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, marginTop: 10, alignItems: 'center' }}>
-              {!fstat ? (
-                <span className="mut" style={{ fontSize: 12 }}>正在读取好友状态…</span>
-              ) : fstat.blocked_by_me ? (
-                <button className="ghost upbtn" style={{ width: 'auto', padding: '8px 14px' }}
-                  disabled={fbusy} onClick={() => void relationshipAction('unblock_member')}>解除拉黑</button>
-              ) : fstat.blocked_me ? (
-                <span className="mut" style={{ fontSize: 12 }}>对方已限制联系，无法互相申请好友或私聊。</span>
-              ) : (
-                <>
-                  {fstat.friend_status === 'accepted' ? (
-                    <>
-                      <button className="pri upbtn" style={{ width: 'auto', padding: '8px 18px' }} disabled={fbusy} onClick={goChat}>去聊天</button>
-                      <button className="ghost upbtn" style={{ width: 'auto', padding: '8px 14px' }}
-                        disabled={fbusy} onClick={() => void relationshipAction('remove_friend')}>解除好友</button>
-                    </>
-                  ) : fstat.friend_status === 'pending' && fstat.friend_requester === uid ? (
-                    <button className="ghost upbtn" style={{ width: 'auto', padding: '8px 14px' }} disabled>已申请，等待通过</button>
-                  ) : fstat.friend_status === 'pending' ? (
-                    <button className="pri upbtn" style={{ width: 'auto', padding: '8px 14px' }} onClick={() => nav('/friends')}>对方想加你，去看看</button>
-                  ) : (
-                    <button className="ghost upbtn" style={{ width: 'auto', padding: '8px 14px' }}
-                      disabled={fbusy} onClick={addFriend}>＋ 加好友</button>
-                  )}
-                  <button className="ghost upbtn" style={{ width: 'auto', padding: '8px 14px', borderColor: 'rgba(235,105,120,.4)', color: '#ffb4bd' }}
-                    disabled={fbusy} onClick={() => void relationshipAction('block_member')}>拉黑</button>
-                </>
-              )}
-            </div>
+      </section>
+      {upMsg && <p className="mp-msg">{upMsg}</p>}
+      {gx === 'game' && gbadge && (
+        <motion.section className="mp-card" {...itemProps(1)}>
+          <div className="mp-row"><div className="mp-k">游戏</div><div className="mp-v">{gbadge.game_name}</div></div>
+          <div className="mp-row"><div className="mp-k">段位</div><div className="mp-v">{gbadge.rank}</div></div>
+          {gbadge.game_uid && <div className="mp-row"><div className="mp-k">ID</div><div className="mp-v">{gbadge.game_uid}</div></div>}
+        </motion.section>
+      )}
+      {gx === 'social' && m?.social && (
+        <motion.section className="mp-card" {...itemProps(1)}>
+          {parseSocial(m.social).map((it, i) => (
+            <div className="mp-row" key={i}><div className="mp-k">{it.p || '账号'}</div><div className="mp-v">{it.a}</div></div>
+          ))}
+        </motion.section>
+      )}
+      {infoRows.length > 0 ? (
+        <motion.section className="mp-card" {...itemProps(2)}>
+          {infoRows.map(([k, v]) => (
+            <div className="mp-row" key={k}><div className="mp-k">{k}</div><div className="mp-v">{v}</div></div>
+          ))}
+        </motion.section>
+      ) : !videoUrl && (
+        <motion.p className="mp-empty" {...itemProps(2)}>这位同学暂未公开更多个人资料。</motion.p>
+      )}
+      {videoUrl && (
+        <motion.section className="mp-card mp-video-card" {...itemProps(3)}>
+          <div className="mp-k">自我介绍视频</div>
+          <video src={videoUrl} controls playsInline className="mp-video" />
+        </motion.section>
+      )}
+      {!isMe && uid && fstat && !fstat.blocked_me && !fstat.blocked_by_me && (
+        <div className="mp-danger-row">
+          {fstat.friend_status === 'accepted' && (
+            <button type="button" className="mp-text-btn" disabled={fbusy} onClick={() => void relationshipAction('remove_friend')}>解除好友</button>
           )}
-          {!isMe && upMsg && <p className="mut" style={{ fontSize: 12, margin: '6px 0 0' }}>{upMsg}</p>}
+          <button type="button" className="mp-text-btn danger" disabled={fbusy} onClick={() => void relationshipAction('block_member')}>拉黑</button>
         </div>
-      </div>
+      )}
       {cropSrc && <AvatarCropper src={cropSrc} onCancel={closeCrop} onDone={uploadCropped} />}
     </div>
   );

@@ -58,7 +58,7 @@ $function$;
 revoke all on function public.love_wall_media_public_readable(text) from public, anon, authenticated;
 grant execute on function public.love_wall_media_public_readable(text) to anon, authenticated;
 
-grant select on public.love_wall_media to anon;
+grant select (id, post_id, path, kind, sort) on public.love_wall_media to anon;
 
 drop policy if exists love_wall_media_public_guest_read on public.love_wall_media;
 create policy love_wall_media_public_guest_read

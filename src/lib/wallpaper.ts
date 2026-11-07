@@ -22,12 +22,12 @@ export function getWallpaper(): Wallpaper {
       const w = JSON.parse(raw);
       if (w && typeof w.src === 'string') {
         // Upgrade the old built-in default without overriding a wallpaper the user chose.
-        if (w.src === 'default') return { src: DEFAULT_DEEP_BLUE_TEAL, kind: 'grad', blur: 0, dark: 20 };
+        if (w.src === 'default') return { src: 'default', kind: 'img', blur: 0, dark: 0 };
         return { blur: 7, dark: 58, kind: 'img', ...w };
       }
     }
   } catch { /* ignore */ }
-  return { src: DEFAULT_DEEP_BLUE_TEAL, kind: 'grad', blur: 0, dark: 20 };
+  return { src: '#ffffff', kind: 'grad', blur: 0, dark: 0 };
 }
 
 export function setWallpaper(w: Wallpaper) {

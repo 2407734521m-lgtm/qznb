@@ -1,0 +1,518 @@
+/* Dark liquid glass theme — final authority layer (user decision 2026-11-07).
+   The member app was pinned to a solid white theme by two override blocks
+   (styles.css "白色主题" and styles-editorial.css "白色主题统一修复"), which
+   outrank the liquid glass material layer and explicitly disable backdrop
+   blur on cards and the login card. This layer mirrors those blocks selector
+   by selector with dark glass values at equal-or-higher specificity, loaded
+   last, so the whole user app returns to the demo-page look: deep ink,
+   flowing light behind the glass, bright liquid edges, light text.
+   The admin shell is intentionally untouched (the white blocks never covered
+   it either, and it keeps its own dark system). Paper-by-design surfaces such
+   as the time-capsule letter keep their own styling. */
+
+:root {
+  color-scheme: dark;
+  --bg: #0a0a0f !important;
+  --fg: #f4f1ea !important;
+  --mut: rgba(232, 228, 218, .55) !important;
+  --a: #d29a78 !important;
+  --b: rgba(255, 255, 255, .14) !important;
+  --visual-bg: #0a0a0f;
+  --visual-surface: #17171f;
+  --visual-surface-raised: #20202b;
+  --visual-text: #f4f1ea;
+  --visual-secondary: rgba(232, 228, 218, .74);
+  --visual-muted: rgba(232, 228, 218, .52);
+  --visual-border: rgba(255, 255, 255, .13);
+}
+
+html {
+  background: #07070b !important;
+}
+
+body {
+  background: transparent !important;
+  color: #f4f1ea !important;
+}
+
+#root {
+  background: transparent !important;
+  color: #f4f1ea !important;
+}
+
+/* Flowing light behind everything, dimmed so content stays readable.
+   Fixed and transform-free: the drift lives on the login backdrop only. */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(7, 7, 11, .80), rgba(7, 7, 11, .90)),
+    url('./assets/flow-bg.webp') center top / cover no-repeat;
+}
+
+body a {
+  color: #ece7db !important;
+}
+
+/* ===== Shared content surfaces: dark glass panels ===== */
+body .wrap .card,
+body .wrap .post,
+body .wrap .mcard,
+body .wrap .tl-item,
+body .wrap .composer,
+body .wrap .campus-hero,
+body .wrap .classes-hero,
+body .wrap .class-detail-hero,
+body .wrap .classes-card,
+body .wrap .class-detail-post,
+body .wrap .campus-post,
+body .wrap .campus-shortcut,
+body .wrap .masonry figure,
+body .card,
+body .post,
+body .composer {
+  background:
+    linear-gradient(150deg, rgba(27, 27, 36, .78), rgba(17, 17, 24, .66)) padding-box,
+    linear-gradient(180deg, rgba(255, 255, 255, .30), rgba(255, 255, 255, .10) 26%, transparent 52%, transparent 68%, rgba(255, 255, 255, .10) 86%, rgba(255, 255, 255, .24)) border-box !important;
+  border: 1px solid transparent !important;
+  color: #f4f1ea !important;
+  box-shadow:
+    0 14px 34px rgba(0, 0, 0, .35),
+    inset 0 1px 0 rgba(255, 255, 255, .09) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(1.18) !important;
+  backdrop-filter: blur(16px) saturate(1.18) !important;
+}
+
+/* Page heroes become darker glass with light text. */
+body .wrap .page .hero,
+body .wrap .hero {
+  background: linear-gradient(140deg, rgba(23, 23, 32, .82), rgba(13, 13, 19, .70)) !important;
+  border: 1px solid rgba(255, 255, 255, .12) !important;
+  box-shadow:
+    0 14px 34px rgba(0, 0, 0, .35),
+    inset 0 1px 0 rgba(255, 255, 255, .10) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(1.18) !important;
+  backdrop-filter: blur(16px) saturate(1.18) !important;
+}
+
+body .wrap .page .hero h1,
+body .wrap .hero h1,
+body .page h1,
+body .page h2,
+body .page h3,
+body .page b {
+  color: #f7f4ec !important;
+  -webkit-text-fill-color: #f7f4ec !important;
+  text-shadow: none !important;
+}
+
+body .wrap .page .hero p,
+body .wrap .hero p {
+  color: rgba(232, 228, 218, .68) !important;
+}
+
+/* Text tones inside the member shell. */
+body .wrap .mcard h3,
+body .wrap .post .hd .nm {
+  color: #f7f4ec !important;
+}
+
+body .wrap .mcard p,
+body .wrap .mut,
+body .wrap .tm,
+body .wrap .sub,
+body .wrap .center,
+body .wrap .post .hd .tm,
+body .wrap .post .ft button,
+body .mut,
+body .tm,
+body .sub,
+body .center {
+  color: rgba(232, 228, 218, .60) !important;
+}
+
+body .wrap .photo {
+  background: rgba(255, 255, 255, .07) !important;
+}
+
+body .wrap .photo-fallback {
+  color: rgba(232, 228, 218, .45) !important;
+}
+
+body .wrap .fly-letter {
+  background: rgba(255, 255, 255, .08) !important;
+  color: rgba(232, 228, 218, .60) !important;
+}
+
+body .wrap .post .hd .av,
+body .wrap .avatar-pick .prev {
+  background: rgba(255, 255, 255, .10) !important;
+  color: rgba(244, 241, 234, .85) !important;
+}
+
+/* ===== Form controls ===== */
+body .wrap input,
+body .wrap textarea,
+body .wrap select,
+body .wrap .searchbar input {
+  background: rgba(255, 255, 255, .06) !important;
+  color: #f4f1ea !important;
+  border: 1px solid rgba(255, 255, 255, .16) !important;
+}
+
+body .wrap input::placeholder,
+body .wrap textarea::placeholder {
+  color: rgba(232, 228, 218, .38) !important;
+}
+
+body .wrap input:focus,
+body .wrap textarea:focus,
+body .wrap select:focus {
+  border-color: rgba(210, 154, 120, .65) !important;
+  box-shadow: 0 0 0 3px rgba(210, 154, 120, .18) !important;
+}
+
+body .wrap .searchbar {
+  background: rgba(18, 18, 26, .60) !important;
+  border: 1px solid rgba(255, 255, 255, .14) !important;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, .30) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(1.2) !important;
+  backdrop-filter: blur(20px) saturate(1.2) !important;
+}
+
+/* ===== Buttons ===== */
+body .wrap button.ghost,
+body .wrap .ghost,
+body .wrap .mini,
+body .wrap .seg button,
+body .wrap .priv-btn,
+body .wrap .theme-chip {
+  background: rgba(255, 255, 255, .07) !important;
+  color: #ece8de !important;
+  border: 1px solid rgba(255, 255, 255, .16) !important;
+}
+
+body .wrap .seg button.on,
+body .wrap .priv-btn.on {
+  background: #f4f1ea !important;
+  color: #141419 !important;
+  border-color: transparent !important;
+}
+
+body .wrap button.pri,
+body .login-wrap button.pri {
+  background: #f4f1ea !important;
+  color: #141419 !important;
+  border-color: transparent !important;
+  box-shadow: 0 10px 26px rgba(0, 0, 0, .35) !important;
+}
+
+/* ===== Popovers, chat bar, expanders: strong glass ===== */
+body .wrap .lpop,
+body .wrap .gexpand,
+body .global-search-panel {
+  background:
+    linear-gradient(150deg, rgba(24, 24, 33, .82), rgba(15, 15, 21, .74)) padding-box,
+    linear-gradient(180deg, rgba(255, 255, 255, .34), rgba(255, 255, 255, .12) 26%, transparent 52%, transparent 68%, rgba(255, 255, 255, .12) 86%, rgba(255, 255, 255, .28)) border-box !important;
+  border: 1px solid transparent !important;
+  color: #f4f1ea !important;
+  box-shadow: 0 22px 54px rgba(0, 0, 0, .45) !important;
+  -webkit-backdrop-filter: blur(22px) saturate(1.2) !important;
+  backdrop-filter: blur(22px) saturate(1.2) !important;
+}
+
+body .wrap .lpop button {
+  color: #ece8de !important;
+}
+
+body .wrap .lpop button.on {
+  background: rgba(255, 255, 255, .12) !important;
+}
+
+body .wrap .chat-bar {
+  background: rgba(16, 16, 23, .66) !important;
+  border: 1px solid rgba(255, 255, 255, .13) !important;
+  box-shadow: 0 14px 34px rgba(0, 0, 0, .35) !important;
+  -webkit-backdrop-filter: blur(22px) saturate(1.2) !important;
+  backdrop-filter: blur(22px) saturate(1.2) !important;
+}
+
+body .wrap .chat-bar input {
+  background: rgba(255, 255, 255, .06) !important;
+  color: #f4f1ea !important;
+  border: 1px solid rgba(255, 255, 255, .16) !important;
+}
+
+body .wrap .bubble.them {
+  background: rgba(255, 255, 255, .09) !important;
+  color: #f4f1ea !important;
+  border: 1px solid rgba(255, 255, 255, .10) !important;
+}
+
+body .global-search-backdrop {
+  -webkit-backdrop-filter: blur(10px) saturate(1.1) !important;
+  backdrop-filter: blur(10px) saturate(1.1) !important;
+}
+
+/* ===== Top navigation: dark glass ===== */
+body .topnav {
+  background:
+    linear-gradient(120deg, rgba(15, 15, 22, .82), rgba(15, 15, 22, .66)) padding-box,
+    linear-gradient(180deg, rgba(255, 255, 255, .26), rgba(255, 255, 255, .07)) border-box !important;
+  border: 1px solid transparent !important;
+  border-bottom: 1px solid rgba(255, 255, 255, .10) !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .30) !important;
+  -webkit-backdrop-filter: blur(22px) saturate(1.2) !important;
+  backdrop-filter: blur(22px) saturate(1.2) !important;
+}
+
+body .topnav a,
+body .topnav button {
+  color: rgba(236, 232, 222, .78) !important;
+}
+
+body .topnav a.on,
+body .topnav a[aria-current=page] {
+  background: rgba(255, 255, 255, .13) !important;
+  color: #ffffff !important;
+}
+
+/* ===== Bottom dock: dark liquid glass pill ===== */
+body .tabbar {
+  background:
+    linear-gradient(150deg, rgba(25, 25, 34, .68), rgba(14, 14, 20, .58)) padding-box,
+    linear-gradient(180deg, rgba(255, 255, 255, .50), rgba(255, 255, 255, .18) 30%, transparent 55%, transparent 70%, rgba(255, 255, 255, .18) 88%, rgba(255, 255, 255, .40)) border-box !important;
+  border: 1px solid transparent !important;
+  box-shadow:
+    0 18px 44px rgba(0, 0, 0, .45),
+    inset 0 1px 0 rgba(255, 255, 255, .22) !important;
+  -webkit-backdrop-filter: blur(26px) saturate(1.3) !important;
+  backdrop-filter: blur(26px) saturate(1.3) !important;
+}
+
+body .tabbar a {
+  color: rgba(238, 235, 227, .72) !important;
+  background: transparent !important;
+}
+
+body .tabbar a.on,
+body .tabbar a[aria-current=page] {
+  background: #f4f1ea !important;
+  color: #141419 !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, .30) !important;
+}
+
+body .dock-toggle {
+  background: rgba(255, 255, 255, .13) !important;
+  color: #ffffff !important;
+  border: 0 !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, .30) !important;
+}
+
+@media (max-width: 768px) {
+  body .tabbar,
+  body .tabbar.dock-collapsed {
+    background:
+      linear-gradient(150deg, rgba(25, 25, 34, .66), rgba(14, 14, 20, .56)) padding-box,
+      linear-gradient(180deg, rgba(255, 255, 255, .50), rgba(255, 255, 255, .18) 30%, transparent 55%, transparent 70%, rgba(255, 255, 255, .18) 88%, rgba(255, 255, 255, .40)) border-box !important;
+    border: 1px solid transparent !important;
+    box-shadow:
+      0 18px 44px rgba(0, 0, 0, .45),
+      inset 0 1px 0 rgba(255, 255, 255, .22) !important;
+    -webkit-backdrop-filter: blur(26px) saturate(1.3) !important;
+    backdrop-filter: blur(26px) saturate(1.3) !important;
+  }
+
+  body .tabbar a {
+    color: rgba(238, 235, 227, .72) !important;
+  }
+
+  body .tabbar a.on,
+  body .tabbar a[aria-current="page"] {
+    background: #f4f1ea !important;
+    color: #141419 !important;
+  }
+}
+
+/* ===== Login: strong dark glass over the flowing backdrop ===== */
+body .login-wrap .login-card,
+body .login-wrap .card {
+  background:
+    linear-gradient(145deg, rgba(22, 21, 29, .68), rgba(13, 12, 19, .56)) padding-box,
+    linear-gradient(180deg, rgba(255, 255, 255, .46), rgba(255, 255, 255, .17) 24%, transparent 52%, transparent 66%, rgba(255, 255, 255, .17) 84%, rgba(255, 255, 255, .38)) border-box !important;
+  border: 1px solid transparent !important;
+  color: #f4f1ea !important;
+  box-shadow:
+    0 22px 54px rgba(0, 0, 0, .45),
+    inset 0 1px 0 rgba(255, 255, 255, .20) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(1.22) !important;
+  backdrop-filter: blur(24px) saturate(1.22) !important;
+}
+
+body .login-wrap .login-card h1 {
+  color: #ffffff !important;
+  text-shadow: none !important;
+}
+
+body .login-wrap .login-card .sub,
+body .login-wrap .login-card label,
+body .login-wrap .login-card .priv-note {
+  color: rgba(232, 228, 218, .62) !important;
+}
+
+body .login-wrap .login-card input:not([type=file]):not([type=range]) {
+  background: rgba(255, 255, 255, .07) !important;
+  color: #f4f1ea !important;
+  border: 1px solid rgba(255, 255, 255, .17) !important;
+}
+
+body .login-wrap .login-card input::placeholder {
+  color: rgba(232, 228, 218, .38) !important;
+}
+
+body .login-wrap .login-card button.ghost,
+body .login-wrap .login-card .ghost {
+  background: rgba(255, 255, 255, .07) !important;
+  color: #ece8de !important;
+  border: 1px solid rgba(255, 255, 255, .16) !important;
+}
+
+/* ===== Homepage (vibe) surfaces: same dark glass, warm ink flipped ===== */
+body .vibe-home {
+  --vh-ink: #f4f1ea;
+  --vh-muted: rgba(235, 231, 222, .60);
+  --vh-line: rgba(255, 255, 255, .14);
+  --vh-accent: #d29a78;
+}
+
+body .vh-search,
+body .vh-live,
+body .vh-notice,
+body .vh-shortcut,
+body .vh-panel {
+  background:
+    linear-gradient(150deg, rgba(27, 27, 36, .78), rgba(17, 17, 24, .66)) padding-box,
+    linear-gradient(180deg, rgba(255, 255, 255, .30), rgba(255, 255, 255, .10) 26%, transparent 52%, transparent 68%, rgba(255, 255, 255, .10) 86%, rgba(255, 255, 255, .24)) border-box !important;
+  border: 1px solid transparent !important;
+  background-color: transparent !important;
+  color: #f4f1ea !important;
+  box-shadow:
+    0 14px 34px rgba(0, 0, 0, .35),
+    inset 0 1px 0 rgba(255, 255, 255, .09) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(1.18) !important;
+  backdrop-filter: blur(16px) saturate(1.18) !important;
+}
+
+/* ===== Personal hub: teal-tinted dark glass, aqua ink flipped ===== */
+body .me-hub-hero,
+body .me-hub-stats,
+body .me-hub-shortcuts,
+body .me-hub-group,
+body .me-hub-feature,
+body .me-hub-tile {
+  background:
+    linear-gradient(150deg, rgba(13, 31, 36, .80), rgba(8, 19, 23, .70)) padding-box,
+    linear-gradient(180deg, rgba(255, 255, 255, .28), rgba(255, 255, 255, .09) 26%, transparent 52%, transparent 68%, rgba(255, 255, 255, .09) 86%, rgba(255, 255, 255, .22)) border-box !important;
+  border: 1px solid transparent !important;
+  color: #eef6f6 !important;
+  box-shadow:
+    0 14px 34px rgba(0, 0, 0, .35),
+    inset 0 1px 0 rgba(255, 255, 255, .09) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(1.15) !important;
+  backdrop-filter: blur(16px) saturate(1.15) !important;
+}
+
+body .me-hub-eyebrow,
+body .me-hub-identity,
+body .me-hub-identity b,
+body .me-hub h1,
+body .me-hub h2,
+body .me-hub h3 {
+  color: #eef6f6 !important;
+}
+
+body .me-hub-eyebrow span {
+  color: #7fd1d9 !important;
+}
+
+body .me-hub-identity span,
+body .me-hub-unread span,
+body .me-hub-stat-grid span,
+body .me-hub-arrow {
+  color: rgba(207, 232, 234, .60) !important;
+}
+
+body .me-hub-photo-note b,
+body .me-hub-photo-mark {
+  color: #8fd8de !important;
+}
+
+/* ===== Fallbacks: no blur support or reduced transparency means solid ink ===== */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  body .wrap .card,
+  body .wrap .post,
+  body .wrap .mcard,
+  body .wrap .tl-item,
+  body .wrap .composer,
+  body .card,
+  body .post,
+  body .composer,
+  body .vh-search,
+  body .vh-live,
+  body .vh-notice,
+  body .vh-shortcut,
+  body .vh-panel,
+  body .login-wrap .login-card {
+    background: #14141b !important;
+  }
+
+  body .tabbar,
+  body .topnav {
+    background: rgba(13, 13, 19, .96) !important;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  body .wrap .card,
+  body .wrap .post,
+  body .wrap .mcard,
+  body .wrap .tl-item,
+  body .wrap .composer,
+  body .card,
+  body .post,
+  body .composer,
+  body .wrap .lpop,
+  body .wrap .gexpand,
+  body .wrap .chat-bar,
+  body .wrap .searchbar,
+  body .vh-search,
+  body .vh-live,
+  body .vh-notice,
+  body .vh-shortcut,
+  body .vh-panel,
+  body .me-hub-hero,
+  body .me-hub-stats,
+  body .me-hub-shortcuts,
+  body .me-hub-group,
+  body .me-hub-feature,
+  body .me-hub-tile,
+  body .login-wrap .login-card {
+    background: #14141b !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+  }
+
+  body .tabbar,
+  body .topnav {
+    background: rgba(13, 13, 19, .97) !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+  }
+
+  body::before {
+    background: #07070b;
+  }
+}

@@ -48,16 +48,14 @@ export default function MePrivacy() {
 
   useEffect(() => {
     let active = true;
-    supabase.from('member_presence')
-      .select('location, location_share_enabled')
-      .eq('profile_id', uid)
-      .maybeSingle()
+    supabase.rpc('get_my_shared_region')
       .then(({ data, error }) => {
         if (!active) return;
         if (error) {
           setLocationStatus('所在地区分享状态读取失败，请刷新重试。');
         } else {
-          setSharedLocation(data?.location_share_enabled && data.location ? data.location : null);
+          const row = Array.isArray(data) ? data[0] : null;
+          setSharedLocation(row?.location_share_enabled && row.location ? row.location : null);
         }
         setLocationLoading(false);
       });
@@ -84,7 +82,7 @@ export default function MePrivacy() {
     setLocationBusy(true);
     setLocationStatus('正在保存…');
     try {
-      const saved = await saveSharedRegion(uid, value);
+      const saved = await saveSharedRegion(value);
       setSharedLocation(saved);
       setLocationInput('');
       setLocationStatus('已保存。该地区仅超级管理员可见。');
@@ -100,7 +98,7 @@ export default function MePrivacy() {
     setLocationStatus('正在获取城市 / 地区…');
     try {
       const region = await resolveApproximateRegion();
-      const saved = await saveSharedRegion(uid, region);
+      const saved = await saveSharedRegion(region);
       setSharedLocation(saved);
       setLocationStatus('已保存。该地区仅超级管理员可见。');
     } catch (error) {
@@ -118,7 +116,7 @@ export default function MePrivacy() {
     setLocationBusy(true);
     setLocationStatus('正在删除…');
     try {
-      await revokeSharedRegion(uid);
+      await revokeSharedRegion();
       setSharedLocation(null);
       setLocationStatus('已撤回，保存的地区已删除。');
     } catch (error) {

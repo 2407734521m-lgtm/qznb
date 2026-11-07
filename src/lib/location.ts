@@ -55,28 +55,14 @@ export async function resolveApproximateRegion(): Promise<string> {
   return normalizeSharedRegion(location);
 }
 
-export async function saveSharedRegion(profileId: string, value: string): Promise<string> {
+export async function saveSharedRegion(value: string): Promise<string> {
   const location = normalizeSharedRegion(value);
-  const now = new Date().toISOString();
-  const { error } = await supabase.from('member_presence').upsert({
-    profile_id: profileId,
-    location,
-    location_share_enabled: true,
-    location_consented_at: now,
-    updated_at: now,
-  }, { onConflict: 'profile_id' });
+  const { data, error } = await supabase.rpc('set_my_shared_region', { p_location: location });
   if (error) throw new Error(error.message);
-  return location;
+  return typeof data === 'string' ? data : location;
 }
 
-export async function revokeSharedRegion(profileId: string): Promise<void> {
-  const { error } = await supabase.from('member_presence')
-    .update({
-      location: null,
-      location_share_enabled: false,
-      location_consented_at: null,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('profile_id', profileId);
+export async function revokeSharedRegion(): Promise<void> {
+  const { error } = await supabase.rpc('revoke_my_shared_region');
   if (error) throw new Error(error.message);
 }

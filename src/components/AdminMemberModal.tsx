@@ -58,8 +58,18 @@ export default function AdminMemberModal({ memberId, onClose, onChanged, isSuper
       if (em) setEmail((em as any).email || '');
       const { data: gp } = await supabase.from('game_profiles').select('game_name, rank, status').eq('profile_id', memberId).maybeSingle();
       if (gp) setGame(`${(gp as any).game_name}${(gp as any).rank ? ' · ' + (gp as any).rank : ''}（${(gp as any).status === 'approved' ? '已通过' : (gp as any).status === 'pending' ? '待审核' : '已驳回'}）`);
-      const { data: pr } = await supabase.from('member_presence').select('location, device, updated_at').eq('profile_id', memberId).maybeSingle();
-      if (pr) setPresence(`${(pr as any).location || ''}${(pr as any).location && (pr as any).device ? ' · ' : ''}${(pr as any).device || ''}`);
+      if (isSuper) {
+        const { data: accounts } = await supabase.rpc('admin_member_accounts');
+        const accountRows = (accounts ?? []) as Array<{ id: string; location: string | null; device: string | null }>;
+        const account = accountRows.find(row => row.id === memberId);
+        if (account) {
+          const parts = [
+            account.location ? '自愿分享地区：' + account.location : '',
+            account.device ? '登录设备：' + account.device : '',
+          ].filter(Boolean);
+          setPresence(parts.join(' · '));
+        }
+      }
       const { data: ct } = await supabase.from('profile_contacts').select('contact, social').eq('profile_id', memberId).maybeSingle();
       if (ct) {
         const parts: string[] = [];
@@ -135,7 +145,7 @@ export default function AdminMemberModal({ memberId, onClose, onChanged, isSuper
             <div>角色：{f.role === 'super_admin' ? '超级管理员' : f.role === 'admin' ? '管理员' : '成员'}</div>
             <div>状态：{f.joined ? '已加入班级' : '未加入'}</div>
             <div>注册：{(f.created_at || '').slice(0, 16).replace('T', ' ')}</div>
-            {presence && <div>位置设备：{presence}</div>}
+            {presence && <div>位置 / 设备：{presence}</div>}
             {game && <div>游戏：{game}</div>}
           </div>
 

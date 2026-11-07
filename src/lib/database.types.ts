@@ -1604,6 +1604,18 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: unknown
       }
+      get_my_shared_region: {
+        Args: Record<PropertyKey, never>
+        Returns: { location: string | null; location_share_enabled: boolean; location_consented_at: string | null }[]
+      }
+      set_my_shared_region: {
+        Args: { p_location: string }
+        Returns: string
+      }
+      revoke_my_shared_region: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       admin_presence_summary: {
         Args: Record<PropertyKey, never>
         Returns: { online_count: number; active_count: number; sampled_at: string }

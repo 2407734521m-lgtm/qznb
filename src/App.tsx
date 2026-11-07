@@ -1,7 +1,9 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import type { MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent } from 'react';
 import { Routes, Route, NavLink, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { LiquidGlass } from 'simple-liquid-glass';
+import { LiquidGlassNav } from './components/liquid-glass-dock';
 import { LiquidGlassScene } from 'simple-liquid-glass/backdrop';
 import { DUR, EASE } from './lib/motion';
 import { supabase } from './lib/supabase';
@@ -64,6 +66,45 @@ const TABS = [
   { to: '/friends', label: '私聊' },
   { to: '/me', label: '我的' },
 ];
+
+function DockIcon({ kind, unread = false }: {
+  kind: 'home' | 'explore' | 'friends' | 'me';
+  unread?: boolean;
+}) {
+  return (
+    <span className="qz26-dock-icon-wrap">
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor"
+        strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        {kind === 'home' && (
+          <>
+            <path d="m3.8 10.6 8.2-6.8 8.2 6.8v8.1a1.8 1.8 0 0 1-1.8 1.8H5.6a1.8 1.8 0 0 1-1.8-1.8v-8.1Z" />
+            <path d="M9 20.5v-6.7h6v6.7" />
+          </>
+        )}
+        {kind === 'explore' && (
+          <>
+            <circle cx="12" cy="12" r="8.5" />
+            <path d="m15.7 8.3-2.4 5-5 2.4 2.4-5 5-2.4Z" />
+          </>
+        )}
+        {kind === 'friends' && (
+          <>
+            <path d="M20 11.4a7.4 7.4 0 0 1-7.4 7.4H5l1.4-3.1A7.4 7.4 0 1 1 20 11.4Z" />
+            <path d="M8.8 11.5h.1M12 11.5h.1M15.2 11.5h.1" strokeWidth="2.3" />
+          </>
+        )}
+        {kind === 'me' && (
+          <>
+            <circle cx="12" cy="8" r="3.4" />
+            <path d="M4.5 20c.8-3.1 3.4-4.9 7.5-4.9s6.7 1.8 7.5 4.9" />
+          </>
+        )}
+      </svg>
+      {unread && <i className="qz26-dock-unread" />}
+    </span>
+  );
+}
+
 const DOCK_MORE_TABS = [
   { to: '/board', label: '公告' },
   { to: '/members', label: '班级' },
@@ -356,7 +397,6 @@ function Shell() {
   const isAirInkPage = loc.pathname === '/air-ink';
   const isImmersivePage = isBloomPage || isAirInkPage;
   const nav = useNavigate();
-  const barRef = useRef<HTMLElement>(null);
   const [dockCollapsed, setDockCollapsed] = useState(() => {
     try { return localStorage.getItem('ca_dock_collapsed') === '1'; } catch { return false; }
   });
@@ -364,19 +404,44 @@ function Shell() {
   const [dockMoreOpen, setDockMoreOpen] = useState(false);
   const dockLongPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dockLongPressTriggered = useRef(false);
+  const dockLongPressOrigin = useRef<{ x: number; y: number } | null>(null);
   const clearDockLongPress = () => {
     if (dockLongPressTimer.current) {
       clearTimeout(dockLongPressTimer.current);
       dockLongPressTimer.current = null;
     }
+    dockLongPressOrigin.current = null;
   };
-  const startDockLongPress = () => {
+  const startDockLongPress = (event: ReactPointerEvent<HTMLElement>) => {
+    if (event.button !== 0) return;
     clearDockLongPress();
     dockLongPressTriggered.current = false;
-    dockLongPressTimer.current = setTimeout(() => {
+    dockLongPressOrigin.current = { x: event.clientX, y: event.clientY };
+    dockLongPressTimer.current = window.setTimeout(() => {
       dockLongPressTriggered.current = true;
+      dockLongPressOrigin.current = null;
       setDockMoreOpen(true);
     }, 520);
+  };
+  const moveDockLongPress = (event: ReactPointerEvent<HTMLElement>) => {
+    const origin = dockLongPressOrigin.current;
+    if (!origin) return;
+    if (Math.hypot(event.clientX - origin.x, event.clientY - origin.y) > 10) {
+      clearDockLongPress();
+    }
+  };
+  const handleDockContextMenu = (event: ReactMouseEvent<HTMLElement>) => {
+    event.preventDefault();
+    clearDockLongPress();
+    dockLongPressTriggered.current = true;
+    setDockMoreOpen(true);
+    window.setTimeout(() => { dockLongPressTriggered.current = false; }, 800);
+  };
+  const handleDockClickCapture = (event: ReactMouseEvent<HTMLElement>) => {
+    if (!dockLongPressTriggered.current) return;
+    event.preventDefault();
+    event.stopPropagation();
+    dockLongPressTriggered.current = false;
   };
   useEffect(() => () => clearDockLongPress(), []);
   // 搜索入口已从 dock 移到首页：首页搜索条发这个事件打开全站搜索。
@@ -388,16 +453,6 @@ function Shell() {
   const [dockSide, setDockSide] = useState<'left' | 'right'>(() => {
     try { return localStorage.getItem('ca_dock_side') === 'left' ? 'left' : 'right'; } catch { return 'right'; }
   });
-  // 只在路由或 Dock 展开状态变化时定位活动项，避免每次 Shell 重渲染都触发滚动。
-  useEffect(() => {
-    if (dockCollapsed) return;
-    const active = barRef.current?.querySelector<HTMLAnchorElement>('.dock-item a.on');
-    active?.scrollIntoView({
-      inline: 'center',
-      block: 'nearest',
-      behavior: reduce ? 'auto' : 'smooth',
-    });
-  }, [loc.pathname, dockCollapsed, reduce]);
   useEffect(() => {
     try {
       localStorage.setItem('ca_dock_collapsed', dockCollapsed ? '1' : '0');
@@ -743,6 +798,18 @@ function Shell() {
     return <MaintenanceScreen title={siteConfig.maintenance_title || ''} msg={siteConfig.maintenance_msg || ''} hasSession={!!session} onLogout={logout} onAccessGranted={() => setMaintenanceAccess(true)} />;
   }
 
+  const dockItems = useMemo(() => TABS.map((tab) => ({
+    id: tab.to,
+    label: tab.label,
+    icon: (
+      <DockIcon
+        kind={tab.to === '/home' ? 'home' : tab.to === '/explore' ? 'explore' : tab.to === '/friends' ? 'friends' : 'me'}
+        unread={tab.to === '/home' && boardUnread}
+      />
+    ),
+  })), [boardUnread]);
+  const activeDockItem = TABS.find((tab) => isTabActive(tab.to, loc.pathname))?.to ?? TABS[0].to;
+
   return (
     <LiquidGlassScene className="qz-ios26-scene">
       <>
@@ -848,82 +915,55 @@ function Shell() {
       </div>
 
       {!isAdminPage && !isChatPage && !isBloomPage && (
-        <LiquidGlass
-        className={`qz-ios26-dock-glass ${dockCollapsed ? 'dock-collapsed dock-side-' + dockSide : ''}`}
-        renderer="webgl"
-        autodetectquality
-        maxScale={1.3}
-        reveal="immediate"
-        radius={32}
-        blur={8}
-        dispersion={36}
-        aberrationIntensity={0.18}
-        saturation={176}
-        glassColor="rgba(255,255,255,0.30)"
-        style={{
-          position: 'fixed',
-          left: '50%',
-          right: 'auto',
-          bottom: 'calc(14px + env(safe-area-inset-bottom))',
-          transform: 'translateX(-50%)',
-          zIndex: 50,
-          display: 'block',
-          width: 'max-content',
-          // LiquidGlass defaults to height: 100%; a fixed-position Dock must override it,
-          // otherwise the glass surface fills the viewport and its nav sticks to the top.
-          height: '66px',
-          minHeight: '66px',
-          maxWidth: 'calc(100vw - 28px)',
-        }}
-      >
-      <nav
-          ref={barRef}
-          className={`tabbar ${dockCollapsed ? 'dock-collapsed dock-side-' + dockSide : ''}`}
-          style={{ touchAction: 'pan-x pan-y' }}
-          aria-label="主导航"
+        <div
+          className={`qz-ios26-dock-host dock-side-${dockSide}`}
           onPointerDown={startDockLongPress}
+          onPointerMove={moveDockLongPress}
           onPointerUp={clearDockLongPress}
           onPointerLeave={clearDockLongPress}
           onPointerCancel={clearDockLongPress}
-          onContextMenu={(event) => { event.preventDefault(); clearDockLongPress(); dockLongPressTriggered.current = true; setDockMoreOpen(true); }}
-          onClickCapture={(event) => {
-            if (dockLongPressTriggered.current) {
-              event.preventDefault();
-              event.stopPropagation();
-              dockLongPressTriggered.current = false;
-            }
-          }}
-        >          <div className="dock-scroll">
-          <AnimatePresence initial={false}>
-            {!dockCollapsed && TABS.map((t, i) => {
-              const activeIdx = TABS.findIndex(x => isTabActive(x.to, loc.pathname));
-              const on = i === activeIdx;
-              return (
-                <motion.div key={t.to} className="dock-item"
-                  initial={reduce ? false : { opacity: 0, scale: 0.8, x: dockSide === 'left' ? -18 : 18 }}
-                  animate={{ opacity: 1, scale: 1, x: 0 }}
-                  exit={reduce ? { opacity: 0 } : {
-                    opacity: 0, scale: 0.4, x: dockSide === 'left' ? -40 : 40,
-                    transition: { duration: DUR.fast, ease: EASE, delay: dockSide === 'left' ? (TABS.length - 1 - i) * 0.02 : i * 0.02 }
-                  }}
-                  transition={{ duration: reduce ? 0 : DUR.fast, ease: EASE, delay: reduce ? 0 : (dockSide === 'left' ? i * 0.02 : (TABS.length - 1 - i) * 0.02) }}>
-                  <NavLink to={t.to} className={on ? 'on' : ''}>
-                    {on && <motion.span layoutId="qz-dock-active-indicator" className="dock-active-indicator" transition={{ type: 'spring', stiffness: 420, damping: 34 }} aria-hidden="true" />}
-                    <span className="dock-tab-label">{t.label}</span>
-                    {((t.to === '/home' && boardUnread) || (t.to === '/me/notifications' && notifUnread && !quietHoursActive)) && <span className="dock-unread-dot" />}
-                  </NavLink>
-                </motion.div>
-              );
-            })}
-          </AnimatePresence>
-          </div>
-
-          {dockCollapsed && (
-            <button type="button" className="dock-action dock-toggle"
-              aria-label="展开导航栏" title="展开导航栏"
-              onClick={() => setDockCollapsed(false)}>＋</button>
+          onContextMenu={handleDockContextMenu}
+          onClickCapture={handleDockClickCapture}
+        >
+          {dockCollapsed ? (
+            <button
+              type="button"
+              className={`qz-ios26-dock-collapsed dock-side-${dockSide}`}
+              aria-label="展开 Dock"
+              title="展开 Dock"
+              onClick={() => setDockCollapsed(false)}
+            >＋</button>
+          ) : (
+            <LiquidGlassNav
+              className="qz-ios26-liquid-dock"
+              items={dockItems}
+              activeItem={activeDockItem}
+              onItemChange={(id) => {
+                if (dockLongPressTriggered.current) return;
+                const target = TABS.find((tab) => tab.to === id);
+                if (target && !isTabActive(target.to, loc.pathname)) nav(target.to);
+              }}
+              activeColor="#263b4f"
+              inactiveColor="rgba(58, 78, 96, 0.78)"
+              reducedMotion={reduce}
+              style={{
+                position: 'fixed',
+                left: '50%',
+                right: 'auto',
+                bottom: 'calc(12px + env(safe-area-inset-bottom))',
+                transform: 'translateX(-50%)',
+                zIndex: 50,
+                width: 'min(360px, calc(100vw - 24px))',
+                height: '56px',
+                padding: '0 7px',
+                gap: '0px',
+                background: 'rgba(255,255,255,.38)',
+                border: '1px solid rgba(255,255,255,.88)',
+                boxShadow: '0 12px 34px rgba(25,43,66,.14), inset 0 1px 0 rgba(255,255,255,.94), inset 0 -1px 0 rgba(170,190,210,.14)',
+              }}
+            />
           )}
-        </nav></LiquidGlass>
+        </div>
       )}
       <AnimatePresence>
         {dockMoreOpen && !isAdminPage && !isChatPage && !isBloomPage && (

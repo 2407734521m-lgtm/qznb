@@ -705,3 +705,121 @@ button:focus-visible, a:focus-visible {
   min-width: 0 !important;
   padding-inline: 4px !important;
 }
+
+/* Dynamic iOS-style liquid-glass Dock: the selected lens moves independently of the base rail. */
+.qz-ios26-dock-host { position: relative; z-index: 50; }
+.qz-ios26-liquid-dock {
+  box-sizing: border-box !important;
+  width: min(360px, calc(100vw - 24px)) !important;
+  max-width: calc(100vw - 24px) !important;
+  height: 56px !important;
+  padding: 0 7px !important;
+  gap: 0 !important;
+  border: 1px solid rgba(255,255,255,.88) !important;
+  border-radius: 30px !important;
+  background: rgba(255,255,255,.42) !important;
+  -webkit-backdrop-filter: blur(30px) saturate(1.55) brightness(1.04) !important;
+  backdrop-filter: blur(30px) saturate(1.55) brightness(1.04) !important;
+  box-shadow:
+    0 12px 34px rgba(25,43,66,.14),
+    inset 0 1px 0 rgba(255,255,255,.96),
+    inset 0 -1px 0 rgba(170,190,210,.14) !important;
+  overflow: visible !important;
+}
+.qz-ios26-liquid-dock .webgl-liquid-glass-tab,
+.qz-ios26-liquid-dock > div[aria-hidden="true"] > div {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 6px 8px !important;
+  gap: 3px !important;
+  font-size: 11px !important;
+  line-height: 1.1 !important;
+}
+.qz-ios26-liquid-dock .webgl-liquid-glass-tab {
+  color: rgba(58,78,96,.78) !important;
+  border-radius: 24px;
+  transition: color .18s ease;
+}
+.qz-ios26-liquid-dock .webgl-liquid-glass-tab[aria-current="page"] {
+  color: #263b4f !important;
+}
+.qz-ios26-liquid-dock .qz26-dock-icon-wrap {
+  position: relative;
+  display: grid;
+  width: 21px;
+  height: 21px;
+  place-items: center;
+  flex: 0 0 21px;
+}
+.qz-ios26-liquid-dock .qz26-dock-icon-wrap svg {
+  display: block;
+  width: 20px;
+  height: 20px;
+}
+.qz-ios26-liquid-dock .qz26-dock-unread {
+  position: absolute;
+  top: -1px;
+  right: -3px;
+  width: 6px;
+  height: 6px;
+  border: 1.5px solid rgba(255,255,255,.94);
+  border-radius: 50%;
+  background: #e56b7a;
+  box-shadow: 0 0 0 2px rgba(229,107,122,.12);
+}
+.qz-ios26-dock-collapsed {
+  position: fixed;
+  left: 50%;
+  bottom: calc(12px + env(safe-area-inset-bottom));
+  z-index: 50;
+  width: 54px;
+  height: 54px;
+  padding: 0;
+  transform: translateX(-50%);
+  border: 1px solid rgba(255,255,255,.9) !important;
+  border-radius: 19px !important;
+  color: #263b4f !important;
+  background: rgba(255,255,255,.62) !important;
+  -webkit-backdrop-filter: blur(26px) saturate(1.5);
+  backdrop-filter: blur(26px) saturate(1.5);
+  box-shadow: 0 12px 30px rgba(25,43,66,.16), inset 0 1px 0 rgba(255,255,255,.96) !important;
+  font-size: 24px;
+  line-height: 1;
+}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .qz-ios26-liquid-dock,
+  .qz-ios26-dock-collapsed {
+    background: rgba(247,250,253,.96) !important;
+  }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .qz-ios26-liquid-dock,
+  .qz-ios26-dock-collapsed {
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+    background: rgba(247,250,253,.98) !important;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .qz-ios26-liquid-dock .webgl-liquid-glass-tab {
+    transition: none !important;
+  }
+}
+@media (max-width: 380px) {
+  .qz-ios26-liquid-dock .webgl-liquid-glass-tab,
+  .qz-ios26-liquid-dock > div[aria-hidden="true"] > div {
+    padding-inline: 5px !important;
+    font-size: 10.5px !important;
+  }
+}
+.qz-ios26-dock-collapsed.dock-side-left {
+  left: 14px;
+  right: auto;
+  transform: none;
+}
+.qz-ios26-dock-collapsed.dock-side-right {
+  left: auto;
+  right: 14px;
+  transform: none;
+}
+

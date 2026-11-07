@@ -28,6 +28,9 @@ import './styles-ios26-liquid-glass.css';
 /* Form controls intentionally refine the shared component styles last. */
 import './styles-form-ux.css';
 
+/* rdev liquid-glass dock shell overrides (must stay after ios26 + form-ux). */
+import './styles-dock-rdev.css';
+
 // 只有精确匹配的管理员域名可以挂载后台；其他任何域名都不能加载 AdminShell。
 const isAdminHost = window.location.hostname.toLowerCase() === 'admin.qianzhi.pw';
 
@@ -62,7 +65,7 @@ function AdminShell() {
       .then(({ data }) => {
         if (!live) return;
         const t = (data ?? []).find((x: any) => x.key === 'site_title')?.value;
-        document.title = `${String(t || '我们的班级').trim() || '我们的班级'} · 管理后台`;
+        document.title = `${String(t || '堯').trim() || '堯'} · 管理后台`;
       });
     return () => { live = false; };
   }, []);
@@ -71,7 +74,7 @@ function AdminShell() {
   if (!isAdmin) return (<><div className="glow" /><AdminLogin showBack={false} /></>);
   return (<>
     <div className="glow" />
-    <div className="wrap"><Admin /></div>
+    <Admin verifiedRole={role === 'super_admin' ? 'super_admin' : 'admin'} />
   </>);
 }
 

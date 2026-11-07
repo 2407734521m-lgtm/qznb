@@ -283,9 +283,9 @@ export default function AdminWorkspace({
       {mobileOpen && <button type="button" className="admin-sidebar-scrim" aria-label="关闭导航" onClick={() => setMobileOpen(false)} />}
       <aside className="admin-sidebar" aria-label="管理后台导航">
         <div className="admin-sidebar-brand">
-          <div className="admin-brand-mark">Q</div>
+          <div className="admin-brand-mark">堯</div>
           <div className="admin-brand-copy">
-            <strong>青春档案</strong>
+            <strong>堯</strong>
             <span>ADMIN CONSOLE</span>
           </div>
           <button type="button" className="admin-sidebar-close" aria-label="关闭导航" onClick={() => setMobileOpen(false)}>

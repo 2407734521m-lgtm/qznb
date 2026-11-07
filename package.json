@@ -9,11 +9,13 @@
     "typecheck": "tsc --noEmit",
     "preview": "vite preview",
     "types:gen": "bash scripts/gen-types.sh",
-    "check:styles": "node scripts/check-style-contracts.mjs"
+    "check:styles": "node scripts/check-style-contracts.mjs",
+    "check:admin-styles": "node scripts/check-admin-style-contracts.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.118.0",
     "framer-motion": "^14.7.1",
+    "liquid-glass-react": "^1.1.1",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "react-router-dom": "^7.18.5",

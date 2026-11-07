@@ -24,13 +24,13 @@ export function TrendChart({ data }: { data: number[] }) {
   return (
     <svg viewBox={`0 0 ${w} ${h}`} style={{ width: '100%', height: 90, display: 'block' }}>
       <defs><linearGradient id="dtrend" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0" stopColor="#5b8cff" stopOpacity=".45" />
-        <stop offset="1" stopColor="#5b8cff" stopOpacity="0" />
+        <stop offset="0" stopColor="#22314a" stopOpacity=".16" />
+        <stop offset="1" stopColor="#22314a" stopOpacity="0" />
       </linearGradient></defs>
       <path d={`${line} L${w},${h} L0,${h} Z`} fill="url(#dtrend)" />
-      <path d={line} fill="none" stroke="#5b8cff" strokeWidth="2.5" />
-      <circle cx={w} cy={ly} r="7" fill="#5b8cff33" />
-      <circle cx={w} cy={ly} r="4" fill="#5b8cff" />
+      <path d={line} fill="none" stroke="#22314a" strokeWidth="2.5" />
+      <circle cx={w} cy={ly} r="7" fill="#22314a2e" />
+      <circle cx={w} cy={ly} r="4" fill="#22314a" />
     </svg>
   );
 }

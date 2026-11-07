@@ -10,6 +10,7 @@ import '../styles-admin-ops.css';
 import '../styles-admin-tokens.css';
 import '../styles-admin-pages.css';
 import '../styles-admin-contrast.css';
+import '../styles-admin-paper.css';
 import AdminWorkspace from '../components/AdminWorkspace';
 import AdminGuestAccess from '../components/AdminGuestAccess';
 import AdminSystemCenter from '../components/AdminSystemCenter';

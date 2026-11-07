@@ -1,6 +1,7 @@
-/* Unslop visual system — quiet ink surfaces, one meaningful teal accent.
-   Adapted for 堯's deep-sea / teal identity. Part of Unslop by Damir Sokolovsky,
-   CC BY 4.0: https://github.com/heydamir/unslop
+/* Unslop visual system — warm archive neutrals with one restrained clay accent.
+   Built for a class memory archive: photographs and real posts carry the color.
+   Part of Unslop by Damir Sokolovsky, CC BY 4.0:
+   https://github.com/heydamir/unslop
 */
 :root {
   color-scheme: dark;
@@ -15,15 +16,15 @@
   --radius-control: 9px;
   --radius-card: 14px;
   --radius-panel: 18px;
-  --visual-bg: #0b0d14;
-  --visual-surface: #111923;
-  --visual-surface-raised: #1a2530;
-  --visual-border: rgba(211, 229, 237, .12);
-  --visual-text: #eef3f6;
-  --visual-secondary: #b1bec8;
-  --visual-muted: #8999a7;
-  --visual-accent: #65e5d3;
-  --visual-on-accent: #06232e;
+  --visual-bg: #171614;
+  --visual-surface: #211f1b;
+  --visual-surface-raised: #2b2822;
+  --visual-border: rgba(239, 229, 214, .13);
+  --visual-text: #f1ece3;
+  --visual-secondary: #c7bdaf;
+  --visual-muted: #a49a8c;
+  --visual-accent: #c68b69;
+  --visual-on-accent: #241811;
   --r: var(--radius-card);
   --bg: var(--visual-bg);
   --fg: var(--visual-text);
@@ -32,20 +33,28 @@
   --b: var(--visual-accent);
 }
 
-/* Shared surfaces: material comes from content, not decorative effects. */
-.card {
+html { scroll-behavior: smooth; }
+body { background-color: var(--visual-bg); color: var(--visual-text); }
+.glow { background: none !important; animation: none !important; }
+::selection { background: rgba(198, 139, 105, .28); color: #fffaf4; }
+
+/* Shared surfaces: keep the chrome quiet and let real class content carry color. */
+.card,
+.post,
+.tl-item,
+.composer {
   background: var(--visual-surface) !important;
   border: 1px solid var(--visual-border) !important;
   border-radius: var(--radius-card) !important;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, .12) !important;
-  -webkit-backdrop-filter: none;
-  backdrop-filter: none;
+  box-shadow: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
 }
 
 button.pri {
-  background: var(--a) !important;
+  background: var(--visual-accent) !important;
   color: var(--visual-on-accent) !important;
-  border: 1px solid var(--a) !important;
+  border: 1px solid var(--visual-accent) !important;
   border-radius: var(--radius-control) !important;
   box-shadow: none !important;
   font-weight: 600;
@@ -81,9 +90,9 @@ textarea::placeholder {
 input:focus,
 textarea:focus,
 select:focus {
-  outline: 2px solid color-mix(in srgb, var(--a) 72%, transparent);
+  outline: 2px solid color-mix(in srgb, var(--visual-accent) 72%, transparent);
   outline-offset: 2px;
-  border-color: var(--a) !important;
+  border-color: var(--visual-accent) !important;
   box-shadow: none !important;
 }
 
@@ -94,8 +103,8 @@ select:focus {
   background: var(--visual-surface) !important;
   border-color: var(--visual-border) !important;
   box-shadow: none !important;
-  -webkit-backdrop-filter: none;
-  backdrop-filter: none;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
 }
 
 .mcard {
@@ -106,7 +115,7 @@ select:focus {
 .mcard:hover,
 .mcard:focus-within {
   background: var(--visual-surface-raised) !important;
-  border-color: color-mix(in srgb, var(--a) 34%, var(--visual-border)) !important;
+  border-color: color-mix(in srgb, var(--visual-accent) 34%, var(--visual-border)) !important;
   box-shadow: none !important;
   transform: translateY(-1px);
 }
@@ -114,13 +123,13 @@ select:focus {
 .bubble.me {
   background: var(--visual-surface-raised) !important;
   color: var(--visual-text) !important;
-  border: 1px solid var(--visual-border);
+  border: 1px solid var(--visual-border) !important;
 }
 
 .gbadge,
 .rankchip.on {
-  background: color-mix(in srgb, var(--a) 12%, var(--visual-surface-raised)) !important;
-  border: 1px solid color-mix(in srgb, var(--a) 25%, var(--visual-border)) !important;
+  background: color-mix(in srgb, var(--visual-accent) 12%, var(--visual-surface-raised)) !important;
+  border: 1px solid color-mix(in srgb, var(--visual-accent) 25%, var(--visual-border)) !important;
   color: var(--visual-text) !important;
   box-shadow: none !important;
 }
@@ -137,23 +146,22 @@ select:focus {
   box-shadow: inset 0 0 0 1px var(--visual-border);
 }
 
-/* The mobile Dock stays light. Its nearly opaque base also avoids dark fallbacks
-   in browsers that do not support backdrop-filter. */
+/* The compact mobile Dock remains warm white, with a safe solid fallback. */
 @media (max-width: 768px) {
   .tabbar {
-    background: rgba(249, 253, 253, .96) !important;
+    background: rgba(252, 249, 244, .97) !important;
     background-image: none !important;
     border: 1px solid rgba(255, 255, 255, .96) !important;
     border-radius: 18px !important;
     box-shadow:
-      0 10px 28px rgba(6, 39, 57, .13),
+      0 10px 28px rgba(34, 25, 18, .15),
       inset 0 1px 0 rgba(255, 255, 255, .98) !important;
-    -webkit-backdrop-filter: blur(18px) saturate(1.12) !important;
-    backdrop-filter: blur(18px) saturate(1.12) !important;
+    -webkit-backdrop-filter: blur(18px) saturate(1.08) !important;
+    backdrop-filter: blur(18px) saturate(1.08) !important;
   }
 
   .tabbar .dock-item > a {
-    color: #526b77 !important;
+    color: #71665a !important;
     background: transparent !important;
     border: 1px solid transparent !important;
     box-shadow: none !important;
@@ -163,27 +171,27 @@ select:focus {
 
   .tabbar .dock-item > a.on,
   .tabbar .dock-item > a[aria-current="page"] {
-    color: #124b59 !important;
-    background: #e3f2ef !important;
-    border-color: #cfe5e1 !important;
+    color: #704632 !important;
+    background: #f1e5d9 !important;
+    border-color: #e7d5c5 !important;
     box-shadow: none !important;
   }
 
   .tabbar .dock-toggle {
-    color: #2b6570 !important;
-    background: #edf5f4 !important;
-    border: 1px solid #dbe9e7 !important;
+    color: #704632 !important;
+    background: #f5eee6 !important;
+    border: 1px solid #e8ddd1 !important;
     box-shadow: none !important;
   }
 
   .tabbar .dock-active-indicator {
-    background: #248d83 !important;
+    background: #9b654b !important;
     box-shadow: none !important;
   }
 }
 
 :where(button, a, input, textarea, select):focus-visible {
-  outline: 2px solid var(--a);
+  outline: 2px solid var(--visual-accent);
   outline-offset: 3px;
 }
 

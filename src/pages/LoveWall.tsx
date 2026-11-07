@@ -372,7 +372,6 @@ export default function LoveWall() {
   return <main style={{ maxWidth: 760, margin: '0 auto', padding: '12px 0 110px', color: '#202124' }}>
     <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', padding: '6px 2px 16px' }}>
       <div style={{ minWidth: 0 }}>
-        <div style={{ fontSize: 11, letterSpacing: 3, color: '#737b89' }}>COMMUNITY</div>
         <h1 style={{ fontSize: 26, lineHeight: 1.2, margin: '7px 0 0', letterSpacing: '-.5px' }}>{activeTab === 'confessions' ? '表白墙' : '帖子'}</h1>
       </div>
       <div role="tablist" aria-label="切换内容" style={{ display: 'inline-flex', alignItems: 'center', gap: 2, padding: 4, borderRadius: 999, background: '#f1f3f6', border: '1px solid #e8ebf0', flexShrink: 0 }}>
@@ -424,7 +423,7 @@ export default function LoveWall() {
           {p.status === 'published' && (
             <div style={{ marginTop: 10, borderTop: '1px solid #f0f2f6', paddingTop: 10 }}>
               <button onClick={() => void toggleComments(p.id)} style={{ border: 0, background: 'transparent', color: '#5a6472', fontSize: 12.5, cursor: 'pointer', padding: 0 }}>
-                评论{counts[p.id] ? `（${counts[p.id]}）` : ''} {openId === p.id ? '▲' : '▼'}
+                评论{counts[p.id] ? `（${counts[p.id]}）` : ''} <svg viewBox="0 0 24 24" aria-hidden="true" style={{ width: 12, height: 12, verticalAlign: -1, marginLeft: 2, transform: openId === p.id ? 'rotate(180deg)' : 'none', transition: 'transform .18s ease' }} fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
               </button>
               {openId === p.id && (
                 <div style={{ marginTop: 10, display: 'grid', gap: 10 }}>
@@ -451,7 +450,7 @@ export default function LoveWall() {
 
     {/* 唯一的发布入口：悬浮按钮（避开底部 Dock） */}
     <button onClick={() => { void openCompose(); }} aria-label="写表白"
-      style={{ position: 'fixed', right: 18, bottom: 'calc(92px + env(safe-area-inset-bottom))', zIndex: 60, border: 0, borderRadius: 999, padding: '13px 20px', background: 'linear-gradient(135deg,#e0567a,#c22f3d)', color: '#fff', fontWeight: 800, fontSize: 14, boxShadow: '0 12px 28px rgba(194,47,61,.35)', cursor: 'pointer' }}>
+      style={{ position: 'fixed', right: 18, bottom: 'calc(92px + env(safe-area-inset-bottom))', zIndex: 60, border: 0, borderRadius: 999, padding: '13px 20px', background: '#b0404f', color: '#fff', fontWeight: 600, fontSize: 14, boxShadow: '0 8px 20px rgba(60,30,35,.22)', cursor: 'pointer' }}>
       写表白
     </button>
 

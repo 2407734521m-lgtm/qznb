@@ -18,7 +18,7 @@ const LAYOUTS = [
   { k: 'list', name: '列表' },
 ] as const;
 
-function Card({ m, i, badge, signedUrl, onOpen }: { m: MemberListItem; i: number; badge?: string; signedUrl?: string; onOpen: (m: MemberListItem, el: HTMLElement, img: string) => void }) {
+function Card({ m, i, badge, signedUrl, onOpen, no }: { m: MemberListItem; i: number; badge?: string; signedUrl?: string; onOpen: (m: MemberListItem, el: HTMLElement, img: string) => void; no?: number }) {
   const reduce = useReducedMotion();
   const ref = useRef<HTMLDivElement>(null);
   const name = m.display_name ?? m.username;
@@ -38,6 +38,7 @@ function Card({ m, i, badge, signedUrl, onOpen }: { m: MemberListItem; i: number
       }}
       onClick={() => ref.current && onOpen(m, ref.current.querySelector('.photo') as HTMLElement, signedUrl ?? '')}>
       <Photo id={m.id} path={m.avatar_path} name={name} signedUrl={signedUrl ?? ''} />
+      {typeof no === 'number' && <span className="mstamp" aria-hidden="true">No.{String(no).padStart(2, '0')}</span>}
       <h3>{name}</h3>
       <p>{m.signature ?? m.personality ?? '这个人很神秘'}</p>
       {badge && <div className="gbadge">{badge}</div>}
@@ -102,7 +103,7 @@ export default function Members() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  function open(m: MemberListItem, photoEl: HTMLElement, img: string) {
+  function open(m: MemberListItem, photoEl: HTMLElement, img: string, no?: number) {
     const s = shotFrom(photoEl, img, m.display_name || m.username);
     if (s) {
       // 按卡片所在列决定飞入方向：左列← / 右列→ / 中间↓
@@ -110,7 +111,7 @@ export default function Members() {
       s.dir = midX < w * 0.38 ? 'left' : midX > w * 0.62 ? 'right' : 'down';
       setShot(s);
     }
-    nav(`/members/${m.id}`, { state: { m, img } });
+    nav(`/members/${m.id}`, { state: { m, img, no } });
   }
 
   return (
@@ -144,7 +145,7 @@ export default function Members() {
         </div>
       </div>
       <div className={'mgrid ' + layout}>
-        {rows.map((m, i) => <Card key={m.id} m={m} i={i} badge={badges[m.id]} signedUrl={m.avatar_path ? avatarUrls[m.avatar_path] : ''} onOpen={open} />)}
+        {rows.map((m, i) => <Card key={m.id} m={m} i={i} badge={badges[m.id]} signedUrl={m.avatar_path ? avatarUrls[m.avatar_path] : ''} no={q ? undefined : i + 1} onOpen={(mm, el, img) => open(mm, el, img, q ? undefined : i + 1)} />)}
       </div>
       {state === 'loading' && <p className="center" style={{ minHeight: 120 }}>加载中…</p>}
       {state === 'ok' && more && <button className="pri" onClick={() => load(false, q, rows)}>加载更多</button>}

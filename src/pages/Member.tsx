@@ -25,7 +25,7 @@ type RelationshipState = {
 
 export default function Member() {
   const { id = '' } = useParams(); const nav = useNavigate(); const reduce = useReducedMotion();
-  const locState = (useLocation().state as { m?: MemberListItem; img?: string } | null);
+  const locState = (useLocation().state as { m?: MemberListItem; img?: string; no?: number } | null);
   const [m, setM] = useState<any>(locState?.m ?? null);
   const [err, setErr] = useState('');
   const [flying, setFlying] = useState(false);
@@ -222,6 +222,7 @@ export default function Member() {
         <h1 className="mp-name">{name || '…'}</h1>
         {sig && <p className="mp-sig">{sig}</p>}
         {gbadge && <div className="mp-badge-row"><span className="gbadge">{badgeText(gbadge.game_name, gbadge.rank)}</span></div>}
+        {typeof locState?.no === 'number' && <div className="mp-stamp" aria-hidden="true">档案 No.{String(locState.no).padStart(2, '0')}</div>}
           </div>
         </div>
         {!isMe && fstat?.blocked_me && <p className="mp-note">对方已限制联系，无法互相申请好友或私聊。</p>}

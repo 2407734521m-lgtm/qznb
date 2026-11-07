@@ -513,11 +513,11 @@
    the darker reading surfaces used by conversation and utility pages. */
 body:has(.vibe-home) {
   color-scheme: light;
-  background: #f5f1e9 !important;
+  background: #ffffff !important;
   color: #29251f !important;
 }
-body:has(.vibe-home) .glow,
-body:has(.vibe-home) .app-bg { display: none !important; }
+/* The glow is decorative only; keep the shared wallpaper layer available. */
+body:has(.vibe-home) .glow { display: none !important; }
 body:has(.vibe-home) .topnav {
   background: rgba(250, 247, 240, .96) !important;
   border-bottom: 1px solid #e8dfd3 !important;

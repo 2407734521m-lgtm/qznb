@@ -422,6 +422,7 @@ export default function Login({ siteTitle, siteSubtitle }: { siteTitle?: string;
             <FloatField label="QQ 邮箱" value={email} error={terr('email', emailErr)}>
               <input value={email} onChange={e => { setEmail(e.target.value); if (codeSent) { setCodeSent(false); setCode(''); } }} onBlur={touch('email')} placeholder="123456@qq.com" inputMode="email" aria-label="QQ 邮箱" />
             </FloatField>
+            {!codeSent && <p className="priv-note" style={{ margin: '4px 0 0' }}>请继续填写下方密码、确认密码并勾选协议，再点击页面底部的「发送验证码并注册」。</p>}
             {codeSent && <p className="priv-note" style={{ margin: '4px 0 0' }}>验证码已通过 Resend 发到上面这个 QQ 邮箱，找标题是「我们的班级 · 青春档案 — 你的验证码」的邮件，没看到就翻一下垃圾箱</p>}
             {codeSent && (<>
               <label>邮箱验证码</label>

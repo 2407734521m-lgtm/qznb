@@ -98,8 +98,8 @@ export default function AdminApprovalCenter({ setMsg, me }: { setMsg: (message: 
     await load();
   }
 
-  return <div style={{ display: 'grid', gap: 12 }}>
-    <section style={{ ...card, background: 'linear-gradient(135deg,#17213b,#11182a)' }}>
+  return <div className="admin-approvals-page" style={{ display: 'grid', gap: 12 }}>
+    <section style={{ ...card, background: 'var(--admin-surface, #ffffff)' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
         <div>
           <div style={{ fontSize: 17, fontWeight: 800 }}>双人审批中心</div>
@@ -112,7 +112,7 @@ export default function AdminApprovalCenter({ setMsg, me }: { setMsg: (message: 
         <button className={'mini' + (filter === 'all' ? '' : ' ghost')} onClick={() => setFilter('all')}>最近记录</button>
       </div>
       <div style={{ ...mut, marginTop: 9 }}>申请有效期为 72 小时。批准时会重新检查目标账号状态，防止过期或目标已变化的申请被执行。</div>
-      {error && <p style={{ color: '#ffaaaa', fontSize: 12.5, marginBottom: 0 }}>读取失败：{error}</p>}
+      {error && <p style={{ color: '#b42336', fontSize: 12.5, marginBottom: 0 }}>读取失败：{error}</p>}
     </section>
 
     {loading && rows.length === 0 ? <p style={mut}>正在读取审批记录…</p> : visible.length === 0
@@ -126,12 +126,12 @@ export default function AdminApprovalCenter({ setMsg, me }: { setMsg: (message: 
           </div>
           <span style={{
             flexShrink: 0, padding: '4px 8px', borderRadius: 999, fontSize: 11,
-            color: item.status === 'pending' ? '#ffd18a' : item.status === 'approved' ? '#8de0b7' : '#b9c2d8',
-            background: item.status === 'pending' ? '#f59e0b18' : item.status === 'approved' ? '#4ade8015' : '#ffffff0b',
+            color: item.status === 'pending' ? '#a16207' : item.status === 'approved' ? '#16835d' : '#b9c2d8',
+            background: item.status === 'pending' ? '#f59e0b18' : item.status === 'approved' ? '#4ade8015' : '#f8fafc',
             border: '1px solid #ffffff18',
           }}>{statusLabel[item.status]}</span>
         </div>
-        <div style={{ marginTop: 10, padding: 10, borderRadius: 10, background: '#ffffff08', border: '1px solid #ffffff10' }}>
+        <div style={{ marginTop: 10, padding: 10, borderRadius: 10, background: '#f8fafc', border: '1px solid #e5eaf2' }}>
           <div style={{ fontSize: 12, lineHeight: 1.7, whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{item.reason}</div>
         </div>
         <div style={{ ...mut, marginTop: 8 }}>提交：{timeAgo(item.created_at)} · {new Date(item.created_at).toLocaleString()}</div>
@@ -141,7 +141,7 @@ export default function AdminApprovalCenter({ setMsg, me }: { setMsg: (message: 
         {item.status === 'pending' && <>
           {item.requester_id === me && <div role="status" style={{
             marginTop: 12, padding: 10, borderRadius: 10, lineHeight: 1.65,
-            color: '#f6d69d', background: 'rgba(245,158,11,.09)',
+            color: '#7c4a03', background: 'rgba(245,158,11,.09)',
             border: '1px solid rgba(245,158,11,.22)', fontSize: 12,
           }}>这是你发起的申请，需要由另一位超级管理员处理。本人不能批准或拒绝自己的申请。</div>}
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 12 }}>

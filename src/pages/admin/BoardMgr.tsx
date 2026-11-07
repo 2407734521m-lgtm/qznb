@@ -83,7 +83,7 @@ export default function BoardMgr({ me, setMsg }: { me: string; setMsg: (s: strin
     else setMsg('失败：' + error.message);
   }
   return (
-    <div style={card}>
+    <div className="admin-announcements-page" style={card}>
       <h3 style={h3}>首页 16:9 横幅</h3>
       <p style={mut}>在这里设置首页横幅文字和图片；可以直接上传一张图片（建议横向 16:9、不超过 5MB），也可以粘贴图片的 HTTPS 地址。</p>
       <input value={bannerText} onChange={e=>setBannerText(e.target.value)} maxLength={100} placeholder="横幅标题文字" />

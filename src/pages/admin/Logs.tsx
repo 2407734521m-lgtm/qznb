@@ -128,7 +128,7 @@ export default function Logs() {
   const personName = (id: string | null) => (id ? names[id] || id : '');
 
   return (
-    <div style={card}>
+    <div className="admin-logs-page" style={card}>
       <h3 style={h3}>操作日志（{shown.length}）</h3>
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10 }}>
         <button className={'mini' + (actionFilter === 'all' ? '' : ' ghost')} onClick={() => setActionFilter('all')}>全部 {logs.length}</button>
@@ -145,16 +145,16 @@ export default function Logs() {
           <div><b>{actionLabel(l.action)}</b>{actionLabel(l.action) !== l.action && <span style={{ ...mut, marginLeft: 6 }}>{l.action}</span>}</div>
           {(l.actor || l.target) && (
             <div style={{ ...mut, marginTop: 2 }}>
-              {l.actor && <>操作人：<span style={{ color: '#d7dce5' }}>{personName(l.actor)}</span></>}
+              {l.actor && <>操作人：<span style={{ color: '#475569' }}>{personName(l.actor)}</span></>}
               {l.actor && l.target && ' · '}
-              {l.target && <>对象：<span style={{ color: '#d7dce5' }}>{personName(l.target)}</span></>}
+              {l.target && <>对象：<span style={{ color: '#475569' }}>{personName(l.target)}</span></>}
             </div>
           )}
           <div style={{ marginTop: 6, display: 'grid', gap: 5 }}>
             {detailRows(l.detail).map(([key, value], i) => (
               <div key={i} style={{ display: 'grid', gridTemplateColumns: 'minmax(76px, 110px) minmax(0, 1fr)', gap: 8, lineHeight: 1.55 }}>
                 <span style={mut}>{key}</span>
-                <span style={{ color: '#d7dce5', overflowWrap: 'anywhere', whiteSpace: 'pre-wrap' }}>{value}</span>
+                <span style={{ color: '#475569', overflowWrap: 'anywhere', whiteSpace: 'pre-wrap' }}>{value}</span>
               </div>
             ))}
           </div>

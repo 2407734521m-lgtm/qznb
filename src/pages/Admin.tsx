@@ -7,6 +7,8 @@ import '../styles-admin-cinematic.css';
 import '../styles-admin-unified.css';
 import '../styles-admin-scaffold.css';
 import '../styles-admin-ops.css';
+import '../styles-admin-tokens.css';
+import '../styles-admin-pages.css';
 import AdminWorkspace from '../components/AdminWorkspace';
 import AdminSystemCenter from '../components/AdminSystemCenter';
 import AdminAnalyticsCenter from '../components/AdminAnalyticsCenter';
@@ -32,9 +34,7 @@ import Overview from './admin/Overview';
 import BoardMgr from './admin/BoardMgr';
 
 /**
- * 管理后台测试版（V2）：高级管理控制中心
- * 通过 #/admin-v2 进入，不影响现有 /admin
- * 设计：深色玻璃拟态，文字按钮无 emoji，手机优先
+ * Dedicated admin console. The host route verifies the role once before mounting this page.
  */
 
 const TABS_ALL: [string, string, boolean][] = [
@@ -63,7 +63,7 @@ const TABS_ALL: [string, string, boolean][] = [
 ];
 
 
-export default function Admin() {
+export default function Admin({ verifiedRole }: { verifiedRole: 'admin' | 'super_admin' }) {
   const { session } = useAuth();
   const reduceMotion = useReducedMotion();
   const me = session?.user.id ?? '';
@@ -116,35 +116,12 @@ export default function Admin() {
       document.removeEventListener('visibilitychange', onVisibility);
     };
   }, [isDedicatedAdminHost, session?.user.id]);
-  const [role, setRole] = useState('');
-  const [verifiedUid, setVerifiedUid] = useState<string | null>(null);
   const [tab, setTab] = useState('overview');
   const [msg, setMsg] = useState('');
   const [q0, setQ0] = useState('');
-  const isSuper = role === 'super_admin';
+  const isSuper = verifiedRole === 'super_admin';
   const tabs = TABS_ALL.filter(([, , sup]) => !sup || isSuper);
 
-  useEffect(() => {
-    let active = true;
-    setVerifiedUid(null);
-    setRole('');
-    if (!session) {
-      setRole('unauthorized');
-      return () => { active = false; };
-    }
-    const uid = session.user.id;
-    Promise.resolve(supabase.rpc('my_role')).then(({ data, error }) => {
-      if (!active) return;
-      setRole(!error && (data === 'admin' || data === 'super_admin') ? data : 'unauthorized');
-      setVerifiedUid(uid);
-    }).catch(() => {
-      if (active) {
-        setRole('unauthorized');
-        setVerifiedUid(uid);
-      }
-    });
-    return () => { active = false; };
-  }, [session?.user.id]);
 
   function switchTab(id: string) {
     setTab(id); setMsg('');
@@ -158,20 +135,8 @@ export default function Admin() {
   if (!session) {
     return <div className="center" style={{ minHeight: '60vh' }}>登录会话已失效，请返回管理员登录页重新登录。</div>;
   }
-  if (verifiedUid !== session.user.id || !role) {
-    return <div className="center" style={{ minHeight: '60vh' }}>正在验证管理员权限…</div>;
-  }
-  if (role !== 'admin' && role !== 'super_admin') {
-    return (
-      <div className="center" style={{ minHeight: '60vh', padding: 24, textAlign: 'center' }}>
-        <p>管理员权限验证失败，后台内容已锁定。</p>
-        <button onClick={() => { void supabase.auth.signOut(); }}>退出登录</button>
-      </div>
-    );
-  }
-
   return (
-    <div className="page admin-shell admin-shell-v3">
+    <div className="admin-shell-v3">
       <AdminWorkspace
         tabs={tabs}
         activeTab={tab}

@@ -147,20 +147,41 @@ function isTabActive(tab: string, path: string) {
 function AdminRoute() {
   const { session, loading } = useAuth();
   const [role, setRole] = useState<string | null>(null);
+  const [verifiedUid, setVerifiedUid] = useState<string | null>(null);
   useEffect(() => {
-    if (!session) { setRole(null); return; }
+    setRole(null);
+    setVerifiedUid(null);
+    if (!session) return;
     let live = true;
-    // 同 main.tsx 的 AdminShell：my_role 8 秒没回结果或报错都按“未通过”处理，
-    // 不再永远卡在「加载中…」，而是回到登录页让用户重试。
-    const timer = setTimeout(() => { if (live) setRole(''); }, 8000);
+    const uid = session.user.id;
+    const markUnavailable = () => {
+      if (!live) return;
+      setRole('');
+      setVerifiedUid(uid);
+    };
+    // Keep the legacy route's independent guard bound to the current session identity.
+    const timer = setTimeout(markUnavailable, 8000);
     supabase.rpc('my_role').then(
-      ({ data, error }) => { clearTimeout(timer); if (live) setRole(error ? '' : (data ?? '')); },
-      () => { clearTimeout(timer); if (live) setRole(''); });
+      ({ data, error }) => {
+        clearTimeout(timer);
+        if (!live) return;
+        setRole(error ? '' : (data ?? ''));
+        setVerifiedUid(uid);
+      },
+      () => {
+        clearTimeout(timer);
+        markUnavailable();
+      }
+    );
     return () => { live = false; clearTimeout(timer); };
-  }, [session]);
-  if (loading || (session && role === null)) return <div className="center" style={{ minHeight: '60vh' }}><FxLoader text="加载中…" /></div>;
-  const isAdmin = role === 'admin' || role === 'super_admin';
-  return isAdmin ? <ErrorBoundary><Admin /></ErrorBoundary> : <AdminLogin />;
+  }, [session?.user.id]);
+  if (loading || (session && (role === null || verifiedUid !== session.user.id))) {
+    return <div className="center" style={{ minHeight: '60vh' }}><FxLoader text="加载中…" /></div>;
+  }
+  const isAdmin = Boolean(session) && (role === 'admin' || role === 'super_admin');
+  return isAdmin
+    ? <ErrorBoundary><Admin verifiedRole={role === 'super_admin' ? 'super_admin' : 'admin'} /></ErrorBoundary>
+    : <AdminLogin />;
 }
 
 

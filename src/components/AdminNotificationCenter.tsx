@@ -15,12 +15,13 @@ type Notice = {
 };
 
 const panel: React.CSSProperties = {
-  background: 'linear-gradient(145deg,#171e33,#0d1222)',
-  border: '1px solid #ffffff18', borderRadius: 16, padding: 15, marginBottom: 12,
+  background: 'var(--admin-surface, #ffffff)',
+  border: '1px solid var(--admin-border, #e2e8f0)', borderRadius: 16, padding: 15, marginBottom: 12,
+  boxShadow: 'var(--admin-shadow-card, 0 8px 24px rgba(15,23,42,.045))',
 };
 const button: React.CSSProperties = {
-  border: '1px solid #ffffff20', borderRadius: 10, padding: '9px 11px',
-  background: '#ffffff0d', color: '#eef0ff', fontSize: 12, cursor: 'pointer',
+  border: '1px solid var(--admin-border, #e2e8f0)', borderRadius: 10, padding: '9px 12px',
+  background: 'var(--admin-surface-muted, #f8fafc)', color: 'var(--admin-text, #172033)', fontSize: 12, cursor: 'pointer',
 };
 const typeLabels: Record<string, string> = {
   comment: '评论', like: '点赞', greeting: '留言', notice: '公告', admin_message: '管理员消息', moderation: '纪律处理',
@@ -155,7 +156,7 @@ export default function AdminNotificationCenter({ setMsg }: { setMsg: (s: string
     });
   }, [rows, profiles, filter, query]);
 
-  return <section>
+  return <section className="admin-notifications-page">
     <div style={panel}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
         <div>

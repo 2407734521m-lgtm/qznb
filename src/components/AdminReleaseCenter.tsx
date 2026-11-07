@@ -17,11 +17,12 @@ type WorkflowRun = {
 type WorkflowResponse = { workflow_runs?: WorkflowRun[] };
 
 const panel: React.CSSProperties = {
-  background: 'linear-gradient(155deg,rgba(24,34,56,.94),rgba(12,18,33,.98))',
-  border: '1px solid rgba(190,210,255,.13)', borderRadius: 18,
-  padding: 14, marginBottom: 12, color: '#edf3ff',
+  background: 'var(--admin-surface, #ffffff)',
+  border: '1px solid var(--admin-border, #e2e8f0)', borderRadius: 16,
+  padding: 15, marginBottom: 11, color: 'var(--admin-text, #172033)',
+  boxShadow: 'var(--admin-shadow-card, 0 8px 24px rgba(15,23,42,.045))',
 };
-const muted: React.CSSProperties = { color: '#98a8c5', fontSize: 11.5, lineHeight: 1.65 };
+const muted: React.CSSProperties = { color: 'var(--admin-muted, #64748b)', fontSize: 11.5, lineHeight: 1.65 };
 const repoUrl = 'https://github.com/2407734521m-lgtm/qznb';
 const actionsUrl = repoUrl + '/actions';
 
@@ -41,8 +42,8 @@ function statusLabel(run: WorkflowRun) {
   return run.conclusion || '已结束';
 }
 function statusColor(run: WorkflowRun) {
-  if (run.status !== 'completed') return '#ffd18a';
-  return run.conclusion === 'success' ? '#8de0b7' : run.conclusion === 'failure' ? '#ff9da7' : '#aab6cc';
+  if (run.status !== 'completed') return '#a16207';
+  return run.conclusion === 'success' ? '#16835d' : run.conclusion === 'failure' ? '#b42336' : '#aab6cc';
 }
 
 export default function AdminReleaseCenter() {
@@ -84,7 +85,7 @@ export default function AdminReleaseCenter() {
   const latest = deployments[0] ?? null;
   const sameVersion = Boolean(buildSha && latest?.head_sha === buildSha);
 
-  return <div style={{ display: 'grid', gap: 12 }}>
+  return <div className="admin-release-page" style={{ display: 'grid', gap: 12 }}>
     <section style={panel}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
         <div>
@@ -93,12 +94,12 @@ export default function AdminReleaseCenter() {
         </div>
         <button className="mini" disabled={loading} onClick={() => void load()}>{loading ? '刷新中…' : '刷新状态'}</button>
       </div>
-      <div style={{ marginTop: 12, padding: 12, borderRadius: 12, background: '#ffffff08', border: '1px solid #ffffff12' }}>
+      <div style={{ marginTop: 12, padding: 12, borderRadius: 12, background: '#f8fafc', border: '1px solid #e5eaf2' }}>
         <div style={{ ...muted, fontSize: 10.5 }}>当前页面构建版本</div>
         <div style={{ fontSize: 21, fontWeight: 850, letterSpacing: '.4px', margin: '5px 0' }}>{shortSha(buildSha)}</div>
         <div style={muted}>分支：{buildBranch} · 部署运行编号：{buildRunNumber || '未注入'}</div>
         {buildRunId && <div style={muted}>GitHub Actions Run ID：{buildRunId}</div>}
-        {buildSha && <a href={repoUrl + '/commit/' + buildSha} target="_blank" rel="noreferrer" style={{ display: 'inline-block', color: '#9fc1ff', fontSize: 11.5, marginTop: 7 }}>查看当前构建提交 ↗</a>}
+        {buildSha && <a href={repoUrl + '/commit/' + buildSha} target="_blank" rel="noreferrer" style={{ display: 'inline-block', color: '#1d4ed8', fontSize: 11.5, marginTop: 7 }}>查看当前构建提交 ↗</a>}
       </div>
     </section>
 
@@ -112,17 +113,17 @@ export default function AdminReleaseCenter() {
         <div style={{ ...muted, marginTop: 6 }}>Run #{latest.run_number} · {formatTime(latest.run_started_at || latest.updated_at)}</div>
         <div style={{ ...muted, marginTop: 3 }}>提交：{shortSha(latest.head_sha)} · 分支：{latest.head_branch}</div>
         {latest.head_commit?.message && <div style={{ fontSize: 12, marginTop: 8, overflowWrap: 'anywhere' }}>{latest.head_commit.message.split('\n')[0]}</div>}
-        <div style={{ marginTop: 10, padding: 9, borderRadius: 10, background: sameVersion ? '#4ade8012' : '#f0b85a12', border: '1px solid ' + (sameVersion ? '#4ade8030' : '#f0b85a35'), color: sameVersion ? '#8de0b7' : '#ffd18a', fontSize: 11.5 }}>
+        <div style={{ marginTop: 10, padding: 9, borderRadius: 10, background: sameVersion ? '#4ade8012' : '#f0b85a12', border: '1px solid ' + (sameVersion ? '#4ade8030' : '#f0b85a35'), color: sameVersion ? '#16835d' : '#a16207', fontSize: 11.5 }}>
           {sameVersion ? '当前页面构建版本与最近部署提交一致。' : buildSha ? '当前页面构建版本与最新部署记录不一致，请核对部署是否完成。' : '当前页面没有注入构建 SHA，无法自动比较版本。'}
         </div>
-        <a href={latest.html_url} target="_blank" rel="noreferrer" style={{ display: 'inline-block', color: '#9fc1ff', fontSize: 11.5, marginTop: 9 }}>查看这次部署详情 ↗</a>
+        <a href={latest.html_url} target="_blank" rel="noreferrer" style={{ display: 'inline-block', color: '#1d4ed8', fontSize: 11.5, marginTop: 9 }}>查看这次部署详情 ↗</a>
       </>}
-      {error && <p style={{ color: '#ff9da7', fontSize: 11.5, marginBottom: 0 }}>{error}</p>}
+      {error && <p style={{ color: '#b42336', fontSize: 11.5, marginBottom: 0 }}>{error}</p>}
     </section>
 
     <section style={panel}>
       <div style={{ fontSize: 14, fontWeight: 800, marginBottom: 8 }}>最近部署历史</div>
-      {deployments.slice(0, 8).map(run => <div key={run.id} style={{ display: 'flex', justifyContent: 'space-between', gap: 9, padding: '9px 0', borderBottom: '1px solid #ffffff0d' }}>
+      {deployments.slice(0, 8).map(run => <div key={run.id} style={{ display: 'flex', justifyContent: 'space-between', gap: 9, padding: '9px 0', borderBottom: '1px solid #f8fafc' }}>
         <div style={{ minWidth: 0 }}>
           <div style={{ fontSize: 12.5, fontWeight: 750 }}>Run #{run.run_number} · {shortSha(run.head_sha)}</div>
           <div style={muted}>{formatTime(run.run_started_at || run.updated_at)} · {run.head_branch}</div>
@@ -136,7 +137,7 @@ export default function AdminReleaseCenter() {
     <section style={panel}>
       <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 6 }}>发布与回滚边界</div>
       <div style={muted}>此页面读取公开 GitHub Actions 元数据，不使用 GitHub 写入令牌。它可以查看构建和部署状态，但不会直接回滚生产版本。回滚前应先检查数据库迁移是否兼容；代码回滚不能自动撤销数据库数据变更。</div>
-      <a href={actionsUrl} target="_blank" rel="noreferrer" style={{ display: 'inline-block', color: '#9fc1ff', fontSize: 11.5, marginTop: 8 }}>打开 GitHub Actions ↗</a>
+      <a href={actionsUrl} target="_blank" rel="noreferrer" style={{ display: 'inline-block', color: '#1d4ed8', fontSize: 11.5, marginTop: 8 }}>打开 GitHub Actions ↗</a>
     </section>
   </div>;
 }

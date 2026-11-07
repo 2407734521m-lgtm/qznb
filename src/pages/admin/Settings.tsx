@@ -290,7 +290,7 @@ export default function Settings({ me, setMsg }: { me: string; setMsg: (s: strin
     }
   }
 
-  return (<>
+  return <div className="admin-settings-page">
     <div style={card}>
       <h3 style={h3}>全站设置</h3>
       <label style={mut}>网站标题</label>
@@ -344,7 +344,7 @@ export default function Settings({ me, setMsg }: { me: string; setMsg: (s: strin
           {vals.maintenance === 'true' ? '开' : '关'}
         </button>
       </div>
-      <div style={{ marginTop: 14, padding: 12, borderRadius: 12, background: '#ffffff08', border: '1px solid #ffffff14' }}>
+      <div style={{ marginTop: 14, padding: 12, borderRadius: 12, background: '#f8fafc', border: '1px solid #e5eaf2' }}>
         <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 5 }}>定时开启与关闭</div>
         <p style={{ ...mut, margin: '0 0 10px' }}>按当前设备时区设置。计划启用后优先于手动开关：到开启时间自动进入维护模式，到关闭时间自动恢复网站；取消计划后恢复手动控制。</p>
         <label style={mut}>自动开启时间</label>
@@ -355,7 +355,7 @@ export default function Settings({ me, setMsg }: { me: string; setMsg: (s: strin
           <button className="pri" style={{ width: 'auto' }} disabled={scheduleBusy} onClick={() => void saveMaintenanceSchedule()}>{scheduleBusy ? '处理中…' : '保存并启用计划'}</button>
           <button className="mini ghost" disabled={scheduleBusy || !scheduleEnabled} onClick={() => void clearMaintenanceSchedule()}>取消定时计划</button>
         </div>
-        {scheduleEnabled && <p style={{ ...mut, margin: '9px 0 0', color: '#86efac' }}>定时计划已启用 · {scheduleStart ? new Date(scheduleStart).toLocaleString() : '未设置'} 至 {scheduleEnd ? new Date(scheduleEnd).toLocaleString() : '未设置'}</p>}
+        {scheduleEnabled && <p style={{ ...mut, margin: '9px 0 0', color: '#16835d' }}>定时计划已启用 · {scheduleStart ? new Date(scheduleStart).toLocaleString() : '未设置'} 至 {scheduleEnd ? new Date(scheduleEnd).toLocaleString() : '未设置'}</p>}
       </div>
       <label style={{ ...mut, marginTop: 8 }}>维护标题</label>
       <div className="row" style={{ gap: 8, marginBottom: 10 }}>
@@ -367,7 +367,7 @@ export default function Settings({ me, setMsg }: { me: string; setMsg: (s: strin
         <input value={vals.maintenance_msg ?? ''} onChange={e => setVals({ ...vals, maintenance_msg: e.target.value })} style={{ flex: 1 }} placeholder="默认：系统维护中，稍后再来" />
         <button className="mini" onClick={() => save('maintenance_msg', vals.maintenance_msg ?? '')}>保存</button>
       </div>
-      <div style={{ marginTop: 14, padding: 12, borderRadius: 12, background: '#ffffff08', border: '1px solid #ffffff14' }}>
+      <div style={{ marginTop: 14, padding: 12, borderRadius: 12, background: '#f8fafc', border: '1px solid #e5eaf2' }}>
         <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 5 }}>恢复邮件通知</div>
         <p style={{ ...mut, margin: '0 0 10px' }}>维护期间在维护页登记邮箱的访客（当前 {notifyCount} 人）。关闭维护后点发送，系统会给他们每人发一封「网站已恢复」邮件；发送成功的人会自动从名单移除，失败的保留待重试。</p>
         <button className="pri" style={{ width: 'auto' }} disabled={notifyBusy || notifyCount === 0} onClick={() => void sendNotify()}>
@@ -387,12 +387,12 @@ export default function Settings({ me, setMsg }: { me: string; setMsg: (s: strin
           const enabled = featureFlags[feature.key] !== false;
           return <div key={feature.key} style={{
             display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
-            padding: '11px 12px', borderRadius: 12, border: '1px solid #ffffff14', background: '#ffffff06',
+            padding: '11px 12px', borderRadius: 12, border: '1px solid #e5eaf2', background: '#f8fafc',
           }}>
             <div style={{ minWidth: 0 }}>
               <div style={{ fontSize: 13, fontWeight: 700 }}>{feature.label}</div>
               <div style={{ ...mut, fontSize: 11.5 }}>{feature.detail}</div>
-              <div style={{ fontSize: 10.5, marginTop: 3, color: enabled ? '#86efac' : '#ffb4b4' }}>
+              <div style={{ fontSize: 10.5, marginTop: 3, color: enabled ? '#16835d' : '#ffb4b4' }}>
                 {enabled ? '当前开放' : '当前暂停'}
               </div>
             </div>
@@ -441,7 +441,7 @@ export default function Settings({ me, setMsg }: { me: string; setMsg: (s: strin
         {backups.length === 0 && <p style={mut}>暂无备份记录</p>}
       </div>
     </div>
-  </>);
+  </div>;
 }
 
 /* ---------------- 邀请码 ---------------- */

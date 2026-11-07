@@ -386,10 +386,13 @@ export default function ParticleFlower() {
   const lastInferenceRef = useRef(0);
   const activeCdnRef = useRef(VISION_CDNS[0]);
   const rafRef = useRef<number>(0);
-  const initialFpsLimit: FpsLimit = window.matchMedia('(max-width: 700px)').matches ? 60 : 0;
+  const initialFpsLimit: FpsLimit = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    ? 30
+    : window.matchMedia('(max-width: 700px)').matches ? 60 : 0;
   const fpsLimitRef = useRef<FpsLimit>(initialFpsLimit);
   const startGuardRef = useRef(false);
   const cameraRafRef = useRef<number>(0);
+  const cameraProcessRef = useRef<FrameRequestCallback | null>(null);
   const particlesRef = useRef<Particle[]>([]);
   const targetRef = useRef(0.72);
   const currentRef = useRef(0.72);
@@ -447,7 +450,13 @@ export default function ParticleFlower() {
   const orientationFullscreenRef = useRef(false);
   const viewportRef = useRef({ width: window.innerWidth, height: window.innerHeight });
   const [error, setError] = useState('');
-  const [particleCount, setParticleCount] = useState(() => window.matchMedia('(max-width: 700px)').matches ? 1800 : 3200);
+  const [particleCount, setParticleCount] = useState(() => {
+    const mobile = window.matchMedia('(max-width: 700px)').matches;
+    const cores = navigator.hardwareConcurrency || 4;
+    const memory = (navigator as Navigator & { deviceMemory?: number }).deviceMemory || 4;
+    const constrained = cores <= 4 || memory <= 4;
+    return mobile ? (constrained ? 1200 : 1700) : (constrained ? 2400 : 3200);
+  });
   const particleCountRef = useRef(particleCount);
   const particleRebuildTimerRef = useRef<number>(0);
   const [particleSize, setParticleSize] = useState(1);
@@ -461,6 +470,12 @@ export default function ParticleFlower() {
     const syncCameraVisibility = () => {
       const enabled = !document.hidden;
       streamRef.current?.getVideoTracks().forEach(track => { track.enabled = enabled; });
+      if (!enabled) {
+        if (cameraRafRef.current) cancelAnimationFrame(cameraRafRef.current);
+        cameraRafRef.current = 0;
+      } else if (streamRef.current && landmarkerRef.current && cameraProcessRef.current && !cameraRafRef.current) {
+        cameraRafRef.current = requestAnimationFrame(cameraProcessRef.current);
+      }
     };
     document.addEventListener('visibilitychange', syncCameraVisibility);
     return () => document.removeEventListener('visibilitychange', syncCameraVisibility);
@@ -489,6 +504,7 @@ export default function ParticleFlower() {
   const stopCamera = useCallback(() => {
     if (cameraRafRef.current) cancelAnimationFrame(cameraRafRef.current);
     cameraRafRef.current = 0;
+    cameraProcessRef.current = null;
     if (recognitionTimerRef.current) window.clearTimeout(recognitionTimerRef.current);
     if (recordingTimerRef.current) window.clearTimeout(recordingTimerRef.current);
     if (mediaRecorderRef.current?.state === 'recording') {
@@ -790,7 +806,11 @@ export default function ParticleFlower() {
 
       let lastVideoTime = -1;
       let failures = 0;
-      const process = () => {
+      const process: FrameRequestCallback = () => {
+        if (document.hidden) {
+          cameraRafRef.current = 0;
+          return;
+        }
         const currentVideo = videoRef.current;
         if (!streamRef.current || !currentVideo || !landmarkerRef.current) return;
         const interval = delegateRef.current === 'CPU' ? 1000 / 20 : 1000 / 24;
@@ -813,9 +833,10 @@ export default function ParticleFlower() {
             }
           }
         }
-        if (streamRef.current) cameraRafRef.current = requestAnimationFrame(process);
+        if (streamRef.current && !document.hidden) cameraRafRef.current = requestAnimationFrame(process);
       };
-      cameraRafRef.current = requestAnimationFrame(process);
+      cameraProcessRef.current = process;
+      if (!document.hidden) cameraRafRef.current = requestAnimationFrame(process);
     } catch (error: any) {
       stopCamera();
       const inWeChat = /MicroMessenger/i.test(navigator.userAgent || '');
@@ -850,15 +871,15 @@ export default function ParticleFlower() {
   const applyQualityPreset = useCallback((preset: 'auto' | 'soft' | 'standard' | 'ultra') => {
     const mobile = window.matchMedia('(max-width: 700px)').matches;
     const cores = navigator.hardwareConcurrency || 4;
-    const memory = (navigator as any).deviceMemory || 4;
-    const limitedDevice = mobile && (cores <= 4 || memory <= 4);
+    const memory = (navigator as Navigator & { deviceMemory?: number }).deviceMemory || 4;
+    const limitedDevice = cores <= 4 || memory <= 4;
     const config = preset === 'soft'
-      ? { count: mobile ? 1200 : 2200, size: 0.9, glow: 0.78, fps: (mobile ? 30 : 60) as FpsLimit }
+      ? { count: mobile ? 1000 : 2000, size: 0.9, glow: 0.78, fps: 30 as FpsLimit }
       : preset === 'standard'
-        ? { count: mobile ? 1800 : 3200, size: 1, glow: 1, fps: (mobile ? 60 : 0) as FpsLimit }
+        ? { count: mobile ? 1600 : 3000, size: 1, glow: 1, fps: (mobile ? 60 : 0) as FpsLimit }
         : preset === 'ultra'
-          ? { count: mobile ? 3000 : 5400, size: 1.1, glow: 1.22, fps: 0 as FpsLimit }
-          : { count: limitedDevice ? 1400 : mobile ? 2200 : 3800, size: 1, glow: 1, fps: (mobile ? 60 : 0) as FpsLimit };
+          ? { count: mobile ? 2800 : 5200, size: 1.1, glow: 1.22, fps: 0 as FpsLimit }
+          : { count: mobile ? (limitedDevice ? 1200 : 1800) : (limitedDevice ? 2400 : 3600), size: 1, glow: 1, fps: (mobile ? (limitedDevice ? 45 : 60) : 0) as FpsLimit };
     setQualityPreset(preset);
     particleCountRef.current = config.count; setParticleCount(config.count);
     particleSizeRef.current = config.size; setParticleSize(config.size);
@@ -923,6 +944,10 @@ export default function ParticleFlower() {
     };
     resize();
     const render = (time: number) => {
+      if (document.hidden) {
+        rafRef.current = 0;
+        return;
+      }
       rafRef.current = requestAnimationFrame(render);
       const targetFps = fpsLimitRef.current;
       const frameInterval = targetFps > 0 ? 1000 / targetFps : 0;
@@ -1124,11 +1149,11 @@ export default function ParticleFlower() {
       }
       fpsFrames++;
       if (!fpsWindowStart) fpsWindowStart = time;
-      if (time - fpsWindowStart >= 500) {
+      if (time - fpsWindowStart >= 1000) {
         setActualFps(Math.round(fpsFrames * 1000 / (time - fpsWindowStart)));
         fpsFrames = 0; fpsWindowStart = time;
       }
-      if (time-lastHudRef.current>250) {
+      if (time-lastHudRef.current>500) {
         lastHudRef.current=time;
         const percent=Math.round(opennessNow*100);
         setOpenness(percent);
@@ -1137,9 +1162,26 @@ export default function ParticleFlower() {
         else setStatus('演示模式');
       }
     };
-    rafRef.current=requestAnimationFrame(render);
+    const syncRenderVisibility = () => {
+      if (document.hidden) {
+        if (rafRef.current) cancelAnimationFrame(rafRef.current);
+        rafRef.current = 0;
+      } else if (!rafRef.current) {
+        lastTime = 0;
+        lastRenderedTime = 0;
+        fpsWindowStart = 0;
+        fpsFrames = 0;
+        rafRef.current = requestAnimationFrame(render);
+      }
+    };
+    if (!document.hidden) rafRef.current = requestAnimationFrame(render);
     window.addEventListener('resize',resize);
-    return () => { cancelAnimationFrame(rafRef.current); window.removeEventListener('resize',resize); };
+    document.addEventListener('visibilitychange',syncRenderVisibility);
+    return () => {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      window.removeEventListener('resize',resize);
+      document.removeEventListener('visibilitychange',syncRenderVisibility);
+    };
   }, []);
 
   useEffect(() => {
@@ -1153,7 +1195,7 @@ export default function ParticleFlower() {
   // Auto quality only steps down after several consecutive slow samples; it never
   // oscillates upward mid-session or overrides a manually selected preset.
   useEffect(() => {
-    if (!experienceStarted || mode !== 'gesture' || qualityPreset !== 'auto' || actualFps <= 0) {
+    if (!experienceStarted || qualityPreset !== 'auto' || actualFps <= 0) {
       autoFpsLowSamplesRef.current = 0;
       return;
     }

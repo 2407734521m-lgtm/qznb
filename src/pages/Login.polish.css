@@ -1,5 +1,7 @@
-/* Login and registration polish.
-   Authentication state, validation, verification and reset behavior are untouched. */
+/* Login / registration layout only.
+ * The canonical iOS 26 material stylesheet owns backgrounds, borders, color and glass.
+ * Authentication state, validation, verification and reset behavior are untouched.
+ */
 .login-wrap {
   min-height: 100svh;
   min-height: 100dvh;
@@ -17,9 +19,8 @@
   overscroll-behavior-y: contain;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: thin;
-  scrollbar-color: rgba(201, 183, 162, .28) transparent;
+  scrollbar-color: rgba(105, 127, 164, .28) transparent;
 }
-
 .login-card {
   width: min(430px, 100%) !important;
   max-height: none;
@@ -28,161 +29,93 @@
   overflow: visible;
   overscroll-behavior: auto;
   padding: clamp(22px, 4vw, 30px) clamp(18px, 4.4vw, 28px) !important;
-  border: 1px solid rgba(224, 207, 187, .16) !important;
-  border-radius: 18px !important;
-  background: #211e19 !important;
-  box-shadow: 0 12px 36px rgba(0, 0, 0, .24) !important;
-  -webkit-backdrop-filter: none;
-  backdrop-filter: none;
+  border-radius: 24px !important;
   scrollbar-width: thin;
-  scrollbar-color: rgba(201, 183, 162, .28) transparent;
 }
-
 .login-card > h1:first-child {
-  color: #f5f0e8;
   font-size: clamp(23px, 5vw, 27px);
   font-weight: 600;
   letter-spacing: 0;
   text-shadow: none;
 }
-
 .login-card .sub {
-  color: #b9ad9e;
   margin-bottom: 22px;
   font-size: 12px;
   font-weight: 400;
   letter-spacing: .02em;
 }
-
 .login-card label {
   margin: 12px 0 5px;
-  color: #ded3c5;
   font-size: 13px;
   font-weight: 500;
   letter-spacing: 0;
 }
-
 .login-card input:not([type="checkbox"]):not([type="range"]):not([type="file"]) {
   min-height: 46px;
   margin: 0 0 7px;
   padding: 11px 14px;
-  border: 1px solid rgba(224, 207, 187, .16) !important;
-  border-radius: 9px !important;
-  background: #171512 !important;
-  color: #fbf6ee !important;
+  border-radius: 12px !important;
   box-shadow: none !important;
   transition: border-color 160ms ease, background-color 160ms ease;
 }
-
-.login-card input:not([type="checkbox"]):not([type="range"]):not([type="file"])::placeholder {
-  color: #a99b8a;
-}
-
-.login-card input:not([type="checkbox"]):not([type="range"]):not([type="file"]):focus {
-  border-color: #c68b69 !important;
-  background: #1d1915 !important;
-  box-shadow: 0 0 0 2px rgba(198, 139, 105, .14) !important;
-}
-
 .login-card button.pri {
   min-height: 46px;
   margin-top: 10px;
-  border-radius: 9px !important;
-  background: #c68b69 !important;
-  color: #241811 !important;
+  border-radius: 12px !important;
   font-weight: 600;
-  box-shadow: none !important;
   transition: background-color 160ms ease, transform 160ms ease;
 }
-
 .login-card button.ghost {
   min-height: 42px;
-  border: 1px solid rgba(224, 207, 187, .18) !important;
-  border-radius: 9px !important;
-  background: #302b24 !important;
-  color: #f1ece3 !important;
+  border-radius: 12px !important;
 }
-
 .login-card .login-switch {
   margin: 11px 0 0;
-  color: #c7b9a8;
   font-size: 12px;
   line-height: 1.65;
 }
-
 .login-card .login-switch button,
 .login-card .linklike {
-  color: #d4a17f !important;
   font-weight: 500;
   text-underline-offset: 3px;
 }
-
-.login-card .priv-note {
-  color: #b8aa98;
-  font-size: 12px;
-  line-height: 1.72;
-}
-
+.login-card .priv-note { font-size: 12px; line-height: 1.72; }
 .login-card .err {
   margin: 8px 0;
   padding: 9px 11px;
-  border: 1px solid rgba(255, 143, 157, .25);
-  border-radius: 9px;
-  background: rgba(195, 52, 76, .13);
-  color: #ffb3bd;
+  border: 1px solid rgba(217, 95, 118, .25);
+  border-radius: 10px;
+  background: rgba(217, 95, 118, .10);
   line-height: 1.6;
 }
-
 .login-card .avatar-pick {
   padding: 8px 10px;
-  border: 1px solid rgba(224, 207, 187, .12);
-  border-radius: 10px;
-  background: #29251f;
+  border-radius: 12px;
 }
-
 .login-card .avatar-pick .prev {
   width: 58px;
   height: 58px;
-  border: 1px solid rgba(224, 207, 187, .20);
   border-radius: 12px;
-  background: #3b3027;
   box-shadow: none;
 }
-
 .login-card .bg-panel {
   margin-top: 20px;
   padding-top: 14px;
-  border-top-color: rgba(224, 207, 187, .12);
-  color: #b8aa98;
 }
-
 .login-card .bg-panel > button {
   min-height: 38px;
   padding-inline: 13px;
 }
-
 .login-card .bg-panel .row { align-items: center; gap: 10px; }
 .login-card .bg-panel input[type="range"],
-.login-card input[type="checkbox"] { accent-color: #c68b69; }
-
+.login-card input[type="checkbox"] { accent-color: var(--visual-accent, #667fae); }
 .login-card :where(button, input):focus-visible {
-  outline: 2px solid #c68b69;
+  outline: 2px solid var(--visual-accent, #667fae);
   outline-offset: 3px;
 }
-
 @media (hover: hover) and (pointer: fine) {
-  .login-card button.pri:not(:disabled):hover {
-    background: #d29a78 !important;
-    transform: translateY(-1px);
-    box-shadow: none !important;
-  }
-
-  .login-card button.ghost:not(:disabled):hover {
-    border-color: #cda98f !important;
-    background: #393129 !important;
-  }
+  .login-card button.pri:not(:disabled):hover { transform: translateY(-1px); }
 }
-
 @media (max-width: 520px) {
   .login-wrap {
     align-items: flex-start;
@@ -193,13 +126,12 @@
     width: 100% !important;
     max-height: none;
     overflow: visible;
-    border-radius: 16px !important;
+    border-radius: 22px !important;
     padding: 22px 18px 20px !important;
   }
   .login-card .sub { margin-bottom: 18px; }
   .login-card label { margin-top: 10px; }
 }
-
 @media (prefers-reduced-motion: reduce) {
   .login-card input,
   .login-card button { transition: none !important; }

@@ -19,7 +19,7 @@ const NAV_GROUPS = [
   { label: '成员与权限', ids: ['accounts', 'invite', 'approvals'] },
   { label: '内容运营', ids: ['moderate', 'loveWall', 'songWall', 'authorizedRequests', 'board', 'events', 'game'] },
   { label: '消息与反馈', ids: ['notifications', 'bulkEmail', 'feedback'] },
-  { label: '系统管理', ids: ['backups', 'release', 'logs', 'security', 'system', 'settings', 'test'] },
+  { label: '系统管理', ids: ['backups', 'release', 'logs', 'security', 'system', 'guestAccess', 'settings', 'test'] },
 ] as const;
 
 const ICON_PATHS: Record<string, string> = {
@@ -43,6 +43,7 @@ const ICON_PATHS: Record<string, string> = {
   logs: 'M5 4h14v16H5z M8 8h8 M8 12h8 M8 16h5',
   security: 'M12 3l8 3v5c0 5-3.5 8-8 10-4.5-2-8-5-8-10V6z M9 12l2 2 4-4',
   system: 'M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-1.8 1.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5v.1h-2.6v-.1a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.9.3l-.1.1-1.8-1.8.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H6.4v-2.6h.1a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1 1.8-1.8.1.1a1.7 1.7 0 0 0 1.9.3 1.7 1.7 0 0 0 1-1.5v-.1H15v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1 1.8 1.8-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.5 1h.1V14h-.1a1.7 1.7 0 0 0-1.5 1z',
+  guestAccess: 'M12 3v3 M12 18v3 M3 12h3 M18 12h3 M5.6 5.6l2.1 2.1 M16.3 16.3l2.1 2.1 M18.4 5.6l-2.1 2.1 M7.7 16.3l-2.1 2.1 M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z',
   settings: 'M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z M19 13.5a7.4 7.4 0 0 0 0-3l2-1.5-2-3.5-2.4 1a7.5 7.5 0 0 0-2.6-1.5L13.6 2h-4l-.4 3a7.5 7.5 0 0 0-2.6 1.5l-2.4-1-2 3.5 2 1.5a7.4 7.4 0 0 0 0 3l-2 1.5 2 3.5 2.4-1a7.5 7.5 0 0 0 2.6 1.5l.4 3h4l.4-3a7.5 7.5 0 0 0 2.6-1.5l2.4 1 2-3.5z',
   test: 'M8 3h8 M10 3v6l-5 9a2 2 0 0 0 1.7 3h10.6A2 2 0 0 0 19 18l-5-9V3 M8 15h8',
   menu: 'M3 6h18 M3 12h18 M3 18h18',
@@ -89,6 +90,7 @@ function descriptionFor(id: string) {
     logs: '审查重要管理操作和系统日志。',
     security: '检查登录安全、会话与风险记录。',
     system: '查看系统诊断、维护与运行状态。',
+    guestAccess: '控制游客入口、浏览时长、开放计划与公开内容。',
     settings: '配置全站管理设置。',
     test: '执行管理端测试与回归检查。',
   };

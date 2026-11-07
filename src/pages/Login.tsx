@@ -7,6 +7,7 @@ import CodeInput from '../components/CodeInput';
 import FloatField from '../components/FloatField';
 import { alertDialog } from '../lib/dialog';
 import './Login.polish.css';
+import { getQqAvatarPreviewUrl, getQqNumberFromEmail } from '../lib/qqAvatar';
 
 const BG_KEY = 'ca_login_bg_v2';
 const DEFAULT_BG = '';
@@ -39,12 +40,14 @@ export default function Login({ siteTitle, siteSubtitle, onGuestLogin }: { siteT
   const [mode, setMode] = useState<'login' | 'reg' | 'forgot'>('login');
   const [policyAccepted, setPolicyAccepted] = useState(false);
   const [showPrivacyPolicy, setShowPrivacyPolicy] = useState(false);
-  const PRIVACY_POLICY_VERSION = '2026-10-25-v2';
+  const PRIVACY_POLICY_VERSION = '2026-11-07-v3';
   const [ident, setIdent] = useState(''); // 登录标识
   const [pw, setPw] = useState('');
   const [name, setName] = useState('');
   const [real, setReal] = useState('');
   const [email, setEmail] = useState('');
+  const [useQqAvatar, setUseQqAvatar] = useState(false);
+  const [qqAvatarLoadState, setQqAvatarLoadState] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
   const [pw2, setPw2] = useState('');
   const [phone, setPhone] = useState('');
   const [err, setErr] = useState(''); const [busy, setBusy] = useState(false);
@@ -65,6 +68,13 @@ export default function Login({ siteTitle, siteSubtitle, onGuestLogin }: { siteT
   const touch = (k: string) => () => setTouched(t => (t[k] ? t : { ...t, [k]: true }));
   const terr = (k: string, msg: string | null) => (touched[k] && msg) ? msg : undefined;
   const emailErr = /^[1-9]\d{4,10}@qq\.com$/i.test(email.trim()) ? null : '请填写正确的 QQ 邮箱，如 123456@qq.com';
+  const qqNumber = getQqNumberFromEmail(email);
+  const qqAvatarPreviewUrl = getQqAvatarPreviewUrl(email);
+  function updateRegistrationEmail(value: string) {
+    setEmail(value);
+    setUseQqAvatar(false);
+    setQqAvatarLoadState(getQqNumberFromEmail(value) ? 'loading' : 'idle');
+  }
   const phoneErr = !phone.trim() || /^1\d{10}$/.test(phone.trim()) ? null : '手机号要 11 位数字，没有可以留空';
   const pwErr = pw.length >= 8 ? null : '密码至少 8 位';
   const pw2Err = pw2 === pw ? null : '两次输入的密码不一致';
@@ -174,6 +184,11 @@ export default function Login({ siteTitle, siteSubtitle, onGuestLogin }: { siteT
     // 新注册：进站后展示一次 3 页功能引导（App 层消费，本机看过后不再展示）
     try { sessionStorage.setItem('ca_guide_pending', '1'); } catch {}
     const nm = name.trim();
+    // 用户明确选择 QQ 头像后，服务端只会为当前已验证 QQ 邮箱导入对应公开头像。
+    // 导入是非阻断操作：即使 QQ 服务暂时不可用，也不影响账号注册。
+    if (useQqAvatar && qqNumber) {
+      void supabase.functions.invoke('qq-avatar-import', { body: { qq: qqNumber } }).catch(() => {});
+    }
     // 注意：username / real_name 由注册触发器写入，列级权限不允许前端直接改，这里只更新展示名
     if (nm) supabase.from('profiles').update({ display_name: nm }).eq('id', uid).then(() => {});
   }
@@ -424,8 +439,30 @@ export default function Login({ siteTitle, siteSubtitle, onGuestLogin }: { siteT
               <input disabled={codeSent} value={phone} onChange={e => setPhone(e.target.value.replace(/\D/g, '').slice(0, 11))} onBlur={touch('phone')} placeholder="11 位手机号，没有可不填" inputMode="tel" aria-label="手机号（选填）" />
             </FloatField>
             <FloatField label="QQ 邮箱" value={email} error={terr('email', emailErr)}>
-              <input value={email} onChange={e => { setEmail(e.target.value); if (codeSent) { setCodeSent(false); setCode(''); } }} onBlur={touch('email')} placeholder="123456@qq.com" inputMode="email" aria-label="QQ 邮箱" />
+              <input value={email} onChange={e => { updateRegistrationEmail(e.target.value); if (codeSent) { setCodeSent(false); setCode(''); } }} onBlur={touch('email')} placeholder="123456@qq.com" inputMode="email" aria-label="QQ 邮箱" />
             </FloatField>
+            {qqAvatarPreviewUrl && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 11, margin: '10px 0 4px', padding: '11px 12px', borderRadius: 14, background: 'rgba(255,255,255,.08)', border: '1px solid rgba(255,255,255,.14)' }}>
+                {qqAvatarLoadState === 'error' ? (
+                  <div aria-hidden style={{ width: 48, height: 48, flex: '0 0 48px', borderRadius: '50%', display: 'grid', placeItems: 'center', background: 'rgba(255,255,255,.12)', color: 'rgba(255,255,255,.7)', fontSize: 12 }}>QQ</div>
+                ) : (
+                  <img src={qqAvatarPreviewUrl} alt="QQ 头像预览" referrerPolicy="no-referrer"
+                    onLoad={() => setQqAvatarLoadState('ready')} onError={() => setQqAvatarLoadState('error')}
+                    style={{ width: 48, height: 48, flex: '0 0 48px', borderRadius: '50%', objectFit: 'cover', background: 'rgba(255,255,255,.12)' }} />
+                )}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 13.5, fontWeight: 700 }}>QQ 头像预览</div>
+                  <div className="priv-note" style={{ margin: '3px 0 0', fontSize: 11.5 }}>
+                    {qqAvatarLoadState === 'error' ? '暂时无法读取头像，注册后仍可手动上传' : qqAvatarLoadState === 'ready' ? (useQqAvatar ? '已选择，注册完成后保存到本站' : '可以选择作为你的注册头像') : '正在读取公开头像…'}
+                  </div>
+                </div>
+                {qqAvatarLoadState === 'ready' && (
+                  <button type="button" className="mini ghost" onClick={() => setUseQqAvatar(value => !value)}>
+                    {useQqAvatar ? '已选择' : '使用此头像'}
+                  </button>
+                )}
+              </div>
+            )}
             {!codeSent && <p className="priv-note" style={{ margin: '4px 0 0' }}>请继续填写下方密码、确认密码并勾选协议，再点击页面底部的「发送验证码并注册」。</p>}
             {codeSent && <p className="priv-note" style={{ margin: '4px 0 0' }}>验证码已通过 Resend 发到上面这个 QQ 邮箱，找标题是「我们的班级 · 青春档案 — 你的验证码」的邮件，没看到就翻一下垃圾箱</p>}
             {codeSent && (<>
@@ -489,6 +526,7 @@ export default function Login({ siteTitle, siteSubtitle, onGuestLogin }: { siteT
           <p className="priv-note">版本：{PRIVACY_POLICY_VERSION} · 请认真阅读后再决定是否同意</p>
           <h3>一、我们可能处理的信息</h3>
           <p>为提供班级档案服务，网站会处理你注册时填写的用户名、真实姓名、QQ 邮箱、密码验证信息及你主动上传的头像和资料。密码由认证服务处理，网站不应以明文保存密码。</p>
+           <p>如果你输入纯数字 QQ 邮箱，注册页面会向腾讯 QQ 公开头像服务请求该 QQ 号的头像预览；此功能是可选的。只有你主动点击“使用此头像”后，网站才会将图片复制并保存到本站头像存储中。你也可以不使用此功能，注册后再手动上传头像。</p>
           <h3>二、登录设备与地区信息</h3>
           <p>当前版本登录后会读取浏览器提供的设备标识信息，并通过第三方 IP 查询服务推算大致地区（例如国家、州/省或城市）。IP 推算地区可能不准确，不代表 GPS 定位或实时位置。设备和地区信息会更新到站点的成员状态记录，管理员可能在账号管理页面查看。</p>
           <h3>三、设备定位与所在地区分享（独立自愿授权）</h3>

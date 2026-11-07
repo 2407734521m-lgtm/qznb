@@ -48,6 +48,7 @@ export default function Login({ siteTitle, siteSubtitle, onGuestLogin }: { siteT
   const [email, setEmail] = useState('');
   const [useQqAvatar, setUseQqAvatar] = useState(false);
   const [qqAvatarLoadState, setQqAvatarLoadState] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
+  const [qqAvatarPreviewAttempt, setQqAvatarPreviewAttempt] = useState(0);
   const [pw2, setPw2] = useState('');
   const [phone, setPhone] = useState('');
   const [err, setErr] = useState(''); const [busy, setBusy] = useState(false);
@@ -69,10 +70,11 @@ export default function Login({ siteTitle, siteSubtitle, onGuestLogin }: { siteT
   const terr = (k: string, msg: string | null) => (touched[k] && msg) ? msg : undefined;
   const emailErr = /^[1-9]\d{4,10}@qq\.com$/i.test(email.trim()) ? null : '请填写正确的 QQ 邮箱，如 123456@qq.com';
   const qqNumber = getQqNumberFromEmail(email);
-  const qqAvatarPreviewUrl = getQqAvatarPreviewUrl(email);
+  const qqAvatarPreviewUrl = getQqAvatarPreviewUrl(email, qqAvatarPreviewAttempt);
   function updateRegistrationEmail(value: string) {
     setEmail(value);
     setUseQqAvatar(false);
+    setQqAvatarPreviewAttempt(0);
     setQqAvatarLoadState(getQqNumberFromEmail(value) ? 'loading' : 'idle');
   }
   const phoneErr = !phone.trim() || /^1\d{10}$/.test(phone.trim()) ? null : '手机号要 11 位数字，没有可以留空';
@@ -189,7 +191,15 @@ export default function Login({ siteTitle, siteSubtitle, onGuestLogin }: { siteT
     if (useQqAvatar && qqNumber) {
       try {
         // Wait for the best-effort import so the first profile load can see its saved avatar.
-        await supabase.functions.invoke('qq-avatar-import', { body: { qq: qqNumber } });
+        const importRequest = supabase.functions.invoke('qq-avatar-import', { body: { qq: qqNumber } })
+          .then(({ data, error }) => !error && data?.ok === true)
+          .catch(() => false);
+        let timeoutId: ReturnType<typeof setTimeout> | undefined;
+        await Promise.race([
+          importRequest,
+          new Promise<boolean>(resolve => { timeoutId = setTimeout(() => resolve(false), 4500); }),
+        ]);
+        if (timeoutId) clearTimeout(timeoutId);
       } catch {
         // Avatar import is optional and must never block account registration.
       }
@@ -451,7 +461,7 @@ export default function Login({ siteTitle, siteSubtitle, onGuestLogin }: { siteT
                 {qqAvatarLoadState === 'error' ? (
                   <div aria-hidden style={{ width: 48, height: 48, flex: '0 0 48px', borderRadius: '50%', display: 'grid', placeItems: 'center', background: 'rgba(255,255,255,.12)', color: 'rgba(255,255,255,.7)', fontSize: 12 }}>QQ</div>
                 ) : (
-                  <img src={qqAvatarPreviewUrl} alt="QQ 头像预览" referrerPolicy="no-referrer"
+                  <img key={qqAvatarPreviewUrl} src={qqAvatarPreviewUrl} alt="QQ 头像预览" referrerPolicy="no-referrer"
                     onLoad={() => setQqAvatarLoadState('ready')} onError={() => setQqAvatarLoadState('error')}
                     style={{ width: 48, height: 48, flex: '0 0 48px', borderRadius: '50%', objectFit: 'cover', background: 'rgba(255,255,255,.12)' }} />
                 )}
@@ -462,8 +472,16 @@ export default function Login({ siteTitle, siteSubtitle, onGuestLogin }: { siteT
                   </div>
                 </div>
                 {qqAvatarLoadState === 'ready' && (
-                  <button type="button" className="mini ghost" onClick={() => setUseQqAvatar(value => !value)}>
-                    {useQqAvatar ? '已选择' : '使用此头像'}
+                  <button type="button" className="mini ghost" aria-pressed={useQqAvatar}
+                    onClick={() => setUseQqAvatar(value => !value)}
+                    style={useQqAvatar ? { borderColor: 'rgba(90,190,135,.65)', background: 'rgba(65,160,110,.18)', color: '#b8f2cf' } : undefined}>
+                    {useQqAvatar ? '✓ 已选择' : '使用此头像'}
+                  </button>
+                )}
+                {qqAvatarLoadState === 'error' && (
+                  <button type="button" className="mini ghost"
+                    onClick={() => { setUseQqAvatar(false); setQqAvatarLoadState('loading'); setQqAvatarPreviewAttempt(value => value + 1); }}>
+                    重试
                   </button>
                 )}
               </div>

@@ -83,7 +83,7 @@ language sql
 stable
 security definer
 set search_path = ''
-as $
+as $$
   select pg_catalog.jsonb_build_object(
     'site_title', coalesce((select value from public.site_settings where key = 'site_title' limit 1), '堯'),
     'site_subtitle', coalesce((select value from public.site_settings where key = 'site_subtitle' limit 1), '公开浏览'),

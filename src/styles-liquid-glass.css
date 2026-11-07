@@ -1,0 +1,285 @@
+/* Liquid Glass material system — adapted from MotionSites Liquid Glass Agency.
+   This is a material/interaction layer only: existing page colors, content, routes,
+   typography, responsive layouts and business logic remain the source of truth. */
+
+:root {
+  --qz-liquid-blur: 14px;
+  --qz-liquid-blur-strong: 22px;
+  --qz-liquid-edge: rgba(255, 255, 255, .28);
+  --qz-liquid-edge-soft: rgba(255, 255, 255, .12);
+  --qz-liquid-inner-highlight: rgba(255, 255, 255, .16);
+}
+
+/* Reusable variants for future surfaces. Keep the current surface color through
+   --visual-surface / --visual-surface-raised instead of imposing a new palette. */
+.liquid-glass,
+.qz-liquid-glass {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border: 1px solid transparent;
+  background:
+    linear-gradient(
+      145deg,
+      color-mix(in srgb, var(--visual-surface, #fff) 91%, transparent),
+      color-mix(in srgb, var(--visual-surface, #fff) 83%, transparent)
+    ) padding-box,
+    linear-gradient(
+      180deg,
+      var(--qz-liquid-edge),
+      var(--qz-liquid-edge-soft) 24%,
+      transparent 48%,
+      transparent 66%,
+      var(--qz-liquid-edge-soft) 84%,
+      var(--qz-liquid-edge)
+    ) border-box;
+  -webkit-backdrop-filter: blur(var(--qz-liquid-blur)) saturate(1.12);
+  backdrop-filter: blur(var(--qz-liquid-blur)) saturate(1.12);
+  box-shadow:
+    0 10px 30px rgba(0, 0, 0, .10),
+    inset 0 1px 0 var(--qz-liquid-inner-highlight);
+}
+
+.liquid-glass-strong,
+.qz-liquid-glass-strong {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border: 1px solid transparent;
+  background:
+    linear-gradient(
+      145deg,
+      color-mix(in srgb, var(--visual-surface-raised, var(--visual-surface, #fff)) 94%, transparent),
+      color-mix(in srgb, var(--visual-surface-raised, var(--visual-surface, #fff)) 84%, transparent)
+    ) padding-box,
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, .42),
+      rgba(255, 255, 255, .18) 24%,
+      transparent 52%,
+      transparent 66%,
+      rgba(255, 255, 255, .18) 84%,
+      rgba(255, 255, 255, .34)
+    ) border-box;
+  -webkit-backdrop-filter: blur(var(--qz-liquid-blur-strong)) saturate(1.16);
+  backdrop-filter: blur(var(--qz-liquid-blur-strong)) saturate(1.16);
+  box-shadow:
+    0 14px 36px rgba(0, 0, 0, .14),
+    inset 0 1px 0 rgba(255, 255, 255, .22);
+}
+
+/* Desktop top navigation: retain its existing dark/navy tint, add glass depth. */
+.topnav {
+  background:
+    linear-gradient(
+      110deg,
+      color-mix(in srgb, var(--premium-glass, rgba(5, 19, 34, .78)) 94%, transparent),
+      color-mix(in srgb, var(--premium-glass, rgba(5, 19, 34, .78)) 84%, transparent)
+    ) padding-box,
+    linear-gradient(180deg, rgba(255, 255, 255, .27), rgba(255, 255, 255, .08)) border-box !important;
+  border: 1px solid transparent !important;
+  border-bottom-color: rgba(255, 255, 255, .16) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(1.16) !important;
+  backdrop-filter: blur(24px) saturate(1.16) !important;
+  box-shadow:
+    0 8px 28px rgba(0, 0, 0, .12),
+    inset 0 1px 0 rgba(255, 255, 255, .14) !important;
+}
+
+/* The compact Dock keeps its established warm-white appearance. */
+.tabbar {
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, .91), rgba(252, 249, 244, .80)) padding-box,
+    linear-gradient(180deg, rgba(255, 255, 255, .98), rgba(255, 255, 255, .56) 42%, rgba(255, 255, 255, .82)) border-box !important;
+  border: 1px solid transparent !important;
+  -webkit-backdrop-filter: blur(26px) saturate(1.12) !important;
+  backdrop-filter: blur(26px) saturate(1.12) !important;
+  box-shadow:
+    0 14px 36px rgba(34, 25, 18, .17),
+    inset 0 1px 0 rgba(255, 255, 255, .98),
+    inset 0 -1px 0 rgba(255, 255, 255, .42) !important;
+}
+
+/* Major content panels get soft glass edges without forcing blur on every
+   repeated feed/member card (important for mid-range Android scrolling). */
+.card,
+.composer {
+  background:
+    linear-gradient(
+      145deg,
+      color-mix(in srgb, var(--visual-surface, #211f1b) 94%, transparent),
+      color-mix(in srgb, var(--visual-surface, #211f1b) 87%, transparent)
+    ) padding-box,
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--visual-text, #f1ece3) 24%, transparent),
+      var(--visual-border, rgba(239, 229, 214, .13)) 58%,
+      color-mix(in srgb, var(--visual-text, #f1ece3) 12%, transparent)
+    ) border-box !important;
+  border: 1px solid transparent !important;
+  -webkit-backdrop-filter: blur(10px) saturate(1.08) !important;
+  backdrop-filter: blur(10px) saturate(1.08) !important;
+  box-shadow:
+    0 12px 30px rgba(0, 0, 0, .10),
+    inset 0 1px 0 rgba(255, 255, 255, .10) !important;
+}
+
+.post,
+.tl-item,
+.mcard {
+  border-color: color-mix(in srgb, var(--visual-text, #f1ece3) 18%, var(--visual-border, transparent)) !important;
+  box-shadow:
+    0 8px 22px rgba(0, 0, 0, .08),
+    inset 0 1px 0 rgba(255, 255, 255, .08) !important;
+}
+
+/* Homepage surfaces use the existing paper-white tones, only made translucent. */
+.vh-search,
+.vh-live,
+.vh-notice,
+.vh-shortcut,
+.vh-panel {
+  border-color: rgba(255, 255, 255, .82) !important;
+  background-color: rgba(255, 253, 249, .84) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(1.08);
+  backdrop-filter: blur(12px) saturate(1.08);
+  box-shadow:
+    0 10px 26px rgba(54, 39, 25, .07),
+    inset 0 1px 0 rgba(255, 255, 255, .92) !important;
+}
+
+.vh-search,
+.vh-notice,
+.vh-shortcut,
+.vh-panel {
+  position: relative;
+  isolation: isolate;
+}
+
+/* The personal hub keeps its paper-white and clay details while gaining a
+   restrained translucent top highlight and softer depth. */
+.me-hub-hero,
+.me-hub-stats,
+.me-hub-shortcuts,
+.me-hub-group,
+.me-hub-feature,
+.me-hub-tile {
+  -webkit-backdrop-filter: blur(10px) saturate(1.06) !important;
+  backdrop-filter: blur(10px) saturate(1.06) !important;
+  box-shadow:
+    0 8px 24px rgba(54, 39, 25, .055),
+    inset 0 1px 0 rgba(255, 255, 255, .78) !important;
+}
+
+/* Search and option surfaces are the stronger glass layer. */
+.global-search-backdrop {
+  -webkit-backdrop-filter: blur(12px) saturate(1.08);
+  backdrop-filter: blur(12px) saturate(1.08);
+}
+
+.global-search-panel,
+.lpop,
+.gexpand,
+.chat-bar {
+  -webkit-backdrop-filter: blur(20px) saturate(1.12) !important;
+  backdrop-filter: blur(20px) saturate(1.12) !important;
+  box-shadow:
+    0 20px 54px rgba(0, 0, 0, .18),
+    inset 0 1px 0 rgba(255, 255, 255, .18) !important;
+}
+
+.global-search-panel {
+  border: 1px solid rgba(255, 255, 255, .26) !important;
+}
+
+/* Admin workspace already has its own color system; only refine its glass
+   chrome, leaving its sidebar, content and control colors intact. */
+.admin-shell-v3 .admin-sidebar,
+.admin-shell-v3 .admin-header,
+.admin-shell-v3 .admin-dock,
+.admin-shell-v3 .admin-mobile-dock,
+.admin-shell .admin-dock,
+.admin-shell .admin-mobile-dock {
+  -webkit-backdrop-filter: blur(22px) saturate(1.12) !important;
+  backdrop-filter: blur(22px) saturate(1.12) !important;
+  box-shadow:
+    0 12px 32px rgba(0, 0, 0, .12),
+    inset 0 1px 0 rgba(255, 255, 255, .12) !important;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .card,
+  .composer,
+  .vh-notice,
+  .vh-shortcut,
+  .global-search-result {
+    transition:
+      transform 220ms cubic-bezier(.22, 1, .36, 1),
+      border-color 220ms ease,
+      box-shadow 220ms ease,
+      background-color 220ms ease;
+  }
+
+  .vh-notice:hover,
+  .vh-shortcut:hover {
+    transform: translateY(-2px);
+    box-shadow:
+      0 14px 32px rgba(54, 39, 25, .10),
+      inset 0 1px 0 rgba(255, 255, 255, .96) !important;
+  }
+}
+
+/* Reduce expensive filters on small screens; reserve strong blur for chrome
+   and active overlays. */
+@media (max-width: 768px) {
+  .card,
+  .composer {
+    -webkit-backdrop-filter: blur(8px) saturate(1.04) !important;
+    backdrop-filter: blur(8px) saturate(1.04) !important;
+  }
+
+  .global-search-panel,
+  .lpop,
+  .gexpand,
+  .chat-bar {
+    -webkit-backdrop-filter: blur(16px) saturate(1.08) !important;
+    backdrop-filter: blur(16px) saturate(1.08) !important;
+  }
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .liquid-glass,
+  .qz-liquid-glass,
+  .liquid-glass-strong,
+  .qz-liquid-glass-strong,
+  .topnav,
+  .tabbar,
+  .card,
+  .composer,
+  .vh-search,
+  .vh-live,
+  .vh-notice,
+  .vh-shortcut,
+  .vh-panel {
+    background-color: var(--visual-surface, #211f1b) !important;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .liquid-glass,
+  .qz-liquid-glass,
+  .liquid-glass-strong,
+  .qz-liquid-glass-strong,
+  .topnav,
+  .tabbar,
+  .card,
+  .composer,
+  .vh-search,
+  .vh-live,
+  .vh-notice,
+  .vh-shortcut,
+  .vh-panel {
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+  }
+}

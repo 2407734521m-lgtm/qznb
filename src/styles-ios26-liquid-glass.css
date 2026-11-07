@@ -15,7 +15,7 @@
   --qz26-shadow: 0 18px 54px rgba(39, 58, 91, .13);
   --qz26-ease: cubic-bezier(.22, 1, .36, 1);
 
-  --visual-bg: #eaf0f8;
+  --visual-bg: #ffffff;
   --visual-surface: rgba(255, 255, 255, .48);
   --visual-surface-raised: rgba(250, 253, 255, .70);
   --visual-border: rgba(255, 255, 255, .62);
@@ -41,15 +41,12 @@
 
 html, body, #root {
   min-height: 100%;
-  background: #eaf0f8 !important;
+  background: #ffffff !important;
   color: var(--qz26-ink) !important;
 }
 
 body {
-  background:
-    radial-gradient(ellipse at 10% 0%, rgba(255,255,255,.92), transparent 43%),
-    radial-gradient(ellipse at 94% 12%, rgba(183,205,241,.38), transparent 42%),
-    linear-gradient(155deg, #eef3fb, #e5ebf5 58%, #f5f7fb) !important;
+  background: #ffffff !important;
   color: var(--qz26-ink) !important;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
@@ -60,6 +57,7 @@ body {
   isolation: isolate;
   min-height: 100dvh;
   width: 100%;
+  background: #ffffff !important;
 }
 
 .qz-ios26-backdrop {
@@ -76,10 +74,9 @@ body {
   inset: 0;
   z-index: -1;
   pointer-events: none;
-  background:
-    radial-gradient(ellipse at 18% 4%, rgba(255,255,255,.54), transparent 42%),
-    radial-gradient(ellipse at 86% 18%, rgba(197,216,250,.30), transparent 44%),
-    linear-gradient(180deg, rgba(248,251,255,.14), rgba(228,236,249,.08)) !important;
+  /* Keep the white canvas transparent here so an explicitly selected wallpaper
+     behind it remains visible. */
+  background: transparent !important;
   animation: none !important;
 }
 
@@ -836,37 +833,4 @@ button:focus-visible, a:focus-visible {
 .qz-ios26-liquid-dock .webgl-liquid-glass-tab::after {
   content: none !important;
   display: none !important;
-}
-
-/* Site-wide white canvas: keep translucent glass surfaces, make every page
-   backdrop pure white instead of the previous blue-gray atmospheric gradient. */
-:root {
-  --visual-bg: #ffffff;
-  --bg: #ffffff;
-}
-html, body, #root {
-  background: #ffffff !important;
-}
-body {
-  background: #ffffff !important;
-}
-.qz-ios26-scene {
-  background: #ffffff !important;
-}
-.qz-ios26-backdrop,
-.app-bg.qz-ios26-backdrop {
-  background: #ffffff !important;
-  background-image: none !important;
-  filter: none !important;
-  opacity: 1 !important;
-}
-.glow {
-  background: #ffffff !important;
-  background-image: none !important;
-  opacity: 1 !important;
-}
-.login-flow,
-.login-flow::after {
-  background: #ffffff !important;
-  background-image: none !important;
 }

@@ -157,43 +157,8 @@ function isTabActive(tab: string, path: string) {
 
 // /admin 路由守卫：已是管理员直接进后台，否则显示独立的管理员登录页
 function AdminRoute() {
-  const { session, loading } = useAuth();
-  const [role, setRole] = useState<string | null>(null);
-  const [verifiedUid, setVerifiedUid] = useState<string | null>(null);
-  useEffect(() => {
-    setRole(null);
-    setVerifiedUid(null);
-    if (!session) return;
-    let live = true;
-    const uid = session.user.id;
-    const markUnavailable = () => {
-      if (!live) return;
-      setRole('');
-      setVerifiedUid(uid);
-    };
-    // Keep the legacy route's independent guard bound to the current session identity.
-    const timer = setTimeout(markUnavailable, 8000);
-    supabase.rpc('my_role').then(
-      ({ data, error }) => {
-        clearTimeout(timer);
-        if (!live) return;
-        setRole(error ? '' : (data ?? ''));
-        setVerifiedUid(uid);
-      },
-      () => {
-        clearTimeout(timer);
-        markUnavailable();
-      }
-    );
-    return () => { live = false; clearTimeout(timer); };
-  }, [session?.user.id]);
-  if (loading || (session && (role === null || verifiedUid !== session.user.id))) {
-    return <div className="center" style={{ minHeight: '60vh' }}><FxLoader text="加载中…" /></div>;
-  }
-  const isAdmin = Boolean(session) && (role === 'admin' || role === 'super_admin');
-  return isAdmin
-    ? <ErrorBoundary><Admin verifiedRole={role === 'super_admin' ? 'super_admin' : 'admin'} /></ErrorBoundary>
-    : <AdminLogin />;
+  // 后台只在 admin.qianzhi.pw 上打开；主站的 /admin 直接回首页（用户 2026-11-07 定）。
+  return <Navigate to="/" replace />;
 }
 
 
@@ -298,7 +263,6 @@ function LoginClosedScreen({ onGuestLogin, showGuestEntry }: { onGuestLogin: () 
       <h1 style={{ fontSize: 23, margin: '12px 0' }}>登录入口暂未开放</h1>
       <p style={{ color: 'var(--mut)', lineHeight: 1.8, fontSize: 14 }}>管理员暂时关闭了登录与注册入口，请稍后再来。</p>
       {showGuestEntry && <button className="pri" style={{ marginTop: 12 }} onClick={onGuestLogin}>游客登录（仅浏览）</button>}
-      <button className="mini ghost" style={{ marginTop: 12 }} onClick={() => nav('/admin')}>管理员入口</button>
     </section>
   </div></>);
 }
@@ -336,7 +300,6 @@ function PublicLanding({ data, onLogin, onGuestLogin, showGuestEntry }: { data: 
     </section>
     <footer style={{ textAlign: 'center', padding: '22px 0 0', color: '#929aa6', fontSize: 12 }}>访客浏览模式 · 登录后可使用完整社区功能</footer>
     <div style={{ display: 'flex', justifyContent: 'center', gap: 10, marginTop: 14 }}>
-      <button className="mini ghost" onClick={() => nav('/admin')}>管理员入口</button>
       {showGuestEntry && <button className="mini ghost" onClick={onGuestLogin}>游客登录</button>}
       {data?.close_login_entry !== 'true' && <button className="mini ghost" onClick={onLogin}>进入账号</button>}
     </div>
@@ -1011,10 +974,10 @@ function Shell() {
           {TABS.map(t => (
             <NavLink key={t.to} to={t.to} className={isTabActive(t.to, loc.pathname) ? 'on' : ''}>{t.label}</NavLink>
           ))}
-          {isAdmin && <NavLink to="/admin" className={loc.pathname === '/admin' ? 'on' : ''}>管理后台</NavLink>}
+          {isAdmin && <a href="https://admin.qianzhi.pw/">管理后台</a>}
         </span>
         <span className="sp" />
-        {isAdmin && <a href="#/admin" title="管理后台" className="mob-admin" style={{ textDecoration: 'none', marginRight: 4, fontSize: 13 }}>管理</a>}
+        {isAdmin && <a href="https://admin.qianzhi.pw/" title="管理后台" className="mob-admin" style={{ textDecoration: 'none', marginRight: 4, fontSize: 13 }}>管理</a>}
         <button type="button" onClick={() => setSearchOpen(true)} title="搜索全站内容">⌕ 搜索</button>
         <button onClick={logout} title="退出登录">退出</button>
       </nav></LiquidGlass>

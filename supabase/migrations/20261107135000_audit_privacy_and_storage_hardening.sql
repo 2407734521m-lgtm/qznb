@@ -119,6 +119,23 @@ with check (
   )
 );
 
+drop policy if exists media_del on storage.objects;
+create policy media_del on storage.objects
+for delete to authenticated
+using (
+  bucket_id = 'media'
+  and (
+    (
+      (storage.foldername(name))[1] = 'love'
+      and exists (select 1 from love_private.media_objects m where m.object_path = name and m.owner_id = auth.uid())
+    )
+    or (
+      (storage.foldername(name))[1] = (select auth.uid())::text
+      and coalesce((storage.foldername(name))[2], '') <> 'love'
+    )
+  )
+);
+
 drop policy if exists media_sel on storage.objects;
 create policy media_sel on storage.objects
 for select to authenticated

@@ -513,11 +513,11 @@
    the darker reading surfaces used by conversation and utility pages. */
 body:has(.vibe-home) {
   color-scheme: light;
-  background: #f5f1e9 !important;
+  background: #ffffff !important;
   color: #29251f !important;
 }
-body:has(.vibe-home) .glow,
-body:has(.vibe-home) .app-bg { display: none !important; }
+/* The glow is decorative only; keep the shared wallpaper layer available. */
+body:has(.vibe-home) .glow { display: none !important; }
 body:has(.vibe-home) .topnav {
   background: rgba(250, 247, 240, .96) !important;
   border-bottom: 1px solid #e8dfd3 !important;
@@ -532,4 +532,84 @@ body:has(.vibe-home) .topnav a.on {
   color: #704632 !important;
   background: #f1e7dc !important;
   box-shadow: none !important;
+}
+
+
+/* Accessible link surfaces and explicit homepage loading/error feedback. */
+.vh-hero {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+}
+.vh-feed-row {
+  width: 100%;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  text-decoration: none;
+  background: transparent;
+  border: 0;
+}
+.vh-member {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+  border-radius: 12px;
+}
+.vh-hero:focus-visible,
+.vh-feed-row:focus-visible,
+.vh-member:focus-visible {
+  outline: 2px solid #9b654b;
+  outline-offset: 3px;
+}
+.vh-load-state,
+.vh-load-error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 0 12px;
+  padding: 11px 13px;
+  border: 1px solid rgba(78, 59, 42, .13);
+  border-radius: 12px;
+  background: #fffdf9;
+  color: #72695e;
+  font-size: 13px;
+}
+.vh-load-state {
+  justify-content: flex-start;
+}
+.vh-load-spinner {
+  width: 15px;
+  height: 15px;
+  flex: 0 0 15px;
+  border: 2px solid rgba(155, 101, 75, .20);
+  border-top-color: #9b654b;
+  border-radius: 50%;
+  animation: vh-load-spin .8s linear infinite;
+}
+.vh-load-error {
+  border-color: rgba(176, 74, 64, .22);
+  color: #8f3f36;
+  background: #fff9f7;
+}
+.vh-load-error button {
+  flex: 0 0 auto;
+  border: 1px solid rgba(155, 101, 75, .28);
+  border-radius: 9px;
+  padding: 7px 10px;
+  background: #fff;
+  color: #89563f;
+  font: inherit;
+  font-weight: 600;
+}
+.vh-load-error button:disabled {
+  opacity: .55;
+  cursor: wait;
+}
+@keyframes vh-load-spin {
+  to { transform: rotate(360deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .vh-load-spinner { animation: none; }
 }

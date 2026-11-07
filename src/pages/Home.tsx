@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useSignedUrls } from '../lib/media';
 import './Home.vibe.css';
@@ -50,53 +50,75 @@ export default function Home() {
   const [wishes, setWishes] = useState<any[]>([]);
   const [names, setNames] = useState<Record<string, string>>({});
   const [annPop, setAnnPop] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
   const memberAvatarUrls = useSignedUrls('avatars', members.map(member => member.avatar_path));
 
   useEffect(() => {
     let live = true;
+    setLoading(true);
+    setLoadError(null);
     (async () => {
-      const { data: ss } = await supabase.from('site_settings').select('key, value');
-      if (!live) return;
-      (ss ?? []).forEach((x: any) => {
-        if (x.key === 'site_title') setTitle(x.value || '我们的班级');
-        if (x.key === 'site_subtitle') setSubtitle(x.value || '青春档案');
-        if (x.key === 'graduation_date') setGradDate(x.value || '');
-        if (x.key === 'home_banner_url') setBannerUrl(x.value || '');
-        if (x.key === 'home_banner_text') setBannerText(x.value || '把我们的青春，留在这里');
-      });
-      const nowIso = new Date().toISOString();
-      const [n, p, m, e, w] = await Promise.all([
-        supabase.from('board_messages').select('id, title, content, created_at')
-          .eq('is_admin_msg', true).is('deleted_at', null)
-          .or(`expires_at.is.null,expires_at.gt.${nowIso}`)
-          .order('is_pinned', { ascending: false }).order('created_at', { ascending: false }).limit(3),
-        supabase.from('posts').select('id, author_id, content, created_at').eq('section', 'feed').is('deleted_at', null)
-          .order('created_at', { ascending: false }).limit(3),
-        supabase.from('profiles').select('id, username, display_name, avatar_path, created_at')
-          .eq('joined', true).order('created_at', { ascending: false }).limit(6),
-        supabase.from('events').select('id, title, event_at, location')
-          .or(`event_at.is.null,event_at.gte.${nowIso}`)
-          .order('event_at', { ascending: true }).limit(3),
-        supabase.from('wishes').select('id, content, created_at').order('created_at', { ascending: false }).limit(3),
-      ]);
-      if (!live) return;
-      setNotices(n.data ?? []);
-      setPosts(p.data ?? []);
-      setMembers(m.data ?? []);
-      setEvents(e.data ?? []);
-      setWishes(w.data ?? []);
-      const ids = new Set<string>();
-      (p.data ?? []).forEach((x: any) => ids.add(x.author_id));
-      if (ids.size) {
-        const { data: dir } = await supabase.rpc('member_directory', { q: '', lim: 100, skip: 0 });
+      try {
+        const { data: ss, error: settingsError } = await supabase.from('site_settings').select('key, value');
         if (!live) return;
-        const mp: Record<string, string> = {};
-        ((dir ?? []) as any[]).forEach((x: any) => { mp[x.id] = x.display_name ?? x.username; });
-        setNames(mp);
+        (ss ?? []).forEach((x: any) => {
+          if (x.key === 'site_title') setTitle(x.value || '我们的班级');
+          if (x.key === 'site_subtitle') setSubtitle(x.value || '青春档案');
+          if (x.key === 'graduation_date') setGradDate(x.value || '');
+          if (x.key === 'home_banner_url') setBannerUrl(x.value || '');
+          if (x.key === 'home_banner_text') setBannerText(x.value || '把我们的青春，留在这里');
+        });
+        const nowIso = new Date().toISOString();
+        const [n, p, m, e, w] = await Promise.all([
+          supabase.from('board_messages').select('id, title, content, created_at')
+            .eq('is_admin_msg', true).is('deleted_at', null)
+            .or(`expires_at.is.null,expires_at.gt.${nowIso}`)
+            .order('is_pinned', { ascending: false }).order('created_at', { ascending: false }).limit(3),
+          supabase.from('posts').select('id, author_id, content, created_at').eq('section', 'feed').is('deleted_at', null)
+            .order('created_at', { ascending: false }).limit(3),
+          supabase.from('profiles').select('id, username, display_name, avatar_path, created_at')
+            .eq('joined', true).order('created_at', { ascending: false }).limit(6),
+          supabase.from('events').select('id, title, event_at, location')
+            .or(`event_at.is.null,event_at.gte.${nowIso}`)
+            .order('event_at', { ascending: true }).limit(3),
+          supabase.from('wishes').select('id, content, created_at').order('created_at', { ascending: false }).limit(3),
+        ]);
+        if (!live) return;
+        setNotices(n.data ?? []);
+        setPosts(p.data ?? []);
+        setMembers(m.data ?? []);
+        setEvents(e.data ?? []);
+        setWishes(w.data ?? []);
+        setNames({});
+
+        const hasQueryError = [settingsError, n.error, p.error, m.error, e.error, w.error].some(Boolean);
+        if (hasQueryError) {
+          setLoadError('部分首页内容暂时无法加载，请检查网络后重试。');
+        }
+
+        const ids = new Set<string>();
+        (p.data ?? []).forEach((x: any) => ids.add(x.author_id));
+        if (ids.size) {
+          const { data: dir, error: directoryError } = await supabase.rpc('member_directory', { q: '', lim: 100, skip: 0 });
+          if (!live) return;
+          if (directoryError) {
+            setLoadError('成员资料暂时无法加载，请稍后重试。');
+          } else {
+            const mp: Record<string, string> = {};
+            ((dir ?? []) as any[]).forEach((x: any) => { mp[x.id] = x.display_name ?? x.username; });
+            setNames(mp);
+          }
+        }
+      } catch {
+        if (live) setLoadError('首页内容加载失败，请检查网络后重试。');
+      } finally {
+        if (live) setLoading(false);
       }
     })();
     return () => { live = false; };
-  }, []);
+  }, [reloadKey]);
 
   let countdown = '';
   if (gradDate) {
@@ -114,11 +136,25 @@ export default function Home() {
           <span className="vh-eyebrow">把班级记忆收藏起来</span>
           <span className="vh-live">青春档案 · 持续更新</span>
         </div>
-        <section
+
+        {loading && (
+          <div className="vh-load-state" role="status" aria-live="polite">
+            <span className="vh-load-spinner" aria-hidden="true" />
+            首页内容正在加载…
+          </div>
+        )}
+        {loadError && (
+          <div className="vh-load-error" role="alert">
+            <span>{loadError}</span>
+            <button type="button" onClick={() => setReloadKey(value => value + 1)} disabled={loading}>
+              {loading ? '正在重试…' : '重新加载'}
+            </button>
+          </div>
+        )}
+        <Link
           className={`vh-hero${bannerUrl ? ' has-image' : ''}`}
-          aria-label="班级公告横幅"
-          onClick={() => nav('/board')}
-          style={{ cursor: 'pointer' }}
+          to="/board"
+          aria-label="浏览班级公告"
         >
           {bannerUrl && <img className="vh-hero-image" src={bannerUrl} alt="" />}
           {bannerUrl && <div className="vh-hero-shade" />}
@@ -128,7 +164,7 @@ export default function Home() {
             <p className="vh-hero-sub">记录此刻，也收藏那些值得反复回看的日子。</p>
             <span className="vh-hero-link">浏览班级公告 <span aria-hidden="true">↗</span></span>
           </div>
-        </section>
+        </Link>
       
 
       
@@ -202,13 +238,13 @@ export default function Home() {
                 <button className="vh-text-link" onClick={() => nav('/feed')}>更多动态 ↗</button>
               </div>
               {posts.length ? posts.map(p => (
-                <div className="vh-feed-row" key={p.id} onClick={() => nav('/feed')}>
+                <Link className="vh-feed-row" key={p.id} to="/feed" aria-label="查看班级动态">
                   <div className="vh-feed-copy">
                     <strong>{names[p.author_id] || '班级成员'} · {timeAgo(p.created_at)}</strong>
                     <p>{p.content || '分享了一条动态'}</p>
                   </div>
                   <span aria-hidden="true" style={{ color: '#9aabb8' }}>↗</span>
-                </div>
+                </Link>
               )) : <div className="vh-empty">还没有新的动态。</div>}
               {wishes.length > 0 && (
                 <div className="vh-event">
@@ -230,11 +266,11 @@ export default function Home() {
                 </div>
                 <div className="vh-members">
                   {members.map(m => (
-                    <div className="vh-member" key={m.id} onClick={() => nav(`/member/${m.id}`)}>
+                    <Link className="vh-member" key={m.id} to={`/member/${m.id}`} aria-label={`查看${m.display_name || m.username}的资料`}>
                       <Av path={m.avatar_path} name={m.display_name || m.username}
                         signedUrl={m.avatar_path ? memberAvatarUrls[m.avatar_path] : undefined} />
                       <span>{m.display_name || m.username}</span>
-                    </div>
+                    </Link>
                   ))}
                 </div>
               </div>

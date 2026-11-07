@@ -2,9 +2,6 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useSignedUrls } from '../lib/media';
-import Reveal from '../components/Reveal';
-import BlurText from '../components/fx/BlurText';
-import ShinyText from '../components/fx/ShinyText';
 import './Home.vibe.css';
 
 /**
@@ -111,9 +108,9 @@ export default function Home() {
 
   return (
     <div className="page vibe-home">
-      <Reveal enter>
+      
         <div className="vh-topline">
-          <span className="vh-eyebrow">A PLACE FOR OUR MEMORIES</span>
+          <span className="vh-eyebrow">把班级记忆收藏起来</span>
           <span className="vh-live">青春档案 · 持续更新</span>
         </div>
         <section
@@ -125,35 +122,35 @@ export default function Home() {
           {bannerUrl && <img className="vh-hero-image" src={bannerUrl} alt="" />}
           {bannerUrl && <div className="vh-hero-shade" />}
           <div className="vh-hero-content">
-            <span className="vh-hero-kicker">OUR CLASS · ANNOUNCEMENTS</span>
-            <h2 className="vh-hero-title"><BlurText key={bannerText} text={bannerText} /></h2>
+            <span className="vh-hero-kicker">班级公告</span>
+            <h2 className="vh-hero-title">{bannerText}</h2>
             <p className="vh-hero-sub">记录此刻，也收藏那些值得反复回看的日子。</p>
             <span className="vh-hero-link">浏览班级公告 <span aria-hidden="true">↗</span></span>
           </div>
         </section>
-      </Reveal>
+      
 
-      <Reveal enter delay={0.05}>
+      
         <button type="button" className="vh-search" aria-label="搜索全站内容"
           onClick={() => window.dispatchEvent(new CustomEvent('qznb:open-search'))}>
           <span className="vh-search-icon" aria-hidden="true">⌕</span>
           <span>搜索成员、动态、相册或公告</span>
         </button>
-      </Reveal>
+      
 
-      <Reveal enter delay={0.08}>
+      
         <header className="vh-intro">
           <div>
-            <div className="vh-eyebrow">THE CLASS ARCHIVE</div>
+            <div className="vh-eyebrow">班级档案</div>
             <h1>{title}</h1>
-            <p><ShinyText text={subtitle} /></p>
+            <p>{subtitle}</p>
           </div>
           {countdown && <div className="vh-countdown">{countdown}</div>}
         </header>
-      </Reveal>
+      
 
       {notices.length > 0 && (
-        <Reveal>
+        
           <section>
             <div className="vh-section-head">
               <div><h2>公告精选</h2><p>重要消息，及时了解</p></div>
@@ -162,7 +159,7 @@ export default function Home() {
             <div className="vh-notices">
               {notices.map((n, i) => (
                 <button className="vh-notice" key={n.id} onClick={() => setAnnPop(n)}>
-                  <span className="vh-notice-tag">{i === 0 ? 'LATEST NOTICE' : 'CLASS UPDATE'}</span>
+                  <span className="vh-notice-tag">{i === 0 ? '最新公告' : '班级动态'}</span>
                   <strong>{n.title || '班级公告'}</strong>
                   <p>{(n.content || '').slice(0, 100)}</p>
                   <time>{timeAgo(n.created_at)}</time>
@@ -170,10 +167,10 @@ export default function Home() {
               ))}
             </div>
           </section>
-        </Reveal>
+        
       )}
 
-      <Reveal enter delay={0.12}>
+      
         <section>
           <div className="vh-section-head">
             <div><h2>探索我们的空间</h2><p>从这里进入每一段校园记忆</p></div>
@@ -193,11 +190,11 @@ export default function Home() {
             ))}
           </div>
         </section>
-      </Reveal>
+      
 
       <section className="vh-lower-grid">
         {(posts.length > 0 || wishes.length > 0) && (
-          <Reveal>
+          
             <div className="vh-panel">
               <div className="vh-section-head" style={{ margin: '0 0 8px' }}>
                 <div><h2>最近发生</h2><p>社区里的新鲜片段</p></div>
@@ -220,11 +217,11 @@ export default function Home() {
                 </div>
               )}
             </div>
-          </Reveal>
+          
         )}
         <div>
           {members.length > 0 && (
-            <Reveal>
+            
               <div className="vh-panel">
                 <div className="vh-section-head" style={{ margin: '0 0 12px' }}>
                   <div><h2>新加入的同学</h2><p>认识最近加入档案的成员</p></div>
@@ -240,10 +237,10 @@ export default function Home() {
                   ))}
                 </div>
               </div>
-            </Reveal>
+            
           )}
           {events.length > 0 && (
-            <Reveal>
+            
               <div className="vh-panel" style={{ marginTop: 12 }}>
                 <div className="vh-section-head" style={{ margin: '0 0 8px' }}>
                   <div><h2>近期活动</h2><p>一起参与下一段回忆</p></div>
@@ -256,7 +253,7 @@ export default function Home() {
                   </div>
                 ))}
               </div>
-            </Reveal>
+            
           )}
         </div>
       </section>
@@ -265,7 +262,7 @@ export default function Home() {
         <div className="vh-modal-backdrop" onClick={() => setAnnPop(null)}>
           <article className="vh-modal" onClick={e => e.stopPropagation()}>
             <button className="vh-modal-close" onClick={() => setAnnPop(null)}>关闭</button>
-            <div className="vh-eyebrow" style={{ marginBottom: 12 }}>CLASS ANNOUNCEMENT</div>
+            <div className="vh-eyebrow" style={{ marginBottom: 12 }}>公告详情</div>
             <h3>{annPop.title || '班级公告'}</h3>
             <p>{annPop.content}</p>
             <time style={{ color: '#97a3af', fontSize: 11 }}>{timeAgo(annPop.created_at)}</time>

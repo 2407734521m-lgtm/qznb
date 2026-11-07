@@ -11,6 +11,7 @@ import './Chat.polish.css';
 
 type ChatReaction = { message_id: number; profile_id: string; reaction: string; created_at: string };
 type ChatPeer = { id: string; username: string; display_name: string | null; avatar_path: string | null };
+type TapbackAnchor = { left: number; top: number; width: number; dockLeft: number; dockTop: number; menuLeft: number; menuTop: number };
 const QUICK_REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '🙏'];
 
 
@@ -71,6 +72,7 @@ export default function Chat() {
   const [backgroundSaving, setBackgroundSaving] = useState(false);
   const [otherTyping, setOtherTyping] = useState(false);
   const [actionFor, setActionFor] = useState<number | null>(null);
+  const [tapbackAnchor, setTapbackAnchor] = useState<TapbackAnchor | null>(null);
   const backgroundFileRef = useRef<HTMLInputElement>(null);
   const typingChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const typingStopTimerRef = useRef<number | null>(null);
@@ -305,12 +307,49 @@ export default function Chat() {
     }
   }
 
-  function startMessagePress(messageId: number) {
+  function openMessageActions(messageId: number, element?: HTMLElement) {
+    const rect = element?.getBoundingClientRect();
+    if (rect) {
+      const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
+      const dockWidth = Math.min(316, Math.max(220, viewportWidth - 24));
+      const dockLeft = Math.max(12, Math.min(
+        rect.left + rect.width / 2 - dockWidth / 2,
+        viewportWidth - dockWidth - 12,
+      ));
+      const dockTop = rect.top >= 76
+        ? rect.top - 62
+        : Math.min(viewportHeight - 58, rect.bottom + 10);
+      const menuWidth = Math.min(244, viewportWidth - 24);
+      const menuHeight = 224;
+      const menuBelowTop = dockTop >= rect.bottom ? dockTop + 58 : rect.bottom + 12;
+      const menuTop = menuBelowTop + menuHeight <= viewportHeight - 12
+        ? menuBelowTop
+        : Math.max(12, dockTop - menuHeight - 8);
+      const menuLeft = rect.left + rect.width / 2 < viewportWidth / 2
+        ? Math.max(12, Math.min(rect.left, viewportWidth - menuWidth - 12))
+        : Math.max(12, Math.min(rect.right - menuWidth, viewportWidth - menuWidth - 12));
+      setTapbackAnchor({
+        left: Math.max(8, Math.min(rect.left, viewportWidth - Math.max(1, rect.width) - 8)),
+        top: Math.max(8, Math.min(rect.top, viewportHeight - Math.max(1, rect.height) - 8)),
+        width: Math.min(rect.width, viewportWidth - 16),
+        dockLeft,
+        dockTop,
+        menuLeft,
+        menuTop,
+      });
+    } else {
+      setTapbackAnchor(null);
+    }
+    setActionFor(messageId);
+  }
+
+  function startMessagePress(messageId: number, element: HTMLElement) {
     if (longPressTimerRef.current !== null) window.clearTimeout(longPressTimerRef.current);
     longPressTriggeredRef.current = false;
     longPressTimerRef.current = window.setTimeout(() => {
       longPressTriggeredRef.current = true;
-      setActionFor(messageId);
+      openMessageActions(messageId, element);
       longPressTimerRef.current = null;
     }, 480);
   }
@@ -598,9 +637,13 @@ export default function Chat() {
   }
 
   const dateLabel = (value: string, previous?: string) => {
-    const d = new Date(value);
-    if (previous && new Date(previous).toDateString() === d.toDateString()) return '';
-    return d.toLocaleDateString('zh-CN', { month: 'long', day: 'numeric', weekday: 'short' });
+    const current = new Date(value);
+    const time = current.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+    const date = current.toLocaleDateString('zh-CN', { month: 'long', day: 'numeric', weekday: 'short' });
+    if (!previous) return date + ' · ' + time;
+    const prior = new Date(previous);
+    if (prior.toDateString() !== current.toDateString()) return date + ' · ' + time;
+    return current.getTime() - prior.getTime() > 5 * 60 * 1000 ? time : '';
   };
 
   useEffect(() => {
@@ -609,18 +652,21 @@ export default function Chat() {
       if (event.key === 'Escape') {
         setShowDetails(false);
         setActionFor(null);
+        setTapbackAnchor(null);
       }
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [showDetails, actionFor]);
 
+  const latestOutgoingMessageId = [...msgs].reverse().find(message => message.sender_id === me)?.id ?? null;
+
   return (
     <div ref={pageRef} className="im-page" style={{
       '--im-wallpaper': backgroundPath && wallpaperUrl
         ? `linear-gradient(rgba(255,255,255,.38),rgba(255,255,255,.48)), url("${wallpaperUrl}") center / cover no-repeat`
         : ({
-            default: 'radial-gradient(ellipse at 16% 8%,rgba(187,211,250,.24),transparent 38%),#ffffff',
+            default: '#ffffff',
             sky: 'linear-gradient(155deg,#f5faff 0%,#eaf3ff 52%,#f9fbff 100%)',
             lavender: 'radial-gradient(ellipse at 78% 18%,rgba(207,195,245,.34),transparent 42%),linear-gradient(145deg,#fff 0%,#f5f1ff 100%)',
             mint: 'radial-gradient(ellipse at 18% 80%,rgba(181,225,211,.28),transparent 42%),linear-gradient(145deg,#fff 0%,#eef9f5 100%)',
@@ -673,15 +719,23 @@ export default function Chat() {
         @media(max-width:600px){.im-head{gap:10px}.im-avatar{width:40px;height:40px}.im-back,.im-icon{min-width:40px;height:40px}.im-feed{padding:14px 12px 18px}.im-bubble{max-width:84%;font-size:15px}.im-composer{gap:8px}.im-plus{width:40px;height:40px}}\n        @media(prefers-reduced-motion:reduce){.im-row{animation:none}.im-row-out{animation:none}}
       `}</style>
       <header className="im-head">
-        <button className="im-back" aria-label="返回" onClick={() => goBackOr(nav, '/friends')}>‹</button>
-        <button type="button" className="im-avatar im-avatar-open" aria-label="查看会话资料" onClick={() => setShowDetails(true)}>
-          {peerAvatarUrl ? <img src={peerAvatarUrl} alt="" /> : (name.trim().charAt(0).toUpperCase() || '友')}
+        <button className="im-back" aria-label="返回会话列表" onClick={() => goBackOr(nav, '/friends')}>
+          <span aria-hidden="true">‹</span>
+          <span className="im-back-label">信息</span>
         </button>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div className="im-title">{name}</div>
-          <div className="im-sub">{otherTyping ? name + ' 正在输入…' : '私密聊天'}</div>
-        </div>
-        <button className="im-icon" aria-label="聊天详情" onClick={() => setShowDetails(v => !v)}>···</button>
+        <button type="button" className="im-contact-stack" aria-label="查看会话资料" onClick={() => setShowDetails(true)}>
+          <span className="im-avatar im-avatar-open">
+            {peerAvatarUrl ? <img src={peerAvatarUrl} alt="" /> : (name.trim().charAt(0).toUpperCase() || '友')}
+          </span>
+          <span className="im-contact-name-pill">
+            <span className="im-title">{name}</span>
+            <span className="im-contact-chevron" aria-hidden="true">›</span>
+          </span>
+          {otherTyping && <span className="im-sub">正在输入…</span>}
+        </button>
+        <button className="im-icon im-info-button" aria-label="聊天详情" onClick={() => setShowDetails(true)}>
+          <span aria-hidden="true">ⓘ</span>
+        </button>
       </header>
       {showDetails && <div className="im-profile-overlay" role="presentation" onClick={() => setShowDetails(false)}>
         <section className="im-profile-sheet" role="dialog" aria-modal="true" aria-label="会话资料"
@@ -754,18 +808,28 @@ export default function Chat() {
           const parent = m.reply_to_id ? msgs.find(item => item.id === m.reply_to_id) : null;
           const groups = reactionGroups(m.id);
           const mine = m.sender_id === me;
+          const previousMessage = msgs[i - 1];
+          const nextMessage = msgs[i + 1];
+          const samePrevious = Boolean(previousMessage
+            && previousMessage.sender_id === m.sender_id
+            && !dateLabel(m.created_at, previousMessage.created_at)
+            && new Date(m.created_at).getTime() - new Date(previousMessage.created_at).getTime() <= 300000);
+          const sameNext = Boolean(nextMessage
+            && nextMessage.sender_id === m.sender_id
+            && !dateLabel(nextMessage.created_at, m.created_at)
+            && new Date(nextMessage.created_at).getTime() - new Date(m.created_at).getTime() <= 300000);
           const deleted = Boolean(m.deleted_at);
           const canEdit = mine && !deleted && !m.body.startsWith('[[im-image:') && !m.body.startsWith('[[im-audio:');
           return (
             <div key={m.id}>
               {dateLabel(m.created_at, msgs[i - 1]?.created_at) && <div className="im-day">{dateLabel(m.created_at, msgs[i - 1]?.created_at)}</div>}
-              <div className={'im-row ' + (mine ? 'mine' : '') + (swappedIdsRef.current.has(m.id) ? ' im-row-static' : '')}>
-                <div className={'im-bubble ' + (mine ? 'mine' : 'theirs')}
-                  onTouchStart={() => startMessagePress(m.id)}
+              <div className={'im-row ' + (mine ? 'mine ' : '') + (mine && m.id === latestOutgoingMessageId && userPreferences.chat.showReadReceipts ? 'im-row-has-receipt ' : '') + (samePrevious ? 'im-row-grouped-prev ' : '') + (sameNext ? 'im-row-grouped-next ' : '') + (swappedIdsRef.current.has(m.id) ? 'im-row-static' : '')}>
+                <div className={'im-bubble ' + (mine ? 'mine' : 'theirs') + (samePrevious ? ' im-bubble-grouped-prev' : '') + (sameNext ? ' im-bubble-grouped-next' : '')}
+                  onTouchStart={event => startMessagePress(m.id, event.currentTarget)}
                   onTouchMove={clearMessagePress}
                   onTouchEnd={clearMessagePress}
                   onTouchCancel={clearMessagePress}
-                  onContextMenu={event => { event.preventDefault(); setActionFor(m.id); }}>
+                  onContextMenu={event => { event.preventDefault(); openMessageActions(m.id, event.currentTarget); }}>
                   {m.reply_to_id && <div className="im-reply-quote">回复：{messageSummary(parent)}</div>}
                   {editingId === m.id ? (
                     <>
@@ -778,19 +842,19 @@ export default function Chat() {
                   ) : (
                     <MessageContent body={deleted ? (mine ? '你撤回了一条消息' : '对方撤回了一条消息') : m.body} />
                   )}
-                  <div className="im-time">
-                    {new Date(m.created_at).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}
-                    {mine && userPreferences.chat.showReadReceipts ? <span className="im-read-status">{otherLastReadMessageId !== null && otherLastReadMessageId >= m.id ? '· 已读' : '· 已发送'}</span> : ''}
-                    {m.edited_at && !deleted ? <span className="im-read-status">· 已编辑</span> : ''}
-                  </div>
+                  {m.edited_at && !deleted && <div className="im-edited-mark">已编辑</div>}
                   {groups.length > 0 && <div className="im-reaction-groups">
                     {groups.map(group => {
                       const mineReacted = group.items.some(item => item.profile_id === me);
                       return <button key={group.reaction} type="button" className={'im-reaction-chip' + (mineReacted ? ' mine' : '')} onClick={() => toggleReaction(m.id, group.reaction)}>{group.reaction} {group.items.length}</button>;
                     })}
                   </div>}
-
                 </div>
+                {mine && m.id === latestOutgoingMessageId && userPreferences.chat.showReadReceipts && (
+                  <div className="im-delivery-receipt" aria-live="polite">
+                    {otherLastReadMessageId !== null && otherLastReadMessageId >= m.id ? '已读' : '已送达'}
+                  </div>
+                )}
               </div>
             </div>
           );
@@ -802,12 +866,12 @@ export default function Chat() {
                 <div className={'im-bubble mine' + (e.phase === 'failed' ? ' im-bubble-failed' : '')}>
                   {e.replyToId !== null && <div className="im-reply-quote">回复：{e.replySummary ?? ''}</div>}
                   <MessageContent body={e.body} />
-                  <div className="im-time">
-                    {new Date(e.createdAtMs).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}
-                    <span className={'im-send-status' + (e.phase === 'sent' ? ' sent' : '')} role="img" aria-label={e.phase === 'sending' ? '发送中' : e.phase === 'failed' ? '发送失败' : '已发送'}>
-                      {e.phase === 'sending' ? <ClockIcon /> : e.phase === 'sent' ? <SentIcon /> : null}
-                    </span>
-                  </div>
+                </div>
+                <div className="im-outbox-status">
+                  <span className={'im-send-status' + (e.phase === 'sent' ? ' sent' : '')} role="img" aria-label={e.phase === 'sending' ? '发送中' : e.phase === 'failed' ? '发送失败' : '已发送'}>
+                    {e.phase === 'sending' ? <ClockIcon /> : e.phase === 'sent' ? <SentIcon /> : null}
+                  </span>
+                  {e.phase === 'sending' ? '发送中' : e.phase === 'failed' ? '发送失败' : '已送达'}
                 </div>
                 {e.phase === 'failed' && <button type="button" className="im-retry" onClick={() => retryEntry(e.tempKey)}><span className="im-retry-dot">↻</span>点击重试</button>}
               </div>
@@ -827,32 +891,39 @@ export default function Chat() {
         const mine = message.sender_id === me;
         const deleted = Boolean(message.deleted_at);
         const canEdit = mine && !deleted && !message.body.startsWith('[[im-image:') && !message.body.startsWith('[[im-audio:');
-        return <div className="im-context-overlay" role="presentation" onClick={() => setActionFor(null)}>
+        return <div className="im-context-overlay" role="presentation" onClick={() => { setActionFor(null); setTapbackAnchor(null); }}>
+          {tapbackAnchor && <div className={'im-tapback-preview ' + (mine ? 'mine' : 'theirs')}
+            style={{ left: tapbackAnchor.left, top: tapbackAnchor.top, width: tapbackAnchor.width }}
+            aria-hidden="true">
+            {message.reply_to_id && <div className="im-reply-quote">回复：{messageSummary(msgs.find(item => item.id === message.reply_to_id))}</div>}
+            <MessageContent body={deleted ? (mine ? '你撤回了一条消息' : '对方撤回了一条消息') : message.body} />
+            <div className="im-tapback-preview-time">{new Date(message.created_at).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}</div>
+          </div>}
+          {!deleted && tapbackAnchor && <div className="im-tapback-dock"
+            style={{ left: tapbackAnchor.dockLeft, top: tapbackAnchor.dockTop }}
+            role="group" aria-label="快速回应" onClick={event => event.stopPropagation()}>
+            {QUICK_REACTIONS.map(reaction => <button key={reaction} type="button" aria-label={'回应 ' + reaction}
+              onClick={() => { setActionFor(null); setTapbackAnchor(null); void toggleReaction(message.id, reaction); }}>{reaction}</button>)}
+          </div>}
           <section className="im-context-sheet" role="dialog" aria-modal="true" aria-label="消息操作"
+            style={tapbackAnchor ? { left: tapbackAnchor.menuLeft, top: tapbackAnchor.menuTop } : undefined}
             onClick={event => event.stopPropagation()}>
             <div className="im-context-grabber" />
             <div className="im-context-label">{mine ? '你发送的消息' : name + ' 发送的消息'}</div>
-            <div className="im-context-preview">
-              {deleted ? '这条消息已撤回' : <MessageContent body={message.body} />}
-            </div>
-            {!deleted && <div className="im-context-reactions" aria-label="快速回应">
-              {QUICK_REACTIONS.map(reaction => <button key={reaction} type="button" aria-label={'回应 ' + reaction}
-                onClick={() => { setActionFor(null); void toggleReaction(message.id, reaction); }}>{reaction}</button>)}
-            </div>}
             <div className="im-context-actions">
-              {!deleted && <button type="button" onClick={() => { setActionFor(null); void copyMessage(message); }}>
+              {!deleted && <button type="button" onClick={() => { setActionFor(null); setTapbackAnchor(null); void copyMessage(message); }}>
                 <span className="im-context-action-icon">⧉</span><span>复制</span>
               </button>}
-              {!deleted && <button type="button" onClick={() => { setActionFor(null); beginReply(message); }}>
+              {!deleted && <button type="button" onClick={() => { setActionFor(null); setTapbackAnchor(null); beginReply(message); }}>
                 <span className="im-context-action-icon">↩</span><span>回复</span>
               </button>}
-              {canEdit && <button type="button" onClick={() => { setActionFor(null); setEditingId(message.id); setEditingText(message.body); }}>
+              {canEdit && <button type="button" onClick={() => { setActionFor(null); setTapbackAnchor(null); setEditingId(message.id); setEditingText(message.body); }}>
                 <span className="im-context-action-icon">✎</span><span>编辑</span>
               </button>}
-              {mine && !deleted && <button type="button" className="danger" onClick={() => { setActionFor(null); void withdrawMessage(message.id); }}>
+              {mine && !deleted && <button type="button" className="danger" onClick={() => { setActionFor(null); setTapbackAnchor(null); void withdrawMessage(message.id); }}>
                 <span className="im-context-action-icon">⌫</span><span>撤回</span>
               </button>}
-              <button type="button" onClick={() => setActionFor(null)}>
+              <button type="button" onClick={() => { setActionFor(null); setTapbackAnchor(null); }}>
                 <span className="im-context-action-icon">×</span><span>取消</span>
               </button>
             </div>
@@ -860,7 +931,12 @@ export default function Chat() {
         </div>;
       })()}
       {error && <div className="im-error">{error}</div>}
-      {showStickers && <div className="im-sticker-tray" role="group" aria-label="选择贴纸">{['🥹','😂','❤️','😍','🐱','🐻','✨','🎉','👍','😭','🫶','🌸','💖','😎'].map(sticker => <button key={sticker} type="button" className="im-sticker-choice" aria-label={'发送贴纸 ' + sticker} onClick={() => sendSticker(sticker)}>{sticker}</button>)}</div>}
+      {showStickers && <div className="im-sticker-tray" role="group" aria-label="附件与贴纸">
+        <button type="button" className="im-attach-choice" onClick={() => imageRef.current?.click()}>
+          <span aria-hidden="true">▧</span><span>照片</span>
+        </button>
+        {['🥹','😂','❤️','😍','🐱','🐻','✨','🎉','👍','😭','🫶','🌸','💖','😎'].map(sticker => <button key={sticker} type="button" className="im-sticker-choice" aria-label={'发送贴纸 ' + sticker} onClick={() => sendSticker(sticker)}>{sticker}</button>)}
+      </div>}
       {replyTarget && <div className="im-reply-banner">
         <span>回复</span>
         <span className="im-reply-banner-main">{messageSummary(replyTarget)}</span>
@@ -868,12 +944,12 @@ export default function Chat() {
       </div>}
       <form className="im-composer" onSubmit={e => { e.preventDefault(); send(); }}>
         <input ref={imageRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif,image/heic" hidden onChange={e => sendImage(e.target.files?.[0])} />
-        <button type="button" className="im-plus" aria-label="打开贴纸和图片菜单" title="打开贴纸和图片菜单" disabled={uploading || recording} onClick={() => setShowStickers(v => !v)}>{showStickers ? '×' : '＋'}</button><button type="button" className="im-icon" aria-label="选择图片" title="选择图片" disabled={uploading || recording} onClick={() => imageRef.current?.click()} style={{fontSize:17,minWidth:38,width:38,height:38}}>▧</button>
-        <button type="button" className={'im-mic' + (recording ? ' recording' : '')} aria-label={recording ? '结束录音并发送' : '录制语音'} title={recording ? '结束录音并发送' : '录制语音'} disabled={uploading} onClick={recording ? stopRecording : startRecording}>{recording ? '■' : '●'}</button>
+        <button type="button" className="im-plus" aria-label="打开附件菜单" title="打开附件菜单" disabled={uploading || recording} onClick={() => setShowStickers(v => !v)}>{showStickers ? '×' : '＋'}</button>
         <div className="im-input-wrap">
           <input ref={inputRef} className="im-input" value={text} onChange={e => { setText(e.target.value); notifyTyping(e.target.value); }}
-            placeholder={recording ? '录音中 ' + String(Math.floor(recordSeconds / 60)).padStart(2, '0') + ':' + String(recordSeconds % 60).padStart(2, '0') + ' · 点红色按钮结束' : uploading ? '正在发送媒体…' : '发送信息…'} maxLength={2000} autoComplete="off" aria-label="输入消息" />
-          <button type="submit" className="im-send" aria-label="发送消息" disabled={!text.trim()}>↑</button>
+            placeholder={recording ? '录音中 ' + String(Math.floor(recordSeconds / 60)).padStart(2, '0') + ':' + String(recordSeconds % 60).padStart(2, '0') + ' · 点红色按钮结束' : uploading ? '正在发送媒体…' : 'iMessage'} maxLength={2000} autoComplete="off" aria-label="输入消息" />
+          {!text.trim() && <button type="button" className={'im-mic' + (recording ? ' recording' : '')} aria-label={recording ? '结束录音并发送' : '录制语音'} title={recording ? '结束录音并发送' : '录制语音'} disabled={uploading} onClick={recording ? stopRecording : startRecording}>{recording ? '■' : <svg width="15" height="18" viewBox="0 0 18 22" fill="none" aria-hidden="true"><rect x="6" y="1" width="6" height="13" rx="3" stroke="currentColor" strokeWidth="1.7" /><path d="M3 10.5v1a6 6 0 0 0 12 0v-1M9 17.5V21M6 21h6" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" /></svg>}</button>}
+          {text.trim() && <button type="submit" className="im-send" aria-label="发送消息" disabled={uploading || recording}>↑</button>}
         </div>
       </form>
     </div>

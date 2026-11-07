@@ -263,12 +263,12 @@ export default function AdminAccountManagement({
         style={{ width: '100%', boxSizing: 'border-box', padding: '10px 11px', borderRadius: 10, border: '1px solid #ffffff1c', background: '#ffffff08', color: '#fff', fontSize: 13 }} />
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 9 }}>
         {([['all', '全部'], ['active', '正常'], ['disabled', '已禁用']] as const).map(([value, label]) =>
-          <button key={value} style={{ ...btn, background: status === value ? '#f3ead6' : '#ffffff08', borderColor: status === value ? 'rgba(34,49,74,.38)' : '#ffffff20' }}
+          <button key={value} style={{ ...btn, background: status === value ? '#22314a' : '#ffffff', color: status === value ? '#ffffff' : '#22314a', borderColor: status === value ? '#22314a' : 'rgba(34,49,74,.2)' }}
             aria-pressed={status === value} onClick={() => setStatus(value)}>{label}</button>)}
       </div>
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', marginTop: 8 }}>
         {([['all', '全部角色'], ['member', '普通成员'], ['admin', '内容管理员'], ['super_admin', '超级管理员']] as const).map(([value, label]) =>
-          <button key={value} style={{ ...btn, padding: '6px 9px', background: roleFilter === value ? '#f3ead6' : '#ffffff08', borderColor: roleFilter === value ? 'rgba(34,49,74,.38)' : '#ffffff20' }}
+          <button key={value} style={{ ...btn, padding: '6px 9px', background: roleFilter === value ? '#22314a' : '#ffffff', color: roleFilter === value ? '#ffffff' : '#22314a', borderColor: roleFilter === value ? '#22314a' : 'rgba(34,49,74,.2)' }}
             aria-pressed={roleFilter === value} onClick={() => setRoleFilter(value)}>{label}</button>)}
       </div>
       <div style={{ display: 'flex', gap: 7, alignItems: 'center', flexWrap: 'wrap', marginTop: 8 }}>

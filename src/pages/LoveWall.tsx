@@ -292,7 +292,9 @@ export default function LoveWall() {
         const it = pick[i];
         const f = it.kind === 'image' ? await downscaleImage(it.file) : it.file;
         const ext = (f.name.split('.').pop() || (it.kind === 'image' ? 'jpg' : 'mp4')).toLowerCase().replace(/[^a-z0-9]/g, '') || 'bin';
-        const path = `${session.user.id}/love/${Date.now()}-${i}.${ext}`;
+        const path = `love/${crypto.randomUUID()}.${ext}`;
+        const { error: registerError } = await supabase.rpc('register_love_wall_media_upload', { p_path: path });
+        if (registerError) throw new Error('无法登记匿名附件，请稍后重试。');
         try {
           await uploadWithProgress('media', path, f, pct => setUpPct(prev => ({ ...prev, [i]: pct })));
         } catch { throw new Error('附件上传失败，请检查网络后重试。'); }
@@ -316,6 +318,10 @@ export default function LoveWall() {
           cleanupFailed = await cleanupUnlinkedLoveMedia(uploaded.map(item => item.path));
         } else {
           attachmentsCommitted = true;
+          for (const item of uploaded) {
+            const { error: linkError } = await supabase.rpc('link_love_wall_media_post', { p_path: item.path, p_post_id: post.id });
+            if (linkError) throw new Error('投稿已保存，但附件隐私关联失败，请联系管理员处理。');
+          }
         }
       }
       pick.forEach(x => URL.revokeObjectURL(x.url));

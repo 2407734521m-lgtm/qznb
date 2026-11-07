@@ -1401,3 +1401,8 @@
 /* 会话页顶栏通话钮 */
 .im-page .im-call-button{display:grid;place-items:center;color:#fff}
 .im-page .im-call-button:disabled{opacity:.45}
+
+/* Small-surface transitions: transform-only keeps the chat scroller stable. */
+.im-page .im-sticker-tray {
+  transform-origin: 50% 100%;
+}

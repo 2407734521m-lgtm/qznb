@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { motion, useReducedMotion } from 'framer-motion';
+import { SPRING_GENTLE } from '../lib/motion';
 import './Explore.css';
 
 const cards = [
@@ -140,7 +141,7 @@ export default function Explore() {
             whileTap={reduce ? undefined : { scale: 0.985 }}
             transition={reduce
               ? { duration: 0.01 }
-              : { type: 'spring', stiffness: 330, damping: 28, mass: 0.72, delay: index * 0.045 }}
+              : { ...SPRING_GENTLE, delay: index * 0.045 }}
           >
             <Link to={card.to} className="discover-card-link">
               <div className="discover-card-copy">

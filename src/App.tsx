@@ -370,13 +370,52 @@ function Shell() {
   // 1.0 旧壳没有这个标识，但系统 WebView 的 UA 带「; wv)」记号，detectInstalledApp 会把它按 1.0 认出来。
   const [appUpdate, setAppUpdate] = useState<any>(null);
   const [updateDismissed, setUpdateDismissed] = useState(false);
-  useEffect(() => {
+  const appUpdateCodeRef = useRef('');
+  const fetchAppUpdate = () => {
     if (!detectInstalledApp()) return;
-    let alive = true;
     supabase.rpc('public_app_update').then(({ data, error }) => {
-      if (alive && !error && data) setAppUpdate(data);
+      if (error || !data) return;
+      const code = String((data as any).app_version_code || '');
+      // 后台又推了更新的版本：之前对旧版本点的「忽略」不再压住新框。
+      if (appUpdateCodeRef.current && appUpdateCodeRef.current !== code) setUpdateDismissed(false);
+      appUpdateCodeRef.current = code;
+      setAppUpdate(data);
     });
-    return () => { alive = false; };
+  };
+  useEffect(() => { fetchAppUpdate(); }, []);
+  // 切回应用时再查一次更新：不用清缓存、不用彻底重开，推送能自己找上门。
+  useEffect(() => {
+    const onVis = () => { if (document.visibilityState === 'visible') fetchAppUpdate(); };
+    document.addEventListener('visibilitychange', onVis);
+    return () => document.removeEventListener('visibilitychange', onVis);
+  }, []);
+  // 网站自身也要保鲜：定期比对线上脚本包与本页正在跑的包，不一致就自动刷新一次，
+  // 免得旧页面在应用里躺着、永远收不到新功能和更新框（60 秒内不重复刷新，防抖）。
+  useEffect(() => {
+    let reloading = false;
+    const checkFresh = async () => {
+      if (reloading || document.visibilityState !== 'visible') return;
+      try {
+        const current = document.querySelector('script[src*="assets/index-"]')?.getAttribute('src') || '';
+        const currentName = current.split('/').pop() || '';
+        if (!currentName) return;
+        const res = await fetch('/?fresh=' + Date.now(), { cache: 'no-store', credentials: 'same-origin' });
+        if (!res.ok) return;
+        const html = await res.text();
+        const found = html.match(/assets\/(index-[^"']+\.js)/);
+        if (found && found[1] !== currentName) {
+          const last = Number(sessionStorage.getItem('qz_fresh_reload_at') || 0);
+          if (Date.now() - last < 60000) return;
+          sessionStorage.setItem('qz_fresh_reload_at', String(Date.now()));
+          reloading = true;
+          location.reload();
+        }
+      } catch { /* 网络不稳就跳过，下次再查 */ }
+    };
+    const onVis = () => { void checkFresh(); };
+    document.addEventListener('visibilitychange', onVis);
+    const timer = window.setInterval(checkFresh, 5 * 60 * 1000);
+    return () => { document.removeEventListener('visibilitychange', onVis); window.clearInterval(timer); };
   }, []);
   const systemReduce = useReducedMotion();
   const [motionPreference, setMotionPreference] = useState<'system' | 'reduce' | 'full'>(() => {

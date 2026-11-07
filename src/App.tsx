@@ -21,6 +21,7 @@ import FxLoader from './components/fx/Loader';
 import WelcomeOverlay from './components/WelcomeOverlay';
 import GuideCarousel from './components/GuideCarousel';
 import AppUpdateDialog from './components/AppUpdateDialog';
+import AppAnnouncementDialog from './components/AppAnnouncementDialog';
 import LoginSuccessOverlay from './components/LoginSuccessOverlay';
 import bgUrl from './assets/bg.jpg';
 import emblemUrl from './assets/pingzhong-emblem.png';
@@ -369,26 +370,51 @@ function Shell() {
   // 安卓应用更新：应用壳在 UA 里带 QianzhiApp/版本名 (序号)，与后台最新版本比对后弹更新框。
   // 1.0 旧壳没有这个标识，但系统 WebView 的 UA 带「; wv)」记号，detectInstalledApp 会把它按 1.0 认出来。
   const [appUpdate, setAppUpdate] = useState<any>(null);
+  const [appAnnouncements, setAppAnnouncements] = useState<Array<{ id: number; title: string; body: string; created_at: string }>>([]);
   const [updateDismissed, setUpdateDismissed] = useState(false);
   const appUpdateCodeRef = useRef('');
-  const fetchAppUpdate = () => {
-    if (!detectInstalledApp()) return;
-    supabase.rpc('public_app_update').then(({ data, error }) => {
-      if (error || !data) return;
-      const code = String((data as any).app_version_code || '');
-      // 后台又推了更新的版本：之前对旧版本点的「忽略」不再压住新框。
+  const fetchAppUpdate = async () => {
+    const installed = detectInstalledApp();
+    const uid = session?.user.id;
+    if (!installed || !uid) {
+      setAppAnnouncements([]);
+      return;
+    }
+
+    // Record the authenticated app client before asking for app-only release data.
+    const device = parseDevice(navigator.userAgent || '');
+    const { error: presenceError } = await supabase.from('member_presence').upsert({
+      profile_id: uid,
+      device: device || null,
+      client_platform: 'mobile',
+      app_version_name: installed.name,
+      app_version_code: installed.code,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: 'profile_id' });
+    if (presenceError) return;
+
+    const [updateResult, announcementResult] = await Promise.all([
+      supabase.rpc('public_app_update'),
+      supabase.rpc('public_app_announcements'),
+    ]);
+    if (!updateResult.error && updateResult.data) {
+      const code = String((updateResult.data as any).app_version_code || '');
       if (appUpdateCodeRef.current && appUpdateCodeRef.current !== code) setUpdateDismissed(false);
       appUpdateCodeRef.current = code;
-      setAppUpdate(data);
-    });
+      setAppUpdate(updateResult.data);
+    }
+    if (!announcementResult.error) {
+      setAppAnnouncements((announcementResult.data ?? []) as Array<{ id: number; title: string; body: string; created_at: string }>);
+    }
   };
-  useEffect(() => { fetchAppUpdate(); }, []);
-  // 切回应用时再查一次更新：不用清缓存、不用彻底重开，推送能自己找上门。
+  useEffect(() => { void fetchAppUpdate(); }, [session?.user.id]);
+  // When the app returns to the foreground, refresh its release and unread app announcements.
   useEffect(() => {
-    const onVis = () => { if (document.visibilityState === 'visible') fetchAppUpdate(); };
+    const onVis = () => { if (document.visibilityState === 'visible') void fetchAppUpdate(); };
     document.addEventListener('visibilitychange', onVis);
     return () => document.removeEventListener('visibilitychange', onVis);
-  }, []);
+  }, [session?.user.id]);
+
   // 网站自身也要保鲜：定期比对线上脚本包与本页正在跑的包，不一致就自动刷新一次，
   // 免得旧页面在应用里躺着、永远收不到新功能和更新框（60 秒内不重复刷新，防抖）。
   useEffect(() => {
@@ -809,6 +835,7 @@ function Shell() {
     if (!session) return;
     const uid = session.user.id;
     const device = parseDevice(navigator.userAgent || '');
+    const installed = detectInstalledApp();
     let alive = true;
     let lastActivity = Date.now();
     let inFlight = false;
@@ -820,7 +847,14 @@ function Shell() {
       inFlight = true;
       try {
         await supabase.from('member_presence').upsert(
-          { profile_id: uid, device: device || null, updated_at: new Date().toISOString() },
+          {
+            profile_id: uid,
+            device: device || null,
+            client_platform: installed ? 'mobile' : 'web',
+            app_version_name: installed?.name ?? null,
+            app_version_code: installed?.code ?? null,
+            updated_at: new Date().toISOString(),
+          },
           { onConflict: 'profile_id' });
       } catch { /* 心跳失败不影响正常使用 */ }
       finally { inFlight = false; }
@@ -957,6 +991,10 @@ function Shell() {
   try { appIgnored = localStorage.getItem('qz_app_update_ignored') === String(latestAppCode); } catch { /* storage unavailable */ }
   const showAppUpdate = !!installedApp && !!appUpdate && latestAppCode > installedApp.code
     && !!appUpdate.app_apk_url && !updateDismissed && (appForced || !appIgnored);
+  const dismissAppAnnouncement = async (id: number) => {
+    const { error } = await supabase.rpc('mark_app_announcement_read', { p_announcement_id: id });
+    if (!error) setAppAnnouncements(current => current.filter(item => item.id !== id));
+  };
   const ignoreAppUpdate = () => {
     try { localStorage.setItem('qz_app_update_ignored', String(latestAppCode)); } catch { /* storage unavailable */ }
     setUpdateDismissed(true);
@@ -973,6 +1011,9 @@ function Shell() {
         style={{ position: 'absolute', top: emblem.top, right: emblem.right, width: emblem.width, opacity: emblem.opacity, pointerEvents: 'none', userSelect: 'none', zIndex: 30 }} />}
       {showAppUpdate && installedApp && appUpdate && (
         <AppUpdateDialog currentName={installedApp.name} info={{ ...appUpdate, app_force_update: appForced ? 'true' : 'false' }} onIgnore={ignoreAppUpdate} />
+      )}
+      {!showAppUpdate && installedApp && appAnnouncements.length > 0 && (
+        <AppAnnouncementDialog announcement={appAnnouncements[0]} onDismiss={id => void dismissAppAnnouncement(id)} />
       )}
       {isAdminPage ? (
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', position: 'sticky', top: 0, zIndex: 40, background: 'rgba(255,255,255,.92)', backdropFilter: 'blur(12px)', borderBottom: '1px solid #e8eaf0' }}>

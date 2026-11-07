@@ -147,7 +147,7 @@ function isTabActive(tab: string, path: string) {
 
 // /admin 路由守卫：已是管理员直接进后台，否则显示独立的管理员登录页
 function AdminRoute() {
-  const { session, loading, guest, enterGuest, leaveGuest } = useAuth();
+  const { session, loading } = useAuth();
   const [role, setRole] = useState<string | null>(null);
   const [verifiedUid, setVerifiedUid] = useState<string | null>(null);
   useEffect(() => {
@@ -350,7 +350,7 @@ function emblemSpot(path: string): { top: number; right: number; width: number; 
 }
 
 function Shell() {
-  const { session, loading } = useAuth();
+  const { session, loading, guest, enterGuest, leaveGuest } = useAuth();
   const quietHoursActive = useQuietHoursActive(session?.user.id);  const [role, setRole] = useState('');
   const loc = useLocation();
   const emblem = emblemSpot(loc.pathname);

@@ -362,7 +362,7 @@ function cacheInkStrokeParticles(stroke: InkStroke, density: number) {
 }
 function drawAirInkScene(ctx:CanvasRenderingContext2D,strokes:InkStroke[],committed:InkGlyph[],time:number,density:number,sizeMultiplier:number,glowMultiplier:number){
   ctx.save();ctx.globalCompositeOperation='lighter';
-  const drawStroke=(stroke:InkStroke,phase:number)=>{
+  const drawStroke=(stroke:InkStroke)=>{
     const points=stroke.points;if(!points.length)return;
     if(stroke.liftedAt===undefined){
       if(points.length>1){
@@ -381,23 +381,17 @@ function drawAirInkScene(ctx:CanvasRenderingContext2D,strokes:InkStroke[],commit
     }
     cacheInkStrokeParticles(stroke,density);
     if(!stroke.particleCanvas||stroke.particleLeft===undefined||stroke.particleTop===undefined)return;
+    // 笔迹定在原地成形（用户定：写出的字不要飘）：缓动只用于透明度沉稳，
+    // 不再上升 10px、不再左右摇摆，也不再生成向上飘的微尘。
     const progress=clamp((time-stroke.liftedAt)/1.35,0,1),eased=progress*progress*(3-2*progress);
-    const drift=Math.sin(time*.72+phase)*eased*.8,rise=eased*10,canvas=stroke.particleCanvas;
+    const canvas=stroke.particleCanvas;
     const drawWidth=canvas.width*sizeMultiplier,drawHeight=canvas.height*sizeMultiplier;
     const centerX=stroke.particleLeft+canvas.width*.5,centerY=stroke.particleTop+canvas.height*.5;
     ctx.globalAlpha=clamp((.72+eased*.16)*glowMultiplier,.15,1);
-    ctx.drawImage(canvas,centerX-drawWidth*.5+drift,centerY-drawHeight*.5-rise,drawWidth,drawHeight);
-    if(progress>.78){
-      for(let mote=0;mote<3;mote++){
-        const x=centerX+Math.sin(time*.38+phase+mote*2.1)*(18+mote*5);
-        const y=centerY-rise-8-((time*7+mote*13)%20);
-        ctx.globalAlpha=.16*glowMultiplier;ctx.fillStyle='rgba(255,226,238,.85)';
-        ctx.beginPath();ctx.arc(x,y,.7+mote*.22,0,Math.PI*2);ctx.fill();
-      }
-    }
+    ctx.drawImage(canvas,centerX-drawWidth*.5,centerY-drawHeight*.5,drawWidth,drawHeight);
   };
-  committed.forEach((glyph,index)=>glyph.strokes.forEach((stroke,strokeIndex)=>drawStroke(stroke,index*7+strokeIndex*1.7)));
-  strokes.forEach((stroke,index)=>drawStroke(stroke,index*1.7+.4));
+  committed.forEach((glyph)=>glyph.strokes.forEach((stroke)=>drawStroke(stroke)));
+  strokes.forEach((stroke)=>drawStroke(stroke));
   ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';ctx.restore();
 }
 
@@ -1449,8 +1443,8 @@ export default function ParticleFlower() {
       {experienceStarted && experienceTool === 'write' && (
         <div className="bloom-ink-tools">
           <div className={'bloom-ink-status' + (isWriting ? ' drawing' : '')}>
-            <i />{isWriting ? '正在书写 · 松开让笔迹升起' : hasHand ? '捏合开始书写' : '请将手掌放入镜头'}
-            <small>{inkPhase === 'drawing' ? '松开后，原始粒子笔迹会缓慢升起' : inkPhase === 'lifting' ? '粒子正在慢慢升起…' : inkPhase === 'recognizing' ? '正在根据笔迹整体形状推断…' : inkPhase === 'candidate' ? '请判断候选字是否符合你的笔迹' : inkPhase === 'unmatched' ? '暂时没有合适候选，可以重新书写' : recognitionStatus === 'ready' ? '粒子先成形，再分析字形' : recognitionStatus === 'loading' ? '识字模型准备中' : recognitionStatus === 'error' ? '识字暂不可用，仍可书写' : ''}</small>
+            <i />{isWriting ? '正在书写 · 松开让笔迹定住' : hasHand ? '捏合开始书写' : '请将手掌放入镜头'}
+            <small>{inkPhase === 'drawing' ? '松开后，粒子笔迹会停在原地成形' : inkPhase === 'lifting' ? '笔迹正在定形…' : inkPhase === 'recognizing' ? '正在根据笔迹整体形状推断…' : inkPhase === 'candidate' ? '请判断候选字是否符合你的笔迹' : inkPhase === 'unmatched' ? '暂时没有合适候选，可以重新书写' : recognitionStatus === 'ready' ? '粒子先成形，再分析字形' : recognitionStatus === 'loading' ? '识字模型准备中' : recognitionStatus === 'error' ? '识字暂不可用，仍可书写' : ''}</small>
           </div>
           {recognitionCandidates.length > 0 && (
             <div className="bloom-ink-candidates">

@@ -20,7 +20,9 @@ function Spin() {
   );
 }
 
-export default function Login() {
+export default function Login({ siteTitle, siteSubtitle }: { siteTitle?: string; siteSubtitle?: string }) {
+  const brandTitle = (siteTitle || '').trim() || '我们的班级';
+  const brandSubtitle = (siteSubtitle || '').trim();
   const reduce = useReducedMotion();
   const [mode, setMode] = useState<'login' | 'reg' | 'forgot'>('login');
   const [policyAccepted, setPolicyAccepted] = useState(false);
@@ -322,8 +324,8 @@ export default function Login() {
         <motion.div className="login-card page"
           initial={reduce ? {} : { opacity: 0, y: 24, scale: 0.98 }}
           animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}>
-          <h1>我们的班级</h1>
-          <p className="sub">青 春 档 案</p>
+          <h1>{brandTitle}</h1>
+          {brandSubtitle ? <p className="sub">{brandSubtitle}</p> : null}
 
           {verifyEmail ? (<>
             <h1 style={{ fontSize: 22 }}>验证邮箱</h1>

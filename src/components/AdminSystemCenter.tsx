@@ -4,6 +4,39 @@ import { startSitePresence, type SitePresenceSnapshot } from '../lib/sitePresenc
 
 type CheckStatus = 'ok' | 'warn' | 'error';
 type Check = { key: string; label: string; status: CheckStatus; detail: string };
+type SecuritySnapshot = {
+  login?: {
+    auth_failures_24h?: number;
+    email_failures_24h?: number;
+    username_failures_24h?: number;
+    currently_rate_limited?: number;
+  };
+};
+type StorageBucketSnapshot = {
+  bucket_id: string;
+  is_public: boolean;
+  object_count: number;
+  total_bytes: number;
+};
+type BackupSnapshot = {
+  database_size_bytes: number;
+  public_table_count: number;
+  storage_buckets: StorageBucketSnapshot[];
+  manual_backup_count: number;
+  latest_manual_backup_at: string | null;
+  manual_backup_logs: Array<{ status: string; scope: string; created_at: string; note: string | null }>;
+};
+type EmailCampaignSnapshot = {
+  id: number;
+  selected_count: number;
+  sent_count: number;
+  failed_count: number;
+  no_email_count: number;
+  provider_failure_count: number;
+  status: string;
+  created_at: string;
+  completed_at: string | null;
+};
 type AuditRow = { id: number; actor: string | null; action: string; created_at: string; detail: unknown };
 type Dashboard = {
   loadedAt: string;
@@ -16,6 +49,18 @@ type Dashboard = {
   auditOk: boolean;
   activityOk: boolean;
   activeCount: number | null;
+  securityOk: boolean;
+  loginFailures24h: number | null;
+  currentlyRateLimited: number | null;
+  backupOk: boolean;
+  databaseSizeBytes: number | null;
+  publicTableCount: number | null;
+  storageBuckets: StorageBucketSnapshot[];
+  manualBackupCount: number | null;
+  latestManualBackupAt: string | null;
+  emailHistoryOk: boolean;
+  emailHistoryCount: number | null;
+  latestEmailCampaign: EmailCampaignSnapshot | null;
   criticalCount: number | null;
   maintenance: string;
   nextMaintenance: string;
@@ -73,6 +118,16 @@ function formatTime(value: string | null | undefined) {
   if (!value) return '暂无记录';
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? '时间未知' : date.toLocaleString();
+}
+
+function formatBytes(value: number | null | undefined) {
+  if (value === null || value === undefined || !Number.isFinite(value)) return '未验证';
+  if (value < 1024) return value + ' B';
+  const units = ['KB', 'MB', 'GB', 'TB'];
+  let size = value / 1024;
+  let index = 0;
+  while (size >= 1024 && index < units.length - 1) { size /= 1024; index++; }
+  return size.toFixed(size >= 100 ? 0 : 1) + ' ' + units[index];
 }
 
 function formatExportScope(scope: string) {
@@ -155,7 +210,7 @@ export default function AdminSystemCenter({ setMsg, go }: {
       const dbStarted = Date.now();
       const dbTask = supabase.from('profiles').select('id', { count: 'exact', head: true })
         .then(result => ({ ...result, responseMs: Date.now() - dbStarted }));
-      const [db, roleResult, authResult, settingsResult, auditResult, criticalResult, activityResult, exportResult] = await Promise.all([
+      const [db, roleResult, authResult, settingsResult, auditResult, criticalResult, activityResult, exportResult, securityResult, backupResult, emailResult] = await Promise.all([
         dbTask,
         supabase.rpc('my_role'),
         supabase.auth.getSession(),
@@ -163,10 +218,14 @@ export default function AdminSystemCenter({ setMsg, go }: {
         supabase.from('admin_audit_logs').select('id, actor, action, created_at, detail')
           .order('created_at', { ascending: false }).limit(8),
         supabase.from('admin_audit_logs').select('id', { count: 'exact', head: true })
-          .gte('created_at', since24h).in('action', highRiskActions),
+          .gte('created_at', since24h)
+          .or('action.ilike.%delete%,action.ilike.%role%,action.ilike.%ban%,action.ilike.%maintenance%,action.ilike.%feature_flag%,action.ilike.%export%,action.ilike.%password%,action.ilike.%security%'),
         supabase.rpc('admin_presence_summary'),
         supabase.from('backup_logs').select('status, scope, created_at, note')
           .order('created_at', { ascending: false }).limit(1),
+        supabase.rpc('admin_security_overview'),
+        supabase.rpc('admin_backup_overview'),
+        supabase.rpc('admin_email_campaign_history'),
       ]);
 
       const settings = new Map((settingsResult.data ?? []).map(row => [row.key, row.value]));
@@ -175,12 +234,25 @@ export default function AdminSystemCenter({ setMsg, go }: {
       const role = typeof roleResult.data === 'string' ? roleResult.data : '未知';
       const audit = (auditResult.data ?? []) as AuditRow[];
       const latest = exportResult.data?.[0] ?? null;
+      const security = securityResult.data as SecuritySnapshot | null;
+      const backup = backupResult.data as BackupSnapshot | null;
+      const emailRows = Array.isArray(emailResult.data) ? emailResult.data as EmailCampaignSnapshot[] : [];
+      const latestEmail = emailRows[0] ?? null;
+      const storageBuckets = Array.isArray(backup?.storage_buckets) ? backup.storage_buckets : [];
+      const loginFailures24h = typeof security?.login?.auth_failures_24h === 'number'
+        ? security.login.auth_failures_24h : null;
+      const currentlyRateLimited = typeof security?.login?.currently_rate_limited === 'number'
+        ? security.login.currently_rate_limited : null;
+      const latestManualBackupAt = backup?.latest_manual_backup_at ?? backup?.manual_backup_logs?.[0]?.created_at ?? null;
       const dbOk = !db.error;
       const roleOk = !roleResult.error && role === 'super_admin';
       const sessionOk = !authResult.error && Boolean(authResult.data.session);
       const settingsOk = !settingsResult.error;
       const auditOk = !auditResult.error;
       const activityOk = !activityResult.error;
+      const securityOk = !securityResult.error && Boolean(security);
+      const backupOk = !backupResult.error && Boolean(backup);
+      const emailHistoryOk = !emailResult.error && Array.isArray(emailResult.data);
 
       const checks: Check[] = [
         {
@@ -207,6 +279,34 @@ export default function AdminSystemCenter({ setMsg, go }: {
           key: 'activity', label: '活跃账号统计', status: activityOk ? 'ok' : 'warn',
           detail: activityOk ? '服务端活动窗口统计可用。' : '统计 RPC 暂不可用；不影响实时 Presence 连接计数。',
         },
+        {
+          key: 'login_security', label: '登录异常遥测', status: !securityOk ? 'warn' : (currentlyRateLimited ?? 0) > 0 ? 'warn' : 'ok',
+          detail: !securityOk ? '安全统计 RPC 读取失败，当前无法验证登录异常。'
+            : '近 24 小时捕获登录失败 ' + (loginFailures24h ?? '未知') + ' 次；当前限流对象 ' + (currentlyRateLimited ?? '未知') + ' 个。只统计网站登录表单，不代表 Supabase 全平台认证日志。',
+        },
+        {
+          key: 'storage', label: 'Storage 存储统计', status: backupOk ? 'ok' : 'warn',
+          detail: backupOk ? '已读取 ' + storageBuckets.length + ' 个存储桶的对象数量与占用空间。'
+            : '存储统计 RPC 读取失败；不能据此判断文件存储是否正常。',
+        },
+        {
+          key: 'backup_evidence', label: '备份状态凭证', status: 'warn',
+          detail: !backupOk ? '备份信息读取失败，无法验证人工登记情况。'
+            : (backup?.manual_backup_count ?? 0) === 0
+              ? '系统内没有人工备份登记。此项不代表 Supabase 自动备份不存在，但当前后台没有可核验的登记记录。'
+              : '最近人工登记：' + formatTime(latestManualBackupAt) + '。人工登记不是自动备份证明，也不能证明快照可恢复；请在 Supabase 项目端核验。',
+        },
+        {
+          key: 'email_delivery', label: '邮件任务记录', status: !emailHistoryOk ? 'warn'
+            : !latestEmail ? 'warn'
+              : latestEmail.status === 'failed' ? 'error'
+                : latestEmail.status !== 'completed' || latestEmail.failed_count > 0 ? 'warn' : 'ok',
+          detail: !emailHistoryOk ? '邮件历史 RPC 读取失败，无法验证邮件任务状态。'
+            : !latestEmail ? '暂无邮件发送记录，当前无法验证邮件服务状态。'
+              : '最近任务 ' + formatTime(latestEmail.created_at) + '：已提交 ' + latestEmail.sent_count
+                + '，失败 ' + latestEmail.failed_count + '，无邮箱 ' + latestEmail.no_email_count
+                + '。提交给服务商不等于最终进入收件箱。',
+        },
       ];
 
       setDashboard({
@@ -214,6 +314,18 @@ export default function AdminSystemCenter({ setMsg, go }: {
         dbOk, dbMs: db.responseMs, role, roleOk, sessionOk, settingsOk, auditOk,
         activityOk,
         activeCount: activityOk && typeof activity?.active_count === 'number' ? activity.active_count : null,
+        securityOk,
+        loginFailures24h: securityOk ? loginFailures24h : null,
+        currentlyRateLimited: securityOk ? currentlyRateLimited : null,
+        backupOk,
+        databaseSizeBytes: backupOk && typeof backup?.database_size_bytes === 'number' ? backup.database_size_bytes : null,
+        publicTableCount: backupOk && typeof backup?.public_table_count === 'number' ? backup.public_table_count : null,
+        storageBuckets: backupOk ? storageBuckets : [],
+        manualBackupCount: backupOk && typeof backup?.manual_backup_count === 'number' ? backup.manual_backup_count : null,
+        latestManualBackupAt: backupOk ? latestManualBackupAt : null,
+        emailHistoryOk,
+        emailHistoryCount: emailHistoryOk ? emailRows.length : null,
+        latestEmailCampaign: emailHistoryOk && latestEmail ? latestEmail : null,
         criticalCount: criticalResult.error ? null : criticalResult.count ?? 0,
         maintenance: maintenance.label,
         nextMaintenance: maintenance.next,
@@ -374,6 +486,76 @@ export default function AdminSystemCenter({ setMsg, go }: {
         <button type="button" style={button} onClick={exportReport}>导出巡检报告</button>
         <button type="button" style={button} onClick={() => go('logs')}>查看完整审计日志</button>
       </div>}
+    </section>
+
+    <section style={panel}>
+      <div style={{ fontSize: 15, fontWeight: 800, marginBottom: 10 }}>服务与数据健康</div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(138px,1fr))', gap: 9 }}>
+        <StatCard
+          label="24 小时登录失败"
+          value={dashboard?.loginFailures24h === null || dashboard?.loginFailures24h === undefined ? '未验证' : String(dashboard.loginFailures24h)}
+          detail={dashboard?.securityOk ? '网站登录表单聚合计数' : '安全统计读取失败'}
+          tone={!dashboard?.securityOk ? 'warn' : (dashboard.loginFailures24h ?? 0) > 0 ? 'warn' : 'good'}
+        />
+        <StatCard
+          label="当前限流对象"
+          value={dashboard?.currentlyRateLimited === null || dashboard?.currentlyRateLimited === undefined ? '未验证' : String(dashboard.currentlyRateLimited)}
+          detail="匿名聚合统计，不显示身份"
+          tone={!dashboard?.securityOk ? 'warn' : (dashboard.currentlyRateLimited ?? 0) > 0 ? 'warn' : 'good'}
+        />
+        <StatCard
+          label="数据库体积"
+          value={dashboard?.backupOk ? formatBytes(dashboard.databaseSizeBytes) : '未验证'}
+          detail={dashboard?.publicTableCount === null || dashboard?.publicTableCount === undefined ? '公共表数量未验证' : '公共业务表 ' + dashboard.publicTableCount + ' 张'}
+          tone={dashboard?.backupOk ? 'good' : 'warn'}
+        />
+        <StatCard
+          label="Storage 总占用"
+          value={dashboard?.backupOk ? formatBytes(dashboard.storageBuckets.reduce((sum, item) => sum + (Number(item.total_bytes) || 0), 0)) : '未验证'}
+          detail={dashboard?.backupOk ? dashboard.storageBuckets.length + ' 个存储桶' : '存储统计读取失败'}
+          tone={dashboard?.backupOk ? 'good' : 'warn'}
+        />
+      </div>
+
+      <div style={{ borderTop: '1px solid rgba(190,210,255,.10)', marginTop: 13, paddingTop: 11 }}>
+        <div style={{ fontSize: 13, fontWeight: 800 }}>最近邮件任务</div>
+        {!dashboard?.emailHistoryOk
+          ? <p style={muted}>邮件历史读取失败，无法验证发送状态。</p>
+          : !dashboard.latestEmailCampaign
+            ? <p style={muted}>暂无发送记录，暂时无法验证邮件服务状态。</p>
+            : <div style={{ ...muted, marginTop: 6 }}>
+                <div>状态：{dashboard.latestEmailCampaign.status === 'completed' ? '已全部提交给服务商'
+                  : dashboard.latestEmailCampaign.status === 'partial' ? '部分提交失败'
+                    : dashboard.latestEmailCampaign.status === 'failed' ? '发送失败' : '处理中'}</div>
+                <div>时间：{formatTime(dashboard.latestEmailCampaign.created_at)}</div>
+                <div>收件账号 {dashboard.latestEmailCampaign.selected_count} · 已提交 {dashboard.latestEmailCampaign.sent_count} · 失败 {dashboard.latestEmailCampaign.failed_count}</div>
+                <div>无邮箱 {dashboard.latestEmailCampaign.no_email_count} · 服务商失败 {dashboard.latestEmailCampaign.provider_failure_count}</div>
+                <div style={{ marginTop: 4 }}>“已提交”仅代表提交给邮件服务商，不代表最终送达收件箱。</div>
+              </div>}
+      </div>
+
+      <div style={{ borderTop: '1px solid rgba(190,210,255,.10)', marginTop: 13, paddingTop: 11 }}>
+        <div style={{ fontSize: 13, fontWeight: 800 }}>存储桶占用</div>
+        {!dashboard?.backupOk
+          ? <p style={muted}>存储统计不可用，未将缺少数据视为正常。</p>
+          : dashboard.storageBuckets.length === 0
+            ? <p style={muted}>没有返回存储桶统计。</p>
+            : dashboard.storageBuckets.map(bucket => <div key={bucket.bucket_id}
+                style={{ display: 'flex', justifyContent: 'space-between', gap: 10, padding: '7px 0', borderTop: '1px solid rgba(190,210,255,.07)', fontSize: 12 }}>
+                <span style={{ overflowWrap: 'anywhere' }}>{bucket.bucket_id}{bucket.is_public ? ' · 公开' : ' · 私有'}</span>
+                <span style={{ whiteSpace: 'nowrap', color: '#cbd8ef' }}>{bucket.object_count} 个 · {formatBytes(bucket.total_bytes)}</span>
+              </div>)}
+      </div>
+
+      <div style={{ borderTop: '1px solid rgba(190,210,255,.10)', marginTop: 13, paddingTop: 11 }}>
+        <div style={{ fontSize: 13, fontWeight: 800 }}>备份登记核验</div>
+        <p style={{ ...muted, marginBottom: 0 }}>
+          {!dashboard?.backupOk ? '备份登记读取失败。'
+            : dashboard.manualBackupCount === 0 ? '暂无人工备份登记。'
+              : '后台记录了 ' + dashboard.manualBackupCount + ' 次人工备份登记，最近一次：' + formatTime(dashboard.latestManualBackupAt) + '。'}
+          {' '}此处不能验证 Supabase 自动备份是否开启，也不能证明备份文件可恢复；请在 Supabase 项目端核验实际快照和恢复演练。
+        </p>
+      </div>
     </section>
 
     <section style={panel}>

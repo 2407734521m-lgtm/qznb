@@ -4,6 +4,7 @@ import { Routes, Route, NavLink, Navigate, useLocation, useNavigate } from 'reac
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { LiquidGlass } from 'simple-liquid-glass';
 import { LiquidGlassNav } from './components/liquid-glass-dock';
+import CodeInput from './components/CodeInput';
 import { LiquidGlassScene } from 'simple-liquid-glass/backdrop';
 import { DUR, EASE } from './lib/motion';
 import { supabase } from './lib/supabase';
@@ -287,10 +288,7 @@ function MaintenanceScreen({ title, msg, hasSession, onLogout, onAccessGranted }
       <p className="sub">我们的班级 · 青春档案</p>
       <p style={{ fontSize: 15, lineHeight: 1.8, margin: '18px 0 22px' }}>{msg || '系统维护中，稍后再来'}</p>
       <label style={{ display: 'block', textAlign: 'left', marginBottom: 7 }}>临时访问验证码</label>
-      <input inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={code}
-        onChange={e => { setCode(e.target.value.replace(/[^0-9]/g, '').slice(0, 6)); setError(''); }}
-        onKeyDown={e => { if (e.key === 'Enter') void redeem(); }}
-        placeholder="请输入六位数验证码" style={{ textAlign: 'center', letterSpacing: 8, fontSize: 22 }} />
+      <CodeInput value={code} onChange={v => { setCode(v); setError(''); }} onEnter={() => void redeem()} disabled={busy} />
       {error && <p className="err" role="alert">{error}</p>}
       <button className="pri" disabled={busy || code.length !== 6} onClick={() => void redeem()}>{busy ? '验证中…' : '验证并进入'}</button>
       <div style={{ marginTop: 18, paddingTop: 16, borderTop: '1px solid #ffffff14' }}>

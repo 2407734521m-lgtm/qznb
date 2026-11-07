@@ -116,11 +116,7 @@ export default function Home() {
 
   return (
     <div className="page vibe-home">
-      
-        <div className="vh-topline">
-          <span className="vh-eyebrow">把重要的内容，放在一起</span>
-          <span className="vh-live">内容持续更新</span>
-        </div>
+
 
         {loading && (
           <div className="vh-load-state" role="status" aria-live="polite">
@@ -136,6 +132,14 @@ export default function Home() {
             </button>
           </div>
         )}
+        <header className="vh-intro">
+          <div>
+            <div className="vh-eyebrow">内容空间</div>
+            <h1>{title}</h1>
+            <p>{subtitle}</p>
+          </div>
+        </header>
+
         <Link
           className={`vh-hero${bannerUrl ? ' has-image' : ''}`}
           to="/board"
@@ -146,7 +150,7 @@ export default function Home() {
           <div className="vh-hero-content">
             <span className="vh-hero-kicker">公告</span>
             <h2 className="vh-hero-title">{bannerText}</h2>
-            <p className="vh-hero-sub">重要消息、动态与活动，都可以在这里找到。</p>
+            <p className="vh-hero-sub">最新公告与需要留意的站内消息，都在这里查看。</p>
             <span className="vh-hero-link">查看公告 <span aria-hidden="true">↗</span></span>
           </div>
         </Link>
@@ -161,20 +165,14 @@ export default function Home() {
       
 
       
-        <header className="vh-intro">
-          <div>
-            <div className="vh-eyebrow">空间总览</div>
-            <h1>{title}</h1>
-            <p>{subtitle}</p>
-          </div>
-        </header>
+
       
 
       {notices.length > 0 && (
         
           <section>
             <div className="vh-section-head">
-              <div><h2>公告精选</h2><p>重要消息，及时了解</p></div>
+              <div><h2>公告</h2><p>需要留意的消息</p></div>
               <button className="vh-text-link" onClick={() => nav('/board')}>全部公告 ↗</button>
             </div>
             <div className="vh-notices">
@@ -194,7 +192,7 @@ export default function Home() {
       
         <section>
           <div className="vh-section-head">
-            <div><h2>常用入口</h2><p>快速打开你常用的内容</p></div>
+            <div><h2>快速访问</h2><p>常用内容，一步到达</p></div>
           </div>
           <div className="vh-shortcuts">
             {SHORTCUTS.map(([to, label], i) => (
@@ -217,7 +215,7 @@ export default function Home() {
           
             <div className="vh-panel">
               <div className="vh-section-head" style={{ margin: '0 0 8px' }}>
-                <div><h2>最近发生</h2><p>社区里的新鲜片段</p></div>
+                <div><h2>最新动态</h2><p>最近发布的内容</p></div>
                 <button className="vh-text-link" onClick={() => nav('/feed')}>更多动态 ↗</button>
               </div>
               {posts.length ? posts.map(p => (
@@ -231,7 +229,7 @@ export default function Home() {
               )) : <div className="vh-empty">还没有新的动态。</div>}
               {wishes.length > 0 && (
                 <div className="vh-event">
-                  <strong>愿望墙 · 最近心愿</strong>
+                  <strong>最近的心愿</strong>
                   <p>{(wishes[0].content || '').slice(0, 100)}</p>
                   <button className="vh-text-link" onClick={() => nav('/wishes')}>去愿望墙看看 ↗</button>
                 </div>
@@ -244,7 +242,7 @@ export default function Home() {
             
               <div className="vh-panel">
                 <div className="vh-section-head" style={{ margin: '0 0 12px' }}>
-                  <div><h2>最近加入</h2><p>认识新成员</p></div>
+                  <div><h2>新成员</h2><p>最近加入这里的人</p></div>
                   <button className="vh-text-link" onClick={() => nav('/members')}>全部 ↗</button>
                 </div>
                 <div className="vh-members">
@@ -263,7 +261,7 @@ export default function Home() {
             
               <div className="vh-panel" style={{ marginTop: 12 }}>
                 <div className="vh-section-head" style={{ margin: '0 0 8px' }}>
-                  <div><h2>近期活动</h2><p>一起参与下一段回忆</p></div>
+                  <div><h2>近期活动</h2><p>即将开始的安排</p></div>
                   <button className="vh-text-link" onClick={() => nav('/events')}>活动日历 ↗</button>
                 </div>
                 {events.map(e => (

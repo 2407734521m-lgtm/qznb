@@ -59,7 +59,7 @@ export default function Home() {
         const { data: ss, error: settingsError } = await supabase.from('site_settings').select('key, value');
         if (!live) return;
         (ss ?? []).forEach((x: any) => {
-          if (x.key === 'site_title') setTitle(!x.value || x.value === '我们的班级' ? '堯' : x.value);
+          if (x.key === 'site_title') setTitle(!x.value || ['我们的班级', 'class', 'class-youth-archive', '青春档案'].includes(x.value) ? '堯' : x.value);
           if (x.key === 'site_subtitle') setSubtitle(!x.value || x.value === '青春档案' ? '连接人与内容' : x.value);
           if (x.key === 'home_banner_url') setBannerUrl(x.value || '');
           if (x.key === 'home_banner_text') setBannerText(!x.value || x.value === '把我们的青春，留在这里' ? '让重要内容，更容易被看见' : x.value);

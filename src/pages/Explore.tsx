@@ -27,6 +27,14 @@ const cards = [
     description: '看看最近大家正在讨论什么。',
     action: '看看大家在聊什么',
   },
+  {
+    to: '/fate-notebook',
+    className: 'discover-card--fate',
+    eyebrow: 'FORTUNE NOTE',
+    title: '命运笔记',
+    description: '写下一个虚构角色名，抽取一条神秘又好笑的判词。',
+    action: '翻开笔记',
+  },
 ];
 
 function BloomArtwork() {
@@ -51,6 +59,17 @@ function InkArtwork() {
       <path d="M22 151C57 124 71 128 92 142S130 162 156 123 201 90 245 105" stroke="currentColor" strokeOpacity=".38" strokeWidth="2" strokeLinecap="round" />
       <path d="M37 48l3 8 8 3-8 3-3 8-3-8-8-3 8-3 3-8ZM224 19l3 8 8 3-8 3-3 8-3-8-8-3 8-3 3-8Z" fill="currentColor" fillOpacity=".58" />
       <circle cx="190" cy="153" r="4" fill="currentColor" fillOpacity=".4" />
+    </svg>
+  );
+}
+
+function FateArtwork() {
+  return (
+    <svg className="discover-art discover-art--fate" viewBox="0 0 300 190" fill="none" aria-hidden="true">
+      <path d="M150 49c-34-17-67-17-99-5v101c32-12 65-12 99 5V49Z" fill="currentColor" fillOpacity=".12" stroke="currentColor" strokeOpacity=".72" strokeWidth="2" />
+      <path d="M150 49c34-17 67-17 99-5v101c-32-12-65-12-99 5V49Z" fill="currentColor" fillOpacity=".2" stroke="currentColor" strokeOpacity=".72" strokeWidth="2" />
+      <path d="M150 49v101M72 73c21-6 42-5 61 2m-61 18c21-6 42-5 61 2m45-20c19-7 40-8 61-2m-61 20c19-7 40-8 61-2" stroke="currentColor" strokeOpacity=".48" strokeWidth="2" strokeLinecap="round" />
+      <path d="m43 32 4 9 10 4-10 4-4 10-4-10-10-4 10-4 4-9Zm215 105 3 7 7 3-7 3-3 7-3-7-7-3 7-3 3-7Z" fill="currentColor" fillOpacity=".64" />
     </svg>
   );
 }
@@ -105,6 +124,7 @@ export default function Explore() {
               {index === 0 && <BloomArtwork />}
               {index === 1 && <InkArtwork />}
               {index === 2 && <HotArtwork />}
+              {index === 3 && <FateArtwork />}
             </Link>
           </motion.article>
         ))}

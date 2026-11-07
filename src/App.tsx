@@ -62,6 +62,7 @@ import Board from './pages/Board';
 import HotSnippets from './pages/HotSnippets';
 import LoveWall from './pages/LoveWall';
 import Explore from './pages/Explore';
+import FateNotebook from './pages/FateNotebook';
 import SongWall from './pages/SongWall';
 import Daily from './pages/Daily';
 import ParticleFlower from './pages/ParticleFlower';
@@ -142,7 +143,7 @@ function isTabActive(tab: string, path: string) {
   if (tab === '/home') return path.startsWith('/home') || path.startsWith('/board');
   if (tab === '/board') return path.startsWith('/board');
   if (tab === '/members') return path.startsWith('/members');
-  if (tab === '/explore') return ['/explore','/feed','/albums','/hot','/greetings','/events','/capsule','/wishes','/particle-flower','/air-ink','/calendar'].some(p => path.startsWith(p));
+  if (tab === '/explore') return ['/explore','/feed','/albums','/hot','/greetings','/events','/capsule','/wishes','/particle-flower','/air-ink','/calendar','/fate-notebook'].some(p => path.startsWith(p));
   if (tab === '/friends') return ['/friends','/chat'].some(p => path.startsWith(p));
   if (tab === '/songs') return path.startsWith('/songs');
   if (tab === '/love-wall') return path.startsWith('/love-wall');
@@ -990,6 +991,7 @@ function Shell() {
               <Route path="/" element={<Navigate to="/home" replace />} />
               <Route path="/board" element={<Board />} />
               <Route path="/explore" element={<Explore />} />
+              <Route path="/fate-notebook" element={<ErrorBoundary><FateNotebook /></ErrorBoundary>} />
               <Route path="/particle-flower" element={<ErrorBoundary><ParticleFlower /></ErrorBoundary>} />
               <Route path="/air-ink" element={<ErrorBoundary><AirInk /></ErrorBoundary>} />
               <Route path="/love-wall" element={<LoveWall />} />

@@ -327,3 +327,56 @@
     transition: none;
   }
 }
+
+
+/* 命运笔记：单独的暗色趣味卡片，不改变发现页其余卡片的配色。 */
+.discover-card--fate {
+  grid-column: 1 / -1;
+  min-height: 166px;
+  background:
+    radial-gradient(ellipse at 86% 8%, rgba(255,255,255,.12), transparent 42%),
+    linear-gradient(132deg, #17191f 0%, #282d38 58%, #343440 100%);
+  color: #d7dbe4;
+  border-color: rgba(31, 35, 45, .12);
+}
+
+.discover-card--fate h2 {
+  color: #f3f5f9;
+}
+
+.discover-card--fate p {
+  color: rgba(233, 237, 245, .7);
+}
+
+.discover-card--fate .discover-card-action {
+  color: #f1f3f7;
+}
+
+.discover-card--fate .discover-card-action span {
+  border-color: rgba(255,255,255,.25);
+}
+
+.discover-art--fate {
+  width: min(42%, 290px);
+  right: 7%;
+  bottom: -4%;
+  color: #d8d4c8;
+  opacity: .82;
+}
+
+@media (max-width: 600px) {
+  .discover-card--fate {
+    grid-column: 1 / -1;
+    min-height: 148px;
+  }
+
+  .discover-card--fate .discover-card-copy {
+    max-width: 64%;
+  }
+
+  .discover-art--fate {
+    width: 50%;
+    right: -3%;
+    bottom: -7%;
+  }
+}

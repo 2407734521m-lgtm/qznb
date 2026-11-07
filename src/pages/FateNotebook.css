@@ -1,0 +1,355 @@
+.fate-page {
+  width: min(100%, 760px);
+  margin: 0 auto;
+  padding: 8px 0 132px;
+  color: var(--qz26-ink, #202b38);
+}
+
+.fate-page-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 2px 18px;
+}
+
+.fate-back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+  color: #737d8b;
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 650;
+  transition: color .2s ease, transform .2s ease;
+}
+
+.fate-back-link:hover {
+  color: #283342;
+  transform: translateX(-2px);
+}
+
+.fate-back-link span {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid rgba(112, 124, 141, .18);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, .72);
+  font-size: 17px;
+}
+
+.fate-heading-mark {
+  color: #a0a8b4;
+  font-size: 22px;
+}
+
+.fate-book {
+  position: relative;
+  overflow: hidden;
+  padding: clamp(24px, 6vw, 44px);
+  border: 1px solid rgba(20, 23, 31, .18);
+  border-radius: 28px;
+  color: #ececf0;
+  background:
+    radial-gradient(ellipse at 50% -12%, rgba(255,255,255,.12), transparent 48%),
+    linear-gradient(145deg, #17191f 0%, #20232c 53%, #292b36 100%);
+  box-shadow: 0 28px 72px rgba(24, 29, 39, .19), inset 0 1px 0 rgba(255,255,255,.1);
+}
+
+.fate-book::before {
+  position: absolute;
+  inset: 12px;
+  border: 1px solid rgba(231, 229, 218, .12);
+  border-radius: 20px;
+  content: "";
+  pointer-events: none;
+}
+
+.fate-book-spine {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 17px;
+  width: 1px;
+  background: linear-gradient(transparent, rgba(226, 221, 207, .18) 12%, rgba(226, 221, 207, .18) 88%, transparent);
+  box-shadow: 4px 0 16px rgba(0,0,0,.18);
+}
+
+.fate-book-topline,
+.fate-book-footer {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  color: rgba(226, 227, 232, .43);
+  font-size: 9px;
+  letter-spacing: .2em;
+  font-weight: 750;
+}
+
+.fate-book-emblem {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 76px;
+  height: 76px;
+  margin: 24px auto 14px;
+  border: 1px solid rgba(222, 217, 201, .22);
+  border-radius: 22px;
+  color: #d5d0c3;
+  background: rgba(255,255,255,.035);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.07), 0 12px 30px rgba(0,0,0,.14);
+}
+
+.fate-book-title-wrap {
+  position: relative;
+  z-index: 1;
+  text-align: center;
+}
+
+.fate-book-kicker {
+  color: #aaa69b;
+  font-size: 9px;
+  letter-spacing: .25em;
+  font-weight: 750;
+}
+
+.fate-book-title-wrap h1 {
+  margin: 10px 0 8px;
+  color: #f3f1e9;
+  font-size: clamp(29px, 6vw, 39px);
+  letter-spacing: .12em;
+  font-weight: 780;
+}
+
+.fate-book-title-wrap p {
+  margin: 0;
+  color: rgba(232, 232, 235, .62);
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.fate-book-rule {
+  position: relative;
+  height: 1px;
+  margin: 28px 0 25px;
+  background: linear-gradient(90deg, transparent, rgba(222, 218, 205, .25), transparent);
+}
+
+.fate-form {
+  position: relative;
+  z-index: 1;
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+.fate-form > label:first-child {
+  display: block;
+  margin: 0 0 10px;
+  color: rgba(245, 245, 247, .88);
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.fate-form > input {
+  display: block;
+  width: 100%;
+  min-height: 49px;
+  padding: 0 15px;
+  border: 1px solid rgba(231, 231, 235, .17);
+  border-radius: 13px;
+  outline: none;
+  color: #f7f7f8;
+  background: rgba(255,255,255,.075);
+  font: inherit;
+  font-size: 14px;
+  transition: border-color .2s ease, background .2s ease, box-shadow .2s ease;
+}
+
+.fate-form > input::placeholder {
+  color: rgba(231, 232, 238, .36);
+}
+
+.fate-form > input:focus {
+  border-color: rgba(225, 219, 201, .62);
+  background: rgba(255,255,255,.095);
+  box-shadow: 0 0 0 3px rgba(222, 216, 198, .1);
+}
+
+.fate-privacy-note {
+  margin: 9px 1px 15px;
+  color: rgba(229, 231, 235, .48);
+  font-size: 11px;
+  line-height: 1.75;
+}
+
+.fate-confirm {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  color: rgba(237, 237, 239, .74);
+  font-size: 11px;
+  line-height: 1.65;
+  cursor: pointer;
+}
+
+.fate-confirm input {
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+  margin: 1px 0 0;
+  accent-color: #c5c0b2;
+}
+
+.fate-draw-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 49px;
+  margin-top: 19px;
+  border: 1px solid rgba(237, 232, 215, .3);
+  border-radius: 14px;
+  color: #24252a;
+  background: linear-gradient(135deg, #e4dfd2, #c9c3b5);
+  box-shadow: 0 8px 22px rgba(0,0,0,.18), inset 0 1px 0 rgba(255,255,255,.6);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 750;
+  cursor: pointer;
+  transition: transform .2s ease, filter .2s ease, opacity .2s ease;
+}
+
+.fate-draw-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  filter: brightness(1.05);
+}
+
+.fate-draw-button:disabled {
+  opacity: .42;
+  cursor: not-allowed;
+}
+
+.fate-result {
+  position: relative;
+  z-index: 1;
+  max-width: 480px;
+  margin: 24px auto 0;
+  padding: 20px;
+  border: 1px solid rgba(227, 221, 205, .2);
+  border-radius: 17px;
+  background: linear-gradient(145deg, rgba(255,255,255,.085), rgba(255,255,255,.035));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.06);
+}
+
+.fate-result-label {
+  color: #aaa69b;
+  font-size: 9px;
+  letter-spacing: .2em;
+  font-weight: 750;
+}
+
+.fate-result-name {
+  margin-top: 10px;
+  color: #f3f0e8;
+  font-size: 19px;
+  font-weight: 750;
+  letter-spacing: .04em;
+  overflow-wrap: anywhere;
+}
+
+.fate-result p {
+  margin: 12px 0 0;
+  color: rgba(244, 244, 245, .82);
+  font-size: 14px;
+  line-height: 1.9;
+}
+
+.fate-result-foot {
+  margin-top: 12px;
+  color: rgba(229, 229, 233, .42);
+  font-size: 10px;
+}
+
+.fate-again-button {
+  min-height: 37px;
+  margin-top: 15px;
+  padding: 0 14px;
+  border: 1px solid rgba(233, 230, 219, .24);
+  border-radius: 11px;
+  color: #e9e6dc;
+  background: rgba(255,255,255,.07);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background .2s ease, transform .2s ease;
+}
+
+.fate-again-button:hover {
+  transform: translateY(-1px);
+  background: rgba(255,255,255,.13);
+}
+
+.fate-book-footer {
+  position: relative;
+  margin-top: 29px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(222, 218, 205, .12);
+  font-size: 8px;
+}
+
+.fate-page-footnote {
+  margin: 15px 8px 0;
+  color: #929aa5;
+  text-align: center;
+  font-size: 11px;
+  line-height: 1.7;
+}
+
+@media (max-width: 600px) {
+  .fate-page {
+    padding: 2px 0 118px;
+  }
+
+  .fate-book {
+    padding: 25px 22px;
+    border-radius: 23px;
+  }
+
+  .fate-book::before {
+    inset: 9px;
+    border-radius: 17px;
+  }
+
+  .fate-book-spine {
+    left: 13px;
+  }
+
+  .fate-book-emblem {
+    width: 68px;
+    height: 68px;
+    margin-top: 20px;
+  }
+
+  .fate-book-rule {
+    margin: 23px 0 21px;
+  }
+
+  .fate-result {
+    padding: 17px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fate-back-link,
+  .fate-form > input,
+  .fate-draw-button,
+  .fate-again-button {
+    transition: none;
+  }
+}

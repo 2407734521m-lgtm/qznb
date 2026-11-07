@@ -33,7 +33,7 @@ function Spin() {
   );
 }
 
-export default function Login({ siteTitle, siteSubtitle }: { siteTitle?: string; siteSubtitle?: string }) {
+export default function Login({ siteTitle, siteSubtitle, onGuestLogin }: { siteTitle?: string; siteSubtitle?: string; onGuestLogin?: () => void }) {
   const brandTitle = (siteTitle || '').trim() || '我们的班级';
   const brandSubtitle = (siteSubtitle || '').trim();
   const reduce = useReducedMotion();
@@ -394,6 +394,7 @@ export default function Login({ siteTitle, siteSubtitle }: { siteTitle?: string;
             <p className="login-switch">忘记密码了？<button onClick={() => { setMode('forgot'); setErr(''); setForgotSent(false); }}>点我重置</button></p>
             <p className="login-switch">还没有账号？<button onClick={() => { setMode('reg'); setErr(''); setCode(''); setForgotSent(false); }}>去注册</button></p>
             <p className="login-switch" style={{ marginTop: 2 }}>如果登录不上<button onClick={() => setFbOpen(true)}>点我反馈</button></p>
+            {onGuestLogin && <button type="button" className="ghost" style={{ width: '100%', marginTop: 10 }} onClick={onGuestLogin}>游客登录（仅浏览）</button>}
           </>) : mode === 'forgot' ? (<>
             <h1 style={{ fontSize: 22 }}>重置密码</h1>
             <p className="sub">找 回 密 码</p>

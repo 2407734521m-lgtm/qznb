@@ -408,12 +408,12 @@ button:focus-visible, a:focus-visible {
 }
 
 .login-flow {
-  background: #eaf0f8 !important;
+  background: var(--visual-bg, #ffffff) !important;
 }
+.login-flow::before,
 .login-flow::after {
-  background:
-    radial-gradient(ellipse at 18% 10%, rgba(255,255,255,.62), transparent 42%),
-    linear-gradient(145deg, rgba(234,240,248,.24), rgba(213,225,245,.42)) !important;
+  content: none !important;
+  display: none !important;
 }
 .login-card,
 .login-wrap .card {

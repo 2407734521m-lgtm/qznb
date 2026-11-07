@@ -34,8 +34,11 @@ function Spin() {
 }
 
 export default function Login({ siteTitle, siteSubtitle, onGuestLogin }: { siteTitle?: string; siteSubtitle?: string; onGuestLogin?: () => void }) {
-  const brandTitle = (siteTitle || '').trim() || '我们的班级';
-  const brandSubtitle = (siteSubtitle || '').trim();
+  const savedBrandTitle = (siteTitle || '').trim();
+  const savedBrandSubtitle = (siteSubtitle || '').trim();
+  const retiredBrandValues = ['我们的班级', '青春档案', 'class', 'class-youth-archive'];
+  const brandTitle = !savedBrandTitle || retiredBrandValues.includes(savedBrandTitle) ? '堯' : savedBrandTitle;
+  const brandSubtitle = retiredBrandValues.includes(savedBrandSubtitle) ? '连接人与内容' : savedBrandSubtitle;
   const reduce = useReducedMotion();
   const [mode, setMode] = useState<'login' | 'reg' | 'forgot'>('login');
   const [policyAccepted, setPolicyAccepted] = useState(false);
@@ -383,7 +386,7 @@ export default function Login({ siteTitle, siteSubtitle, onGuestLogin }: { siteT
             <h1 style={{ fontSize: 22 }}>验证邮箱</h1>
             <p className="sub">注 册 验 证</p>
             <p className="priv-note" style={{ margin: '0 0 4px' }}>验证码已发送到 <b style={{ color: '#2456c8' }}>{verifyEmail}</b><br />
-              打开 QQ 邮箱，找标题是「我们的班级 · 青春档案 — 你的验证码」的邮件，把里面的 <b style={{ color: '#2456c8' }}>6 位数字验证码</b> 填到下面<br />
+              打开 QQ 邮箱，查找最新收到的注册验证码邮件，把里面的 <b style={{ color: '#2456c8' }}>6 位数字验证码</b> 填到下面<br />
               没看到就翻一下垃圾箱；也可以点邮件里的「确认邮箱」链接直接完成验证</p>
             <p className="priv-note" style={{ margin: '0 0 6px' }}>已等待 {waitSec} 秒 · 邮件通常 1 分钟内到达
               <motion.span animate={reduce ? {} : { opacity: [0.2, 1, 0.2] }} transition={{ repeat: Infinity, duration: 1.2 }}>…</motion.span>
@@ -409,7 +412,7 @@ export default function Login({ siteTitle, siteSubtitle, onGuestLogin }: { siteT
                 onKeyDown={e => e.key === 'Enter' && doLogin()} />
             </FloatField>
             {err && <p className="err">{err}</p>}
-            <button className="pri" disabled={busy} onClick={doLogin}>{busy ? <><Spin />登录中…</> : '进入班级'}</button>
+            <button className="pri" disabled={busy} onClick={doLogin}>{busy ? <><Spin />登录中…</> : '登录'}</button>
             <p className="login-switch">忘记密码了？<button onClick={() => { setMode('forgot'); setErr(''); setForgotSent(false); }}>点我重置</button></p>
             <p className="login-switch">还没有账号？<button onClick={() => { setMode('reg'); setErr(''); setCode(''); setForgotSent(false); }}>去注册</button></p>
             <p className="login-switch" style={{ marginTop: 2 }}>如果登录不上<button onClick={() => setFbOpen(true)}>点我反馈</button></p>
@@ -425,7 +428,7 @@ export default function Login({ siteTitle, siteSubtitle, onGuestLogin }: { siteT
             <button className="ghost" style={{ width: '100%', marginTop: 8 }} disabled={busy || resendIn > 0} onClick={doForgot}>
               {busy ? '发送中…' : resendIn > 0 ? `重新发送验证码（${resendIn}s）` : forgotSent ? '重新发送验证码' : '发送验证码'}
             </button>
-            {forgotSent && <p className="priv-note" style={{ margin: '4px 0 0' }}>验证码已发到上面这个 QQ 邮箱，找标题是「我们的班级 · 青春档案 — 你的重置密码验证码」的邮件，没看到就翻一下垃圾箱；如果这个邮箱没注册过，是不会收到码的</p>}
+            {forgotSent && <p className="priv-note" style={{ margin: '4px 0 0' }}>验证码已发到上面这个 QQ 邮箱，请查找最新收到的密码重置验证码邮件；如果这个邮箱没注册过，是不会收到码的</p>}
             {forgotSent && (<>
               <label>邮箱验证码</label>
               <CodeInput value={forgotCode} onChange={setForgotCode} onEnter={doForgotVerify} />
@@ -487,7 +490,7 @@ export default function Login({ siteTitle, siteSubtitle, onGuestLogin }: { siteT
               </div>
             )}
             {!codeSent && <p className="priv-note" style={{ margin: '4px 0 0' }}>请继续填写下方密码、确认密码并勾选协议，再点击页面底部的「发送验证码并注册」。</p>}
-            {codeSent && <p className="priv-note" style={{ margin: '4px 0 0' }}>验证码已通过 Resend 发到上面这个 QQ 邮箱，找标题是「我们的班级 · 青春档案 — 你的验证码」的邮件，没看到就翻一下垃圾箱</p>}
+            {codeSent && <p className="priv-note" style={{ margin: '4px 0 0' }}>验证码已通过邮件发送到上面这个 QQ 邮箱，请查找最新收到的注册验证码邮件</p>}
             {codeSent && (<>
               <label>邮箱验证码</label>
               <CodeInput value={code} onChange={setCode} onEnter={doVerifyReg} />

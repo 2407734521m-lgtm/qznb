@@ -414,6 +414,17 @@ function Shell() {
   });
   const [searchOpen, setSearchOpen] = useState(false);
   const [dockMoreOpen, setDockMoreOpen] = useState(false);
+  // 软键盘弹起时隐藏 dock：dock 按 100dvh 定位会骑到键盘上方，
+  // 盖住表单底部的确认勾选与提交按钮（命运笔记真机录屏实锤）。
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const onResize = () => setKeyboardOpen(window.innerHeight - vv.height > 120);
+    onResize();
+    vv.addEventListener('resize', onResize);
+    return () => vv.removeEventListener('resize', onResize);
+  }, []);
   const dockLongPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dockLongPressTriggered = useRef(false);
   const dockLongPressOrigin = useRef<{ x: number; y: number } | null>(null);
@@ -1037,7 +1048,7 @@ function Shell() {
         </AnimatePresence>
       </div>
 
-      {!isAdminPage && !isChatPage && !isBloomPage && (
+      {!isAdminPage && !isChatPage && !isImmersivePage && !keyboardOpen && (
         <div
           className={`qz-ios26-dock-host dock-side-${dockSide}`}
           onPointerDown={startDockLongPress}
@@ -1110,7 +1121,7 @@ function Shell() {
         </div>
       )}
       <AnimatePresence>
-        {dockMoreOpen && !isAdminPage && !isChatPage && !isBloomPage && (
+        {dockMoreOpen && !isAdminPage && !isChatPage && !isImmersivePage && !keyboardOpen && (
           <>
             <motion.button
               type="button"

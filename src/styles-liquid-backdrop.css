@@ -1,0 +1,95 @@
+/* Liquid flow backdrop — the demo page's flowing-light treatment, production-safe.
+   Layered on top of styles-liquid-glass.css (the site-wide material layer):
+   glass only reads as "liquid" when there is light moving behind it, so the two
+   entrance surfaces get a slow-drifting flow backdrop and strong glass on top.
+   Everything here is transform/opacity animation only, with reduced-motion and
+   reduced-transparency fallbacks back to the original solid surfaces. */
+
+/* Login: default flowing backdrop, shown only when the user has not set a
+   custom wallpaper (the custom .login-bg branch is untouched). */
+.login-flow {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  background: #0b0b0e;
+}
+
+.login-flow::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: url('./assets/flow-bg.webp') center / cover no-repeat;
+  transform: scale(1.06);
+  animation: qz-flow-drift 26s ease-in-out infinite alternate;
+}
+
+.login-flow::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(9, 9, 12, .22), rgba(9, 9, 12, .44));
+}
+
+@keyframes qz-flow-drift {
+  from { transform: scale(1.06) translateY(0); }
+  to { transform: scale(1.12) translateY(-16px); }
+}
+
+/* The login card becomes strong liquid glass so the flowing light — or the
+   user's own wallpaper — refracts through it. The warm dark tint keeps form
+   text readable; the gradient border is the same liquid edge as the material
+   layer, one step stronger. */
+.login-card {
+  border: 1px solid transparent !important;
+  background:
+    linear-gradient(145deg, rgba(33, 30, 25, .88), rgba(33, 30, 25, .76)) padding-box,
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, .42),
+      rgba(255, 255, 255, .16) 24%,
+      transparent 52%,
+      transparent 66%,
+      rgba(255, 255, 255, .16) 84%,
+      rgba(255, 255, 255, .34)
+    ) border-box !important;
+  -webkit-backdrop-filter: blur(22px) saturate(1.14) !important;
+  backdrop-filter: blur(22px) saturate(1.14) !important;
+  box-shadow:
+    0 18px 44px rgba(0, 0, 0, .30),
+    inset 0 1px 0 rgba(255, 255, 255, .20) !important;
+}
+
+/* Public landing hero: the headline sits in a strong-glass panel over the
+   banner photo (or the flow backdrop when no banner is configured). */
+.landing-hero-glass {
+  align-self: flex-start;
+  max-width: min(560px, 100%);
+  padding: 16px 20px 18px;
+  border-radius: 18px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .login-flow::before {
+    animation: none;
+    transform: scale(1.06);
+  }
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .login-card {
+    background: #211e19 !important;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .login-card {
+    background: #211e19 !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+  }
+
+  .login-flow::before {
+    animation: none;
+  }
+}

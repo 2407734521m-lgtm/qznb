@@ -67,4 +67,6 @@ SOFTWARE.
 - Anime.js: https://github.com/juliangarnier/anime — no additional animation package was introduced; the existing Framer Motion dependency is used for page transitions and counters.
 - Motion Sites, Uiverse, and Aceternity UI were treated as visual/interaction references only in this phase. No source files were copied from them.
 
-No additional runtime dependency was added in this phase.
+## Liquid Glass dependency
+
+- `simple-liquid-glass` 5.7.0 — https://github.com/lucaperullo/simple-liquid-glass — MIT. Used as an npm dependency for the React liquid-glass navigation and Dock surfaces; no upstream source files were copied into this repository.

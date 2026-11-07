@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { Routes, Route, NavLink, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
+import { LiquidGlass } from 'simple-liquid-glass';
+import { LiquidGlassScene } from 'simple-liquid-glass/backdrop';
 import { DUR, EASE } from './lib/motion';
 import { supabase } from './lib/supabase';
 import { startSitePresence } from './lib/sitePresence';
@@ -55,17 +57,20 @@ import AirInk from './pages/AirInk';
 import { alertDialog } from './lib/dialog';
 import GlobalSearch from './components/GlobalSearch';
 
+// Dock 保留四个最高频入口；其余页面通过长按 Dock 打开的玻璃快捷面板访问。
 const TABS = [
   { to: '/board', label: '公告' },
-  { to: '/members', label: '班级' },
   { to: '/explore', label: '发现' },
   { to: '/friends', label: '私聊' },
+  { to: '/me', label: '我的' },
+];
+const DOCK_MORE_TABS = [
+  { to: '/members', label: '班级' },
   { to: '/me/notifications', label: '消息' },
   { to: '/songs', label: '歌声墙' },
   { to: '/love-wall', label: '表白墙' },
   { to: '/daily', label: '日常' },
   { to: '/timeline', label: '回忆' },
-  { to: '/me', label: '我的' },
 ];
 
 // 从 UA 里提取设备型号（如 Android 的机型标识），供管理员在成员管理里查看
@@ -354,6 +359,24 @@ function Shell() {
     try { return localStorage.getItem('ca_dock_collapsed') === '1'; } catch { return false; }
   });
   const [searchOpen, setSearchOpen] = useState(false);
+  const [dockMoreOpen, setDockMoreOpen] = useState(false);
+  const dockLongPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const dockLongPressTriggered = useRef(false);
+  const clearDockLongPress = () => {
+    if (dockLongPressTimer.current) {
+      clearTimeout(dockLongPressTimer.current);
+      dockLongPressTimer.current = null;
+    }
+  };
+  const startDockLongPress = () => {
+    clearDockLongPress();
+    dockLongPressTriggered.current = false;
+    dockLongPressTimer.current = setTimeout(() => {
+      dockLongPressTriggered.current = true;
+      setDockMoreOpen(true);
+    }, 520);
+  };
+  useEffect(() => () => clearDockLongPress(), []);
   // 搜索入口已从 dock 移到首页：首页搜索条发这个事件打开全站搜索。
   useEffect(() => {
     const open = () => setSearchOpen(true);
@@ -719,9 +742,10 @@ function Shell() {
   }
 
   return (
-    <>
+    <LiquidGlassScene className="qz-ios26-scene">
+      <>
       <div className="glow" />
-      <div className="app-bg" style={wp.kind === 'grad'
+      <div className="app-bg qz-ios26-backdrop" style={wp.kind === 'grad'
         ? { background: wp.src, filter: `blur(${wp.blur}px) brightness(${100 - wp.dark}%)` }
         : { backgroundImage: `url(${wp.src === 'default' ? bgUrl : wp.src})`, filter: `blur(${wp.blur}px) brightness(${100 - wp.dark}%)` }} />
       {emblem && <img src={emblemUrl} alt="" aria-hidden draggable={false}
@@ -734,6 +758,27 @@ function Shell() {
           <button className="mini ghost" onClick={logout}>退出</button>
         </div>
       ) : !isChatPage && !isImmersivePage ? (
+      <LiquidGlass
+        className="qz-ios26-topnav-glass"
+        renderer="webgl"
+        autodetectquality
+        maxScale={1.35}
+        reveal="immediate"
+        radius={28}
+        blur={9}
+        dispersion={30}
+        aberrationIntensity={0.16}
+        saturation={158}
+        glassColor="rgba(255,255,255,0.34)"
+        style={{
+          position: 'sticky',
+          top: 'calc(env(safe-area-inset-top) + 10px)',
+          zIndex: 50,
+          width: 'min(1280px, calc(100% - 32px))',
+          margin: 'calc(env(safe-area-inset-top) + 10px) auto 18px',
+          display: 'block',
+        }}
+      >
       <nav className="topnav">
         <span className="links">
           {TABS.map(t => (
@@ -745,7 +790,7 @@ function Shell() {
         {isAdmin && <a href="#/admin" title="管理后台" className="mob-admin" style={{ textDecoration: 'none', marginRight: 4, fontSize: 13 }}>管理</a>}
         <button type="button" onClick={() => setSearchOpen(true)} title="搜索全站内容">⌕ 搜索</button>
         <button onClick={logout} title="退出登录">退出</button>
-      </nav>
+      </nav></LiquidGlass>
       ) : null}
 
       <div className={isChatPage ? "wrap chat-shell" : loc.pathname === '/friends' ? "wrap inbox-shell" : "wrap"}>
@@ -801,13 +846,48 @@ function Shell() {
       </div>
 
       {!isAdminPage && !isChatPage && !isBloomPage && (
-        <nav
+        <LiquidGlass
+        className={`qz-ios26-dock-glass ${dockCollapsed ? 'dock-collapsed dock-side-' + dockSide : ''}`}
+        renderer="webgl"
+        autodetectquality
+        maxScale={1.3}
+        reveal="immediate"
+        radius={32}
+        blur={8}
+        dispersion={36}
+        aberrationIntensity={0.18}
+        saturation={176}
+        glassColor="rgba(255,255,255,0.30)"
+        style={{
+          position: 'fixed',
+          left: '50%',
+          right: 'auto',
+          bottom: 'calc(14px + env(safe-area-inset-bottom))',
+          transform: 'translateX(-50%)',
+          zIndex: 50,
+          display: 'block',
+          width: 'max-content',
+          maxWidth: 'calc(100vw - 28px)',
+        }}
+      >
+      <nav
           ref={barRef}
           className={`tabbar ${dockCollapsed ? 'dock-collapsed dock-side-' + dockSide : ''}`}
           style={{ touchAction: 'pan-x pan-y' }}
           aria-label="主导航"
-        >
-          <div className="dock-scroll">
+          onPointerDown={startDockLongPress}
+          onPointerUp={clearDockLongPress}
+          onPointerLeave={clearDockLongPress}
+          onPointerCancel={clearDockLongPress}
+          onContextMenu={(event) => { event.preventDefault(); clearDockLongPress(); dockLongPressTriggered.current = true; setDockMoreOpen(true); }}
+          onClickCapture={(event) => {
+            if (dockLongPressTriggered.current) {
+              event.preventDefault();
+              event.stopPropagation();
+              dockLongPressTriggered.current = false;
+            }
+          }}
+        >          <div className="dock-scroll">
           <AnimatePresence initial={false}>
             {!dockCollapsed && TABS.map((t, i) => {
               const activeIdx = TABS.findIndex(x => isTabActive(x.to, loc.pathname));
@@ -832,25 +912,80 @@ function Shell() {
           </AnimatePresence>
           </div>
 
-          <button
-            type="button"
-            className="dock-action dock-toggle"
-            aria-label={dockCollapsed ? "展开导航栏" : "收起导航栏"}
-            title={dockCollapsed ? "展开导航栏（双击切换收起侧）" : "收起导航栏（双击切换收起侧）"}
-            onClick={() => setDockCollapsed(value => !value)}
-            onDoubleClick={() => setDockSide(side => side === 'left' ? 'right' : 'left')}
-          >
-            <motion.span
-              aria-hidden="true"
-              animate={{ rotate: (dockSide === 'right') !== dockCollapsed ? 180 : 0 }}
-              transition={{ duration: 0.34, ease: EASE }}
-              style={{ display: 'block', lineHeight: 1, transformOrigin: '50% 50%' }}
-            >
-              ‹
-            </motion.span>
-          </button>
-        </nav>
+          {dockCollapsed && (
+            <button type="button" className="dock-action dock-toggle"
+              aria-label="展开导航栏" title="展开导航栏"
+              onClick={() => setDockCollapsed(false)}>＋</button>
+          )}
+        </nav></LiquidGlass>
       )}
+      <AnimatePresence>
+        {dockMoreOpen && !isAdminPage && !isChatPage && !isBloomPage && (
+          <>
+            <motion.button
+              type="button"
+              className="qz-ios26-dock-more-backdrop"
+              aria-label="关闭 Dock 快捷菜单"
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={() => setDockMoreOpen(false)}
+            />
+            <LiquidGlass
+              className="qz-ios26-dock-more-glass"
+              renderer="webgl"
+              autodetectquality
+              maxScale={1.2}
+              reveal="immediate"
+              radius={28}
+              blur={10}
+              dispersion={30}
+              aberrationIntensity={0.16}
+              saturation={168}
+              glassColor="rgba(255,255,255,0.38)"
+              style={{
+                position: 'fixed',
+                left: '50%',
+                bottom: 'calc(88px + env(safe-area-inset-bottom))',
+                transform: 'translateX(-50%)',
+                zIndex: 61,
+                width: 'min(420px, calc(100vw - 28px))',
+                display: 'block',
+              }}
+            >
+              <motion.div
+                className="qz-ios26-dock-more-panel"
+                initial={{ opacity: 0, y: 14, scale: .96 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 8, scale: .98 }}
+                transition={{ duration: reduce ? 0 : .22, ease: EASE }}
+              >
+                <div className="qz-ios26-dock-more-heading">
+                  <span>快捷入口</span>
+                  <span className="qz-ios26-dock-more-hint">长按 Dock 打开</span>
+                </div>
+                <div className="qz-ios26-dock-more-grid">
+                  {DOCK_MORE_TABS.map((item) => (
+                    <NavLink key={item.to} to={item.to}
+                      className={({ isActive }) => `qz-ios26-dock-more-item ${isActive || isTabActive(item.to, loc.pathname) ? 'on' : ''}`}
+                      onClick={() => setDockMoreOpen(false)}>
+                      <span>{item.label}</span>
+                      {item.to === '/me/notifications' && notifUnread && !quietHoursActive && <i className="qz-ios26-dock-more-unread" />}
+                    </NavLink>
+                  ))}
+                </div>
+                <div className="qz-ios26-dock-more-actions">
+                  <button type="button" onClick={() => { setDockCollapsed(value => !value); setDockMoreOpen(false); }}>
+                    {dockCollapsed ? '展开 Dock' : '收起 Dock'}
+                  </button>
+                  <button type="button" onClick={() => { setDockSide(side => side === 'left' ? 'right' : 'left'); setDockMoreOpen(false); }}>
+                    切换停靠位置
+                  </button>
+                  <button type="button" onClick={() => setDockMoreOpen(false)}>关闭</button>
+                </div>
+              </motion.div>
+            </LiquidGlass>
+          </>
+        )}
+      </AnimatePresence>
       <GlobalSearch open={searchOpen} onClose={() => setSearchOpen(false)} />
       {gpsOffer && !isAdminPage && (
         <div role="dialog" aria-modal="true" aria-labelledby="gps-consent-title" onClick={closeGpsOffer} style={{
@@ -987,7 +1122,8 @@ function Shell() {
         </div>
       )}
       <TestSwitchFab />
-    </>
+      </>
+    </LiquidGlassScene>
   );
 }
 

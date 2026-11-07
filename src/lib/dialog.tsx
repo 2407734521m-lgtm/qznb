@@ -160,9 +160,9 @@ export function DialogHost() {
   const isAdminHost = window.location.hostname.toLowerCase() === 'admin.qianzhi.pw';
 
   return (
-    <div className={isAdminHost ? 'admin-dialog-overlay' : undefined} style={overlayStyle} onClick={backdrop}>
+    <div className={isAdminHost ? 'admin-dialog-overlay qz-ios26-dialog-overlay' : 'qz-ios26-dialog-overlay'} style={overlayStyle} onClick={backdrop}>
       <style>{'@keyframes dlg-in{from{transform:translateY(10px) scale(.98);opacity:0}to{transform:none;opacity:1}}'}</style>
-      <div className={isAdminHost ? 'admin-dialog-card' : undefined} style={cardStyle} onClick={e => e.stopPropagation()} role="dialog" aria-modal="true">
+      <div className={isAdminHost ? 'admin-dialog-card qz-ios26-dialog-card' : 'qz-ios26-dialog-card'} style={cardStyle} onClick={e => e.stopPropagation()} role="dialog" aria-modal="true">
         {r.kind === 'prompt' ? (
           <PromptBody key={r.id} req={r} />
         ) : r.kind === 'confirm' ? (

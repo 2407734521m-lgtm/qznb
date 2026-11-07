@@ -39,7 +39,7 @@ async function removeOwnedMedia(path: string | null | undefined, ownerId: string
   }
 }
 
-export default function Daily({ searchQuery = '' }: { searchQuery?: string }) {
+export default function Daily({ searchQuery = '', embedded = false }: { searchQuery?: string; embedded?: boolean }) {
   const nav = useNavigate();
   const me = useAuth().session!.user.id; const reduce = useReducedMotion();
   const [posts, setPosts] = useState<Post[]>([]);
@@ -156,7 +156,7 @@ export default function Daily({ searchQuery = '' }: { searchQuery?: string }) {
         const who = profiles[me];
         supabase.from('notifications').insert({
           profile_id: p.author_id, type: 'comment',
-          title: '有人评论了你的日常',
+          title: embedded ? '有人评论了你的帖子' : '有人评论了你的日常',
           body: `${who ? (who.display_name ?? who.username) : '同学'}：${t.slice(0, 60)}`,
           link: '/daily',
         }).then(() => {});
@@ -257,12 +257,12 @@ export default function Daily({ searchQuery = '' }: { searchQuery?: string }) {
   return (
     <div className="page">
       <div className="hero">
-        <h1>日常</h1>
-        <p>记 录 生 活 · 分 享 点 滴</p>
+        <h1>{embedded ? '帖子' : '日常'}</h1>
+        <p>{embedded ? '分享想法 · 记录日常' : '记 录 生 活 · 分 享 点 滴'}</p>
       </div>
       {searchQuery.trim() && <div className="feed-search-banner">搜索日常：{searchQuery}<button type="button" onClick={() => nav('/daily', { replace: true })}>清除搜索</button></div>}
       <div className="composer">
-        <textarea value={text} onChange={e => setText(e.target.value)} placeholder="分享今天的小日常…" rows={3} maxLength={2000} />
+        <textarea value={text} onChange={e => setText(e.target.value)} placeholder={embedded ? "分享点什么…" : "分享今天的小日常…"} rows={3} maxLength={2000} />
         <div className="row">
           <button className="ghost" onClick={() => fref.current?.click()}>{img ? '已选图片 ✓' : '＋ 图片'}</button>
           <input ref={fref} type="file" accept="image/*" hidden onChange={e => setImg(e.target.files?.[0] ?? null)} />
@@ -330,7 +330,7 @@ export default function Daily({ searchQuery = '' }: { searchQuery?: string }) {
           </motion.article>
         );
       })}
-      {posts.length === 0 && <div className="center" style={{ minHeight: 200 }}><div className="card">还没有日常，来发第一条吧</div></div>}
+      {posts.length === 0 && <div className="center" style={{ minHeight: 200 }}><div className="card">{embedded ? '还没有帖子，来发第一条吧' : '还没有日常，来发第一条吧'}</div></div>}
     </div>
   );
 }

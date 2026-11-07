@@ -1401,3 +1401,15 @@
 /* 会话页顶栏通话钮 */
 .im-page .im-call-button{display:grid;place-items:center;color:#fff}
 .im-page .im-call-button:disabled{opacity:.45}
+
+/* Small-surface transitions: keep the tray transform-only so the message
+   scroller and its measured height remain stable on mobile. */
+.im-page .im-sticker-tray {
+  transform-origin: 50% 100%;
+  will-change: transform, opacity;
+}
+@media (prefers-reduced-motion: reduce) {
+  .im-page .im-sticker-tray {
+    will-change: auto;
+  }
+}

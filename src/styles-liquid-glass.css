@@ -238,6 +238,21 @@
     backdrop-filter: blur(8px) saturate(1.04) !important;
   }
 
+  .vh-search,
+  .vh-live,
+  .vh-notice,
+  .vh-shortcut,
+  .vh-panel,
+  .me-hub-hero,
+  .me-hub-stats,
+  .me-hub-shortcuts,
+  .me-hub-group,
+  .me-hub-feature,
+  .me-hub-tile {
+    -webkit-backdrop-filter: blur(7px) saturate(1.04) !important;
+    backdrop-filter: blur(7px) saturate(1.04) !important;
+  }
+
   .global-search-panel,
   .lpop,
   .gexpand,
@@ -249,36 +264,79 @@
 
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
   .liquid-glass,
-  .qz-liquid-glass,
+  .qz-liquid-glass {
+    background: var(--visual-surface, #211f1b) !important;
+  }
+
   .liquid-glass-strong,
-  .qz-liquid-glass-strong,
-  .topnav,
-  .tabbar,
+  .qz-liquid-glass-strong {
+    background: var(--visual-surface-raised, var(--visual-surface, #211f1b)) !important;
+  }
+
+  .topnav {
+    background: var(--premium-glass, rgba(5, 19, 34, .96)) !important;
+  }
+
+  .tabbar {
+    background: rgba(252, 249, 244, .98) !important;
+  }
+
   .card,
-  .composer,
+  .composer {
+    background: var(--visual-surface, #211f1b) !important;
+  }
+
   .vh-search,
   .vh-live,
   .vh-notice,
   .vh-shortcut,
   .vh-panel {
-    background-color: var(--visual-surface, #211f1b) !important;
+    background: #fffdf9 !important;
   }
 }
 
 @media (prefers-reduced-transparency: reduce) {
   .liquid-glass,
-  .qz-liquid-glass,
+  .qz-liquid-glass {
+    background: var(--visual-surface, #211f1b) !important;
+  }
+
   .liquid-glass-strong,
-  .qz-liquid-glass-strong,
-  .topnav,
-  .tabbar,
-  .card,
-  .composer,
+  .qz-liquid-glass-strong {
+    background: var(--visual-surface-raised, var(--visual-surface, #211f1b)) !important;
+  }
+
+  .topnav { background: var(--premium-glass, rgba(5, 19, 34, .96)) !important; }
+  .tabbar { background: rgba(252, 249, 244, .98) !important; }
+  .card, .composer { background: var(--visual-surface, #211f1b) !important; }
+
   .vh-search,
   .vh-live,
   .vh-notice,
   .vh-shortcut,
-  .vh-panel {
+  .vh-panel { background: #fffdf9 !important; }
+
+  .me-hub-hero,
+  .me-hub-stats,
+  .me-hub-shortcuts,
+  .me-hub-group,
+  .me-hub-feature,
+  .me-hub-tile {
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+  }
+
+  .global-search-backdrop,
+  .global-search-panel,
+  .lpop,
+  .gexpand,
+  .chat-bar,
+  .admin-shell-v3 .admin-sidebar,
+  .admin-shell-v3 .admin-header,
+  .admin-shell-v3 .admin-dock,
+  .admin-shell-v3 .admin-mobile-dock,
+  .admin-shell .admin-dock,
+  .admin-shell .admin-mobile-dock {
     -webkit-backdrop-filter: none !important;
     backdrop-filter: none !important;
   }

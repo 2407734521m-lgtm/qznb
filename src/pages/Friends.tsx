@@ -15,6 +15,16 @@ type Friend = {
 
 type MemberSearchResult = Friend;
 
+type InboxNotification = {
+  id: number;
+  type: string | null;
+  title: string | null;
+  body: string | null;
+  link: string | null;
+  is_read: boolean;
+  created_at: string | null;
+};
+
 type ConversationPreview = {
   conversation_id: number;
   conversation_created_at: string;
@@ -64,12 +74,20 @@ export default function Friends() {
   const nav = useNavigate();
   const [searchParams] = useSearchParams();
   const me = useAuth().session!.user.id;
+  const [section, setSection] = useState<'private' | 'notifications'>(() =>
+    searchParams.get('tab') === 'notifications' ? 'notifications' : 'private',
+  );
   const [tab, setTab] = useState<'messages' | 'friends' | 'reqs' | 'blocked' | 'discover'>(() => {
     const requestedTab = searchParams.get('tab');
     return requestedTab === 'reqs' || requestedTab === 'discover' ? requestedTab : 'messages';
   });
   useEffect(() => {
     const requestedTab = searchParams.get('tab');
+    if (requestedTab === 'notifications') {
+      setSection('notifications');
+      return;
+    }
+    setSection('private');
     if (requestedTab === 'reqs' || requestedTab === 'discover') setTab(requestedTab);
   }, [searchParams]);
   const [friends, setFriends] = useState<Friend[]>([]);
@@ -85,6 +103,14 @@ export default function Friends() {
   const [sentRequestIds, setSentRequestIds] = useState<string[]>([]);
   const [friendActionId, setFriendActionId] = useState<string | null>(null);
   const loadSequenceRef = useRef(0);
+  const notificationsLoadSequenceRef = useRef(0);
+  const [notifications, setNotifications] = useState<InboxNotification[]>([]);
+  const [notificationsLoading, setNotificationsLoading] = useState(true);
+  const [notificationsError, setNotificationsError] = useState('');
+  const [notificationActionError, setNotificationActionError] = useState('');
+  const [notificationActionBusy, setNotificationActionBusy] = useState(false);
+  const [notificationFilter, setNotificationFilter] = useState<'all' | 'unread'>('all');
+  const [notificationPrefs, setNotificationPrefs] = useState<Record<string, boolean>>({});
 
   async function load() {
     const requestId = ++loadSequenceRef.current;
@@ -119,9 +145,117 @@ export default function Friends() {
     setLoading(false);
   }
 
+  async function loadNotifications() {
+    const requestId = ++notificationsLoadSequenceRef.current;
+    setNotificationsError('');
+    if (notifications.length === 0) setNotificationsLoading(true);
+    try {
+      const { data, error } = await supabase.from('notifications')
+        .select('id, type, title, body, link, is_read, created_at')
+        .eq('profile_id', me)
+        .order('created_at', { ascending: false })
+        .limit(50);
+      if (requestId !== notificationsLoadSequenceRef.current) return;
+      if (error) {
+        setNotificationsError(error.code === '42501' || error.code === 'PGRST301'
+          ? '当前账号没有读取消息的权限。'
+          : '消息暂时加载失败，请稍后重试。');
+      } else {
+        setNotifications(data ?? []);
+      }
+    } catch {
+      if (requestId === notificationsLoadSequenceRef.current) {
+        setNotificationsError('网络暂时不可用，请检查连接后重试。');
+      }
+    } finally {
+      if (requestId === notificationsLoadSequenceRef.current) setNotificationsLoading(false);
+    }
+  }
+
+  async function markNotificationRead(id: number) {
+    const item = notifications.find(entry => entry.id === id);
+    if (!item || item.is_read) return true;
+    const { error } = await supabase.from('notifications')
+      .update({ is_read: true })
+      .eq('id', id)
+      .eq('profile_id', me);
+    if (error) {
+      setNotificationActionError('标记已读失败，请稍后重试。');
+      return false;
+    }
+    setNotifications(current => current.map(entry => entry.id === id ? { ...entry, is_read: true } : entry));
+    window.dispatchEvent(new Event('notif-read'));
+    return true;
+  }
+
+  async function openSystemMessage(item: InboxNotification) {
+    setNotificationActionError('');
+    if (!(await markNotificationRead(item.id))) return;
+    const target = typeof item.link === 'string' ? item.link.trim() : '';
+    if (target.startsWith('/') && !target.startsWith('//')) nav(target);
+  }
+
+  async function markAllNotificationsRead() {
+    if (notificationActionBusy || unreadNotificationCount === 0) return;
+    setNotificationActionBusy(true);
+    setNotificationActionError('');
+    const { error } = await supabase.from('notifications')
+      .update({ is_read: true })
+      .eq('profile_id', me)
+      .eq('is_read', false);
+    if (error) {
+      setNotificationActionError('批量标记失败，请稍后重试。');
+    } else {
+      setNotifications(current => current.map(item => ({ ...item, is_read: true })));
+      window.dispatchEvent(new Event('notif-read'));
+    }
+    setNotificationActionBusy(false);
+  }
+
+  useEffect(() => {
+    let active = true;
+    const syncLocal = () => {
+      try {
+        const raw = JSON.parse(localStorage.getItem('qznb_user_preferences_v1:' + me) || 'null');
+        setNotificationPrefs(raw?.notifications && typeof raw.notifications === 'object' ? raw.notifications : {});
+      } catch { setNotificationPrefs({}); }
+    };
+    const syncCloud = async () => {
+      const { data, error } = await (supabase as any)
+        .from('profile_notification_preferences')
+        .select('preferences')
+        .eq('profile_id', me)
+        .maybeSingle();
+      if (!active || error || !data?.preferences?.notifications) return;
+      setNotificationPrefs(data.preferences.notifications);
+      try {
+        const raw = JSON.parse(localStorage.getItem('qznb_user_preferences_v1:' + me) || 'null');
+        localStorage.setItem('qznb_user_preferences_v1:' + me, JSON.stringify({
+          ...(raw && typeof raw === 'object' ? raw : {}),
+          notifications: data.preferences.notifications,
+        }));
+      } catch { /* 云端偏好仍可用；本地缓存失败不影响消息显示 */ }
+    };
+    syncLocal();
+    void syncCloud();
+    window.addEventListener('qznb-settings-changed', syncLocal);
+    window.addEventListener('focus', syncCloud);
+    return () => {
+      active = false;
+      window.removeEventListener('qznb-settings-changed', syncLocal);
+      window.removeEventListener('focus', syncCloud);
+    };
+  }, [me]);
+
   useEffect(() => {
     void load();
+    void loadNotifications();
     let realtimeTimer: number | undefined;
+    let notificationRealtimeTimer: number | undefined;
+    const scheduleNotificationLoad = () => {
+      window.clearTimeout(notificationRealtimeTimer);
+      notificationRealtimeTimer = window.setTimeout(() => { void loadNotifications(); }, 180);
+    };
     const scheduleLoad = () => {
       // 合并短时间内连续到达的多条消息事件，避免重复查询四组列表。
       window.clearTimeout(realtimeTimer);
@@ -132,19 +266,25 @@ export default function Friends() {
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'conversation_members', filter: 'profile_id=eq.' + me }, scheduleLoad)
       // friendships 的 RLS 只允许当前用户读取自己参与的关系，因此无需重复建立两条过滤订阅。
       .on('postgres_changes', { event: '*', schema: 'public', table: 'friendships' }, scheduleLoad)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications', filter: 'profile_id=eq.' + me }, scheduleNotificationLoad)
       .subscribe();
     const refreshVisible = () => {
-      if (document.visibilityState === 'visible') void load();
+      if (document.visibilityState === 'visible') {
+        void load();
+        void loadNotifications();
+      }
     };
     window.addEventListener('focus', refreshVisible);
     document.addEventListener('visibilitychange', refreshVisible);
-    const fallback = window.setInterval(() => { void load(); }, 15000);
+    const fallback = window.setInterval(() => { void load(); void loadNotifications(); }, 15000);
     return () => {
       window.clearInterval(fallback);
       window.clearTimeout(realtimeTimer);
+      window.clearTimeout(notificationRealtimeTimer);
       window.removeEventListener('focus', refreshVisible);
       document.removeEventListener('visibilitychange', refreshVisible);
       loadSequenceRef.current += 1;
+      notificationsLoadSequenceRef.current += 1;
       void supabase.removeChannel(channel);
     };
     // The authenticated user is stable for this mounted page.
@@ -177,7 +317,7 @@ export default function Friends() {
   );
 
   useEffect(() => {
-    if (!searchTerm && tab !== 'discover') {
+    if (section !== 'private' || (!searchTerm && tab !== 'discover')) {
       setSearchResults([]);
       setSearchError('');
       setSearchLoading(false);
@@ -217,7 +357,7 @@ export default function Friends() {
       active = false;
       window.clearTimeout(timer);
     };
-  }, [searchTerm, directoryQuery, me, tab]);
+  }, [searchTerm, directoryQuery, me, tab, section]);
 
   async function openChat(friend: Friend) {
     setMsg('');
@@ -341,6 +481,29 @@ export default function Friends() {
     );
   }
 
+  const unreadNotificationCount = notifications.filter(item =>
+    !item.is_read && (item.type ? notificationPrefs[item.type] : true) !== false,
+  ).length;
+  const notificationTypeLabel: Record<string, string> = {
+    comment: '评论提醒',
+    like: '点赞提醒',
+    greeting: '留言提醒',
+    notice: '公告',
+    love_wall: '互动提醒',
+    feedback: '反馈进度',
+    admin_message: '管理员消息',
+    moderation: '账号警告',
+    friend_request: '好友申请',
+  };
+  const visibleNotifications = notifications
+    .filter(item => (item.type ? notificationPrefs[item.type] : true) !== false)
+    .filter(item => notificationFilter === 'unread' ? !item.is_read : true)
+    .filter(item => {
+      if (!normalizedQuery) return true;
+      return [item.title, item.body, notificationTypeLabel[item.type ?? '']]
+        .some(value => (value ?? '').toLocaleLowerCase().includes(normalizedQuery));
+    });
+
   return (
     <div className="page im-inbox">
       <style>{`
@@ -357,6 +520,29 @@ export default function Friends() {
         .im-inbox-tabs{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin-bottom:14px}
         .im-inbox-tabs button{min-width:0;min-height:42px;border-radius:15px;border:1px solid rgba(215,237,255,.16);background:rgba(10,31,65,.36);color:rgba(226,240,255,.75);font-size:13px;backdrop-filter:blur(18px)}
         .im-inbox-tabs button.on{color:#fff;background:linear-gradient(120deg,rgba(35,135,255,.86),rgba(36,94,220,.82));border-color:rgba(168,216,255,.38);box-shadow:0 8px 24px rgba(0,94,255,.2)}
+        .im-primary-tabs{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:5px;margin:0 0 16px;border:1px solid rgba(215,237,255,.16);border-radius:18px;background:rgba(7,24,50,.48);backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px)}
+        .im-primary-tabs button{min-height:43px;border:0;border-radius:13px;background:transparent;color:rgba(226,240,255,.76);font-size:14px;font-weight:650;transition:background .18s ease,color .18s ease}
+        .im-primary-tabs button.on{background:linear-gradient(120deg,rgba(42,145,248,.9),rgba(55,105,222,.86));color:#fff;box-shadow:0 5px 18px rgba(0,94,255,.2)}
+        .im-primary-unread{display:inline-block;width:8px;height:8px;margin-left:8px;vertical-align:2px;border-radius:50%;background:#ff5968;box-shadow:0 0 0 3px rgba(255,89,104,.15),0 0 12px rgba(255,89,104,.45)}
+        .im-notification-toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:2px 0 14px}
+        .im-notification-toolbar button{min-height:36px;padding:7px 12px;border-radius:13px;border:1px solid rgba(215,237,255,.16);background:rgba(10,31,65,.36);color:rgba(226,240,255,.78);font-size:12px}
+        .im-notification-toolbar button.on{background:rgba(48,132,238,.34);border-color:rgba(168,216,255,.34);color:#fff}
+        .im-notification-toolbar button:disabled{opacity:.45}
+        .im-notification-count{margin-left:auto;color:rgba(218,234,255,.62);font-size:11px}
+        .im-notification-list{display:flex;flex-direction:column;gap:10px}
+        .im-notification-row{display:flex;align-items:flex-start;gap:12px;width:100%;padding:14px;border:1px solid rgba(207,230,255,.14);border-radius:20px;background:linear-gradient(110deg,rgba(34,90,164,.3),rgba(11,27,57,.54));color:#f4f9ff;text-align:left;box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 8px 24px rgba(0,0,0,.07);cursor:pointer;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);transition:border-color .18s ease,transform .18s ease}
+        .im-notification-row.unread{border-color:rgba(255,112,125,.34);background:linear-gradient(110deg,rgba(84,54,83,.35),rgba(11,27,57,.58))}
+        .im-notification-row:active{transform:scale(.99)}
+        .im-notification-icon{display:grid;place-items:center;flex:none;width:40px;height:40px;border-radius:14px;background:rgba(90,153,226,.2);color:#d7eaff;font-size:18px}
+        .im-notification-icon.warning{background:rgba(255,174,86,.16);color:#ffd49d}
+        .im-notification-main{flex:1;min-width:0}
+        .im-notification-title-line{display:flex;align-items:center;gap:8px;min-width:0}
+        .im-notification-title{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px;font-weight:750;color:#f7fbff}
+        .im-notification-unread{flex:none;border-radius:99px;padding:2px 7px;background:rgba(255,89,104,.17);color:#ffabb4;font-size:10px;font-weight:700}
+        .im-notification-body{margin:7px 0 0;color:rgba(224,238,255,.78);font-size:12px;line-height:1.75;white-space:pre-wrap;overflow-wrap:anywhere}
+        .im-notification-meta{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:10px;color:rgba(211,229,248,.56);font-size:10px}
+        .im-notification-type{padding:2px 7px;border:1px solid rgba(211,229,248,.16);border-radius:99px;white-space:nowrap}
+        .im-notification-arrow{flex:none;margin-top:8px;color:rgba(211,229,248,.58);font-size:20px}
         .im-inbox-list{display:flex;flex-direction:column;gap:9px}
         .im-inbox-row{width:100%;display:flex;align-items:center;gap:12px;text-align:left;padding:12px;border-radius:23px;border:1px solid rgba(207,230,255,.14);background:linear-gradient(110deg,rgba(34,90,164,.34),rgba(11,27,57,.56));box-shadow:inset 0 1px 0 rgba(255,255,255,.07),0 8px 24px rgba(0,0,0,.08);color:#f4f9ff;backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);cursor:pointer;transition:transform .18s ease,border-color .18s ease,background .18s ease}
         button.im-inbox-row:active{transform:scale(.985);background:rgba(45,112,210,.38);border-color:rgba(160,213,255,.36)}
@@ -393,28 +579,41 @@ export default function Friends() {
 
       <header className="im-inbox-head">
         <div>
-          <div className="im-inbox-kicker">PINGZHONG · CONNECT</div>
-          <div className="im-inbox-title">Messages</div>
-          <div className="im-inbox-subtitle">和班级里的朋友保持联系</div>
+          <div className="im-inbox-kicker">QIANZHI · MESSAGE CENTER</div>
+          <div className="im-inbox-title">消息中心</div>
+          <div className="im-inbox-subtitle">私信与账号通知，集中在这里</div>
         </div>
       </header>
 
-      <label className="im-search">
-        <span aria-hidden="true">⌕</span>
-        <input value={query} onChange={e => setQuery(e.target.value)} placeholder="搜索昵称或 @用户名（真实姓名不公开）" aria-label="搜索昵称或用户名；真实姓名不公开" />
-      </label>
-
-      <div className="im-inbox-tabs">
-        <button type="button" className={tab === 'discover' ? 'on' : ''} onClick={() => setTab('discover')}>找人</button>
-        <button type="button" className={tab === 'messages' ? 'on' : ''} onClick={() => setTab('messages')}>消息 · {conversations.length}</button>
-        <button type="button" className={tab === 'friends' ? 'on' : ''} onClick={() => setTab('friends')}>好友 · {friends.length}</button>
-        <button type="button" className={tab === 'reqs' ? 'on' : ''} onClick={() => setTab('reqs')}>请求{reqs.length > 0 ? ' · ' + reqs.length : ''}</button>
-        <button type="button" className={tab === 'blocked' ? 'on' : ''} onClick={() => setTab('blocked')}>黑名单 · {blockedMembers.length}</button>
+      <div className="im-primary-tabs" role="tablist" aria-label="消息分类">
+        <button type="button" role="tab" aria-selected={section === 'private'} className={section === 'private' ? 'on' : ''}
+          onClick={() => { setSection('private'); setQuery(''); }}>私信</button>
+        <button type="button" role="tab" aria-selected={section === 'notifications'} className={section === 'notifications' ? 'on' : ''}
+          onClick={() => { setSection('notifications'); setQuery(''); void loadNotifications(); }}>
+          消息{unreadNotificationCount > 0 && <i className="im-primary-unread" aria-label={unreadNotificationCount + ' 条未读消息'} />}
+        </button>
       </div>
 
-      {msg && <p className="im-inbox-message" role="status">{msg}</p>}
+      <label className="im-search">
+        <span aria-hidden="true">⌕</span>
+        <input value={query} onChange={e => setQuery(e.target.value)}
+          placeholder={section === 'private' ? '搜索昵称或 @用户名（真实姓名不公开）' : '搜索消息标题或内容'}
+          aria-label={section === 'private' ? '搜索昵称或用户名；真实姓名不公开' : '搜索系统消息'} />
+      </label>
 
-      {searchTerm || tab === 'discover' ? (
+      {section === 'private' ? (
+        <>
+          <div className="im-inbox-tabs">
+            <button type="button" className={tab === 'discover' ? 'on' : ''} onClick={() => setTab('discover')}>找人</button>
+            <button type="button" className={tab === 'messages' ? 'on' : ''} onClick={() => setTab('messages')}>私信 · {conversations.length}</button>
+            <button type="button" className={tab === 'friends' ? 'on' : ''} onClick={() => setTab('friends')}>好友 · {friends.length}</button>
+            <button type="button" className={tab === 'reqs' ? 'on' : ''} onClick={() => setTab('reqs')}>请求{reqs.length > 0 ? ' · ' + reqs.length : ''}</button>
+            <button type="button" className={tab === 'blocked' ? 'on' : ''} onClick={() => setTab('blocked')}>黑名单 · {blockedMembers.length}</button>
+          </div>
+
+          {msg && <p className="im-inbox-message" role="status">{msg}</p>}
+
+          {searchTerm || tab === 'discover' ? (
         <div className="im-inbox-list" aria-live="polite">
           <div className="im-inbox-search-caption">
             <span>{searchTerm ? '搜索站内成员' : '发现成员'}</span>
@@ -572,6 +771,71 @@ export default function Friends() {
           )}
         </>
       )}
+        </>
+      ) : (
+        <>
+          <div className="im-notification-toolbar">
+            <button type="button" className={notificationFilter === 'all' ? 'on' : ''}
+              onClick={() => setNotificationFilter('all')}>全部（{notifications.length}）</button>
+            <button type="button" className={notificationFilter === 'unread' ? 'on' : ''}
+              onClick={() => setNotificationFilter('unread')}>未读（{unreadNotificationCount}）</button>
+            <button type="button" style={{ marginLeft: 'auto' }}
+              onClick={() => void markAllNotificationsRead()}
+              disabled={notificationActionBusy || unreadNotificationCount === 0}>
+              {notificationActionBusy ? '处理中…' : '全部标为已读'}
+            </button>
+            <span className="im-notification-count">{unreadNotificationCount ? unreadNotificationCount + ' 条未读' : '已全部读完'}</span>
+          </div>
+          {notificationActionError && <p className="im-inbox-message" role="alert">{notificationActionError}</p>}
+          {notificationsLoading && <div className="im-inbox-empty" role="status">正在加载消息…</div>}
+          {!notificationsLoading && notificationsError && (
+            <div className="im-inbox-empty">
+              <div className="im-inbox-empty-title">消息暂时无法显示</div>
+              <div className="im-inbox-empty-copy">{notificationsError}</div>
+              <button type="button" className="im-inbox-primary" onClick={() => void loadNotifications()}>重新加载</button>
+            </div>
+          )}
+          {!notificationsLoading && !notificationsError && visibleNotifications.length === 0 && (
+            <div className="im-inbox-empty">
+              <div className="im-inbox-empty-title">{notificationFilter === 'unread' ? '没有未读消息' : '暂时没有消息'}</div>
+              <div className="im-inbox-empty-copy">账号提醒、管理员消息和其他系统通知会显示在这里。</div>
+            </div>
+          )}
+          {!notificationsLoading && !notificationsError && visibleNotifications.length > 0 && (
+            <div className="im-notification-list" aria-live="polite">
+              {visibleNotifications.map(item => (
+                <article key={item.id} className={'im-notification-row' + (!item.is_read ? ' unread' : '')}
+                  role="button" tabIndex={0}
+                  aria-label={(item.is_read ? '' : '未读，') + (item.title || '系统消息') + '，打开消息'}
+                  onClick={() => void openSystemMessage(item)}
+                  onKeyDown={event => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                      event.preventDefault();
+                      void openSystemMessage(item);
+                    }
+                  }}>
+                  <span className={'im-notification-icon' + (item.type === 'moderation' ? ' warning' : '')} aria-hidden="true">
+                    {item.type === 'moderation' ? '⚠' : item.type === 'admin_message' ? '✉' : item.type === 'notice' ? '▤' : '•'}
+                  </span>
+                  <span className="im-notification-main">
+                    <span className="im-notification-title-line">
+                      <span className="im-notification-title">
+                        {item.title || (item.type === 'moderation' ? '账号提醒' : item.type === 'admin_message' ? '管理员消息' : '系统消息')}
+                      </span>
+                      {!item.is_read && <span className="im-notification-unread">未读</span>}
+                    </span>
+                    {item.body && <span className="im-notification-body">{item.body}</span>}
+                    <span className="im-notification-meta">
+                      <span>{item.created_at ? new Date(item.created_at).toLocaleString('zh-CN') : ''}</span>
+                      <span className="im-notification-type">{notificationTypeLabel[item.type ?? ''] ?? '系统消息'}</span>
+                    </span>
+                  </span>
+                  <span className="im-notification-arrow" aria-hidden="true">›</span>
+                </article>
+              ))}
+            </div>
+          )}
+        </>
     </div>
   );
 }

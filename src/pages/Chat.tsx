@@ -4,6 +4,7 @@ import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../auth';
 import { downscaleImage, uploadMedia, useSignedUrl } from '../lib/media';
+import { useCall } from '../lib/call';
 import { goBackOr } from '../components/BackButton';
 import { confirmDialog } from '../lib/dialog';
 import type { ChatMessage } from '../types/message';
@@ -170,6 +171,7 @@ export default function Chat() {
   const chunksRef = useRef<Blob[]>([]);
   const recordTimerRef = useRef<number | null>(null);
   const imageRef = useRef<HTMLInputElement>(null);
+  const { startCall, busy: callBusy } = useCall();
   const fileRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState('');
   const [showDetails, setShowDetails] = useState(false);
@@ -862,6 +864,10 @@ export default function Chat() {
             <span className="im-contact-chevron" aria-hidden="true">›</span>
           </span>
           {otherTyping && <span className="im-sub">正在输入…</span>}
+        </button>
+        <button type="button" className="im-icon im-call-button" aria-label="语音通话" title="语音通话" disabled={!peer || callBusy}
+          onClick={() => { if (peer && cid) startCall({ id: peer.id, name }, Number(cid)); }}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6.62 10.79a15.05 15.05 0 0 0 6.59 6.59l2.2-2.2a1 1 0 0 1 1.02-.24 11.4 11.4 0 0 0 3.57.57 1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A17 17 0 0 1 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1 11.4 11.4 0 0 0 .57 3.57 1 1 0 0 1-.25 1.02z"/></svg>
         </button>
         <button className="im-icon im-info-button" aria-label="聊天详情" onClick={() => setShowDetails(true)}>
           <span aria-hidden="true">ⓘ</span>

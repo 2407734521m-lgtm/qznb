@@ -164,7 +164,7 @@ export default function Capsule() {
     await load();
   }
   async function permDel(id: number) {
-    if (!(await confirmDialog('彻底删除？删了就找不回来了', { danger: true }))) return;
+    if (!(await confirmDialog('彻底删除？删了就找不回来了', { danger: true, confirmText: '确认彻底删除' }))) return;
     const { data, error } = await supabase.from('time_capsules').delete()
       .eq('id', id).eq('author_id', me).select('id').maybeSingle();
     if (error) setMsg('彻底删除失败：' + error.message);

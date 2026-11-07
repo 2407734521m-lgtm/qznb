@@ -143,7 +143,7 @@ export function DialogHost() {
       else r.resolve();
       advance();
     }
-    function onKey(e: KeyboardEvent) { if (e.key === 'Escape') dismiss(); }
+    function onKey(e: KeyboardEvent) { if (e.key === 'Escape' && r.kind !== 'prompt') dismiss(); }
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [req]);
@@ -151,8 +151,8 @@ export function DialogHost() {
   const r = req;
 
   function backdrop() {
+    if (r.kind === 'prompt') return; // 输入型弹窗：点蒙层不丢已输入内容，只能点取消/确认
     if (r.kind === 'confirm') r.resolve(false);
-    else if (r.kind === 'prompt') r.resolve(null);
     else r.resolve();
     advance();
   }

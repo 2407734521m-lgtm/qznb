@@ -25,7 +25,7 @@ export default function EventTab({ me, setMsg }: { me: string; setMsg: (s: strin
     else { await alog('event_add', { title: title.trim() }); setTitle(''); setDesc(''); setAt(''); setLoc(''); load(); setMsg('活动已发布'); }
   }
   async function del(id: number) {
-    if (!(await confirmDialog('删除这个活动？报名数据一起删除。', { danger: true }))) return;
+    if (!(await confirmDialog('删除这个活动？报名数据一起删除。', { danger: true, confirmText: '确认删除' }))) return;
     const { error } = await supabase.from('events').delete().eq('id', id);
     if (!error) { await alog('event_delete', { id }); load(); } else setMsg('删除失败：' + error.message);
   }

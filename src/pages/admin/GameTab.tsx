@@ -27,7 +27,7 @@ export default function GameTab({ setMsg }: { setMsg: (s: string) => void }) {
     else setMsg('操作失败：' + error.message);
   }
   async function revoke(pid: string) {
-    if (!(await confirmDialog('撤销这个段位认证？', { danger: true }))) return;
+    if (!(await confirmDialog('撤销这个段位认证？', { danger: true, confirmText: '确认撤销' }))) return;
     const { error } = await supabase.rpc('review_game_profile', { pid, approve: false });
     if (!error) { await alog('game_revoke', { pid }); load(); } else setMsg('操作失败：' + error.message);
   }

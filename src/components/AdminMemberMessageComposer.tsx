@@ -119,7 +119,7 @@ export default function AdminMemberMessageComposer({ recipients, onClose, setMsg
   }
 
   return (
-    <div style={overlay} onClick={onClose}>
+    <div style={overlay} onClick={() => { if (!title.trim() && !body.trim()) onClose(); }}>
       <section
         role="dialog"
         aria-modal="true"

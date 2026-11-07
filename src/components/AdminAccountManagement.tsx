@@ -110,7 +110,7 @@ export default function AdminAccountManagement({
     }
     const next = !account.joined;
     const verb = next ? '恢复班级权限' : '暂停班级权限';
-    if (!(await confirmDialog(`${verb}账号「${account.display_name || account.username}」？${next ? '' : '暂停后将失去班级成员权限，但不会阻止其登录认证。'}`))) return;
+    if (!(await confirmDialog(`${verb}账号「${account.display_name || account.username}」？${next ? '' : '暂停后将失去班级成员权限，但不会阻止其登录认证。'}` , { confirmText: verb }))) return;
     setBusy(account.id);
     const { error } = await supabase.rpc('set_joined', { target: account.id, j: next });
     setBusy(null);
@@ -127,7 +127,7 @@ export default function AdminAccountManagement({
     const targets = filtered.filter(account => selected.has(account.id) && account.role === 'member' && account.id !== me && account.joined !== joined);
     if (!targets.length) return setMsg('没有可执行的选中账号。');
     const verb = joined ? '恢复班级权限' : '暂停班级权限';
-    if (!(await confirmDialog('确认' + verb + '选中的 ' + targets.length + ' 个账号？不会处理当前登录账号。', { danger: !joined }))) return;
+    if (!(await confirmDialog('确认' + verb + '选中的 ' + targets.length + ' 个账号？不会处理当前登录账号。', { danger: !joined, confirmText: verb }))) return;
     setBatchBusy(true);
     let success = 0; let failed = 0;
     for (const account of targets) {
@@ -199,7 +199,7 @@ export default function AdminAccountManagement({
     const label = account.display_name || account.username;
     const confirmed = await confirmDialog(
       `确定永久删除成员「${label}」？此操作不可撤销。该成员的个人资料和登录账号将被删除；其发布的帖子、评论、私信等关联内容也可能因数据库级联规则一并删除。其他成员的账号不会被删除。`,
-      { danger: true }
+      { danger: true, confirmText: '确认删除' }
     );
     if (!confirmed) return;
     const reason = await promptDialog('填写直接永久删除原因（至少 8 个字）', { placeholder: '说明删除原因及必要性' });

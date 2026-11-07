@@ -104,7 +104,7 @@ export default function AlbumDetail() {
     const message = otherContributors.length
       ? '该相册包含其他成员上传的照片。删除操作会将相册从公开列表移除，但不会删除任何照片或文件，以保护上传者的作品。'
       : '删除后相册会从列表移除；照片记录和文件会保留，管理员仍可恢复或进一步处理。';
-    if (!(await confirmDialog(message, { danger: true }))) return;
+    if (!(await confirmDialog(message, { danger: true, confirmText: '确认删除' }))) return;
     setManageBusy(true);
     try {
       const { data, error } = await supabase.from('albums').update({ deleted_at: new Date().toISOString() })
@@ -123,7 +123,7 @@ export default function AlbumDetail() {
       alertDialog('这张照片是相册封面，请先联系相册创建者更换封面，再删除这张照片。');
       return;
     }
-    if (!(await confirmDialog('删除这张照片？文件也会从相册存储中移除。', { danger: true }))) return;
+    if (!(await confirmDialog('删除这张照片？文件也会从相册存储中移除。', { danger: true, confirmText: '确认删除' }))) return;
     try {
       if (album.cover_url === p.photo_url) {
         const nextCover = photos.find(photo => photo.id !== p.id)?.photo_url ?? null;

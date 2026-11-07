@@ -30,7 +30,7 @@ export default function Events() {
 
   async function toggle(id: number, joined: boolean) {
     if (joined) {
-      if (!(await confirmDialog('取消报名？'))) return;
+      if (!(await confirmDialog('取消报名？', { confirmText: '确认取消报名' }))) return;
       await supabase.from('event_regs').delete().eq('event_id', id).eq('profile_id', me);
     } else {
       const { error } = await supabase.from('event_regs').insert({ event_id: id, profile_id: me });

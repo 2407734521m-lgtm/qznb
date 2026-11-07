@@ -77,8 +77,8 @@ export default function Moderate({ setMsg }: { setMsg: (s: string) => void }) {
     else setMsg('失败：' + error.message);
   }
   async function delPost(p: Post) {
-    if (!(await confirmDialog('彻底删除这条帖子？不可恢复！', { danger: true }))) return;
-    if (!(await confirmDialog('再次确认：真的彻底删除吗？', { danger: true }))) return;
+    if (!(await confirmDialog('彻底删除这条帖子？不可恢复！', { danger: true, confirmText: '确认彻底删除' }))) return;
+    if (!(await confirmDialog('再次确认：真的彻底删除吗？', { danger: true, confirmText: '确认彻底删除' }))) return;
     const { error } = await supabase.from('posts').delete().eq('id', p.id);
     if (!error) { await alog('post_delete', { id: p.id }); load(); }
     else setMsg('失败：' + error.message);
@@ -90,21 +90,21 @@ export default function Moderate({ setMsg }: { setMsg: (s: string) => void }) {
     else setMsg('失败：' + error.message);
   }
   async function restoreBoard(b: BoardRow) {
-    if (!(await confirmDialog('恢复这条公告？恢复后立即公开显示。'))) return;
+    if (!(await confirmDialog('恢复这条公告？恢复后立即公开显示。', { confirmText: '确认恢复' }))) return;
     const { error } = await supabase.from('board_messages').update({ deleted_at: null }).eq('id', b.id);
     if (!error) { await alog('notice_restore', { id: b.id }); load(); }
     else setMsg('失败：' + error.message);
   }
   async function purgeBoard(b: BoardRow) {
-    if (!(await confirmDialog('彻底删除这条公告？不可恢复！', { danger: true }))) return;
-    if (!(await confirmDialog('再次确认：真的彻底删除吗？', { danger: true }))) return;
+    if (!(await confirmDialog('彻底删除这条公告？不可恢复！', { danger: true, confirmText: '确认彻底删除' }))) return;
+    if (!(await confirmDialog('再次确认：真的彻底删除吗？', { danger: true, confirmText: '确认彻底删除' }))) return;
     const { error } = await supabase.from('board_messages').delete().eq('id', b.id);
     if (!error) { await alog('notice_purge', { id: b.id }); load(); }
     else setMsg('失败：' + error.message);
   }
   async function purgeCmt(c: Cmt) {
-    if (!(await confirmDialog('彻底删除这条评论？不可恢复！', { danger: true }))) return;
-    if (!(await confirmDialog('再次确认：真的彻底删除吗？', { danger: true }))) return;
+    if (!(await confirmDialog('彻底删除这条评论？不可恢复！', { danger: true, confirmText: '确认彻底删除' }))) return;
+    if (!(await confirmDialog('再次确认：真的彻底删除吗？', { danger: true, confirmText: '确认彻底删除' }))) return;
     const { error } = await supabase.from('comments').delete().eq('id', c.id);
     if (!error) { await alog('comment_purge', { id: c.id }); load(); }
     else setMsg('失败：' + error.message);
@@ -148,7 +148,7 @@ export default function Moderate({ setMsg }: { setMsg: (s: string) => void }) {
       return;
     }
     const verb = hide ? '隐藏' : '恢复';
-    if (!(await confirmDialog('确认' + verb + '选中的 ' + targets.length + ' 条帖子？'))) return;
+    if (!(await confirmDialog('确认' + verb + '选中的 ' + targets.length + ' 条帖子？', { confirmText: '确认' + verb }))) return;
 
     setBatchBusy(true);
     let success = 0;
@@ -180,7 +180,7 @@ export default function Moderate({ setMsg }: { setMsg: (s: string) => void }) {
       return;
     }
     const verb = hide ? '隐藏' : '恢复';
-    if (!(await confirmDialog('确认' + verb + '选中的 ' + targets.length + ' 条评论？'))) return;
+    if (!(await confirmDialog('确认' + verb + '选中的 ' + targets.length + ' 条评论？', { confirmText: '确认' + verb }))) return;
 
     setBatchBusy(true);
     let success = 0;

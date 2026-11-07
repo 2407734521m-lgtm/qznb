@@ -130,7 +130,7 @@ export default function Member() {
       : action === 'block_member'
         ? `确定拉黑「${name}」吗？双方将无法互相申请好友，也无法查看或发送彼此的私聊。取消拉黑不会自动恢复好友关系。`
         : `确定解除对「${name}」的拉黑吗？解除后不会自动恢复好友关系。`;
-    if (!(await confirmDialog(title, { danger: true }))) return;
+    if (!(await confirmDialog(title, { danger: true, confirmText: action === 'remove_friend' ? '确认解除好友' : action === 'block_member' ? '确认拉黑' : '确认解除拉黑' }))) return;
 
     setFbusy(true);
     setUpMsg('');

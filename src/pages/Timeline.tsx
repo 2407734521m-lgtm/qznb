@@ -122,7 +122,7 @@ export default function Timeline() {
   }
 
   async function del(row: T) {
-    if (!(await confirmDialog('删除这条时间线？关联的照片或视频也会一并清理。', { danger: true }))) return;
+    if (!(await confirmDialog('删除这条时间线？关联的照片或视频也会一并清理。', { danger: true, confirmText: '确认删除' }))) return;
     const { data, error } = await supabase.from('timelines').delete()
       .eq('id', row.id).eq('profile_id', me).select('id').maybeSingle();
     if (error) { alertDialog('删除失败：' + error.message); return; }

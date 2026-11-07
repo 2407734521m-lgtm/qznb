@@ -207,7 +207,7 @@ export default function Daily({ searchQuery = '' }: { searchQuery?: string }) {
   }
 
   async function delPost(p: Post) {
-    if (!(await confirmDialog('删除这条日常？评论和点赞会一起删除。', { danger: true }))) return;
+    if (!(await confirmDialog('删除这条日常？评论和点赞会一起删除。', { danger: true, confirmText: '确认删除' }))) return;
     const { data, error } = await supabase.from('posts').delete()
       .eq('id', p.id).eq('author_id', p.author_id).eq('section', 'daily')
       .select('id').maybeSingle();
@@ -228,7 +228,7 @@ export default function Daily({ searchQuery = '' }: { searchQuery?: string }) {
   }
 
   async function delCmt(c: Cmt) {
-    if (!(await confirmDialog('删除这条评论？', { danger: true }))) return;
+    if (!(await confirmDialog('删除这条评论？', { danger: true, confirmText: '确认删除' }))) return;
     const { data, error } = await supabase.from('comments').delete()
       .eq('id', c.id).eq('author_id', c.author_id).select('id').maybeSingle();
     if (error) { alertDialog('评论删除失败：' + error.message); return; }

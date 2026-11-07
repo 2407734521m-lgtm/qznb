@@ -288,7 +288,7 @@ export default function Friends() {
     successMessage: string,
   ) {
     if (friendActionId) return;
-    if (!(await confirmDialog(confirmation, { danger: true }))) return;
+    if (!(await confirmDialog(confirmation, { danger: true, confirmText: action === 'remove_friend' ? '确认解除好友' : action === 'block_member' ? '确认拉黑' : '确认解除拉黑' }))) return;
     setFriendActionId(person.id);
     setMsg('');
     try {

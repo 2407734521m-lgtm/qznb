@@ -76,7 +76,7 @@ export default function BoardMgr({ me, setMsg }: { me: string; setMsg: (s: strin
     else setMsg('失败：' + error.message);
   }
   async function del(id: number) {
-    if (!(await confirmDialog('删除这条公告？', { danger: true }))) return;
+    if (!(await confirmDialog('删除这条公告？', { danger: true, confirmText: '确认删除' }))) return;
     // 软删除进回收站
     const { error } = await supabase.from('board_messages').update({ deleted_at: new Date().toISOString() }).eq('id', id);
     if (!error) { await alog('notice_hide', { id }); load(); }

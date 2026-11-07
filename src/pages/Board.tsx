@@ -88,10 +88,10 @@ export default function Board() {
 
   async function del(id: number) {
     if (isAdmin) {
-      if (!(await confirmDialog('删除这条留言？（先进回收站，可恢复）', { danger: true }))) return;
+      if (!(await confirmDialog('删除这条留言？（先进回收站，可恢复）', { danger: true, confirmText: '确认删除' }))) return;
       await supabase.from('board_messages').update({ deleted_at: new Date().toISOString() }).eq('id', id);
     } else {
-      if (!(await confirmDialog('删除这条留言？', { danger: true }))) return;
+      if (!(await confirmDialog('删除这条留言？', { danger: true, confirmText: '确认删除' }))) return;
       await supabase.from('board_messages').delete().eq('id', id);
     }
     load();

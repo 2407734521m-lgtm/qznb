@@ -1,13 +1,21 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../auth';
 
 // 反馈弹窗：登录页（未登录也能用）与站内共用
 export default function FeedbackModal({ kind, onClose }: { kind: 'login' | 'general'; onClose: () => void }) {
   const session = useAuth().session;
-  const [name, setName] = useState('');
-  const [contact, setContact] = useState('');
-  const [content, setContent] = useState('');
+  const draftKey = 'qz_feedback_draft_v1_' + kind;
+  const draft = (() => { try { return JSON.parse(localStorage.getItem(draftKey) || 'null'); } catch { return null; } })();
+  const [name, setName] = useState(draft?.name ?? '');
+  const [contact, setContact] = useState(draft?.contact ?? '');
+  const [content, setContent] = useState(draft?.content ?? '');
+  useEffect(() => {
+    try {
+      if (name || contact || content) localStorage.setItem(draftKey, JSON.stringify({ name, contact, content }));
+      else localStorage.removeItem(draftKey);
+    } catch { /* 存储不可用就跳过草稿 */ }
+  }, [name, contact, content, draftKey]);
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
   const [err, setErr] = useState('');
@@ -31,11 +39,12 @@ export default function FeedbackModal({ kind, onClose }: { kind: 'login' | 'gene
         body: { name: name.trim(), contact: contact.trim(), content: c.slice(0, 1000) },
       }).catch(() => {});
     }
+    try { localStorage.removeItem(draftKey); } catch { /* ignore */ }
     setDone(true);
   }
 
   return (
-    <div className="crop-mask" onClick={onClose}>
+    <div className="crop-mask" onClick={() => { if (done || (!name.trim() && !contact.trim() && !content.trim())) onClose(); }}>
       <div className="card" style={{ width: 'min(92vw, 420px)', margin: 0, maxHeight: '86vh', overflowY: 'auto' }}
         onClick={e => e.stopPropagation()}>
         {done ? (

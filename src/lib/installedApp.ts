@@ -16,9 +16,13 @@ export function detectInstalledApp(): { name: string; code: number } | null {
 // 管理版壳故意去掉了「; wv)」记号且不带 QianzhiApp 标识，所以上面的学生版
 // 识别不会误认它；它走独立的更新通道 public_admin_app_update()，与学生版分开推送。
 export function detectInstalledAdminApp(): { name: string; code: number } | null {
-  const m = navigator.userAgent.match(/QianzhiAdmin\/([0-9.]+) \((\d+)\)/);
-  if (m) return { name: m[1], code: Number(m[2]) };
-  return null;
+  const ua = navigator.userAgent;
+  const nameM = ua.match(/QianzhiAdmin\/([0-9.]+)/);
+  if (!nameM) return null;
+  // 序号在 UA 末尾的括号里（壳拼的是「QianzhiAdmin/1.0 (1)」）；个别 WebView
+  // 可能改写空格或括号格式，认不到序号时按 1 处理，至少保证能收到更新框。
+  const codeM = ua.match(/\((\d+)\)\s*$/);
+  return { name: nameM[1], code: codeM ? Number(codeM[1]) : 1 };
 }
 
 export function isInApp(): boolean {

@@ -98,6 +98,35 @@ function AdminShell() {
     document.addEventListener('visibilitychange', onVis);
     return () => document.removeEventListener('visibilitychange', onVis);
   }, []);
+  // 网站包自检（与主站 App Shell 同款，AdminShell 此前缺这套）：定期比对线上
+  // 脚本包与本页正在跑的包，不一致自动刷新一次。没有它时，管理版应用会一直
+  // 躺在缓存里的旧页面上，新功能和更新框永远到不了（2026-11-08 真机实证）。
+  useEffect(() => {
+    let reloading = false;
+    const checkFresh = async () => {
+      if (reloading || document.visibilityState !== 'visible') return;
+      try {
+        const current = document.querySelector('script[src*="assets/index-"]')?.getAttribute('src') || '';
+        const currentName = current.split('/').pop() || '';
+        if (!currentName) return;
+        const res = await fetch('/?fresh=' + Date.now(), { cache: 'no-store', credentials: 'same-origin' });
+        if (!res.ok) return;
+        const html = await res.text();
+        const found = html.match(/assets\/(index-[^"']+\.js)/);
+        if (found && found[1] !== currentName) {
+          const last = Number(sessionStorage.getItem('qz_admin_fresh_reload_at') || 0);
+          if (Date.now() - last < 60000) return;
+          sessionStorage.setItem('qz_admin_fresh_reload_at', String(Date.now()));
+          reloading = true;
+          location.reload();
+        }
+      } catch { /* 网络不稳就跳过，下次再查 */ }
+    };
+    const onVis = () => { void checkFresh(); };
+    document.addEventListener('visibilitychange', onVis);
+    const timer = window.setInterval(checkFresh, 5 * 60 * 1000);
+    return () => { document.removeEventListener('visibilitychange', onVis); window.clearInterval(timer); };
+  }, []);
   // 后台标签标题：跟随后台设置里的网站标题，格式为「<网站标题> · 管理后台」。
   useEffect(() => {
     let live = true;

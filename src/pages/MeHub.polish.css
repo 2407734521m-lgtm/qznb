@@ -212,3 +212,144 @@
 .me-hub .me-hub-tile {
   background: linear-gradient(145deg, rgba(255,253,249,.94), rgba(248,243,236,.90)) !important;
 }
+
+
+/* Quiet account hub: one white surface language, clearer tap targets on phones. */
+.me-hub {
+  --mh-ink: var(--qz-ink, #202733);
+  --mh-muted: var(--qz-muted, #737d8b);
+  --mh-line: var(--qz-line, #e7eaee);
+  color: var(--mh-ink);
+}
+.me-hub .me-hub-hero,
+.me-hub .me-hub-stats,
+.me-hub .me-hub-shortcuts,
+.me-hub .me-hub-group,
+.me-hub .me-hub-feature,
+.me-hub .me-hub-tile {
+  background: #fff !important;
+  background-image: none !important;
+  border-color: var(--qz-line, #e7eaee) !important;
+  box-shadow: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+.me-hub .me-hub-hero {
+  border-radius: 18px !important;
+}
+.me-hub .me-hub-topbar h1,
+.me-hub .me-hub-identity strong,
+.me-hub .me-hub-stat-grid strong,
+.me-hub .me-hub-section-head h2,
+.me-hub .me-hub-group-head h2,
+.me-hub .me-hub-feature strong,
+.me-hub .me-hub-tile-copy strong {
+  color: var(--qz-ink, #202733) !important;
+}
+.me-hub .me-hub-eyebrow,
+.me-hub .me-hub-identity span,
+.me-hub .me-hub-identity small,
+.me-hub .me-hub-section-head p,
+.me-hub .me-hub-group-head p,
+.me-hub .me-hub-stat-grid span,
+.me-hub .me-hub-photo-note,
+.me-hub .me-hub-feature-kicker,
+.me-hub .me-hub-feature small,
+.me-hub .me-hub-tile-copy small {
+  color: var(--qz-muted, #737d8b) !important;
+}
+.me-hub .me-hub-head-icon,
+.me-hub .me-hub-edit {
+  border-color: var(--qz-line-strong, #d9dee5) !important;
+  border-radius: 10px !important;
+  background: var(--qz-surface-soft, #f6f7f9) !important;
+  color: var(--qz-accent, #526b8c) !important;
+  box-shadow: none !important;
+}
+.me-hub .me-hub-avatar {
+  border-color: #fff !important;
+  background: #eef1f5 !important;
+  color: var(--qz-accent, #526b8c) !important;
+  box-shadow: 0 0 0 1px var(--qz-line, #e7eaee) !important;
+}
+.me-hub .me-hub-unread {
+  border-color: #dce4ed !important;
+  border-radius: 10px !important;
+  background: #f5f7fa !important;
+  color: var(--qz-accent, #526b8c) !important;
+}
+.me-hub .me-hub-unread span,
+.me-hub .me-hub-group-head > span { color: var(--qz-muted, #737d8b) !important; }
+.me-hub .me-hub-stats {
+  border-radius: 0 0 14px 14px !important;
+}
+.me-hub .me-hub-photo-note,
+.me-hub .me-hub-stat-grid button { border-color: var(--qz-line, #e7eaee) !important; }
+.me-hub .me-hub-photo-note b,
+.me-hub .me-hub-photo-note button,
+.me-hub .me-hub-photo-mark,
+.me-hub .me-hub-feature-meta,
+.me-hub .me-hub-feature-arrow { color: var(--qz-accent, #526b8c) !important; }
+
+.me-hub .me-hub-shortcuts,
+.me-hub .me-hub-group { border-radius: 14px !important; }
+.me-hub .me-hub-shortcut {
+  border-radius: 10px !important;
+  background: transparent !important;
+}
+.me-hub .me-hub-shortcut-icon,
+.me-hub .me-hub-mark {
+  border: 1px solid var(--qz-line, #e7eaee) !important;
+  border-radius: 9px !important;
+  background: var(--qz-surface-soft, #f6f7f9) !important;
+  color: var(--qz-accent, #526b8c) !important;
+  box-shadow: none !important;
+}
+.me-hub .me-hub-shortcut strong { color: var(--qz-ink, #202733) !important; }
+.me-hub .me-hub-feature {
+  border-radius: 14px !important;
+  color: var(--qz-ink, #202733) !important;
+}
+.me-hub .me-hub-tile {
+  min-height: 66px;
+  border-radius: 10px !important;
+  background: #fff !important;
+}
+.me-hub .me-hub-tile-copy strong { font-size: 12px !important; font-weight: 600 !important; }
+.me-hub .me-hub-tile-copy small { font-size: 11px !important; }
+.me-hub .me-hub-arrow { color: var(--qz-muted, #737d8b) !important; }
+.me-hub .me-hub-dot { box-shadow: 0 0 0 3px rgba(189, 93, 104, .10) !important; }
+
+.me-hub :where(button):focus-visible {
+  outline: 2px solid rgba(82, 107, 140, .72) !important;
+  outline-offset: 3px;
+}
+.me-hub :where(button):active:not(:disabled) { transform: scale(.99); }
+
+@media (hover: hover) and (pointer: fine) {
+  .me-hub .me-hub-head-icon:hover,
+  .me-hub .me-hub-edit:hover {
+    border-color: var(--qz-line-strong, #d9dee5) !important;
+    background: #fff !important;
+  }
+  .me-hub .me-hub-shortcut:hover,
+  .me-hub .me-hub-tile:hover,
+  .me-hub .me-hub-feature:hover {
+    border-color: var(--qz-line-strong, #d9dee5) !important;
+    background: var(--qz-surface-soft, #f6f7f9) !important;
+    box-shadow: none !important;
+    transform: translateY(-1px);
+  }
+}
+@media (max-width: 520px) {
+  .me-hub .me-hub-hero { padding: 18px 16px 16px; }
+  .me-hub .me-hub-feature-grid { grid-template-columns: 1fr; gap: 9px; }
+  .me-hub .me-hub-feature { min-height: 112px; }
+  .me-hub .me-hub-grid { grid-template-columns: 1fr; gap: 7px; }
+  .me-hub .me-hub-tile { min-height: 60px; padding: 10px 11px; }
+  .me-hub .me-hub-mark { width: 32px; height: 32px; flex-basis: 32px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .me-hub :where(button) { transition: none !important; }
+  .me-hub :where(button):active:not(:disabled) { transform: none !important; }
+}

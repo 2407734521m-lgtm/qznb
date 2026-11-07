@@ -316,6 +316,11 @@ export function LiquidGlassNav({
 
       d.active = false;
       springBulge.current.target = 0;
+      // Wake the loop so the bubble actually animates back. Without this, a
+      // press on the already-active tab (no navigation, no other wake) left
+      // the loop idle with the bulge stranded at 1 — the pill stayed ~120%
+      // of the bar height, spilling past the shell with a blue lens edge.
+      wakeRef.current();
       // The click that follows this is the one onTabClick has to drop
       lastPointerUpRef.current = e.timeStamp;
 
@@ -504,8 +509,11 @@ export function LiquidGlassNav({
 
       // --- Compute morph transforms ---
       const absSkew = Math.abs(skew);
-      const morphScaleX = 1 + bulge * 0.12 + Math.min(absSkew * 0.005, 0.2);
-      const morphScaleY = 1 + bulge * 0.55 - Math.min(absSkew * 0.003, 0.12);
+      // Hard caps: however large the press bubble or drag stretch gets, the
+      // pill stays inside the bar — at most NAV_HEIGHT-10 tall (≥5px insets
+      // top and bottom) and at most 15% wider than the tab.
+      const morphScaleX = Math.min(1 + bulge * 0.12 + Math.min(absSkew * 0.005, 0.2), 1.15);
+      const morphScaleY = Math.min(1 + bulge * 0.55 - Math.min(absSkew * 0.003, 0.12), (NAV_HEIGHT - 10) / PILL_HEIGHT);
       const morphSkewDeg = Math.max(-14, Math.min(14, skew * 0.35));
 
       const pillX = sx.current - sw.current / 2;
@@ -561,6 +569,14 @@ export function LiquidGlassNav({
   }, [targetTab]);
 
   useEffect(() => {
+    // A page switch is a clean slate: if a press bubble or drag skew is
+    // still on the springs, drop it here instead of carrying the deformed
+    // pill onto the new page, then re-measure the target tab fresh.
+    if (!drag.current.active) {
+      snapSpring(springBulge.current, 0);
+      snapSpring(springSkew.current, 0);
+    }
+    containerRectRef.current = null;
     targetTab(activeItem);
   }, [activeItem, targetTab]);
 

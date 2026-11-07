@@ -378,7 +378,7 @@ export default function Login({ siteTitle, siteSubtitle }: { siteTitle?: string;
             {forgotSent && (<>
               <label>邮箱验证码</label>
               <CodeInput value={forgotCode} onChange={setForgotCode} onEnter={doForgotVerify} />
-              <FloatField label="新密码" value={forgotNewPw}>
+              <FloatField label="新密码" value={forgotNewPw} hint="至少 8 位">
                 <PasswordField value={forgotNewPw} onChange={setForgotNewPw} placeholder="至少 8 位" autoComplete="new-password" ariaLabel="新密码" />
               </FloatField>
               <FloatField label="确认新密码" value={forgotNewPw2}>
@@ -390,7 +390,7 @@ export default function Login({ siteTitle, siteSubtitle }: { siteTitle?: string;
             {forgotSent && <button className="pri" disabled={busy} onClick={doForgotVerify}>{busy ? <><Spin />重设中…</> : '验证并重设密码'}</button>}
             <p className="login-switch"><button onClick={() => { setMode('login'); setErr(''); setForgotSent(false); }}>← 返回登录</button></p>
           </>) : (<>
-            <FloatField label="用户名" value={name}>
+            <FloatField label="用户名" value={name} hint="班级里显示的名字，可重复">
               <input value={name} onChange={e => setName(e.target.value)} placeholder="班级里显示的名字，可重复" maxLength={30} aria-label="用户名" />
             </FloatField>
             {name.trim() && (<>
@@ -399,7 +399,7 @@ export default function Login({ siteTitle, siteSubtitle }: { siteTitle?: string;
               </FloatField>
               <p className="priv-note">真实姓名只用于后台统计，普通成员看不到</p>
             </>)}
-            <FloatField label="手机号（选填）" value={phone}>
+            <FloatField label="手机号（选填）" value={phone} hint="11 位手机号，没有可不填">
               <input value={phone} onChange={e => setPhone(e.target.value.replace(/\D/g, '').slice(0, 11))} placeholder="11 位手机号，没有可不填" inputMode="tel" aria-label="手机号（选填）" />
             </FloatField>
             <FloatField label="QQ 邮箱" value={email}>
@@ -413,13 +413,13 @@ export default function Login({ siteTitle, siteSubtitle }: { siteTitle?: string;
               <label>邮箱验证码</label>
               <CodeInput value={code} onChange={setCode} onEnter={doVerifyReg} />
             </>)}
-            <FloatField label="密码" value={pw}>
+            <FloatField label="密码" value={pw} hint="至少 8 位">
               <PasswordField value={pw} onChange={setPw} placeholder="至少 8 位" autoComplete="new-password" />
             </FloatField>
             <FloatField label="确认密码" value={pw2}>
               <PasswordField value={pw2} onChange={setPw2} placeholder="再输一次" autoComplete="new-password" ariaLabel="确认密码" />
             </FloatField>
-            <FloatField label="邀请码（选填）" value={invite}>
+            <FloatField label="邀请码（选填）" value={invite} hint="没有先不填，注册后在个人中心补填">
               <input value={invite} onChange={e => setInvite(e.target.value)} placeholder="有就填，没有先不填，注册后在个人中心补填" aria-label="邀请码（选填）" />
             </FloatField>
             <div style={{ margin: '14px 0 10px', padding: '12px 13px', borderRadius: 12, background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.12)' }}>

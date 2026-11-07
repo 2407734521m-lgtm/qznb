@@ -28,6 +28,7 @@ jobs:
           deno check supabase/functions/admin-bulk-email/index.ts
           deno check supabase/functions/maintenance-notify/index.ts
           deno check supabase/functions/dev-feedback/index.ts
+          deno check supabase/functions/location-reverse-geocode/index.ts
       - run: npm run typecheck
       - run: npm run build
         env:

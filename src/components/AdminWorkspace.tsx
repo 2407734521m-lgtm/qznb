@@ -19,7 +19,7 @@ const NAV_GROUPS = [
   { label: '成员与权限', ids: ['accounts', 'invite', 'approvals'] },
   { label: '内容运营', ids: ['moderate', 'loveWall', 'songWall', 'authorizedRequests', 'board', 'events', 'game'] },
   { label: '消息与反馈', ids: ['notifications', 'bulkEmail', 'feedback'] },
-  { label: '系统管理', ids: ['backups', 'release', 'logs', 'security', 'system', 'guestAccess', 'settings', 'test'] },
+  { label: '系统管理', ids: ['backups', 'release', 'appCenter', 'logs', 'security', 'system', 'guestAccess', 'settings', 'test'] },
 ] as const;
 
 const ICON_PATHS: Record<string, string> = {
@@ -86,7 +86,8 @@ function descriptionFor(id: string) {
     bulkEmail: '管理面向成员的邮件通知。',
     feedback: '查看成员反馈、建议与问题报告。',
     backups: '查看备份任务与恢复点。',
-    release: '查看版本发布和更新记录。',
+    release: '查看网站与项目的版本发布和更新记录。',
+    appCenter: '发布移动端软件版本和专属公告，查看网页版与移动端成员。',
     logs: '审查重要管理操作和系统日志。',
     security: '检查登录安全、会话与风险记录。',
     system: '查看系统诊断、维护与运行状态。',

@@ -20,7 +20,7 @@ export default function LoginSuccessOverlay({ realName, durationMs, onDone }: Lo
   const nameChars = Array.from(realName.trim());
   const maskedName = nameChars.length
     ? `${nameChars[0]}${'*'.repeat(Math.max(0, nameChars.length - 1))}`
-    : '同学';
+    : '';
 
   function enterArchive() {
     if (entering) return;
@@ -95,7 +95,7 @@ export default function LoginSuccessOverlay({ realName, durationMs, onDone }: Lo
           boxShadow: '0 8px 24px rgba(44,112,119,.08)',
         }}>
           <span style={{ maxWidth: 230, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#245d68', fontSize: 17, fontWeight: 800, letterSpacing: '.04em' }}>
-            {maskedName}同学
+            {maskedName ? `${maskedName}同学` : '同学'}
           </span>
           <motion.span
             title="隐私保护" aria-label="隐私保护"

@@ -28,6 +28,14 @@ const cards = [
     action: '看看大家在聊什么',
   },
   {
+    to: '/love-wall',
+    className: 'discover-card--love',
+    eyebrow: 'LOVE WALL',
+    title: '表白墙',
+    description: '把喜欢、感谢和没来得及说的话，认真地留在这里。',
+    action: '写下心意',
+  },
+  {
     to: '/fate-notebook',
     className: 'discover-card--fate',
     eyebrow: 'FORTUNE NOTE',
@@ -59,6 +67,21 @@ function InkArtwork() {
       <path d="M22 151C57 124 71 128 92 142S130 162 156 123 201 90 245 105" stroke="currentColor" strokeOpacity=".38" strokeWidth="2" strokeLinecap="round" />
       <path d="M37 48l3 8 8 3-8 3-3 8-3-8-8-3 8-3 3-8ZM224 19l3 8 8 3-8 3-3 8-3-8-8-3 8-3 3-8Z" fill="currentColor" fillOpacity=".58" />
       <circle cx="190" cy="153" r="4" fill="currentColor" fillOpacity=".4" />
+    </svg>
+  );
+}
+
+function LoveArtwork() {
+  return (
+    <svg className="discover-art discover-art--love" viewBox="0 0 300 190" fill="none" aria-hidden="true">
+      <path d="M150 151 68 78c-24-22-22-59 5-72 26-13 57-1 77 23 20-24 51-36 77-23 27 13 29 50 5 72l-82 73Z"
+        fill="currentColor" fillOpacity=".13" stroke="currentColor" strokeOpacity=".74" strokeWidth="2.2" strokeLinejoin="round" />
+      <path d="M150 128 87 72c-15-13-15-34 1-43 17-9 36-1 48 14m28 29c12-15 31-23 48-14"
+        stroke="currentColor" strokeOpacity=".45" strokeWidth="1.6" strokeLinecap="round" />
+      <path d="m45 35 4 9 9 4-9 4-4 9-4-9-9-4 9-4 4-9Zm211 87 3 7 7 3-7 3-3 7-3-7-7-3 7-3 3-7Z"
+        fill="currentColor" fillOpacity=".62" />
+      <path d="M90 157c17 7 33 10 51 10m73-18c-12 7-24 11-37 13"
+        stroke="currentColor" strokeOpacity=".42" strokeWidth="1.5" strokeLinecap="round" />
     </svg>
   );
 }
@@ -124,7 +147,8 @@ export default function Explore() {
               {index === 0 && <BloomArtwork />}
               {index === 1 && <InkArtwork />}
               {index === 2 && <HotArtwork />}
-              {index === 3 && <FateArtwork />}
+              {card.to === '/love-wall' && <LoveArtwork />}
+              {card.to === '/fate-notebook' && <FateArtwork />}
             </Link>
           </motion.article>
         ))}

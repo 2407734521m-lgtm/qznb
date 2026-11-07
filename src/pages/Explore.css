@@ -380,3 +380,56 @@
     bottom: -7%;
   }
 }
+
+/* 表白墙入口：克制的暖粉色卡片，与命运笔记并列，不改变其他发现卡片。 */
+.discover-card--love {
+  grid-column: 1 / -1;
+  min-height: 166px;
+  background:
+    radial-gradient(ellipse at 86% 8%, rgba(255,255,255,.84), transparent 42%),
+    linear-gradient(132deg, #fff3f4 0%, #f9e7eb 58%, #f5edf3 100%);
+  color: #9a6472;
+  border-color: rgba(190, 123, 143, .16);
+}
+
+.discover-card--love h2 {
+  color: #44333a;
+}
+
+.discover-card--love p {
+  color: rgba(68, 51, 58, .68);
+}
+
+.discover-card--love .discover-card-action {
+  color: #754653;
+}
+
+.discover-card--love .discover-card-action span {
+  border-color: rgba(117, 70, 83, .2);
+}
+
+.discover-art--love {
+  width: min(42%, 290px);
+  right: 7%;
+  bottom: -4%;
+  color: #c77d91;
+  opacity: .82;
+}
+
+@media (max-width: 600px) {
+  .discover-card--love {
+    grid-column: 1 / -1;
+    min-height: 148px;
+  }
+
+  .discover-card--love .discover-card-copy {
+    max-width: 64%;
+  }
+
+  .discover-art--love {
+    width: 50%;
+    right: -3%;
+    bottom: -7%;
+  }
+}
+

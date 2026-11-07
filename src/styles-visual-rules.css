@@ -1,10 +1,5 @@
-/* Unslop visual system — warm archive neutrals with one restrained clay accent.
-   Built for a class memory archive: photographs and real posts carry the color.
-   Part of Unslop by Damir Sokolovsky, CC BY 4.0:
-   https://github.com/heydamir/unslop
-*/
+/* Layout tokens only. The active colors and surfaces are defined in styles-ios26-tokens.css. */
 :root {
-  color-scheme: dark;
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 12px;
@@ -16,28 +11,9 @@
   --radius-control: 9px;
   --radius-card: 14px;
   --radius-panel: 18px;
-  --visual-bg: #171614;
-  --visual-surface: #211f1b;
-  --visual-surface-raised: #2b2822;
-  --visual-border: rgba(239, 229, 214, .13);
-  --visual-text: #f1ece3;
-  --visual-secondary: #c7bdaf;
-  --visual-muted: #a49a8c;
-  --visual-accent: #c68b69;
-  --visual-on-accent: #241811;
-  --r: var(--radius-card);
-  --bg: var(--visual-bg);
-  --fg: var(--visual-text);
-  --mut: var(--visual-muted);
-  --a: var(--visual-accent);
-  --b: var(--visual-accent);
 }
 
-html { scroll-behavior: smooth; }
-body { background-color: var(--visual-bg); color: var(--visual-text); }
-.glow { background: none !important; animation: none !important; }
-::selection { background: rgba(198, 139, 105, .28); color: #fffaf4; }
-
+/* Shared component refinements continue to use canonical visual tokens. */
 /* Shared surfaces: keep the chrome quiet and let real class content carry color. */
 .card,
 .post,

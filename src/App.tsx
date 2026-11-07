@@ -945,6 +945,7 @@ function Shell() {
               }}
               activeColor="#263b4f"
               inactiveColor="rgba(58, 78, 96, 0.78)"
+              reducedMotion={reduce}
               style={{
                 position: 'fixed',
                 left: '50%',

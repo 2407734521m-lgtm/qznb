@@ -129,6 +129,7 @@ export function LiquidGlassNav({
   style,
   activeColor = 'rgba(255, 255, 255, 0.95)',
   inactiveColor = 'rgba(255, 255, 255, 0.5)',
+  reducedMotion,
 }: LiquidGlassNavProps) {
   const containerRef = useRef<HTMLElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -364,17 +365,17 @@ export function LiquidGlassNav({
     itemRefs.current[next]?.focus();
   }, []);
 
-  // prefers-reduced-motion, re-read whenever it changes
+  // Respect both the operating-system setting and the site's motion preference.
   useEffect(() => {
     const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
     const sync = () => {
-      reducedMotionRef.current = mq.matches;
+      reducedMotionRef.current = reducedMotion ?? mq.matches;
       wakeRef.current();
     };
     sync();
     mq.addEventListener('change', sync);
     return () => mq.removeEventListener('change', sync);
-  }, []);
+  }, [reducedMotion]);
 
   // Main animation loop
   useEffect(() => {

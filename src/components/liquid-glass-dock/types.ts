@@ -17,6 +17,7 @@ export interface LiquidGlassNavProps {
   inactiveColor?: string;
   className?: string;
   style?: CSSProperties;
+  reducedMotion?: boolean;
 }
 
 export interface SpringState {

@@ -9,6 +9,7 @@ import CodeInput from './components/CodeInput';
 import { LiquidGlassScene } from 'simple-liquid-glass/backdrop';
 import { DUR, EASE } from './lib/motion';
 import { supabase } from './lib/supabase';
+import { detectInstalledApp } from './lib/installedApp';
 import { startSitePresence } from './lib/sitePresence';
 import { useAuth } from './auth';
 import { getWallpaper } from './lib/wallpaper';
@@ -358,19 +359,6 @@ function emblemSpot(path: string): { top: number; right: number; width: number; 
   if (path.startsWith('/members')) return { top: 54, right: 12, width: 80, opacity: 0.30 };
   if (path.startsWith('/board')) return { top: 54, right: 12, width: 84, opacity: 0.30 };
   return { top: 58, right: 12, width: 88, opacity: 0.30 };
-}
-
-// 识别安卓应用壳：新版壳 UA 带 QianzhiApp/版本名 (序号)；1.0 旧壳没这个标识，
-// 但系统 WebView 的 UA 带「; wv)」记号且没有微信/QQ 等第三方内置浏览器标记，
-// 据此把旧壳按 1.0 对待，让它也能收到更新弹窗（点更新会跳浏览器下载安装包）。
-function detectInstalledApp(): { name: string; code: number } | null {
-  const ua = navigator.userAgent;
-  const m = ua.match(/QianzhiApp\/([0-9.]+) \((\d+)\)/);
-  if (m) return { name: m[1], code: Number(m[2]) };
-  if (/Android/.test(ua) && /; wv\)/.test(ua) && !/MicroMessenger|QQ\/|Weibo|DingTalk|AlipayClient/.test(ua)) {
-    return { name: '1.0', code: 1 };
-  }
-  return null;
 }
 
 function Shell() {

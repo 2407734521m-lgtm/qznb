@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { isInApp } from './installedApp';
 
 const LOCATION_MAX_LENGTH = 80;
 
@@ -15,19 +16,28 @@ export function normalizeSharedRegion(value: string): string {
 }
 
 function getDeviceCoordinates(): Promise<{ latitude: number; longitude: number }> {
+  // 应用里就说应用、浏览器里就说浏览器：应用壳不是浏览器，
+  // 「去浏览器授权」这类话在应用里只会让人摸不着头脑。
+  const inApp = isInApp();
   return new Promise((resolve, reject) => {
     if (!navigator.geolocation) {
-      reject(new Error('当前浏览器不支持定位，请改为手动填写城市或地区。'));
+      reject(new Error(inApp
+        ? '当前应用不支持定位，请改为手动填写城市或地区。'
+        : '当前浏览器不支持定位，请改为手动填写城市或地区。'));
       return;
     }
     navigator.geolocation.getCurrentPosition(
       ({ coords }) => resolve({ latitude: coords.latitude, longitude: coords.longitude }),
       error => reject(new Error(
         error.code === error.PERMISSION_DENIED
-          ? '你没有允许浏览器定位。可以重新授权，或手动填写城市/地区。'
+          ? inApp
+            ? '你没有允许应用定位。可以到系统设置里给「青春档案」打开定位权限，或手动填写城市/地区。'
+            : '你没有允许浏览器定位。可以重新授权，或手动填写城市/地区。'
           : error.code === error.TIMEOUT
             ? '获取位置超时，请稍后重试，或手动填写城市/地区。'
-            : '暂时无法获取位置，请检查浏览器权限，或手动填写城市/地区。'
+            : inApp
+              ? '暂时无法获取位置，请检查应用的定位权限，或手动填写城市/地区。'
+              : '暂时无法获取位置，请检查浏览器权限，或手动填写城市/地区。'
       )),
       { enableHighAccuracy: false, timeout: 15000, maximumAge: 5 * 60 * 1000 }
     );

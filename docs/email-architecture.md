@@ -13,6 +13,7 @@
 | 管理员群发 | `admin-bulk-email` → `email-dispatch` | 服务端管理员授权和速率限制 |
 | 维护恢复通知 | `maintenance-notify` → `email-dispatch` | 只通知主动登记的邮箱 |
 | 用户反馈 | `dev-feedback` → `email-dispatch` | 固定收件人、用户身份认证和频率限制 |
+| 好友申请提醒 | `friend-request-email` → `email-dispatch` | 申请人逐次主动勾选；只向已验证邮箱发送；按申请记录幂等并限制频率 |
 | 后续安全/好友/功能通知 | 各自受权限保护的业务函数 → `email-dispatch` | 分类别启用，尊重通知偏好 |
 
 ## 内部发送入口

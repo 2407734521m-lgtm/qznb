@@ -19,6 +19,7 @@ import AdminReleaseCenter from '../components/AdminReleaseCenter';
 import AdminSecurityCenter from '../components/AdminSecurityCenter';
 import AdminApprovalCenter from '../components/AdminApprovalCenter';
 import AdminLoveWall from '../components/AdminLoveWall';
+import AdminReviewCenter from '../components/AdminReviewCenter';
 import AdminNotificationCenter from '../components/AdminNotificationCenter';
 import AdminAuthorizedRequests from '../components/AdminAuthorizedRequests';
 import AdminSongWall from '../components/AdminSongWall';
@@ -47,6 +48,7 @@ const TABS_ALL: [string, string, boolean][] = [
   ['accounts', '账号管理', true],
   ['invite', '邀请码', false],
   ['moderate', '审核', false],
+  ['reviewCenter', '审核中心', false],
   ['loveWall', '表白墙', false],
   ['notifications', '通知中心', false],
   ['authorizedRequests', '开盒队列', false],
@@ -167,6 +169,7 @@ export default function Admin({ verifiedRole }: { verifiedRole: 'admin' | 'super
           {tab === 'release' && isSuper && <AdminReleaseCenter />}
           {tab === 'accounts' && isSuper && <AdminAccountManagement me={me} isSuper={isSuper} setMsg={setMsg} extQ={q0} />}
           {tab === 'moderate' && <Moderate setMsg={setMsg} />}
+          {tab === 'reviewCenter' && <AdminReviewCenter me={me} isSuper={isSuper} setMsg={setMsg} go={switchTab} />}
           {tab === 'loveWall' && <AdminLoveWall setMsg={setMsg} />}
           {tab === 'notifications' && <AdminNotificationCenter setMsg={setMsg} />}
           {tab === 'authorizedRequests' && <AdminAuthorizedRequests setMsg={setMsg} />}

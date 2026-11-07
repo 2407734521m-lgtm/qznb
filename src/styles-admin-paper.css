@@ -456,3 +456,58 @@
 .admin-shell-v3 .admin-content .admin-backup-page a {
   color: #2e415f !important;
 }
+
+/* ===== 14. 第二轮复拍残留（2026-11-08）：选中态被压白、悬停变蓝、遮罩模糊 =====
+   contrast.css 用 :is([style*="background: ..."]) 把浅色面板内按钮统一钉成白底
+   !important（优先级 0,5,1），§6 的米色选中规则（0,3,0）压不过它，账号页筛选片
+   选中与未选看不出区别；同源 :hover 规则（0,6,1）又把悬停钉成亮蓝。
+   这里用重复类名把优先级抬到其之上逐项压回。 */
+/* 筛选/切换按钮选中态：藏青实底白字，与未选的白底一眼可分 */
+.admin-shell-v3.admin-shell-v3 .admin-content.admin-content button[aria-pressed="true"][aria-pressed="true"] {
+  color: #ffffff !important;
+  background: #22314a !important;
+  background-image: none !important;
+  border-color: #22314a !important;
+}
+/* 公告受众钮是 .mini（未选时 §6 钉成藏青实底），选中改米色底藏青字区分；
+   本条排在上一条之后，同优先级时靠后胜出 */
+.admin-shell-v3.admin-shell-v3 .admin-content button.mini[aria-pressed="true"][aria-pressed="true"] {
+  color: #22314a !important;
+  background: #f3ead6 !important;
+  background-image: none !important;
+  border-color: rgba(34, 49, 74, .4) !important;
+}
+/* 面板内按钮悬停：米纸底（逐字复刻 contrast 的 :is 面板选择器，靠重复类名抬优先级） */
+.admin-shell-v3.admin-shell-v3 .admin-content.admin-content :is(
+  [style*="background: var(--admin-surface"],
+  [style*="background:var(--admin-surface"],
+  [style*="background: #fff"],
+  [style*="background:#fff"],
+  [style*="background: #ffffff"],
+  [style*="background:#ffffff"],
+  [style*="background: #f8fafc"],
+  [style*="background:#f8fafc"],
+  [style*="background: #f1f5f9"],
+  [style*="background:#f1f5f9"],
+  [style*="background: rgb(248, 250, 252)"],
+  [style*="background: rgb(241, 245, 249)"]
+) button:not(.pri):not(.danger):hover {
+  color: #22314a !important;
+  background: #f7f2e4 !important;
+  border-color: rgba(34, 49, 74, .32) !important;
+}
+/* 内容区其余按钮悬停统一米纸底，不再闪蓝 */
+.admin-shell-v3.admin-shell-v3 .admin-content.admin-content button:hover:not(.pri):not(.danger):not(:disabled) {
+  color: #22314a !important;
+  background-color: #f7f2e4 !important;
+}
+/* 各类遮罩彻底去模糊：抽屉 scrim、命令面板、成员弹窗、通用对话框、更多菜单底 */
+.admin-shell-v3 .admin-workspace .admin-sidebar-scrim,
+.admin-shell-v3 .admin-command-overlay,
+.admin-shell-v3 .admin-content .admin-modal-overlay,
+.admin-shell-v3 .admin-dialog-overlay,
+.admin-dialog-overlay,
+.admin-mobile-more-backdrop {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}

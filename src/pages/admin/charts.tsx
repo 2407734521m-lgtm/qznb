@@ -4,14 +4,9 @@ export function Spark({ data, color }: { data: number[]; color: string }) {
   const vs = data.length > 1 ? data : [0, data[0] ?? 0];
   const max = Math.max(...vs, 1);
   const line = 'M' + vs.map((v, i) => `${((i / (vs.length - 1)) * w).toFixed(1)},${(h - 4 - (v / max) * (h - 10)).toFixed(1)}`).join(' L');
-  const gid = 'sp' + color.replace(/[^0-9a-f]/gi, '');
   return (
     <svg viewBox={`0 0 ${w} ${h}`} style={{ width: '100%', height: 26, marginTop: 4, display: 'block' }}>
-      <defs><linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0" stopColor={color} stopOpacity=".4" />
-        <stop offset="1" stopColor={color} stopOpacity="0" />
-      </linearGradient></defs>
-      <path d={`${line} L${w},${h} L0,${h} Z`} fill={`url(#${gid})`} />
+      <path d={`${line} L${w},${h} L0,${h} Z`} fill={color} fillOpacity=".1" />
       <path d={line} fill="none" stroke={color} strokeWidth="2" />
     </svg>
   );
@@ -23,11 +18,7 @@ export function TrendChart({ data }: { data: number[] }) {
   const ly = h - 8 - (data[data.length - 1] / max) * (h - 20);
   return (
     <svg viewBox={`0 0 ${w} ${h}`} style={{ width: '100%', height: 90, display: 'block' }}>
-      <defs><linearGradient id="dtrend" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0" stopColor="#22314a" stopOpacity=".16" />
-        <stop offset="1" stopColor="#22314a" stopOpacity="0" />
-      </linearGradient></defs>
-      <path d={`${line} L${w},${h} L0,${h} Z`} fill="url(#dtrend)" />
+      <path d={`${line} L${w},${h} L0,${h} Z`} fill="#22314a" fillOpacity=".08" />
       <path d={line} fill="none" stroke="#22314a" strokeWidth="2.5" />
       <circle cx={w} cy={ly} r="7" fill="#22314a2e" />
       <circle cx={w} cy={ly} r="4" fill="#22314a" />

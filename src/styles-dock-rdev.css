@@ -38,26 +38,37 @@
   backdrop-filter: none !important;
 }
 
-/* ===== Login card: same rdev glass as the dock =====
-   The card keeps its layout and padding; its pinned white frosted material
-   (styles-ios26, all !important) is switched off and the rdev refraction
-   layer sits behind the content as a pointer-events-none backdrop, with a
-   milky tint so dark text stays readable over the flowing login backdrop. */
-.login-wrap .login-card.qz-login-glass-host {
-  background: transparent !important;
-  border-color: transparent !important;
+/* ===== Login: full-screen sheet (2026-11-07, user call) =====
+   The rdev liquid-glass login card is retired. The login surface is now the
+   screen itself: solid paper background, no floating panel, no radius, no
+   shadow, no backdrop blur. The .login-bg/.login-flow backdrop layers stay
+   mounted behind it but are fully covered. Specificity (0,2,0) + !important
+   in this last-imported file beats the iOS 26 glass material pinned on
+   .login-card. The wrap stays the 100dvh scroller (styles-form-ux); the
+   sheet aligns to its top so tall forms (registration) scroll from the
+   first field, and centers its content column when shorter than the screen. */
+.login-wrap {
+  padding: 0 !important;
+  align-items: flex-start !important;
+}
+.login-wrap .login-card {
+  width: 100% !important;
+  max-width: none !important;
+  min-height: 100dvh;
+  margin: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: #fffdf9 !important;
   box-shadow: none !important;
   -webkit-backdrop-filter: none !important;
   backdrop-filter: none !important;
+  padding: calc(26px + env(safe-area-inset-top)) 20px calc(26px + env(safe-area-inset-bottom)) !important;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
-.qz-login-glass-host .bg-black { display: none !important; }
-.qz-rdev-login-card .glass {
+.login-wrap .qz-login-card-content {
   width: 100%;
-  height: 100%;
-  background: rgba(255, 255, 255, .14) !important;
-  box-shadow: 0 18px 50px rgba(31, 45, 71, .14), inset 0 1px 0 rgba(255, 255, 255, .55), inset 0 -1px 0 rgba(255, 255, 255, .25) !important;
-}
-.qz-login-card-content {
-  position: relative;
-  z-index: 1;
+  max-width: 400px;
+  margin: 0 auto;
 }

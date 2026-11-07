@@ -4,7 +4,6 @@ import { supabase } from '../lib/supabase';
 import FeedbackModal from '../components/FeedbackModal';
 import PasswordField from '../components/PasswordField';
 import CodeInput from '../components/CodeInput';
-import RdevLiquidGlass from 'liquid-glass-react';
 import FloatField from '../components/FloatField';
 import { alertDialog } from '../lib/dialog';
 import './Login.polish.css';
@@ -343,21 +342,9 @@ export default function Login({ siteTitle, siteSubtitle, onGuestLogin }: { siteT
       {bg && <div className="login-bg" style={{ backgroundImage: `url(${bg})`, filter: `blur(${blur}px) brightness(${100 - dark}%)`, transform: 'scale(1.1)' }} />}
       {!bg && <div className="login-flow" aria-hidden="true" />}
       <div className="login-wrap">
-        <motion.div className="login-card page qz-login-glass-host"
+        <motion.div className="login-card page"
           initial={reduce ? {} : { opacity: 0, y: 24, scale: 0.98 }}
           animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}>
-          <RdevLiquidGlass
-            key={verifyEmail ? 'verify' : mode}
-            className="qz-rdev-login-card"
-            displacementScale={36}
-            blurAmount={0.12}
-            saturation={140}
-            aberrationIntensity={0}
-            elasticity={0}
-            cornerRadius={30}
-            padding="0px"
-            style={{ position: 'absolute', top: '50%', left: '50%', width: '100%', height: '100%', pointerEvents: 'none' }}
-          >{null}</RdevLiquidGlass>
           <div className="qz-login-card-content">
           <h1>{brandTitle}</h1>
           {brandSubtitle ? <p className="sub">{brandSubtitle}</p> : null}

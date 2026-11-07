@@ -774,3 +774,115 @@
   .im-profile-overlay,.im-profile-sheet,.im-context-overlay,.im-context-sheet { animation:none !important; }
   .im-context-reactions button { transition:none !important; }
 }
+
+
+/* Native iMessage pass: flat system colors, connected message groups and tails. */
+.im-page .im-bubble {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  box-shadow: 0 1px 1px rgba(18, 34, 58, .055) !important;
+  isolation: isolate;
+}
+.im-page .im-bubble.mine {
+  color: #fff !important;
+  border: 0 !important;
+  border-radius: 20px 20px 5px 20px !important;
+  background: #0a7cff !important;
+  box-shadow: 0 1px 1px rgba(0, 65, 145, .12) !important;
+}
+.im-page .im-bubble.theirs {
+  color: #101114 !important;
+  border: 0 !important;
+  border-radius: 20px 20px 20px 5px !important;
+  background: #e9e9eb !important;
+  box-shadow: 0 1px 1px rgba(20, 25, 35, .045) !important;
+}
+.im-page .im-bubble.mine::after,
+.im-page .im-bubble.theirs::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  bottom: 0;
+  width: 11px;
+  height: 14px;
+  pointer-events: none;
+}
+.im-page .im-bubble.mine::after {
+  right: -4px;
+  background: #0a7cff;
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 62% 83%, 35% 52%);
+  border-bottom-right-radius: 8px;
+}
+.im-page .im-bubble.theirs::after {
+  left: -4px;
+  background: #e9e9eb;
+  clip-path: polygon(0 0, 100% 0, 65% 52%, 38% 83%, 0 100%);
+  border-bottom-left-radius: 8px;
+}
+.im-page .im-bubble.mine .im-time { color: rgba(255,255,255,.78) !important; }
+.im-page .im-bubble.theirs .im-time { color: #777980 !important; }
+.im-page .im-row-grouped-prev { margin-top: 2px !important; }
+.im-page .im-row-grouped-next { margin-bottom: 2px !important; }
+.im-page .im-bubble.mine.im-bubble-grouped-prev { border-top-right-radius: 6px !important; }
+.im-page .im-bubble.theirs.im-bubble-grouped-prev { border-top-left-radius: 6px !important; }
+.im-page .im-bubble.mine.im-bubble-grouped-next { border-bottom-right-radius: 6px !important; }
+.im-page .im-bubble.theirs.im-bubble-grouped-next { border-bottom-left-radius: 6px !important; }
+.im-page .im-bubble.im-bubble-grouped-next::after { display: none !important; }
+.im-page .im-context-overlay {
+  background: rgba(18, 28, 44, .16) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(1.35) !important;
+  backdrop-filter: blur(16px) saturate(1.35) !important;
+}
+.im-page .im-context-sheet {
+  border: 1px solid rgba(255,255,255,.88) !important;
+  background: rgba(250,252,255,.88) !important;
+  -webkit-backdrop-filter: blur(28px) saturate(1.65) !important;
+  backdrop-filter: blur(28px) saturate(1.65) !important;
+  box-shadow: 0 24px 76px rgba(25, 43, 72, .22), inset 0 1px 0 rgba(255,255,255,.98) !important;
+}
+.im-page .im-context-reactions {
+  border: 1px solid rgba(255,255,255,.82) !important;
+  border-radius: 22px !important;
+  background: rgba(255,255,255,.68) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(1.4);
+  backdrop-filter: blur(16px) saturate(1.4);
+}
+.im-page .im-context-reactions button {
+  min-height: 46px !important;
+  border-radius: 50% !important;
+  background: rgba(255,255,255,.82) !important;
+  box-shadow: 0 2px 8px rgba(35,52,80,.07), inset 0 1px 0 #fff !important;
+  font-size: 23px !important;
+}
+.im-page .im-context-actions button {
+  background: rgba(255,255,255,.76) !important;
+  border-color: rgba(255,255,255,.92) !important;
+}
+.im-page .im-typing {
+  color: #5e626b !important;
+  background: rgba(235,235,238,.9) !important;
+  border-color: rgba(255,255,255,.88) !important;
+  box-shadow: 0 1px 2px rgba(20,25,35,.05) !important;
+}
+@media (max-width: 600px) {
+  .im-page .im-context-overlay {
+    align-items: center !important;
+    padding: 18px !important;
+    background: rgba(18,28,44,.12) !important;
+  }
+  .im-page .im-context-sheet {
+    width: min(100%, 430px) !important;
+    max-height: 76dvh !important;
+    padding: 13px !important;
+    border: 1px solid rgba(255,255,255,.9) !important;
+    border-radius: 25px !important;
+    box-shadow: 0 22px 70px rgba(25,43,72,.2), inset 0 1px 0 #fff !important;
+    animation: im-context-pop .2s cubic-bezier(.22,1,.36,1) both !important;
+  }
+  .im-page .im-context-grabber { display: none !important; }
+  .im-page .im-bubble { max-width: 84%; }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .im-page .im-context-overlay { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
+  .im-page .im-context-sheet { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; background: #f8faff !important; }
+}

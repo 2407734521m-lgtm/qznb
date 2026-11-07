@@ -359,16 +359,30 @@ function emblemSpot(path: string): { top: number; right: number; width: number; 
   return { top: 58, right: 12, width: 88, opacity: 0.30 };
 }
 
+// 识别安卓应用壳：新版壳 UA 带 QianzhiApp/版本名 (序号)；1.0 旧壳没这个标识，
+// 但系统 WebView 的 UA 带「; wv)」记号且没有微信/QQ 等第三方内置浏览器标记，
+// 据此把旧壳按 1.0 对待，让它也能收到更新弹窗（点更新会跳浏览器下载安装包）。
+function detectInstalledApp(): { name: string; code: number } | null {
+  const ua = navigator.userAgent;
+  const m = ua.match(/QianzhiApp\/([0-9.]+) \((\d+)\)/);
+  if (m) return { name: m[1], code: Number(m[2]) };
+  if (/Android/.test(ua) && /; wv\)/.test(ua) && !/MicroMessenger|QQ\/|Weibo|DingTalk|AlipayClient/.test(ua)) {
+    return { name: '1.0', code: 1 };
+  }
+  return null;
+}
+
 function Shell() {
   const { session, loading, guest, enterGuest, leaveGuest } = useAuth();
   const quietHoursActive = useQuietHoursActive(session?.user.id);  const [role, setRole] = useState('');
   const loc = useLocation();
   const emblem = emblemSpot(loc.pathname);
   // 安卓应用更新：应用壳在 UA 里带 QianzhiApp/版本名 (序号)，与后台最新版本比对后弹更新框。
+  // 1.0 旧壳没有这个标识，但系统 WebView 的 UA 带「; wv)」记号，detectInstalledApp 会把它按 1.0 认出来。
   const [appUpdate, setAppUpdate] = useState<any>(null);
   const [updateDismissed, setUpdateDismissed] = useState(false);
   useEffect(() => {
-    if (!/QianzhiApp\//.test(navigator.userAgent)) return;
+    if (!detectInstalledApp()) return;
     let alive = true;
     supabase.rpc('public_app_update').then(({ data, error }) => {
       if (alive && !error && data) setAppUpdate(data);
@@ -895,8 +909,7 @@ function Shell() {
     ),
   }));
   const activeDockItem = TABS.find((tab) => isTabActive(tab.to, loc.pathname))?.to ?? TABS[0].to;
-  const uaMatch = navigator.userAgent.match(/QianzhiApp\/([0-9.]+) \((\d+)\)/);
-  const installedApp = uaMatch ? { name: uaMatch[1], code: Number(uaMatch[2]) } : null;
+  const installedApp = detectInstalledApp();
   const latestAppCode = appUpdate ? Number(appUpdate.app_version_code || 0) : 0;
   const appForce = appUpdate?.app_force_update === 'true';
   const appMinCode = appUpdate ? Number(appUpdate.app_min_code || 0) : 0;

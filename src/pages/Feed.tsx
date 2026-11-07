@@ -256,7 +256,7 @@ export default function Feed({ searchQuery = '' }: { searchQuery?: string }) {
         {searchQuery.trim() && <span className="feed-search-note">搜索：{searchQuery}</span>}
       </div>
       <div className="composer">
-        <textarea value={text} onChange={e => setText(e.target.value)} placeholder="分享今天的班级故事…" rows={3} maxLength={2000} />
+        <textarea value={text} onChange={e => setText(e.target.value)} placeholder="写下此刻的想法，分享给大家…" rows={3} maxLength={2000} />
         <div className="row">
           <button className="ghost" onClick={() => fref.current?.click()}>{img ? '重新选图' : '＋ 图片'}</button>
           <input ref={fref} type="file" accept="image/*" hidden onChange={e => setImg(e.target.files?.[0] ?? null)} />

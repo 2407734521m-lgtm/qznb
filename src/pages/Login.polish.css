@@ -3,6 +3,10 @@
 .login-wrap {
   min-height: 100svh;
   min-height: 100dvh;
+  box-sizing: border-box;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
   padding:
     max(18px, env(safe-area-inset-top))
     max(16px, env(safe-area-inset-right))
@@ -10,15 +14,19 @@
     max(16px, env(safe-area-inset-left));
   overflow-x: hidden;
   overflow-y: auto;
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
   scrollbar-width: thin;
   scrollbar-color: rgba(201, 183, 162, .28) transparent;
 }
 
 .login-card {
   width: min(430px, 100%) !important;
-  max-height: calc(100dvh - 36px);
-  overflow-y: auto;
-  overscroll-behavior: contain;
+  max-height: none;
+  height: auto;
+  flex: 0 0 auto;
+  overflow: visible;
+  overscroll-behavior: auto;
   padding: clamp(22px, 4vw, 30px) clamp(18px, 4.4vw, 28px) !important;
   border: 1px solid rgba(224, 207, 187, .16) !important;
   border-radius: 18px !important;
@@ -177,13 +185,14 @@
 
 @media (max-width: 520px) {
   .login-wrap {
-    align-items: center;
+    align-items: flex-start;
     justify-content: center;
     padding-inline: max(12px, env(safe-area-inset-left)) max(12px, env(safe-area-inset-right));
   }
   .login-card {
     width: 100% !important;
-    max-height: calc(100dvh - 28px);
+    max-height: none;
+    overflow: visible;
     border-radius: 16px !important;
     padding: 22px 18px 20px !important;
   }

@@ -1889,6 +1889,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: unknown
       }
+      public_app_update: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
       public_guest_landing: {
         Args: Record<PropertyKey, never>
         Returns: { site_title: string; site_subtitle: string; home_banner_text: string; home_banner_url: string; close_login_entry: string; skip_login_screen: string; maintenance: string; maintenance_title: string; maintenance_msg: string; notices: { id: number; title: string | null; content: string; created_at: string }[] }

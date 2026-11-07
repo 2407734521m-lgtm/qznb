@@ -5,7 +5,10 @@ import GuestLoveWall from './GuestLoveWall';
 type Notice = { id?: number | string; title?: string | null; content?: string | null; created_at?: string | null };
 type Props = {
   nickname: string;
+  expiresAt: number;
   siteConfig: any;
+  showLoveWall: boolean;
+  showAnnouncements: boolean;
   loginOpen: boolean;
   loginEnabled: boolean;
   onOpenLogin: () => void;
@@ -13,8 +16,13 @@ type Props = {
   onExit: () => void;
 };
 
-function GuestHome({ siteConfig, onLoginRequired }: { siteConfig: any; onLoginRequired: () => void }) {
-  const notices = (Array.isArray(siteConfig?.notices) ? siteConfig.notices : []) as Notice[];
+function GuestHome({ siteConfig, onLoginRequired, showLoveWall, showAnnouncements }: {
+  siteConfig: any;
+  onLoginRequired: () => void;
+  showLoveWall: boolean;
+  showAnnouncements: boolean;
+}) {
+  const notices = showAnnouncements && Array.isArray(siteConfig?.notices) ? siteConfig.notices as Notice[] : [];
   const title = siteConfig?.site_title || '堯';
   const subtitle = siteConfig?.site_subtitle || '公开浏览';
   const banner = siteConfig?.home_banner_text || '欢迎来到堯';
@@ -55,12 +63,16 @@ function GuestHome({ siteConfig, onLoginRequired }: { siteConfig: any; onLoginRe
           <span style={{ fontSize: 11, color: '#929aa6' }}>游客只读</span>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,220px),1fr))', gap: 10 }}>
-          <NavLink to="/love-wall" style={{ textDecoration: 'none', color: 'inherit' }}>
-            <FeatureCard title="表白墙" description="查看已经审核公开的心意，点赞、评论和投稿需要登录。" />
-          </NavLink>
-          <NavLink to="/board" style={{ textDecoration: 'none', color: 'inherit' }}>
-            <FeatureCard title="公告" description="浏览网站公开公告和近期通知。" />
-          </NavLink>
+          {showLoveWall
+            ? <NavLink to="/love-wall" style={{ textDecoration: 'none', color: 'inherit' }}>
+                <FeatureCard title="表白墙" description="查看已经审核公开的心意，点赞、评论和投稿需要登录。" />
+              </NavLink>
+            : <FeatureCard title="表白墙" description="管理员暂未向游客开放此内容。" locked />}
+          {showAnnouncements
+            ? <NavLink to="/board" style={{ textDecoration: 'none', color: 'inherit' }}>
+                <FeatureCard title="公告" description="浏览网站公开公告和近期通知。" />
+              </NavLink>
+            : <FeatureCard title="公告" description="管理员暂未向游客开放公告浏览。" locked />}
           <button type="button" onClick={onLoginRequired} style={{ textAlign: 'left', cursor: 'pointer', font: 'inherit' }}>
             <FeatureCard title="歌声墙" description="了解声音分享功能，登录后即可参与。" locked />
           </button>
@@ -70,7 +82,7 @@ function GuestHome({ siteConfig, onLoginRequired }: { siteConfig: any; onLoginRe
         </div>
       </section>
 
-      <section style={{ marginTop: 20, padding: '18px clamp(14px,4vw,22px)', borderRadius: 20, background: '#fff', border: '1px solid #e9ebf0', boxShadow: '0 8px 28px #202a3d0a' }}>
+      {showAnnouncements && <section style={{ marginTop: 20, padding: '18px clamp(14px,4vw,22px)', borderRadius: 20, background: '#fff', border: '1px solid #e9ebf0', boxShadow: '0 8px 28px #202a3d0a' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, marginBottom: 10 }}>
           <h2 style={{ margin: 0, fontSize: 18, color: '#202632' }}>公开公告</h2>
           <NavLink to="/board" style={{ fontSize: 12, color: '#697386', textDecoration: 'none' }}>查看全部</NavLink>
@@ -82,7 +94,7 @@ function GuestHome({ siteConfig, onLoginRequired }: { siteConfig: any; onLoginRe
             {notice.created_at && <div style={{ marginTop: 6, color: '#9aa2ae', fontSize: 11 }}>{new Date(notice.created_at).toLocaleString()}</div>}
           </article>
         )) : <p style={{ color: '#87909d', fontSize: 13, margin: 0 }}>暂时没有公开公告。</p>}
-      </section>
+      </section>}
 
       <p style={{ margin: '18px 2px 0', color: '#929aa6', fontSize: 11, lineHeight: 1.7 }}>
         {title} · {subtitle} · 游客可浏览公开信息，互动与个人功能需要正式账号。
@@ -113,6 +125,16 @@ function GuestBoard({ siteConfig }: { siteConfig: any }) {
   );
 }
 
+function GuestUnavailable() {
+  return (
+    <main style={{ maxWidth: 760, margin: '0 auto', padding: '36px 18px', textAlign: 'center', color: '#697386' }}>
+      <div style={{ fontSize: 26, marginBottom: 8 }}>◌</div>
+      <h2 style={{ color: '#303846', fontSize: 18, margin: '0 0 8px' }}>暂未开放游客浏览</h2>
+      <p style={{ fontSize: 13, lineHeight: 1.7, margin: 0 }}>管理员暂时关闭了这部分公开内容。</p>
+    </main>
+  );
+}
+
 function FeatureCard({ title, description, locked = false }: { title: string; description: string; locked?: boolean }) {
   return (
     <div style={{
@@ -130,7 +152,8 @@ function FeatureCard({ title, description, locked = false }: { title: string; de
 }
 
 export default function GuestBrowse({
-  nickname, siteConfig, loginOpen, loginEnabled, onOpenLogin, onCloseLogin, onExit,
+  nickname, expiresAt, siteConfig, showLoveWall, showAnnouncements,
+  loginOpen, loginEnabled, onOpenLogin, onCloseLogin, onExit,
 }: Props) {
   function requestLogin() {
     onOpenLogin();
@@ -148,7 +171,9 @@ export default function GuestBrowse({
         <div style={{ minWidth: 0, flex: 1 }}>
           <div style={{ fontSize: 10, letterSpacing: 2, color: '#8a93a1' }}>GUEST BROWSING</div>
           <div style={{ fontSize: 19, fontWeight: 850, color: '#202632', marginTop: 3 }}>{siteConfig?.site_title || '堯'}</div>
-          <div style={{ fontSize: 11, color: '#7a8492', marginTop: 2 }}>访客 · {nickname}</div>
+          <div style={{ fontSize: 11, color: '#7a8492', marginTop: 2 }}>
+            访客 · {nickname} · {new Date(expiresAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} 自动退出
+          </div>
         </div>
         {loginEnabled && <button type="button" onClick={requestLogin} style={{
           flex: '0 0 auto', border: 0, borderRadius: 999, padding: '10px 15px',
@@ -164,7 +189,11 @@ export default function GuestBrowse({
         maxWidth: 900, margin: '0 auto 14px', padding: 5, borderRadius: 999,
         background: '#fff', border: '1px solid #e9ebf0', display: 'flex', gap: 4,
       }}>
-        {[{ to: '/home', label: '首页' }, { to: '/love-wall', label: '表白墙' }, { to: '/board', label: '公告' }].map(item => (
+        {[
+          { to: '/home', label: '首页' },
+          ...(showLoveWall ? [{ to: '/love-wall', label: '表白墙' }] : []),
+          ...(showAnnouncements ? [{ to: '/board', label: '公告' }] : []),
+        ].map(item => (
           <NavLink key={item.to} to={item.to} style={({ isActive }) => ({
             flex: 1, textAlign: 'center', textDecoration: 'none', borderRadius: 999,
             padding: '10px 8px', fontSize: 13, fontWeight: 750,
@@ -175,9 +204,9 @@ export default function GuestBrowse({
 
       <Routes>
         <Route path="/" element={<Navigate to="/home" replace />} />
-        <Route path="/home" element={<GuestHome siteConfig={siteConfig} onLoginRequired={requestLogin} />} />
-        <Route path="/love-wall" element={<GuestLoveWall onLoginRequired={requestLogin} />} />
-        <Route path="/board" element={<GuestBoard siteConfig={siteConfig} />} />
+        <Route path="/home" element={<GuestHome siteConfig={siteConfig} onLoginRequired={requestLogin} showLoveWall={showLoveWall} showAnnouncements={showAnnouncements} />} />
+        <Route path="/love-wall" element={showLoveWall ? <GuestLoveWall onLoginRequired={requestLogin} /> : <GuestUnavailable />} />
+        <Route path="/board" element={showAnnouncements ? <GuestBoard siteConfig={siteConfig} /> : <GuestUnavailable />} />
         <Route path="*" element={<Navigate to="/home" replace />} />
       </Routes>
 

@@ -233,7 +233,7 @@ begin
   -- Only accounts whose latest authenticated client heartbeat identifies the
   -- installed app receive the app-specific inbox notification.
   insert into public.notifications(profile_id, type, title, body, link, is_read)
-  select p.id, 'app_announcement', v_title, v_body, '/me/notifications', false
+  select p.id, 'app_announcement', v_title, v_body, '/me/notifications?app_announcement=' || v_id::text, false
     from public.profiles p
     join public.member_presence mp on mp.profile_id = p.id
    where p.role = 'member'
@@ -319,6 +319,20 @@ begin
 
   if not found then
     raise exception 'announcement not found' using errcode = 'P0002';
+  end if;
+
+  if coalesce(p_is_published, false) then
+    insert into public.notifications(profile_id, type, title, body, link, is_read)
+    select p.id, 'app_announcement', a.title, a.body,
+           '/me/notifications?app_announcement=' || a.id::text, false
+      from public.app_announcements a
+      join public.profiles p on p.joined = true and p.role = 'member'
+      join public.member_presence mp on mp.profile_id = p.id and mp.client_platform = 'mobile'
+     where a.id = p_announcement_id;
+  else
+    delete from public.notifications
+     where type = 'app_announcement'
+       and link = '/me/notifications?app_announcement=' || p_announcement_id::text;
   end if;
 
   insert into public.admin_audit_logs(actor, action, detail)

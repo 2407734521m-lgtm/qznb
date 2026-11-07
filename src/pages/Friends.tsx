@@ -63,7 +63,7 @@ function previewText(item: ConversationPreview, myId: string) {
 export default function Friends() {
   const nav = useNavigate();
   const me = useAuth().session!.user.id;
-  const [tab, setTab] = useState<'messages' | 'friends' | 'reqs' | 'blocked'>('messages');
+  const [tab, setTab] = useState<'messages' | 'friends' | 'reqs' | 'blocked'>(() => new URLSearchParams(window.location.search).get('tab') === 'reqs' ? 'reqs' : 'messages');
   const [friends, setFriends] = useState<Friend[]>([]);
   const [blockedMembers, setBlockedMembers] = useState<Friend[]>([]);
   const [reqs, setReqs] = useState<Friend[]>([]);
@@ -122,11 +122,21 @@ export default function Friends() {
     const channel = supabase.channel('inbox-' + me)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, scheduleLoad)
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'conversation_members', filter: 'profile_id=eq.' + me }, scheduleLoad)
+      // 好友申请和申请状态都由数据库写入；同时监听收件人和发件人的关系记录。
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'friendships', filter: 'addressee=eq.' + me }, scheduleLoad)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'friendships', filter: 'requester=eq.' + me }, scheduleLoad)
       .subscribe();
+    const refreshVisible = () => {
+      if (document.visibilityState === 'visible') void load();
+    };
+    window.addEventListener('focus', refreshVisible);
+    document.addEventListener('visibilitychange', refreshVisible);
     const fallback = window.setInterval(() => { void load(); }, 15000);
     return () => {
       window.clearInterval(fallback);
       window.clearTimeout(realtimeTimer);
+      window.removeEventListener('focus', refreshVisible);
+      document.removeEventListener('visibilitychange', refreshVisible);
       loadSequenceRef.current += 1;
       void supabase.removeChannel(channel);
     };

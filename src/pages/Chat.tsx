@@ -624,9 +624,13 @@ export default function Chat() {
   }
 
   const dateLabel = (value: string, previous?: string) => {
-    const d = new Date(value);
-    if (previous && new Date(previous).toDateString() === d.toDateString()) return '';
-    return d.toLocaleDateString('zh-CN', { month: 'long', day: 'numeric', weekday: 'short' });
+    const current = new Date(value);
+    const time = current.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+    const date = current.toLocaleDateString('zh-CN', { month: 'long', day: 'numeric', weekday: 'short' });
+    if (!previous) return date + ' · ' + time;
+    const prior = new Date(previous);
+    if (prior.toDateString() !== current.toDateString()) return date + ' · ' + time;
+    return current.getTime() - prior.getTime() > 5 * 60 * 1000 ? time : '';
   };
 
   useEffect(() => {
@@ -641,6 +645,8 @@ export default function Chat() {
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [showDetails, actionFor]);
+
+  const latestOutgoingMessageId = [...msgs].reverse().find(message => message.sender_id === me)?.id ?? null;
 
   return (
     <div ref={pageRef} className="im-page" style={{
@@ -700,15 +706,23 @@ export default function Chat() {
         @media(max-width:600px){.im-head{gap:10px}.im-avatar{width:40px;height:40px}.im-back,.im-icon{min-width:40px;height:40px}.im-feed{padding:14px 12px 18px}.im-bubble{max-width:84%;font-size:15px}.im-composer{gap:8px}.im-plus{width:40px;height:40px}}\n        @media(prefers-reduced-motion:reduce){.im-row{animation:none}.im-row-out{animation:none}}
       `}</style>
       <header className="im-head">
-        <button className="im-back" aria-label="返回" onClick={() => goBackOr(nav, '/friends')}>‹</button>
-        <button type="button" className="im-avatar im-avatar-open" aria-label="查看会话资料" onClick={() => setShowDetails(true)}>
-          {peerAvatarUrl ? <img src={peerAvatarUrl} alt="" /> : (name.trim().charAt(0).toUpperCase() || '友')}
+        <button className="im-back" aria-label="返回会话列表" onClick={() => goBackOr(nav, '/friends')}>
+          <span aria-hidden="true">‹</span>
+          <span className="im-back-label">信息</span>
         </button>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div className="im-title">{name}</div>
-          <div className="im-sub">{otherTyping ? name + ' 正在输入…' : '私密聊天'}</div>
-        </div>
-        <button className="im-icon" aria-label="聊天详情" onClick={() => setShowDetails(v => !v)}>···</button>
+        <button type="button" className="im-contact-stack" aria-label="查看会话资料" onClick={() => setShowDetails(true)}>
+          <span className="im-avatar im-avatar-open">
+            {peerAvatarUrl ? <img src={peerAvatarUrl} alt="" /> : (name.trim().charAt(0).toUpperCase() || '友')}
+          </span>
+          <span className="im-contact-name-pill">
+            <span className="im-title">{name}</span>
+            <span className="im-contact-chevron" aria-hidden="true">›</span>
+          </span>
+          <span className="im-sub">{otherTyping ? '正在输入…' : ' '}</span>
+        </button>
+        <button className="im-icon im-info-button" aria-label="聊天详情" onClick={() => setShowDetails(true)}>
+          <span aria-hidden="true">ⓘ</span>
+        </button>
       </header>
       {showDetails && <div className="im-profile-overlay" role="presentation" onClick={() => setShowDetails(false)}>
         <section className="im-profile-sheet" role="dialog" aria-modal="true" aria-label="会话资料"
@@ -786,11 +800,11 @@ export default function Chat() {
           const samePrevious = Boolean(previousMessage
             && previousMessage.sender_id === m.sender_id
             && !dateLabel(m.created_at, previousMessage.created_at)
-            && new Date(m.created_at).getTime() - new Date(previousMessage.created_at).getTime() <= 120000);
+            && new Date(m.created_at).getTime() - new Date(previousMessage.created_at).getTime() <= 300000);
           const sameNext = Boolean(nextMessage
             && nextMessage.sender_id === m.sender_id
             && !dateLabel(nextMessage.created_at, m.created_at)
-            && new Date(nextMessage.created_at).getTime() - new Date(m.created_at).getTime() <= 120000);
+            && new Date(nextMessage.created_at).getTime() - new Date(m.created_at).getTime() <= 300000);
           const deleted = Boolean(m.deleted_at);
           const canEdit = mine && !deleted && !m.body.startsWith('[[im-image:') && !m.body.startsWith('[[im-audio:');
           return (
@@ -815,19 +829,19 @@ export default function Chat() {
                   ) : (
                     <MessageContent body={deleted ? (mine ? '你撤回了一条消息' : '对方撤回了一条消息') : m.body} />
                   )}
-                  <div className="im-time">
-                    {new Date(m.created_at).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}
-                    {mine && userPreferences.chat.showReadReceipts ? <span className="im-read-status">{otherLastReadMessageId !== null && otherLastReadMessageId >= m.id ? '· 已读' : '· 已发送'}</span> : ''}
-                    {m.edited_at && !deleted ? <span className="im-read-status">· 已编辑</span> : ''}
-                  </div>
+                  {m.edited_at && !deleted && <div className="im-edited-mark">已编辑</div>}
                   {groups.length > 0 && <div className="im-reaction-groups">
                     {groups.map(group => {
                       const mineReacted = group.items.some(item => item.profile_id === me);
                       return <button key={group.reaction} type="button" className={'im-reaction-chip' + (mineReacted ? ' mine' : '')} onClick={() => toggleReaction(m.id, group.reaction)}>{group.reaction} {group.items.length}</button>;
                     })}
                   </div>}
-
                 </div>
+                {mine && m.id === latestOutgoingMessageId && userPreferences.chat.showReadReceipts && (
+                  <div className="im-delivery-receipt" aria-live="polite">
+                    {otherLastReadMessageId !== null && otherLastReadMessageId >= m.id ? '已读' : '已送达'}
+                  </div>
+                )}
               </div>
             </div>
           );
@@ -839,11 +853,11 @@ export default function Chat() {
                 <div className={'im-bubble mine' + (e.phase === 'failed' ? ' im-bubble-failed' : '')}>
                   {e.replyToId !== null && <div className="im-reply-quote">回复：{e.replySummary ?? ''}</div>}
                   <MessageContent body={e.body} />
-                  <div className="im-time">
-                    {new Date(e.createdAtMs).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}
+                  <div className="im-outbox-status">
                     <span className={'im-send-status' + (e.phase === 'sent' ? ' sent' : '')} role="img" aria-label={e.phase === 'sending' ? '发送中' : e.phase === 'failed' ? '发送失败' : '已发送'}>
                       {e.phase === 'sending' ? <ClockIcon /> : e.phase === 'sent' ? <SentIcon /> : null}
                     </span>
+                    {e.phase === 'sending' ? '发送中' : e.phase === 'failed' ? '发送失败' : '已送达'}
                   </div>
                 </div>
                 {e.phase === 'failed' && <button type="button" className="im-retry" onClick={() => retryEntry(e.tempKey)}><span className="im-retry-dot">↻</span>点击重试</button>}
@@ -903,7 +917,12 @@ export default function Chat() {
         </div>;
       })()}
       {error && <div className="im-error">{error}</div>}
-      {showStickers && <div className="im-sticker-tray" role="group" aria-label="选择贴纸">{['🥹','😂','❤️','😍','🐱','🐻','✨','🎉','👍','😭','🫶','🌸','💖','😎'].map(sticker => <button key={sticker} type="button" className="im-sticker-choice" aria-label={'发送贴纸 ' + sticker} onClick={() => sendSticker(sticker)}>{sticker}</button>)}</div>}
+      {showStickers && <div className="im-sticker-tray" role="group" aria-label="附件与贴纸">
+        <button type="button" className="im-attach-choice" onClick={() => imageRef.current?.click()}>
+          <span aria-hidden="true">▧</span><span>照片</span>
+        </button>
+        {['🥹','😂','❤️','😍','🐱','🐻','✨','🎉','👍','😭','🫶','🌸','💖','😎'].map(sticker => <button key={sticker} type="button" className="im-sticker-choice" aria-label={'发送贴纸 ' + sticker} onClick={() => sendSticker(sticker)}>{sticker}</button>)}
+      </div>}
       {replyTarget && <div className="im-reply-banner">
         <span>回复</span>
         <span className="im-reply-banner-main">{messageSummary(replyTarget)}</span>
@@ -911,12 +930,12 @@ export default function Chat() {
       </div>}
       <form className="im-composer" onSubmit={e => { e.preventDefault(); send(); }}>
         <input ref={imageRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif,image/heic" hidden onChange={e => sendImage(e.target.files?.[0])} />
-        <button type="button" className="im-plus" aria-label="打开贴纸和图片菜单" title="打开贴纸和图片菜单" disabled={uploading || recording} onClick={() => setShowStickers(v => !v)}>{showStickers ? '×' : '＋'}</button><button type="button" className="im-icon" aria-label="选择图片" title="选择图片" disabled={uploading || recording} onClick={() => imageRef.current?.click()} style={{fontSize:17,minWidth:38,width:38,height:38}}>▧</button>
-        <button type="button" className={'im-mic' + (recording ? ' recording' : '')} aria-label={recording ? '结束录音并发送' : '录制语音'} title={recording ? '结束录音并发送' : '录制语音'} disabled={uploading} onClick={recording ? stopRecording : startRecording}>{recording ? '■' : '●'}</button>
+        <button type="button" className="im-plus" aria-label="打开附件菜单" title="打开附件菜单" disabled={uploading || recording} onClick={() => setShowStickers(v => !v)}>{showStickers ? '×' : '＋'}</button>
         <div className="im-input-wrap">
           <input ref={inputRef} className="im-input" value={text} onChange={e => { setText(e.target.value); notifyTyping(e.target.value); }}
-            placeholder={recording ? '录音中 ' + String(Math.floor(recordSeconds / 60)).padStart(2, '0') + ':' + String(recordSeconds % 60).padStart(2, '0') + ' · 点红色按钮结束' : uploading ? '正在发送媒体…' : '发送信息…'} maxLength={2000} autoComplete="off" aria-label="输入消息" />
-          <button type="submit" className="im-send" aria-label="发送消息" disabled={!text.trim()}>↑</button>
+            placeholder={recording ? '录音中 ' + String(Math.floor(recordSeconds / 60)).padStart(2, '0') + ':' + String(recordSeconds % 60).padStart(2, '0') + ' · 点红色按钮结束' : uploading ? '正在发送媒体…' : 'iMessage'} maxLength={2000} autoComplete="off" aria-label="输入消息" />
+          {!text.trim() && <button type="button" className={'im-mic' + (recording ? ' recording' : '')} aria-label={recording ? '结束录音并发送' : '录制语音'} title={recording ? '结束录音并发送' : '录制语音'} disabled={uploading} onClick={recording ? stopRecording : startRecording}>{recording ? '■' : '●'}</button>}
+          {text.trim() && <button type="submit" className="im-send" aria-label="发送消息" disabled={uploading || recording}>↑</button>}
         </div>
       </form>
     </div>

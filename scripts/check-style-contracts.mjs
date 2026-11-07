@@ -2,6 +2,10 @@ import { readFileSync } from 'node:fs';
 
 const read = (path) => readFileSync(new URL(path, import.meta.url), 'utf8');
 const styles = read('../src/styles-ios26-liquid-glass.css');
+const login = read('../src/pages/Login.tsx');
+const loginStyles = read('../src/pages/Login.polish.css');
+const loginBackdrop = read('../src/styles-liquid-backdrop.css');
+const visualRules = read('../src/styles-visual-rules.css');
 const tokens = read('../src/styles-ios26-tokens.css');
 const mainEntry = read('../src/main.tsx');
 const wallpaper = read('../src/lib/wallpaper.ts');
@@ -40,6 +44,18 @@ assert(!/body:has\(\.vibe-home\)\s+\.app-bg[^}]*display:\s*none\s*!important/s.t
 assert(!/\.glow\s*,\s*\.app-bg\s*\{[^}]*display:\s*none\s*!important/s.test(baseStyles), 'the base white theme must not hide the wallpaper layer');
 assert(!/\.glow\s*,\s*\.app-bg\s*\{[^}]*display:\s*none\s*!important/s.test(editorialStyles), 'the editorial theme must not hide the wallpaper layer');
 assert(!/\.app-bg\s*\{[^}]*filter\s*:[^;]*!important/s.test(editorialStyles), 'the editorial theme must not override user blur or brightness settings');
+assert(!/body\s*\{[^}]*background(?:-image|-color)?\s*:/s.test(baseStyles), 'the base stylesheet must not reintroduce a page wallpaper');
+assert(!/\.app-bg\s*\{[^}]*filter\s*:/s.test(baseStyles), 'wallpaper blur and brightness must come only from user settings');
+assert(!/background\s*:\s*#071b2a|background(?:-color)?\s*:\s*#06101f/i.test(baseStyles), 'the retired deep-sea canvas must be removed');
+assert(!/(?:background|background-image)\s*:/i.test(editorialStyles), 'the legacy editorial stylesheet must be layout-only');
+assert(!/color-scheme\s*:\s*dark|--visual-bg\s*:\s*#171614/i.test(visualRules), 'legacy warm/dark visual tokens must not compete with canonical tokens');
+assert(!login.includes("from '../assets/cow.jpg'"), 'the retired bundled cow wallpaper must not be loaded');
+assert(login.includes('LEGACY_DEFAULT_BACKGROUND') && login.includes('return LEGACY_DEFAULT_BACKGROUND.test(saved) ? DEFAULT_BG : saved;'), 'legacy stock wallpaper values must migrate to white while user selections remain');
+assert(login.includes('bg && <div className="login-bg"') && login.includes('setBg(c.toDataURL'), 'user-uploaded login wallpapers must remain supported');
+assert(!loginBackdrop.includes('flow-bg.webp') && !loginBackdrop.includes('qz-flow-drift'), 'the retired stock flow image and animation must be removed');
+assert(/\.login-flow\s*\{[^}]*background:\s*var\(--visual-bg,\s*#ffffff\)/s.test(loginBackdrop), 'the default login backdrop must use the white canvas');
+assert(!/(?:background|background-image)\s*:/i.test(loginStyles), 'login layout refinements must not override the canonical login material');
+
 
 if (process.exitCode) process.exit(process.exitCode);
 console.log('Visual contracts passed: white default canvas, preserved user wallpaper, and accessible homepage states.');

@@ -3,9 +3,8 @@
 .vibe-home {
   --vh-ink: #29251f;
   --vh-muted: #72695e;
-  --vh-line: rgba(24, 56, 70, .12);
-  --vh-teal: #9b654b;
-  --vh-blue: #8b6956;
+  --vh-line: rgba(78, 59, 42, .13);
+  --vh-accent: #9b654b;
   color: var(--vh-ink);
   padding: 8px 0 116px;
   isolation: isolate;
@@ -40,10 +39,10 @@
   transition: border-color 160ms ease, background-color 160ms ease;
 }
 .vh-search:hover {
-  border-color: rgba(22, 127, 120, .38);
+  border-color: rgba(155, 101, 75, .42);
   background: #fffefa;
 }
-.vh-search-icon { color: var(--vh-teal); font-size: 18px; line-height: 1; }
+.vh-search-icon { color: var(--vh-accent); font-size: 18px; line-height: 1; }
 
 .vh-eyebrow {
   font-size: 12px;
@@ -77,10 +76,10 @@
   overflow: hidden;
   min-height: clamp(300px, 44vw, 440px);
   aspect-ratio: 16 / 9;
-  border: 1px solid rgba(32, 68, 91, .12);
+  border: 1px solid rgba(78, 59, 42, .14);
   border-radius: 18px;
   background: #eee7dd;
-  box-shadow: 0 8px 24px rgba(25, 52, 78, .07);
+  box-shadow: 0 8px 24px rgba(54, 39, 25, .07);
   isolation: isolate;
 }
 .vh-hero:before,
@@ -96,7 +95,7 @@
 .vh-hero-shade {
   position: absolute;
   inset: 0;
-  background: linear-gradient(90deg, rgba(7, 25, 42, .68), rgba(7, 25, 42, .16) 72%, rgba(7, 25, 42, .02));
+  background: linear-gradient(90deg, rgba(28, 22, 17, .66), rgba(28, 22, 17, .16) 72%, rgba(28, 22, 17, .02));
 }
 .vh-hero-content {
   position: absolute;
@@ -151,7 +150,7 @@
   gap: 8px;
   margin-top: 20px;
   padding: 10px 14px;
-  border: 1px solid rgba(24, 69, 82, .16);
+  border: 1px solid rgba(99, 75, 54, .18);
   border-radius: 9px;
   background: rgba(255, 255, 255, .94);
   color: #2c2822;
@@ -192,7 +191,7 @@
   align-items: center;
   gap: 8px;
   padding: 9px 12px;
-  border: 1px solid rgba(22, 127, 120, .18);
+  border: 1px solid rgba(155, 101, 75, .24);
   border-radius: 10px;
   background: #f5eee6;
   color: #80513c;
@@ -246,7 +245,7 @@
   transition: border-color 160ms ease, background-color 160ms ease;
 }
 .vh-notice:hover {
-  border-color: rgba(22, 127, 120, .34);
+  border-color: rgba(155, 101, 75, .38);
   background: #fffdfa;
 }
 .vh-notice-tag {
@@ -310,7 +309,7 @@
 }
 .vh-shortcut:after { content: none; }
 .vh-shortcut:hover {
-  border-color: rgba(22, 127, 120, .34);
+  border-color: rgba(155, 101, 75, .38);
   background: #fffdfa;
 }
 .vh-shortcut-index {
@@ -440,7 +439,7 @@
   align-items: center;
   justify-content: center;
   padding: 20px;
-  background: rgba(12, 26, 41, .46);
+  background: rgba(35, 29, 23, .48);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
 }
@@ -449,10 +448,10 @@
   max-height: 78dvh;
   overflow: auto;
   padding: 20px;
-  border: 1px solid rgba(24, 69, 82, .14);
+  border: 1px solid rgba(99, 75, 54, .16);
   border-radius: 16px;
   background: #fffdf9;
-  box-shadow: 0 12px 36px rgba(8, 26, 44, .16);
+  box-shadow: 0 12px 36px rgba(54, 39, 25, .14);
 }
 .vh-modal h3 {
   margin: 0;
@@ -481,9 +480,9 @@
   .vibe-home { padding-top: 2px; }
   .vh-topline { margin-bottom: 12px; }
   .vh-hero {
-    min-height: 280px;
-    aspect-ratio: 4 / 5;
-    border-radius: 16px;
+    min-height: 220px;
+    aspect-ratio: 16 / 9;
+    border-radius: 14px;
   }
   .vh-hero-content { padding: 20px; }
   .vh-hero-title { font-size: clamp(29px, 8vw, 40px); }
@@ -507,4 +506,30 @@
   .vh-shortcut,
   .vh-hero-link,
   .vh-search { transition: none; }
+}
+
+
+/* Light editorial canvas for the archive home. It deliberately does not inherit
+   the darker reading surfaces used by conversation and utility pages. */
+body:has(.vibe-home) {
+  color-scheme: light;
+  background: #f5f1e9 !important;
+  color: #29251f !important;
+}
+body:has(.vibe-home) .glow,
+body:has(.vibe-home) .app-bg { display: none !important; }
+body:has(.vibe-home) .topnav {
+  background: rgba(250, 247, 240, .96) !important;
+  border-bottom: 1px solid #e8dfd3 !important;
+  color: #29251f !important;
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+}
+body:has(.vibe-home) .topnav .brand { color: #29251f !important; }
+body:has(.vibe-home) .topnav a,
+body:has(.vibe-home) .topnav button { color: #6d6256 !important; }
+body:has(.vibe-home) .topnav a.on {
+  color: #704632 !important;
+  background: #f1e7dc !important;
+  box-shadow: none !important;
 }

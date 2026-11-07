@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
+import { AnimatePresence, motion, useMotionValueEvent, useReducedMotion, useScroll, useTransform } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../auth';
 import { useSignedUrl, useSignedUrls, uploadMedia, downscaleImage } from '../lib/media';
@@ -8,6 +8,77 @@ import { withRetry } from '../lib/retry';
 import { confirmDialog, alertDialog } from '../lib/dialog';
 
 type P = { id: number; photo_url: string; caption: string | null; uploaded_by: string | null };
+
+const HERO_H = 248;
+const BAR_H = 56;
+const COLLAPSE = HERO_H - BAR_H;
+const clamp01 = (v: number, a: number, b: number) => Math.min(1, Math.max(0, (v - a) / (b - a)));
+
+// 吸顶大标题头图（2026-11-07 按用户给的交互规格）：上滑时封面以 0.5 倍速度视差
+// 移动并慢慢压暗，大标题缩小上移、淡入顶部毛玻璃导航条；顶部下拉时封面放大；
+// 滑到一半松手，按方向/位置自动收到底或弹回展开，不停在半路。
+function AlbumHero({ title, meta, coverUrl, onBack, reduce }: {
+  title: string; meta: string; coverUrl: string; onBack: () => void; reduce: boolean | null;
+}) {
+  const { scrollY } = useScroll();
+  const imgY = useTransform(scrollY, (v: number) => (reduce ? 0 : Math.max(v, 0) * 0.5));
+  const imgScale = useTransform(scrollY, (v: number) => {
+    if (reduce) return 1;
+    if (v < 0) return 1 + Math.min(-v / 120, 1) * 0.12;
+    return 1 - clamp01(v, 0, HERO_H) * 0.04;
+  });
+  const imgFilter = useTransform(scrollY, (v: number) =>
+    `brightness(${reduce ? 1 : 1 - clamp01(v, 0, HERO_H) * 0.22})`);
+  const bigTitleY = useTransform(scrollY, (v: number) => (reduce ? 0 : -34 * clamp01(v, 0, COLLAPSE)));
+  const bigTitleScale = useTransform(scrollY, (v: number) => (reduce ? 1 : 1 - 0.22 * clamp01(v, 0, COLLAPSE)));
+  const bigTitleOpacity = useTransform(scrollY, (v: number) => (reduce ? 1 : 1 - clamp01(v, COLLAPSE - 46, COLLAPSE)));
+  const barBgOpacity = useTransform(scrollY, (v: number) => (reduce ? (v > 24 ? 1 : 0) : clamp01(v, COLLAPSE - 52, COLLAPSE)));
+  const barTitleOpacity = useTransform(scrollY, (v: number) => (reduce ? (v > 24 ? 1 : 0) : clamp01(v, COLLAPSE - 34, COLLAPSE + 8)));
+  const barTitleX = useTransform(scrollY, (v: number) => (reduce ? 0 : -10 + 10 * clamp01(v, COLLAPSE - 34, COLLAPSE + 8)));
+
+  const lastY = useRef(0);
+  const lastDy = useRef(0);
+  const snapTimer = useRef<number | undefined>(undefined);
+  const snapping = useRef(false);
+  useMotionValueEvent(scrollY, 'change', (y) => {
+    lastDy.current = y - lastY.current;
+    lastY.current = y;
+    if (reduce || snapping.current) return;
+    window.clearTimeout(snapTimer.current);
+    snapTimer.current = window.setTimeout(() => {
+      const yy = window.scrollY;
+      if (yy > 36 && yy < COLLAPSE - 2) {
+        snapping.current = true;
+        window.scrollTo({ top: lastDy.current > 0 || yy > COLLAPSE * 0.6 ? COLLAPSE + 4 : 0, behavior: 'smooth' });
+        window.setTimeout(() => { snapping.current = false; }, 480);
+      }
+    }, 130);
+  });
+
+  return (
+    <>
+      <div style={{ position: 'relative', height: HERO_H, borderRadius: 24, overflow: 'hidden', background: '#1c2739', marginBottom: 12 }}>
+        <motion.img src={coverUrl} alt="" draggable={false}
+          style={{ y: imgY, scale: imgScale, filter: imgFilter, width: '100%', height: '100%', objectFit: 'cover', transformOrigin: 'center top', display: 'block' }} />
+        <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(8,12,20,.18) 0%, rgba(8,12,20,0) 34%, rgba(8,12,20,0) 52%, rgba(8,12,20,.55) 100%)' }} />
+        <motion.div style={{ y: bigTitleY, scale: bigTitleScale, opacity: bigTitleOpacity, transformOrigin: 'left bottom', position: 'absolute', left: 18, right: 18, bottom: BAR_H + 12 }}>
+          <h1 style={{ fontSize: 26, margin: '0 0 5px', color: '#fff', lineHeight: 1.25 }}>{title}</h1>
+          <p style={{ margin: 0, color: 'rgba(235,242,255,.85)', fontSize: 13 }}>{meta}</p>
+        </motion.div>
+      </div>
+      <div style={{ position: 'sticky', top: 0, zIndex: 30, height: BAR_H, marginTop: -BAR_H, display: 'flex', alignItems: 'center', gap: 10, padding: '0 6px' }}>
+        <motion.div aria-hidden="true" style={{ opacity: barBgOpacity, position: 'absolute', inset: 0, background: 'rgba(252,253,255,.86)', backdropFilter: 'blur(14px) saturate(1.4)', WebkitBackdropFilter: 'blur(14px) saturate(1.4)', borderBottom: '1px solid rgba(24,32,48,.07)', borderRadius: '0 0 18px 18px' }} />
+        <button type="button" onClick={onBack}
+          style={{ position: 'relative', border: 0, cursor: 'pointer', background: 'rgba(10,15,24,.42)', color: '#fff', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', padding: '8px 13px', borderRadius: 999, fontSize: 13, fontFamily: 'inherit', flexShrink: 0 }}>
+          ← 返回相册
+        </button>
+        <motion.span style={{ opacity: barTitleOpacity, x: barTitleX, position: 'relative', fontSize: 15, fontWeight: 700, color: '#202632', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          {title}
+        </motion.span>
+      </div>
+    </>
+  );
+}
 
 function Thumb({ p, url, onView }: { p: P; url?: string; onView: () => void }) {
   if (!url) return null;
@@ -25,6 +96,7 @@ export default function AlbumDetail() {
   const [album, setAlbum] = useState<any>(null);
   const [photos, setPhotos] = useState<P[]>([]);
   const photoUrls = useSignedUrls('media', photos.map(p => p.photo_url));
+  const coverUrl = useSignedUrl('media', album?.cover_url ?? null);
   const [view, setView] = useState<P | null>(null);
   const [cap, setCap] = useState(''); const [busy, setBusy] = useState(false); const [err, setErr] = useState('');
   const [isAdmin, setIsAdmin] = useState(false);
@@ -154,11 +226,18 @@ export default function AlbumDetail() {
 
   return (
     <div className="page">
-      <button className="backbtn" onClick={() => nav('/albums')}>← 返回相册</button>
-      <div className="hero" style={{ paddingTop: 8 }}>
-        <h1 style={{ fontSize: 24 }}>{album.title}</h1>
-        <p>{album.category} · {photos.length} 张</p>
-      </div>
+      {coverUrl ? (
+        <AlbumHero title={album.title} meta={`${album.category} · ${photos.length} 张`}
+          coverUrl={coverUrl} onBack={() => nav('/albums')} reduce={reduce} />
+      ) : (
+        <>
+          <button className="backbtn" onClick={() => nav('/albums')}>← 返回相册</button>
+          <div className="hero" style={{ paddingTop: 8 }}>
+            <h1 style={{ fontSize: 24 }}>{album.title}</h1>
+            <p>{album.category} · {photos.length} 张</p>
+          </div>
+        </>
+      )}
       {(album.created_by === me || isAdmin) && <div className="row" style={{ gap: 8, margin: '0 0 12px' }}>
         <button className="ghost" onClick={() => { setEditAlbumTitle(album.title); setEditAlbumCategory(album.category); setEditAlbumOpen(value => !value); }}>{editAlbumOpen ? '收起编辑' : '编辑相册'}</button>
         <button className="mini danger" disabled={manageBusy} onClick={() => void removeAlbum()}>删除相册</button>

@@ -59,12 +59,13 @@ import GlobalSearch from './components/GlobalSearch';
 
 // Dock 保留四个最高频入口；其余页面通过长按 Dock 打开的玻璃快捷面板访问。
 const TABS = [
-  { to: '/board', label: '公告' },
+  { to: '/home', label: '首页' },
   { to: '/explore', label: '发现' },
   { to: '/friends', label: '私聊' },
   { to: '/me', label: '我的' },
 ];
 const DOCK_MORE_TABS = [
+  { to: '/board', label: '公告' },
   { to: '/members', label: '班级' },
   { to: '/me/notifications', label: '消息' },
   { to: '/songs', label: '歌声墙' },
@@ -86,6 +87,7 @@ function parseDevice(ua: string): string {
 }
 
 function isTabActive(tab: string, path: string) {
+  if (tab === '/home') return path.startsWith('/home') || path.startsWith('/board');
   if (tab === '/board') return path.startsWith('/board');
   if (tab === '/members') return path.startsWith('/members');
   if (tab === '/explore') return ['/explore','/feed','/albums','/hot','/greetings','/events','/capsule','/wishes','/particle-flower','/air-ink','/calendar'].some(p => path.startsWith(p));
@@ -908,7 +910,7 @@ function Shell() {
                   <NavLink to={t.to} className={on ? 'on' : ''}>
                     {on && <motion.span layoutId="qz-dock-active-indicator" className="dock-active-indicator" transition={{ type: 'spring', stiffness: 420, damping: 34 }} aria-hidden="true" />}
                     <span className="dock-tab-label">{t.label}</span>
-                    {((t.to === '/board' && boardUnread) || (t.to === '/me/notifications' && notifUnread && !quietHoursActive)) && <span className="dock-unread-dot" />}
+                    {((t.to === '/home' && boardUnread) || (t.to === '/me/notifications' && notifUnread && !quietHoursActive)) && <span className="dock-unread-dot" />}
                   </NavLink>
                 </motion.div>
               );

@@ -196,12 +196,15 @@ export default function Home() {
                 </button>
               ))}
             </div>
-          </section>
+          </motion.section>
         
       )}
 
       
-        <section>
+        <motion.section initial={reduceMotion ? false : { opacity: 0, y: 18 }}
+            whileInView={reduceMotion ? undefined : { opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.14 }}
+            transition={{ duration: 0.48, ease: [0.22, 1, 0.36, 1] }}>
           <div className="vh-section-head">
             <div><h2>快速访问</h2><p>常用内容，一步到达</p></div>
           </div>
@@ -217,10 +220,13 @@ export default function Home() {
               </button>
             ))}
           </div>
-        </section>
+        </motion.section>
       
 
-      <section className="vh-lower-grid">
+      <motion.section className="vh-lower-grid" initial={reduceMotion ? false : { opacity: 0, y: 18 }}
+            whileInView={reduceMotion ? undefined : { opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.14 }}
+            transition={{ duration: 0.48, ease: [0.22, 1, 0.36, 1] }}>
         {(posts.length > 0 || wishes.length > 0) && (
           
             <div className="vh-panel">

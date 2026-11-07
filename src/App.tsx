@@ -24,7 +24,6 @@ import GuideCarousel from './components/GuideCarousel';
 import AppUpdateDialog from './components/AppUpdateDialog';
 import LoginSuccessOverlay from './components/LoginSuccessOverlay';
 import bgUrl from './assets/bg.jpg';
-import emblemUrl from './assets/pingzhong-emblem.png';
 import Login from './pages/Login';
 import GuestNicknameDialog from './components/GuestNicknameDialog';
 import GuestBrowse from './pages/GuestBrowse';
@@ -276,8 +275,7 @@ function PublicLanding({ data, onLogin, onGuestLogin, showGuestEntry }: { data: 
   const bannerText = data?.home_banner_text || '把我们的青春，留在这里';
   const bannerUrl = typeof data?.home_banner_url === 'string' && (data.home_banner_url.startsWith('https://') || data.home_banner_url.startsWith('http://')) ? data.home_banner_url : '';
   const heroImg = bannerUrl;
-  return (<><div className="glow" /><img src={emblemUrl} alt="" aria-hidden draggable={false}
-      style={{ position: 'absolute', top: 68, right: 12, width: 88, opacity: 0.32, pointerEvents: 'none', userSelect: 'none', zIndex: 30 }} /><main style={{ width: 'min(100% - 28px, 820px)', margin: '0 auto', padding: '22px 0 48px', color: '#202632' }}>
+  return (<><div className="glow" /><main style={{ width: 'min(100% - 28px, 820px)', margin: '0 auto', padding: '22px 0 48px', color: '#202632' }}>
     <header style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 18 }}>
       <div style={{ flex: 1 }}><div style={{ fontSize: 11, letterSpacing: 3, color: '#7b8492' }}>OUR CLASS · PUBLIC SPACE</div><h1 style={{ margin: '6px 0 0', fontSize: 24 }}>{title}</h1><p style={{ margin: '4px 0 0', color: '#737b89', fontSize: 13 }}><ShinyText text={subtitle} /></p></div>
       {data?.close_login_entry !== 'true' && <button className="pri" style={{ width: 'auto', padding: '10px 16px', whiteSpace: 'nowrap' }} onClick={onLogin}>登录 / 注册</button>}
@@ -307,29 +305,10 @@ function PublicLanding({ data, onLogin, onGuestLogin, showGuestEntry }: { data: 
   </main></>);
 }
 
-// 校徽位置按页面设计：锚在页面顶部随内容滚动（absolute），每页按页头版式给不同的位置与大小；
-// 聊天对话页不放，保持对话界面干净。返回 null 表示该页不显示。
-function emblemSpot(path: string): { top: number; right: number; width: number; opacity: number } | null {
-  if (path.startsWith('/chat') || path.startsWith('/particle-flower')) return null;
-  if (path.startsWith('/love-wall')) return { top: 54, right: 12, width: 118, opacity: 0.32 };
-  if (path.startsWith('/songs')) return { top: 58, right: 12, width: 98, opacity: 0.32 };
-  if (path.startsWith('/explore')) return { top: 96, right: 16, width: 106, opacity: 0.30 };
-  if (path.startsWith('/home')) return { top: 62, right: 14, width: 104, opacity: 0.30 };
-  if (path.startsWith('/me/notifications')) return { top: 56, right: 12, width: 76, opacity: 0.28 };
-  // 个人中心页头右上是通知/设置两个按钮，校徽挪到标题与按钮之间的空档，不再压齿轮和红点
-  if (path === '/me') return { top: 72, right: 132, width: 68, opacity: 0.30 };
-  if (path.startsWith('/me')) return { top: 68, right: 14, width: 82, opacity: 0.34 };
-  if (path.startsWith('/friends')) return { top: 54, right: 12, width: 72, opacity: 0.26 };
-  if (path.startsWith('/members')) return { top: 54, right: 12, width: 80, opacity: 0.30 };
-  if (path.startsWith('/board')) return { top: 54, right: 12, width: 84, opacity: 0.30 };
-  return { top: 58, right: 12, width: 88, opacity: 0.30 };
-}
-
 function Shell() {
   const { session, loading, guest, enterGuest, leaveGuest } = useAuth();
   const quietHoursActive = useQuietHoursActive(session?.user.id);  const [role, setRole] = useState('');
   const loc = useLocation();
-  const emblem = emblemSpot(loc.pathname);
   // 安卓应用更新：应用壳在 UA 里带 QianzhiApp/版本名 (序号)，与后台最新版本比对后弹更新框。
   // 1.0 旧壳没有这个标识，但系统 WebView 的 UA 带「; wv)」记号，detectInstalledApp 会把它按 1.0 认出来。
   const [appUpdate, setAppUpdate] = useState<any>(null);
@@ -942,8 +921,6 @@ function Shell() {
       <div className="app-bg qz-ios26-backdrop" style={wp.kind === 'grad'
         ? { background: wp.src, filter: `blur(${wp.blur}px) brightness(${100 - wp.dark}%)` }
         : { backgroundImage: `url(${wp.src === 'default' ? bgUrl : wp.src})`, filter: `blur(${wp.blur}px) brightness(${100 - wp.dark}%)` }} />
-      {emblem && <img src={emblemUrl} alt="" aria-hidden draggable={false}
-        style={{ position: 'absolute', top: emblem.top, right: emblem.right, width: emblem.width, opacity: emblem.opacity, pointerEvents: 'none', userSelect: 'none', zIndex: 30 }} />}
       {showAppUpdate && installedApp && appUpdate && (
         <AppUpdateDialog currentName={installedApp.name} info={{ ...appUpdate, app_force_update: appForced ? 'true' : 'false' }} onIgnore={ignoreAppUpdate} />
       )}

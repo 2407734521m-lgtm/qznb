@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { startSitePresence } from '../lib/sitePresence';
+import { detectInstalledApp } from '../lib/installedApp';
 import { useAuth } from '../auth';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import '../styles-admin-cinematic.css';
@@ -88,6 +89,7 @@ export default function Admin({ verifiedRole }: { verifiedRole: 'admin' | 'super
     if (!isDedicatedAdminHost || !session) return;
     const uid = session.user.id;
     const device = /Android/.test(navigator.userAgent) ? 'Android' : /iPhone|iPad/.test(navigator.userAgent) ? 'iOS' : 'Desktop';
+    const installed = detectInstalledApp();
     let alive = true;
     let lastActivity = Date.now();
     let inFlight = false;
@@ -97,7 +99,7 @@ export default function Admin({ verifiedRole }: { verifiedRole: 'admin' | 'super
       inFlight = true;
       try {
         await supabase.from('member_presence').upsert(
-          { profile_id: uid, device, updated_at: new Date().toISOString() },
+          { profile_id: uid, device, client_platform: installed ? 'mobile' : 'web', app_version_name: installed?.name ?? null, app_version_code: installed?.code ?? null, updated_at: new Date().toISOString() },
           { onConflict: 'profile_id' }
         );
       } catch { /* 在线统计失败不影响后台操作 */ }

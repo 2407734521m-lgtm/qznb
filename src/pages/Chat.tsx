@@ -11,7 +11,7 @@ import './Chat.polish.css';
 
 type ChatReaction = { message_id: number; profile_id: string; reaction: string; created_at: string };
 type ChatPeer = { id: string; username: string; display_name: string | null; avatar_path: string | null };
-type TapbackAnchor = { left: number; top: number; width: number; dockLeft: number; dockTop: number };
+type TapbackAnchor = { left: number; top: number; width: number; dockLeft: number; dockTop: number; menuLeft: number; menuTop: number };
 const QUICK_REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '🙏'];
 
 
@@ -310,20 +310,33 @@ export default function Chat() {
   function openMessageActions(messageId: number, element?: HTMLElement) {
     const rect = element?.getBoundingClientRect();
     if (rect) {
-      const dockWidth = Math.min(316, Math.max(220, window.innerWidth - 24));
+      const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
+      const dockWidth = Math.min(316, Math.max(220, viewportWidth - 24));
       const dockLeft = Math.max(12, Math.min(
         rect.left + rect.width / 2 - dockWidth / 2,
-        window.innerWidth - dockWidth - 12,
+        viewportWidth - dockWidth - 12,
       ));
       const dockTop = rect.top >= 76
         ? rect.top - 62
-        : Math.min(window.innerHeight - 58, rect.bottom + 10);
+        : Math.min(viewportHeight - 58, rect.bottom + 10);
+      const menuWidth = Math.min(244, viewportWidth - 24);
+      const menuHeight = 224;
+      const menuBelowTop = dockTop >= rect.bottom ? dockTop + 58 : rect.bottom + 12;
+      const menuTop = menuBelowTop + menuHeight <= viewportHeight - 12
+        ? menuBelowTop
+        : Math.max(12, dockTop - menuHeight - 8);
+      const menuLeft = rect.left + rect.width / 2 < viewportWidth / 2
+        ? Math.max(12, Math.min(rect.left, viewportWidth - menuWidth - 12))
+        : Math.max(12, Math.min(rect.right - menuWidth, viewportWidth - menuWidth - 12));
       setTapbackAnchor({
-        left: Math.max(8, Math.min(rect.left, window.innerWidth - Math.max(1, rect.width) - 8)),
-        top: Math.max(8, Math.min(rect.top, window.innerHeight - Math.max(1, rect.height) - 8)),
-        width: Math.min(rect.width, window.innerWidth - 16),
+        left: Math.max(8, Math.min(rect.left, viewportWidth - Math.max(1, rect.width) - 8)),
+        top: Math.max(8, Math.min(rect.top, viewportHeight - Math.max(1, rect.height) - 8)),
+        width: Math.min(rect.width, viewportWidth - 16),
         dockLeft,
         dockTop,
+        menuLeft,
+        menuTop,
       });
     } else {
       setTapbackAnchor(null);
@@ -718,7 +731,7 @@ export default function Chat() {
             <span className="im-title">{name}</span>
             <span className="im-contact-chevron" aria-hidden="true">›</span>
           </span>
-          <span className="im-sub">{otherTyping ? '正在输入…' : ' '}</span>
+          {otherTyping && <span className="im-sub">正在输入…</span>}
         </button>
         <button className="im-icon im-info-button" aria-label="聊天详情" onClick={() => setShowDetails(true)}>
           <span aria-hidden="true">ⓘ</span>
@@ -853,12 +866,12 @@ export default function Chat() {
                 <div className={'im-bubble mine' + (e.phase === 'failed' ? ' im-bubble-failed' : '')}>
                   {e.replyToId !== null && <div className="im-reply-quote">回复：{e.replySummary ?? ''}</div>}
                   <MessageContent body={e.body} />
-                  <div className="im-outbox-status">
-                    <span className={'im-send-status' + (e.phase === 'sent' ? ' sent' : '')} role="img" aria-label={e.phase === 'sending' ? '发送中' : e.phase === 'failed' ? '发送失败' : '已发送'}>
-                      {e.phase === 'sending' ? <ClockIcon /> : e.phase === 'sent' ? <SentIcon /> : null}
-                    </span>
-                    {e.phase === 'sending' ? '发送中' : e.phase === 'failed' ? '发送失败' : '已送达'}
-                  </div>
+                </div>
+                <div className="im-outbox-status">
+                  <span className={'im-send-status' + (e.phase === 'sent' ? ' sent' : '')} role="img" aria-label={e.phase === 'sending' ? '发送中' : e.phase === 'failed' ? '发送失败' : '已发送'}>
+                    {e.phase === 'sending' ? <ClockIcon /> : e.phase === 'sent' ? <SentIcon /> : null}
+                  </span>
+                  {e.phase === 'sending' ? '发送中' : e.phase === 'failed' ? '发送失败' : '已送达'}
                 </div>
                 {e.phase === 'failed' && <button type="button" className="im-retry" onClick={() => retryEntry(e.tempKey)}><span className="im-retry-dot">↻</span>点击重试</button>}
               </div>
@@ -893,6 +906,7 @@ export default function Chat() {
               onClick={() => { setActionFor(null); setTapbackAnchor(null); void toggleReaction(message.id, reaction); }}>{reaction}</button>)}
           </div>}
           <section className="im-context-sheet" role="dialog" aria-modal="true" aria-label="消息操作"
+            style={tapbackAnchor ? { left: tapbackAnchor.menuLeft, top: tapbackAnchor.menuTop } : undefined}
             onClick={event => event.stopPropagation()}>
             <div className="im-context-grabber" />
             <div className="im-context-label">{mine ? '你发送的消息' : name + ' 发送的消息'}</div>

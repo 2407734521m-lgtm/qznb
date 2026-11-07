@@ -49,6 +49,11 @@ import MeNotifications from './pages/MeNotifications';
 import MeFeedback from './pages/MeFeedback';
 import MeAccount from './pages/MeAccount';
 import MeSettings from './pages/MeSettings';
+import MePasskey from './pages/MePasskey';
+import MePrivacy from './pages/MePrivacy';
+import MeDevices from './pages/MeDevices';
+import MeGeneral from './pages/MeGeneral';
+import MeNotifySettings from './pages/MeNotifySettings';
 import MeGrowth from './pages/MeGrowth';
 import ErrorBoundary from './components/ErrorBoundary';
 import AdminLogin from './pages/AdminLogin';
@@ -933,6 +938,11 @@ function Shell() {
               <Route path="/me/feedback" element={<MeFeedback />} />
               <Route path="/me/account" element={<MeAccount />} />
               <Route path="/me/settings" element={<MeSettings />} />
+              <Route path="/me/settings/passkey" element={<MePasskey />} />
+              <Route path="/me/settings/privacy" element={<MePrivacy />} />
+              <Route path="/me/settings/devices" element={<MeDevices />} />
+              <Route path="/me/settings/general" element={<MeGeneral />} />
+              <Route path="/me/settings/notifications" element={<MeNotifySettings />} />
               <Route path="/me/growth" element={<MeGrowth />} />
               <Route path="/greetings" element={<Greetings />} />
               <Route path="/home" element={<Home />} />

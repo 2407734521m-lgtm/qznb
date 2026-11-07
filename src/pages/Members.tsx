@@ -11,10 +11,10 @@ import type { MemberListItem } from '../types/profile';
 const PAGE = 18;
 
 const LAYOUTS = [
-  { k: 'c2', name: '2列 · 大卡' },
-  { k: 'c3', name: '3列' },
-  { k: 'c4', name: '4列 · 紧凑' },
-  { k: 'c6', name: '6列 · 迷你' },
+  { k: 'c2', name: '双列' },
+  { k: 'c3', name: '三列' },
+  { k: 'c4', name: '四列' },
+  { k: 'c6', name: '六列' },
   { k: 'list', name: '列表' },
 ] as const;
 
@@ -24,9 +24,18 @@ function Card({ m, i, badge, signedUrl, onOpen }: { m: MemberListItem; i: number
   const name = m.display_name ?? m.username;
   return (
     <motion.div ref={ref} className="mcard" data-member={m.id}
-      initial={reduce ? {} : { opacity: 0, y: 26 }}
+      initial={reduce ? {} : { opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, delay: reduce ? 0 : Math.min(i * 0.05, 0.5), ease: [0.22, 1, 0.36, 1] }}
+      transition={{ duration: 0.34, delay: reduce ? 0 : Math.min(i * 0.025, 0.18), ease: [0.22, 1, 0.36, 1] }}
+      role="button"
+      tabIndex={0}
+      aria-label={`查看${name}的主页`}
+      onKeyDown={event => {
+        if ((event.key === 'Enter' || event.key === ' ') && ref.current) {
+          event.preventDefault();
+          onOpen(m, ref.current.querySelector('.photo') as HTMLElement, signedUrl ?? '');
+        }
+      }}
       onClick={() => ref.current && onOpen(m, ref.current.querySelector('.photo') as HTMLElement, signedUrl ?? '')}>
       <Photo id={m.id} path={m.avatar_path} name={name} signedUrl={signedUrl ?? ''} />
       <h3>{name}</h3>
@@ -105,23 +114,25 @@ export default function Members() {
   }
 
   return (
-    <div className="page">
-      <div className="hero">
-        <h1>我们的班级</h1>
-        <p>青 春 档 案 · 每 一 张 面 孔 都 是 故 事</p>
-      </div>
+    <div className="page members-page">
+      <header className="community-page-heading">
+        <div>
+          <span className="community-eyebrow">MEMBERS</span>
+          <h1>成员</h1>
+        </div>
+      </header>
       <div className="searchbar">
-        <input placeholder="按名字、性格搜索成员" value={q} onChange={e => setQ(e.target.value)} />
+        <input placeholder="搜索姓名、个性签名或兴趣" value={q} onChange={e => setQ(e.target.value)} />
       </div>
-      {state === 'error' && <p className="err">加载失败。请确认已用邀请码加入班级，或检查网络后重试。
+      {state === 'error' && <p className="err">加载失败，请检查网络后重试。
         <button className="ghost" onClick={() => load(true, q, [])}>重试</button></p>}
       {state === 'ok' && rows.length === 0 && <div className="center"><div className="card">
-        {q ? '没有找到匹配的成员。' : '还没有成员公开资料。先到「我的」填写资料并加入班级，邀请同学注册吧。'}</div></div>}
+        {q ? '没有找到匹配的成员。' : '目前还没有公开的成员资料。'}</div></div>}
       <div className="mtoolbar">
         <span className="mut" style={{ fontSize: 12.5 }}>{rows.length} 位成员</span>
         <div className="lswitch">
           <button type="button" className="ghost" style={{ width: 'auto', padding: '8px 14px', fontSize: 13 }}
-            onClick={() => setLopen(!lopen)}>排列</button>
+            onClick={() => setLopen(!lopen)}>视图</button>
           {lopen && <>
             <div className="lmask" onClick={() => setLopen(false)} />
             <div className="lpop">

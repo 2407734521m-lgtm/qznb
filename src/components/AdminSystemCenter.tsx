@@ -300,7 +300,7 @@ export default function AdminSystemCenter({ setMsg, go }: {
           key: 'email_delivery', label: '邮件任务记录', status: !emailHistoryOk ? 'warn'
             : !latestEmail ? 'warn'
               : latestEmail.status === 'failed' ? 'error'
-                : latestEmail.failed_count > 0 || latestEmail.status === 'partial' ? 'warn' : 'ok',
+                : latestEmail.status !== 'completed' || latestEmail.failed_count > 0 ? 'warn' : 'ok',
           detail: !emailHistoryOk ? '邮件历史 RPC 读取失败，无法验证邮件任务状态。'
             : !latestEmail ? '暂无邮件发送记录，当前无法验证邮件服务状态。'
               : '最近任务 ' + formatTime(latestEmail.created_at) + '：已提交 ' + latestEmail.sent_count

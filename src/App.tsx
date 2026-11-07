@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent } from 'react';
 import { Routes, Route, NavLink, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
@@ -796,7 +796,10 @@ function Shell() {
     return <MaintenanceScreen title={siteConfig.maintenance_title || ''} msg={siteConfig.maintenance_msg || ''} hasSession={!!session} onLogout={logout} onAccessGranted={() => setMaintenanceAccess(true)} />;
   }
 
-  const dockItems = useMemo(() => TABS.map((tab) => ({
+  // Build the four Dock items without a Hook here. This code is below
+  // several intentional early returns (loading, login, maintenance), so using
+  // useMemo here would change the Hook order between renders and crash App.
+  const dockItems = TABS.map((tab) => ({
     id: tab.to,
     label: tab.label,
     icon: (
@@ -805,7 +808,7 @@ function Shell() {
         unread={tab.to === '/home' && boardUnread}
       />
     ),
-  })), [boardUnread]);
+  }));
   const activeDockItem = TABS.find((tab) => isTabActive(tab.to, loc.pathname))?.to ?? TABS[0].to;
 
   return (

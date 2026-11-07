@@ -109,7 +109,7 @@ export default function MyProfile() {
     setGpickOpen(true);
   }
   const loadedRef = useRef(false); const savingRef = useRef(false); const pendingRef = useRef(false);
-  const latestSaveRef = useRef<{ v: any; priv: any; theme: string; layout: string } | null>(null);
+  const latestSaveRef = useRef<{ v: any; priv: any; theme: string; layout: string; phone: string } | null>(null);
   const [keys, setKeys] = useState<Array<{ id: string; friendly_name?: string | null; created_at?: string }>>([]);
   const [role, setRole] = useState('');
   const fileRef = useRef<HTMLInputElement>(null);
@@ -118,6 +118,7 @@ export default function MyProfile() {
   const videoUrl = useSignedUrl('videos', videoPath);
   const [videoFile, setVideoFile] = useState<File | null>(null); // 待确认上传的视频（弹窗用）
   const [videoBusy, setVideoBusy] = useState(false);
+  const [phone, setPhone] = useState('');
   const videoInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => { supabase.rpc('my_role').then(({ data }) => setRole(data ?? '')); }, []);
@@ -154,6 +155,7 @@ export default function MyProfile() {
       hide_love_wall_name: pr.data.hide_love_wall_name,
     });
     setAvatar(p.data.avatar_path); setUname(p.data.username ?? '');
+    setPhone(p.data.phone ?? '');
     setVideoPath(p.data.intro_video_path ?? null);
     const rawTheme = p.data.theme;
     const themeSettings = typeof rawTheme === 'object' && rawTheme !== null && !Array.isArray(rawTheme) ? rawTheme : {};
@@ -178,7 +180,7 @@ export default function MyProfile() {
   const n = (s: string) => s.trim() === '' ? null : s.trim();
 
   // 每次渲染都更新最新快照；旧请求结束时只能继续保存最新值。
-  latestSaveRef.current = { v, priv, theme, layout };
+  latestSaveRef.current = { v, priv, theme, layout, phone };
 
   // 自动保存：改动后 1 秒自动存，不用点保存按钮
   async function doSave() {
@@ -190,9 +192,14 @@ export default function MyProfile() {
     if (age && !(Number(age) >= 5 && Number(age) <= 120)) {
       savingRef.current = false; setSaveState('idle'); setMsg('年龄需在 5–120 之间'); return;
     }
+    const phoneRaw = (snapshot.phone ?? '').trim();
+    if (phoneRaw && !/^1[0-9]{10}$/.test(phoneRaw)) {
+      savingRef.current = false; setSaveState('idle'); setMsg('手机号需为 11 位、以 1 开头，或留空'); return;
+    }
     const r = await Promise.all([
       withRetry(() => supabase.from('profiles').update({ display_name: n(snapshot.v.display_name), age: age ? Number(age) : null,
         personality: n(snapshot.v.personality), signature: n(snapshot.v.signature), bio: n(snapshot.v.bio), hobbies: n(snapshot.v.hobbies),
+        phone: phoneRaw === '' ? null : phoneRaw,
         theme: { theme: snapshot.theme, layout: snapshot.layout } }).eq('id', uid)),
       withRetry(() => supabase.from('profile_privacy').update({
         show_name: !!snapshot.priv.show_name,
@@ -219,7 +226,7 @@ export default function MyProfile() {
     const t = setTimeout(() => { doSave(); }, 1000);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [v, priv, theme, layout]);
+  }, [v, priv, theme, layout, phone]);
 
   function pickAvatar(f?: File) {
     if (!f) return;
@@ -352,6 +359,9 @@ export default function MyProfile() {
           </div>
         )}
         {fieldInput('contact', '联系方式', '手机号 / QQ…')}
+        <label>手机号（注册号码，可修改）
+          <input value={phone} inputMode="numeric" maxLength={11} placeholder="11 位手机号，可留空" onChange={e => setPhone(e.target.value.replace(/[^0-9]/g, ''))} />
+        </label>
         <label style={{ marginBottom: 6 }}>社交平台</label>
         <SocialPicker value={v.social ?? ''} onChange={s => setV({ ...v, social: s })} />
       </Collapsible>

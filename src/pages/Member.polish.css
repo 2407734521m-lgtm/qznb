@@ -319,3 +319,7 @@
     transition: none !important;
   }
 }
+
+/* 主页加好友的邮件提醒选项 */
+.mp-email-option{display:flex;align-items:center;justify-content:center;gap:8px;margin:12px auto 0;font-size:13px;color:#5c5344;cursor:pointer;width:fit-content}
+.mp-email-option input{width:16px;height:16px;accent-color:#22314a}

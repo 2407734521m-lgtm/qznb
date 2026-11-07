@@ -1,14 +1,24 @@
 import { useEffect, useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
+import GuideCarousel from './GuideCarousel';
 
 type PrivacyLevel = 'class' | 'custom' | 'private';
 
 // 登录/注册欢迎仪式。这里仅负责引导界面；真实隐私权限必须由数据库 RLS/API 实现。
+// 首次（本机未看过）先走 3 页功能引导绘本，之后每次登录直接从欢迎步开始。
 export default function WelcomeOverlay({ nick, onDone }: { nick: string; onDone: () => void }) {
   const reduce = useReducedMotion();
-  const [step, setStep] = useState<'welcome' | 'privacy'>('welcome');
+  const [step, setStep] = useState<'guide' | 'welcome' | 'privacy'>(() => {
+    try { return localStorage.getItem('qz_guide_seen_v1') ? 'welcome' : 'guide'; }
+    catch { return 'welcome'; }
+  });
   const [privacy, setPrivacy] = useState<PrivacyLevel>('private');
   const [saving, setSaving] = useState(false);
+
+  function guideDone() {
+    try { localStorage.setItem('qz_guide_seen_v1', '1'); } catch {}
+    setStep('welcome');
+  }
 
   useEffect(() => {
     const old = localStorage.getItem('ca_privacy_level');
@@ -48,6 +58,9 @@ export default function WelcomeOverlay({ nick, onDone }: { nick: string; onDone:
       transition={{ duration: reduce ? 0.12 : 0.35 }}
       style={{ position: 'fixed', inset: 0, zIndex: 500, display: 'flex', alignItems: 'center',
         justifyContent: 'center', padding: 20, overflowY: 'auto', background: 'radial-gradient(ellipse at 50% 35%, #202b48 0%, #0a0d15 58%, #05060a 100%)' }}>
+      {step === 'guide' ? (
+        <GuideCarousel onDone={guideDone} />
+      ) : (
       <motion.div style={panel} initial={reduce ? false : { y: 18, scale: .985 }} animate={{ y: 0, scale: 1 }}
         transition={{ duration: reduce ? .12 : .55, ease: [0.22, 1, .36, 1] }}>
         <div style={{ width: 86, height: 86, margin: '0 auto 22px', borderRadius: 26, display: 'grid',
@@ -87,6 +100,7 @@ export default function WelcomeOverlay({ nick, onDone }: { nick: string; onDone:
               fontSize: 15, fontWeight: 750, opacity: saving ? .65 : 1 }}>{saving ? '正在继续…' : '完成并进入班级'}</button>
         </>}
       </motion.div>
+      )}
     </motion.div>
   );
 }

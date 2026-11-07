@@ -18,7 +18,7 @@ function assert(condition, message) {
   }
 }
 
-assert(/--visual-bg:\s*#ffffff/.test(styles), 'the site canvas default must stay white');
+assert(/--visual-bg:\s*#ffffff/.test(tokens), 'the site canvas default must stay white');
 assert((tokens.match(/:root\s*\{/g) || []).length === 1, 'canonical material tokens must use one root block');
 assert(tokens.includes('--visual-bg: #ffffff;') && tokens.includes('--bg: #ffffff;'), 'canonical material tokens must preserve the white default canvas');
 assert(!styles.includes('--qz26-ink:'), 'component CSS must not redefine canonical material tokens');

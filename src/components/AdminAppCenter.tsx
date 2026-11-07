@@ -3,11 +3,13 @@ import { supabase } from '../lib/supabase';
 import { card, h3, mut, alog } from '../pages/admin/shared';
 import { confirmDialog } from '../lib/dialog';
 
-const KEYS = ['app_version_name', 'app_version_code', 'app_apk_url', 'app_update_notes', 'app_force_update', 'app_min_code'];
+const KEYS = ['app_version_name', 'app_version_code', 'app_apk_url', 'app_update_notes', 'app_force_update', 'app_min_code',
+  'admin_app_version_name', 'admin_app_version_code', 'admin_app_apk_url', 'admin_app_update_notes', 'admin_app_force_update', 'admin_app_min_code'];
 
 // 应用管理：安卓 App 的版本推送独立成栏（原先在设置页里，现已移出）。
 // 功能：线上状态概览、版本推送六项设置、更新框实时预览、下载链接与二维码分享、发版步骤。
 // 数据仍是 site_settings 的 app_* 键，应用端经 public_app_update() 读取，保存即生效。
+// 管理版「青春管理」另有一套 admin_app_* 键，管理版壳经 public_admin_app_update() 读取，两边分开推送、互不影响。
 export default function AdminAppCenter({ setMsg }: { setMsg: (s: string) => void }) {
   const [vals, setVals] = useState<Record<string, string>>({});
   const [saved, setSaved] = useState<Record<string, string>>({});
@@ -60,6 +62,7 @@ export default function AdminAppCenter({ setMsg }: { setMsg: (s: string) => void
   }
 
   const draftForce = vals.app_force_update === 'true';
+  const draftAdminForce = vals.admin_app_force_update === 'true';
   const draftMin = Number(vals.app_min_code || 0) || 0;
   const previewNotes = (vals.app_update_notes ?? '').trim() || '修复了一些问题，体验更流畅了。';
   const savedUrl = (saved.app_apk_url ?? '').trim();
@@ -166,6 +169,54 @@ export default function AdminAppCenter({ setMsg }: { setMsg: (s: string) => void
           )}
         </div>
         <p style={{ ...mut, margin: '8px 0 0' }}>注意：现在装的 1.0 版收不到推送，得靠这个链接/二维码手动装一次 1.1；从 1.1 起就都能在上面推送了。</p>
+      </div>
+
+      <div style={card}>
+        <h3 style={h3}>管理版应用 · 青春管理</h3>
+        <p style={{ ...mut, margin: '0 0 10px' }}>管理员用的「青春管理」单独一套推送，和上面学生版互不影响。打开管理版时拿自己的序号和这里比，更大就弹更新框，点更新在应用内下载安装。</p>
+        <div style={{ fontSize: 13.5, lineHeight: 2, marginBottom: 10 }}>
+          <div>线上最新版本：<b>{saved.admin_app_version_name || '（未设置）'}</b>（序号 {saved.admin_app_version_code || '0'}）</div>
+          <div>强制更新：{saved.admin_app_force_update === 'true' ? '开（所有旧版必须更新）' : '关'}</div>
+          <div style={{ overflowWrap: 'anywhere' }}>下载地址：{(saved.admin_app_apk_url ?? '').trim() || '（未设置）'}</div>
+        </div>
+        <label style={mut}>最新版本号（如 1.1）</label>
+        <div className="row" style={{ gap: 8, marginBottom: 10 }}>
+          <input value={vals.admin_app_version_name ?? ''} onChange={e => setVals({ ...vals, admin_app_version_name: e.target.value })} style={{ flex: 1 }} placeholder="1.1" />
+          <button className="mini" onClick={() => void save('admin_app_version_name', (vals.admin_app_version_name ?? '').trim())}>保存</button>
+        </div>
+        <label style={mut}>版本序号（整数，必须比上一版大，推送只认序号）</label>
+        <div className="row" style={{ gap: 8, marginBottom: 10 }}>
+          <input value={vals.admin_app_version_code ?? ''} inputMode="numeric" onChange={e => setVals({ ...vals, admin_app_version_code: e.target.value.replace(/[^0-9]/g, '') })} style={{ flex: 1 }} placeholder="2" />
+          <button className="mini" onClick={() => saveInt('admin_app_version_code', '版本序号')}>保存</button>
+        </div>
+        <label style={mut}>安装包下载地址</label>
+        <div className="row" style={{ gap: 8, marginBottom: 10 }}>
+          <input value={vals.admin_app_apk_url ?? ''} onChange={e => setVals({ ...vals, admin_app_apk_url: e.target.value })} style={{ flex: 1 }} placeholder="https://qianzhi.pw/app/qingchun-dangan-admin.apk" />
+          <button className="mini" onClick={() => void save('admin_app_apk_url', (vals.admin_app_apk_url ?? '').trim())}>保存</button>
+        </div>
+        <label style={mut}>更新说明（显示在更新框里，可多行）</label>
+        <textarea value={vals.admin_app_update_notes ?? ''} onChange={e => setVals({ ...vals, admin_app_update_notes: e.target.value })} rows={4} style={{ width: '100%', marginBottom: 8 }} placeholder={'比如：\n修复了……'} />
+        <div className="row" style={{ gap: 8, marginBottom: 12 }}>
+          <button className="mini" onClick={() => void save('admin_app_update_notes', vals.admin_app_update_notes ?? '')}>保存说明</button>
+        </div>
+        <label style={mut}>最低可用序号（低于它的管理版打开就必须更新，填 0 表示不限）</label>
+        <div className="row" style={{ gap: 8, marginBottom: 10 }}>
+          <input value={vals.admin_app_min_code ?? ''} inputMode="numeric" onChange={e => setVals({ ...vals, admin_app_min_code: e.target.value.replace(/[^0-9]/g, '') })} style={{ flex: 1 }} placeholder="0" />
+          <button className="mini" onClick={() => saveInt('admin_app_min_code', '最低可用序号')}>保存</button>
+        </div>
+        <div className="row" style={{ gap: 8, alignItems: 'center' }}>
+          <span style={{ fontSize: 13.5 }}>强制更新（所有旧版都不能忽略）</span>
+          <button className={'mini' + (draftAdminForce ? '' : ' ghost')}
+            onClick={async () => {
+              const next = draftAdminForce ? 'false' : 'true';
+              if (next === 'true' && !(await confirmDialog('开启强制更新后，所有旧版管理版一打开就被更新框挡住，只能更新、不能忽略。确定开启？', { confirmText: '确认开启', danger: true }))) return;
+              setVals({ ...vals, admin_app_force_update: next });
+              void save('admin_app_force_update', next);
+            }}>
+            {draftAdminForce ? '开' : '关'}
+          </button>
+        </div>
+        <p style={{ ...mut, margin: '10px 0 0' }}>注意：管理版第一次安装收不到推送（还没装上），先用下载地址手动装一次；装上之后再发新版就都是弹窗更新了。</p>
       </div>
 
       <div style={card}>

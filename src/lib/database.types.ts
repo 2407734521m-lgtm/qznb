@@ -1902,6 +1902,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: unknown
       }
+      public_admin_app_update: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
       public_app_update: {
         Args: Record<PropertyKey, never>
         Returns: Json

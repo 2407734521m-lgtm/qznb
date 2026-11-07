@@ -12,6 +12,15 @@ export function detectInstalledApp(): { name: string; code: number } | null {
   return null;
 }
 
+// 识别管理员版应用壳（青春管理）：UA 带 QianzhiAdmin/版本名 (序号)。
+// 管理版壳故意去掉了「; wv)」记号且不带 QianzhiApp 标识，所以上面的学生版
+// 识别不会误认它；它走独立的更新通道 public_admin_app_update()，与学生版分开推送。
+export function detectInstalledAdminApp(): { name: string; code: number } | null {
+  const m = navigator.userAgent.match(/QianzhiAdmin\/([0-9.]+) \((\d+)\)/);
+  if (m) return { name: m[1], code: Number(m[2]) };
+  return null;
+}
+
 export function isInApp(): boolean {
   return detectInstalledApp() !== null;
 }

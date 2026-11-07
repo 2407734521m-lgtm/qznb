@@ -196,19 +196,7 @@
   .me-hub :where(button):active:not(:disabled) { transform: none !important; }
 }
 
-/* Quiet white account hub: use a clean canvas, simple surfaces and readable contrast. */
-body:has(.me-hub),
-body:has(.me-hub) #root,
-body:has(.me-hub) .qz-ios26-scene,
-.wrap:has(.me-hub) {
-  background: #fff !important;
-  color: #202733 !important;
-}
-body:has(.me-hub) .app-bg,
-body:has(.me-hub) .qz-ios26-backdrop,
-body:has(.me-hub) .glow {
-  display: none !important;
-}
+/* Quiet white account hub: use clean page surfaces without replacing shared wallpaper. */
 .me-hub {
   --mh-ink: #202733;
   --mh-muted: #747d89;

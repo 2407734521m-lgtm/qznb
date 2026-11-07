@@ -2014,6 +2014,10 @@ export type Database = {
         Args: { u: string }
         Returns: unknown
       }
+      withdraw_friend_request: {
+        Args: { target: string }
+        Returns: string
+      }
     }
     Enums: {
       [_ in never]: never

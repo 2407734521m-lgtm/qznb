@@ -398,6 +398,21 @@ export default function Friends() {
     });
   }
 
+  async function withdrawRequest(person: MemberSearchResult) {
+    if (friendActionId) return;
+    if (!(await confirmDialog(`撤回给「${person.display_name ?? person.username}」的好友申请？`, { confirmText: '撤回申请' }))) return;
+    setFriendActionId(person.id);
+    setMsg('');
+    try {
+      const { error } = await supabase.rpc('withdraw_friend_request', { target: person.id });
+      if (error) { setMsg('撤回失败：' + error.message); return; }
+      setMsg('已撤回好友申请。');
+      await load();
+    } finally {
+      setFriendActionId(null);
+    }
+  }
+
   async function respond(id: string, accept: boolean) {
     if (friendActionId) return;
     setFriendActionId(id);
@@ -737,7 +752,9 @@ export default function Friends() {
                       {busy ? '处理中…' : '接受申请'}
                     </button>
                   ) : hasOutgoingRequest ? (
-                    <button type="button" disabled>等待同意</button>
+                    <button type="button" disabled={busy} onClick={() => withdrawRequest(person)}>
+                      {busy ? '处理中…' : '撤回申请'}
+                    </button>
                   ) : (
                     <button type="button" disabled={busy} onClick={() => addFriend(person)}>
                       {busy ? '发送中…' : '添加好友'}

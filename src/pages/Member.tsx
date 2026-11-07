@@ -34,6 +34,7 @@ export default function Member() {
   const [cropSrc, setCropSrc] = useState<string | null>(null);
   const [fstat, setFstat] = useState<RelationshipState | null>(null);
   const [fbusy, setFbusy] = useState(false);
+  const [sendEmailReminder, setSendEmailReminder] = useState(false);
   const [gbadge, setGbadge] = useState<{ game_name: string; game_uid: string | null; rank: string } | null>(null);
   const [gx, setGx] = useState<'game' | 'social' | null>(null);
   const uid = useAuth().session?.user.id;
@@ -106,13 +107,39 @@ export default function Member() {
 
   async function addFriend() {
     if (fbusy) return; setFbusy(true); setUpMsg('');
+    const reminderRequested = sendEmailReminder;
     const { data, error } = await supabase.rpc('send_friend_request', { target: id });
     setFbusy(false);
     if (error) return setUpMsg('请求失败：' + error.message);
     if (data === 'accepted') setUpMsg('对方已申请你，已成为好友 ✓');
     else if (data === 'already_friends') setUpMsg('已经是好友了');
     else if (data === 'already_pending') setUpMsg('已申请，等待对方通过');
-    else setUpMsg('好友申请已发送 ✓');
+    else {
+      let suffix = '';
+      if (reminderRequested) {
+        setSendEmailReminder(false);
+        try {
+          const { data: emailResult, error: emailError } = await supabase.functions.invoke('friend-request-email', { body: { target: id } });
+          if (emailError) suffix = ' 但邮件提醒暂时发送失败。';
+          else if (emailResult?.sent === true) suffix = ' 邮件提醒已提交。';
+          else if (emailResult?.reason === 'recipient_email_unavailable') suffix = ' 对方没有可用的已验证邮箱，未发送邮件。';
+          else if (emailResult?.reason === 'rate_limited') suffix = ' 邮件提醒已达到发送频率限制，未发送邮件。';
+          else suffix = ' 邮件提醒暂未发送。';
+        } catch { suffix = ' 但邮件提醒暂时发送失败。'; }
+      }
+      setUpMsg('好友申请已发送 ✓' + suffix);
+    }
+    loadFriend();
+  }
+
+  async function withdrawFriend() {
+    if (fbusy) return;
+    if (!(await confirmDialog(`撤回给「${name}」的好友申请？`, { confirmText: '撤回申请' }))) return;
+    setFbusy(true); setUpMsg('');
+    const { data, error } = await supabase.rpc('withdraw_friend_request', { target: id });
+    setFbusy(false);
+    if (error) return setUpMsg('撤回失败：' + error.message);
+    setUpMsg(data === 'withdrawn' ? '已撤回好友申请' : '申请状态已变化');
     loadFriend();
   }
   async function goChat() {
@@ -248,9 +275,9 @@ export default function Member() {
                 <span className="mp-act-label">发消息</span>
               </button>
             ) : fstat.friend_status === 'pending' && fstat.friend_requester === uid ? (
-              <button type="button" className="mp-act" disabled>
-                <span className="mp-act-circle">{actIcon(<><circle cx="12" cy="12" r="9" /><polyline points="12 7 12 12 15.5 14" /></>)}</span>
-                <span className="mp-act-label">已申请</span>
+              <button type="button" className="mp-act" disabled={fbusy} onClick={withdrawFriend}>
+                <span className="mp-act-circle">{actIcon(<><path d="M3 12a9 9 0 1 0 3-6.7L3 8" /><path d="M3 3v5h5" /></>)}</span>
+                <span className="mp-act-label">撤回申请</span>
               </button>
             ) : fstat.friend_status === 'pending' ? (
               <button type="button" className="mp-act primary" onClick={() => nav('/friends')}>
@@ -284,6 +311,12 @@ export default function Member() {
           )}
         </div>
       </section>
+      {!isMe && uid && fstat && !fstat.blocked_me && !fstat.friend_status && (
+        <label className="mp-email-option">
+          <input type="checkbox" checked={sendEmailReminder} onChange={e => setSendEmailReminder(e.target.checked)} />
+          <span>同时发送邮件提醒（仅对这次申请生效）</span>
+        </label>
+      )}
       {upMsg && <p className="mp-msg">{upMsg}</p>}
       {gx === 'game' && gbadge && (
         <motion.section className="mp-card" {...itemProps(1)}>

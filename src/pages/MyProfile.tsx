@@ -111,6 +111,7 @@ export default function MyProfile() {
     setGpickOpen(true);
   }
   const loadedRef = useRef(false); const savingRef = useRef(false); const pendingRef = useRef(false);
+  const latestSaveRef = useRef<{ v: Record<string, string>; priv: Record<string, boolean>; theme: string; layout: string } | null>(null);
   const [keys, setKeys] = useState<Array<{ id: string; friendly_name?: string | null; created_at?: string }>>([]);
   const [role, setRole] = useState('');
   const fileRef = useRef<HTMLInputElement>(null);
@@ -186,32 +187,37 @@ export default function MyProfile() {
 
   const n = (s: string) => s.trim() === '' ? null : s.trim();
 
+  // 每次渲染都更新最新快照；旧请求结束时只能继续保存最新值。
+  latestSaveRef.current = { v, priv, theme, layout };
+
   // 自动保存：改动后 1 秒自动存，不用点保存按钮
   async function doSave() {
+    const snapshot = latestSaveRef.current;
+    if (!snapshot) return;
     if (savingRef.current) { pendingRef.current = true; return; }
     savingRef.current = true; setSaveState('saving');
-    const age = n(v.age ?? '');
+    const age = n(snapshot.v.age ?? '');
     if (age && !(Number(age) >= 5 && Number(age) <= 120)) {
       savingRef.current = false; setSaveState('idle'); setMsg('年龄需在 5–120 之间'); return;
     }
     const r = await Promise.all([
-      withRetry(() => supabase.from('profiles').update({ display_name: n(v.display_name), age: age ? Number(age) : null,
-        personality: n(v.personality), signature: n(v.signature), bio: n(v.bio), hobbies: n(v.hobbies),
-        theme: { theme, layout } }).eq('id', uid)),
+      withRetry(() => supabase.from('profiles').update({ display_name: n(snapshot.v.display_name), age: age ? Number(age) : null,
+        personality: n(snapshot.v.personality), signature: n(snapshot.v.signature), bio: n(snapshot.v.bio), hobbies: n(snapshot.v.hobbies),
+        snapshot.theme: { snapshot.theme, snapshot.layout } }).eq('id', uid)),
       withRetry(() => supabase.from('profile_privacy').update({
-        show_name: !!priv.show_name,
-        show_age: !!priv.show_age,
-        show_personality: !!priv.show_personality,
-        show_signature: !!priv.show_signature,
-        show_bio: !!priv.show_bio,
-        show_hobbies: !!priv.show_hobbies,
-        show_avatar: !!priv.show_avatar,
-        show_contact: !!priv.show_contact,
-        show_social: !!priv.show_social,
-        show_game_id: !!priv.show_game_id,
-        hide_love_wall_name: !!priv.hide_love_wall_name,
+        show_name: !!snapshot.priv.show_name,
+        show_age: !!snapshot.priv.show_age,
+        show_personality: !!snapshot.priv.show_personality,
+        show_signature: !!snapshot.priv.show_signature,
+        show_bio: !!snapshot.priv.show_bio,
+        show_hobbies: !!snapshot.priv.show_hobbies,
+        show_avatar: !!snapshot.priv.show_avatar,
+        show_contact: !!snapshot.priv.show_contact,
+        show_social: !!snapshot.priv.show_social,
+        show_game_id: !!snapshot.priv.show_game_id,
+        hide_love_wall_name: !!snapshot.priv.hide_love_wall_name,
       }).eq('profile_id', uid)),
-      withRetry(() => supabase.from('profile_contacts').upsert({ profile_id: uid, contact: n(v.contact), social: n(v.social) }, { onConflict: 'profile_id' }))]);
+      withRetry(() => supabase.from('profile_contacts').upsert({ profile_id: uid, contact: n(snapshot.v.contact), social: n(snapshot.v.social) }, { onConflict: 'profile_id' }))]);
     savingRef.current = false;
     const err = r.find(x => x.error);
     if (err) { setSaveState('error'); setMsg('保存失败：' + err.error!.message); }

@@ -344,3 +344,24 @@
   color: #4f4632 !important;
   border: 1px solid rgba(146, 118, 52, .35) !important;
 }
+
+/* ===== 12. 压过主包后置的 ios26 玻璃规则 =====
+   打包合并顺序里 styles-ios26-liquid-glass.css 排在后台样式之后，
+   它给 sidebar 与内容区 .card 写了 !important 玻璃面；
+   这里用更高优先级（多一层祖先）把这两处钉回纸面。 */
+.admin-shell-v3 .admin-workspace .admin-sidebar {
+  background: #fffdf9 !important;
+  border-right-color: rgba(34, 49, 74, .13) !important;
+  box-shadow: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+.admin-shell-v3 .admin-workspace .admin-content .card {
+  color: #22314a !important;
+  background: #fffdf9 !important;
+  background-image: none !important;
+  border: 1px solid rgba(34, 49, 74, .14) !important;
+  box-shadow: 0 16px 40px rgba(60, 48, 20, .12) !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}

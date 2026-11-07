@@ -17,7 +17,7 @@ function request(username = 'classmate', ip: string | null = '203.0.113.1') {
     body: JSON.stringify({ username, password: 'incorrect' }),
   });
 }
-function mock(options: { unknown?: boolean; noEmail?: boolean; allowed?: boolean; rpcError?: boolean; success?: boolean; unconfirmed?: boolean } = {}) {
+function mock(options: { unknown?: boolean; noEmail?: boolean; allowed?: boolean; rpcError?: boolean; success?: boolean; unconfirmed?: boolean; budgetDenied?: boolean; beginError?: boolean; finishError?: boolean; stale?: boolean } = {}) {
   const calls: { path: string; body: Record<string, unknown> }[] = [];
   const fetcher: typeof fetch = async (input, init) => {
     const path = new URL(input instanceof Request ? input.url : String(input)).pathname;
@@ -28,6 +28,14 @@ function mock(options: { unknown?: boolean; noEmail?: boolean; allowed?: boolean
     if (path.endsWith('/consume_username_login_attempt')) {
       data = options.rpcError ? { message: 'db unavailable' } : options.allowed !== false;
       if (options.rpcError) status = 500;
+    } else if (path.endsWith('/begin_username_login_attempt')) {
+      data = options.beginError ? { message: 'account budget unavailable' }
+        : options.budgetDenied ? { allowed: false, retry_after_ms: 32000 }
+        : { allowed: true, token: '11111111-1111-4111-8111-111111111111' };
+      if (options.beginError) status = 500;
+    } else if (path.endsWith('/finish_username_login_attempt')) {
+      data = options.finishError ? { message: 'completion unavailable' } : !options.stale;
+      if (options.finishError) status = 500;
     } else if (path.endsWith('/clear_username_login_attempts')) data = null;
     else if (path.endsWith('/profiles')) data = options.unknown ? [] : [{ id: '11111111-1111-4111-8111-111111111111' }];
     else if (path.endsWith('/profile_emails')) data = options.unknown || options.noEmail ? [] : [{ email: 'real@example.test' }];
@@ -62,8 +70,9 @@ Deno.test('unknown username, missing email and wrong password share requests, ge
     durations.push(performance.now() - start);
     equal(response.status, 200);
     equal(await response.json(), { ok: false, code: 'invalid_credentials' });
-    equal(calls.map((c) => c.path), ['/rest/v1/rpc/consume_username_login_attempt', '/rest/v1/profiles', '/rest/v1/profile_emails', '/auth/v1/token']);
-    const auth = calls[3].body;
+    equal(calls.map((c) => c.path), ['/rest/v1/rpc/consume_username_login_attempt', '/rest/v1/rpc/begin_username_login_attempt', '/rest/v1/profiles', '/rest/v1/profile_emails', '/auth/v1/token', '/rest/v1/rpc/finish_username_login_attempt']);
+    const auth = calls[4].body;
+    equal(calls[5].body.p_success, false);
     assert(options.unknown || options.noEmail ? String(auth.email).endsWith('@username-login.invalid') : auth.email === 'real@example.test');
   }
   assert(durations.every((n) => n >= 790), `missing failure delay: ${durations}`);
@@ -100,9 +109,44 @@ Deno.test('successful login preserves session shape and clears pair only', async
   assert(data.ok && data.session.access_token === 'test-access' && data.session.refresh_token === 'test-refresh');
   equal(calls.at(-1)?.path, '/rest/v1/rpc/clear_username_login_attempts');
   equal(calls.at(-1)?.body, { p_identifier_hash: calls[0].body.p_identifier_hash });
+  equal(calls[5].body.p_success, true);
 });
 
 Deno.test('unconfirmed email retains frontend error code', async () => {
   const { fetcher } = mock({ unconfirmed: true });
   equal(await (await handleRequest(request(), fetcher)).json(), { ok: false, code: 'email_not_confirmed' });
+});
+
+Deno.test('rotating forged IP headers cannot change the username budget or bypass its denial', async () => {
+  const hashes: unknown[] = [];
+  for (const ip of ['203.0.113.1', '198.51.100.2', '192.0.2.3']) {
+    const { calls, fetcher } = mock({ budgetDenied: true });
+    const response = await handleRequest(request('Classmate', ip), fetcher);
+    equal(await response.json(), { ok: false, code: 'rate_limited', retry_after_ms: 32000 });
+    equal(response.headers.get('Retry-After'), '32');
+    equal(calls.length, 2); // Auth and profile lookup were never reached.
+    hashes.push(calls[1].body.p_username_hash);
+    assert(/^[0-9a-f]{64}$/.test(String(hashes.at(-1))));
+  }
+  equal(hashes[0], hashes[1]);
+  equal(hashes[1], hashes[2]);
+  const { calls, fetcher } = mock({ budgetDenied: true });
+  await handleRequest(request(' classmate ', '203.0.113.4'), fetcher);
+  equal(calls[1].body.p_username_hash, hashes[0]);
+});
+
+Deno.test('username budget errors fail closed before authentication', async () => {
+  const { calls, fetcher } = mock({ beginError: true });
+  equal((await handleRequest(request(), fetcher)).status, 503);
+  equal(calls.length, 2);
+});
+
+Deno.test('failed or stale completion never returns a successful session', async () => {
+  for (const options of [{ finishError: true }, { stale: true }]) {
+    const { calls, fetcher } = mock({ success: true, ...options });
+    const response = await handleRequest(request(), fetcher);
+    equal(response.status, 503);
+    equal(await response.json(), { ok: false, code: 'unavailable' });
+    equal(calls.length, 6);
+  }
 });

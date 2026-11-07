@@ -6,21 +6,21 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
-function response(body: unknown, status = 200) {
+function response(body: unknown, status = 200, extraHeaders: Record<string, string> = {}) {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
+    headers: { ...corsHeaders, ...extraHeaders, 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
   });
 }
 
 async function hashIdentifier(value: string): Promise<string> {
-  const bytes = new TextEncoder().encode(value.trim().toLocaleLowerCase());
+  const bytes = new TextEncoder().encode(value.trim().toLowerCase());
   const digest = await crypto.subtle.digest('SHA-256', bytes);
   return Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, '0')).join('');
 }
 
-// The gateway must overwrite client-supplied forwarding headers. Prefer the
-// Cloudflare edge value; XFF's first entry is a fallback for other gateways.
+// IP metadata is best-effort, NOT an authenticated identity. Prefer CF over
+// client-controlled XFF, but the independent username budget is authoritative.
 export function clientIp(req: Request): string | null {
   const value = req.headers.get('cf-connecting-ip')?.trim()
     || req.headers.get('x-forwarded-for')?.split(',')[0]?.trim();
@@ -69,7 +69,8 @@ export async function handleRequest(req: Request, fetcher: typeof fetch = fetch)
   };
   const admin = createClient(url, serviceKey, options);
   const ipHash = await hashIdentifier(`ip:${ip}`);
-  const identifierHash = await hashIdentifier(JSON.stringify(['pair', ip, username.toLocaleLowerCase()]));
+  const usernameHash = await hashIdentifier(JSON.stringify(['username', username.toLowerCase()]));
+  const identifierHash = await hashIdentifier(JSON.stringify(['pair', ip, username.toLowerCase()]));
 
   // Charge unknown usernames too, before lookup. The IP-wide quota bounds the
   // number of pair rows created by username spraying and is NOT reset on login.
@@ -79,6 +80,28 @@ export async function handleRequest(req: Request, fetcher: typeof fetch = fetch)
   });
   if (limitError) return response({ ok: false, code: 'unavailable' }, 503);
   if (allowed !== true) return response({ ok: false, code: 'rate_limited' });
+
+  // Account identity never contains an IP. Reserve a single outstanding check
+  // atomically; rotated/spoofed headers and parallel requests cannot bypass it.
+  const { data: budget, error: budgetError } = await admin.rpc('begin_username_login_attempt', {
+    p_username_hash: usernameHash,
+  });
+  if (budgetError || typeof budget?.allowed !== 'boolean') {
+    return response({ ok: false, code: 'unavailable' }, 503);
+  }
+  if (!budget.allowed) {
+    if (!Number.isFinite(budget.retry_after_ms) || budget.retry_after_ms <= 0) {
+      return response({ ok: false, code: 'unavailable' }, 503);
+    }
+    const retryAfter = Math.min(3600000, Math.ceil(budget.retry_after_ms));
+    return response({ ok: false, code: 'rate_limited', retry_after_ms: retryAfter }, 200, {
+      'Retry-After': String(Math.ceil(retryAfter / 1000)),
+      'Access-Control-Expose-Headers': 'Retry-After',
+    });
+  }
+  if (typeof budget.token !== 'string' || !/^[0-9a-f-]{36}$/.test(budget.token)) {
+    return response({ ok: false, code: 'unavailable' }, 503);
+  }
 
   // Resolve the private email only on the server; never return it in an error.
   const { data: profiles, error: profileError } = await admin
@@ -103,7 +126,16 @@ export async function handleRequest(req: Request, fetcher: typeof fetch = fetch)
     email: email || `missing-${crypto.randomUUID()}@username-login.invalid`,
     password: email ? password : crypto.randomUUID(),
   });
-  if (!email || error || !data.session) {
+  const success = Boolean(email && !error && data.session);
+  const { data: finished, error: finishError } = await admin.rpc('finish_username_login_attempt', {
+    p_username_hash: usernameHash,
+    p_token: budget.token,
+    p_success: success,
+  });
+  // Missing/failed/stale completion is conservative: retain the reservation and
+  // do not return a session which has not passed the account budget protocol.
+  if (finishError || finished !== true) return response({ ok: false, code: 'unavailable' }, 503);
+  if (!success) {
     if (email && /email not confirmed/i.test(error?.message || '')) {
       return credentialFailure('email_not_confirmed');
     }

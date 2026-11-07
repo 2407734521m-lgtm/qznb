@@ -122,9 +122,8 @@ export default function Friends() {
     const channel = supabase.channel('inbox-' + me)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, scheduleLoad)
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'conversation_members', filter: 'profile_id=eq.' + me }, scheduleLoad)
-      // 好友申请和申请状态都由数据库写入；同时监听收件人和发件人的关系记录。
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'friendships', filter: 'addressee=eq.' + me }, scheduleLoad)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'friendships', filter: 'requester=eq.' + me }, scheduleLoad)
+      // friendships 的 RLS 只允许当前用户读取自己参与的关系，因此无需重复建立两条过滤订阅。
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'friendships' }, scheduleLoad)
       .subscribe();
     const refreshVisible = () => {
       if (document.visibilityState === 'visible') void load();

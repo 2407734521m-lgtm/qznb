@@ -14,6 +14,7 @@ import './styles-desktop.css';
 import './styles-premium.css';
 import './styles-motion-polish.css';
 import './styles-particle-flower.css';
+import './styles-visual-rules.css';
 
 // 只有精确匹配的管理员域名可以挂载后台；其他任何域名都不能加载 AdminShell。
 const isAdminHost = window.location.hostname.toLowerCase() === 'admin.qianzhi.pw';

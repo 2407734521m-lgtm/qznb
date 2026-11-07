@@ -12,7 +12,7 @@ type Particle = {
 type Mode = 'gesture' | 'demo';
 type ExperienceTool = 'flower' | 'write';
 type InkPoint = { x: number; y: number };
-type InkStroke = { points: InkPoint[]; liftedAt?: number; particleCanvas?: HTMLCanvasElement; particleLeft?: number; particleTop?: number };
+type InkStroke = { points: InkPoint[]; liftedAt?: number };
 type HanziCandidate = { hanzi: string; score: number };
 type InkGlyph = { character: string; strokes: InkStroke[] };
 type LayoutOrientation = 'portrait' | 'landscape';
@@ -314,53 +314,7 @@ function normalizeInkForRecognition(strokes: InkStroke[]) {
     ]));
 }
 
-let inkParticleStamp: HTMLCanvasElement | null = null;
-function getInkParticleStamp(): HTMLCanvasElement {
-  if (inkParticleStamp) return inkParticleStamp;
-  const canvas=document.createElement('canvas');canvas.width=32;canvas.height=32;
-  const ctx=canvas.getContext('2d')!;
-  const glow=ctx.createRadialGradient(16,16,.2,16,16,15);
-  glow.addColorStop(0,'rgba(255,255,247,1)');
-  glow.addColorStop(.12,'rgba(255,229,212,.94)');
-  glow.addColorStop(.3,'rgba(250,172,203,.58)');
-  glow.addColorStop(.66,'rgba(239,116,174,.15)');
-  glow.addColorStop(1,'rgba(239,116,174,0)');
-  ctx.fillStyle=glow;ctx.fillRect(0,0,32,32);inkParticleStamp=canvas;return canvas;
-}
-function cacheInkStrokeParticles(stroke: InkStroke, density: number) {
-  if(stroke.particleCanvas||stroke.points.length<2)return;
-  const points=stroke.points;
-  const minX=Math.min(...points.map(p=>p.x)),maxX=Math.max(...points.map(p=>p.x));
-  const minY=Math.min(...points.map(p=>p.y)),maxY=Math.max(...points.map(p=>p.y));
-  const padding=18,left=Math.floor(minX-padding),top=Math.floor(minY-padding);
-  const canvas=document.createElement('canvas');
-  canvas.width=Math.max(24,Math.ceil(maxX-minX+padding*2));
-  canvas.height=Math.max(24,Math.ceil(maxY-minY+padding*2));
-  const ctx=canvas.getContext('2d');if(!ctx)return;
-  const stamp=getInkParticleStamp();ctx.globalCompositeOperation='lighter';
-  let particleIndex=0;
-  const add=(x:number,y:number)=>{
-    const index=particleIndex++;
-    const jitterX=Math.sin(index*12.9898+points.length)*1.1;
-    const jitterY=Math.cos(index*7.233+points.length*.7)*1.1;
-    const size=4.2+(0.5+0.5*Math.sin(index*2.17))*3.7;
-    ctx.globalAlpha=.48+(0.5+0.5*Math.sin(index*1.71))*.4;
-    ctx.drawImage(stamp,x+jitterX-size*.5,y+jitterY-size*.5,size,size);
-    if(index%3===0){
-      const satellite=2.2+(index%5)*.42;
-      ctx.globalAlpha=.22+(index%4)*.07;
-      ctx.drawImage(stamp,x-jitterY*1.8-satellite*.5,y+jitterX*1.8-satellite*.5,satellite,satellite);
-    }
-  };
-  for(let i=1;i<points.length;i++){
-    const a=points[i-1],b=points[i],length=Math.hypot(b.x-a.x,b.y-a.y);
-    const spacing=clamp(5.8*(3200/density),2.3,12);
-    const steps=Math.max(1,Math.ceil(length/spacing));
-    for(let step=0;step<=steps;step++){const t=step/steps;add(a.x+(b.x-a.x)*t-left,a.y+(b.y-a.y)*t-top)}
-  }
-  stroke.particleCanvas=canvas;stroke.particleLeft=left;stroke.particleTop=top;
-}
-function drawAirInkScene(ctx:CanvasRenderingContext2D,strokes:InkStroke[],committed:InkGlyph[],time:number,density:number,sizeMultiplier:number,glowMultiplier:number){
+function drawAirInkScene(ctx:CanvasRenderingContext2D,strokes:InkStroke[],committed:InkGlyph[],time:number,sizeMultiplier:number,glowMultiplier:number){
   ctx.save();ctx.globalCompositeOperation='lighter';
   const drawStroke=(stroke:InkStroke)=>{
     const points=stroke.points;if(!points.length)return;
@@ -379,16 +333,33 @@ function drawAirInkScene(ctx:CanvasRenderingContext2D,strokes:InkStroke[],commit
       }
       return;
     }
-    cacheInkStrokeParticles(stroke,density);
-    if(!stroke.particleCanvas||stroke.particleLeft===undefined||stroke.particleTop===undefined)return;
     // 笔迹定在原地成形（用户定：写出的字不要飘）：缓动只用于透明度沉稳，
     // 不再上升 10px、不再左右摇摆，也不再生成向上飘的微尘。
+    // 松开后保持连贯线条（用户定 2026-11-08）：与书写中同一条平滑曲线，
+    // 改为实色发光，不再把整笔转成粒子点；亮点只沿线原地闪烁。
     const progress=clamp((time-stroke.liftedAt)/1.35,0,1),eased=progress*progress*(3-2*progress);
-    const canvas=stroke.particleCanvas;
-    const drawWidth=canvas.width*sizeMultiplier,drawHeight=canvas.height*sizeMultiplier;
-    const centerX=stroke.particleLeft+canvas.width*.5,centerY=stroke.particleTop+canvas.height*.5;
-    ctx.globalAlpha=clamp((.72+eased*.16)*glowMultiplier,.15,1);
-    ctx.drawImage(canvas,centerX-drawWidth*.5,centerY-drawHeight*.5,drawWidth,drawHeight);
+    if(points.length>1){
+      const first=points[0],last=points[points.length-1];
+      const gradient=ctx.createLinearGradient(first.x,first.y,last.x,last.y);
+      gradient.addColorStop(0,'rgba(255,229,205,.92)');
+      gradient.addColorStop(.52,'rgba(247,173,206,.96)');
+      gradient.addColorStop(1,'rgba(240,128,179,.9)');
+      ctx.save();
+      ctx.globalAlpha=clamp((.78+eased*.22)*glowMultiplier,.15,1);
+      ctx.strokeStyle=gradient;ctx.lineWidth=Math.max(1.6,2.4*sizeMultiplier);
+      ctx.lineCap='round';ctx.lineJoin='round';
+      ctx.shadowColor='rgba(244,145,190,.72)';ctx.shadowBlur=13*glowMultiplier;
+      ctx.beginPath();ctx.moveTo(first.x,first.y);
+      for(let i=1;i<points.length-1;i++){const p=points[i],n=points[i+1];ctx.quadraticCurveTo(p.x,p.y,(p.x+n.x)*.5,(p.y+n.y)*.5)}
+      ctx.lineTo(last.x,last.y);ctx.stroke();ctx.shadowBlur=0;
+      for(let i=0;i<points.length;i+=3){
+        const p=points[i],phase=time*1.2+i*.37;
+        ctx.globalAlpha=(.25+(0.5+0.5*Math.sin(phase))*.42)*glowMultiplier;
+        ctx.fillStyle='rgba(255,231,241,.95)';ctx.beginPath();
+        ctx.arc(p.x,p.y,.7+(i%4)*.15,0,Math.PI*2);ctx.fill();
+      }
+      ctx.restore();
+    }
   };
   committed.forEach((glyph)=>glyph.strokes.forEach((stroke)=>drawStroke(stroke)));
   strokes.forEach((stroke)=>drawStroke(stroke));
@@ -1158,7 +1129,6 @@ export default function ParticleFlower() {
           inkStrokesRef.current,
           committedGlyphsRef.current,
           now,
-          particleCountRef.current,
           particleSizeRef.current,
           glowIntensityRef.current
         );
@@ -1444,7 +1414,7 @@ export default function ParticleFlower() {
         <div className="bloom-ink-tools">
           <div className={'bloom-ink-status' + (isWriting ? ' drawing' : '')}>
             <i />{isWriting ? '正在书写 · 松开让笔迹定住' : hasHand ? '捏合开始书写' : '请将手掌放入镜头'}
-            <small>{inkPhase === 'drawing' ? '松开后，粒子笔迹会停在原地成形' : inkPhase === 'lifting' ? '笔迹正在定形…' : inkPhase === 'recognizing' ? '正在根据笔迹整体形状推断…' : inkPhase === 'candidate' ? '请判断候选字是否符合你的笔迹' : inkPhase === 'unmatched' ? '暂时没有合适候选，可以重新书写' : recognitionStatus === 'ready' ? '粒子先成形，再分析字形' : recognitionStatus === 'loading' ? '识字模型准备中' : recognitionStatus === 'error' ? '识字暂不可用，仍可书写' : ''}</small>
+            <small>{inkPhase === 'drawing' ? '松开后，笔迹会停在原地成形' : inkPhase === 'lifting' ? '笔迹正在定形…' : inkPhase === 'recognizing' ? '正在根据笔迹整体形状推断…' : inkPhase === 'candidate' ? '请判断候选字是否符合你的笔迹' : inkPhase === 'unmatched' ? '暂时没有合适候选，可以重新书写' : recognitionStatus === 'ready' ? '笔迹先成形，再分析字形' : recognitionStatus === 'loading' ? '识字模型准备中' : recognitionStatus === 'error' ? '识字暂不可用，仍可书写' : ''}</small>
           </div>
           {recognitionCandidates.length > 0 && (
             <div className="bloom-ink-candidates">

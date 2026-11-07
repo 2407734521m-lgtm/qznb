@@ -866,7 +866,7 @@
   background:rgba(20,13,22,.18);
 }
 .bloom-page.is-focused .bloom-focus-toggle:active{opacity:1}
-.bloom-page.tool-write .bloom-telemetry{top:auto;bottom:calc(18px + env(safe-area-inset-bottom))}
+.bloom-page.tool-write .bloom-telemetry{display:none}
 @media(max-width:700px){
   .bloom-quality-presets{gap:4px;margin:10px 0 12px;padding:7px}
   .bloom-quality-presets>span{width:100%;margin:0 0 2px}
@@ -881,10 +881,7 @@
     gap:6px;padding:7px 9px;font-size:8px;
     max-width:calc(100vw - 130px)
   }
-  .bloom-page.tool-write .bloom-telemetry{
-    left:12px;right:auto;bottom:calc(12px + env(safe-area-inset-bottom));
-    top:auto;transform:none;max-width:calc(100vw - 24px)
-  }
+  .bloom-page.tool-write .bloom-telemetry{display:none}
 }
 @media(max-width:700px) and (orientation:landscape){
   .bloom-quality-presets{margin:7px 0 8px;padding:6px}

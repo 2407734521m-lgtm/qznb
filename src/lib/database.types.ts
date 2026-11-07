@@ -862,18 +862,24 @@ export type Database = {
           profile_id: string
           device: string | null
           location: string | null
+          location_share_enabled: boolean
+          location_consented_at: string | null
           updated_at: string
         }
         Insert: {
           profile_id: string
           device?: string | null
           location?: string | null
+          location_share_enabled?: boolean
+          location_consented_at?: string | null
           updated_at?: string
         }
         Update: {
           profile_id?: string
           device?: string | null
           location?: string | null
+          location_share_enabled?: boolean
+          location_consented_at?: string | null
           updated_at?: string
         }
         Relationships: [

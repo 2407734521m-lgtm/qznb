@@ -346,25 +346,25 @@ export default function AirInk() {
       if (ctx) {
         ctx.setTransform(ratio,0,0,ratio,0,0); ctx.clearRect(0,0,width,height);
         const time = performance.now()/1000;
-        strokesRef.current.forEach((stroke,index) => {
+        strokesRef.current.forEach((stroke) => {
           const points = stroke.points; if (!points.length) return;
           const lifted = stroke.liftedAt !== undefined;
-          const elapsed = lifted ? Math.max(0,time-stroke.liftedAt!) : 0;
-          const rise = Math.min(22,elapsed*7.5);
           ctx.save(); ctx.globalCompositeOperation='lighter'; ctx.globalAlpha=lifted?.88:1;
           ctx.lineCap='round'; ctx.lineJoin='round';
           const first=points[0],last=points[points.length-1];
-          const gradient=ctx.createLinearGradient(first.x,first.y-rise,last.x,last.y-rise);
+          const gradient=ctx.createLinearGradient(first.x,first.y,last.x,last.y);
           gradient.addColorStop(0,'rgba(255,229,205,.92)'); gradient.addColorStop(.52,'rgba(247,173,206,.96)'); gradient.addColorStop(1,'rgba(240,128,179,.9)');
           ctx.strokeStyle=gradient; ctx.lineWidth=2.4; ctx.shadowColor='rgba(244,145,190,.72)'; ctx.shadowBlur=13;
-          ctx.beginPath(); ctx.moveTo(first.x,first.y-rise);
-          for(let i=1;i<points.length-1;i++){const p=points[i],n=points[i+1];ctx.quadraticCurveTo(p.x,p.y-rise,(p.x+n.x)*.5,(p.y+n.y)*.5-rise);}
-          ctx.lineTo(last.x,last.y-rise); ctx.stroke(); ctx.shadowBlur=0;
+          ctx.beginPath(); ctx.moveTo(first.x,first.y);
+          for(let i=1;i<points.length-1;i++){const p=points[i],n=points[i+1];ctx.quadraticCurveTo(p.x,p.y,(p.x+n.x)*.5,(p.y+n.y)*.5);}
+          ctx.lineTo(last.x,last.y); ctx.stroke(); ctx.shadowBlur=0;
+          // 笔迹定在原地（用户定：写出的字不要飘）：亮点只在笔画原位置闪烁，
+          // 不再整体上升、也不再上下左右飘移。
           if(lifted) for(let i=0;i<points.length;i+=3){
-            const p=points[i],phase=time*1.2+i*.37+index*1.9;
+            const p=points[i],phase=time*1.2+i*.37;
             ctx.globalAlpha=.25+(0.5+0.5*Math.sin(phase))*.42;
             ctx.fillStyle='rgba(255,231,241,.95)'; ctx.beginPath();
-            ctx.arc(p.x+Math.sin(phase)*2.2,p.y-rise-(Math.sin(phase*.68)+1)*3.8,.7+(i%4)*.15,0,Math.PI*2); ctx.fill();
+            ctx.arc(p.x,p.y,.7+(i%4)*.15,0,Math.PI*2); ctx.fill();
           }
           ctx.restore();
         });
@@ -409,8 +409,8 @@ export default function AirInk() {
     </section>}
     {active && <>
       <section className="air-ink-toolbar" aria-label="手写工具栏">
-        <div className={'air-ink-status'+(isWriting?' drawing':'')}><i/><span>{isWriting?'正在书写 · 松开让笔迹升起':!hasHand?'等待手部进入画面':'捏合开始书写'}</span>
-          <small>{phase==='drawing'?'保持捏合，连续写完当前笔画':phase==='lifting'?'粒子正在升起…':phase==='recognizing'?'正在分析手写字形…':phase==='candidate'?'选择正确候选字并确认':phase==='unmatched'?'暂未匹配，请继续书写或重写':recognitionStatus==='ready'?'识字已就绪 · 支持多笔画':recognitionStatus==='error'?'识字暂不可用，粒子手写仍可使用':'识字模型准备中'}</small>
+        <div className={'air-ink-status'+(isWriting?' drawing':'')}><i/><span>{isWriting?'正在书写 · 松开让笔迹定住':!hasHand?'等待手部进入画面':'捏合开始书写'}</span>
+          <small>{phase==='drawing'?'保持捏合，连续写完当前笔画':phase==='lifting'?'笔迹正在定形…':phase==='recognizing'?'正在分析手写字形…':phase==='candidate'?'选择正确候选字并确认':phase==='unmatched'?'暂未匹配，请继续书写或重写':recognitionStatus==='ready'?'识字已就绪 · 支持多笔画':recognitionStatus==='error'?'识字暂不可用，粒子手写仍可使用':'识字模型准备中'}</small>
         </div>
         {candidates.length>0&&<div className="air-ink-candidates"><span>候选</span>{candidates.slice(0,4).map(item=><button type="button" key={item.hanzi} className={selected===item.hanzi?'selected':''} onClick={()=>setSelected(item.hanzi)}>{item.hanzi}</button>)}</div>}
         {selected&&<button type="button" className="air-ink-confirm" onClick={confirmCharacter}>确认这个字</button>}

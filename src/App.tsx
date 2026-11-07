@@ -9,7 +9,7 @@ import CodeInput from './components/CodeInput';
 import { LiquidGlassScene } from 'simple-liquid-glass/backdrop';
 import { DUR, EASE } from './lib/motion';
 import { supabase } from './lib/supabase';
-import { detectInstalledApp, isInApp } from './lib/installedApp';
+import { detectInstalledApp, detectInstalledAdminApp, isInApp } from './lib/installedApp';
 import { CallProvider } from './lib/call';
 import { startSitePresence } from './lib/sitePresence';
 import { useAuth } from './auth';
@@ -336,8 +336,10 @@ function Shell() {
   const [updateDismissed, setUpdateDismissed] = useState(false);
   const appUpdateCodeRef = useRef('');
   const fetchAppUpdate = () => {
-    if (!detectInstalledApp()) return;
-    supabase.rpc('public_app_update').then(({ data, error }) => {
+    // 管理版壳（QianzhiAdmin）走管理版通道，学生版壳走学生版通道，两边互不串扰。
+    const adminApp = detectInstalledAdminApp();
+    if (!adminApp && !detectInstalledApp()) return;
+    supabase.rpc(adminApp ? 'public_admin_app_update' : 'public_app_update').then(({ data, error }) => {
       if (error || !data) return;
       const code = String((data as any).app_version_code || '');
       // 后台又推了更新的版本：之前对旧版本点的「忽略」不再压住新框。
@@ -778,7 +780,8 @@ function Shell() {
     const uid = session.user.id;
     const device = parseDevice(navigator.userAgent || '');
     const appInfo = detectInstalledApp();
-    const clientTag = appInfo ? 'app:' + appInfo.name : 'web';
+    const adminAppInfo = detectInstalledAdminApp();
+    const clientTag = adminAppInfo ? 'admin:' + adminAppInfo.name : appInfo ? 'app:' + appInfo.name : 'web';
     let alive = true;
     let lastActivity = Date.now();
     let inFlight = false;
@@ -918,7 +921,7 @@ function Shell() {
     ),
   }));
   const activeDockItem = TABS.find((tab) => isTabActive(tab.to, loc.pathname))?.to ?? TABS[0].to;
-  const installedApp = detectInstalledApp();
+  const installedApp = detectInstalledAdminApp() ?? detectInstalledApp();
   const latestAppCode = appUpdate ? Number(appUpdate.app_version_code || 0) : 0;
   const appForce = appUpdate?.app_force_update === 'true';
   const appMinCode = appUpdate ? Number(appUpdate.app_min_code || 0) : 0;

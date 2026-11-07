@@ -24,9 +24,14 @@ function Card({ m, i, badge, signedUrl, onOpen, no }: { m: MemberListItem; i: nu
   const name = m.display_name ?? m.username;
   return (
     <motion.div ref={ref} className="mcard" data-member={m.id}
-      initial={reduce ? {} : { opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.34, delay: reduce ? 0 : Math.min(i * 0.025, 0.18), ease: [0.22, 1, 0.36, 1] }}
+      initial={reduce ? false : { opacity: 0, y: 14, scale: 0.99 }}
+      whileInView={reduce ? undefined : { opacity: 1, y: 0, scale: 1 }}
+      viewport={{ once: true, amount: 0.16 }}
+      whileHover={reduce ? undefined : { y: -3 }}
+      whileTap={reduce ? undefined : { scale: 0.985 }}
+      transition={reduce
+        ? { duration: 0.01 }
+        : { type: 'spring', stiffness: 340, damping: 29, mass: 0.74, delay: (i % 6) * 0.035 }}
       role="button"
       tabIndex={0}
       aria-label={`查看${name}的主页`}

@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { motion, useReducedMotion, useScroll, useTransform } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import { useSignedUrls } from '../lib/media';
 import './Home.vibe.css';
@@ -34,6 +35,13 @@ const SHORTCUTS = [
 
 export default function Home() {
   const nav = useNavigate();
+  const reduceMotion = useReducedMotion();
+  const heroRef = useRef<HTMLAnchorElement>(null);
+  const { scrollYProgress: heroScrollProgress } = useScroll({
+    target: heroRef,
+    offset: ['start end', 'end start'],
+  });
+  const heroImageY = useTransform(heroScrollProgress, [0, 1], reduceMotion ? [0, 0] : [-16, 16]);
   const [title, setTitle] = useState('堯');
   const [subtitle, setSubtitle] = useState('连接人与内容');
   const [bannerUrl, setBannerUrl] = useState('');
@@ -140,11 +148,12 @@ export default function Home() {
         </header>
 
         <Link
+          ref={heroRef}
           className={`vh-hero${bannerUrl ? ' has-image' : ''}`}
           to="/board"
           aria-label="浏览公告"
         >
-          {bannerUrl && <img className="vh-hero-image" src={bannerUrl} alt="" />}
+          {bannerUrl && <motion.img className="vh-hero-image" src={bannerUrl} alt="" style={reduceMotion ? undefined : { y: heroImageY, scale: 1.07 }} />}
           {bannerUrl && <div className="vh-hero-shade" />}
           <div className="vh-hero-content">
             <span className="vh-hero-kicker">公告</span>
@@ -169,7 +178,10 @@ export default function Home() {
 
       {notices.length > 0 && (
         
-          <section>
+          <motion.section initial={reduceMotion ? false : { opacity: 0, y: 18 }}
+            whileInView={reduceMotion ? undefined : { opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.14 }}
+            transition={{ duration: 0.48, ease: [0.22, 1, 0.36, 1] }}>
             <div className="vh-section-head">
               <div><h2>公告</h2><p>需要留意的消息</p></div>
               <button className="vh-text-link" onClick={() => nav('/board')}>全部公告 ↗</button>
@@ -184,12 +196,15 @@ export default function Home() {
                 </button>
               ))}
             </div>
-          </section>
+          </motion.section>
         
       )}
 
       
-        <section>
+        <motion.section initial={reduceMotion ? false : { opacity: 0, y: 18 }}
+            whileInView={reduceMotion ? undefined : { opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.14 }}
+            transition={{ duration: 0.48, ease: [0.22, 1, 0.36, 1] }}>
           <div className="vh-section-head">
             <div><h2>快速访问</h2><p>常用内容，一步到达</p></div>
           </div>
@@ -205,10 +220,13 @@ export default function Home() {
               </button>
             ))}
           </div>
-        </section>
+        </motion.section>
       
 
-      <section className="vh-lower-grid">
+      <motion.section className="vh-lower-grid" initial={reduceMotion ? false : { opacity: 0, y: 18 }}
+            whileInView={reduceMotion ? undefined : { opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.14 }}
+            transition={{ duration: 0.48, ease: [0.22, 1, 0.36, 1] }}>
         {(posts.length > 0 || wishes.length > 0) && (
           
             <div className="vh-panel">
@@ -272,7 +290,7 @@ export default function Home() {
             
           )}
         </div>
-      </section>
+      </motion.section>
 
       {annPop && (
         <div className="vh-modal-backdrop" onClick={() => setAnnPop(null)}>

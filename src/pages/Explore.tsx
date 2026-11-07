@@ -133,9 +133,14 @@ export default function Explore() {
           <motion.article
             key={card.to}
             className={`discover-card ${card.className}`}
-            whileHover={reduce ? undefined : { y: -4 }}
-            whileTap={reduce ? undefined : { scale: 0.99 }}
-            transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+            initial={reduce ? false : { opacity: 0, y: 20, scale: 0.985 }}
+            whileInView={reduce ? undefined : { opacity: 1, y: 0, scale: 1 }}
+            viewport={{ once: true, amount: 0.18 }}
+            whileHover={reduce ? undefined : { y: -5, scale: 1.006 }}
+            whileTap={reduce ? undefined : { scale: 0.985 }}
+            transition={reduce
+              ? { duration: 0.01 }
+              : { type: 'spring', stiffness: 330, damping: 28, mass: 0.72, delay: index * 0.045 }}
           >
             <Link to={card.to} className="discover-card-link">
               <div className="discover-card-copy">

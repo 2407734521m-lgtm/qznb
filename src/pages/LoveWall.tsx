@@ -56,8 +56,16 @@ async function cleanupUnlinkedLoveMedia(paths: string[]): Promise<boolean> {
 
 export default function LoveWall() {
   const { session } = useAuth();
-  const [searchParams] = useSearchParams();
-  const [activeTab, setActiveTab] = useState<'confessions' | 'posts'>('confessions');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab: 'confessions' | 'posts' = searchParams.get('tab') === 'posts' ? 'posts' : 'confessions';
+  const switchTab = (tab: 'confessions' | 'posts') => {
+    setSearchParams(previous => {
+      const next = new URLSearchParams(previous);
+      if (tab === 'posts') next.set('tab', 'posts');
+      else next.delete('tab');
+      return next;
+    });
+  };
   const [posts, setPosts] = useState<PublicPost[]>([]);
   const [myPosts, setMyPosts] = useState<MyPost[]>([]);
   const [content, setContent] = useState('');
@@ -362,14 +370,14 @@ export default function LoveWall() {
     whiteSpace: 'nowrap',
   });
   return <main style={{ maxWidth: 760, margin: '0 auto', padding: '12px 0 110px', color: '#202124' }}>
-    <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '6px 2px 14px' }}>
+    <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', padding: '6px 2px 16px' }}>
       <div style={{ minWidth: 0 }}>
         <div style={{ fontSize: 11, letterSpacing: 3, color: '#737b89' }}>OUR CLASS · COMMUNITY</div>
-        <h1 style={{ fontSize: 27, margin: '8px 0 0' }}>{activeTab === 'confessions' ? '表白墙' : '帖子'}</h1>
+        <h1 style={{ fontSize: 26, lineHeight: 1.2, margin: '7px 0 0', letterSpacing: '-.5px' }}>{activeTab === 'confessions' ? '表白墙' : '帖子'}</h1>
       </div>
-      <div role="tablist" aria-label="表白墙内容类型" style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-        <button type="button" role="tab" aria-selected={activeTab === 'confessions'} onClick={() => setActiveTab('confessions')} style={tabStyle(activeTab === 'confessions')}>表白墙</button>
-        <button type="button" role="tab" aria-selected={activeTab === 'posts'} onClick={() => setActiveTab('posts')} style={tabStyle(activeTab === 'posts')}>帖子</button>
+      <div role="tablist" aria-label="表白墙内容类型" style={{ display: 'inline-flex', alignItems: 'center', gap: 2, padding: 4, borderRadius: 999, background: '#f1f3f6', border: '1px solid #e8ebf0', flexShrink: 0 }}>
+        <button type="button" role="tab" aria-selected={activeTab === 'confessions'} onClick={() => switchTab('confessions')} style={tabStyle(activeTab === 'confessions')}>表白墙</button>
+        <button type="button" role="tab" aria-selected={activeTab === 'posts'} onClick={() => switchTab('posts')} style={tabStyle(activeTab === 'posts')}>帖子</button>
       </div>
     </header>
     {activeTab === 'posts' ? <Daily /> : <>

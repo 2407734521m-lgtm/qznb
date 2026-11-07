@@ -26,23 +26,18 @@ function Av({ path, name, signedUrl }: { path: string | null; name: string; sign
 }
 
 const SHORTCUTS = [
-  ['/members', '同学档案'],
-  ['/feed', '班级动态'],
-  ['/timeline', '青春回忆'],
-  ['/calendar', '记忆日历'],
-  ['/capsule', '时光胶囊'],
-  ['/wishes', '愿望墙'],
-  ['/greetings', '留言墙'],
-  ['/events', '班级活动'],
+  ['/members', '成员'],
+  ['/feed', '动态'],
+  ['/timeline', '时间线'],
+  ['/capsule', '胶囊'],
 ] as const;
 
 export default function Home() {
   const nav = useNavigate();
-  const [title, setTitle] = useState('我们的班级');
-  const [subtitle, setSubtitle] = useState('青春档案');
-  const [gradDate, setGradDate] = useState('');
+  const [title, setTitle] = useState('堯');
+  const [subtitle, setSubtitle] = useState('连接人与内容');
   const [bannerUrl, setBannerUrl] = useState('');
-  const [bannerText, setBannerText] = useState('把我们的青春，留在这里');
+  const [bannerText, setBannerText] = useState('让重要内容，更容易被看见');
   const [notices, setNotices] = useState<any[]>([]);
   const [posts, setPosts] = useState<any[]>([]);
   const [members, setMembers] = useState<any[]>([]);
@@ -64,11 +59,10 @@ export default function Home() {
         const { data: ss, error: settingsError } = await supabase.from('site_settings').select('key, value');
         if (!live) return;
         (ss ?? []).forEach((x: any) => {
-          if (x.key === 'site_title') setTitle(x.value || '我们的班级');
-          if (x.key === 'site_subtitle') setSubtitle(x.value || '青春档案');
-          if (x.key === 'graduation_date') setGradDate(x.value || '');
+          if (x.key === 'site_title') setTitle(!x.value || x.value === '我们的班级' ? '堯' : x.value);
+          if (x.key === 'site_subtitle') setSubtitle(!x.value || x.value === '青春档案' ? '连接人与内容' : x.value);
           if (x.key === 'home_banner_url') setBannerUrl(x.value || '');
-          if (x.key === 'home_banner_text') setBannerText(x.value || '把我们的青春，留在这里');
+          if (x.key === 'home_banner_text') setBannerText(!x.value || x.value === '把我们的青春，留在这里' ? '让重要内容，更容易被看见' : x.value);
         });
         const nowIso = new Date().toISOString();
         const [n, p, m, e, w] = await Promise.all([
@@ -120,21 +114,12 @@ export default function Home() {
     return () => { live = false; };
   }, [reloadKey]);
 
-  let countdown = '';
-  if (gradDate) {
-    const diff = new Date(gradDate).getTime() - Date.now();
-    if (diff > 0) {
-      const d = Math.floor(diff / 864e5);
-      countdown = d > 0 ? `距离毕业还有 ${d} 天` : '毕业就在今天';
-    } else countdown = '我们已经毕业';
-  }
-
   return (
     <div className="page vibe-home">
       
         <div className="vh-topline">
-          <span className="vh-eyebrow">把班级记忆收藏起来</span>
-          <span className="vh-live">青春档案 · 持续更新</span>
+          <span className="vh-eyebrow">把重要的内容，放在一起</span>
+          <span className="vh-live">内容持续更新</span>
         </div>
 
         {loading && (
@@ -154,15 +139,15 @@ export default function Home() {
         <Link
           className={`vh-hero${bannerUrl ? ' has-image' : ''}`}
           to="/board"
-          aria-label="浏览班级公告"
+          aria-label="浏览公告"
         >
           {bannerUrl && <img className="vh-hero-image" src={bannerUrl} alt="" />}
           {bannerUrl && <div className="vh-hero-shade" />}
           <div className="vh-hero-content">
-            <span className="vh-hero-kicker">班级公告</span>
+            <span className="vh-hero-kicker">公告</span>
             <h2 className="vh-hero-title">{bannerText}</h2>
-            <p className="vh-hero-sub">记录此刻，也收藏那些值得反复回看的日子。</p>
-            <span className="vh-hero-link">浏览班级公告 <span aria-hidden="true">↗</span></span>
+            <p className="vh-hero-sub">重要消息、动态与活动，都可以在这里找到。</p>
+            <span className="vh-hero-link">查看公告 <span aria-hidden="true">↗</span></span>
           </div>
         </Link>
       
@@ -178,11 +163,10 @@ export default function Home() {
       
         <header className="vh-intro">
           <div>
-            <div className="vh-eyebrow">班级档案</div>
+            <div className="vh-eyebrow">空间总览</div>
             <h1>{title}</h1>
             <p>{subtitle}</p>
           </div>
-          {countdown && <div className="vh-countdown">{countdown}</div>}
         </header>
       
 
@@ -196,8 +180,8 @@ export default function Home() {
             <div className="vh-notices">
               {notices.map((n, i) => (
                 <button className="vh-notice" key={n.id} onClick={() => setAnnPop(n)}>
-                  <span className="vh-notice-tag">{i === 0 ? '最新公告' : '班级动态'}</span>
-                  <strong>{n.title || '班级公告'}</strong>
+                  <span className="vh-notice-tag">{i === 0 ? '最新公告' : '站内消息'}</span>
+                  <strong>{n.title || '公告'}</strong>
                   <p>{(n.content || '').slice(0, 100)}</p>
                   <time>{timeAgo(n.created_at)}</time>
                 </button>
@@ -210,7 +194,7 @@ export default function Home() {
       
         <section>
           <div className="vh-section-head">
-            <div><h2>探索我们的空间</h2><p>从这里进入每一段校园记忆</p></div>
+            <div><h2>常用入口</h2><p>快速打开你常用的内容</p></div>
           </div>
           <div className="vh-shortcuts">
             {SHORTCUTS.map(([to, label], i) => (
@@ -218,7 +202,6 @@ export default function Home() {
                 className="vh-shortcut"
                 key={to}
                 onClick={() => nav(to)}
-                style={{ '--vh-orb': i % 2 ? 'rgba(96,165,250,.13)' : 'rgba(20,184,166,.13)' } as React.CSSProperties}
               >
                 <span className="vh-shortcut-index">0{i + 1}</span>
                 <span className="vh-shortcut-name">{label}</span>
@@ -238,9 +221,9 @@ export default function Home() {
                 <button className="vh-text-link" onClick={() => nav('/feed')}>更多动态 ↗</button>
               </div>
               {posts.length ? posts.map(p => (
-                <Link className="vh-feed-row" key={p.id} to="/feed" aria-label="查看班级动态">
+                <Link className="vh-feed-row" key={p.id} to="/feed" aria-label="查看动态">
                   <div className="vh-feed-copy">
-                    <strong>{names[p.author_id] || '班级成员'} · {timeAgo(p.created_at)}</strong>
+                    <strong>{names[p.author_id] || '成员'} · {timeAgo(p.created_at)}</strong>
                     <p>{p.content || '分享了一条动态'}</p>
                   </div>
                   <span aria-hidden="true" style={{ color: '#9aabb8' }}>↗</span>
@@ -261,7 +244,7 @@ export default function Home() {
             
               <div className="vh-panel">
                 <div className="vh-section-head" style={{ margin: '0 0 12px' }}>
-                  <div><h2>新加入的同学</h2><p>认识最近加入档案的成员</p></div>
+                  <div><h2>最近加入</h2><p>认识新成员</p></div>
                   <button className="vh-text-link" onClick={() => nav('/members')}>全部 ↗</button>
                 </div>
                 <div className="vh-members">
@@ -300,7 +283,7 @@ export default function Home() {
           <article className="vh-modal" onClick={e => e.stopPropagation()}>
             <button className="vh-modal-close" onClick={() => setAnnPop(null)}>关闭</button>
             <div className="vh-eyebrow" style={{ marginBottom: 12 }}>公告详情</div>
-            <h3>{annPop.title || '班级公告'}</h3>
+            <h3>{annPop.title || '公告'}</h3>
             <p>{annPop.content}</p>
             <time style={{ color: '#97a3af', fontSize: 11 }}>{timeAgo(annPop.created_at)}</time>
           </article>

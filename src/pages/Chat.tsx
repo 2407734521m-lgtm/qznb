@@ -653,7 +653,7 @@ export default function Chat() {
       '--im-wallpaper': backgroundPath && wallpaperUrl
         ? `linear-gradient(rgba(255,255,255,.38),rgba(255,255,255,.48)), url("${wallpaperUrl}") center / cover no-repeat`
         : ({
-            default: 'radial-gradient(ellipse at 16% 8%,rgba(187,211,250,.24),transparent 38%),#ffffff',
+            default: '#ffffff',
             sky: 'linear-gradient(155deg,#f5faff 0%,#eaf3ff 52%,#f9fbff 100%)',
             lavender: 'radial-gradient(ellipse at 78% 18%,rgba(207,195,245,.34),transparent 42%),linear-gradient(145deg,#fff 0%,#f5f1ff 100%)',
             mint: 'radial-gradient(ellipse at 18% 80%,rgba(181,225,211,.28),transparent 42%),linear-gradient(145deg,#fff 0%,#eef9f5 100%)',
@@ -810,7 +810,7 @@ export default function Chat() {
           return (
             <div key={m.id}>
               {dateLabel(m.created_at, msgs[i - 1]?.created_at) && <div className="im-day">{dateLabel(m.created_at, msgs[i - 1]?.created_at)}</div>}
-              <div className={'im-row ' + (mine ? 'mine ' : '') + (samePrevious ? 'im-row-grouped-prev ' : '') + (sameNext ? 'im-row-grouped-next ' : '') + (swappedIdsRef.current.has(m.id) ? 'im-row-static' : '')}>
+              <div className={'im-row ' + (mine ? 'mine ' : '') + (mine && m.id === latestOutgoingMessageId && userPreferences.chat.showReadReceipts ? 'im-row-has-receipt ' : '') + (samePrevious ? 'im-row-grouped-prev ' : '') + (sameNext ? 'im-row-grouped-next ' : '') + (swappedIdsRef.current.has(m.id) ? 'im-row-static' : '')}>
                 <div className={'im-bubble ' + (mine ? 'mine' : 'theirs') + (samePrevious ? ' im-bubble-grouped-prev' : '') + (sameNext ? ' im-bubble-grouped-next' : '')}
                   onTouchStart={event => startMessagePress(m.id, event.currentTarget)}
                   onTouchMove={clearMessagePress}
@@ -934,7 +934,7 @@ export default function Chat() {
         <div className="im-input-wrap">
           <input ref={inputRef} className="im-input" value={text} onChange={e => { setText(e.target.value); notifyTyping(e.target.value); }}
             placeholder={recording ? '录音中 ' + String(Math.floor(recordSeconds / 60)).padStart(2, '0') + ':' + String(recordSeconds % 60).padStart(2, '0') + ' · 点红色按钮结束' : uploading ? '正在发送媒体…' : 'iMessage'} maxLength={2000} autoComplete="off" aria-label="输入消息" />
-          {!text.trim() && <button type="button" className={'im-mic' + (recording ? ' recording' : '')} aria-label={recording ? '结束录音并发送' : '录制语音'} title={recording ? '结束录音并发送' : '录制语音'} disabled={uploading} onClick={recording ? stopRecording : startRecording}>{recording ? '■' : '●'}</button>}
+          {!text.trim() && <button type="button" className={'im-mic' + (recording ? ' recording' : '')} aria-label={recording ? '结束录音并发送' : '录制语音'} title={recording ? '结束录音并发送' : '录制语音'} disabled={uploading} onClick={recording ? stopRecording : startRecording}>{recording ? '■' : <svg width="15" height="18" viewBox="0 0 18 22" fill="none" aria-hidden="true"><rect x="6" y="1" width="6" height="13" rx="3" stroke="currentColor" strokeWidth="1.7" /><path d="M3 10.5v1a6 6 0 0 0 12 0v-1M9 17.5V21M6 21h6" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" /></svg>}</button>}
           {text.trim() && <button type="submit" className="im-send" aria-label="发送消息" disabled={uploading || recording}>↑</button>}
         </div>
       </form>

@@ -778,6 +778,7 @@ function Shell() {
     if (siteConfig?.maintenance === 'true' && !maintenanceAccess) return <MaintenanceScreen title={siteConfig.maintenance_title || ''} msg={siteConfig.maintenance_msg || ''} hasSession={false} onLogout={() => { leaveGuest(); }} onAccessGranted={() => setMaintenanceAccess(true)} />;
     return <GuestBrowse
       nickname={guest.nickname}
+      expiresAt={guest.expiresAt}
       siteConfig={siteConfig}
       loginOpen={showLogin}
       loginEnabled={siteConfig?.close_login_entry !== 'true'}
@@ -791,7 +792,7 @@ function Shell() {
   if (!session) {
     if (siteConfigLoading) return <div className="center" style={{ minHeight: '60vh' }}><FxLoader text="正在加载公开内容…" /></div>;
     if (siteConfig?.maintenance === 'true' && !maintenanceAccess) return <MaintenanceScreen title={siteConfig.maintenance_title || ''} msg={siteConfig.maintenance_msg || ''} hasSession={false} onLogout={logout} onAccessGranted={() => setMaintenanceAccess(true)} />;
-    const showGuestEntry = siteConfig?.guest_browse_available === true && siteConfig?.guest_entry_visible === 'true';
+    const showGuestEntry = siteConfig?.guest_browse_available === true && siteConfig?.guest_entry_visible === true;
     const openGuestEntry = () => setGuestEntryOpen(true);
     const finishGuestEntry = (nickname: string) => {
       enterGuest(nickname, Number(siteConfig?.guest_session_minutes || 60), String(siteConfig?.guest_session_epoch || '1'));

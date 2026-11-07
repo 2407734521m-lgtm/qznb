@@ -459,7 +459,7 @@ export default function Login({ siteTitle, siteSubtitle, onGuestLogin }: { siteT
                 <input type="checkbox" checked={policyAccepted} onChange={e => setPolicyAccepted(e.target.checked)} style={{ width: 18, height: 18, marginTop: 3, flexShrink: 0 }} />
                 <span>我已阅读并同意 <button type="button" className="linklike" onClick={() => setShowPrivacyPolicy(true)} style={{ border: 0, padding: 0, background: 'none', color: '#2f5fd0', textDecoration: 'underline', cursor: 'pointer', font: 'inherit' }}>《隐私政策与用户协议》</button></span>
               </label>
-              <p className="priv-note" style={{ margin: '7px 0 0', lineHeight: 1.65 }}>政策说明账号、设备信息及 IP 推算地区的处理方式。GPS 精确位置不会由本协议自动授权。</p>
+              <p className="priv-note" style={{ margin: '7px 0 0', lineHeight: 1.65 }}>政策说明账号、设备信息及 IP 推算地区的处理方式。所在地区分享不会由本协议自动授权。</p>
             </div>
             {err && <p ref={errorRef} className="err" role="alert" aria-live="polite">{err}</p>}
             <button className="pri" disabled={busy} onClick={codeSent ? doVerifyReg : sendCode}>{busy ? <><Spin />{codeSent ? '验证中…' : '发送中…'}</> : codeSent ? '验证并进入' : '发送验证码并注册'}</button>
@@ -513,7 +513,7 @@ export default function Login({ siteTitle, siteSubtitle, onGuestLogin }: { siteT
           <h3>五、保存、共享与安全</h3>
           <p>网站会尽量限制访问权限并采取合理措施保护信息。为完成 IP 地区推算，浏览器会向第三方查询服务发起请求；该服务可能接收到请求 IP。网络服务商、托管平台也可能按其规则处理技术日志。网站不应出售成员个人信息。</p>
           <h3>六、你的选择与权利</h3>
-          <p>你可以选择不注册或不提供非必要资料，并可联系网站管理员申请查阅、更正或删除个人资料。不同意本政策将无法创建新账号，但不应因此被要求授权 GPS 精确定位。若你是未成年人，请在老师或监护人协助下阅读并决定是否提供个人信息。</p>
+          <p>你可以选择不注册或不提供非必要资料，并可联系网站管理员申请查阅、更正或删除个人资料。不同意本政策将无法创建新账号，但不应因此被要求分享所在地区。若你是未成年人，请在老师或监护人协助下阅读并决定是否提供个人信息。</p>
           <h3>七、政策变更与联系</h3>
           <p>如果收集的信息种类、用途或查看范围发生实质变化，网站应更新政策并在需要时重新征求同意。请通过网站公开的管理员联系方式提出隐私相关问题。</p>
           <p style={{ marginTop: 14, fontSize: 12, opacity: .75 }}>提示：此文本是网站说明草案，不构成法律意见；上线前应由负责网站的成年人核对实际数据流、权限及适用规则。</p>

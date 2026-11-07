@@ -115,8 +115,8 @@ export default function BoardMgr({ me, setMsg }: { me: string; setMsg: (s: strin
           <option value="999">每次都弹</option>
         </select>
         <span style={mut}>可见：</span>
-        <button className="mini" style={audience === 'all' ? { borderColor: '#6abac7', color: '#9de3e2' } : undefined} onClick={() => setAudience('all')}>全部</button>
-        <button className="mini" style={audience === 'app' ? { borderColor: '#6abac7', color: '#9de3e2' } : undefined} onClick={() => setAudience('app')}>仅软件版</button>
+        <button className="mini" style={audience === 'all' ? { borderColor: 'rgba(34,49,74,.4)', color: '#22314a', background: '#f3ead6' } : undefined} onClick={() => setAudience('all')}>全部</button>
+        <button className="mini" style={audience === 'app' ? { borderColor: 'rgba(34,49,74,.4)', color: '#22314a', background: '#f3ead6' } : undefined} onClick={() => setAudience('app')}>仅软件版</button>
       </div>
       <div style={{ marginTop: 12 }}>
         {list.map(n => (

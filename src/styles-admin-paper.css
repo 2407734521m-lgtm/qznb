@@ -365,3 +365,94 @@
   -webkit-backdrop-filter: none !important;
   backdrop-filter: none !important;
 }
+
+/* ===== 13. 实拍残留逐项收尾（2026-11-08 复拍后） ===== */
+/* 顶栏与抽屉遮罩：彻底去掉半透明与模糊 */
+.admin-shell-v3 .admin-console-topbar {
+  background: #fffdf9 !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+.admin-shell-v3 .admin-sidebar-scrim {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+/* 手机快捷栏选中项：米色底（压掉 scaffold 媒体查询里的蓝青渐变 tint） */
+.admin-shell-v3 .admin-mobile-quick-item.is-active {
+  color: #22314a !important;
+  background: #f3ead6 !important;
+  background-image: none !important;
+  border-color: rgba(34, 49, 74, .14) !important;
+}
+/* 批量操作条：pages 层同名规则是 (0,3,0) !important 淡蓝底，这里同级压回 */
+.admin-shell-v3 .admin-content .admin-account-batchbar-active,
+.admin-shell-v3 .admin-content .admin-moderation-batchbar {
+  background: #faf6ec !important;
+  background-image: none !important;
+  border-color: rgba(34, 49, 74, .18) !important;
+  box-shadow: 0 8px 20px rgba(60, 48, 20, .08) !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+.admin-shell-v3 .admin-content .admin-account-batchbar-active button,
+.admin-shell-v3 .admin-content .admin-moderation-batchbar button {
+  border-color: rgba(34, 49, 74, .18) !important;
+}
+/* 设置/系统/分析页的浅蓝灰内嵌面板 */
+.admin-shell-v3 .admin-content .admin-settings-page [style*="#f8fafc"] {
+  background: #faf6ec !important;
+  border-color: rgba(34, 49, 74, .14) !important;
+}
+.admin-shell-v3 .admin-content .admin-analytics-page > section > div[style*="var(--admin-surface-muted"],
+.admin-shell-v3 .admin-content .admin-system-page [style*="var(--admin-surface-muted"] {
+  background: #faf6ec !important;
+  border-color: rgba(34, 49, 74, .14) !important;
+}
+/* 总览：分类数量行、在线指标行、范围标签 */
+.admin-shell-v3 .admin-content .admin-overview-category-list > div,
+.admin-shell-v3 .admin-content .admin-overview-online-metrics > div {
+  color: #43536a !important;
+  background: #faf6ec !important;
+  border-color: rgba(34, 49, 74, .10) !important;
+}
+.admin-shell-v3 .admin-content .admin-overview-range-label,
+.admin-shell-v3 .admin-content .admin-overview-count {
+  color: #6d6a5e !important;
+  background: #faf6ec !important;
+  border-color: rgba(34, 49, 74, .12) !important;
+}
+/* 总览快捷入口图标片：多彩统一纸面（与 pages 的 nth-child 规则同级） */
+.admin-shell-v3 .admin-content .admin-overview-shortcuts > button > svg,
+.admin-shell-v3 .admin-content .admin-overview-shortcuts > button:nth-child(2) > svg,
+.admin-shell-v3 .admin-content .admin-overview-shortcuts > button:nth-child(3) > svg {
+  color: #54687f !important;
+  background: #f3ead6 !important;
+  border-color: rgba(34, 49, 74, .12) !important;
+}
+.admin-shell-v3 .admin-content .admin-overview-shortcuts > button:hover {
+  color: #22314a !important;
+  background: #faf6ec !important;
+  border-color: rgba(34, 49, 74, .3) !important;
+}
+/* 账号卡片上的展开/收起按钮 */
+.admin-shell-v3 .admin-content .admin-accounts-page article > button {
+  color: #43536a !important;
+  background: #ffffff !important;
+  border-color: rgba(34, 49, 74, .16) !important;
+}
+.admin-shell-v3 .admin-content .admin-accounts-page article > button:hover {
+  color: #22314a !important;
+  background: #f7f2e4 !important;
+  border-color: rgba(34, 49, 74, .32) !important;
+}
+/* 复选框/单选框着色（压掉 pages 的亮蓝 radio 与表单层亮蓝） */
+.admin-shell-v3 .admin-content input[type="checkbox"],
+.admin-shell-v3 .admin-content input[type="radio"] {
+  accent-color: #22314a !important;
+}
+/* 内容区链接统一墨蓝（pages 给发布/备份页单设的亮蓝一并压回） */
+.admin-shell-v3 .admin-content a,
+.admin-shell-v3 .admin-content .admin-release-page a,
+.admin-shell-v3 .admin-content .admin-backup-page a {
+  color: #2e415f !important;
+}

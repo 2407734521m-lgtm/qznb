@@ -1015,3 +1015,95 @@
   .im-page .im-context-sheet { animation: none !important; }
   .im-page .im-tapback-dock button { transition: none !important; }
 }
+
+
+/* Native contextual action menu: a compact popover beside the selected bubble. */
+.im-page .im-context-overlay {
+  display: block !important;
+  align-items: initial !important;
+  justify-content: initial !important;
+}
+.im-page .im-context-sheet {
+  position: fixed !important;
+  z-index: 4 !important;
+  box-sizing: border-box;
+  width: min(244px, calc(100vw - 24px)) !important;
+  max-height: min(224px, calc(100dvh - 24px)) !important;
+  margin: 0 !important;
+  padding: 6px !important;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border: 1px solid rgba(255,255,255,.92) !important;
+  border-radius: 15px !important;
+  color: #202124 !important;
+  background: rgba(250,250,252,.92) !important;
+  box-shadow: 0 12px 36px rgba(18,30,50,.19), inset 0 1px 0 rgba(255,255,255,.98) !important;
+  -webkit-backdrop-filter: blur(28px) saturate(1.8) !important;
+  backdrop-filter: blur(28px) saturate(1.8) !important;
+  animation: im-context-menu-pop .16s cubic-bezier(.22,1,.36,1) both !important;
+}
+.im-page .im-context-sheet .im-context-grabber,
+.im-page .im-context-sheet .im-context-label {
+  display: none !important;
+}
+.im-page .im-context-actions {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 1px !important;
+  margin: 0 !important;
+}
+.im-page .im-context-actions button {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  gap: 11px !important;
+  width: 100% !important;
+  min-height: 39px !important;
+  padding: 7px 10px !important;
+  border: 0 !important;
+  border-radius: 9px !important;
+  color: #202124 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  font-size: 13px !important;
+  text-align: left;
+}
+.im-page .im-context-actions button:active {
+  background: rgba(0,122,255,.10) !important;
+  transform: none !important;
+}
+.im-page .im-context-action-icon {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 22px;
+  width: 22px;
+  color: #657082;
+  font-size: 17px !important;
+  line-height: 1;
+}
+.im-page .im-context-actions button.danger,
+.im-page .im-context-actions button.danger .im-context-action-icon {
+  color: #d93036 !important;
+  background: transparent !important;
+}
+.im-page .im-context-actions button.danger:active {
+  background: rgba(217,48,54,.08) !important;
+}
+@keyframes im-context-menu-pop {
+  from { opacity: 0; transform: translateY(5px) scale(.975); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@media (max-width: 600px) {
+  .im-page .im-context-sheet {
+    width: min(244px, calc(100vw - 24px)) !important;
+    max-height: min(224px, calc(100dvh - 24px)) !important;
+    padding: 6px !important;
+    border-radius: 15px !important;
+  }
+  .im-page .im-context-actions { grid-template-columns: none !important; }
+  .im-page .im-context-actions button { min-height: 39px !important; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .im-page .im-context-sheet { animation: none !important; }
+}

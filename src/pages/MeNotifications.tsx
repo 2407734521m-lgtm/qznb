@@ -79,7 +79,22 @@ export default function MeNotifications() {
 
   useEffect(() => {
     void load();
-    return () => { loadSequenceRef.current += 1; };
+    const channel = supabase.channel('notifications-page-' + me)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: 'profile_id=eq.' + me }, () => {
+        void load();
+      })
+      .subscribe();
+    const refreshVisible = () => {
+      if (document.visibilityState === 'visible') void load();
+    };
+    window.addEventListener('focus', refreshVisible);
+    document.addEventListener('visibilitychange', refreshVisible);
+    return () => {
+      loadSequenceRef.current += 1;
+      window.removeEventListener('focus', refreshVisible);
+      document.removeEventListener('visibilitychange', refreshVisible);
+      void supabase.removeChannel(channel);
+    };
   }, [me]);
 
   async function markRead(id: number) {
@@ -128,7 +143,7 @@ export default function MeNotifications() {
   const visibleList = list.filter(item => notificationPrefs[item.type] !== false)
     .filter(item => filter === 'unread' ? !item.is_read : true);
   const typeLabel: Record<string, string> = {
-    comment: '评论', like: '点赞', greeting: '留言', notice: '公告', love_wall: '表白墙', feedback: '反馈进度', admin_message: '管理员消息', moderation: '纪律处理',
+    comment: '评论', like: '点赞', greeting: '留言', notice: '公告', love_wall: '表白墙', feedback: '反馈进度', admin_message: '管理员消息', moderation: '纪律处理', friend_request: '好友申请',
   };
 
   return (

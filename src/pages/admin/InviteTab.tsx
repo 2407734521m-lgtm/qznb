@@ -2,6 +2,14 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { card, h3, mut, alog } from './shared';
 import { confirmDialog } from '../../lib/dialog';
+import OptionSheet from '../../components/OptionSheet';
+
+const INVITE_EXP_OPTIONS = [
+  { value: '0', label: '不过期' },
+  { value: '1', label: '1 天（一次性）' },
+  { value: '3', label: '3 天' },
+  { value: '7', label: '7 天' },
+];
 
 type Ic = { id: number; code: string; nickname: string | null; active: boolean; created_at: string; expires_at: string | null };
 export default function InviteTab({ isSuper, setMsg }: { isSuper: boolean; setMsg: (s: string) => void }) {
@@ -77,10 +85,11 @@ export default function InviteTab({ isSuper, setMsg }: { isSuper: boolean; setMs
         <label style={{ marginTop: 8 }}>欢迎昵称（这个码专属）</label>
         <input value={newNick} onChange={e => setNewNick(e.target.value)} placeholder="如：张三" maxLength={30} style={{ maxWidth: 220 }} />
         <label style={{ marginTop: 8 }}>有效期</label>
-        <select value={newExp} onChange={e => setNewExp(e.target.value)} style={{ maxWidth: 220 }}>
-          <option value="0">不过期</option><option value="1">1 天（一次性）</option>
-          <option value="3">3 天</option><option value="7">7 天</option>
-        </select>
+        <div>
+          <OptionSheet title="邀请码有效期" value={newExp} options={INVITE_EXP_OPTIONS} onChange={setNewExp}
+            buttonText={INVITE_EXP_OPTIONS.find(o => o.value === newExp)?.label ?? '不过期'}
+            buttonStyle={{ minWidth: 160, padding: '8px 10px', borderRadius: 10, border: '1px solid rgba(34,49,74,.25)', background: '#fff', color: '#22314a', fontSize: 13.5, justifyContent: 'space-between' }} />
+        </div>
         <div style={{ marginTop: 8 }}>
           <button className="pri" style={{ width: 'auto', padding: '10px 24px' }} onClick={addIc}>添加邀请码</button>
         </div>

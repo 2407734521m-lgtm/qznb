@@ -1,37 +1,18 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '../lib/supabase';
 import { useAuth } from '../auth';
 import { confirmDialog } from '../lib/dialog';
 import FeedbackModal from '../components/FeedbackModal';
-import { DEFAULT_USER_PREFERENCES, normalizeUserPreferences, type UserPreferences } from '../lib/userPreferences';
+import { useUserPreferences } from '../lib/useUserPreferences';
 
-type NotificationKey = 'comment' | 'like' | 'greeting' | 'notice' | 'feedback' | 'love_wall' | 'admin_message' | 'moderation' | 'friend_request';
-type Preferences = UserPreferences;
-type PanelKey = 'general' | 'notifications' | 'devices' | 'font' | 'search' | 'chat';
+type PanelKey = 'font' | 'search' | 'chat';
 type IconName = 'account' | 'lock' | 'settings' | 'bell' | 'chat' | 'play' | 'wallpaper' | 'palette' | 'font' | 'device' | 'key' | 'history' | 'content' | 'help';
 
-const DEFAULTS: Preferences = DEFAULT_USER_PREFERENCES;
-const LABELS: Record<NotificationKey, string> = { comment: '评论与回复', like: '点赞提醒', greeting: '留言提醒', notice: '公告提醒', feedback: '反馈处理进度', love_wall: '表白墙提醒', admin_message: '管理员私信', moderation: '纪律处理通知', friend_request: '好友申请提醒' };
-
-function deviceLabel(ua: string) {
-  if (/Android/i.test(ua)) return 'Android 设备';
-  if (/iPhone|iPad/i.test(ua)) return /iPad/i.test(ua) ? 'iPad' : 'iPhone';
-  if (/Windows/i.test(ua)) return 'Windows 电脑';
-  if (/Macintosh|Mac OS/i.test(ua)) return 'Mac 电脑';
-  return '当前浏览器';
-}
 function readSearchHistory(uid: string): string[] {
   try {
     const value: unknown = JSON.parse(localStorage.getItem('qznb_search_history_v2:' + uid) || '[]');
     return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string').slice(0, 6) : [];
   } catch { return []; }
-}
-function readPreferences(uid: string): Preferences {
-  try {
-    const raw = JSON.parse(localStorage.getItem('qznb_user_preferences_v1:' + uid) || 'null');
-    return normalizeUserPreferences(raw);
-  } catch { return DEFAULTS; }
 }
 function SettingIcon({ name }: { name: IconName }) {
   const common = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const };
@@ -59,15 +40,15 @@ type SettingRow = { icon: IconName; label: string; panel?: PanelKey; path?: stri
 const GROUPS: { title: string; rows: SettingRow[] }[] = [
   { title: '账号', rows: [
     { icon: 'account', label: '账号与安全', path: '/me/account', searchTerms: '邮箱 密码 登录' },
-    { icon: 'key', label: '通行密钥', path: '/me/edit?sec=key', searchTerms: '指纹 面容 ID 生物识别 passkey' },
-    { icon: 'device', label: '登录设备管理', panel: 'devices', searchTerms: '设备 会话 退出登录' },
+    { icon: 'key', label: '通行密钥', path: '/me/settings/passkey', searchTerms: '指纹 面容 ID 生物识别 passkey' },
+    { icon: 'device', label: '登录设备管理', path: '/me/settings/devices', searchTerms: '设备 会话 退出登录' },
   ]},
   { title: '隐私与安全', rows: [
-    { icon: 'lock', label: '隐私设置', path: '/me/edit?sec=priv', searchTerms: '姓名 年龄 头像 联系方式 社交资料 公开范围 表白墙匿名' },
+    { icon: 'lock', label: '隐私设置', path: '/me/settings/privacy', searchTerms: '姓名 年龄 头像 联系方式 社交资料 公开范围 表白墙匿名' },
   ]},
   { title: '通用', rows: [
-    { icon: 'settings', label: '通用设置', panel: 'general', searchTerms: '动画 动效 页面体验' },
-    { icon: 'bell', label: '通知设置', panel: 'notifications', searchTerms: '评论 点赞 留言 公告 表白墙 管理员私信 纪律处理 提醒 免打扰' },
+    { icon: 'settings', label: '通用设置', path: '/me/settings/general', searchTerms: '动画 动效 页面体验' },
+    { icon: 'bell', label: '通知设置', path: '/me/settings/notifications', searchTerms: '评论 点赞 留言 公告 表白墙 管理员私信 纪律处理 提醒 免打扰' },
     { icon: 'chat', label: '私聊与已读回执', panel: 'chat', searchTerms: '聊天 私聊 已读 回执 隐私' },
     { icon: 'wallpaper', label: '主页主题与壁纸', path: '/me/edit?sec=look', searchTerms: '动态壁纸 背景 颜色 布局 主页装扮' },
     { icon: 'font', label: '字体大小', panel: 'font', searchTerms: '字号 显示 阅读' },
@@ -86,11 +67,7 @@ export default function MeSettings() {
   const nav = useNavigate();
   const { session } = useAuth();
   const uid = session!.user.id;
-  const [prefs, setPrefs] = useState<Preferences>(() => readPreferences(uid));
-  const [prefsReady, setPrefsReady] = useState(false);
-  const [syncState, setSyncState] = useState<'loading' | 'saved' | 'error'>('loading');
-  const [deviceBusy, setDeviceBusy] = useState(false);
-  const [message, setMessage] = useState('');
+  const { prefs, setPrefs } = useUserPreferences(uid);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [searchHistory, setSearchHistory] = useState<string[]>(() => readSearchHistory(uid));
   const [query, setQuery] = useState('');
@@ -98,64 +75,12 @@ export default function MeSettings() {
   const [fontSize, setFontSize] = useState(() => {
     try { const saved = Number(localStorage.getItem('qznb_font_size_v1')); return [13, 14, 16, 18].includes(saved) ? saved : 14; } catch { return 14; }
   });
-  const currentDevice = useMemo(() => deviceLabel(navigator.userAgent || ''), []);
-
-  useEffect(() => {
-    let active = true;
-    async function loadCloudPreferences() {
-      const localPreferences = readPreferences(uid);
-      const { data, error } = await (supabase as any).from('profile_notification_preferences').select('preferences').eq('profile_id', uid).maybeSingle();
-      if (!active) return;
-      if (error) {
-        setPrefs(localPreferences); setSyncState('error'); setPrefsReady(true); return;
-      }
-      if (data?.preferences && typeof data.preferences === 'object') {
-        const remote = data.preferences as Partial<Preferences>;
-        setPrefs(normalizeUserPreferences({
-          ...localPreferences,
-          ...remote,
-          notifications: { ...DEFAULTS.notifications, ...localPreferences.notifications, ...(remote.notifications || {}) },
-          chat: { ...localPreferences.chat, ...(remote.chat || {}) },
-          quietHours: { ...localPreferences.quietHours, ...(remote.quietHours || {}) },
-        }));
-        setSyncState('saved');
-      } else {
-        const { error: insertError } = await (supabase as any).from('profile_notification_preferences').upsert({ profile_id: uid, preferences: localPreferences }, { onConflict: 'profile_id' });
-        if (!active) return;
-        setPrefs(localPreferences); setSyncState(insertError ? 'error' : 'saved');
-      }
-      setPrefsReady(true);
-    }
-    void loadCloudPreferences();
-    return () => { active = false; };
-  }, [uid]);
-
-  useEffect(() => {
-    if (!prefsReady) return;
-    try { localStorage.setItem('qznb_user_preferences_v1:' + uid, JSON.stringify(prefs)); } catch {}
-    try { localStorage.setItem('qznb_motion_preference_v1', prefs.motion); } catch {}
-    window.dispatchEvent(new Event('qznb-settings-changed'));
-    let active = true;
-    const timer = window.setTimeout(async () => {
-      const { error } = await (supabase as any).from('profile_notification_preferences').upsert({ profile_id: uid, preferences: prefs }, { onConflict: 'profile_id' });
-      if (active) setSyncState(error ? 'error' : 'saved');
-    }, 300);
-    return () => { active = false; window.clearTimeout(timer); };
-  }, [prefs, uid, prefsReady]);
 
   useEffect(() => {
     document.body.style.fontSize = fontSize + 'px';
     try { localStorage.setItem('qznb_font_size_v1', String(fontSize)); } catch {}
     window.dispatchEvent(new Event('qznb-font-size-changed'));
   }, [fontSize]);
-
-  async function signOutOtherDevices() {
-    if (!(await confirmDialog('退出其他设备上的登录？当前这台设备会保持登录。', { confirmText: '确认退出' }))) return;
-    setDeviceBusy(true); setMessage('');
-    const { error } = await supabase.auth.signOut({ scope: 'others' });
-    setDeviceBusy(false);
-    setMessage(error ? '操作失败：' + error.message : '已请求退出其他设备上的会话。');
-  }
 
   const normalizedQuery = query.trim().toLocaleLowerCase();
   const visibleGroups = GROUPS.map(group => ({
@@ -249,32 +174,11 @@ export default function MeSettings() {
                 </button>
                 {row.panel && expanded === row.panel && (
                   <div className="qz-settings-panel">
-                    {row.panel === 'notifications' && <>
-                      <p>关闭某类通知后，只会在通知中心隐藏该类别，不会删除历史记录。</p>
-                      {(Object.keys(LABELS) as NotificationKey[]).map(key => <label key={key}><span>{LABELS[key]}</span><input type="checkbox" checked={prefs.notifications[key] !== false} onChange={e => setPrefs(old => ({ ...old, notifications: { ...old.notifications, [key]: e.target.checked } }))} /></label>)}
-                      <div className="qz-settings-subsection">
-                        <p><b>免打扰时段</b></p>
-                        <label><span>启用未读角标免打扰</span><input type="checkbox" checked={prefs.quietHours.enabled} onChange={e => setPrefs(old => ({ ...old, quietHours: { ...old.quietHours, enabled: e.target.checked } }))} /></label>
-                        <div className="qz-settings-time-row">
-                          <label><span>开始时间</span><input className="qz-settings-time-input" type="time" value={prefs.quietHours.start} onChange={e => setPrefs(old => ({ ...old, quietHours: { ...old.quietHours, start: e.target.value } }))} /></label>
-                          <label><span>结束时间</span><input className="qz-settings-time-input" type="time" value={prefs.quietHours.end} onChange={e => setPrefs(old => ({ ...old, quietHours: { ...old.quietHours, end: e.target.value } }))} /></label>
-                        </div>
-                        <p className="qz-settings-row-note">按设备当地时间生效，只隐藏网站未读角标；消息仍会正常接收并保存在通知中心。开始和结束时间相同时，表示全天免打扰。</p>
-                      </div>
-                      <p>{syncState === 'loading' ? '正在读取账号级偏好…' : syncState === 'saved' ? '设置已同步到账号。' : '云端同步暂不可用；当前设备仍保留本地设置。'}</p>
-                    </>}
                     {row.panel === 'chat' && <>
                       <p>你可以决定是否向好友发送自己的已读状态，以及是否在聊天气泡下显示对方的已读状态。</p>
                       <label><span>发送已读回执</span><input type="checkbox" checked={prefs.chat.sendReadReceipts} onChange={e => setPrefs(old => ({ ...old, chat: { ...old.chat, sendReadReceipts: e.target.checked } }))} /></label>
                       <label><span>显示对方已读状态</span><input type="checkbox" checked={prefs.chat.showReadReceipts} onChange={e => setPrefs(old => ({ ...old, chat: { ...old.chat, showReadReceipts: e.target.checked } }))} /></label>
                       <p className="qz-settings-row-note">关闭发送回执不会影响收件箱未读计数；重新开启后，下一次打开聊天时恢复更新回执。</p>
-                    </>}
-                    {row.panel === 'general' && <>
-                      <p>页面动效</p>
-                      <div className="qz-settings-choice">
-                        {([['system', '跟随设备'], ['reduce', '减少动画'], ['full', '完整动画']] as const).map(([value, label]) => <button type="button" key={value} className={prefs.motion === value ? 'active' : ''} onClick={() => setPrefs(old => ({ ...old, motion: value }))}>{label}</button>)}
-                      </div>
-                      <p className="qz-settings-row-note">完整动画仍会尊重设备的减少动态效果设置。</p>
                     </>}
                     {row.panel === 'font' && <>
                       <p>调整整个网站的基础字号</p>
@@ -286,14 +190,6 @@ export default function MeSettings() {
                       <p>最近搜索仅保存在当前账号使用的这台设备中，最多保留 6 条，不会公开给其他成员。</p>
                       {searchHistory.length ? <div className="qz-settings-history">{searchHistory.map(term => <span key={term}>{term}</span>)}</div> : <p>暂时没有搜索记录。</p>}
                       <div className="qz-settings-choice"><button type="button" disabled={!searchHistory.length} onClick={() => void clearSearchHistory()}>清空最近搜索记录</button></div>
-                    </>}
-                    {row.panel === 'devices' && <>
-                      <p><b>{currentDevice} · 当前设备</b></p>
-                      <p>当前浏览器会话 · {session?.user.email || '已登录账号'}</p>
-                      {session?.expires_at && <p>访问令牌预计到期：{new Date(session.expires_at * 1000).toLocaleString()}</p>}
-                      <div className="qz-settings-choice"><button type="button" disabled={deviceBusy} onClick={() => void signOutOtherDevices()}>{deviceBusy ? '处理中…' : '退出其他设备上的登录'}</button></div>
-                      {message && <p role="status">{message}</p>}
-                      <p className="qz-settings-row-note">当前显示本设备；可撤销其他设备会话。暂不支持逐台设备列表与单台撤销。</p>
                     </>}
                   </div>
                 )}

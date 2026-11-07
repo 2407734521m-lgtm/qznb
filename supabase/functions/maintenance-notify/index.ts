@@ -59,7 +59,8 @@ Deno.serve(async (req: Request) => {
       return response({ error: '维护计划配置无效，暂不能发送。' }, 503);
     }
     const schedule = parsed as { enabled?: boolean | string; start_at?: string; end_at?: string };
-    if (schedule.enabled === true || schedule.enabled === 'true') {
+    const scheduleEnabled = schedule.enabled === true || schedule.enabled === 'true';
+    if (scheduleEnabled) {
       const start = Date.parse(schedule.start_at ?? '');
       const end = Date.parse(schedule.end_at ?? '');
       if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) {
@@ -68,7 +69,7 @@ Deno.serve(async (req: Request) => {
       const now = Date.now();
       // Match public_guest_landing_data(): an enabled schedule takes priority
       // over the manual switch, including after its end time.
-      maintenanceActive = schedule.enabled === true && start <= now && now < end;
+      maintenanceActive = start <= now && now < end;
     }
   }
   if (maintenanceActive) {

@@ -799,8 +799,11 @@ function Shell() {
   // 公共配置一到手就同步 document.title；index.html 里的静态标题只作首屏兜底。
   useEffect(() => {
     if (!siteConfig) return;
-    const t = String(siteConfig.site_title || '我们的班级').trim() || '我们的班级';
-    const s = String(siteConfig.site_subtitle || '青春档案').trim();
+    const savedTitle = String(siteConfig.site_title || '').trim();
+    const savedSubtitle = String(siteConfig.site_subtitle || '').trim();
+    const retiredBrandValues = ['我们的班级', '青春档案', 'class', 'class-youth-archive'];
+    const t = !savedTitle || retiredBrandValues.includes(savedTitle) ? '堯' : savedTitle;
+    const s = !savedSubtitle || retiredBrandValues.includes(savedSubtitle) ? '连接人与内容' : savedSubtitle;
     document.title = s ? `${t} · ${s}` : t;
   }, [siteConfig]);
 

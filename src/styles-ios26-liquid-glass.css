@@ -514,7 +514,14 @@ button:focus-visible, a:focus-visible {
 
 
 /* Four-item Dock + long-press optical quick panel. */
+.qz-ios26-dock-glass {
+  width: min(440px, calc(100vw - 28px)) !important;
+  max-width: calc(100vw - 28px) !important;
+}
 .qz-ios26-dock-glass .tabbar {
+  display: flex !important;
+  width: 100% !important;
+  max-width: 100% !important;
   min-width: 0 !important;
   gap: 5px !important;
   padding: 7px !important;
@@ -679,4 +686,22 @@ button:focus-visible, a:focus-visible {
     -webkit-backdrop-filter: none !important;
     backdrop-filter: none !important;
   }
+}
+
+/* Keep the four destinations balanced; prevent the last tab from drifting to the edge. */
+.qz-ios26-dock-glass .dock-scroll {
+  display: flex !important;
+  flex: 1 1 100% !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  justify-content: space-between !important;
+}
+.qz-ios26-dock-glass .dock-item {
+  flex: 1 1 0 !important;
+  min-width: 0 !important;
+}
+.qz-ios26-dock-glass .dock-item > a {
+  width: 100% !important;
+  min-width: 0 !important;
+  padding-inline: 4px !important;
 }

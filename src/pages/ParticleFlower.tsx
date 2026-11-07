@@ -141,15 +141,18 @@ function makeParticles(count: number): Particle[] {
   return out;
 }
 
+// 光晕收紧（2026-11-07 真机反馈）：原来的宽光尾在加色混合下把整朵花糊成
+// 一团白光，单颗粒子显不出来。渐变衰减改陡、绘制直径同步缩小，
+// 让每颗粒子回到「亮核 + 小光晕」，花的形由颗粒本身排出来。
 function drawParticleSprites(colors: number[][] = THEME_COLORS.sakura): HTMLCanvasElement[] {
   return colors.map(([r,g,b], index) => {
     const sprite = document.createElement('canvas'); sprite.width = 48; sprite.height = 48;
     const ctx = sprite.getContext('2d')!;
     const glow = ctx.createRadialGradient(24,24,0.5,24,24,23);
-    glow.addColorStop(0,'rgba(255,255,246,.98)');
-    glow.addColorStop(0.09,'rgba('+r+','+g+','+b+',.92)');
-    glow.addColorStop(0.28,'rgba('+r+','+g+','+b+',.42)');
-    glow.addColorStop(0.62,'rgba('+r+','+g+','+b+',.12)');
+    glow.addColorStop(0,'rgba(255,255,246,.95)');
+    glow.addColorStop(0.10,'rgba('+r+','+g+','+b+',.85)');
+    glow.addColorStop(0.30,'rgba('+r+','+g+','+b+',.30)');
+    glow.addColorStop(0.65,'rgba('+r+','+g+','+b+',.05)');
     glow.addColorStop(1,'rgba('+r+','+g+','+b+',0)');
     ctx.fillStyle=glow; ctx.fillRect(0,0,48,48);
     ctx.globalCompositeOperation='lighter';
@@ -1035,19 +1038,19 @@ export default function ParticleFlower() {
         const cameraDistance=2.65,breathing=1+Math.sin(now*.68)*.006;
         const halo=ctx.createRadialGradient(cx,cy,scale*.08,cx,cy,scale*.82);
         const haloBoost = twoHandBoostRef.current * 0.055;
-        halo.addColorStop(0,'rgba('+THEME_HALO_COLORS[artThemeRef.current]+','+(.075+opennessNow*.07+haloBoost)+')');
+        halo.addColorStop(0,'rgba('+THEME_HALO_COLORS[artThemeRef.current]+','+(.05+opennessNow*.05+haloBoost)+')');
         halo.addColorStop(1,'rgba(120,50,105,0)');
         ctx.fillStyle=halo;ctx.fillRect(0,0,width,height);
         // A warm inner light gives the layered flower a visible centre and a gentle breathing pulse.
         const corePulse = 0.92 + Math.sin(now * 1.15) * 0.08;
         const coreRadius = scale * (0.025 + opennessNow * 0.012) * corePulse;
         const coreGlow = ctx.createRadialGradient(cx, cy, 0, cx, cy, coreRadius * 4.2);
-        coreGlow.addColorStop(0, 'rgba('+THEME_CORE_COLORS[artThemeRef.current][0]+','+(.42+haloBoost)+')');
-        coreGlow.addColorStop(.18, 'rgba('+THEME_CORE_COLORS[artThemeRef.current][1]+',.19)');
+        coreGlow.addColorStop(0, 'rgba('+THEME_CORE_COLORS[artThemeRef.current][0]+','+(.26+haloBoost)+')');
+        coreGlow.addColorStop(.18, 'rgba('+THEME_CORE_COLORS[artThemeRef.current][1]+',.12)');
         coreGlow.addColorStop(1, 'rgba(244,144,190,0)');
         ctx.save(); ctx.globalCompositeOperation = 'lighter';
         ctx.fillStyle = coreGlow; ctx.beginPath(); ctx.arc(cx, cy, coreRadius * 4.2, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = 'rgba('+THEME_CORE_DOT_COLORS[artThemeRef.current]+',.42)'; ctx.beginPath(); ctx.arc(cx, cy, coreRadius * .55, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = 'rgba('+THEME_CORE_DOT_COLORS[artThemeRef.current]+',.30)'; ctx.beginPath(); ctx.arc(cx, cy, coreRadius * .55, 0, Math.PI * 2); ctx.fill();
         ctx.restore();
 
         // Additive prebuilt sprites avoid per-frame sorting and per-particle canvas paths.
@@ -1099,7 +1102,7 @@ export default function ParticleFlower() {
           const depthScale=.82+p.projectionScale*.2;
           const size=p.size*particleSizeRef.current*depthScale*(1+touch*.14);
           const alpha=clamp((.34+opennessNow*.16)*twinkle*glowIntensityRef.current*(1+touch*.42),0,.96);
-          const sprite=spritePalettes[artThemeRef.current][p.tone],diameter=size*7.2;
+          const sprite=spritePalettes[artThemeRef.current][p.tone],diameter=size*5.1;
           ctx.globalAlpha=alpha;
           ctx.drawImage(sprite,x-diameter*.5,y-diameter*.5,diameter,diameter);
           if (p.rim) {
@@ -1110,7 +1113,7 @@ export default function ParticleFlower() {
             ctx.save();
             ctx.translate(x, y);
             ctx.rotate(p.angle + Math.sin(now * .6 + p.phase) * .35);
-            ctx.globalAlpha = Math.min(.92, alpha * 1.1);
+            ctx.globalAlpha = Math.min(.85, alpha * .95);
             ctx.drawImage(petalSprite, -pd * .5, -pd * .5, pd, pd);
             ctx.restore();
           }

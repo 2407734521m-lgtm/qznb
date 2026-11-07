@@ -3,6 +3,7 @@ import { useAuth } from '../../auth';
 import { supabase } from '../../lib/supabase';
 import { card, h3, mut } from './shared';
 import { confirmDialog } from '../../lib/dialog';
+import { setTestingMark, getTestingMark, clearTestingMark } from '../../lib/testSwitch';
 
 type TA = { id: string; label: string; email: string };
 function loadTAs(): TA[] {
@@ -54,10 +55,8 @@ export default function TestTab({ setMsg }: { setMsg: (s: string) => void }) {
       setSwitchPassword('');
       return setMsg('无法读取当前账号邮箱，请先重新登录。');
     }
-    try {
-      sessionStorage.setItem('ca_testing_from', session.user.email);
-      sessionStorage.setItem('ca_testing_as', a.label || a.email);
-    } catch {
+    setTestingMark(a.label || a.email, session.user.email);
+    if (!getTestingMark()) {
       setSwitchPassword('');
       return setMsg('浏览器无法保存本次切换状态，请检查存储权限。');
     }
@@ -65,10 +64,7 @@ export default function TestTab({ setMsg }: { setMsg: (s: string) => void }) {
     setSwitchingId(null);
     const { error } = await supabase.auth.signInWithPassword({ email: a.email, password });
     if (error) {
-      try {
-        sessionStorage.removeItem('ca_testing_as');
-        sessionStorage.removeItem('ca_testing_from');
-      } catch {}
+      clearTestingMark();
       setMsg('切换失败，请检查测试账号和密码。');
     } else {
       location.reload();

@@ -8,6 +8,7 @@ import { AuthProvider, useAuth } from './auth';
 import { supabase } from './lib/supabase';
 import { DialogHost } from './lib/dialog';
 import ErrorBoundary from './components/ErrorBoundary';
+import TestSwitchFab from './components/TestSwitchFab';
 import './styles.css';
 import './styles-cinematic.css';
 import './styles-editorial.css';
@@ -72,6 +73,7 @@ createRoot(document.getElementById('root')!).render(
   <React.StrictMode><HashRouter><AuthProvider>
     <ErrorBoundary>
       {isAdminHost ? <AdminShell /> : <App />}
+      <TestSwitchFab />
     </ErrorBoundary>
     <DialogHost />
   </AuthProvider></HashRouter></React.StrictMode>

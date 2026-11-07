@@ -39,7 +39,11 @@ grant execute on function public.love_wall_guest_published() to anon, authentica
 
 -- The path is disclosed only when it is linked to a published post.
 -- This helper intentionally does not return author IDs or comment content.
-create or replace function public.love_wall_media_public_readable(p_path text)
+create schema if not exists guest_api_private;
+revoke all on schema guest_api_private from public;
+grant usage on schema guest_api_private to anon, authenticated;
+
+create or replace function guest_api_private.love_wall_media_public_readable(p_path text)
 returns boolean
 language sql
 stable
@@ -55,8 +59,8 @@ as $function$
   );
 $function$;
 
-revoke all on function public.love_wall_media_public_readable(text) from public, anon, authenticated;
-grant execute on function public.love_wall_media_public_readable(text) to anon, authenticated;
+revoke all on function guest_api_private.love_wall_media_public_readable(text) from public, anon, authenticated;
+grant execute on function guest_api_private.love_wall_media_public_readable(text) to anon, authenticated;
 
 grant select (id, post_id, path, kind, sort) on public.love_wall_media to anon;
 
@@ -65,7 +69,7 @@ create policy love_wall_media_public_guest_read
   on public.love_wall_media
   for select
   to anon
-  using (public.love_wall_media_public_readable(path));
+  using (guest_api_private.love_wall_media_public_readable(path));
 
 -- Allow signing/reading only attachment objects explicitly linked to published posts.
 -- All other media objects remain protected by their existing policies.
@@ -76,5 +80,5 @@ create policy love_wall_media_public_guest_object_read
   to anon
   using (
     bucket_id = 'media'
-    and public.love_wall_media_public_readable(name)
+    and guest_api_private.love_wall_media_public_readable(name)
   );

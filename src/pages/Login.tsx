@@ -5,12 +5,22 @@ import FeedbackModal from '../components/FeedbackModal';
 import PasswordField from '../components/PasswordField';
 import CodeInput from '../components/CodeInput';
 import FloatField from '../components/FloatField';
-import bgDefault from '../assets/cow.jpg';
 import { alertDialog } from '../lib/dialog';
 import './Login.polish.css';
 
 const BG_KEY = 'ca_login_bg_v2';
-const DEFAULT_BG = bgDefault; // 默认壁纸（纯牛马）
+const DEFAULT_BG = '';
+const LEGACY_DEFAULT_BACKGROUND = /(?:^|\\/)cow(?:[-.][^/?#]+)?\\.jpe?g(?:[?#].*)?$/i;
+function readLoginBackground() {
+  try {
+    const saved = localStorage.getItem(BG_KEY) || '';
+    // Older versions stored the bundled cow image as the default. Clear only that
+    // stock asset; data URLs and other user-selected backgrounds are preserved.
+    return LEGACY_DEFAULT_BACKGROUND.test(saved) ? DEFAULT_BG : saved;
+  } catch {
+    return DEFAULT_BG;
+  }
+}
 
 // 按钮里的加载小圈圈（等待动画）
 function Spin() {
@@ -50,7 +60,7 @@ export default function Login({ siteTitle, siteSubtitle }: { siteTitle?: string;
   const [forgotCode, setForgotCode] = useState('');
   const [forgotNewPw, setForgotNewPw] = useState('');
   const [forgotNewPw2, setForgotNewPw2] = useState('');
-  const [bg, setBg] = useState<string>(() => { try { return localStorage.getItem(BG_KEY) || DEFAULT_BG; } catch { return DEFAULT_BG; } });
+  const [bg, setBg] = useState<string>(readLoginBackground);
   // 失焦校验：填完离开某个框，才在框正下方提示怎么改；没碰过的框不打扰，改对了自动消失
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const touch = (k: string) => () => setTouched(t => (t[k] ? t : { ...t, [k]: true }));

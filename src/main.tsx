@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { HashRouter } from 'react-router-dom';
 import App from './App';
@@ -9,6 +9,8 @@ import { supabase } from './lib/supabase';
 import { DialogHost } from './lib/dialog';
 import ErrorBoundary from './components/ErrorBoundary';
 import TestSwitchFab from './components/TestSwitchFab';
+import { detectInstalledAdminApp } from './lib/installedApp';
+import AppUpdateDialog from './components/AppUpdateDialog';
 /* Global foundation and legacy compatibility sheets. Keep their order stable. */
 import './styles.css';
 import './styles-editorial.css';
@@ -74,6 +76,28 @@ function AdminShell() {
     );
     return () => { live = false; clearTimeout(timer); };
   }, [session?.user.id]);
+  // 管理版应用（青春管理）更新：后台域名走的是本 AdminShell 而非主站 App，
+  // 更新检查必须挂在这里主站那套才够不着。逻辑与主站学生版一致：进应用与
+  // 切回前台时查 public_admin_app_update()，序号更高就弹更新框。
+  const [adminUpdate, setAdminUpdate] = useState<any>(null);
+  const [updateDismissed, setUpdateDismissed] = useState(false);
+  const adminUpdateCodeRef = useRef('');
+  useEffect(() => {
+    const check = () => {
+      if (!detectInstalledAdminApp()) return;
+      supabase.rpc('public_admin_app_update').then(({ data, error }) => {
+        if (error || !data) return;
+        const code = String((data as any).app_version_code || '');
+        if (adminUpdateCodeRef.current && adminUpdateCodeRef.current !== code) setUpdateDismissed(false);
+        adminUpdateCodeRef.current = code;
+        setAdminUpdate(data);
+      });
+    };
+    check();
+    const onVis = () => { if (document.visibilityState === 'visible') check(); };
+    document.addEventListener('visibilitychange', onVis);
+    return () => document.removeEventListener('visibilitychange', onVis);
+  }, []);
   // 后台标签标题：跟随后台设置里的网站标题，格式为「<网站标题> · 管理后台」。
   useEffect(() => {
     let live = true;
@@ -87,9 +111,25 @@ function AdminShell() {
   }, []);
   if (loading || (session && (role === null || verifiedUid !== session.user.id))) return <div className="center">加载中…</div>;
   const isAdmin = Boolean(session) && (role === 'admin' || role === 'super_admin');
-  if (!isAdmin) return (<><div className="glow" /><AdminLogin showBack={false} /></>);
+  const adminApp = detectInstalledAdminApp();
+  const latestAdminCode = adminUpdate ? Number(adminUpdate.app_version_code || 0) : 0;
+  const adminMinCode = adminUpdate ? Number(adminUpdate.app_min_code || 0) : 0;
+  const adminForced = adminUpdate?.app_force_update === 'true' || (adminMinCode > 0 && !!adminApp && adminApp.code < adminMinCode);
+  let adminIgnored = false;
+  try { adminIgnored = localStorage.getItem('qz_admin_app_update_ignored') === String(latestAdminCode); } catch { /* storage unavailable */ }
+  const showAdminUpdate = !!adminApp && !!adminUpdate && latestAdminCode > adminApp.code
+    && !!adminUpdate.app_apk_url && !updateDismissed && (adminForced || !adminIgnored);
+  const ignoreAdminUpdate = () => {
+    try { localStorage.setItem('qz_admin_app_update_ignored', String(latestAdminCode)); } catch { /* storage unavailable */ }
+    setUpdateDismissed(true);
+  };
+  const adminUpdateDialog = showAdminUpdate && adminApp ? (
+    <AppUpdateDialog currentName={adminApp.name} info={{ ...adminUpdate, app_force_update: adminForced ? 'true' : 'false' }} onIgnore={ignoreAdminUpdate} />
+  ) : null;
+  if (!isAdmin) return (<><div className="glow" />{adminUpdateDialog}<AdminLogin showBack={false} /></>);
   return (<>
     <div className="glow" />
+    {adminUpdateDialog}
     <Admin verifiedRole={role === 'super_admin' ? 'super_admin' : 'admin'} />
   </>);
 }

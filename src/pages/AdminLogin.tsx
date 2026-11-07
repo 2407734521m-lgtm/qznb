@@ -28,14 +28,14 @@ export default function AdminLogin({ showBack = true }: { showBack?: boolean }) 
       authenticated = true;
       const { data: role, error: roleError } = await supabase.rpc('my_role');
       if (roleError || (role !== 'admin' && role !== 'super_admin')) {
-        await supabase.auth.signOut();
+        await supabase.auth.signOut({ scope: 'local' });
         authenticated = false;
         setErr('账号或密码错误，或该账号没有管理权限');
         return;
       }
       // 成功：父级检测到 session/role 变化后自动切进后台
     } catch {
-      if (authenticated) await supabase.auth.signOut();
+      if (authenticated) await supabase.auth.signOut({ scope: 'local' });
       setErr('账号或密码错误，或暂时无法登录，请检查后重试');
     } finally { setBusy(false); }
   }

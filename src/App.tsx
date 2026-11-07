@@ -890,7 +890,7 @@ function Shell() {
     }
   }
 
-  async function logout() { await supabase.auth.signOut(); }
+  async function logout() { await supabase.auth.signOut({ scope: 'local' }); }
 
   if (loading) return <div className="center"><FxLoader text="加载中…" /></div>;
   if (!session && isAdminPage) return (<><div className="glow" /><div style={{ position: 'fixed', inset: 0, background: '#fff' }} /><div style={{ position: 'relative' }}><AdminLogin /></div></>);

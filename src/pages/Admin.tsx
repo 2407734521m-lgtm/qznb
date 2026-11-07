@@ -136,7 +136,13 @@ export default function Admin({ verifiedRole }: { verifiedRole: 'admin' | 'super
   }
 
   function signOut() {
-    void supabase.auth.signOut().then(() => location.reload());
+    void supabase.auth.signOut({ scope: 'local' }).then(({ error }) => {
+      if (error) {
+        console.error('管理员退出当前设备失败：', error);
+        return;
+      }
+      location.reload();
+    }).catch(error => console.error('管理员退出当前设备失败：', error));
   }
 
   if (!session) {

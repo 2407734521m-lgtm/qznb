@@ -899,10 +899,12 @@ function Shell() {
   const installedApp = uaMatch ? { name: uaMatch[1], code: Number(uaMatch[2]) } : null;
   const latestAppCode = appUpdate ? Number(appUpdate.app_version_code || 0) : 0;
   const appForce = appUpdate?.app_force_update === 'true';
+  const appMinCode = appUpdate ? Number(appUpdate.app_min_code || 0) : 0;
+  const appForced = appForce || (appMinCode > 0 && !!installedApp && installedApp.code < appMinCode);
   let appIgnored = false;
   try { appIgnored = localStorage.getItem('qz_app_update_ignored') === String(latestAppCode); } catch { /* storage unavailable */ }
   const showAppUpdate = !!installedApp && !!appUpdate && latestAppCode > installedApp.code
-    && !!appUpdate.app_apk_url && !updateDismissed && (appForce || !appIgnored);
+    && !!appUpdate.app_apk_url && !updateDismissed && (appForced || !appIgnored);
   const ignoreAppUpdate = () => {
     try { localStorage.setItem('qz_app_update_ignored', String(latestAppCode)); } catch { /* storage unavailable */ }
     setUpdateDismissed(true);
@@ -918,7 +920,7 @@ function Shell() {
       {emblem && <img src={emblemUrl} alt="" aria-hidden draggable={false}
         style={{ position: 'absolute', top: emblem.top, right: emblem.right, width: emblem.width, opacity: emblem.opacity, pointerEvents: 'none', userSelect: 'none', zIndex: 30 }} />}
       {showAppUpdate && installedApp && appUpdate && (
-        <AppUpdateDialog currentName={installedApp.name} info={appUpdate} onIgnore={ignoreAppUpdate} />
+        <AppUpdateDialog currentName={installedApp.name} info={{ ...appUpdate, app_force_update: appForced ? 'true' : 'false' }} onIgnore={ignoreAppUpdate} />
       )}
       {isAdminPage ? (
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', position: 'sticky', top: 0, zIndex: 40, background: 'rgba(255,255,255,.92)', backdropFilter: 'blur(12px)', borderBottom: '1px solid #e8eaf0' }}>

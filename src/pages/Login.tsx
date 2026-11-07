@@ -428,7 +428,7 @@ export default function Login({ siteTitle, siteSubtitle, onGuestLogin }: { siteT
             <button className="ghost" style={{ width: '100%', marginTop: 8 }} disabled={busy || resendIn > 0} onClick={doForgot}>
               {busy ? '发送中…' : resendIn > 0 ? `重新发送验证码（${resendIn}s）` : forgotSent ? '重新发送验证码' : '发送验证码'}
             </button>
-            {forgotSent && <p className="priv-note" style={{ margin: '4px 0 0' }}>验证码已发到上面这个 QQ 邮箱，找标题是「我们的班级 · 青春档案 — 你的重置密码验证码」的邮件，没看到就翻一下垃圾箱；如果这个邮箱没注册过，是不会收到码的</p>}
+            {forgotSent && <p className="priv-note" style={{ margin: '4px 0 0' }}>验证码已发到上面这个 QQ 邮箱，请查找最新收到的密码重置验证码邮件；如果这个邮箱没注册过，是不会收到码的</p>}
             {forgotSent && (<>
               <label>邮箱验证码</label>
               <CodeInput value={forgotCode} onChange={setForgotCode} onEnter={doForgotVerify} />

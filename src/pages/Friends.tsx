@@ -500,6 +500,8 @@ export default function Friends() {
       console.error('friend relationship action failed', error);
       setMsg('操作失败，请检查网络后重试。');
     } finally {
+      // 这是“仅本次申请”的选择；无论成功、失败或网络异常，都不沿用到下一位成员。
+      setSendRequestEmailReminder(false);
       setFriendActionId(null);
     }
   }
@@ -607,6 +609,14 @@ export default function Friends() {
         .im-inbox-empty-title{font-weight:750;color:#f3f8ff;font-size:15px;margin-bottom:7px}
         .im-inbox-empty-copy{font-size:12px;line-height:1.7}
         .im-inbox-message{margin:0 0 12px;padding:10px 13px;border-radius:14px;background:rgba(12,30,58,.68);border:1px solid rgba(210,232,255,.14);color:#d8eaff;font-size:12px}
+        .im-request-email-option{display:flex;align-items:center;gap:10px;margin:0 2px 12px;padding:11px 13px;border:1px solid rgba(122,153,190,.2);border-radius:15px;background:rgba(255,255,255,.72);color:#243247;cursor:pointer;transition:border-color .18s ease,background .18s ease}
+        .im-request-email-option:has(input:checked){border-color:rgba(55,125,220,.42);background:rgba(232,242,255,.92)}
+        .im-request-email-option input{width:17px;height:17px;margin:0;flex:none;accent-color:#3478d4}
+        .im-request-email-option input:disabled{opacity:.55}
+        .im-request-email-copy{display:flex;flex:1;min-width:0;flex-direction:column;gap:3px}
+        .im-request-email-copy strong{font-size:12px;font-weight:700;color:#26364d}
+        .im-request-email-copy small{font-size:10px;line-height:1.45;color:#78869a}
+        .im-request-email-tag{flex:none;padding:3px 7px;border-radius:99px;background:rgba(90,115,145,.1);color:#718097;font-size:10px}
         .im-request-actions{display:flex;gap:6px}
         .im-request-actions button{border-radius:12px;padding:8px 10px}
         .im-friend-actions{display:flex;align-items:center;justify-content:flex-end;gap:6px;flex-wrap:wrap}
@@ -668,15 +678,18 @@ export default function Friends() {
             <span>{searchTerm ? '搜索站内成员' : '发现成员'}</span>
             <small>{searchTerm ? '支持昵称、用户名和 @用户名' : '只显示已完成加入的成员 · 最多 20 位'}</small>
           </div>
-          <label style={{ display: 'flex', alignItems: 'center', gap: 9, margin: '0 12px 10px', padding: '10px 12px', borderRadius: 12, background: 'var(--panel, #f5f6f8)', color: 'var(--text, #252a33)', fontSize: 13, cursor: 'pointer' }}>
+          <label className="im-request-email-option">
             <input
               type="checkbox"
               checked={sendRequestEmailReminder}
+              disabled={friendActionId !== null}
               onChange={event => setSendRequestEmailReminder(event.target.checked)}
-              style={{ width: 16, height: 16, margin: 0, accentColor: 'var(--accent, #3978d6)', flex: '0 0 auto' }}
             />
-            <span>本次申请同时通过邮件提醒对方</span>
-            <small style={{ marginLeft: 'auto', color: 'var(--muted, #858b96)', fontSize: 11, whiteSpace: 'nowrap' }}>可选</small>
+            <span className="im-request-email-copy">
+              <strong>同时发送邮件提醒</strong>
+              <small>仅对下一次新好友申请生效，不会重复提醒</small>
+            </span>
+            <span className="im-request-email-tag">可选</span>
           </label>
           {searchLoading ? (
             <div className="im-inbox-empty">

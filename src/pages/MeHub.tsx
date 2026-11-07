@@ -25,6 +25,7 @@ const groups: { title: string; note: string; entries: Entry[] }[] = [
   { title: '青春记录', note: '回看共同留下的照片与成长足迹', entries: [
     { mark: '相册', title: '班级相册', note: '按分类浏览照片与影像', to: '/albums' },
     { mark: '活动', title: '班级活动', note: '查看近期活动与安排', to: '/events' },
+    { mark: '日历', title: '班级记忆日历', note: '按日期回看活动、动态和公告', to: '/calendar' },
     { mark: '特效', title: '热门特效', note: '探索有趣的互动效果', to: '/hot' },
     { mark: '成长', title: '成长档案', note: '活跃天数、贡献记录与纪念徽章', to: '/me/growth' },
   ]},

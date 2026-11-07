@@ -27,6 +27,7 @@ import Chat from './pages/Chat';
 import Admin from './pages/Admin';
 import Home from './pages/Home';
 import Capsule from './pages/Capsule';
+import MemoryCalendar from './pages/MemoryCalendar';
 import Wishes from './pages/Wishes';
 import Events from './pages/Events';
 import Greetings from './pages/Greetings';
@@ -81,7 +82,7 @@ function parseDevice(ua: string): string {
 function isTabActive(tab: string, path: string) {
   if (tab === '/board') return path.startsWith('/board');
   if (tab === '/members') return path.startsWith('/members');
-  if (tab === '/explore') return ['/explore','/feed','/albums','/hot','/greetings','/events','/capsule','/wishes','/particle-flower','/air-ink'].some(p => path.startsWith(p));
+  if (tab === '/explore') return ['/explore','/feed','/albums','/hot','/greetings','/events','/capsule','/wishes','/particle-flower','/air-ink','/calendar'].some(p => path.startsWith(p));
   if (tab === '/friends') return ['/friends','/chat'].some(p => path.startsWith(p));
   if (tab === '/songs') return path.startsWith('/songs');
   if (tab === '/love-wall') return path.startsWith('/love-wall');
@@ -784,6 +785,7 @@ function Shell() {
               <Route path="/greetings" element={<Greetings />} />
               <Route path="/home" element={<Home />} />
                             <Route path="/capsule" element={<Capsule />} />
+              <Route path="/calendar" element={<MemoryCalendar />} />
               <Route path="/wishes" element={<Wishes />} />
               <Route path="/events" element={<Events />} />
               <Route path="/hot" element={<HotSnippets />} />

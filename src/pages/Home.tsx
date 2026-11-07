@@ -29,6 +29,7 @@ const SHORTCUTS = [
   ['/members', '同学档案'],
   ['/feed', '班级动态'],
   ['/timeline', '青春回忆'],
+  ['/calendar', '记忆日历'],
   ['/capsule', '时光胶囊'],
   ['/wishes', '愿望墙'],
   ['/greetings', '留言墙'],

@@ -7,45 +7,30 @@ type Stroke = { points: Point[]; liftedAt?: number };
 type Candidate = { hanzi: string; score?: number };
 type ManagedWorker = Worker & { revokeObjectUrl?: () => void };
 
-const HANDS_CDNS = ['https://cdn.jsdelivr.net/npm/@mediapipe/hands', 'https://unpkg.com/@mediapipe/hands'];
+// 新版 MediaPipe（Tasks Vision / HandLandmarker），与指尖生花（PR #260）同一套识别层，版本写死避免 CDN 漂移。
+// 旧版 @mediapipe/hands 必须靠 WebGL 送帧，部分浏览器建不出 WebGL 就直接崩；
+// 新版支持 CPU 推理兜底，建不出 GPU 管线时自动降级，不再报错退出。
+const VISION_VERSION = '0.10.14';
+const VISION_CDNS = [
+  'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@' + VISION_VERSION,
+  'https://unpkg.com/@mediapipe/tasks-vision@' + VISION_VERSION,
+];
+const MODEL_URL = 'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task';
+const MODEL_TIMEOUT_MS = 20000;
+
+function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promise<T> {
+  return Promise.race([promise, new Promise<T>((_, reject) => window.setTimeout(() => reject(new Error(message)), ms))]);
+}
+async function loadVision(base: string) {
+  const mod: any = await import(/* @vite-ignore */ base + '/vision_bundle.mjs');
+  const fileset = await mod.FilesetResolver.forVisionTasks(base + '/wasm');
+  return { HandLandmarker: mod.HandLandmarker, fileset };
+}
 const HANZI_BASE = 'https://cdn.jsdelivr.net/gh/gugray/hanzi_lookup@01f90c3ab99a8fadf0696c28e5eb097223c500db/web_demo';
 const CONNECTIONS = [[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[5,9],[9,10],[10,11],[11,12],[9,13],[13,14],[14,15],[15,16],[13,17],[17,18],[18,19],[19,20],[0,17]];
 
 const distance = (a: Point, b: Point) => Math.hypot(a.x - b.x, a.y - b.y);
 const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(max, v));
-
-function loadScript(src: string, timeoutMs = 12000) {
-  return new Promise<void>((resolve, reject) => {
-    const existing = document.querySelector('script[data-air-ink-src="' + src + '"]') as HTMLScriptElement | null;
-    if (existing?.dataset.loaded === '1') { resolve(); return; }
-    const script = existing || document.createElement('script');
-    let settled = false;
-    let timer = 0;
-    const finish = (error?: Error) => {
-      if (settled) return;
-      settled = true;
-      window.clearTimeout(timer);
-      script.removeEventListener('load', onLoad);
-      script.removeEventListener('error', onError);
-      if (error) reject(error); else resolve();
-    };
-    const onLoad = () => { script.dataset.loaded = '1'; finish(); };
-    const onError = () => finish(new Error('手势识别脚本加载失败'));
-    timer = window.setTimeout(() => {
-      if (!existing) script.remove();
-      finish(new Error('手势识别脚本加载超时'));
-    }, timeoutMs);
-    script.addEventListener('load', onLoad, { once: true });
-    script.addEventListener('error', onError, { once: true });
-    if (!existing) {
-      script.src = src;
-      script.async = true;
-      script.crossOrigin = 'anonymous';
-      script.dataset.airInkSrc = src;
-      document.head.appendChild(script);
-    }
-  });
-}
 
 function createWorker(): ManagedWorker {
   const source = [
@@ -126,7 +111,9 @@ export default function AirInk() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const previewRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
-  const handsRef = useRef<any>(null);
+  const landmarkerRef = useRef<any>(null);
+  const delegateRef = useRef<'GPU' | 'CPU'>('GPU');
+  const lastInferenceRef = useRef(0);
   const workerRef = useRef<Worker | null>(null);
   const strokesRef = useRef<Stroke[]>([]);
   const currentStrokeRef = useRef<Stroke | null>(null);
@@ -181,7 +168,7 @@ export default function AirInk() {
     streamRef.current?.getTracks().forEach(track => track.stop());
     streamRef.current = null;
     if (videoRef.current) videoRef.current.srcObject = null;
-    if (handsRef.current) { try { void handsRef.current.close(); } catch { /* shutdown */ } handsRef.current = null; }
+    if (landmarkerRef.current) { try { landmarkerRef.current.close(); } catch { /* shutdown */ } landmarkerRef.current = null; }
     disposeWorker(workerRef.current);
     workerRef.current = null;
     workerReadyRef.current = false;
@@ -203,17 +190,34 @@ export default function AirInk() {
     setRecognitionStatus('loading'); setCandidates([]); setSelected(''); setRecognizedText('');
     strokesRef.current = []; currentStrokeRef.current = null; pinchRef.current = false; smoothRef.current = null;
     try {
-      let activeCdn = HANDS_CDNS[0];
-      if (!(window as any).Hands) {
-        setStage('正在下载手势识别脚本'); setProgress(14);
-        let loaded = false;
-        for (const cdn of HANDS_CDNS) {
-          try { await loadScript(cdn + '/hands.js'); activeCdn = cdn; loaded = true; break; }
-          catch { /* fallback CDN */ }
-        }
-        if (!loaded) throw new Error('手势模型加载失败。请检查网络，或使用系统浏览器重新打开。');
+      // 先建识别器再开摄像头：两个资源源 × GPU/CPU 两种推理方式依次尝试，
+      // GPU 建不出来（WebGL 不可用）时自动落到 CPU，不再直接失败（同指尖生花 #260）。
+      setStage('正在加载手部识别库'); setProgress(14);
+      let landmarker: any = null;
+      let lastError: any = null;
+      for (const base of VISION_CDNS) {
+        try {
+          const vision = await withTimeout(loadVision(base), MODEL_TIMEOUT_MS, '识别库加载超时');
+          for (const delegate of ['GPU', 'CPU'] as const) {
+            try {
+              landmarker = await withTimeout(vision.HandLandmarker.createFromOptions(vision.fileset, {
+                baseOptions: { modelAssetPath: MODEL_URL, delegate },
+                runningMode: 'VIDEO',
+                numHands: 1,
+                minHandDetectionConfidence: .62,
+                minHandPresenceConfidence: .5,
+                minTrackingConfidence: .58,
+              }), MODEL_TIMEOUT_MS, '识别器初始化超时');
+              delegateRef.current = delegate;
+              break;
+            } catch (e) { lastError = e; }
+          }
+          if (landmarker) break;
+        } catch (e) { lastError = e; }
       }
-      setProgress(28);
+      if (!landmarker) throw new Error('手部识别初始化失败' + (lastError?.message ? '：' + lastError.message : '') + '。请检查网络后重试。');
+      landmarkerRef.current = landmarker;
+      setProgress(32);
       try {
         const worker = createWorker();
         workerRef.current = worker;
@@ -235,18 +239,14 @@ export default function AirInk() {
         worker.postMessage({ type: 'init' });
       } catch { setRecognitionStatus('error'); }
 
-      setStage('等待摄像头授权'); setProgress(42);
+      setStage('等待摄像头授权'); setProgress(48);
       if (!navigator.mediaDevices?.getUserMedia) throw new Error('当前浏览器不支持摄像头，或页面不是 HTTPS 安全连接。');
-      const stream = await navigator.mediaDevices.getUserMedia({ audio:false, video:{ facingMode:'user', width:{ideal:1280}, height:{ideal:720}, frameRate:{ideal:30,max:30} } });
+      const stream = await navigator.mediaDevices.getUserMedia({ audio:false, video:{ facingMode:'user', width:{ideal:640, max:960}, height:{ideal:480, max:540}, frameRate:{ideal:30, max:30} } });
       streamRef.current = stream;
       const video = videoRef.current;
       if (!video) throw new Error('摄像头画面容器尚未准备好。');
-      setStage('正在启动摄像头'); setProgress(62);
+      setStage('正在启动摄像头'); setProgress(68);
       video.srcObject = stream; await video.play();
-      const HandsCtor = (window as any).Hands;
-      if (!HandsCtor) throw new Error('手部模型加载完成，但初始化失败。');
-      const hands = new HandsCtor({ locateFile:(file:string)=>activeCdn+'/'+file });
-      hands.setOptions({ maxNumHands:1, modelComplexity:1, minDetectionConfidence:.62, minTrackingConfidence:.58 });
 
       const releaseStroke = () => {
         if (!pinchRef.current) return;
@@ -254,8 +254,7 @@ export default function AirInk() {
         if (currentStrokeRef.current) currentStrokeRef.current.liftedAt = performance.now()/1000;
         currentStrokeRef.current = null; smoothRef.current = null; setIsWriting(false); scheduleRecognition();
       };
-      hands.onResults((results:any) => {
-        const hand = results.multiHandLandmarks?.[0];
+      const handleHand = (hand: any[] | null) => {
         if (!hand || hand.length < 21) { landmarksRef.current = null; releaseStroke(); setHasHand(false); return; }
         landmarksRef.current = hand; setHasHand(true);
         const palm = Math.max(.001, distance(hand[0],hand[9]));
@@ -276,23 +275,30 @@ export default function AirInk() {
           if (!points.length || distance(smooth,points[points.length-1]) > 1.2) points.push(smooth);
         }
         smoothRef.current = smooth;
-      });
-      handsRef.current = hands;
-      setStage('正在初始化手势模型'); setProgress(82);
-      await Promise.race([
-        hands.send({image:video}),
-        new Promise((_,reject)=>window.setTimeout(()=>reject(new Error('手部模型初始化超时，请重新进入。')),15000))
-      ]);
+      };
+      setStage('正在初始化手势模型'); setProgress(86);
+      if (video.readyState >= 2) {
+        try { landmarker.detectForVideo(video, performance.now()); } catch { /* 首帧失败不拦截，交给循环里的连续失败计数处理 */ }
+      }
       setStage('手势识别已就绪'); setProgress(100); setActive(true); setLoading(false);
       runningRef.current = true;
-      let busy = false, lastVideoTime = -1;
-      const process = async () => {
+      let lastVideoTime = -1;
+      let failures = 0;
+      const process = () => {
         const currentVideo = videoRef.current;
-        if (!runningRef.current || !currentVideo || !handsRef.current) return;
-        if (!busy && currentVideo.readyState >= 2 && currentVideo.currentTime !== lastVideoTime) {
-          lastVideoTime = currentVideo.currentTime; busy = true;
-          try { await handsRef.current.send({image:currentVideo}); } catch { /* transient frame */ }
-          finally { busy = false; }
+        if (!runningRef.current || !currentVideo || !landmarkerRef.current) return;
+        // CPU 推理更吃力，帧率放低一档；GPU 保持原节奏（同指尖生花 #260）。
+        const interval = delegateRef.current === 'CPU' ? 1000 / 20 : 1000 / 24;
+        if (!document.hidden && currentVideo.readyState >= 2 && currentVideo.currentTime !== lastVideoTime && performance.now() - lastInferenceRef.current >= interval) {
+          lastVideoTime = currentVideo.currentTime; lastInferenceRef.current = performance.now();
+          try {
+            const res = landmarkerRef.current.detectForVideo(currentVideo, performance.now());
+            handleHand(res?.landmarks?.[0] || null);
+            failures = 0;
+          } catch {
+            failures++;
+            if (failures >= 3) { setError('手部识别连续失败，请重新开启空中书写。'); stopCamera(); return; }
+          }
         }
         if (runningRef.current) cameraFrameRef.current = requestAnimationFrame(process);
       };

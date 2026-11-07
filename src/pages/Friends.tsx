@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../auth';
 import { useSignedUrl } from '../lib/media';
@@ -62,8 +62,10 @@ function previewText(item: ConversationPreview, myId: string) {
 
 export default function Friends() {
   const nav = useNavigate();
+  const [searchParams] = useSearchParams();
   const me = useAuth().session!.user.id;
-  const [tab, setTab] = useState<'messages' | 'friends' | 'reqs' | 'blocked'>(() => new URLSearchParams(window.location.search).get('tab') === 'reqs' ? 'reqs' : 'messages');
+  const [tab, setTab] = useState<'messages' | 'friends' | 'reqs' | 'blocked'>(() => searchParams.get('tab') === 'reqs' ? 'reqs' : 'messages');
+  useEffect(() => { if (searchParams.get('tab') === 'reqs') setTab('reqs'); }, [searchParams]);
   const [friends, setFriends] = useState<Friend[]>([]);
   const [blockedMembers, setBlockedMembers] = useState<Friend[]>([]);
   const [reqs, setReqs] = useState<Friend[]>([]);

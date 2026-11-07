@@ -37,10 +37,12 @@ export default function AlbumDetail() {
   const viewUrl = useSignedUrl('media', view?.photo_url);
 
   async function load() {
+    setErr('');
     const { data: a, error: albumError } = await supabase.from('albums').select('*').eq('id', Number(id)).maybeSingle();
     if (albumError) { setErr('相册加载失败：' + albumError.message); return; }
     if (!a || a.deleted_at) {
       setAlbum(null);
+      if (!a) setErr('找不到这个相册，或你没有查看权限。');
       if (a?.deleted_at) nav('/albums', { replace: true });
       return;
     }
@@ -147,7 +149,8 @@ export default function AlbumDetail() {
     }
   }
 
-  if (album === null) return <div className="page"><div className="center">加载中…</div></div>;
+  if (album === null && !err) return <div className="page"><div className="center">加载中…</div></div>;
+  if (album === null && err) return <div className="page"><div className="center" role="alert" style={{ padding: 24 }}><p>{err}</p><button className="ghost" onClick={() => void load()}>重试</button><button className="ghost" onClick={() => nav('/albums')}>返回相册</button></div></div>;
 
   return (
     <div className="page">

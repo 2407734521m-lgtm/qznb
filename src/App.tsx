@@ -143,53 +143,6 @@ function isTabActive(tab: string, path: string) {
   return path === tab;
 }
 
-// 测试账号快切：从管理后台一键切换登录后，各页面右下角悬浮"结束测试"一键切回
-// （只有走过管理后台切换流程的人才看得到，普通用户没有）
-function TestSwitchFab() {
-  const { session } = useAuth();
-  const [testingAs, setTestingAs] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-  useEffect(() => {
-    try {
-      // 兼容旧测试账号列表，但只保留备注名和邮箱；绝不继续迁移或保留明文密码。
-      const stored = sessionStorage.getItem('ca_test_accounts') || localStorage.getItem('ca_test_accounts');
-      if (stored) {
-        const parsed: unknown = JSON.parse(stored);
-        const safe = Array.isArray(parsed) ? parsed
-          .filter((item): item is { id: string; label?: string; email: string } =>
-            !!item && typeof item.id === 'string' && typeof item.email === 'string')
-          .map(item => ({ id: item.id, label: typeof item.label === 'string' ? item.label : '', email: item.email.trim() }))
-          : [];
-        sessionStorage.setItem('ca_test_accounts', JSON.stringify(safe));
-      }
-      localStorage.removeItem('ca_test_accounts');
-      setTestingAs(sessionStorage.getItem('ca_testing_as'));
-    } catch { setTestingAs(null); }
-  }, [session]);
-  if (!session || !testingAs) return null;
-  async function back() {
-    if (busy) return;
-    setBusy(true);
-    try {
-      sessionStorage.removeItem('ca_testing_as');
-      sessionStorage.removeItem('ca_testing_from');
-    } catch {}
-    const { error } = await supabase.auth.signOut();
-    if (error) alertDialog('退出测试账号失败，请重试。');
-    else alertDialog('测试账号已退出。为保护账号安全，请重新登录原账号。');
-    setBusy(false);
-  }
-  return (
-    <button onClick={back} disabled={busy}
-      style={{
-        position: 'fixed', right: 14, bottom: 92, zIndex: 200, padding: '10px 15px', borderRadius: 999,
-        border: '1px solid #ffffff2e', color: '#202124', fontSize: 13, fontWeight: 700, cursor: 'pointer',
-        background: 'color-mix(in srgb, #1a1e30 72%, transparent)', backdropFilter: 'blur(12px)',
-        boxShadow: '0 8px 24px #000a', opacity: busy ? 0.6 : 1,
-      }}>⇄ {busy ? '切换中…' : '结束测试'}</button>
-  );
-}
-
 // /admin 路由守卫：已是管理员直接进后台，否则显示独立的管理员登录页
 function AdminRoute() {
   const { session, loading } = useAuth();
@@ -1171,7 +1124,6 @@ function Shell() {
           </div>
         </div>
       )}
-      <TestSwitchFab />
       </>
     </LiquidGlassScene>
   );

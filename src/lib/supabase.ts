@@ -13,6 +13,7 @@ const sameOriginApi =
     : undefined;
 export const supabaseBaseUrl = window.__SUPABASE_URL || sameOriginApi || envUrl;
 const key = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
+export const supabaseAnonKey = key;
 export const configured = Boolean(supabaseBaseUrl && key);
 export const supabase = createClient<Database>(supabaseBaseUrl ?? 'http://localhost', key ?? 'missing', {
   auth: { persistSession: true, autoRefreshToken: true },

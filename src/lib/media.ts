@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { supabase } from './supabase';
+import { supabase, supabaseBaseUrl, supabaseAnonKey } from './supabase';
 import { withRetry } from './retry';
 
 /** 私有 bucket 的签名 URL 缓存；同一资源在有效期内不重复签名。 */
@@ -86,6 +86,43 @@ export async function uploadMedia(bucket: string, file: File, folder?: string): 
   });
   if (r.error) throw r.error;
   return r.path;
+}
+
+/** 带真实进度回调的上传：走 XMLHttpRequest 直传 Storage 接口，进度来自浏览器上传事件。 */
+export async function uploadWithProgress(bucket: string, path: string, file: File, onProgress?: (pct: number) => void): Promise<void> {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) throw new Error('未登录');
+  const url = `${supabaseBaseUrl}/storage/v1/object/${bucket}/${path.split('/').map(encodeURIComponent).join('/')}`;
+  await new Promise<void>((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', url);
+    xhr.setRequestHeader('Authorization', `Bearer ${session.access_token}`);
+    if (supabaseAnonKey) xhr.setRequestHeader('apikey', supabaseAnonKey);
+    xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream');
+    xhr.upload.onprogress = e => { if (e.lengthComputable && onProgress) onProgress(Math.min(100, Math.round((e.loaded / e.total) * 100))); };
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) { onProgress?.(100); resolve(); return; }
+      let msg = `上传失败（${xhr.status}）`;
+      try { const j = JSON.parse(xhr.responseText); if (j?.message) msg = j.message; } catch { /* 保持默认文案 */ }
+      reject(new Error(msg));
+    };
+    xhr.onerror = () => reject(new Error('网络错误，上传失败'));
+    xhr.send(file);
+  });
+}
+
+/** 与 uploadMedia 相同的校验与命名规则，但带进度回调（不自动重试，失败由界面提示重试）。 */
+export async function uploadMediaWithProgress(bucket: string, file: File, folder: string | undefined, onProgress?: (pct: number) => void): Promise<string> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('未登录');
+  const allowedTypes = uploadMimeTypes[bucket];
+  if (allowedTypes && !allowedTypes.includes(file.type)) {
+    throw new Error('文件格式不受支持，请选择常见图片、MP4/WebM 视频或支持的聊天音频格式。');
+  }
+  const ext = (file.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
+  const path = `${folder ? `${folder.replace(/^\/+|\/+$/g, '')}/` : `${user.id}/`}${Date.now()}.${ext}`;
+  await uploadWithProgress(bucket, path, file, onProgress);
+  return path;
 }
 
 /** 把图片在前端压到合适尺寸再上传（省流量、省空间）。 */

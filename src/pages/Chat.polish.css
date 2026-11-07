@@ -1316,3 +1316,75 @@
 .im-page .im-contact-stack .im-sub {
   white-space: nowrap;
 }
+
+
+/* Tactile full-screen chat image preview; motion is transform/opacity only. */
+.im-page .im-photo-trigger {
+  display: block;
+  width: max-content;
+  max-width: min(68vw, 320px);
+  margin: 1px 0 4px;
+  padding: 0 !important;
+  overflow: hidden;
+  border: 0 !important;
+  border-radius: 14px;
+  background: transparent !important;
+  box-shadow: none !important;
+  cursor: zoom-in;
+}
+.im-page .im-photo-trigger .im-photo {
+  display: block;
+  width: 100%;
+  max-height: 360px;
+  object-fit: cover;
+  border-radius: inherit;
+  transition: transform 260ms cubic-bezier(.22, 1, .36, 1), filter 260ms ease;
+}
+@media (hover: hover) and (pointer: fine) {
+  .im-page .im-photo-trigger:hover .im-photo { transform: scale(1.025); }
+}
+.im-image-viewer {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  display: grid;
+  place-items: center;
+  padding: max(24px, env(safe-area-inset-top)) 16px max(24px, env(safe-area-inset-bottom));
+  background: rgba(20, 28, 42, .78);
+  -webkit-backdrop-filter: blur(18px) saturate(1.08);
+  backdrop-filter: blur(18px) saturate(1.08);
+  cursor: zoom-out;
+  overscroll-behavior: contain;
+}
+.im-image-viewer > img {
+  display: block;
+  max-width: 100%;
+  max-height: calc(100dvh - 76px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  border-radius: 14px;
+  box-shadow: 0 26px 80px rgba(0, 0, 0, .32), 0 1px 0 rgba(255,255,255,.16);
+  cursor: default;
+}
+.im-image-viewer-close {
+  position: absolute;
+  top: max(14px, env(safe-area-inset-top));
+  right: max(14px, env(safe-area-inset-right));
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(255,255,255,.24);
+  border-radius: 50%;
+  color: #fff;
+  background: rgba(255,255,255,.16);
+  font: 300 27px/1 system-ui, sans-serif;
+  cursor: pointer;
+}
+@media (prefers-reduced-transparency: reduce) {
+  .im-image-viewer { -webkit-backdrop-filter: none; backdrop-filter: none; background: rgba(20,28,42,.94); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .im-page .im-photo-trigger .im-photo { transition: none; }
+}

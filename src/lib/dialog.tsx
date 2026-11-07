@@ -1,4 +1,5 @@
 import { useEffect, useState, useSyncExternalStore } from 'react';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 
 // 站内弹窗：替代浏览器原生 confirm / alert / prompt（原生弹窗样式不受控、与站点风格不符）。
 // 用法：import { confirmDialog, alertDialog, promptDialog } from '.../lib/dialog';
@@ -89,7 +90,6 @@ const cardStyle: React.CSSProperties = {
   width: 'min(92vw, 400px)', borderRadius: 18, padding: '20px 18px 16px',
   background: 'rgba(31,36,52,.96)', border: '1px solid rgba(255,255,255,.14)',
   boxShadow: '0 24px 60px rgba(0,0,0,.5)', color: '#f2f5ff',
-  animation: 'dlg-in .18s ease-out',
 };
 const msgStyle: React.CSSProperties = {
   fontSize: 15, lineHeight: 1.65, whiteSpace: 'pre-wrap', wordBreak: 'break-word',
@@ -147,11 +147,11 @@ export function DialogHost() {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [req]);
-  if (!req) return null;
   const r = req;
+  const reduceMotion = Boolean(useReducedMotion());
 
   function backdrop() {
-    if (r.kind === 'prompt') return; // 输入型弹窗：点蒙层不丢已输入内容，只能点取消/确认
+    if (!r || r.kind === 'prompt') return; // 输入型弹窗：点蒙层不丢已输入内容，只能点取消/确认
     if (r.kind === 'confirm') r.resolve(false);
     else r.resolve();
     advance();
@@ -160,31 +160,55 @@ export function DialogHost() {
   const isAdminHost = window.location.hostname.toLowerCase() === 'admin.qianzhi.pw';
 
   return (
-    <div className={isAdminHost ? 'admin-dialog-overlay qz-ios26-dialog-overlay' : 'qz-ios26-dialog-overlay'} style={overlayStyle} onClick={backdrop}>
-      <style>{'@keyframes dlg-in{from{transform:translateY(10px) scale(.98);opacity:0}to{transform:none;opacity:1}}'}</style>
-      <div className={isAdminHost ? 'admin-dialog-card qz-ios26-dialog-card' : 'qz-ios26-dialog-card'} style={cardStyle} onClick={e => e.stopPropagation()} role="dialog" aria-modal="true">
-        {r.kind === 'prompt' ? (
-          <PromptBody key={r.id} req={r} />
-        ) : r.kind === 'confirm' ? (
-          <>
-            <div style={msgStyle}>{r.message}</div>
-            <div style={rowStyle}>
-              <button type="button" className="admin-dialog-cancel" style={cancelBtn}
-                onClick={() => { r.resolve(false); advance(); }}>{r.cancelText}</button>
-              <button type="button" className={r.danger ? 'admin-dialog-danger' : 'admin-dialog-primary'} style={r.danger ? dangerBtn : okBtn}
-                onClick={() => { r.resolve(true); advance(); }}>{r.confirmText}</button>
-            </div>
-          </>
-        ) : (
-          <>
-            <div style={msgStyle}>{r.message}</div>
-            <div style={rowStyle}>
-              <button type="button" className="admin-dialog-primary" style={okBtn}
-                onClick={() => { r.resolve(); advance(); }}>{r.confirmText}</button>
-            </div>
-          </>
-        )}
-      </div>
-    </div>
+    <AnimatePresence initial={false}>
+      {r && (
+        <motion.div
+          key={r.id}
+          className={isAdminHost ? 'admin-dialog-overlay qz-ios26-dialog-overlay' : 'qz-ios26-dialog-overlay'}
+          style={overlayStyle}
+          onClick={backdrop}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: reduceMotion ? 0.01 : 0.18, ease: [0.22, 1, 0.36, 1] }}
+        >
+          <motion.div
+            className={isAdminHost ? 'admin-dialog-card qz-ios26-dialog-card' : 'qz-ios26-dialog-card'}
+            style={cardStyle}
+            onClick={e => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            initial={reduceMotion ? false : { opacity: 0, y: 14, scale: 0.97 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 8, scale: 0.985 }}
+            transition={reduceMotion
+              ? { duration: 0.01 }
+              : { type: 'spring', stiffness: 360, damping: 30, mass: 0.78 }}
+          >
+            {r.kind === 'prompt' ? (
+              <PromptBody key={r.id} req={r} />
+            ) : r.kind === 'confirm' ? (
+              <>
+                <div style={msgStyle}>{r.message}</div>
+                <div style={rowStyle}>
+                  <button type="button" className="admin-dialog-cancel" style={cancelBtn}
+                    onClick={() => { r.resolve(false); advance(); }}>{r.cancelText}</button>
+                  <button type="button" className={r.danger ? 'admin-dialog-danger' : 'admin-dialog-primary'} style={r.danger ? dangerBtn : okBtn}
+                    onClick={() => { r.resolve(true); advance(); }}>{r.confirmText}</button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div style={msgStyle}>{r.message}</div>
+                <div style={rowStyle}>
+                  <button type="button" className="admin-dialog-primary" style={okBtn}
+                    onClick={() => { r.resolve(); advance(); }}>{r.confirmText}</button>
+                </div>
+              </>
+            )}
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }

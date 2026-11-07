@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../auth';
 import { downscaleImage, uploadMedia, useSignedUrl } from '../lib/media';
@@ -15,11 +16,73 @@ type TapbackAnchor = { left: number; top: number; width: number; dockLeft: numbe
 const QUICK_REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '🙏'];
 
 
+function MessageImagePreview({ url }: { url: string }) {
+  const [opened, setOpened] = useState(false);
+  const reduceMotion = Boolean(useReducedMotion());
+
+  useEffect(() => {
+    if (!opened) return;
+    const previousOverflow = document.body.style.overflow;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setOpened(false);
+    };
+    document.body.style.overflow = 'hidden';
+    window.addEventListener('keydown', closeOnEscape);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener('keydown', closeOnEscape);
+    };
+  }, [opened]);
+
+  return (
+    <>
+      <button type="button" className="im-photo-trigger" aria-label="放大查看聊天图片" onClick={() => setOpened(true)}>
+        <img className="im-photo" src={url} alt="聊天图片" loading="lazy" />
+      </button>
+      <AnimatePresence>
+        {opened && (
+          <motion.div
+            className="im-image-viewer"
+            role="dialog"
+            aria-modal="true"
+            aria-label="图片预览"
+            onClick={() => setOpened(false)}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: reduceMotion ? 0.01 : 0.2, ease: [0.22, 1, 0.36, 1] }}
+          >
+            <motion.button
+              type="button"
+              className="im-image-viewer-close"
+              aria-label="关闭图片预览"
+              onClick={event => { event.stopPropagation(); setOpened(false); }}
+              initial={false}
+              whileTap={reduceMotion ? undefined : { scale: 0.92 }}
+            >×</motion.button>
+            <motion.img
+              src={url}
+              alt="聊天图片"
+              onClick={event => event.stopPropagation()}
+              initial={reduceMotion ? false : { opacity: 0, scale: 0.96, y: 12 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={reduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.975, y: 8 }}
+              transition={reduceMotion
+                ? { duration: 0.01 }
+                : { type: 'spring', stiffness: 280, damping: 27, mass: 0.8 }}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>
+  );
+}
+
 function MessageContent({ body }: { body: string }) {
   const imagePath = body.startsWith('[[im-image:') && body.endsWith(']]') ? body.slice(11, -2) : null;
   const audioPath = body.startsWith('[[im-audio:') && body.endsWith(']]') ? body.slice(11, -2) : null;
   const url = useSignedUrl('chat-media', imagePath ?? audioPath);
-  if (imagePath) return url ? <a href={url} target="_blank" rel="noreferrer" className="im-photo-link"><img className="im-photo" src={url} alt="聊天图片" loading="lazy" /></a> : <div className="im-photo-loading">图片加载中…</div>;
+  if (imagePath) return url ? <MessageImagePreview url={url} /> : <div className="im-photo-loading">图片加载中…</div>;
   if (audioPath) return url ? <div className="im-audio-card"><div className="im-audio-symbol">▶</div><div className="im-audio-main"><div className="im-waveform" aria-hidden="true">{Array.from({ length: 34 }, (_, i) => <i key={i} style={{ height: (5 + ((i * 7 + 3) % 17)) + 'px' }} />)}</div><audio controls preload="metadata" src={url} aria-label="语音消息播放" /></div></div> : <div className="im-photo-loading">语音加载中…</div>;
   return <>{body}</>;
 }

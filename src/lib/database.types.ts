@@ -316,16 +316,19 @@ export type Database = {
           conversation_id: number
           profile_id: string
           last_read_message_id: number | null
+          last_receipt_message_id: number | null
         }
         Insert: {
           conversation_id: number
           profile_id: string
           last_read_message_id?: number | null
+          last_receipt_message_id?: number | null
         }
         Update: {
           conversation_id?: number
           profile_id?: string
           last_read_message_id?: number | null
+          last_receipt_message_id?: number | null
         }
         Relationships: [
           {
@@ -345,6 +348,13 @@ export type Database = {
           {
             foreignKeyName: "conversation_members_last_read_message_id_fkey"
             columns: ["last_read_message_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_members_last_receipt_message_id_fkey"
+            columns: ["last_receipt_message_id"]
             isOneToOne: false
             referencedRelation: "messages"
             referencedColumns: ["id"]

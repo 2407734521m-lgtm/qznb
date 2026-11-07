@@ -7,6 +7,7 @@ import './MeHub.css';
 import './MeHub.polish.css';
 import FeedbackModal from '../components/FeedbackModal';
 import SponsorModal from '../components/SponsorModal';
+import { useQuietHoursActive } from '../lib/userPreferences';
 
 type Entry = { mark: string; title: string; note: string; to: string; badge?: string; act?: 'feedback' | 'sponsor' };
 const groups: { title: string; note: string; entries: Entry[] }[] = [
@@ -52,6 +53,7 @@ const shortcuts = [
 export default function MeHub() {
   const nav = useNavigate();
   const me = useAuth().session!.user.id;
+  const quietHoursActive = useQuietHoursActive(me);
   const [name, setName] = useState('');
   const [username, setUsername] = useState('');
   const [avatar, setAvatar] = useState<string | null>(null);
@@ -200,7 +202,7 @@ export default function MeHub() {
                     <strong>{entry.title}</strong>
                     <small>{entry.note}</small>
                   </span>
-                  {entry.badge === 'unread' && unread > 0
+                  {entry.badge === 'unread' && unread > 0 && !quietHoursActive
                     ? <span className="me-hub-dot" aria-label={unread + ' 条未读'} />
                     : <span className="me-hub-arrow">›</span>}
                 </button>

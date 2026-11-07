@@ -180,9 +180,13 @@ export default function MeSettings() {
       <style>{`
         .qz-settings-page{box-sizing:border-box;min-height:100dvh;width:100%;max-width:none;margin:0 auto;padding:calc(env(safe-area-inset-top,0px) + 4px) 0 24px!important;background:transparent;color:#2b2823}
         .qz-settings-page *{box-sizing:border-box}
-        body:has(.qz-settings-page){background:#f5f1e9!important;color:#2b2823!important}
+        body:has(.qz-settings-page){color-scheme:light;background:#f5f1e9!important;color:#2b2823!important}
         body:has(.qz-settings-page) .glow,body:has(.qz-settings-page) .app-bg{display:none!important}
         body:has(.qz-settings-page) .wrap{padding-bottom:calc(150px + env(safe-area-inset-bottom))!important}
+        body:has(.qz-settings-page) .topnav{background:rgba(250,247,240,.96)!important;border-bottom:1px solid #e8dfd3!important;color:#29251f!important}
+        body:has(.qz-settings-page) .topnav .brand{color:#29251f!important}
+        body:has(.qz-settings-page) .topnav a,body:has(.qz-settings-page) .topnav button{color:#6d6256!important}
+        body:has(.qz-settings-page) .topnav a.on{color:#704632!important;background:#f1e7dc!important;box-shadow:none!important}
         .qz-settings-top{height:64px;display:flex;align-items:center;justify-content:center;position:relative;margin:0 0 18px}
         .qz-settings-top h1{font-size:22px;font-weight:500;letter-spacing:.02em;margin:0;color:#2b2823}
         .qz-settings-back{position:absolute;left:-7px;top:50%;transform:translateY(-50%);width:42px;height:42px;display:grid;place-items:center;border:0;background:transparent;color:#2b2823;cursor:pointer;padding:0}

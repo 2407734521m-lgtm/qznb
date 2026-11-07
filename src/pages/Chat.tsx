@@ -157,7 +157,11 @@ export default function Chat() {
     }
     const channel = supabase.channel('chat-' + cid)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'messages', filter: 'conversation_id=eq.' + cid }, () => { load(); })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'conversation_members', filter: 'conversation_id=eq.' + cid }, () => { load(); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'conversation_members', filter: 'conversation_id=eq.' + cid }, (payload) => {
+        // Our own read-cursor UPDATE is caused by load(); ignoring it prevents
+        // a Realtime -> load -> mark-read -> Realtime feedback loop.
+        if ((payload.new as { profile_id?: string } | null)?.profile_id !== me) load();
+      })
       // message_reactions has no conversation_id; do not subscribe globally and
       // refetch every open chat for unrelated reactions. The existing 12s refresh
       // keeps this conversation's reactions in sync.

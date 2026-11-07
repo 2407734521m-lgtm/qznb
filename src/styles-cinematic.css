@@ -25,14 +25,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
   outline-offset: 3px;
 }
 ::selection { background: rgba(108,156,255,.32); color: #fff; }
-.glow {
-  background:
-    radial-gradient(ellipse at 12% 4%, rgba(94,135,255,.2), transparent 42%),
-    radial-gradient(ellipse at 88% 28%, rgba(176,126,255,.13), transparent 38%),
-    radial-gradient(ellipse at 52% 100%, rgba(54,116,202,.12), transparent 45%);
-  animation: glow-breathe 16s ease-in-out infinite alternate;
-}
-.app-bg { transform: scale(1.06); }
+/* Global glow and wallpaper presentation are owned by the canonical app theme. */
 .wrap { max-width: 1080px; }
 .hero { position: relative; padding-top: 26px; }
 .hero h1 {
@@ -152,10 +145,6 @@ img, video { border-radius: inherit; }
   from { opacity: 0; transform: translateY(-5px) scale(.985); }
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
-@keyframes glow-breathe {
-  from { filter: saturate(.9); opacity: .82; }
-  to { filter: saturate(1.15); opacity: 1; }
-}
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: .01ms !important;
@@ -227,7 +216,7 @@ button:disabled{cursor:not-allowed;filter:saturate(.6)}
 
 /* Dedicated login and registration polish */
 .login-wrap{position:relative;isolation:isolate;min-height:100svh;padding:clamp(18px,5vh,44px) 16px calc(24px + env(safe-area-inset-bottom))}
-.login-wrap::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;background:radial-gradient(ellipse at 50% 18%,rgba(99,145,255,.16),transparent 48%),linear-gradient(180deg,rgba(7,13,29,.18),rgba(7,13,29,.42))}
+/* Full-screen login canvas is owned by the white theme or the user's uploaded image. */
 .login-card{position:relative;width:min(420px,100%);padding:clamp(24px,6vw,34px) clamp(20px,5vw,30px) 24px;border-radius:28px;overflow:hidden;backdrop-filter:blur(24px) saturate(125%);-webkit-backdrop-filter:blur(24px) saturate(125%);border:1px solid rgba(255,255,255,.17);background:linear-gradient(145deg,rgba(21,32,57,.78),rgba(15,22,41,.68));box-shadow:0 28px 90px rgba(0,0,0,.42),inset 0 1px 0 rgba(255,255,255,.12)}
 .login-card::before{content:"";position:absolute;top:0;left:12%;right:12%;height:1px;background:linear-gradient(90deg,transparent,rgba(184,205,255,.8),transparent);pointer-events:none}
 .login-card h1{font-size:clamp(23px,6vw,28px);line-height:1.2;letter-spacing:-.035em;margin:0 0 7px;text-shadow:0 5px 28px rgba(125,159,255,.2)}
@@ -392,10 +381,6 @@ button:disabled{cursor:not-allowed;filter:saturate(.6)}
    CSS entrance animation on the same transform/opacity properties. */
 .page .mcard { animation: none !important; }
 
-/* Avoid continuously animating filter/saturation on a full-screen fixed layer,
-   which can be expensive on mid-range Android GPUs. Keep the cinematic glow static. */
-.glow { animation: none; }
-
 /* A restrained spring-like response for the single Dock collapse control.
    Only transform is animated on press; navigation width/position still use the
    existing layout transition so the control remains reachable. */
@@ -422,7 +407,6 @@ button:disabled{cursor:not-allowed;filter:saturate(.6)}
 
 /* Keep motion accessible even when the operating system requests reduced motion. */
 @media (prefers-reduced-motion: reduce) {
-  .glow { animation: none !important; }
   .page .mcard { animation: none !important; }
   .tabbar, .tabbar .dock-item, .tabbar .dock-item > a,
   .tabbar .dock-toggle {

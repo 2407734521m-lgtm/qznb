@@ -27,12 +27,7 @@ body{
 .hero{padding-top:30px}
 .hero h1{font-weight:760;letter-spacing:-.045em}
 .hero p{letter-spacing:.025em}
-.glow{
-  background:
-    radial-gradient(ellipse at 12% 8%,rgba(30,190,174,.20),transparent 38%),
-    radial-gradient(ellipse at 88% 18%,rgba(73,147,222,.18),transparent 42%),
-    radial-gradient(ellipse at 52% 100%,rgba(20,139,145,.12),transparent 48%)!important;
-}
+/* The global ambient layer is transparent; page backgrounds are user/theme owned. */
 .card,.mcard,.post,.tl-item,.composer,.campus-hero,.classes-hero,.class-detail-hero{
   border:1px solid var(--premium-line)!important;
   background:linear-gradient(145deg,rgba(255,255,255,.105),rgba(255,255,255,.045) 52%,rgba(116,190,202,.055))!important;
@@ -134,12 +129,7 @@ button.ghost:hover:not(:disabled),button.mini:hover:not(:disabled){
 .bubble.them{background:rgba(255,255,255,.085);border-color:rgba(255,255,255,.13)}
 .bubble.me{background:linear-gradient(135deg,#187e91,#397fc0);box-shadow:0 7px 20px rgba(13,91,123,.22)}
 /* Admin: same premium language, with denser information hierarchy. */
-.admin-shell{
-  background:
-    radial-gradient(ellipse at 8% 0%,rgba(20,184,166,.12),transparent 38%),
-    radial-gradient(ellipse at 96% 10%,rgba(59,130,246,.10),transparent 36%),
-    transparent!important;
-}
+/* Admin canvas is owned by the admin scaffold; no legacy ambient wallpaper here. */
 .admin-shell .admin-header{border-bottom-color:rgba(190,226,236,.14)!important}
 .admin-shell .admin-content{animation:premium-admin-in .34s var(--premium-ease) both}
 .admin-shell .admin-dock,.admin-shell .admin-mobile-dock{

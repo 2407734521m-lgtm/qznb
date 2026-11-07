@@ -197,25 +197,5 @@
 }
 
 
-/* The personal hub is an editorial paper surface rather than a dark wallpaper card. */
-body:has(.me-hub) {
-  color-scheme: light;
-  background: #f5f1e9 !important;
-  color: #2b2823 !important;
-}
-body:has(.me-hub) .glow,
-body:has(.me-hub) .app-bg { display: none !important; }
-
-body:has(.me-hub) .topnav {
-  background: rgba(250, 247, 240, .96) !important;
-  border-bottom: 1px solid #e8dfd3 !important;
-  color: #29251f !important;
-}
-body:has(.me-hub) .topnav .brand { color: #29251f !important; }
-body:has(.me-hub) .topnav a,
-body:has(.me-hub) .topnav button { color: #6d6256 !important; }
-body:has(.me-hub) .topnav a.on {
-  color: #704632 !important;
-  background: #f1e7dc !important;
-  box-shadow: none !important;
-}
+/* Personal-hub canvas and global navigation are owned by the shared iOS 26 theme.
+   Keep the app wallpaper visible; never hide .app-bg from a page-level stylesheet. */

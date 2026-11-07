@@ -1,11 +1,11 @@
 /* ============ 基础 ============ */
-:root{--bg:#0b0d14;--fg:#eef0f6;--mut:#9aa0b4;--a:#ffffff;--b:#d9deef;--r:20px;--tab-h:64px}
+:root{--r:20px;--tab-h:68px}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;overflow-x:hidden}
-body{background:var(--bg);color:var(--fg);font:14px/1.55 system-ui,-apple-system,"Noto Sans SC","PingFang SC","Microsoft YaHei",sans-serif;min-height:100vh}
-.glow{position:fixed;inset:0;z-index:-2;pointer-events:none;background:radial-gradient(600px 400px at 15% 0%,color-mix(in srgb,var(--a) 35%,transparent),transparent),radial-gradient(500px 400px at 100% 100%,color-mix(in srgb,var(--b) 30%,transparent),transparent)}
-/* 全站默认壁纸（樱花，微模糊） */
-.app-bg{position:fixed;inset:0;z-index:-1;pointer-events:none;background-size:cover;background-position:center;filter:blur(7px) brightness(42%);transform:scale(1.1)}
+body{color:var(--fg);font:14px/1.55 system-ui,-apple-system,"Noto Sans SC","PingFang SC","Microsoft YaHei",sans-serif;min-height:100vh}
+.glow{position:fixed;inset:0;z-index:-2;pointer-events:none}
+/* 用户壁纸层：图像、模糊和亮度由 App 按当前用户设置以内联样式控制。 */
+.app-bg{position:fixed;inset:0;z-index:-1;pointer-events:none;background-size:cover;background-position:center;transform:scale(1.1)}
 a{color:var(--a)}
 .wrap{max-width:960px;margin:0 auto;padding:14px calc(14px + env(safe-area-inset-right)) calc(14px + var(--tab-h)) calc(14px + env(safe-area-inset-left))}
 /* 私聊收件箱独占视口；仅 /friends 路由启用，不改变其他页面布局。 */
@@ -197,7 +197,7 @@ button:disabled{opacity:.5}
   width .34s cubic-bezier(.2,.7,.3,1),height .34s cubic-bezier(.2,.7,.3,1),border-radius .34s ease,opacity .3s ease;
   box-shadow:0 24px 80px #000c}
 .gexpand-in{height:100%;overflow-y:auto;padding:16px}
-.gpick-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+
 .glist{display:flex;flex-direction:column;gap:6px;margin-top:10px;max-height:calc(100dvh - 170px);overflow-y:auto;padding-bottom:8px}
 .ganim{animation:gin .45s cubic-bezier(.2,.7,.3,1) both}
 @keyframes gin{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
@@ -369,7 +369,7 @@ input[type=file]::file-selector-button{
 .priv-btn.on .sw{background:linear-gradient(135deg,#eef1f9,#aeb8d8)}
 .priv-btn .knob{position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:left .2s;box-shadow:0 1px 4px #0006}
 .priv-btn.on .knob{left:21px}
-.priv-note{font-size:11.5px;color:var(--mut);margin:-8px 0 10px}
+
 
 /* 页面转场 */
 @keyframes pagein{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
@@ -588,10 +588,7 @@ input[type=file]::file-selector-button{
 }
 
 
-/* ===== 青春档案白色主题：全站统一、移动端优先 ===== */
-:root{color-scheme:light;--bg:#fff;--fg:#202124;--mut:#737780;--a:#343a46;--b:#e4e7ec;--r:18px;--tab-h:64px}
-html,body,#root{background:#fff!important;color:#202124!important}
-body{background:#fff!important;color:#202124!important}
+/* Canvas and global palette are owned by styles-ios26-tokens.css and styles-ios26-liquid-glass.css. */
 /* Keep shared backdrop layers mounted; the active visual system styles them. */
 a{color:#303642}
 .topnav{background:rgba(255,255,255,.92)!important;border-bottom:1px solid #e8eaf0!important;box-shadow:0 4px 20px #17203308}
@@ -923,27 +920,7 @@ img { backface-visibility: hidden; }
 }
 
 
-/* ============ Phase 4 · unified white surfaces + deep-sea accents ============ */
-:root {
-  --bg: #071b2a;
-  --fg: #eaf4f6;
-  --mut: #a9bbc2;
-  --a: #278f98;
-  --b: #77d1c4;
-  --r: 20px;
-  --tab-h: 68px;
-}
-body {
-  background: #071b2a;
-  color: var(--fg);
-}
-.glow {
-  background:
-    radial-gradient(650px 440px at 12% 0%, rgba(34, 177, 164, .22), transparent 68%),
-    radial-gradient(560px 420px at 100% 92%, rgba(56, 126, 180, .20), transparent 68%);
-}
-.page { color: #eef7f8; }
-.hero p { color: rgba(235, 247, 249, .72); }
+/* Phase 4 white surfaces remain below; legacy deep-sea page backgrounds were removed. */
 .card, .post, .composer, .acard, .mcard {
   background: rgba(255, 255, 255, .94) !important;
   border-color: rgba(218, 232, 235, .96) !important;

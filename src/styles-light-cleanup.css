@@ -1,0 +1,66 @@
+/* ===== 深色残留清理（2026-11-07 用户圈图：愿望墙深蓝横幅）=====
+   实测结论（真站逐页截图）：旧「深海军蓝电影感」时代只剩两处还在生效——
+   全站共用的 .page .hero 页头横幅（9 个页面）和成员页的 .page .searchbar 搜索框。
+   其余卡片、输入框早已是浅色。本文件在所有样式最后加载，负责把这两处
+   统一到现行浅色主题，并给表单控件补一道浅色锁定。 */
+
+/* 页头横幅：纸白浅蓝渐变 + 深色字（旧版是深藏青底白字渐变字） */
+.page .hero {
+  border: 1px solid #e6ebf1 !important;
+  background:
+    radial-gradient(ellipse at 12% 0%, rgba(126, 164, 224, .13), transparent 55%),
+    linear-gradient(145deg, #fdfdfe, #edf2f8) !important;
+  box-shadow: 0 10px 26px rgba(23, 43, 66, .06), inset 0 1px 0 #fff !important;
+}
+
+.page .hero:after {
+  border-color: rgba(90, 120, 170, .13);
+  box-shadow: 0 0 0 20px rgba(90, 120, 170, .028), 0 0 0 42px rgba(90, 120, 170, .018);
+}
+
+.page .hero h1 {
+  background: none !important;
+  -webkit-background-clip: initial !important;
+  background-clip: initial !important;
+  -webkit-text-fill-color: #1c2733 !important;
+  color: #1c2733 !important;
+  text-shadow: none !important;
+}
+
+.page .hero p {
+  color: #68707c !important;
+  text-shadow: none !important;
+}
+
+/* 成员页搜索框：旧版是深藏青面板，改成白底浅边（输入本身是透明继承） */
+.page .searchbar {
+  border: 1px solid #e2e8f0 !important;
+  background: rgba(255, 255, 255, .94) !important;
+  box-shadow: 0 8px 22px rgba(23, 43, 66, .05) !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+.page .searchbar input {
+  color: #1c2733 !important;
+}
+
+.page .searchbar input::placeholder {
+  color: #8a94a3 !important;
+}
+
+/* 表单控件浅色锁定：个别设备上出现过输入框被渲成深色，
+   这里明确声明只用浅色配色方案，并把页面内输入框钉回浅底深字。 */
+.page input,
+.page textarea,
+.page select {
+  color-scheme: light;
+}
+
+.page .card input,
+.page .card textarea,
+.page .card select {
+  background: #fff !important;
+  color: #1c2733 !important;
+  border-color: #dfe3ea !important;
+}

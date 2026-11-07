@@ -31,6 +31,9 @@ import './styles-form-ux.css';
 /* rdev liquid-glass dock shell overrides (must stay after ios26 + form-ux). */
 import './styles-dock-rdev.css';
 
+/* 深色残留清理：全站页头横幅与成员页搜索框统一浅色，必须最后加载。 */
+import './styles-light-cleanup.css';
+
 // 只有精确匹配的管理员域名可以挂载后台；其他任何域名都不能加载 AdminShell。
 const isAdminHost = window.location.hostname.toLowerCase() === 'admin.qianzhi.pw';
 

@@ -4,6 +4,7 @@ import { Routes, Route, NavLink, Navigate, useLocation, useNavigate } from 'reac
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { LiquidGlass } from 'simple-liquid-glass';
 import { LiquidGlassNav } from './components/liquid-glass-dock';
+import RdevLiquidGlass from 'liquid-glass-react';
 import CodeInput from './components/CodeInput';
 import { LiquidGlassScene } from 'simple-liquid-glass/backdrop';
 import { DUR, EASE } from './lib/motion';
@@ -887,8 +888,26 @@ function Shell() {
               onClick={() => setDockCollapsed(false)}
             >＋</button>
           ) : (
+            <RdevLiquidGlass
+              className="qz-rdev-dock"
+              displacementScale={55}
+              blurAmount={0.1}
+              saturation={150}
+              aberrationIntensity={2}
+              elasticity={reduce ? 0 : 0.25}
+              cornerRadius={30}
+              padding="0px"
+              style={{
+                position: 'fixed',
+                left: '50%',
+                top: 'calc(100dvh - 40px - env(safe-area-inset-bottom))',
+                width: 'min(360px, calc(100vw - 24px))',
+                height: '56px',
+                zIndex: 50,
+              }}
+            >
             <LiquidGlassNav
-              className="qz-ios26-liquid-dock"
+              className="qz-ios26-liquid-dock qz-rdev-nav"
               items={dockItems}
               activeItem={activeDockItem}
               onItemChange={(id) => {
@@ -900,21 +919,24 @@ function Shell() {
               inactiveColor="rgba(58, 78, 96, 0.78)"
               reducedMotion={reduce}
               style={{
-                position: 'fixed',
-                left: '50%',
+                position: 'relative',
+                left: 'auto',
                 right: 'auto',
-                bottom: 'calc(12px + env(safe-area-inset-bottom))',
-                transform: 'translateX(-50%)',
-                zIndex: 50,
-                width: 'min(360px, calc(100vw - 24px))',
-                height: '56px',
+                bottom: 'auto',
+                transform: 'none',
+                zIndex: 'auto',
+                width: '100%',
+                height: '100%',
                 padding: '0 7px',
                 gap: '0px',
-                background: 'rgba(255,255,255,.38)',
-                border: '1px solid rgba(255,255,255,.88)',
-                boxShadow: '0 12px 34px rgba(25,43,66,.14), inset 0 1px 0 rgba(255,255,255,.94), inset 0 -1px 0 rgba(170,190,210,.14)',
+                background: 'transparent',
+                border: 'none',
+                boxShadow: 'none',
+                backdropFilter: 'none',
+                WebkitBackdropFilter: 'none',
               }}
             />
+            </RdevLiquidGlass>
           )}
         </div>
       )}

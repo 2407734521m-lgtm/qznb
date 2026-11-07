@@ -812,4 +812,14 @@ button:focus-visible, a:focus-visible {
     font-size: 10.5px !important;
   }
 }
+.qz-ios26-dock-collapsed.dock-side-left {
+  left: 14px;
+  right: auto;
+  transform: none;
+}
+.qz-ios26-dock-collapsed.dock-side-right {
+  left: auto;
+  right: 14px;
+  transform: none;
+}
 

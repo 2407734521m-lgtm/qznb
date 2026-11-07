@@ -33,3 +33,11 @@ Changing this order can change the cascade even when no selector changes. Treat 
 ## Migration scope
 
 Phase 1 only extracts the active iOS 26 material token block and documents the cascade contract. It deliberately leaves the legacy theme and page selectors in place, preserving the current visual output. Later phases can migrate duplicate component selectors one page family at a time with screenshots and browser checks.
+
+
+## Background replacement policy
+
+- The site canvas and the default login canvas are white and are owned by the canonical iOS 26 theme.
+- When a background is replaced, remove the old global background/image/gradient rules and their unused bundled assets unless the user explicitly asked to preserve them.
+- Preserve explicit user choices: uploaded login images, saved wallpaper preferences, page-specific artwork and backgrounds that the user specifically asks to keep.
+- Never leave a retired background underneath a new one as a fallback or a later CSS override. The only fallback for a cleared/default login background is the canonical white canvas.

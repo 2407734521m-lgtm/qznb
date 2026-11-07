@@ -1274,3 +1274,45 @@
     transition: none !important;
   }
 }
+
+/* Header layout repair (2026-11-08): the back button carried a text label
+   with no styles and squeezed it into vertical type inside the 44px box;
+   the contact stack had no styles at all, so avatar and name piled into a
+   bordered lump at the left. Give the header a normal chat layout:
+   back chevron, avatar + name in a row, info button at the right. */
+.im-page .im-back {
+  font-size: 25px;
+  line-height: 1;
+}
+.im-page .im-contact-stack {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+  padding: 3px 8px 3px 3px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  -webkit-tap-highlight-color: transparent;
+}
+.im-page .im-contact-stack:active {
+  background: rgba(34, 49, 74, .05);
+}
+.im-page .im-contact-name-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+}
+.im-page .im-contact-chevron {
+  color: #a2937f;
+  font-size: 15px;
+  line-height: 1;
+}
+.im-page .im-contact-stack .im-sub {
+  white-space: nowrap;
+}

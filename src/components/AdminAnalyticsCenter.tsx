@@ -42,14 +42,17 @@ type AnalyticsData = {
 };
 
 const panel: React.CSSProperties = {
-  background: 'linear-gradient(155deg,rgba(24,34,56,.94),rgba(12,18,33,.98))',
-  border: '1px solid rgba(190,210,255,.13)', borderRadius: 18,
-  padding: 14, marginBottom: 12, color: '#edf3ff',
+  background: 'var(--admin-surface, #ffffff)',
+  border: '1px solid var(--admin-border, #e2e8f0)', borderRadius: 16,
+  padding: 15, marginBottom: 11, color: 'var(--admin-text, #172033)',
+  boxShadow: 'var(--admin-shadow-card, 0 8px 24px rgba(15,23,42,.045))',
 };
-const muted: React.CSSProperties = { color: '#98a8c5', fontSize: 11.5, lineHeight: 1.65 };
+const muted: React.CSSProperties = { color: '#64748b', fontSize: 11.5, lineHeight: 1.65 };
 const metricStyle: React.CSSProperties = {
   minWidth: 0, padding: 12, borderRadius: 14,
-  background: 'rgba(255,255,255,.045)', border: '1px solid rgba(190,210,255,.10)',
+  color: 'var(--admin-text, #172033)',
+  background: 'var(--admin-surface-muted, #f8fafc)',
+  border: '1px solid var(--admin-border, #e2e8f0)',
 };
 
 function Metric({ label, value, hint }: { label: string; value: number; hint?: string }) {
@@ -82,14 +85,14 @@ function TrendChart({ data }: { data: DailyPoint[] }) {
         const yy = y(tick);
         return <g key={tick}>
           <line x1={left} x2={width - right} y1={yy} y2={yy} stroke="#ffffff18" strokeDasharray="3 5" />
-          <text x={left - 7} y={yy + 3} fill="#8292af" fontSize="9" textAnchor="end">{tick.toLocaleString()}</text>
+          <text x={left - 7} y={yy + 3} fill="#8491a5" fontSize="9" textAnchor="end">{tick.toLocaleString()}</text>
         </g>;
       })}
       {lines.map(line => {
         const points = data.map((item, index) => `${x(index)},${y(item[line.key])}`).join(' ');
         return <polyline key={line.key} points={points} fill="none" stroke={line.color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />;
       })}
-      {labelIndexes.map(index => <text key={index} x={x(index)} y={height - 10} fill="#8292af" fontSize="9" textAnchor="middle">
+      {labelIndexes.map(index => <text key={index} x={x(index)} y={height - 10} fill="#8491a5" fontSize="9" textAnchor="middle">
         {new Date(data[index].day).toLocaleDateString(undefined, { month: 'numeric', day: 'numeric' })}
       </text>)}
     </svg>
@@ -138,7 +141,7 @@ export default function AdminAnalyticsCenter({ setMsg }: { setMsg: (message: str
   const totals = data?.totals;
   const recentDays = useMemo(() => (data?.series ?? []).slice(-7).reverse(), [data]);
 
-  return <div style={{ display: 'grid', gap: 12 }}>
+  return <div className="admin-analytics-page" style={{ display: 'grid', gap: 12 }}>
     <section style={panel}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10, flexWrap: 'wrap' }}>
         <div>
@@ -151,7 +154,7 @@ export default function AdminAnalyticsCenter({ setMsg }: { setMsg: (message: str
         {[7, 14, 30, 90].map(value => <button key={value} className={'mini' + (days === value ? '' : ' ghost')} onClick={() => setDays(value)}>{value} 天</button>)}
       </div>
       {data && <div style={{ ...muted, marginTop: 8 }}>统计区间：近 {data.days} 天 · 更新于 {new Date(data.generated_at).toLocaleString()}</div>}
-      {error && <p style={{ color: '#ff9da7', fontSize: 12.5, marginBottom: 0 }}>读取失败：{error}</p>}
+      {error && <p style={{ color: '#b42336', fontSize: 12.5, marginBottom: 0 }}>读取失败：{error}</p>}
     </section>
 
     {loading && !data ? <section style={panel}><p style={muted}>正在汇总数据…</p></section> : null}
@@ -172,7 +175,7 @@ export default function AdminAnalyticsCenter({ setMsg }: { setMsg: (message: str
       <section style={panel}>
         <div style={{ fontSize: 14, fontWeight: 750, marginBottom: 10 }}>内容累计统计</div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 8 }}>
-          {countItems.map(([key, label]) => <div key={key} style={{ padding: 10, borderRadius: 11, background: '#ffffff07', border: '1px solid #ffffff10' }}>
+          {countItems.map(([key, label]) => <div key={key} style={{ padding: 10, borderRadius: 11, background: '#f8fafc', border: '1px solid #e5eaf2' }}>
             <div style={muted}>{label}</div>
             <div style={{ fontSize: 20, fontWeight: 800, marginTop: 3 }}>{totals[key].toLocaleString()}</div>
           </div>)}
@@ -182,9 +185,9 @@ export default function AdminAnalyticsCenter({ setMsg }: { setMsg: (message: str
       <section style={panel}>
         <div style={{ fontSize: 14, fontWeight: 750, marginBottom: 8 }}>最近 7 天每日明细</div>
         <div style={{ display: 'grid', gap: 0 }}>
-          {recentDays.map(day => <div key={day.day} style={{ display: 'flex', justifyContent: 'space-between', gap: 8, padding: '8px 0', borderBottom: '1px solid #ffffff0d' }}>
+          {recentDays.map(day => <div key={day.day} style={{ display: 'flex', justifyContent: 'space-between', gap: 8, padding: '8px 0', borderBottom: '1px solid #f8fafc' }}>
             <span style={{ ...muted, minWidth: 74 }}>{new Date(day.day).toLocaleDateString()}</span>
-            <span style={{ fontSize: 11.5, color: '#dce7ff', textAlign: 'right' }}>
+            <span style={{ fontSize: 11.5, color: '#334155', textAlign: 'right' }}>
               {day.signups} 注册 · {day.posts + day.comments + day.photos + day.chat_messages} 次内容活动 · {day.content_active_members} 位活跃成员
             </span>
           </div>)}

@@ -70,14 +70,15 @@ type Dashboard = {
 };
 
 const panel: React.CSSProperties = {
-  background: 'linear-gradient(145deg,rgba(24,34,56,.88),rgba(13,20,36,.94))',
-  border: '1px solid rgba(190,210,255,.13)', borderRadius: 20,
-  padding: 16, marginBottom: 14, boxShadow: '0 12px 30px rgba(0,0,0,.18)', color: '#edf3ff',
+  background: 'var(--admin-surface, #ffffff)',
+  border: '1px solid var(--admin-border, #e2e8f0)', borderRadius: 16,
+  padding: 15, marginBottom: 11, color: 'var(--admin-text, #172033)',
+  boxShadow: 'var(--admin-shadow-card, 0 8px 24px rgba(15,23,42,.045))',
 };
-const muted: React.CSSProperties = { color: '#9aa9c4', fontSize: 12.5, lineHeight: 1.6 };
+const muted: React.CSSProperties = { color: 'var(--admin-muted, #64748b)', fontSize: 12.5, lineHeight: 1.6 };
 const button: React.CSSProperties = {
-  border: '1px solid rgba(190,210,255,.18)', borderRadius: 12, padding: '10px 13px', minHeight: 40,
-  background: 'rgba(255,255,255,.08)', color: '#edf3ff', fontWeight: 650, cursor: 'pointer',
+  border: '1px solid var(--admin-border, #e2e8f0)', borderRadius: 11, padding: '10px 13px', minHeight: 40,
+  background: 'var(--admin-surface-muted, #f8fafc)', color: 'var(--admin-text, #172033)', fontWeight: 650, cursor: 'pointer',
 };
 const highRiskActions = [
   'setting_change', 'member_ban', 'member_unban', 'set_role',
@@ -169,19 +170,19 @@ function parseMaintenance(settings: Map<string, string>) {
 function StatCard({ label, value, detail, tone = 'neutral' }: {
   label: string; value: string; detail: string; tone?: 'good' | 'warn' | 'bad' | 'neutral';
 }) {
-  const color = tone === 'good' ? '#75e0a5' : tone === 'warn' ? '#ffd18a' : tone === 'bad' ? '#ff929e' : '#dce7ff';
+  const color = tone === 'good' ? '#16835d' : tone === 'warn' ? '#a16207' : tone === 'bad' ? '#b42336' : '#334155';
   return <div style={{
     minWidth: 0, padding: 13, borderRadius: 16,
-    background: 'rgba(255,255,255,.045)', border: '1px solid rgba(190,210,255,.11)',
+    background: 'var(--admin-surface-muted, #f8fafc)', border: '1px solid var(--admin-border, #e2e8f0)',
   }}>
-    <div style={{ color: '#98a8c5', fontSize: 11.5 }}>{label}</div>
+    <div style={{ color: '#64748b', fontSize: 11.5 }}>{label}</div>
     <div style={{ color, fontSize: 21, fontWeight: 800, letterSpacing: '-.4px', margin: '5px 0 2px', overflowWrap: 'anywhere' }}>{value}</div>
-    <div style={{ color: '#8292af', fontSize: 10.5, lineHeight: 1.45 }}>{detail}</div>
+    <div style={{ color: '#8491a5', fontSize: 10.5, lineHeight: 1.45 }}>{detail}</div>
   </div>;
 }
 
 function StatusPill({ status }: { status: CheckStatus }) {
-  const color = status === 'ok' ? '#78e0a4' : status === 'warn' ? '#ffd18a' : '#ff929e';
+  const color = status === 'ok' ? '#16835d' : status === 'warn' ? '#a16207' : '#b42336';
   const bg = status === 'ok' ? 'rgba(42,180,111,.12)' : status === 'warn' ? 'rgba(240,170,55,.12)' : 'rgba(240,85,105,.12)';
   return <span style={{ color, background: bg, border: '1px solid ' + color + '35', borderRadius: 999, padding: '3px 8px', fontSize: 10.5, fontWeight: 750, whiteSpace: 'nowrap' }}>
     {statusNames[status]}
@@ -420,7 +421,7 @@ export default function AdminSystemCenter({ setMsg, go }: {
   const maintenanceTone: CheckStatus = dashboard?.maintenance.includes('维护进行中') || dashboard?.maintenance.includes('手动维护已开启') ? 'warn'
     : dashboard?.maintenance.includes('异常') ? 'error' : 'ok';
 
-  return <div style={{ color: '#edf3ff' }}>
+  return <div className="admin-system-page" style={{ color: 'var(--admin-text, #172033)' }}>
     <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 14 }}>
       <div>
         <div style={{ fontSize: 23, fontWeight: 850, letterSpacing: '-.7px' }}>超级管理中心</div>
@@ -474,7 +475,7 @@ export default function AdminSystemCenter({ setMsg, go }: {
       </div>
       {!dashboard && <p style={muted}>正在读取数据库、管理员权限与审计状态…</p>}
       {dashboard?.checks.map(check => (
-        <div key={check.key} style={{ padding: '10px 0', borderTop: '1px solid rgba(190,210,255,.10)' }}>
+        <div key={check.key} style={{ padding: '10px 0', borderTop: '1px solid var(--admin-border, #e2e8f0)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
             <strong style={{ fontSize: 12.5 }}>{check.label}</strong>
             <StatusPill status={check.status} />
@@ -517,7 +518,7 @@ export default function AdminSystemCenter({ setMsg, go }: {
         />
       </div>
 
-      <div style={{ borderTop: '1px solid rgba(190,210,255,.10)', marginTop: 13, paddingTop: 11 }}>
+      <div style={{ borderTop: '1px solid var(--admin-border, #e2e8f0)', marginTop: 13, paddingTop: 11 }}>
         <div style={{ fontSize: 13, fontWeight: 800 }}>最近邮件任务</div>
         {!dashboard?.emailHistoryOk
           ? <p style={muted}>邮件历史读取失败，无法验证发送状态。</p>
@@ -534,7 +535,7 @@ export default function AdminSystemCenter({ setMsg, go }: {
               </div>}
       </div>
 
-      <div style={{ borderTop: '1px solid rgba(190,210,255,.10)', marginTop: 13, paddingTop: 11 }}>
+      <div style={{ borderTop: '1px solid var(--admin-border, #e2e8f0)', marginTop: 13, paddingTop: 11 }}>
         <div style={{ fontSize: 13, fontWeight: 800 }}>存储桶占用</div>
         {!dashboard?.backupOk
           ? <p style={muted}>存储统计不可用，未将缺少数据视为正常。</p>
@@ -543,11 +544,11 @@ export default function AdminSystemCenter({ setMsg, go }: {
             : dashboard.storageBuckets.map(bucket => <div key={bucket.bucket_id}
                 style={{ display: 'flex', justifyContent: 'space-between', gap: 10, padding: '7px 0', borderTop: '1px solid rgba(190,210,255,.07)', fontSize: 12 }}>
                 <span style={{ overflowWrap: 'anywhere' }}>{bucket.bucket_id}{bucket.is_public ? ' · 公开' : ' · 私有'}</span>
-                <span style={{ whiteSpace: 'nowrap', color: '#cbd8ef' }}>{bucket.object_count} 个 · {formatBytes(bucket.total_bytes)}</span>
+                <span style={{ whiteSpace: 'nowrap', color: '#526176' }}>{bucket.object_count} 个 · {formatBytes(bucket.total_bytes)}</span>
               </div>)}
       </div>
 
-      <div style={{ borderTop: '1px solid rgba(190,210,255,.10)', marginTop: 13, paddingTop: 11 }}>
+      <div style={{ borderTop: '1px solid var(--admin-border, #e2e8f0)', marginTop: 13, paddingTop: 11 }}>
         <div style={{ fontSize: 13, fontWeight: 800 }}>备份登记核验</div>
         <p style={{ ...muted, marginBottom: 0 }}>
           {!dashboard?.backupOk ? '备份登记读取失败。'
@@ -574,18 +575,18 @@ export default function AdminSystemCenter({ setMsg, go }: {
     <section style={panel}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, marginBottom: 8 }}>
         <div style={{ fontSize: 15, fontWeight: 800 }}>高风险操作审计</div>
-        <span style={{ color: '#ffd18a', fontSize: 11, fontWeight: 750 }}>
+        <span style={{ color: '#a16207', fontSize: 11, fontWeight: 750 }}>
           近 24 小时：{dashboard?.criticalCount === null || dashboard?.criticalCount === undefined ? '暂不可用' : dashboard.criticalCount + ' 次'}
         </span>
       </div>
       {dashboard?.audit.map(entry => (
-        <div key={entry.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '9px 0', borderTop: '1px solid rgba(190,210,255,.10)' }}>
+        <div key={entry.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '9px 0', borderTop: '1px solid var(--admin-border, #e2e8f0)' }}>
           <div style={{ width: 7, height: 7, borderRadius: 99, background: highRiskActions.includes(entry.action) ? '#ffb86c' : '#6f9dff', flexShrink: 0, marginTop: 6 }} />
           <div style={{ minWidth: 0, flex: 1 }}>
             <div style={{ fontSize: 12.5, fontWeight: 750 }}>{actionNames[entry.action] || entry.action}</div>
             <div style={{ ...muted, fontSize: 10.5 }}>{formatTime(entry.created_at)} · 管理员操作</div>
           </div>
-          {highRiskActions.includes(entry.action) && <span style={{ color: '#ffd18a', fontSize: 10, whiteSpace: 'nowrap' }}>重点关注</span>}
+          {highRiskActions.includes(entry.action) && <span style={{ color: '#a16207', fontSize: 10, whiteSpace: 'nowrap' }}>重点关注</span>}
         </div>
       ))}
       {dashboard && dashboard.audit.length === 0 && <p style={muted}>暂时没有审计记录。</p>}
@@ -628,7 +629,7 @@ export default function AdminSystemCenter({ setMsg, go }: {
     </section>
 
     <section style={{ ...panel, borderColor: 'rgba(255,190,110,.18)' }}>
-      <div style={{ fontSize: 13, fontWeight: 800, color: '#ffd18a' }}>监控范围说明</div>
+      <div style={{ fontSize: 13, fontWeight: 800, color: '#a16207' }}>监控范围说明</div>
       <p style={{ ...muted, marginBottom: 0 }}>
         此面板可验证当前管理员会话、角色 RPC、数据库只读请求、审计表、维护配置和 Presence 连接。浏览器端无法证明全部 RLS 隔离正确，也不能直接读取服务器 CPU、内存、磁盘、登录失败明细或 Supabase 自动备份快照；这些项目不会被伪装成“正常”。
       </p>

@@ -12,6 +12,15 @@ const pages=read('../src/styles-admin-pages.css');
 const accounts=read('../src/components/AdminAccountManagement.tsx');
 const notifications=read('../src/components/AdminNotificationCenter.tsx');
 const moderate=read('../src/pages/admin/Moderate.tsx');
+const analytics=read('../src/components/AdminAnalyticsCenter.tsx');
+const approvals=read('../src/components/AdminApprovalCenter.tsx');
+const security=read('../src/components/AdminSecurityCenter.tsx');
+const system=read('../src/components/AdminSystemCenter.tsx');
+const release=read('../src/components/AdminReleaseCenter.tsx');
+const backup=read('../src/components/AdminBackupCenter.tsx');
+const board=read('../src/pages/admin/BoardMgr.tsx');
+const logs=read('../src/pages/admin/Logs.tsx');
+const settings=read('../src/pages/admin/Settings.tsx');
 function assert(ok,message){if(!ok){console.error(`Admin style contract failed: ${message}`);process.exitCode=1;}}
 assert(main.includes("supabase.rpc('my_role')"),'dedicated host must verify the role before mounting admin');
 assert(main.includes("setVerifiedUid(uid)")&&main.includes("verifiedUid !== session.user.id"),'role result must be bound to the active session user');
@@ -35,5 +44,16 @@ assert(notifications.includes('className=\"admin-notifications-page\"'),'notific
 assert(moderate.includes('className=\"admin-moderation-page\"'),'moderation page must have a local style root');
 assert(pages.includes('.admin-shell-v3 .admin-content .admin-overview-panel')&&pages.includes('.admin-shell-v3 .admin-content .admin-accounts-page'),'page refinements must be scoped to the admin shell');
 assert(!/^\\s*\\.admin-(?:overview|accounts|notifications|moderation|email)/m.test(pages),'admin page CSS must not leak into public pages');
+for(const [name,source,root] of [
+ ['analytics',analytics,'admin-analytics-page'],['approvals',approvals,'admin-approvals-page'],
+ ['security',security,'admin-security-page'],['system',system,'admin-system-page'],
+ ['release',release,'admin-release-page'],['backup',backup,'admin-backup-page'],
+ ['announcements',board,'admin-announcements-page'],['logs',logs,'admin-logs-page'],
+ ['settings',settings,'admin-settings-page']
+]) assert(source.includes(root),name+' page must expose an admin-local style root');
+for(const root of [
+ 'admin-analytics-page','admin-approvals-page','admin-security-page','admin-system-page',
+ 'admin-release-page','admin-backup-page','admin-announcements-page','admin-logs-page','admin-settings-page'
+]) assert(pages.includes('.admin-shell-v3 .admin-content .'+root),root+' styles must be scoped inside admin shell');
 if(process.exitCode)process.exit(process.exitCode);
 console.log('Admin style contracts passed: isolated selectors, session-bound role verification, and current admin branding.');

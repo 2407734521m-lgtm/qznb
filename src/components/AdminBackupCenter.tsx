@@ -27,11 +27,12 @@ type BackupOverview = {
 };
 
 const panel: React.CSSProperties = {
-  background: 'linear-gradient(155deg,rgba(24,34,56,.94),rgba(12,18,33,.98))',
-  border: '1px solid rgba(190,210,255,.13)', borderRadius: 18,
-  padding: 14, marginBottom: 12, color: '#edf3ff',
+  background: 'var(--admin-surface, #ffffff)',
+  border: '1px solid var(--admin-border, #e2e8f0)', borderRadius: 16,
+  padding: 15, marginBottom: 11, color: 'var(--admin-text, #172033)',
+  boxShadow: 'var(--admin-shadow-card, 0 8px 24px rgba(15,23,42,.045))',
 };
-const muted: React.CSSProperties = { color: '#98a8c5', fontSize: 11.5, lineHeight: 1.65 };
+const muted: React.CSSProperties = { color: 'var(--admin-muted, #64748b)', fontSize: 11.5, lineHeight: 1.65 };
 
 function formatBytes(bytes: number) {
   if (!Number.isFinite(bytes) || bytes < 0) return '—';
@@ -100,7 +101,7 @@ export default function AdminBackupCenter({ setMsg }: { setMsg: (message: string
   const objectCount = buckets.reduce((sum, item) => sum + item.object_count, 0);
   const totalBytes = buckets.reduce((sum, item) => sum + item.total_bytes, 0);
 
-  return <div style={{ display: 'grid', gap: 12 }}>
+  return <div className="admin-backup-page" style={{ display: 'grid', gap: 12 }}>
     <section style={panel}>
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'flex-start' }}>
         <div>
@@ -110,10 +111,10 @@ export default function AdminBackupCenter({ setMsg }: { setMsg: (message: string
         <button className="mini" disabled={loading} onClick={() => void load()}>{loading ? '刷新中…' : '刷新'}</button>
       </div>
       <div style={{ marginTop: 12, padding: 11, borderRadius: 12, border: '1px solid #f0b85a55', background: '#f0b85a12' }}>
-        <div style={{ color: '#ffd18a', fontSize: 13, fontWeight: 800 }}>当前组织为 Supabase Free 套餐</div>
-        <div style={{ ...muted, color: '#d4c5a7', marginTop: 4 }}>本次核查时，Free 套餐不包含每日自动数据库备份。必须自行安排数据库导出，并单独备份 Storage 文件。升级套餐后应重新核对备份能力。</div>
+        <div style={{ color: '#a16207', fontSize: 13, fontWeight: 800 }}>当前组织为 Supabase Free 套餐</div>
+        <div style={{ ...muted, color: '#8a6a32', marginTop: 4 }}>本次核查时，Free 套餐不包含每日自动数据库备份。必须自行安排数据库导出，并单独备份 Storage 文件。升级套餐后应重新核对备份能力。</div>
       </div>
-      {error && <p style={{ color: '#ff9da7', fontSize: 12.5 }}>读取失败：{error}</p>}
+      {error && <p style={{ color: '#b42336', fontSize: 12.5 }}>读取失败：{error}</p>}
       {data && <div style={{ ...muted, marginTop: 8 }}>数据采样时间：{new Date(data.generated_at).toLocaleString()}</div>}
     </section>
 
@@ -127,7 +128,7 @@ export default function AdminBackupCenter({ setMsg }: { setMsg: (message: string
           ['Storage 对象元数据总大小', formatBytes(totalBytes)],
           ['人工备份登记数', data.manual_backup_count.toLocaleString()],
           ['最近人工备份', data.latest_manual_backup_at ? new Date(data.latest_manual_backup_at).toLocaleDateString() : '无记录'],
-        ].map(([label, value]) => <div key={label} style={{ padding: 12, borderRadius: 13, background: '#ffffff07', border: '1px solid #ffffff10' }}>
+        ].map(([label, value]) => <div key={label} style={{ padding: 12, borderRadius: 13, background: '#f8fafc', border: '1px solid #e5eaf2' }}>
           <div style={muted}>{label}</div>
           <div style={{ fontSize: 20, fontWeight: 800, marginTop: 4, overflowWrap: 'anywhere' }}>{value}</div>
         </div>)}
@@ -135,7 +136,7 @@ export default function AdminBackupCenter({ setMsg }: { setMsg: (message: string
 
       <section style={panel}>
         <div style={{ fontSize: 14, fontWeight: 800, marginBottom: 8 }}>Storage 分桶清单</div>
-        {buckets.map(bucket => <div key={bucket.bucket_id} style={{ display: 'flex', justifyContent: 'space-between', gap: 8, padding: '9px 0', borderBottom: '1px solid #ffffff0d' }}>
+        {buckets.map(bucket => <div key={bucket.bucket_id} style={{ display: 'flex', justifyContent: 'space-between', gap: 8, padding: '9px 0', borderBottom: '1px solid #f8fafc' }}>
           <div style={{ minWidth: 0 }}>
             <div style={{ fontSize: 12.5, fontWeight: 700 }}>{bucket.bucket_id}</div>
             <div style={muted}>{bucket.is_public ? '公开桶' : '私有桶'}</div>
@@ -161,10 +162,10 @@ export default function AdminBackupCenter({ setMsg }: { setMsg: (message: string
       <section style={panel}>
         <div style={{ fontSize: 14, fontWeight: 800, marginBottom: 8 }}>最近备份记录</div>
         {data.manual_backup_logs.length === 0 ? <p style={muted}>目前没有人工备份登记记录。不能据此推断没有外部备份，但本系统没有可验证的备份凭证。</p>
-          : data.manual_backup_logs.map(item => <div key={item.id} style={{ padding: '9px 0', borderBottom: '1px solid #ffffff0d' }}>
+          : data.manual_backup_logs.map(item => <div key={item.id} style={{ padding: '9px 0', borderBottom: '1px solid #f8fafc' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
               <strong style={{ fontSize: 12.5 }}>{scopeNames[item.scope] || item.scope}</strong>
-              <span style={{ fontSize: 10.5, color: '#8de0b7' }}>人工登记</span>
+              <span style={{ fontSize: 10.5, color: '#16835d' }}>人工登记</span>
             </div>
             <div style={{ ...muted, marginTop: 3 }}>{new Date(item.created_at).toLocaleString()} · {item.created_by_name}</div>
             {item.note && <div style={{ fontSize: 12, marginTop: 5, overflowWrap: 'anywhere' }}>{item.note}</div>}
@@ -176,8 +177,8 @@ export default function AdminBackupCenter({ setMsg }: { setMsg: (message: string
       <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 6 }}>备份入口与恢复边界</div>
       <div style={muted}>数据库备份入口：Supabase Dashboard → Database → Backups。Storage 文件需要另外导出，不能只备份数据库元数据。生产恢复可能覆盖新数据并造成停机；当前中心不会提供未经确认的一键恢复。</div>
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
-        <a href="https://supabase.com/dashboard/project/ldypnxxxgscibopgiaso/database/backups/scheduled" target="_blank" rel="noreferrer" style={{ ...muted, color: '#9fc1ff' }}>打开数据库备份页 ↗</a>
-        <a href="https://supabase.com/dashboard/project/ldypnxxxgscibopgiaso/storage/buckets" target="_blank" rel="noreferrer" style={{ ...muted, color: '#9fc1ff' }}>打开 Storage 分桶页 ↗</a>
+        <a href="https://supabase.com/dashboard/project/ldypnxxxgscibopgiaso/database/backups/scheduled" target="_blank" rel="noreferrer" style={{ ...muted, color: '#1d4ed8' }}>打开数据库备份页 ↗</a>
+        <a href="https://supabase.com/dashboard/project/ldypnxxxgscibopgiaso/storage/buckets" target="_blank" rel="noreferrer" style={{ ...muted, color: '#1d4ed8' }}>打开 Storage 分桶页 ↗</a>
       </div>
     </section>
   </div>;

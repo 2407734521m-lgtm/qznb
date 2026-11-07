@@ -325,3 +325,215 @@
     animation: none !important; transition: none !important;
   }
 }
+
+
+/* Phase 5 · Remaining admin operation pages. */
+.admin-shell-v3 .admin-content .admin-analytics-page,
+.admin-shell-v3 .admin-content .admin-approvals-page,
+.admin-shell-v3 .admin-content .admin-security-page,
+.admin-shell-v3 .admin-content .admin-system-page,
+.admin-shell-v3 .admin-content .admin-release-page,
+.admin-shell-v3 .admin-content .admin-backup-page,
+.admin-shell-v3 .admin-content .admin-announcements-page,
+.admin-shell-v3 .admin-content .admin-logs-page,
+.admin-shell-v3 .admin-content .admin-settings-page {
+  min-width: 0;
+  color: #172033;
+}
+.admin-shell-v3 .admin-content .admin-analytics-page,
+.admin-shell-v3 .admin-content .admin-approvals-page,
+.admin-shell-v3 .admin-content .admin-security-page,
+.admin-shell-v3 .admin-content .admin-system-page,
+.admin-shell-v3 .admin-content .admin-release-page,
+.admin-shell-v3 .admin-content .admin-backup-page,
+.admin-shell-v3 .admin-content .admin-settings-page {
+  display: grid;
+  gap: 11px;
+}
+.admin-shell-v3 .admin-content .admin-analytics-page > section,
+.admin-shell-v3 .admin-content .admin-approvals-page > section,
+.admin-shell-v3 .admin-content .admin-security-page > div,
+.admin-shell-v3 .admin-content .admin-security-page > section,
+.admin-shell-v3 .admin-content .admin-system-page > section,
+.admin-shell-v3 .admin-content .admin-release-page > section,
+.admin-shell-v3 .admin-content .admin-backup-page > section,
+.admin-shell-v3 .admin-content .admin-settings-page > div,
+.admin-shell-v3 .admin-content .admin-announcements-page,
+.admin-shell-v3 .admin-content .admin-logs-page {
+  color: #172033 !important;
+  background: #fff !important;
+  border: 1px solid #e4eaf2 !important;
+  border-radius: 16px !important;
+  box-shadow: 0 8px 24px rgba(15,23,42,.045), inset 0 1px 0 rgba(255,255,255,.9) !important;
+}
+.admin-shell-v3 .admin-content .admin-analytics-page > section,
+.admin-shell-v3 .admin-content .admin-approvals-page > section,
+.admin-shell-v3 .admin-content .admin-security-page > div,
+.admin-shell-v3 .admin-content .admin-security-page > section,
+.admin-shell-v3 .admin-content .admin-system-page > section,
+.admin-shell-v3 .admin-content .admin-release-page > section,
+.admin-shell-v3 .admin-content .admin-backup-page > section,
+.admin-shell-v3 .admin-content .admin-settings-page > div {
+  margin: 0 !important;
+}
+.admin-shell-v3 .admin-content .admin-analytics-page h2,
+.admin-shell-v3 .admin-content .admin-analytics-page h3,
+.admin-shell-v3 .admin-content .admin-approvals-page h2,
+.admin-shell-v3 .admin-content .admin-approvals-page h3,
+.admin-shell-v3 .admin-content .admin-security-page h2,
+.admin-shell-v3 .admin-content .admin-security-page h3,
+.admin-shell-v3 .admin-content .admin-system-page h2,
+.admin-shell-v3 .admin-content .admin-system-page h3,
+.admin-shell-v3 .admin-content .admin-release-page h2,
+.admin-shell-v3 .admin-content .admin-release-page h3,
+.admin-shell-v3 .admin-content .admin-backup-page h2,
+.admin-shell-v3 .admin-content .admin-backup-page h3,
+.admin-shell-v3 .admin-content .admin-settings-page h2,
+.admin-shell-v3 .admin-content .admin-settings-page h3,
+.admin-shell-v3 .admin-content .admin-announcements-page h2,
+.admin-shell-v3 .admin-content .admin-announcements-page h3,
+.admin-shell-v3 .admin-content .admin-logs-page h2,
+.admin-shell-v3 .admin-content .admin-logs-page h3 {
+  color: #172033 !important;
+}
+.admin-shell-v3 .admin-content .admin-analytics-page input,
+.admin-shell-v3 .admin-content .admin-analytics-page select,
+.admin-shell-v3 .admin-content .admin-approvals-page input,
+.admin-shell-v3 .admin-content .admin-approvals-page select,
+.admin-shell-v3 .admin-content .admin-security-page input,
+.admin-shell-v3 .admin-content .admin-security-page select,
+.admin-shell-v3 .admin-content .admin-system-page input,
+.admin-shell-v3 .admin-content .admin-system-page select,
+.admin-shell-v3 .admin-content .admin-release-page input,
+.admin-shell-v3 .admin-content .admin-release-page select,
+.admin-shell-v3 .admin-content .admin-backup-page input,
+.admin-shell-v3 .admin-content .admin-backup-page select,
+.admin-shell-v3 .admin-content .admin-settings-page input:not([type="checkbox"]),
+.admin-shell-v3 .admin-content .admin-settings-page textarea,
+.admin-shell-v3 .admin-content .admin-settings-page select,
+.admin-shell-v3 .admin-content .admin-announcements-page input:not([type="file"]),
+.admin-shell-v3 .admin-content .admin-announcements-page textarea,
+.admin-shell-v3 .admin-content .admin-announcements-page select,
+.admin-shell-v3 .admin-content .admin-logs-page input {
+  min-width: 0;
+  color: #172033 !important;
+  background: #fff !important;
+  border-color: #dce4ee !important;
+  border-radius: 11px !important;
+}
+.admin-shell-v3 .admin-content .admin-analytics-page button,
+.admin-shell-v3 .admin-content .admin-approvals-page button,
+.admin-shell-v3 .admin-content .admin-security-page button,
+.admin-shell-v3 .admin-content .admin-system-page button,
+.admin-shell-v3 .admin-content .admin-release-page button,
+.admin-shell-v3 .admin-content .admin-backup-page button,
+.admin-shell-v3 .admin-content .admin-announcements-page button,
+.admin-shell-v3 .admin-content .admin-logs-page button,
+.admin-shell-v3 .admin-content .admin-settings-page button {
+  min-height: 36px;
+  touch-action: manipulation;
+  border-radius: 10px;
+}
+.admin-shell-v3 .admin-content .admin-analytics-page button.ghost,
+.admin-shell-v3 .admin-content .admin-approvals-page button.ghost,
+.admin-shell-v3 .admin-content .admin-security-page button.ghost,
+.admin-shell-v3 .admin-content .admin-system-page button.ghost,
+.admin-shell-v3 .admin-content .admin-release-page button.ghost,
+.admin-shell-v3 .admin-content .admin-backup-page button.ghost,
+.admin-shell-v3 .admin-content .admin-announcements-page button.ghost,
+.admin-shell-v3 .admin-content .admin-logs-page button.ghost,
+.admin-shell-v3 .admin-content .admin-settings-page button.ghost {
+  color: #526176 !important;
+  background: #fff !important;
+  border: 1px solid #e2e8f0 !important;
+}
+.admin-shell-v3 .admin-content .admin-analytics-page button.pri,
+.admin-shell-v3 .admin-content .admin-approvals-page button:not(.ghost):not(.danger),
+.admin-shell-v3 .admin-content .admin-security-page button:not(.ghost):not(.danger),
+.admin-shell-v3 .admin-content .admin-system-page button:not(.ghost):not(.danger),
+.admin-shell-v3 .admin-content .admin-release-page button:not(.ghost):not(.danger),
+.admin-shell-v3 .admin-content .admin-backup-page button:not(.ghost):not(.danger),
+.admin-shell-v3 .admin-content .admin-announcements-page button.pri,
+.admin-shell-v3 .admin-content .admin-logs-page button:not(.ghost):not(.danger),
+.admin-shell-v3 .admin-content .admin-settings-page button:not(.ghost):not(.danger) {
+  color: #fff;
+  background: #2563eb;
+  border: 1px solid #2563eb;
+}
+.admin-shell-v3 .admin-content .admin-announcements-page button.danger,
+.admin-shell-v3 .admin-content .admin-approvals-page button.danger {
+  color: #b42336 !important;
+  background: #fff4f4 !important;
+  border-color: #f3cdd2 !important;
+}
+.admin-shell-v3 .admin-content .admin-release-page a,
+.admin-shell-v3 .admin-content .admin-backup-page a {
+  color: #1d4ed8 !important;
+  overflow-wrap: anywhere;
+}
+.admin-shell-v3 .admin-content .admin-analytics-page > section > div[style*="var(--admin-surface-muted"],
+.admin-shell-v3 .admin-content .admin-system-page [style*="var(--admin-surface-muted"] {
+  background: #f8fafc !important;
+  border-color: #e5eaf2 !important;
+}
+.admin-shell-v3 .admin-content .admin-analytics-page svg line { stroke: #e5eaf2; }
+.admin-shell-v3 .admin-content .admin-analytics-page svg text { fill: #94a3b8; }
+.admin-shell-v3 .admin-content .admin-analytics-page svg polyline { vector-effect: non-scaling-stroke; }
+.admin-shell-v3 .admin-content .admin-analytics-page > section > div[style*="grid-template-columns"] { min-width: 0; }
+.admin-shell-v3 .admin-content .admin-approvals-page article,
+.admin-shell-v3 .admin-content .admin-security-page article,
+.admin-shell-v3 .admin-content .admin-release-page article,
+.admin-shell-v3 .admin-content .admin-backup-page article {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  border-color: #e5eaf2 !important;
+}
+.admin-shell-v3 .admin-content .admin-settings-page .row { align-items: center; }
+.admin-shell-v3 .admin-content .admin-settings-page label { color: #526176 !important; }
+.admin-shell-v3 .admin-content .admin-settings-page [style*="#f8fafc"] {
+  border-color: #e5eaf2 !important;
+}
+.admin-shell-v3 .admin-content .admin-announcements-page b { color: #172033 !important; }
+.admin-shell-v3 .admin-content .admin-logs-page [style*="border-bottom"] {
+  border-bottom-color: #edf1f6 !important;
+}
+.admin-shell-v3 .admin-content .admin-system-page [style*="border-top"] {
+  border-top-color: #e5eaf2 !important;
+}
+@media (max-width: 899px) {
+  .admin-shell-v3 .admin-content .admin-analytics-page,
+  .admin-shell-v3 .admin-content .admin-approvals-page,
+  .admin-shell-v3 .admin-content .admin-security-page,
+  .admin-shell-v3 .admin-content .admin-system-page,
+  .admin-shell-v3 .admin-content .admin-release-page,
+  .admin-shell-v3 .admin-content .admin-backup-page,
+  .admin-shell-v3 .admin-content .admin-settings-page { gap: 9px; }
+  .admin-shell-v3 .admin-content .admin-analytics-page > section,
+  .admin-shell-v3 .admin-content .admin-approvals-page > section,
+  .admin-shell-v3 .admin-content .admin-security-page > div,
+  .admin-shell-v3 .admin-content .admin-system-page > section,
+  .admin-shell-v3 .admin-content .admin-release-page > section,
+  .admin-shell-v3 .admin-content .admin-backup-page > section,
+  .admin-shell-v3 .admin-content .admin-settings-page > div { padding: 13px !important; }
+  .admin-shell-v3 .admin-content .admin-analytics-page [style*="grid-template-columns"],
+  .admin-shell-v3 .admin-content .admin-system-page [style*="grid-template-columns"] {
+    grid-template-columns: repeat(2,minmax(0,1fr)) !important;
+  }
+  .admin-shell-v3 .admin-content .admin-release-page > section > div,
+  .admin-shell-v3 .admin-content .admin-backup-page > section > div {
+    max-width: 100%; overflow-wrap: anywhere;
+  }
+  .admin-shell-v3 .admin-content .admin-logs-page [style*="grid-template-columns"] {
+    grid-template-columns: minmax(72px,90px) minmax(0,1fr) !important;
+  }
+  .admin-shell-v3 .admin-content .admin-settings-page .row { flex-wrap: wrap; }
+  .admin-shell-v3 .admin-content .admin-settings-page .row input { flex: 1 1 180px !important; }
+}
+@media (max-width: 420px) {
+  .admin-shell-v3 .admin-content .admin-analytics-page [style*="grid-template-columns"],
+  .admin-shell-v3 .admin-content .admin-system-page [style*="grid-template-columns"] {
+    grid-template-columns: minmax(0,1fr) !important;
+  }
+  .admin-shell-v3 .admin-content .admin-announcements-page .row,
+  .admin-shell-v3 .admin-content .admin-settings-page .row { gap: 7px !important; }
+}

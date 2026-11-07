@@ -37,7 +37,7 @@ function deviceName() {
 function Metric({ label, value, hint, warn = false }: { label: string; value: string | number; hint: string; warn?: boolean }) {
   return <div style={{ ...card, margin: 0, minWidth: 0 }}>
     <div style={mut}>{label}</div>
-    <div style={{ fontSize: 25, fontWeight: 800, color: warn ? '#ff9a9a' : '#eaf0ff', margin: '7px 0 4px' }}>{value}</div>
+    <div style={{ fontSize: 25, fontWeight: 800, color: warn ? '#b42336' : '#172033', margin: '7px 0 4px' }}>{value}</div>
     <div style={mut}>{hint}</div>
   </div>;
 }
@@ -86,8 +86,8 @@ export default function AdminSecurityCenter({ session, setMsg }: { session: Sess
   const login = data?.login ?? {};
   const actions = data?.recent_admin_actions ?? [];
 
-  return <div style={{ display: 'grid', gap: 12 }}>
-    <div style={{ ...card, background: 'linear-gradient(135deg,#17213b,#11182a)' }}>
+  return <div className="admin-security-page" style={{ display: 'grid', gap: 12 }}>
+    <div style={{ ...card, background: 'var(--admin-surface, #ffffff)' }}>
       <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
         <div>
           <div style={{ fontSize: 17, fontWeight: 800 }}>安全防护中心</div>
@@ -95,7 +95,7 @@ export default function AdminSecurityCenter({ session, setMsg }: { session: Sess
         </div>
         <button className="mini" onClick={() => void load()} disabled={loading}>{loading ? '刷新中…' : '刷新数据'}</button>
       </div>
-      {error && <p style={{ color: '#ffaaaa', fontSize: 12.5, marginBottom: 0 }}>读取失败：{error}</p>}
+      {error && <p style={{ color: '#b42336', fontSize: 12.5, marginBottom: 0 }}>读取失败：{error}</p>}
       {data?.generated_at && <div style={{ ...mut, marginTop: 9 }}>数据更新时间：{new Date(data.generated_at).toLocaleString()}</div>}
     </div>
 
@@ -137,10 +137,10 @@ export default function AdminSecurityCenter({ session, setMsg }: { session: Sess
         <span style={mut}>最近 {actions.length} 条</span>
       </div>
       {actions.length === 0 ? <p style={mut}>暂无审计记录。</p> : <div style={{ display: 'grid', gap: 8 }}>
-        {actions.map(item => <div key={item.id} style={{ borderTop: '1px solid #ffffff12', paddingTop: 9 }}>
+        {actions.map(item => <div key={item.id} style={{ borderTop: '1px solid #e5eaf2', paddingTop: 9 }}>
           <div className="row" style={{ justifyContent: 'space-between', gap: 8, alignItems: 'center' }}>
             <strong style={{ fontSize: 13, overflowWrap: 'anywhere' }}>{item.action}</strong>
-            {item.high_risk && <span style={{ color: '#ffb18a', fontSize: 11, flexShrink: 0 }}>高风险操作</span>}
+            {item.high_risk && <span style={{ color: '#a16207', fontSize: 11, flexShrink: 0 }}>高风险操作</span>}
           </div>
           <div style={mut}>{item.actor_name} · {timeAgo(item.created_at)} · {new Date(item.created_at).toLocaleString()}</div>
         </div>)}

@@ -7,6 +7,7 @@ import AdminLogin from './pages/AdminLogin';
 import { AuthProvider, useAuth } from './auth';
 import { supabase } from './lib/supabase';
 import { DialogHost } from './lib/dialog';
+import ErrorBoundary from './components/ErrorBoundary';
 import './styles.css';
 import './styles-cinematic.css';
 import './styles-editorial.css';
@@ -69,7 +70,9 @@ function AdminShell() {
 
 createRoot(document.getElementById('root')!).render(
   <React.StrictMode><HashRouter><AuthProvider>
-    {isAdminHost ? <AdminShell /> : <App />}
+    <ErrorBoundary>
+      {isAdminHost ? <AdminShell /> : <App />}
+    </ErrorBoundary>
     <DialogHost />
   </AuthProvider></HashRouter></React.StrictMode>
 );

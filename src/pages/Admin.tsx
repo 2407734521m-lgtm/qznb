@@ -178,7 +178,7 @@ export default function Admin({ verifiedRole }: { verifiedRole: 'admin' | 'super
           {tab === 'approvals' && isSuper && <AdminApprovalCenter setMsg={setMsg} me={me} />}
           {tab === 'system' && isSuper && <AdminSystemCenter setMsg={setMsg} go={switchTab} />}
           {tab === 'guestAccess' && <AdminGuestAccess setMsg={setMsg} />}
-          {tab === 'settings' && isSuper && <Settings me={me} setMsg={setMsg} />
+          {tab === 'settings' && isSuper && <Settings me={me} setMsg={setMsg} />}
           {tab === 'invite' && <InviteTab isSuper={isSuper} setMsg={setMsg} />}
           {tab === 'feedback' && <FeedbackTab me={me} isSuper={isSuper} setMsg={setMsg} />}
           {tab === 'game' && <GameTab setMsg={setMsg} />}

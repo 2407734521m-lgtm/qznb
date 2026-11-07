@@ -5,6 +5,17 @@ import MaintenanceAccessManager from './MaintenanceAccessManager';
 import { confirmDialog } from '../../lib/dialog';
 import DateTimeField from '../../components/DateTimeField';
 
+const GUEST_SESSION_DURATIONS = [
+  { value: 15, label: '15 分钟' },
+  { value: 30, label: '30 分钟' },
+  { value: 60, label: '1 小时' },
+  { value: 120, label: '2 小时' },
+  { value: 240, label: '4 小时' },
+  { value: 480, label: '8 小时' },
+  { value: 720, label: '12 小时' },
+  { value: 1440, label: '24 小时' },
+] as const;
+
 const FEATURE_FLAGS = [
   { key: 'posts', label: '动态与日常发帖', detail: '暂停新帖子发布；已有内容仍可浏览。' },
   { key: 'comments', label: '评论与回复', detail: '暂停新评论提交；已有评论仍可浏览。' },
@@ -32,6 +43,11 @@ export default function Settings({ me, setMsg }: { me: string; setMsg: (s: strin
   const [scheduleEnd, setScheduleEnd] = useState('');
   const [scheduleEnabled, setScheduleEnabled] = useState(false);
   const [scheduleBusy, setScheduleBusy] = useState(false);
+  const [guestScheduleStart, setGuestScheduleStart] = useState('');
+  const [guestScheduleEnd, setGuestScheduleEnd] = useState('');
+  const [guestScheduleEnabled, setGuestScheduleEnabled] = useState(false);
+  const [guestScheduleBusy, setGuestScheduleBusy] = useState(false);
+  const [guestRevokeBusy, setGuestRevokeBusy] = useState(false);
   const [notifyCount, setNotifyCount] = useState(0);
   const [notifyBusy, setNotifyBusy] = useState(false);
   const [notifyConfirm, setNotifyConfirm] = useState(false);
@@ -80,6 +96,16 @@ export default function Settings({ me, setMsg }: { me: string; setMsg: (s: strin
       setScheduleStart('');
       setScheduleEnd('');
       setScheduleEnabled(false);
+    }
+    try {
+      const guestSchedule = JSON.parse(o.guest_schedule || '{}');
+      setGuestScheduleStart(toLocalDateTimeInput(guestSchedule.start_at || ''));
+      setGuestScheduleEnd(toLocalDateTimeInput(guestSchedule.end_at || ''));
+      setGuestScheduleEnabled(guestSchedule.enabled === true);
+    } catch {
+      setGuestScheduleStart('');
+      setGuestScheduleEnd('');
+      setGuestScheduleEnabled(false);
     }
     const { data: bl } = await supabase.from('backup_logs').select('*').order('created_at', { ascending: false }).limit(10);
     setBackups(bl ?? []);
@@ -145,6 +171,56 @@ export default function Settings({ me, setMsg }: { me: string; setMsg: (s: strin
     setVals(current => ({ ...current, maintenance_schedule: value }));
     await alog('maintenance_schedule_cleared', {});
     setMsg('定时维护计划已取消，维护模式恢复由手动开关控制。');
+  }
+
+  async function saveGuestSchedule() {
+    if (!guestScheduleStart || !guestScheduleEnd) return setMsg('请同时设置游客开放开始和结束时间。');
+    const start = new Date(guestScheduleStart);
+    const end = new Date(guestScheduleEnd);
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return setMsg('游客开放时间格式无效，请重新选择。');
+    if (end <= start) return setMsg('游客开放结束时间必须晚于开始时间。');
+    if (end <= new Date()) return setMsg('游客开放结束时间必须晚于当前时间。');
+
+    const value = JSON.stringify({ enabled: true, start_at: start.toISOString(), end_at: end.toISOString() });
+    setGuestScheduleBusy(true);
+    const { error } = await supabase.from('site_settings').upsert({ key: 'guest_schedule', value }, { onConflict: 'key' });
+    setGuestScheduleBusy(false);
+    if (error) return setMsg('游客定时开放计划保存失败：' + error.message);
+    setGuestScheduleEnabled(true);
+    setVals(current => ({ ...current, guest_schedule: value }));
+    await alog('guest_schedule_saved', { start_at: start.toISOString(), end_at: end.toISOString() });
+    setMsg('游客开放计划已保存；仅在设定时间段内显示游客入口。');
+  }
+
+  async function clearGuestSchedule() {
+    if (!(await confirmDialog('取消游客定时开放计划？游客入口将改为由总开关控制。'))) return;
+    setGuestScheduleBusy(true);
+    const value = JSON.stringify({ enabled: false, start_at: null, end_at: null });
+    const { error } = await supabase.from('site_settings').upsert({ key: 'guest_schedule', value }, { onConflict: 'key' });
+    setGuestScheduleBusy(false);
+    if (error) return setMsg('取消游客开放计划失败：' + error.message);
+    setGuestScheduleEnabled(false);
+    setGuestScheduleStart('');
+    setGuestScheduleEnd('');
+    setVals(current => ({ ...current, guest_schedule: value }));
+    await alog('guest_schedule_cleared', {});
+    setMsg('游客定时开放计划已取消。');
+  }
+
+  async function revokeGuestSessions() {
+    if (!(await confirmDialog('立即结束所有游客会话？已进入的游客会在下一次配置刷新时退出，最迟约 15 秒；今后仍可按设置重新进入。', { danger: true, confirmText: '立即清退' }))) return;
+    const currentEpoch = Math.max(1, Number.parseInt(vals.guest_session_epoch || '1', 10) || 1);
+    const nextEpoch = currentEpoch + 1;
+    setGuestRevokeBusy(true);
+    const { error } = await supabase.from('site_settings').upsert(
+      { key: 'guest_session_epoch', value: String(nextEpoch) },
+      { onConflict: 'key' }
+    );
+    setGuestRevokeBusy(false);
+    if (error) return setMsg('清退游客失败：' + error.message);
+    setVals(current => ({ ...current, guest_session_epoch: String(nextEpoch) }));
+    await alog('guest_sessions_revoked', { epoch: nextEpoch });
+    setMsg('清退指令已生效，当前游客会话将在配置刷新后自动结束。');
   }
 
   async function checkHealth() {
@@ -372,6 +448,88 @@ export default function Settings({ me, setMsg }: { me: string; setMsg: (s: strin
         <p style={{ ...mut, margin: '0 0 10px' }}>维护期间在维护页登记邮箱的访客（当前 {notifyCount} 人）。关闭维护后点发送，系统会给他们每人发一封「网站已恢复」邮件；发送成功的人会自动从名单移除，失败的保留待重试。</p>
         <button className="pri" style={{ width: 'auto' }} disabled={notifyBusy || notifyCount === 0} onClick={() => void sendNotify()}>
           {notifyBusy ? '发送中…' : notifyConfirm ? `确认发送给 ${notifyCount} 人？` : `发送恢复通知（${notifyCount} 人）`}
+        </button>
+      </div>
+    </div>
+
+    <div style={card}>
+      <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+        <h3 style={h3}>游客访问管理</h3>
+        <span style={{ ...mut, fontSize: 11 }}>只读访问 · 不计入成员</span>
+      </div>
+      <p style={mut}>游客无需邮箱和密码，只能查看你允许公开的内容。游客昵称保存在当前标签页，不创建正式账号，也不会计入成员人数或在线成员统计。</p>
+
+      <div style={{ display: 'grid', gap: 9 }}>
+        {([
+          { key: 'guest_browse_enabled', label: '游客浏览总开关', detail: '关闭后停止新的游客进入，并让现有游客会话自动退出。' },
+          { key: 'guest_entry_visible', label: '显示「游客登录」按钮', detail: '关闭后隐藏登录页、公开首页和入口关闭页中的游客按钮。' },
+          { key: 'guest_show_love_wall', label: '允许游客查看表白墙', detail: '关闭后游客无法读取表白内容、评论数量及表白墙附件。' },
+          { key: 'guest_show_announcements', label: '允许游客查看公告', detail: '关闭后游客首页不再显示公开公告，也无法打开公告列表。' },
+        ] as const).map(item => {
+          const enabled = vals[item.key] !== 'false';
+          return <div key={item.key} style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
+            padding: '11px 12px', borderRadius: 12, border: '1px solid #e5eaf2', background: '#f8fafc',
+          }}>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: 13, fontWeight: 700 }}>{item.label}</div>
+              <div style={{ ...mut, fontSize: 11.5 }}>{item.detail}</div>
+              <div style={{ fontSize: 10.5, marginTop: 3, color: enabled ? '#16835d' : '#a33f48' }}>{enabled ? '已开启' : '已关闭'}</div>
+            </div>
+            <button type="button" className={enabled ? 'mini ghost' : 'mini'}
+              style={{ minWidth: 74, flexShrink: 0 }}
+              onClick={async () => {
+                const next = !enabled;
+                if (!next && !(await confirmDialog(
+                  item.key === 'guest_browse_enabled'
+                    ? '关闭游客浏览后，游客将不能继续浏览；正式账号不受影响。确定关闭？'
+                    : `关闭「${item.label}」后，游客将无法再看到对应入口或内容。确定继续？`,
+                  { danger: true }
+                ))) return;
+                void save(item.key, String(next));
+              }}>
+              {enabled ? '关闭' : '开启'}
+            </button>
+          </div>;
+        })}
+      </div>
+
+      <div style={{ marginTop: 14, padding: 12, borderRadius: 12, background: '#f8fafc', border: '1px solid #e5eaf2' }}>
+        <div style={{ fontSize: 13.5, fontWeight: 700, marginBottom: 5 }}>游客会话有效期</div>
+        <p style={{ ...mut, margin: '0 0 9px' }}>从游客进入时开始计时，到期自动退出；浏览期间不会自动延长。关闭浏览器标签页也会结束本次游客身份。</p>
+        <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap' }}>
+          {GUEST_SESSION_DURATIONS.map(option => {
+            const active = Number(vals.guest_session_minutes || 60) === option.value;
+            return <button key={option.value} type="button"
+              className={active ? 'mini' : 'mini ghost'}
+              onClick={() => void save('guest_session_minutes', String(option.value))}
+              style={{ minWidth: 72 }}>
+              {option.label}
+            </button>;
+          })}
+        </div>
+        <p style={{ ...mut, margin: '8px 0 0' }}>当前有效期：{GUEST_SESSION_DURATIONS.find(x => x.value === Number(vals.guest_session_minutes || 60))?.label || '1 小时'}</p>
+      </div>
+
+      <div style={{ marginTop: 14, padding: 12, borderRadius: 12, background: '#f8fafc', border: '1px solid #e5eaf2' }}>
+        <div style={{ fontSize: 13.5, fontWeight: 700, marginBottom: 5 }}>定时开放游客入口</div>
+        <p style={{ ...mut, margin: '0 0 10px' }}>按当前设备时区设置。计划启用后，只有在开始与结束时间之间允许游客进入；到期自动关闭，不需要管理员在线。</p>
+        <label style={mut}>开放开始时间</label>
+        <DateTimeField value={guestScheduleStart} onChange={setGuestScheduleStart} style={{ margin: '5px 0 10px' }} />
+        <label style={mut}>开放结束时间</label>
+        <DateTimeField value={guestScheduleEnd} onChange={setGuestScheduleEnd} style={{ margin: '5px 0 10px' }} />
+        <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
+          <button className="pri" style={{ width: 'auto' }} disabled={guestScheduleBusy} onClick={() => void saveGuestSchedule()}>{guestScheduleBusy ? '处理中…' : '保存并启用计划'}</button>
+          <button className="mini ghost" disabled={guestScheduleBusy || !guestScheduleEnabled} onClick={() => void clearGuestSchedule()}>取消定时计划</button>
+        </div>
+        {guestScheduleEnabled && <p style={{ ...mut, margin: '9px 0 0', color: '#16835d' }}>定时计划已启用 · {guestScheduleStart ? new Date(guestScheduleStart).toLocaleString() : '未设置'} 至 {guestScheduleEnd ? new Date(guestScheduleEnd).toLocaleString() : '未设置'}</p>}
+      </div>
+
+      <div style={{ marginTop: 14, padding: 12, borderRadius: 12, background: '#fff7f7', border: '1px solid #f2dddd' }}>
+        <div style={{ fontSize: 13.5, fontWeight: 700, color: '#963f4a', marginBottom: 5 }}>紧急清退游客</div>
+        <p style={{ ...mut, margin: '0 0 10px' }}>立即撤销所有当前游客会话。清退后游客需要重新输入昵称进入；不会影响正式成员或管理员。</p>
+        <button type="button" className="mini" disabled={guestRevokeBusy} onClick={() => void revokeGuestSessions()}>
+          {guestRevokeBusy ? '正在清退…' : '立即结束全部游客会话'}
         </button>
       </div>
     </div>

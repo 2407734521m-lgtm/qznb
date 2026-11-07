@@ -1,16 +1,19 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
+// Fixed destination: callers cannot choose an arbitrary recipient.
+const DEVELOPER_EMAIL = '2407734521@qq.com';
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
-// 反馈邮件只发到开发者本人邮箱（固定收件人，调用方无法指定，避免被滥用发信）
-const DEVELOPER_EMAIL = '2407734521@qq.com';
-
 function response(body: unknown, status = 200) {
-  return new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
+  });
 }
 
 Deno.serve(async (req: Request) => {
@@ -22,12 +25,12 @@ Deno.serve(async (req: Request) => {
   const url = Deno.env.get('SUPABASE_URL');
   const anonKey = Deno.env.get('SUPABASE_ANON_KEY');
   const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-  const resendKey = Deno.env.get('RESEND_API_KEY');
-  const from = Deno.env.get('EMAIL_FROM');
   if (!url || !anonKey || !serviceKey) return response({ error: 'Supabase 函数环境变量未配置。' }, 500);
-  if (!resendKey || !from) return response({ error: '邮件服务尚未配置。' }, 503);
 
-  const caller = createClient(url, anonKey, { global: { headers: { Authorization: authHeader } }, auth: { persistSession: false } });
+  const caller = createClient(url, anonKey, {
+    global: { headers: { Authorization: authHeader } },
+    auth: { persistSession: false },
+  });
   const { data: userData, error: userError } = await caller.auth.getUser();
   if (userError || !userData.user) return response({ error: '登录已失效，请重新登录。' }, 401);
 
@@ -58,7 +61,7 @@ Deno.serve(async (req: Request) => {
   const username = profile?.username || '';
 
   const text = [
-    `收到一条来自「我们的班级 · 青春档案」的用户反馈：`,
+    '收到一条来自「我们的班级 · 青春档案」的用户反馈：',
     '',
     `反馈人：${who}${username ? `（@${username}）` : ''}${name ? `，自称：${name}` : ''}`,
     `联系方式：${contact || '（未填写）'}`,
@@ -69,19 +72,30 @@ Deno.serve(async (req: Request) => {
     '请通过上面的联系方式回复对方。',
   ].join('\n');
 
-  const res = await fetch('https://api.resend.com/emails', {
+  const dispatchResponse = await fetch(`${url}/functions/v1/email-dispatch`, {
     method: 'POST',
-    headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
+    headers: {
+      Authorization: `Bearer ${serviceKey}`,
+      apikey: anonKey,
+      'Content-Type': 'application/json',
+    },
     body: JSON.stringify({
-      from,
-      to: [DEVELOPER_EMAIL],
+      to: DEVELOPER_EMAIL,
       subject: `我们的班级 · 青春档案 — 新反馈：${who}`,
       text,
+      category: 'support_feedback',
+      source: 'dev-feedback',
+      eventKey: `dev-feedback:${userData.user.id}:${crypto.randomUUID()}`,
+      actorId: userData.user.id,
+      referenceId: 'developer_feedback',
     }),
   });
-  if (!res.ok) {
-    const detail = await res.text().catch(() => '');
-    return response({ error: '邮件发送失败。', detail: detail.slice(0, 300) }, 502);
+  const dispatchResult = await dispatchResponse.json().catch(() => ({}));
+  if (!dispatchResponse.ok || dispatchResult?.ok !== true) {
+    return response({
+      error: '邮件发送失败，请稍后重试。',
+      code: typeof dispatchResult?.errorCode === 'string' ? dispatchResult.errorCode : 'email_dispatch_failed',
+    }, 502);
   }
   return response({ ok: true });
 });

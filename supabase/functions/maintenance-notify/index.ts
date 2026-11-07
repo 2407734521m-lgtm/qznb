@@ -7,7 +7,10 @@ const corsHeaders = {
 };
 
 function response(body: unknown, status = 200) {
-  return new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
+  });
 }
 
 Deno.serve(async (req: Request) => {
@@ -19,16 +22,18 @@ Deno.serve(async (req: Request) => {
   const url = Deno.env.get('SUPABASE_URL');
   const anonKey = Deno.env.get('SUPABASE_ANON_KEY');
   const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-  const resendKey = Deno.env.get('RESEND_API_KEY');
-  const from = Deno.env.get('EMAIL_FROM');
   if (!url || !anonKey || !serviceKey) return response({ error: 'Supabase 函数环境变量未配置。' }, 500);
-  if (!resendKey || !from) return response({ error: '邮件服务尚未配置：请设置 RESEND_API_KEY 和 EMAIL_FROM。' }, 503);
 
-  const caller = createClient(url, anonKey, { global: { headers: { Authorization: authHeader } }, auth: { persistSession: false } });
+  const caller = createClient(url, anonKey, {
+    global: { headers: { Authorization: authHeader } },
+    auth: { persistSession: false },
+  });
   const { data: userData, error: userError } = await caller.auth.getUser();
   if (userError || !userData.user) return response({ error: '登录已失效，请重新登录。' }, 401);
   const { data: role, error: roleError } = await caller.rpc('my_role');
-  if (roleError || !['admin', 'super_admin'].includes(role || '')) return response({ error: '仅管理员可以发送恢复通知。' }, 403);
+  if (roleError || !['admin', 'super_admin'].includes(role || '')) {
+    return response({ error: '仅管理员可以发送恢复通知。' }, 403);
+  }
 
   const admin = createClient(url, serviceKey, { auth: { persistSession: false } });
 
@@ -61,7 +66,6 @@ Deno.serve(async (req: Request) => {
         return response({ error: '维护计划时间无效，暂不能发送。' }, 503);
       }
       const now = Date.now();
-      // 手动维护与定时维护是并行条件：任一开启都必须阻止“恢复通知”发送。
       maintenanceActive = maintenanceActive || (start <= now && now < end);
     }
   }
@@ -82,25 +86,49 @@ Deno.serve(async (req: Request) => {
   const text = '你好！\n\n我们的班级 · 青春档案的维护已经结束，网站恢复正常，现在可以回来啦。\n\n打开网站：https://qianzhi.pw/\n\n（你曾在维护期间留下这个邮箱接收恢复通知，本邮件只发送这一次。）';
 
   let sent = 0;
-  let firstError = '';
+  let firstErrorCode = '';
   for (const row of list) {
     try {
-      const r = await fetch('https://api.resend.com/emails', {
+      const dispatchResponse = await fetch(`${url}/functions/v1/email-dispatch`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ from, to: [row.email], subject, text }),
+        headers: {
+          Authorization: `Bearer ${serviceKey}`,
+          apikey: anonKey,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          to: row.email,
+          subject,
+          text,
+          category: 'maintenance_recovery',
+          source: 'maintenance-notify',
+          eventKey: `maintenance-recovery:${row.id}`,
+          referenceId: `maintenance-notify:${row.id}`,
+          actorId: userData.user.id,
+        }),
       });
-      if (r.ok) {
+      const dispatchResult = await dispatchResponse.json().catch(() => ({}));
+      if (dispatchResponse.ok && dispatchResult?.ok === true) {
         sent++;
-        await admin.from('maintenance_notify_emails').delete().eq('id', row.id);
-      } else if (!firstError) {
-        const t = await r.text().catch(() => '');
-        firstError = `Resend 返回 ${r.status}：${t.slice(0, 200)}`;
+        const { error: deleteError } = await admin
+          .from('maintenance_notify_emails')
+          .delete()
+          .eq('id', row.id);
+        if (deleteError) console.error('maintenance notification subscription cleanup failed');
+      } else if (!firstErrorCode) {
+        firstErrorCode = typeof dispatchResult?.errorCode === 'string'
+          ? dispatchResult.errorCode
+          : `email_dispatch_http_${dispatchResponse.status}`;
       }
-    } catch (e) {
-      if (!firstError) firstError = '调用 Resend 失败：' + (e instanceof Error ? e.message : String(e));
+    } catch {
+      if (!firstErrorCode) firstErrorCode = 'email_dispatch_network_error';
     }
   }
-  if (firstError) console.error('maintenance-notify send failed:', firstError);
-  return response({ sent, failed: list.length - sent, total: list.length, ...(firstError ? { detail: firstError } : {}) });
+
+  return response({
+    sent,
+    failed: list.length - sent,
+    total: list.length,
+    ...(firstErrorCode ? { detail: firstErrorCode } : {}),
+  });
 });

@@ -754,13 +754,23 @@ export default function Chat() {
           const parent = m.reply_to_id ? msgs.find(item => item.id === m.reply_to_id) : null;
           const groups = reactionGroups(m.id);
           const mine = m.sender_id === me;
+          const previousMessage = msgs[i - 1];
+          const nextMessage = msgs[i + 1];
+          const samePrevious = Boolean(previousMessage
+            && previousMessage.sender_id === m.sender_id
+            && !dateLabel(m.created_at, previousMessage.created_at)
+            && new Date(m.created_at).getTime() - new Date(previousMessage.created_at).getTime() <= 120000);
+          const sameNext = Boolean(nextMessage
+            && nextMessage.sender_id === m.sender_id
+            && !dateLabel(nextMessage.created_at, m.created_at)
+            && new Date(nextMessage.created_at).getTime() - new Date(m.created_at).getTime() <= 120000);
           const deleted = Boolean(m.deleted_at);
           const canEdit = mine && !deleted && !m.body.startsWith('[[im-image:') && !m.body.startsWith('[[im-audio:');
           return (
             <div key={m.id}>
               {dateLabel(m.created_at, msgs[i - 1]?.created_at) && <div className="im-day">{dateLabel(m.created_at, msgs[i - 1]?.created_at)}</div>}
-              <div className={'im-row ' + (mine ? 'mine' : '') + (swappedIdsRef.current.has(m.id) ? ' im-row-static' : '')}>
-                <div className={'im-bubble ' + (mine ? 'mine' : 'theirs')}
+              <div className={'im-row ' + (mine ? 'mine ' : '') + (samePrevious ? 'im-row-grouped-prev ' : '') + (sameNext ? 'im-row-grouped-next ' : '') + (swappedIdsRef.current.has(m.id) ? 'im-row-static' : '')}>
+                <div className={'im-bubble ' + (mine ? 'mine' : 'theirs') + (samePrevious ? ' im-bubble-grouped-prev' : '') + (sameNext ? ' im-bubble-grouped-next' : '')}
                   onTouchStart={() => startMessagePress(m.id)}
                   onTouchMove={clearMessagePress}
                   onTouchEnd={clearMessagePress}

@@ -1,8 +1,9 @@
-/* 表单体验两件套（登录卡内使用，配色沿用 Login.polish 的深底暖调）：
+/* 表单体验（登录卡内使用）：
    1. 浮动标签 .float-field：标签平时停在框内，聚焦或有内容后缩小上移到框内上方并一直显示；
-      占位提示只在聚焦后才淡入，不再只靠占位符说明字段。
+      占位符全程不显示，字段含义由标签承担，原占位里的说明改为框下常驻帮助字 .float-hint。
    2. 验证码分格 .code-input：6 个独立方格，逻辑在 components/CodeInput.tsx。
-   选择器与 Login.polish.css 的输入框规则同构并多一层类，确保优先级盖过它。 */
+   线上登录卡最终生效的是浅色卡，输入框颜色在此明确钉死（背景/文字/聚焦三态一致），
+   避免与深色卡样式、玻璃样式的同名规则互相覆盖。 */
 
 .login-card .float-field {
   position: relative;
@@ -13,6 +14,21 @@
   margin: 0;
   min-height: 54px;
   padding: 22px 14px 5px;
+  background: #ffffff !important;
+  color: #20242c !important;
+  border: 1px solid #ddd5c7 !important;
+  caret-color: #b26a35;
+}
+
+.login-card .float-field input:not([type="checkbox"]):not([type="range"]):not([type="file"]):focus {
+  background: #ffffff !important;
+  color: #20242c !important;
+  border-color: #c68b69 !important;
+  box-shadow: 0 0 0 3px rgba(198, 139, 105, .18) !important;
+}
+
+.login-card .float-field input::placeholder {
+  color: transparent !important;
 }
 
 .login-card .float-tag {
@@ -22,7 +38,7 @@
   transform: translateY(-50%);
   font-size: 14px;
   line-height: 1;
-  color: #a99b8a;
+  color: #8d94a3;
   white-space: nowrap;
   pointer-events: none;
   transition: top 180ms cubic-bezier(.22, 1, .36, 1), font-size 180ms cubic-bezier(.22, 1, .36, 1), color 180ms ease;
@@ -34,15 +50,20 @@
   font-size: 11px;
   font-weight: 600;
   letter-spacing: .04em;
-  color: #c68b69;
+  color: #b26a35;
 }
 
-.login-card .float-field input::placeholder {
-  color: transparent;
+.login-card .float-hint {
+  display: block;
+  margin: 4px 2px 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #8d94a3;
 }
 
-.login-card .float-field:focus-within input::placeholder {
-  color: #a99b8a;
+.login-card .password-reveal {
+  color: #7a6a58 !important;
+  font-size: 13px;
 }
 
 .login-card .code-input {
@@ -61,7 +82,17 @@
   font-size: 22px;
   font-weight: 700;
   letter-spacing: 0;
-  caret-color: #c68b69;
+  background: #ffffff !important;
+  color: #20242c !important;
+  border: 1px solid #ddd5c7 !important;
+  caret-color: #b26a35;
+}
+
+.login-card .code-input input:not([type="checkbox"]):not([type="range"]):not([type="file"]):focus {
+  background: #ffffff !important;
+  color: #20242c !important;
+  border-color: #c68b69 !important;
+  box-shadow: 0 0 0 3px rgba(198, 139, 105, .18) !important;
 }
 
 @media (prefers-reduced-motion: reduce) {

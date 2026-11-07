@@ -1397,3 +1397,7 @@
 .im-file-name{font-size:13.5px;font-weight:600;color:#22314a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .im-file-meta{font-size:11.5px;color:#8a7c66}
 .im-file-open{flex:none;color:#a2937f;font-size:19px;line-height:1}
+
+/* 会话页顶栏通话钮 */
+.im-page .im-call-button{display:grid;place-items:center;color:#fff}
+.im-page .im-call-button:disabled{opacity:.45}

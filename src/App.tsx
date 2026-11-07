@@ -10,6 +10,7 @@ import { LiquidGlassScene } from 'simple-liquid-glass/backdrop';
 import { DUR, EASE } from './lib/motion';
 import { supabase } from './lib/supabase';
 import { detectInstalledApp, isInApp } from './lib/installedApp';
+import { CallProvider } from './lib/call';
 import { startSitePresence } from './lib/sitePresence';
 import { useAuth } from './auth';
 import { getWallpaper } from './lib/wallpaper';
@@ -1330,5 +1331,9 @@ function Shell() {
 
 // main.tsx 已提供 <HashRouter><AuthProvider>，这里只返回 Shell（重复嵌套路由会直接崩溃黑屏）。
 export default function App() {
-  return <Shell />;
+  return (
+    <CallProvider>
+      <Shell />
+    </CallProvider>
+  );
 }

@@ -2,7 +2,6 @@
 :root{--bg:#111318;--fg:#f4f0e8;--mut:#a6a6a1;--a:#d9c29a;--b:#f0e4ce;--r:16px;--ui-blue:#d9c29a;--ui-lilac:#c8b99f;--ui-ease:cubic-bezier(.2,.7,.2,1)}
 body{background:#111318;color:#f4f0e8;letter-spacing:.005em}
 .glow{background:radial-gradient(ellipse at 50% 0%,rgba(198,169,122,.09),transparent 48%)!important;animation:none!important}
-.app-bg{filter:blur(5px) brightness(30%) saturate(.68)!important}
 .wrap{max-width:1040px}
 .hero{padding:28px 2px 10px}
 .hero h1{font-size:clamp(28px,5vw,42px);font-weight:650;letter-spacing:-.055em;text-shadow:none;background:none;-webkit-text-fill-color:currentColor;color:#f4f0e8}
@@ -66,11 +65,6 @@ body{
     radial-gradient(ellipse at 50% 100%,rgba(13,148,136,.09),transparent 50%) !important;
   animation:none !important;
 }
-/* Keep the new gradient vivid enough beneath glass cards, including the editorial theme. */
-.app-bg{
-  filter:blur(1px) brightness(78%) saturate(1.18) !important;
-  transform:scale(1.03) !important;
-}
 @media(prefers-reduced-motion:reduce){
   body{background-attachment:scroll}
 }
@@ -101,7 +95,6 @@ body{
     radial-gradient(ellipse at 50% 100%,rgba(13,148,136,.09),transparent 50%)!important;
   animation:none!important;
 }
-.app-bg{filter:blur(1px) brightness(78%) saturate(1.18)!important}
 .card,.mcard,.post,.tl-item,.campus-hero,.classes-hero,.class-detail-hero{
   color:#edf7ff!important;
   background:rgba(9,27,42,.74)!important;
@@ -232,7 +225,6 @@ input:focus,textarea:focus,select:focus{
 :root{color-scheme:light;--bg:#fff!important;--fg:#202124!important;--mut:#606673!important;--a:#343a46!important;--b:#e4e7ec!important}
 html,body,#root{background:#fff!important;color:#202124!important}
 body{background:#fff!important;background-image:none!important;color:#202124!important}
-.glow,.app-bg{display:none!important}
 a{color:#303642!important}
 .topnav{background:rgba(255,255,255,.94)!important;border-bottom:1px solid #e8eaf0!important;box-shadow:0 4px 20px #17203308!important}
 .topnav a,.topnav button{color:#606673!important}

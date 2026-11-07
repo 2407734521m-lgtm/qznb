@@ -450,6 +450,327 @@ body .me-hub-photo-mark {
   color: #8fd8de !important;
 }
 
+/* ===== Residual fixes (verified live after #276) =====
+   Home.vibe.css and MeHub.polish.css each end with a body:has(...) block
+   that re-pins those two pages to the light paper canvas (body background
+   and topnav at higher specificity than the plain body rules above), and
+   both pages carry explicit dark text colors on child elements that a
+   container-level color cannot reach. The rules below mirror those blocks
+   one level higher (html body:has(...)) and name the child elements
+   directly. */
+
+/* Page canvas: home and personal hub rejoin the dark site. */
+html body:has(.vibe-home),
+html body:has(.me-hub) {
+  color-scheme: dark;
+  background: transparent !important;
+  color: #f4f1ea !important;
+}
+
+html body:has(.vibe-home) .topnav,
+html body:has(.me-hub) .topnav {
+  background:
+    linear-gradient(120deg, rgba(15, 15, 22, .82), rgba(15, 15, 22, .66)) padding-box,
+    linear-gradient(180deg, rgba(255, 255, 255, .26), rgba(255, 255, 255, .07)) border-box !important;
+  border: 1px solid transparent !important;
+  border-bottom: 1px solid rgba(255, 255, 255, .10) !important;
+  color: #f4f1ea !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .30) !important;
+  -webkit-backdrop-filter: blur(22px) saturate(1.2) !important;
+  backdrop-filter: blur(22px) saturate(1.2) !important;
+}
+
+html body:has(.vibe-home) .topnav .brand,
+html body:has(.me-hub) .topnav .brand {
+  color: #f7f4ec !important;
+}
+
+html body:has(.vibe-home) .topnav a,
+html body:has(.vibe-home) .topnav button,
+html body:has(.me-hub) .topnav a,
+html body:has(.me-hub) .topnav button {
+  color: rgba(236, 232, 222, .78) !important;
+}
+
+html body:has(.vibe-home) .topnav a.on,
+html body:has(.me-hub) .topnav a.on {
+  background: rgba(255, 255, 255, .13) !important;
+  color: #ffffff !important;
+  box-shadow: none !important;
+}
+
+/* Topnav buttons read as glass pills on every page. */
+body .topnav button {
+  background: rgba(255, 255, 255, .08) !important;
+  border: 1px solid rgba(255, 255, 255, .14) !important;
+}
+
+/* Homepage hero: dark glass whether or not a banner image is set. */
+body .vh-hero {
+  background:
+    linear-gradient(150deg, rgba(27, 27, 36, .80), rgba(17, 17, 24, .68)) padding-box,
+    linear-gradient(180deg, rgba(255, 255, 255, .30), rgba(255, 255, 255, .10) 26%, transparent 52%, transparent 68%, rgba(255, 255, 255, .10) 86%, rgba(255, 255, 255, .24)) border-box !important;
+  border: 1px solid transparent !important;
+  box-shadow:
+    0 14px 34px rgba(0, 0, 0, .35),
+    inset 0 1px 0 rgba(255, 255, 255, .09) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(1.18) !important;
+  backdrop-filter: blur(16px) saturate(1.18) !important;
+}
+
+body .vh-hero-title,
+body .vh-hero.has-image .vh-hero-title {
+  color: #fffdf9 !important;
+  -webkit-text-fill-color: #fffdf9 !important;
+}
+
+body .vh-hero-kicker,
+body .vh-hero.has-image .vh-hero-kicker {
+  color: rgba(232, 228, 218, .72) !important;
+}
+
+body .vh-hero-sub,
+body .vh-hero.has-image .vh-hero-sub {
+  color: rgba(232, 228, 218, .78) !important;
+}
+
+/* Homepage text tones on the dark canvas. */
+body .vh-eyebrow,
+body .vh-topline .vh-live {
+  color: rgba(232, 228, 218, .62) !important;
+}
+
+body .vh-live:before {
+  background: #d29a78 !important;
+}
+
+body .vh-intro h1 {
+  color: #f7f4ec !important;
+  -webkit-text-fill-color: #f7f4ec !important;
+}
+
+body .vh-countdown {
+  background: rgba(255, 255, 255, .07) !important;
+  border-color: rgba(255, 255, 255, .16) !important;
+  color: #eec39f !important;
+}
+
+body .vh-section-head h2 {
+  color: #f7f4ec !important;
+  -webkit-text-fill-color: #f7f4ec !important;
+}
+
+body .vh-section-head p {
+  color: rgba(232, 228, 218, .55) !important;
+}
+
+body .vh-text-link {
+  color: #d29a78 !important;
+}
+
+body .vh-notice-tag {
+  background: rgba(210, 154, 120, .18) !important;
+  color: #eec39f !important;
+}
+
+body .vh-notice strong {
+  color: #f7f4ec !important;
+}
+
+body .vh-notice p {
+  color: rgba(232, 228, 218, .62) !important;
+}
+
+body .vh-notice time {
+  color: rgba(232, 228, 218, .45) !important;
+}
+
+body .vh-shortcut-name {
+  color: #f7f4ec !important;
+}
+
+body .vh-shortcut-index,
+body .vh-shortcut-arrow {
+  color: rgba(232, 228, 218, .45) !important;
+}
+
+body .vh-feed-row,
+body .vh-event {
+  border-top-color: rgba(255, 255, 255, .09) !important;
+}
+
+body .vh-feed-copy strong,
+body .vh-event strong {
+  color: #f7f4ec !important;
+}
+
+body .vh-feed-copy p,
+body .vh-event p {
+  color: rgba(232, 228, 218, .62) !important;
+}
+
+body .vh-feed-copy time {
+  color: rgba(232, 228, 218, .45) !important;
+}
+
+body .vh-member span {
+  color: rgba(232, 228, 218, .65) !important;
+}
+
+body .vh-member .av {
+  border-color: rgba(255, 255, 255, .20) !important;
+}
+
+body .vh-empty {
+  color: rgba(232, 228, 218, .55) !important;
+}
+
+body .vh-modal {
+  background:
+    linear-gradient(150deg, rgba(24, 24, 33, .88), rgba(15, 15, 21, .82)) padding-box,
+    linear-gradient(180deg, rgba(255, 255, 255, .34), rgba(255, 255, 255, .12) 26%, transparent 52%, transparent 68%, rgba(255, 255, 255, .12) 86%, rgba(255, 255, 255, .28)) border-box !important;
+  border: 1px solid transparent !important;
+  box-shadow: 0 22px 54px rgba(0, 0, 0, .45) !important;
+  -webkit-backdrop-filter: blur(22px) saturate(1.2) !important;
+  backdrop-filter: blur(22px) saturate(1.2) !important;
+}
+
+body .vh-modal h3 {
+  color: #f7f4ec !important;
+}
+
+body .vh-modal p {
+  color: rgba(232, 228, 218, .70) !important;
+}
+
+body .vh-modal-close {
+  background: rgba(255, 255, 255, .07) !important;
+  border-color: rgba(255, 255, 255, .16) !important;
+  color: rgba(236, 232, 222, .80) !important;
+}
+
+/* Personal hub text tones and small surfaces on the dark canvas. */
+body .me-hub-head-icon {
+  background: rgba(255, 255, 255, .07) !important;
+  border-color: rgba(255, 255, 255, .16) !important;
+  color: #eef6f6 !important;
+  box-shadow: none !important;
+  -webkit-backdrop-filter: blur(16px) saturate(1.15) !important;
+  backdrop-filter: blur(16px) saturate(1.15) !important;
+}
+
+body .me-hub-avatar {
+  background: rgba(255, 255, 255, .10) !important;
+  border-color: rgba(255, 255, 255, .35) !important;
+  color: #eef6f6 !important;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, .15) !important;
+}
+
+body .me-hub-identity strong {
+  color: #ffffff !important;
+}
+
+body .me-hub-identity small {
+  color: rgba(207, 232, 234, .60) !important;
+}
+
+body .me-hub-edit {
+  background: rgba(255, 255, 255, .07) !important;
+  border-color: rgba(255, 255, 255, .16) !important;
+  color: #eef6f6 !important;
+  box-shadow: none !important;
+}
+
+body .me-hub-unread {
+  background: rgba(255, 255, 255, .07) !important;
+  border-color: rgba(255, 255, 255, .16) !important;
+  color: #eef6f6 !important;
+}
+
+body .me-hub-stat-grid strong {
+  color: #eef6f6 !important;
+}
+
+body .me-hub-photo-note {
+  color: rgba(207, 232, 234, .60) !important;
+  border-color: rgba(255, 255, 255, .12) !important;
+}
+
+body .me-hub-stat-grid button {
+  border-color: rgba(255, 255, 255, .12) !important;
+}
+
+body .me-hub-section-head p,
+body .me-hub-group-head p,
+body .me-hub-section-head > span,
+body .me-hub-group-head > span {
+  color: rgba(207, 232, 234, .60) !important;
+}
+
+body .me-hub-shortcut strong {
+  color: #eef6f6 !important;
+}
+
+body .me-hub-shortcut small {
+  color: rgba(207, 232, 234, .60) !important;
+}
+
+body .me-hub-shortcut-icon {
+  background: rgba(255, 255, 255, .08) !important;
+  border-color: rgba(255, 255, 255, .14) !important;
+  color: #8fd8de !important;
+  box-shadow: none !important;
+}
+
+body .me-hub-shortcut-icon.gold { color: #e8c87a !important; }
+body .me-hub-shortcut-icon.blue { color: #8ec9ee !important; }
+body .me-hub-shortcut-icon.teal { color: #8fd8c8 !important; }
+body .me-hub-shortcut-icon.violet { color: #c4aef0 !important; }
+body .me-hub-shortcut-icon.slate { color: #b9cdd4 !important; }
+
+body .me-hub-feature strong {
+  color: #eef6f6 !important;
+}
+
+body .me-hub-feature-kicker,
+body .me-hub-feature small {
+  color: rgba(207, 232, 234, .60) !important;
+}
+
+body .me-hub-feature-meta,
+body .me-hub-feature-arrow {
+  color: #7fd1d9 !important;
+}
+
+body .me-hub-tile-copy strong {
+  color: #eef6f6 !important;
+}
+
+body .me-hub-tile-copy small {
+  color: rgba(207, 232, 234, .60) !important;
+}
+
+body .me-hub-mark {
+  background: rgba(255, 255, 255, .08) !important;
+  color: #8fd8de !important;
+  box-shadow: none !important;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  body .me-hub-head-icon:hover,
+  body .me-hub-edit:hover {
+    background: rgba(255, 255, 255, .12) !important;
+    border-color: rgba(255, 255, 255, .24) !important;
+  }
+
+  body .me-hub-shortcut:hover,
+  body .me-hub-tile:hover,
+  body .me-hub-feature:hover {
+    background: rgba(255, 255, 255, .10) !important;
+    border-color: rgba(255, 255, 255, .20) !important;
+  }
+}
+
 /* ===== Fallbacks: no blur support or reduced transparency means solid ink ===== */
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
   body .wrap .card,
@@ -465,6 +786,8 @@ body .me-hub-photo-mark {
   body .vh-notice,
   body .vh-shortcut,
   body .vh-panel,
+  body .vh-hero,
+  body .vh-modal,
   body .login-wrap .login-card {
     background: #14141b !important;
   }

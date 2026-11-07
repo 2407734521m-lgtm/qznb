@@ -111,6 +111,12 @@ with check (
   bucket_id = 'media'
   and (
     love_private.can_upload_love_media(name)
+    -- Keep the previous client version working during rollout.
+    or (
+      (storage.foldername(name))[1] = (select auth.uid())::text
+      and (storage.foldername(name))[2] = 'love'
+      and public.site_feature_enabled('love_wall')
+    )
     or (
       (storage.foldername(name))[1] = (select auth.uid())::text
       and coalesce((storage.foldername(name))[2], '') <> 'love'

@@ -73,3 +73,5 @@
  .air-ink-bottom-note{bottom:calc(16px + env(safe-area-inset-bottom));max-width:42vw}
 }
 @media(prefers-reduced-motion:reduce){.air-ink-loader{animation:none}.air-ink-load-track span{transition:none}}
+.air-ink-candidates button.air-ink-more{width:auto;height:30px;padding:0 9px;border-radius:999px;font:9px "Noto Sans SC",sans-serif;white-space:nowrap}
+.air-ink-gesture-hint{padding:6px 11px;border:1px solid rgba(244,184,211,.4);border-radius:999px;background:rgba(241,182,207,.18);color:#ffe5f0;font:9px "Noto Sans SC",sans-serif;white-space:nowrap}

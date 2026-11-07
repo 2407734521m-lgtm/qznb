@@ -148,6 +148,11 @@ export default function AirInk() {
   const recognitionBusyRef = useRef(false);
   const runningRef = useRef(false);
   const startGuardRef = useRef(false);
+  const candidatesRef = useRef<Candidate[]>([]);
+  const recognizedTextRef = useRef('');
+  const candidatePageRef = useRef(0);
+  const gestureTrackRef = useRef<{ finger: number; since: number; fired: boolean }>({ finger: -1, since: 0, fired: false });
+  const gestureHintTimerRef = useRef(0);
 
   const [active, setActive] = useState(false);
   const [primeOpen, setPrimeOpen] = useState(false);
@@ -162,6 +167,11 @@ export default function AirInk() {
   const [selected, setSelected] = useState('');
   const [recognizedText, setRecognizedText] = useState('');
   const [phase, setPhase] = useState<'idle'|'drawing'|'lifting'|'recognizing'|'candidate'|'unmatched'>('idle');
+  const [candidatePage, setCandidatePage] = useState(0);
+  const [gestureHint, setGestureHint] = useState('');
+
+  useEffect(() => { candidatesRef.current = candidates; }, [candidates]);
+  useEffect(() => { recognizedTextRef.current = recognizedText; }, [recognizedText]);
 
   const scheduleRecognition = useCallback(() => {
     if (recognitionTimerRef.current) window.clearTimeout(recognitionTimerRef.current);
@@ -204,11 +214,44 @@ export default function AirInk() {
     setActive(false);
   }, []);
 
+  const flashGestureHint = useCallback((text: string) => {
+    setGestureHint(text);
+    if (gestureHintTimerRef.current) window.clearTimeout(gestureHintTimerRef.current);
+    gestureHintTimerRef.current = window.setTimeout(() => setGestureHint(''), 1600);
+  }, []);
+  // 手势开关（用户定 2026-11-08）：拇指碰中指=撤销、碰无名指=换一批候选字、碰小指=清空。
+  // 三个动作都只走 ref + 函数式 setState，不依赖渲染闭包，推理循环里调用也安全。
+  const gestureUndo = useCallback(() => {
+    if (recognitionTimerRef.current) window.clearTimeout(recognitionTimerRef.current);
+    recognitionRequestRef.current += 1; recognitionBusyRef.current = false;
+    if (strokesRef.current.length) { strokesRef.current.pop(); flashGestureHint('已撤销一笔'); }
+    else if (recognizedTextRef.current) { setRecognizedText(value => value.slice(0, -1)); flashGestureHint('已删掉一个字'); }
+    else { flashGestureHint('没有可撤销的了'); return; }
+    currentStrokeRef.current = null; pinchRef.current = false; smoothRef.current = null;
+    setIsWriting(false); setSelected(''); setCandidates([]); setCandidatePage(0); candidatePageRef.current = 0; setPhase('idle');
+  }, [flashGestureHint]);
+  const gestureClear = useCallback(() => {
+    if (!strokesRef.current.length && !candidatesRef.current.length && !recognizedTextRef.current) { flashGestureHint('已经是空的了'); return; }
+    if (recognitionTimerRef.current) window.clearTimeout(recognitionTimerRef.current);
+    recognitionRequestRef.current += 1; recognitionBusyRef.current = false;
+    strokesRef.current = []; currentStrokeRef.current = null; pinchRef.current = false; smoothRef.current = null;
+    setIsWriting(false); setSelected(''); setCandidates([]); setCandidatePage(0); candidatePageRef.current = 0; setPhase('idle'); setRecognizedText('');
+    flashGestureHint('已清空');
+  }, [flashGestureHint]);
+  const nextCandidateBatch = useCallback(() => {
+    const total = candidatesRef.current.length;
+    if (total <= 4) { flashGestureHint(total ? '没有更多候选字了' : '先写个字，识别后能换一批'); return; }
+    const pages = Math.ceil(total / 4);
+    candidatePageRef.current = (candidatePageRef.current + 1) % pages;
+    setCandidatePage(candidatePageRef.current);
+    flashGestureHint(`已换一批候选字 · 第 ${candidatePageRef.current + 1} 批`);
+  }, [flashGestureHint]);
+
   const startCamera = useCallback(async () => {
     if (startGuardRef.current || loading) return;
     startGuardRef.current = true;
     setLoading(true); setProgress(5); setStage('准备手势识别'); setError('');
-    setRecognitionStatus('loading'); setCandidates([]); setSelected(''); setRecognizedText('');
+    setRecognitionStatus('loading'); setCandidates([]); setCandidatePage(0); candidatePageRef.current = 0; setSelected(''); setRecognizedText('');
     strokesRef.current = []; currentStrokeRef.current = null; pinchRef.current = false; smoothRef.current = null;
     try {
       // 先建识别器再开摄像头：两个资源源 × GPU/CPU 两种推理方式依次尝试，
@@ -248,8 +291,8 @@ export default function AirInk() {
           else if (message.type === 'matches') {
             recognitionBusyRef.current = false;
             if (message.requestId !== recognitionRequestRef.current) return;
-            const matches = (message.candidates || []).filter((item: any) => item && typeof item.hanzi === 'string').slice(0,5) as Candidate[];
-            setCandidates(matches); setSelected(matches[0]?.hanzi || '');
+            const matches = (message.candidates || []).filter((item: any) => item && typeof item.hanzi === 'string').slice(0,8) as Candidate[];
+            setCandidates(matches); setCandidatePage(0); candidatePageRef.current = 0; setSelected(matches[0]?.hanzi || '');
             setPhase(matches.length ? 'candidate' : 'unmatched');
           } else if (message.type === 'error') {
             recognitionBusyRef.current = false; workerReadyRef.current = false;
@@ -276,20 +319,42 @@ export default function AirInk() {
         currentStrokeRef.current = null; smoothRef.current = null; setIsWriting(false); scheduleRecognition();
       };
       const handleHand = (hand: any[] | null) => {
-        if (!hand || hand.length < 21) { landmarksRef.current = null; releaseStroke(); setHasHand(false); return; }
+        if (!hand || hand.length < 21) { landmarksRef.current = null; releaseStroke(); setHasHand(false); gestureTrackRef.current.finger = -1; gestureTrackRef.current.fired = false; return; }
         landmarksRef.current = hand; setHasHand(true);
         const palm = Math.max(.001, distance(hand[0],hand[9]));
         const point = mapPoint(hand[8],video,window.innerWidth,window.innerHeight);
         const pinchRatio = distance(hand[4],hand[8])/palm;
         const drawing = pinchRef.current ? pinchRatio < .48 : pinchRatio < .34;
-        if (!drawing) { releaseStroke(); return; }
+        if (!drawing) {
+          releaseStroke();
+          // 手势开关：没在写字时，拇指贴住中指/无名指/小指并保持约 0.22 秒触发一次；
+          // 触发后必须三根手指都松开（比值回到 .48 以上）才重新待命，防连发与误触；
+          // 两根手指同时贴近（分不出是哪根）时不触发。
+          const now = performance.now();
+          const ratios = [distance(hand[4],hand[12])/palm, distance(hand[4],hand[16])/palm, distance(hand[4],hand[20])/palm];
+          const track = gestureTrackRef.current;
+          if (ratios.every(r => r > .48)) { track.finger = -1; track.fired = false; }
+          else if (!track.fired) {
+            let best = -1, bestRatio = .34;
+            ratios.forEach((r, i) => { if (r < bestRatio) { bestRatio = r; best = i; } });
+            const ambiguous = best >= 0 && ratios.some((r, i) => i !== best && r < bestRatio + .06);
+            if (best < 0 || ambiguous) track.finger = -1;
+            else if (track.finger !== best) { track.finger = best; track.since = now; }
+            else if (now - track.since >= 220) {
+              track.fired = true;
+              if (best === 0) gestureUndo(); else if (best === 1) nextCandidateBatch(); else gestureClear();
+            }
+          }
+          return;
+        }
+        gestureTrackRef.current.finger = -1;
         const previous = smoothRef.current;
         const smooth = previous ? { x:previous.x+(point.x-previous.x)*.48, y:previous.y+(point.y-previous.y)*.48 } : point;
         if (!pinchRef.current) {
           setSelected(''); setCandidates([]);
           pinchRef.current = true; recognitionRequestRef.current += 1; recognitionBusyRef.current = false;
           if (recognitionTimerRef.current) window.clearTimeout(recognitionTimerRef.current);
-          setPhase('drawing'); setCandidates([]);
+          setPhase('drawing'); setCandidates([]); setCandidatePage(0); candidatePageRef.current = 0;
           const stroke:Stroke = { points:[smooth] }; strokesRef.current.push(stroke); currentStrokeRef.current = stroke; setIsWriting(true);
         } else if (currentStrokeRef.current) {
           const points = currentStrokeRef.current.points;
@@ -335,7 +400,7 @@ export default function AirInk() {
     if (recognitionTimerRef.current) window.clearTimeout(recognitionTimerRef.current);
     recognitionRequestRef.current += 1; recognitionBusyRef.current = false;
     strokesRef.current = []; currentStrokeRef.current = null; pinchRef.current = false; smoothRef.current = null;
-    setIsWriting(false); setSelected(''); setCandidates([]); setPhase('idle');
+    setIsWriting(false); setSelected(''); setCandidates([]); setCandidatePage(0); candidatePageRef.current = 0; setPhase('idle');
   }, []);
   const confirmCharacter = () => { if (selected) { setRecognizedText(value=>value+selected); clearCharacter(); } };
   const undo = () => {
@@ -344,7 +409,7 @@ export default function AirInk() {
     if (strokesRef.current.length) strokesRef.current.pop();
     else if (recognizedText) setRecognizedText(value=>value.slice(0,-1));
     currentStrokeRef.current = null; pinchRef.current = false; smoothRef.current = null;
-    setIsWriting(false); setSelected(''); setCandidates([]); setPhase('idle');
+    setIsWriting(false); setSelected(''); setCandidates([]); setCandidatePage(0); candidatePageRef.current = 0; setPhase('idle');
   };
   const savePng = () => {
     const canvas = canvasRef.current; if (!canvas) return;
@@ -414,7 +479,7 @@ export default function AirInk() {
     <canvas ref={canvasRef} className="air-ink-canvas" aria-label="粒子空中笔迹" />
     <div className="air-ink-vignette" />
     <header className="air-ink-header">
-      <div><h1>空中书写</h1><p>捏合拇指与食指开始书写，松开后让笔迹化作上升的光粒子。</p></div>
+      <div><h1>空中书写</h1><p>捏合拇指与食指开始书写；拇指碰中指撤销、碰无名指换一批候选字、碰小指清空（贴住约半秒生效）。</p></div>
       <button type="button" className="air-ink-exit" onClick={exit}>× <span>退出</span></button>
     </header>
     {!active && !loading && <section className="air-ink-start">
@@ -432,7 +497,8 @@ export default function AirInk() {
         <div className={'air-ink-status'+(isWriting?' drawing':'')}><i/><span>{isWriting?'正在书写 · 松开让笔迹定住':!hasHand?'等待手部进入画面':'捏合开始书写'}</span>
           <small>{phase==='drawing'?'保持捏合，连续写完当前笔画':phase==='lifting'?'笔迹正在定形…':phase==='recognizing'?'正在分析手写字形…':phase==='candidate'?'选择正确候选字并确认':phase==='unmatched'?'暂未匹配，请继续书写或重写':recognitionStatus==='ready'?'识字已就绪 · 支持多笔画':recognitionStatus==='error'?'识字暂不可用，粒子手写仍可使用':'识字模型准备中'}</small>
         </div>
-        {candidates.length>0&&<div className="air-ink-candidates"><span>候选</span>{candidates.slice(0,4).map(item=><button type="button" key={item.hanzi} className={selected===item.hanzi?'selected':''} onClick={()=>setSelected(item.hanzi)}>{item.hanzi}</button>)}</div>}
+        {gestureHint&&<div className="air-ink-gesture-hint" role="status">{gestureHint}</div>}
+        {candidates.length>0&&<div className="air-ink-candidates"><span>候选</span>{candidates.slice(candidatePage*4,candidatePage*4+4).map(item=><button type="button" key={item.hanzi} className={selected===item.hanzi?'selected':''} onClick={()=>setSelected(item.hanzi)}>{item.hanzi}</button>)}{candidates.length>4&&<button type="button" className="air-ink-more" onClick={nextCandidateBatch}>换一批</button>}</div>}
         {selected&&<button type="button" className="air-ink-confirm" onClick={confirmCharacter}>确认这个字</button>}
         <button type="button" onClick={clearCharacter}>重新书写</button><button type="button" onClick={undo}>撤销</button>
         <button type="button" onClick={()=>{clearCharacter();setRecognizedText('');}}>清空</button>

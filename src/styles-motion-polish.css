@@ -57,7 +57,9 @@
 
   .tabbar .dock-scroll {
     max-width: min(72vw, 620px);
-    overflow: hidden;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
     transform-origin: center;
     transition:
       max-width 420ms cubic-bezier(.22, 1, .36, 1),
@@ -68,6 +70,7 @@
   .tabbar.dock-collapsed .dock-scroll {
     max-width: 0;
     opacity: 0;
+    overflow: hidden;
     transform: scaleX(.82);
   }
 

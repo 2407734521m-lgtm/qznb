@@ -153,14 +153,8 @@ export default function AdminWorkspace({
       ...groups,
     ];
   }, [availableItems, favoriteIds, recentIds, groups]);
-  const mobileQuickItems = useMemo(() => {
-    const byId = new Map(availableItems.map(item => [item.id, item]));
-    const pinned = favoriteIds.map(id => byId.get(id)).filter((item): item is {id:string;label:string} => Boolean(item)).slice(0, 3);
-    const fallback = ['overview', 'moderate', 'notifications', 'accounts']
-      .map(id => byId.get(id)).filter((item): item is {id:string;label:string} => Boolean(item));
-    const merged = [...pinned, ...fallback.filter(item => !pinned.some(pin => pin.id === item.id))];
-    return merged.slice(0, 4);
-  }, [availableItems, favoriteIds]);
+  const mobileQuickItems = useMemo(() => availableItems, [availableItems]);
+  const quickbarRef = useRef<HTMLElement>(null);
 
   const matchingItems = useMemo(() => {
     const value = query.trim().toLowerCase();
@@ -199,6 +193,11 @@ export default function AdminWorkspace({
     document.body.style.overflow = 'hidden';
     return () => { document.body.style.overflow = previousOverflow; };
   }, [mobileOpen]);
+
+  useEffect(() => {
+    const active = quickbarRef.current?.querySelector<HTMLElement>('.admin-mobile-quick-item.is-active');
+    active?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+  }, [activeTab]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -398,7 +397,7 @@ export default function AdminWorkspace({
         </main>
       </div>
 
-      <nav className="admin-mobile-quickbar" aria-label="移动端快捷导航">
+      <nav ref={quickbarRef} className="admin-mobile-quickbar" aria-label="移动端快捷导航">
         {mobileQuickItems.map(item => (
             <button type="button" key={item.id}
               className={['admin-mobile-quick-item', activeTab === item.id ? 'is-active' : ''].join(' ')}

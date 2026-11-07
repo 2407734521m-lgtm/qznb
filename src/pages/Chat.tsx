@@ -10,6 +10,7 @@ import { useUserPreferences } from '../lib/userPreferences';
 import './Chat.polish.css';
 
 type ChatReaction = { message_id: number; profile_id: string; reaction: string; created_at: string };
+type ChatPeer = { id: string; username: string; display_name: string | null; avatar_path: string | null };
 const QUICK_REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '🙏'];
 
 
@@ -49,6 +50,7 @@ export default function Chat() {
   const nav = useNavigate();
   const loc = useLocation() as { state?: { name?: string } };
   const [name, setName] = useState(loc.state?.name ?? '聊天');
+  const [peer, setPeer] = useState<ChatPeer | null>(null);
   const [msgs, setMsgs] = useState<ChatMessage[]>([]);
   const [text, setText] = useState('');
   const [outbox, setOutbox] = useState<OutboxEntry[]>([]);
@@ -65,9 +67,19 @@ export default function Chat() {
   const [error, setError] = useState('');
   const [showDetails, setShowDetails] = useState(false);
   const [showStickers, setShowStickers] = useState(false);
+  const [chatBackground, setChatBackground] = useState('default');
+  const [backgroundSaving, setBackgroundSaving] = useState(false);
+  const [otherTyping, setOtherTyping] = useState(false);
+  const [actionFor, setActionFor] = useState<number | null>(null);
+  const backgroundFileRef = useRef<HTMLInputElement>(null);
+  const typingChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const typingStopTimerRef = useRef<number | null>(null);
+  const longPressTimerRef = useRef<number | null>(null);
+  const longPressTriggeredRef = useRef(false);
+  const typingReadyRef = useRef(false);
+  const typingActiveRef = useRef(false);
   const [replyTarget, setReplyTarget] = useState<ChatMessage | null>(null);
   const [reactions, setReactions] = useState<ChatReaction[]>([]);
-  const [showReactionFor, setShowReactionFor] = useState<number | null>(null);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editingText, setEditingText] = useState('');
   const [otherLastReadMessageId, setOtherLastReadMessageId] = useState<number | null>(null);
@@ -77,6 +89,9 @@ export default function Chat() {
   const pageRef = useRef<HTMLDivElement>(null);
   const mountedRef = useRef(true);
   const loadSequenceRef = useRef(0);
+  const backgroundPath = chatBackground.startsWith('image:') ? chatBackground.slice(6) : null;
+  const wallpaperUrl = useSignedUrl('chat-media', backgroundPath);
+  const peerAvatarUrl = useSignedUrl('avatars', peer?.avatar_path);
 
   // Android 虚拟键盘打开时，可视视口会缩小；用它同步聊天容器高度。
   useEffect(() => {
@@ -165,19 +180,19 @@ export default function Chat() {
 
   useEffect(() => {
     load();
-    if (!loc.state?.name) {
-      (async () => {
-        const { data: ms } = await supabase.from('conversation_members').select('profile_id')
-          .eq('conversation_id', Number(cid));
-        const other = ((ms ?? []) as Array<{ profile_id: string }>).map(x => x.profile_id).find(x => x !== me);
-        if (other) {
-          const { data: fs } = await supabase.rpc('my_friends');
-          const f = (((fs ?? []) as Array<{ id: string; username: string; display_name: string | null }>))
-            .find(x => x.id === other);
-          if (f) setName(f.display_name ?? f.username);
-        }
-      })();
-    }
+    let peerLookupActive = true;
+    void (async () => {
+      const { data: members } = await supabase.from('conversation_members').select('profile_id')
+        .eq('conversation_id', Number(cid));
+      const other = ((members ?? []) as Array<{ profile_id: string }>).map(x => x.profile_id).find(x => x !== me);
+      if (!other) return;
+      const { data: friends } = await supabase.rpc('my_friends');
+      const found = ((friends ?? []) as ChatPeer[]).find(item => item.id === other);
+      if (peerLookupActive && found) {
+        setPeer(found);
+        setName(found.display_name ?? found.username ?? loc.state?.name ?? '聊天');
+      }
+    })();
     const channel = supabase.channel('chat-' + cid)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'messages', filter: 'conversation_id=eq.' + cid }, () => { load(); })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'conversation_members', filter: 'conversation_id=eq.' + cid }, (payload) => {
@@ -195,6 +210,7 @@ export default function Chat() {
     };
     document.addEventListener('visibilitychange', onVisibilityChange);
     return () => {
+      peerLookupActive = false;
       clearInterval(fallback);
       document.removeEventListener('visibilitychange', onVisibilityChange);
       loadSequenceRef.current += 1;
@@ -202,6 +218,51 @@ export default function Chat() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cid]);
+
+  useEffect(() => {
+    let active = true;
+    if (!cid || !Number.isFinite(Number(cid))) return;
+    supabase.from('conversation_members').select('chat_background')
+      .eq('conversation_id', Number(cid)).eq('profile_id', me).maybeSingle()
+      .then(({ data }) => {
+        if (active && data?.chat_background) setChatBackground(data.chat_background);
+      });
+    return () => { active = false; };
+  }, [cid, me]);
+
+  useEffect(() => {
+    if (!cid || !Number.isFinite(Number(cid))) return;
+    let incomingTimer: number | null = null;
+    typingReadyRef.current = false;
+    typingActiveRef.current = false;
+    const channel = supabase.channel('chat-typing:' + cid, {
+      config: { private: true, broadcast: { ack: false, self: false } },
+    }).on('broadcast', { event: 'typing' }, ({ payload }) => {
+      if (!payload) return;
+      if (incomingTimer !== null) window.clearTimeout(incomingTimer);
+      const typing = (payload as { typing?: unknown }).typing === true;
+      setOtherTyping(typing);
+      if (typing) incomingTimer = window.setTimeout(() => setOtherTyping(false), 2400);
+    }).subscribe(status => {
+      typingReadyRef.current = status === 'SUBSCRIBED';
+    });
+    typingChannelRef.current = channel;
+    return () => {
+      if (typingActiveRef.current && typingReadyRef.current) {
+        void channel.send({ type: 'broadcast', event: 'typing', payload: { typing: false } });
+      }
+      if (incomingTimer !== null) window.clearTimeout(incomingTimer);
+      if (typingStopTimerRef.current !== null) window.clearTimeout(typingStopTimerRef.current);
+      if (longPressTimerRef.current !== null) window.clearTimeout(longPressTimerRef.current);
+      typingStopTimerRef.current = null;
+      longPressTimerRef.current = null;
+      typingActiveRef.current = false;
+      typingReadyRef.current = false;
+      typingChannelRef.current = null;
+      setOtherTyping(false);
+      void supabase.removeChannel(channel);
+    };
+  }, [cid, me]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: firstRef.current ? 'auto' : 'smooth' });
@@ -218,6 +279,89 @@ export default function Chat() {
       return prev.filter(e => !done.includes(e));
     });
   }, [msgs]);
+
+  function notifyTyping(value: string) {
+    const channel = typingChannelRef.current;
+    if (!channel || !typingReadyRef.current) return;
+    if (typingStopTimerRef.current !== null) window.clearTimeout(typingStopTimerRef.current);
+    const wantsTyping = Boolean(value.trim());
+    if (wantsTyping && !typingActiveRef.current) {
+      typingActiveRef.current = true;
+      void channel.send({ type: 'broadcast', event: 'typing', payload: { typing: true } });
+    }
+    if (!wantsTyping && typingActiveRef.current) {
+      typingActiveRef.current = false;
+      void channel.send({ type: 'broadcast', event: 'typing', payload: { typing: false } });
+      return;
+    }
+    if (wantsTyping) {
+      typingStopTimerRef.current = window.setTimeout(() => {
+        typingStopTimerRef.current = null;
+        if (typingActiveRef.current && typingChannelRef.current && typingReadyRef.current) {
+          typingActiveRef.current = false;
+          void typingChannelRef.current.send({ type: 'broadcast', event: 'typing', payload: { typing: false } });
+        }
+      }, 1500);
+    }
+  }
+
+  function startMessagePress(messageId: number) {
+    if (longPressTimerRef.current !== null) window.clearTimeout(longPressTimerRef.current);
+    longPressTriggeredRef.current = false;
+    longPressTimerRef.current = window.setTimeout(() => {
+      longPressTriggeredRef.current = true;
+      setActionFor(messageId);
+      longPressTimerRef.current = null;
+    }, 480);
+  }
+
+  function clearMessagePress(event?: React.TouchEvent<HTMLDivElement>) {
+    if (longPressTimerRef.current !== null) window.clearTimeout(longPressTimerRef.current);
+    longPressTimerRef.current = null;
+    if (longPressTriggeredRef.current) {
+      event?.preventDefault();
+      longPressTriggeredRef.current = false;
+    }
+  }
+
+  async function saveChatBackground(value: string) {
+    if (!cid || backgroundSaving) return;
+    setBackgroundSaving(true);
+    setError('');
+    const { error: saveError } = await supabase.rpc('set_chat_background', {
+      p_conversation_id: Number(cid),
+      p_background: value,
+    });
+    if (saveError) setError('聊天背景保存失败，请重试。');
+    else setChatBackground(value);
+    setBackgroundSaving(false);
+  }
+
+  async function uploadChatBackground(file?: File) {
+    if (!file || !cid || backgroundSaving) return;
+    if (!file.type.startsWith('image/')) { setError('请选择图片文件。'); return; }
+    if (file.size > 15 * 1024 * 1024) { setError('背景照片不能超过 15 MB。'); return; }
+    setBackgroundSaving(true);
+    setError('');
+    let path: string | null = null;
+    try {
+      const compact = await downscaleImage(file, 1800, 0.84);
+      path = await uploadMedia('chat-media', compact, Number(cid) + '/' + me);
+      const { error: saveError } = await supabase.rpc('set_chat_background', {
+        p_conversation_id: Number(cid),
+        p_background: 'image:' + path,
+      });
+      if (saveError) throw saveError;
+      setChatBackground('image:' + path);
+    } catch (e) {
+      console.error('chat background upload failed', e);
+      if (path) await supabase.storage.from('chat-media').remove([path]);
+      setError('背景照片上传失败，请检查网络后重试。');
+    } finally {
+      setBackgroundSaving(false);
+      if (backgroundFileRef.current) backgroundFileRef.current.value = '';
+    }
+  }
 
   async function sendImage(file?: File) {
     if (!file || uploading || !cid) return;
@@ -381,6 +525,7 @@ export default function Chat() {
   function send() {
     const b = text.trim();
     if (!b || !cid) return;
+    notifyTyping('');
     queueOutgoing(b.slice(0, 2000));
     setText('');
     inputRef.current?.focus();
@@ -398,7 +543,6 @@ export default function Chat() {
       });
       if (addError) { setError('发送回应失败，请重试。'); return; }
     }
-    setShowReactionFor(null);
     await load();
   }
 
@@ -424,9 +568,18 @@ export default function Chat() {
     await load();
   }
 
+  async function copyMessage(message: ChatMessage) {
+    const content = message.deleted_at ? '消息已撤回' : messageSummary(message);
+    try {
+      await navigator.clipboard.writeText(content);
+      setActionFor(null);
+    } catch {
+      setError('复制失败，请检查浏览器剪贴板权限。');
+    }
+  }
+
   function beginReply(message: ChatMessage) {
     setReplyTarget(message);
-    setShowReactionFor(null);
     inputRef.current?.focus();
   }
 
@@ -450,8 +603,30 @@ export default function Chat() {
     return d.toLocaleDateString('zh-CN', { month: 'long', day: 'numeric', weekday: 'short' });
   };
 
+  useEffect(() => {
+    if (!showDetails && actionFor === null) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setShowDetails(false);
+        setActionFor(null);
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [showDetails, actionFor]);
+
   return (
-    <div ref={pageRef} className="im-page">
+    <div ref={pageRef} className="im-page" style={{
+      '--im-wallpaper': backgroundPath && wallpaperUrl
+        ? `linear-gradient(rgba(255,255,255,.38),rgba(255,255,255,.48)), url("${wallpaperUrl}") center / cover no-repeat`
+        : ({
+            default: 'radial-gradient(ellipse at 16% 8%,rgba(187,211,250,.24),transparent 38%),#ffffff',
+            sky: 'linear-gradient(155deg,#f5faff 0%,#eaf3ff 52%,#f9fbff 100%)',
+            lavender: 'radial-gradient(ellipse at 78% 18%,rgba(207,195,245,.34),transparent 42%),linear-gradient(145deg,#fff 0%,#f5f1ff 100%)',
+            mint: 'radial-gradient(ellipse at 18% 80%,rgba(181,225,211,.28),transparent 42%),linear-gradient(145deg,#fff 0%,#eef9f5 100%)',
+            sunset: 'radial-gradient(ellipse at 88% 16%,rgba(255,211,190,.28),transparent 42%),linear-gradient(145deg,#fff 0%,#fff3ed 100%)',
+          } as Record<string, string>)[chatBackground] ?? '#ffffff',
+    } as React.CSSProperties}>
       <style>{`
         .im-page{height:100vh;height:var(--im-viewport-height,100dvh);min-height:0;width:100%;max-width:none;margin:0;box-sizing:border-box;display:flex;flex-direction:column;position:relative;overflow:hidden;border-radius:0;background:#102a36;color:#f6fbff;border:0;box-shadow:none;isolation:isolate}.im-page:before{content:'';position:absolute;inset:0;z-index:-1;background:radial-gradient(ellipse at 50% -8%,rgba(76,158,255,.72),transparent 43%),radial-gradient(ellipse at 8% 18%,rgba(29,190,226,.16),transparent 38%),radial-gradient(ellipse at 95% 44%,rgba(31,91,222,.18),transparent 38%),linear-gradient(180deg,#09254d 0%,#06152f 42%,#030a19 100%)}.im-page:after{content:'';position:absolute;inset:0;z-index:-1;pointer-events:none;background:radial-gradient(ellipse at 15% 8%,rgba(114,196,213,.18),transparent 45%),linear-gradient(180deg,rgba(7,25,34,.1),rgba(7,25,34,.18))}
         .im-head{display:flex;align-items:center;gap:12px;padding:calc(10px + env(safe-area-inset-top)) 14px 10px;flex:none;background:rgba(25,70,133,.32);-webkit-backdrop-filter:blur(14px) saturate(145%);backdrop-filter:blur(14px) saturate(145%);border-bottom:1px solid rgba(203,229,255,.18);position:sticky;top:0;z-index:2}
@@ -499,14 +674,79 @@ export default function Chat() {
       `}</style>
       <header className="im-head">
         <button className="im-back" aria-label="返回" onClick={() => goBackOr(nav, '/friends')}>‹</button>
-        <div className="im-avatar">{name.trim().charAt(0).toUpperCase() || '友'}</div>
+        <button type="button" className="im-avatar im-avatar-open" aria-label="查看会话资料" onClick={() => setShowDetails(true)}>
+          {peerAvatarUrl ? <img src={peerAvatarUrl} alt="" /> : (name.trim().charAt(0).toUpperCase() || '友')}
+        </button>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div className="im-title">{name}</div>
-          <div className="im-sub">班级私聊 · 仅对话成员可见</div>
+          <div className="im-sub">{otherTyping ? name + ' 正在输入…' : '私密聊天'}</div>
         </div>
         <button className="im-icon" aria-label="聊天详情" onClick={() => setShowDetails(v => !v)}>···</button>
       </header>
-      {showDetails && <div className="im-details"><span>私密对话</span><span>{msgs.length} 条消息</span><span>消息会同步刷新</span></div>}
+      {showDetails && <div className="im-profile-overlay" role="presentation" onClick={() => setShowDetails(false)}>
+        <section className="im-profile-sheet" role="dialog" aria-modal="true" aria-label="会话资料"
+          onClick={event => event.stopPropagation()}>
+          <header className="im-profile-header">
+            <button type="button" className="im-profile-close" onClick={() => setShowDetails(false)} aria-label="关闭会话资料">‹</button>
+            <span>会话资料</span>
+            <button type="button" className="im-profile-done" onClick={() => setShowDetails(false)}>完成</button>
+          </header>
+          <div className="im-profile-scroll">
+            <div className="im-profile-hero">
+              <div className="im-profile-avatar">
+                {peerAvatarUrl ? <img src={peerAvatarUrl} alt="" /> : <span>{name.trim().charAt(0).toUpperCase() || '友'}</span>}
+              </div>
+              <div className="im-profile-name">{peer?.display_name ?? name}</div>
+              <div className="im-profile-username">{peer?.username ? '@' + peer.username : '一对一私密会话'}</div>
+              <span className="im-private-label">仅对话成员可见</span>
+            </div>
+            <div className="im-profile-stats">
+              <div><strong>{msgs.length}</strong><span>条消息</span></div>
+              <div><strong>{msgs.filter(m => !m.deleted_at && m.body.startsWith('[[im-image:')).length}</strong><span>张照片</span></div>
+              <div><strong>{msgs.filter(m => !m.deleted_at && m.body.startsWith('[[im-audio:')).length}</strong><span>条语音</span></div>
+            </div>
+            <section className="im-profile-section">
+              <div className="im-profile-section-heading">聊天背景</div>
+              <div className="im-wallpaper-grid">
+                {[
+                  { id: 'default', label: '清透白', preview: 'radial-gradient(ellipse at 16% 8%,rgba(187,211,250,.35),transparent 50%),#fff' },
+                  { id: 'sky', label: '晴空', preview: 'linear-gradient(155deg,#f5faff,#e3efff)' },
+                  { id: 'lavender', label: '薰衣草', preview: 'linear-gradient(145deg,#fff,#ece5ff)' },
+                  { id: 'mint', label: '薄荷', preview: 'linear-gradient(145deg,#fff,#e4f5ee)' },
+                  { id: 'sunset', label: '晚霞', preview: 'linear-gradient(145deg,#fff,#ffe9df)' },
+                ].map(preset => <button key={preset.id} type="button"
+                  className={'im-wallpaper-choice' + (chatBackground === preset.id ? ' active' : '')}
+                  aria-pressed={chatBackground === preset.id}
+                  disabled={backgroundSaving}
+                  onClick={() => void saveChatBackground(preset.id)}>
+                  <span className="im-wallpaper-preview" style={{ background: preset.preview }} />
+                  <span>{preset.label}</span>
+                </button>)}
+              </div>
+              <div className="im-wallpaper-actions">
+                <input ref={backgroundFileRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif,image/heic" hidden
+                  onChange={event => void uploadChatBackground(event.target.files?.[0])} />
+                <button type="button" className="im-background-upload" disabled={backgroundSaving}
+                  onClick={() => backgroundFileRef.current?.click()}>
+                  {backgroundSaving ? '正在保存…' : '选择自己的照片'}
+                </button>
+                {chatBackground.startsWith('image:') && <span className="im-background-hint">当前使用自定义照片</span>}
+              </div>
+            </section>
+            <section className="im-profile-section">
+              <div className="im-profile-section-heading">共享照片</div>
+              {msgs.some(m => !m.deleted_at && m.body.startsWith('[[im-image:')) ? (
+                <div className="im-shared-grid">
+                  {msgs.filter(m => !m.deleted_at && m.body.startsWith('[[im-image:')).slice(-6).reverse().map(photo => (
+                    <div className="im-shared-photo" key={photo.id}><MessageContent body={photo.body} /></div>
+                  ))}
+                </div>
+              ) : <div className="im-profile-empty">你们发送的照片会显示在这里。</div>}
+            </section>
+            <div className="im-profile-footer">聊天背景只影响你自己的视图，不会更改对方的聊天界面。</div>
+          </div>
+        </section>
+      </div>}
       <main className="im-feed">
         {msgs.length === 0 && outbox.length === 0 ? (
           <div className="im-empty"><div style={{fontWeight:750,color:'#f5fbff',fontSize:16}}>新的开始</div><p style={{fontSize:13,lineHeight:1.7}}>发出第一条消息，开启你们的对话吧。</p></div>
@@ -520,7 +760,12 @@ export default function Chat() {
             <div key={m.id}>
               {dateLabel(m.created_at, msgs[i - 1]?.created_at) && <div className="im-day">{dateLabel(m.created_at, msgs[i - 1]?.created_at)}</div>}
               <div className={'im-row ' + (mine ? 'mine' : '') + (swappedIdsRef.current.has(m.id) ? ' im-row-static' : '')}>
-                <div className={'im-bubble ' + (mine ? 'mine' : 'theirs')}>
+                <div className={'im-bubble ' + (mine ? 'mine' : 'theirs')}
+                  onTouchStart={() => startMessagePress(m.id)}
+                  onTouchMove={clearMessagePress}
+                  onTouchEnd={clearMessagePress}
+                  onTouchCancel={clearMessagePress}
+                  onContextMenu={event => { event.preventDefault(); setActionFor(m.id); }}>
                   {m.reply_to_id && <div className="im-reply-quote">回复：{messageSummary(parent)}</div>}
                   {editingId === m.id ? (
                     <>
@@ -544,15 +789,7 @@ export default function Chat() {
                       return <button key={group.reaction} type="button" className={'im-reaction-chip' + (mineReacted ? ' mine' : '')} onClick={() => toggleReaction(m.id, group.reaction)}>{group.reaction} {group.items.length}</button>;
                     })}
                   </div>}
-                  {!deleted && editingId !== m.id && <div className="im-message-tools">
-                    <button type="button" className="im-action-btn" onClick={() => beginReply(m)}>回复</button>
-                    <button type="button" className="im-action-btn" onClick={() => setShowReactionFor(showReactionFor === m.id ? null : m.id)}>回应</button>
-                    {canEdit && <button type="button" className="im-action-btn" onClick={() => { setEditingId(m.id); setEditingText(m.body); }}>编辑</button>}
-                    {mine && <button type="button" className="im-action-btn" onClick={() => withdrawMessage(m.id)}>撤回</button>}
-                  </div>}
-                  {showReactionFor === m.id && !deleted && <div className="im-reaction-picker">
-                    {QUICK_REACTIONS.map(reaction => <button key={reaction} type="button" aria-label={'回应 ' + reaction} onClick={() => toggleReaction(m.id, reaction)}>{reaction}</button>)}
-                  </div>}
+
                 </div>
               </div>
             </div>
@@ -578,8 +815,50 @@ export default function Chat() {
           </div>
         ))}
         </>)}
+        {otherTyping && <div className="im-typing" role="status" aria-live="polite">
+          <span className="im-typing-dots"><i /><i /><i /></span>
+          <span>{name} 正在输入</span>
+        </div>}
         <div ref={bottomRef} />
       </main>
+      {actionFor !== null && (() => {
+        const message = msgs.find(item => item.id === actionFor);
+        if (!message) return null;
+        const mine = message.sender_id === me;
+        const deleted = Boolean(message.deleted_at);
+        const canEdit = mine && !deleted && !message.body.startsWith('[[im-image:') && !message.body.startsWith('[[im-audio:');
+        return <div className="im-context-overlay" role="presentation" onClick={() => setActionFor(null)}>
+          <section className="im-context-sheet" role="dialog" aria-modal="true" aria-label="消息操作"
+            onClick={event => event.stopPropagation()}>
+            <div className="im-context-grabber" />
+            <div className="im-context-label">{mine ? '你发送的消息' : name + ' 发送的消息'}</div>
+            <div className="im-context-preview">
+              {deleted ? '这条消息已撤回' : <MessageContent body={message.body} />}
+            </div>
+            {!deleted && <div className="im-context-reactions" aria-label="快速回应">
+              {QUICK_REACTIONS.map(reaction => <button key={reaction} type="button" aria-label={'回应 ' + reaction}
+                onClick={() => { setActionFor(null); void toggleReaction(message.id, reaction); }}>{reaction}</button>)}
+            </div>}
+            <div className="im-context-actions">
+              {!deleted && <button type="button" onClick={() => { setActionFor(null); void copyMessage(message); }}>
+                <span className="im-context-action-icon">⧉</span><span>复制</span>
+              </button>}
+              {!deleted && <button type="button" onClick={() => { setActionFor(null); beginReply(message); }}>
+                <span className="im-context-action-icon">↩</span><span>回复</span>
+              </button>}
+              {canEdit && <button type="button" onClick={() => { setActionFor(null); setEditingId(message.id); setEditingText(message.body); }}>
+                <span className="im-context-action-icon">✎</span><span>编辑</span>
+              </button>}
+              {mine && !deleted && <button type="button" className="danger" onClick={() => { setActionFor(null); void withdrawMessage(message.id); }}>
+                <span className="im-context-action-icon">⌫</span><span>撤回</span>
+              </button>}
+              <button type="button" onClick={() => setActionFor(null)}>
+                <span className="im-context-action-icon">×</span><span>取消</span>
+              </button>
+            </div>
+          </section>
+        </div>;
+      })()}
       {error && <div className="im-error">{error}</div>}
       {showStickers && <div className="im-sticker-tray" role="group" aria-label="选择贴纸">{['🥹','😂','❤️','😍','🐱','🐻','✨','🎉','👍','😭','🫶','🌸','💖','😎'].map(sticker => <button key={sticker} type="button" className="im-sticker-choice" aria-label={'发送贴纸 ' + sticker} onClick={() => sendSticker(sticker)}>{sticker}</button>)}</div>}
       {replyTarget && <div className="im-reply-banner">
@@ -592,7 +871,7 @@ export default function Chat() {
         <button type="button" className="im-plus" aria-label="打开贴纸和图片菜单" title="打开贴纸和图片菜单" disabled={uploading || recording} onClick={() => setShowStickers(v => !v)}>{showStickers ? '×' : '＋'}</button><button type="button" className="im-icon" aria-label="选择图片" title="选择图片" disabled={uploading || recording} onClick={() => imageRef.current?.click()} style={{fontSize:17,minWidth:38,width:38,height:38}}>▧</button>
         <button type="button" className={'im-mic' + (recording ? ' recording' : '')} aria-label={recording ? '结束录音并发送' : '录制语音'} title={recording ? '结束录音并发送' : '录制语音'} disabled={uploading} onClick={recording ? stopRecording : startRecording}>{recording ? '■' : '●'}</button>
         <div className="im-input-wrap">
-          <input ref={inputRef} className="im-input" value={text} onChange={e => setText(e.target.value)}
+          <input ref={inputRef} className="im-input" value={text} onChange={e => { setText(e.target.value); notifyTyping(e.target.value); }}
             placeholder={recording ? '录音中 ' + String(Math.floor(recordSeconds / 60)).padStart(2, '0') + ':' + String(recordSeconds % 60).padStart(2, '0') + ' · 点红色按钮结束' : uploading ? '正在发送媒体…' : '发送信息…'} maxLength={2000} autoComplete="off" aria-label="输入消息" />
           <button type="submit" className="im-send" aria-label="发送消息" disabled={!text.trim()}>↑</button>
         </div>

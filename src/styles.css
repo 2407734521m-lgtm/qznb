@@ -592,7 +592,7 @@ input[type=file]::file-selector-button{
 :root{color-scheme:light;--bg:#fff;--fg:#202124;--mut:#737780;--a:#343a46;--b:#e4e7ec;--r:18px;--tab-h:64px}
 html,body,#root{background:#fff!important;color:#202124!important}
 body{background:#fff!important;color:#202124!important}
-.glow,.app-bg{display:none!important}
+/* Keep shared backdrop layers mounted; the active visual system styles them. */
 a{color:#303642}
 .topnav{background:rgba(255,255,255,.92)!important;border-bottom:1px solid #e8eaf0!important;box-shadow:0 4px 20px #17203308}
 .topnav a,.topnav button{color:#606673}

@@ -39,7 +39,7 @@ async function removeOwnedMedia(path: string | null | undefined, ownerId: string
   }
 }
 
-export default function Daily({ searchQuery = '', embedded = false }: { searchQuery?: string; embedded?: boolean }) {
+export default function Daily({ searchQuery = '', embedded = false, focusPostId = null }: { searchQuery?: string; embedded?: boolean; focusPostId?: number | null }) {
   const nav = useNavigate();
   const me = useAuth().session!.user.id; const reduce = useReducedMotion();
   const [posts, setPosts] = useState<Post[]>([]);
@@ -51,6 +51,9 @@ export default function Daily({ searchQuery = '', embedded = false }: { searchQu
   const [cmts, setCmts] = useState<Record<number, Cmt[]>>({});
   const [openCmt, setOpenCmt] = useState<Record<number, boolean>>({});
   const [cmtText, setCmtText] = useState<Record<number, string>>({});
+  const [sendingComment, setSendingComment] = useState<Record<number, boolean>>({});
+  const [highlightedPostId, setHighlightedPostId] = useState<number | null>(null);
+  const focusedPostRef = useRef<number | null>(null);
   const [text, setText] = useState(''); const [img, setImg] = useState<File | null>(null);
   const [busy, setBusy] = useState(false); const [err, setErr] = useState('');
   const [isAdmin, setIsAdmin] = useState(false);
@@ -97,6 +100,25 @@ export default function Daily({ searchQuery = '', embedded = false }: { searchQu
     setIsAdmin(r === 'admin' || r === 'super_admin');
   }
   useEffect(() => { void load(); }, [searchQuery]);
+  useEffect(() => {
+    if (!focusPostId || focusedPostRef.current === focusPostId || !posts.some(post => post.id === focusPostId)) return;
+    focusedPostRef.current = focusPostId;
+    setHighlightedPostId(focusPostId);
+    setOpenCmt(current => ({ ...current, [focusPostId]: true }));
+    const frame = window.requestAnimationFrame(() => {
+      const target = document.getElementById(`daily-post-${focusPostId}`);
+      if (!target) return;
+      target.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'center' });
+      target.focus({ preventScroll: true });
+    });
+    const timer = window.setTimeout(() => {
+      setHighlightedPostId(current => current === focusPostId ? null : current);
+    }, 2400);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.clearTimeout(timer);
+    };
+  }, [focusPostId, posts, reduce]);
 
   async function publish() {
     if (!text.trim() && !img) return setErr('写点什么再发布吧');
@@ -147,20 +169,28 @@ export default function Daily({ searchQuery = '', embedded = false }: { searchQu
 
   async function addCmt(p: Post) {
     const t = (cmtText[p.id] || '').trim();
-    if (!t) return;
-    const { error } = await withRetry(() => supabase.from('comments').insert({ post_id: p.id, author_id: me, content: t }));
-    if (!error) {
-      setCmtText({ ...cmtText, [p.id]: '' }); load();
+    if (!t || sendingComment[p.id]) return;
+    setSendingComment(current => ({ ...current, [p.id]: true }));
+    try {
+      const { error } = await withRetry(() => supabase.from('comments').insert({ post_id: p.id, author_id: me, content: t }));
+      if (error) throw error;
+      setCmtText(current => ({ ...current, [p.id]: '' }));
+      setOpenCmt(current => ({ ...current, [p.id]: true }));
+      void load();
       // 通知日常作者（不是自己评论自己才发）
       if (p.author_id !== me) {
         const who = profiles[me];
-        supabase.from('notifications').insert({
+        void supabase.from('notifications').insert({
           profile_id: p.author_id, type: 'comment',
           title: embedded ? '有人评论了你的帖子' : '有人评论了你的日常',
           body: `${who ? (who.display_name ?? who.username) : '同学'}：${t.slice(0, 60)}`,
           link: '/daily',
         }).then(() => {});
       }
+    } catch (error) {
+      alertDialog('评论发送失败：' + (error instanceof Error ? error.message : '请检查网络后重试。'));
+    } finally {
+      setSendingComment(current => ({ ...current, [p.id]: false }));
     }
   }
 
@@ -278,9 +308,11 @@ export default function Daily({ searchQuery = '', embedded = false }: { searchQu
         const list = cmts[p.id] ?? [];
         const open = !!openCmt[p.id];
         return (
-          <motion.article key={p.id} className="post"
-            initial={reduce ? {} : { opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.45, delay: Math.min(i * 0.05, 0.3) }}>
+          <motion.article key={p.id} id={`daily-post-${p.id}`}
+            className={`post${highlightedPostId === p.id ? ' post--focused' : ''}`}
+            tabIndex={-1}
+            initial={reduce ? {} : { opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.34, delay: Math.min(i * 0.025, 0.18) }}>
             <div className="hd">
               <Avatar p={a} url={a?.avatar_path ? avatarUrls[a.avatar_path] : undefined} />
               <div><div className="nm">{a ? (a.display_name ?? a.username) : '…'}</div>
@@ -303,12 +335,14 @@ export default function Daily({ searchQuery = '', embedded = false }: { searchQu
               <button className={liked[p.id] ? 'liked' : ''} onClick={() => toggleLike(p)}>
                 {liked[p.id] ? '♥' : '♡'} {likes[p.id] || ''}
               </button>
-              <button onClick={() => setOpenCmt({ ...openCmt, [p.id]: !open })}>{list.length || ''} 评论</button>
+              <button type="button" aria-expanded={open} aria-controls={`daily-comments-${p.id}`}
+                onClick={() => setOpenCmt(current => ({ ...current, [p.id]: !open }))}>{list.length} 条评论</button>
               {p.author_id === me && <button className="mini ghost" onClick={() => beginEditPost(p)}>编辑</button>}
               {p.author_id !== me && <button className="mini ghost" onClick={() => reportPost(p)}>举报</button>}
               {(p.author_id === me || isAdmin) && <button className="del" onClick={() => delPost(p)}>删除</button>}
             </div>
-            {open && <div className="cmt">
+            {open && <div className="cmt" id={`daily-comments-${p.id}`}>
+              {list.length === 0 && <p className="cmt-empty">还没有评论，来开启这段对话。</p>}
               {list.map(c => {
                 const ca = profiles[c.author_id];
                 return (
@@ -322,9 +356,16 @@ export default function Daily({ searchQuery = '', embedded = false }: { searchQu
                 );
               })}
               <div className="box">
-                <input value={cmtText[p.id] || ''} onChange={e => setCmtText({ ...cmtText, [p.id]: e.target.value })}
-                  placeholder="写评论…" maxLength={500} onKeyDown={e => e.key === 'Enter' && addCmt(p)} />
-                <button onClick={() => addCmt(p)}>发送</button>
+                <input aria-label="写评论" value={cmtText[p.id] || ''} onChange={e => setCmtText(current => ({ ...current, [p.id]: e.target.value }))}
+                  placeholder="写评论…" maxLength={500}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
+                      e.preventDefault();
+                      void addCmt(p);
+                    }
+                  }} />
+                <button type="button" disabled={!(cmtText[p.id] || '').trim() || !!sendingComment[p.id]}
+                  onClick={() => void addCmt(p)}>{sendingComment[p.id] ? '发送中…' : '发送'}</button>
               </div>
             </div>}
           </motion.article>

@@ -29,11 +29,11 @@
   padding-left: max(15px, env(safe-area-inset-left));
   padding-right: max(15px, env(safe-area-inset-right));
   color: var(--im-ink) !important;
-  background: linear-gradient(135deg, rgba(255,255,255,.86), rgba(247,250,255,.72)) !important;
+  background: #ffffff !important;
   border-bottom: 1px solid rgba(113, 135, 170, .13) !important;
-  box-shadow: 0 8px 28px rgba(45, 65, 100, .055), inset 0 1px 0 rgba(255,255,255,.98);
-  -webkit-backdrop-filter: blur(22px) saturate(1.42);
-  backdrop-filter: blur(22px) saturate(1.42);
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
 }
 
 .im-page .im-back,
@@ -41,11 +41,11 @@
   width: 44px !important;
   min-width: 44px !important;
   height: 44px !important;
-  border: 1px solid rgba(255,255,255,.94) !important;
+  border: 1px solid rgba(34,49,74,.12) !important;
   border-radius: 16px !important;
   color: #52627b !important;
-  background: linear-gradient(145deg, rgba(255,255,255,.92), rgba(236,242,251,.72)) !important;
-  box-shadow: 0 5px 16px rgba(49, 70, 108, .075), inset 0 1px 0 #ffffff !important;
+  background: #ffffff !important;
+  box-shadow: none !important;
   transition: transform .22s var(--im-polish-ease), background .2s ease, box-shadow .2s ease;
 }
 
@@ -54,9 +54,9 @@
   height: 46px;
   border: 1px solid rgba(255,255,255,.96);
   border-radius: 17px;
-  color: #ffffff;
-  background: linear-gradient(145deg, #91b8f5 0%, #b5aaf3 100%);
-  box-shadow: 0 7px 18px rgba(103, 130, 190, .17), inset 0 1px 0 rgba(255,255,255,.42);
+  color: #54687f;
+  background: #ece4d0;
+  box-shadow: none;
 }
 
 .im-page .im-title {
@@ -110,7 +110,7 @@
   color: #ffffff !important;
   border: 1px solid rgba(255,255,255,.35) !important;
   border-bottom-right-radius: 8px;
-  background: linear-gradient(135deg, #4b9cf5 0%, #267be8 82%) !important;
+  background: #3478d4 !important;
   box-shadow: 0 8px 21px rgba(45, 124, 220, .18), inset 0 1px 0 rgba(255,255,255,.28);
 }
 
@@ -118,7 +118,7 @@
   color: #26344a !important;
   border: 1px solid rgba(255,255,255,.98) !important;
   border-bottom-left-radius: 8px;
-  background: linear-gradient(145deg, rgba(250,252,255,.98), rgba(238,243,250,.92)) !important;
+  background: #f2f5f8 !important;
   box-shadow: 0 7px 20px rgba(44, 61, 91, .06), inset 0 1px 0 #ffffff;
 }
 
@@ -188,7 +188,7 @@
 .im-page .im-mic.recording {
   color: #ffffff !important;
   border-color: rgba(255,255,255,.64) !important;
-  background: linear-gradient(145deg, #f07886, #df5269) !important;
+  background: #d95f6e !important;
   box-shadow: 0 0 0 4px rgba(230, 86, 111, .10), 0 7px 18px rgba(190, 58, 80, .17) !important;
 }
 
@@ -226,8 +226,8 @@
   border: 1px solid rgba(255,255,255,.24) !important;
   border-radius: 50%;
   color: #ffffff !important;
-  background: linear-gradient(135deg, #82aef0, #4e8fe5) !important;
-  box-shadow: 0 5px 14px rgba(66, 126, 211, .20), inset 0 1px 0 rgba(255,255,255,.3);
+  background: #3478d4 !important;
+  box-shadow: none;
   transition: transform .2s var(--im-polish-ease), filter .2s ease, box-shadow .2s ease;
 }
 
@@ -471,7 +471,7 @@
 
 /* Per-conversation iMessage refinements: personal wallpapers, contextual actions and typing. */
 .im-page.im-page::before {
-  background: var(--im-wallpaper, radial-gradient(ellipse at 16% 8%,rgba(187,211,250,.24),transparent 38%),#fff) !important;
+  background: var(--im-wallpaper, #ffffff) !important;
   background-size: cover !important;
   background-position: center !important;
 }
@@ -600,9 +600,9 @@
   overflow: hidden;
   border: 3px solid rgba(255,255,255,.98);
   border-radius: 27px;
-  color: #fff;
-  background: linear-gradient(145deg,#91b8f5,#b9a8ef);
-  box-shadow: 0 9px 24px rgba(85,113,168,.19), inset 0 1px 0 rgba(255,255,255,.55);
+  color: #54687f;
+  background: #ece4d0;
+  box-shadow: none;
   font-size: 32px;
   font-weight: 800;
 }

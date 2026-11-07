@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+import { isInApp } from '../lib/installedApp';
 import BackButton from '../components/BackButton';
 import './MemoryCalendar.css';
 
@@ -52,7 +53,7 @@ export default function MemoryCalendar() {
           .gte('created_at', from).lt('created_at', to)
           .order('created_at', { ascending: true }).limit(250),
         db.from('board_messages').select('id, title, content, created_at')
-          .eq('is_admin_msg', true).is('deleted_at', null)
+          .eq('is_admin_msg', true).is('deleted_at', null).in('audience', isInApp() ? ['all', 'app'] : ['all'])
           .gte('created_at', from).lt('created_at', to)
           .order('created_at', { ascending: true }).limit(100),
       ]);

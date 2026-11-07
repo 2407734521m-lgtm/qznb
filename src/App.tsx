@@ -9,7 +9,7 @@ import CodeInput from './components/CodeInput';
 import { LiquidGlassScene } from 'simple-liquid-glass/backdrop';
 import { DUR, EASE } from './lib/motion';
 import { supabase } from './lib/supabase';
-import { detectInstalledApp } from './lib/installedApp';
+import { detectInstalledApp, isInApp } from './lib/installedApp';
 import { startSitePresence } from './lib/sitePresence';
 import { useAuth } from './auth';
 import { getWallpaper } from './lib/wallpaper';
@@ -551,6 +551,7 @@ function Shell() {
         const { data } = await supabase.from('board_messages')
           .select('id, title, content, popup_times, created_at')
           .eq('is_admin_msg', true).eq('popup_on_login', true)
+          .in('audience', isInApp() ? ['all', 'app'] : ['all'])
           .is('deleted_at', null)
           .or(`expires_at.is.null,expires_at.gt.${now}`)
           .order('created_at', { ascending: false }).limit(10);
@@ -775,6 +776,8 @@ function Shell() {
     if (!session) return;
     const uid = session.user.id;
     const device = parseDevice(navigator.userAgent || '');
+    const appInfo = detectInstalledApp();
+    const clientTag = appInfo ? 'app:' + appInfo.name : 'web';
     let alive = true;
     let lastActivity = Date.now();
     let inFlight = false;
@@ -786,7 +789,7 @@ function Shell() {
       inFlight = true;
       try {
         await supabase.from('member_presence').upsert(
-          { profile_id: uid, device: device || null, updated_at: new Date().toISOString() },
+          { profile_id: uid, device: device || null, client: clientTag, updated_at: new Date().toISOString() },
           { onConflict: 'profile_id' });
       } catch { /* 心跳失败不影响正常使用 */ }
       finally { inFlight = false; }

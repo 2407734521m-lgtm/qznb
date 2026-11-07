@@ -19,6 +19,7 @@ type Account = {
   location: string | null;
   device: string | null;
   presence_updated_at: string | null;
+  client: string | null;
 };
 
 const panel: React.CSSProperties = {
@@ -316,6 +317,9 @@ export default function AdminAccountManagement({
           <div style={{ ...muted, overflowWrap: 'anywhere' }}>@{r.username} · {r.real_name || '未填写真实姓名'}</div>
           <div style={{ ...muted, overflowWrap: 'anywhere' }}>{r.email || '未取得邮箱记录'}</div>
         </div>
+        {r.client && <span style={{ flexShrink: 0, fontSize: 10.5, padding: '4px 7px', borderRadius: 999, border: '1px solid #ffffff20', color: r.client.startsWith('app:') ? '#9fc3ff' : '#aeb9c6', background: '#ffffff08' }}>
+          {r.client.startsWith('app:') ? '软件版 ' + r.client.slice(4) : '网页版'}
+        </span>}
         <span style={{ flexShrink: 0, fontSize: 10.5, padding: '4px 7px', borderRadius: 999, border: '1px solid #ffffff20', color: r.joined ? '#8de0b7' : '#ffb5c1', background: r.joined ? '#4ade8010' : '#ff879610' }}>
           {r.joined ? '正常' : '已禁用'}
         </span>
@@ -336,6 +340,7 @@ export default function AdminAccountManagement({
         <div style={muted}>真实姓名：{r.real_name || '未填写'}</div>
         <div style={muted}>自愿分享的所在地区：{r.location || '未分享'}</div>
         <div style={muted}>设备信息：{r.device || '暂无记录'}</div>
+        <div style={muted}>客户端：{r.client ? (r.client.startsWith('app:') ? '软件版 ' + r.client.slice(4) : '网页版') : '暂无记录'}</div>
         <div style={muted}>位置/设备资料更新时间：{stamp(r.presence_updated_at)}</div>
         <div style={muted}>账号注册时间：{stamp(r.created_at)}</div>
         <div style={muted}>最近登录时间：{stamp(r.last_sign_in_at)}</div>

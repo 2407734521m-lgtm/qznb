@@ -14,12 +14,13 @@ export default function BoardMgr({ me, setMsg }: { me: string; setMsg: (s: strin
   const [text, setText] = useState('');
   const [exp, setExp] = useState('0');
   const [popupTimes, setPopupTimes] = useState('1');
+  const [audience, setAudience] = useState('all');
   const [list, setList] = useState<any[]>([]);
   const POP_CYCLE = ['0', '1', '2', '3', '999'];
   const popLabel = (v: any) => ({ '0': '关', '1': '1次', '2': '2次', '3': '3次', '999': '每次' } as any)[String(v ?? '0')] ?? '关';
   async function load() {
     const { data } = await supabase.from('board_messages')
-      .select('id, title, content, is_pinned, popup_on_login, popup_times, expires_at, created_at').eq('is_admin_msg', true).is('deleted_at', null)
+      .select('id, title, content, is_pinned, popup_on_login, popup_times, audience, expires_at, created_at').eq('is_admin_msg', true).is('deleted_at', null)
       .order('is_pinned', { ascending: false }).order('created_at', { ascending: false }).limit(20);
     setList(data ?? []);
   }
@@ -57,9 +58,9 @@ export default function BoardMgr({ me, setMsg }: { me: string; setMsg: (s: strin
     const { error } = await supabase.from('board_messages').insert({
       author_id: me, title: title.trim().slice(0, 60) || null, content: c.slice(0, 500), is_admin_msg: true,
       expires_at: days > 0 ? new Date(Date.now() + days * 864e5).toISOString() : null,
-      popup_on_login: pt > 0, popup_times: pt,
+      popup_on_login: pt > 0, popup_times: pt, audience,
     });
-    if (!error) { await alog('notice_post', { len: c.length, popup_times: pt }); setTitle(''); setText(''); setExp('0'); setPopupTimes('1'); load(); setMsg('公告已发布'); }
+    if (!error) { await alog('notice_post', { len: c.length, popup_times: pt, audience }); setTitle(''); setText(''); setExp('0'); setPopupTimes('1'); setAudience('all'); load(); setMsg('公告已发布'); }
     else setMsg('发布失败：' + error.message);
   }
   async function togglePin(n: any) {
@@ -73,6 +74,12 @@ export default function BoardMgr({ me, setMsg }: { me: string; setMsg: (s: strin
     const pt = parseInt(next, 10);
     const { error } = await supabase.from('board_messages').update({ popup_on_login: pt > 0, popup_times: pt }).eq('id', n.id);
     if (!error) { await alog('notice_popup_set', { id: n.id, times: pt }); load(); }
+    else setMsg('失败：' + error.message);
+  }
+  async function cycleAudience(n: any) {
+    const next = n.audience === 'app' ? 'all' : 'app';
+    const { error } = await supabase.from('board_messages').update({ audience: next }).eq('id', n.id);
+    if (!error) { await alog('notice_audience_set', { id: n.id, audience: next }); load(); }
     else setMsg('失败：' + error.message);
   }
   async function del(id: number) {
@@ -107,6 +114,9 @@ export default function BoardMgr({ me, setMsg }: { me: string; setMsg: (s: strin
           <option value="2">弹2次</option><option value="3">弹3次</option>
           <option value="999">每次都弹</option>
         </select>
+        <span style={mut}>可见：</span>
+        <button className="mini" style={audience === 'all' ? { borderColor: '#6abac7', color: '#9de3e2' } : undefined} onClick={() => setAudience('all')}>全部</button>
+        <button className="mini" style={audience === 'app' ? { borderColor: '#6abac7', color: '#9de3e2' } : undefined} onClick={() => setAudience('app')}>仅软件版</button>
       </div>
       <div style={{ marginTop: 12 }}>
         {list.map(n => (
@@ -117,10 +127,11 @@ export default function BoardMgr({ me, setMsg }: { me: string; setMsg: (s: strin
             </div>
             <div style={mut}>{(n.created_at || '').slice(0, 16).replace('T', ' ')}
               {n.expires_at ? ` · 过期 ${n.expires_at.slice(0, 16).replace('T', ' ')}` : ' · 不过期'}
-              {(n.popup_on_login || (n.popup_times ?? 0) > 0) ? ` · 弹窗${popLabel(n.popup_times)}` : ''}</div>
+              {(n.popup_on_login || (n.popup_times ?? 0) > 0) ? ` · 弹窗${popLabel(n.popup_times)}` : ''}{n.audience === 'app' ? ' · 仅软件版' : ''}</div>
             <div style={rowBtn}>
               <button className="mini ghost" onClick={() => togglePin(n)}>{n.is_pinned ? '取消置顶' : '置顶'}</button>
               <button className="mini ghost" onClick={() => cyclePopup(n)}>弹窗：{popLabel(n.popup_times ?? (n.popup_on_login ? 1 : 0))}</button>
+              <button className="mini ghost" onClick={() => cycleAudience(n)}>受众：{n.audience === 'app' ? '仅软件版' : '全部'}</button>
               <button className="mini danger" onClick={() => del(n.id)}>撤下</button>
             </div>
           </div>

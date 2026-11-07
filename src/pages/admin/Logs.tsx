@@ -10,7 +10,7 @@ const ACTION_LABELS: Record<string, string> = {
   report_handle: '处理举报',
   post_delete: '删除动态',
   notice_post: '发布公告',
-  notice_popup_set: '设置公告弹窗',
+  notice_popup_set: '设置公告弹窗', notice_audience_set: '设置公告受众',
   notice_hide: '隐藏公告',
   maintenance_schedule_saved: '设置定时维护',
   maintenance_schedule_cleared: '清除定时维护',

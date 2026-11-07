@@ -1,48 +1,114 @@
 import { Link } from 'react-router-dom';
 import { motion, useReducedMotion } from 'framer-motion';
+import './Explore.css';
 
-const groups = [
-  { title: '校园社区', desc: '看看校园里正在发生什么', items: [['校园贴吧','/feed','发帖、评论、点赞和参与话题'],['歌声墙','/songs','发布自己的歌声与原创录音'],['热门话题','/hot','发现有趣内容和热门讨论'],['校园问答','/board','查看公告并参与校园交流'],['班级相册','/albums','按分类浏览班级照片与共同回忆']] },
-  { title: '班级', desc: '认识同学，记录共同经历', items: [['班级公告','/board','查看班级通知与重要安排'],['成员档案','/members','查看班级成员与个人主页'],['班级时间线','/timeline','回看一起走过的日子'],['班级活动','/events','查看活动与安排']] },
-  { title: '互动', desc: '和同学保持联系', items: [['动态广场','/feed','分享近况与照片'],['日常','/daily','发普通帖子，分享每天的小事'],['好友与私聊','/friends','找到好友并发送消息'],['表白墙','/love-wall','匿名或署名表达心意'],['祝福留言','/greetings','给同学送上祝福'],['指尖生花','/particle-flower','用手势唤醒粒子花，体验沉浸式光影'],['空中书写','/air-ink','独立手写空间，粒子笔迹与汉字识别']] },
-  { title: '回忆', desc: '珍藏属于我们的片段', items: [['时光胶囊','/capsule','把记忆留给未来'],['班级时间线','/timeline','浏览重要时刻'],['祝福与心愿','/wishes','记录愿望与寄语'],['热门特效','/hot','发现趣味互动']] },
-  { title: '个人', desc: '管理自己的班级档案', items: [['我的主页','/me','查看个人中心'],['编辑资料','/me/edit','更新个人档案'],['我的收藏','/me/favorites','找回收藏内容'],['通知消息','/me/notifications','查看站内通知'],['账号设置','/me/account','管理账号信息']] },
+const cards = [
+  {
+    to: '/particle-flower',
+    className: 'discover-card--bloom',
+    eyebrow: 'INTERACTIVE PLAY',
+    title: '指尖生花',
+    description: '用手势唤醒光影，让花朵随着指尖绽放。',
+    action: '开启体验',
+  },
+  {
+    to: '/air-ink',
+    className: 'discover-card--ink',
+    eyebrow: 'AIR WRITING',
+    title: '空中书写',
+    description: '在空气里写下一个字，留下灵感。',
+    action: '开始书写',
+  },
+  {
+    to: '/hot',
+    className: 'discover-card--hot',
+    eyebrow: 'WHAT’S NEW',
+    title: '热门话题',
+    description: '看看最近大家正在讨论什么。',
+    action: '看看大家在聊什么',
+  },
 ];
+
+function BloomArtwork() {
+  return (
+    <svg className="discover-art discover-art--bloom" viewBox="0 0 360 260" fill="none" aria-hidden="true">
+      <path d="M180 230C178 179 190 139 221 101" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <path d="M188 170C142 162 112 135 104 98C143 101 173 123 188 170Z" fill="currentColor" fillOpacity=".22" stroke="currentColor" strokeOpacity=".52" strokeWidth="1.4" />
+      <path d="M199 143C222 105 255 91 291 102C271 133 240 151 199 143Z" fill="currentColor" fillOpacity=".18" stroke="currentColor" strokeOpacity=".48" strokeWidth="1.4" />
+      <path d="M214 112C197 84 197 54 217 29C238 53 239 85 214 112Z" fill="currentColor" fillOpacity=".2" stroke="currentColor" strokeOpacity=".5" strokeWidth="1.4" />
+      <path d="M199 113C169 101 153 78 158 49C187 59 204 81 199 113Z" fill="currentColor" fillOpacity=".16" stroke="currentColor" strokeOpacity=".45" strokeWidth="1.4" />
+      <path d="M226 118C237 83 261 65 292 70C279 99 256 117 226 118Z" fill="currentColor" fillOpacity=".16" stroke="currentColor" strokeOpacity=".45" strokeWidth="1.4" />
+      <path d="M75 58l5 12 12 5-12 5-5 12-5-12-12-5 12-5 5-12ZM302 164l4 9 9 4-9 4-4 9-4-9-9-4 9-4 4-9Z" fill="currentColor" fillOpacity=".55" />
+      <path d="M122 205c14-8 24-9 38-3M268 42l8-8m-4 17 12-2" stroke="currentColor" strokeOpacity=".44" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function InkArtwork() {
+  return (
+    <svg className="discover-art discover-art--ink" viewBox="0 0 280 190" fill="none" aria-hidden="true">
+      <path d="M20 128C48 78 56 75 78 111S111 158 131 90 166 27 180 75 213 141 258 48" stroke="currentColor" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M22 151C57 124 71 128 92 142S130 162 156 123 201 90 245 105" stroke="currentColor" strokeOpacity=".38" strokeWidth="2" strokeLinecap="round" />
+      <path d="M37 48l3 8 8 3-8 3-3 8-3-8-8-3 8-3 3-8ZM224 19l3 8 8 3-8 3-3 8-3-8-8-3 8-3 3-8Z" fill="currentColor" fillOpacity=".58" />
+      <circle cx="190" cy="153" r="4" fill="currentColor" fillOpacity=".4" />
+    </svg>
+  );
+}
+
+function HotArtwork() {
+  return (
+    <svg className="discover-art discover-art--hot" viewBox="0 0 300 190" fill="none" aria-hidden="true">
+      <path d="M42 45h122a15 15 0 0 1 15 15v42a15 15 0 0 1-15 15H91l-25 18v-18h-9a15 15 0 0 1-15-15V60a15 15 0 0 1 15-15Z" fill="currentColor" fillOpacity=".12" stroke="currentColor" strokeOpacity=".36" strokeWidth="1.5" />
+      <path d="M88 88h50M88 70h30" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeOpacity=".56" />
+      <path d="M142 92h98a13 13 0 0 1 13 13v30a13 13 0 0 1-13 13h-10v15l-21-15h-67a13 13 0 0 1-13-13v-30a13 13 0 0 1 13-13Z" fill="currentColor" fillOpacity=".18" stroke="currentColor" strokeOpacity=".46" strokeWidth="1.5" />
+      <path d="M163 119h50" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeOpacity=".6" />
+      <path d="m226 26 5 11 11 5-11 5-5 11-5-11-11-5 11-5 5-11Z" fill="currentColor" fillOpacity=".58" />
+    </svg>
+  );
+}
+
 export default function Explore() {
   const reduce = useReducedMotion();
-  const reveal = {
-    hidden: { opacity: 0, y: 14 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.38, ease: [0.22, 1, 0.36, 1] as const, staggerChildren: 0.055 } }
-  };
-  const itemReveal = {
-    hidden: { opacity: 0, y: 9 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.28, ease: [0.22, 1, 0.36, 1] as const } }
-  };
-  return <motion.main initial={reduce ? false : "hidden"} animate="visible" variants={reveal}
-    style={{ maxWidth: 850, margin: '0 auto', padding: '12px 0 28px', color: '#202124' }}>
-    <motion.div variants={itemReveal} style={{ padding: '18px 4px 20px' }}>
-      <div style={{ color: '#737b89', fontSize: 11, letterSpacing: 3 }}>DISCOVER YOUR CLASS</div>
-      <h1 style={{ fontSize: 27, margin: '8px 0' }}>探索空间</h1>
-      <p style={{ color: '#606673', fontSize: 13 }}>按分类找到你想去的地方。</p>
-    </motion.div>
-    <motion.div variants={reveal} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,270px),1fr))', gap: 14 }}>
-      {groups.map(g => <motion.section key={g.title} variants={itemReveal}
-        whileHover={reduce ? undefined : { y: -3 }}
-        transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] as const }}
-        style={{ border: '1px solid #e9ebf0', borderRadius: 20, padding: 16, background: '#fff', boxShadow: '0 8px 24px rgba(25,42,70,.035)' }}>
-        <h2 style={{ margin: '0 0 4px', fontSize: 18 }}>{g.title}</h2><p style={{ margin: '0 0 12px', color: '#606673', fontSize: 12 }}>{g.desc}</p>
-        {g.items.map(([name,to,desc]) => <motion.div key={to+name} variants={itemReveal}
-          whileHover={reduce ? undefined : { x: 3 }} whileTap={reduce ? undefined : { scale: 0.99 }}
-          style={{ borderTop: '1px solid #edf0f4' }}>
-          <Link to={to} style={{ display: 'block', textDecoration: 'none', color: 'inherit', padding: '12px 2px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, fontSize: 14, fontWeight: 700 }}>
-              {name}<motion.span aria-hidden style={{ color: '#2f54eb', display: 'inline-block' }}
-                animate={reduce ? undefined : { x: 0 }} whileHover={reduce ? undefined : { x: 3 }}>↗</motion.span>
-            </div>
-            <div style={{ color: '#606673', fontSize: 11, marginTop: 4 }}>{desc}</div>
-          </Link>
-        </motion.div>)}
-      </motion.section>)}
-    </motion.div>
-  </motion.main>;
+
+  return (
+    <motion.main
+      className="discover-page"
+      initial={reduce ? false : { opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: reduce ? 0 : 0.36, ease: [0.22, 1, 0.36, 1] }}
+    >
+      <header className="discover-heading">
+        <div>
+          <span className="discover-eyebrow">DISCOVER</span>
+          <h1>发现</h1>
+          <p>换个方式，探索一点新鲜感。</p>
+        </div>
+        <span className="discover-heading-mark" aria-hidden="true">✳</span>
+      </header>
+
+      <section className="discover-bento" aria-label="探索体验">
+        {cards.map((card, index) => (
+          <motion.article
+            key={card.to}
+            className={`discover-card ${card.className}`}
+            whileHover={reduce ? undefined : { y: -4 }}
+            whileTap={reduce ? undefined : { scale: 0.99 }}
+            transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+          >
+            <Link to={card.to} className="discover-card-link">
+              <div className="discover-card-copy">
+                <span className="discover-card-eyebrow">{card.eyebrow}</span>
+                <h2>{card.title}</h2>
+                <p>{card.description}</p>
+                <span className="discover-card-action">{card.action}<span aria-hidden="true">↗</span></span>
+              </div>
+              {index === 0 && <BloomArtwork />}
+              {index === 1 && <InkArtwork />}
+              {index === 2 && <HotArtwork />}
+            </Link>
+          </motion.article>
+        ))}
+      </section>
+    </motion.main>
+  );
 }

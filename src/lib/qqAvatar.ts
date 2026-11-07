@@ -6,7 +6,7 @@ export function getQqNumberFromEmail(email: string): string | null {
 }
 
 /** Public QQ avatar image used only for the registration preview. */
-export function getQqAvatarPreviewUrl(email: string): string | null {
+export function getQqAvatarPreviewUrl(email: string, retryKey = 0): string | null {
   const qq = getQqNumberFromEmail(email);
   if (!qq) return null;
 
@@ -14,5 +14,7 @@ export function getQqAvatarPreviewUrl(email: string): string | null {
   url.searchParams.set('b', 'qq');
   url.searchParams.set('nk', qq);
   url.searchParams.set('s', '100');
+  // A changing key lets the user retry a transient CDN failure without changing the mailbox.
+  if (retryKey > 0) url.searchParams.set('_preview_retry', String(retryKey));
   return url.toString();
 }

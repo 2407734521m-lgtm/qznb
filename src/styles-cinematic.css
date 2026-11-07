@@ -227,7 +227,7 @@ button:disabled{cursor:not-allowed;filter:saturate(.6)}
 
 /* Dedicated login and registration polish */
 .login-wrap{position:relative;isolation:isolate;min-height:100svh;padding:clamp(18px,5vh,44px) 16px calc(24px + env(safe-area-inset-bottom))}
-.login-wrap::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;background:radial-gradient(ellipse at 50% 18%,rgba(99,145,255,.16),transparent 48%),linear-gradient(180deg,rgba(7,13,29,.18),rgba(7,13,29,.42))}
+/* Full-screen login canvas is owned by the white theme or the user's uploaded image. */
 .login-card{position:relative;width:min(420px,100%);padding:clamp(24px,6vw,34px) clamp(20px,5vw,30px) 24px;border-radius:28px;overflow:hidden;backdrop-filter:blur(24px) saturate(125%);-webkit-backdrop-filter:blur(24px) saturate(125%);border:1px solid rgba(255,255,255,.17);background:linear-gradient(145deg,rgba(21,32,57,.78),rgba(15,22,41,.68));box-shadow:0 28px 90px rgba(0,0,0,.42),inset 0 1px 0 rgba(255,255,255,.12)}
 .login-card::before{content:"";position:absolute;top:0;left:12%;right:12%;height:1px;background:linear-gradient(90deg,transparent,rgba(184,205,255,.8),transparent);pointer-events:none}
 .login-card h1{font-size:clamp(23px,6vw,28px);line-height:1.2;letter-spacing:-.035em;margin:0 0 7px;text-shadow:0 5px 28px rgba(125,159,255,.2)}

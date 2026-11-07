@@ -84,7 +84,9 @@ export default function GlobalSearch({ open, onClose }: { open: boolean; onClose
           next.push({
             kind: 'member',
             title: member.display_name || member.username || '未命名成员',
-            subtitle: member.username ? `成员档案 · @${member.username}` : '成员档案',
+            subtitle: member.signature
+              ? `成员 · ${String(member.signature).slice(0, 46)}`
+              : member.username ? `成员档案 · @${member.username}` : '成员档案',
             target: `/members/${member.id}`,
           });
         });
@@ -95,7 +97,7 @@ export default function GlobalSearch({ open, onClose }: { open: boolean; onClose
             title: String(post.content || '图片动态').slice(0, 66),
             subtitle: section === 'daily' ? '日常动态' : '班级动态',
             target: section === 'daily' ? '/daily' : '/feed',
-            state: { openTab: 'feed', searchQuery: term },
+            state: { openTab: 'feed', searchQuery: term, focusPostId: Number(post.id) },
           });
         });
         (albums.data ?? []).forEach((album: any) => {
@@ -167,7 +169,7 @@ export default function GlobalSearch({ open, onClose }: { open: boolean; onClose
       <section className="global-search-panel" role="dialog" aria-modal="true" aria-label="全局搜索">
         <div className="global-search-head">
           <div>
-            <div className="global-search-eyebrow">SEARCH · 青春档案</div>
+            <div className="global-search-eyebrow">全站搜索</div>
             <h2>搜索全站内容</h2>
           </div>
           <button type="button" className="global-search-close" onClick={onClose} aria-label="关闭搜索">×</button>

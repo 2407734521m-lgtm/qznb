@@ -596,3 +596,141 @@ body:has(.vibe-home) .glow { display: none !important; }
 @media (prefers-reduced-motion: reduce) {
   .vh-load-spinner { animation: none; }
 }
+
+
+/* Linear / Apple-inspired refinement: keep the homepage on the site's neutral white system. */
+.vibe-home {
+  --vh-ink: var(--qz-ink, #202733);
+  --vh-muted: var(--qz-muted, #737d8b);
+  --vh-line: var(--qz-line, #e7eaee);
+  --vh-accent: var(--qz-accent, #526b8c);
+  color: var(--vh-ink);
+}
+
+.vibe-home .vh-search {
+  border-color: var(--qz-line, #e7eaee);
+  border-radius: 12px;
+  background: var(--qz-surface-soft, #f6f7f9);
+  color: var(--qz-muted, #737d8b);
+  transition: border-color 180ms ease, background-color 180ms ease, color 180ms ease;
+}
+.vibe-home .vh-search:hover {
+  border-color: var(--qz-line-strong, #d9dee5);
+  background: #fff;
+  color: var(--qz-ink, #202733);
+}
+.vibe-home .vh-search-icon { color: var(--qz-accent, #526b8c); }
+
+.vibe-home .vh-hero {
+  border-color: var(--qz-line, #e7eaee);
+  border-radius: 18px;
+  background: linear-gradient(145deg, #ffffff 0%, #f6f7f9 100%);
+  box-shadow: 0 8px 24px rgba(28, 39, 55, .045);
+}
+.vibe-home .vh-hero-kicker,
+.vibe-home .vh-hero-sub { color: var(--qz-muted, #737d8b); }
+.vibe-home .vh-hero-title { color: var(--qz-ink, #202733); }
+.vibe-home .vh-hero-link {
+  border-color: var(--qz-line-strong, #d9dee5);
+  border-radius: 10px;
+  color: var(--qz-ink, #202733);
+  box-shadow: 0 2px 7px rgba(28, 39, 55, .04);
+}
+.vibe-home .vh-hero-link:hover {
+  border-color: #cbd3de;
+  background: #fff;
+}
+
+.vibe-home .vh-intro h1,
+.vibe-home .vh-section-head h2 { color: var(--qz-ink, #202733); }
+.vibe-home .vh-intro p,
+.vibe-home .vh-section-head p { color: var(--qz-muted, #737d8b); }
+.vibe-home .vh-countdown {
+  border-color: var(--qz-line, #e7eaee);
+  border-radius: 10px;
+  background: var(--qz-surface-soft, #f6f7f9);
+  color: var(--qz-accent, #526b8c);
+}
+.vibe-home .vh-text-link { color: var(--qz-accent, #526b8c); }
+
+.vibe-home .vh-notice,
+.vibe-home .vh-shortcut,
+.vibe-home .vh-panel,
+.vibe-home .vh-modal {
+  border-color: var(--qz-line, #e7eaee);
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: none;
+}
+.vibe-home .vh-notice,
+.vibe-home .vh-shortcut {
+  transition: border-color 180ms ease, background-color 180ms ease, box-shadow 180ms ease;
+}
+.vibe-home .vh-notice:hover,
+.vibe-home .vh-shortcut:hover {
+  border-color: var(--qz-line-strong, #d9dee5);
+  background: #fff;
+  box-shadow: 0 6px 18px rgba(28, 39, 55, .045);
+}
+.vibe-home .vh-notice-tag {
+  border-radius: 6px;
+  background: #f0f2f5;
+  color: #59677a;
+}
+.vibe-home .vh-notice strong,
+.vibe-home .vh-shortcut-name,
+.vibe-home .vh-feed-copy strong,
+.vibe-home .vh-event strong { color: var(--qz-ink, #202733); }
+.vibe-home .vh-notice p,
+.vibe-home .vh-notice time,
+.vibe-home .vh-shortcut-index,
+.vibe-home .vh-shortcut-arrow,
+.vibe-home .vh-feed-copy p,
+.vibe-home .vh-feed-copy time,
+.vibe-home .vh-member span,
+.vibe-home .vh-event p,
+.vibe-home .vh-empty { color: var(--qz-muted, #737d8b); }
+
+.vibe-home .vh-feed-row,
+.vibe-home .vh-event { border-color: var(--qz-line, #e7eaee); }
+.vibe-home .vh-member .av {
+  border-color: var(--qz-line, #e7eaee);
+}
+.vibe-home .vh-modal-backdrop {
+  background: rgba(22, 30, 42, .42);
+}
+.vibe-home .vh-modal {
+  border-color: rgba(255, 255, 255, .75);
+  border-radius: 18px;
+  box-shadow: 0 24px 70px rgba(18, 28, 42, .18);
+}
+.vibe-home .vh-modal h3 { color: var(--qz-ink, #202733); }
+.vibe-home .vh-modal p { color: #536071; }
+.vibe-home .vh-modal-close {
+  border-color: var(--qz-line, #e7eaee);
+  border-radius: 9px;
+  background: var(--qz-surface-soft, #f6f7f9);
+  color: var(--qz-muted, #737d8b);
+}
+
+.vibe-home :where(button, a):focus-visible {
+  outline: 2px solid rgba(82, 107, 140, .68);
+  outline-offset: 3px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .vibe-home .vh-notice:hover,
+  .vibe-home .vh-shortcut:hover { transform: translateY(-1px); }
+}
+@media (max-width: 680px) {
+  .vibe-home .vh-hero { border-radius: 15px; }
+  .vibe-home .vh-panel { padding: 15px; }
+  .vibe-home .vh-shortcut { border-radius: 12px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .vibe-home .vh-search,
+  .vibe-home .vh-notice,
+  .vibe-home .vh-shortcut { transition: none !important; }
+  .vibe-home .vh-notice:hover,
+  .vibe-home .vh-shortcut:hover { transform: none !important; }
+}

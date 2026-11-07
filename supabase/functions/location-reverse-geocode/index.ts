@@ -44,6 +44,19 @@ async function cacheKey(secret: string, latitude: number, longitude: number): Pr
   return hex(new Uint8Array(signature));
 }
 
+function keyFromMap(raw: string | undefined): string {
+  if (!raw) return "";
+  try {
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    const preferred = parsed.default;
+    if (typeof preferred === "string") return preferred;
+    const first = Object.values(parsed).find(value => typeof value === "string");
+    return typeof first === "string" ? first : "";
+  } catch {
+    return "";
+  }
+}
+
 function uniqueParts(values: Array<string | undefined>): string[] {
   return [...new Set(values.map(value => (value || "").trim()).filter(Boolean))];
 }
@@ -62,8 +75,10 @@ Deno.serve(async (request: Request) => {
   }
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
-  const anonKey = Deno.env.get("SUPABASE_ANON_KEY") || "";
-  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+  const anonKey = Deno.env.get("SUPABASE_ANON_KEY")
+    || keyFromMap(Deno.env.get("SUPABASE_PUBLISHABLE_KEYS"));
+  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")
+    || keyFromMap(Deno.env.get("SUPABASE_SECRET_KEYS"));
   if (!supabaseUrl || !anonKey || !serviceRoleKey) {
     return json({ error: "位置服务暂不可用，请手动填写城市或地区。" }, 503, origin);
   }
@@ -119,6 +134,7 @@ Deno.serve(async (request: Request) => {
       return json({ error: "位置查询繁忙，请稍后重试，或手动填写城市/地区。" }, 429, origin, { "Retry-After": "1" });
     }
 
+    // This environment setting allows the geocoding provider to be switched without a client release.
     const endpoint = (Deno.env.get("LOCATION_GEOCODER_ENDPOINT") || "https://nominatim.openstreetmap.org/reverse").trim();
     const endpointUrl = new URL(endpoint);
     if (endpointUrl.protocol !== "https:") {

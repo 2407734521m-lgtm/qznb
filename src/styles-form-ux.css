@@ -233,13 +233,17 @@
    没排除 checkbox，把它撑成一条深灰竖框、原生勾选方块嵌在中间。这里钉回
    18×18 透明底，只保留 accent-color 着色。 */
 .login-wrap .login-card input[type="checkbox"] {
-  width: 18px;
-  height: 18px;
-  min-height: 0;
-  margin: 0;
-  padding: 0;
-  background: transparent;
-  border: none;
+  width: 18px !important;
+  height: 18px !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
   border-radius: 4px;
   accent-color: #2456c8;
+  flex: none;
 }

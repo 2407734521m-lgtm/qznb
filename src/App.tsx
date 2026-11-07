@@ -731,10 +731,10 @@ function Shell() {
   if (!session) {
     if (siteConfigLoading) return <div className="center" style={{ minHeight: '60vh' }}><FxLoader text="正在加载公开内容…" /></div>;
     if (siteConfig?.maintenance === 'true' && !maintenanceAccess) return <MaintenanceScreen title={siteConfig.maintenance_title || ''} msg={siteConfig.maintenance_msg || ''} hasSession={false} onLogout={logout} onAccessGranted={() => setMaintenanceAccess(true)} />;
-    if (showLogin && siteConfig?.close_login_entry !== 'true') return <><div className="glow" /><Login /><button className="mini ghost" style={{ position: 'fixed', top: 'calc(env(safe-area-inset-top) + 12px)', right: 14, zIndex: 900 }} onClick={() => setShowLogin(false)}>返回公开首页</button></>;
+    if (showLogin && siteConfig?.close_login_entry !== 'true') return <><div className="glow" /><Login siteTitle={siteConfig?.site_title} siteSubtitle={siteConfig?.site_subtitle} /><button className="mini ghost" style={{ position: 'fixed', top: 'calc(env(safe-area-inset-top) + 12px)', right: 14, zIndex: 900 }} onClick={() => setShowLogin(false)}>返回公开首页</button></>;
     if (siteConfig?.skip_login_screen === 'true') return <PublicLanding data={siteConfig} onLogin={() => setShowLogin(true)} />;
     if (siteConfig?.close_login_entry === 'true') return <LoginClosedScreen />;
-    return <><div className="glow" /><Login /></>;
+    return <><div className="glow" /><Login siteTitle={siteConfig?.site_title} siteSubtitle={siteConfig?.site_subtitle} /></>;
   }
   // 维护模式：后台开关开着时，主站所有人只显示维护页（管理后台页本身不受影响）。
   if (siteConfig?.maintenance === 'true' && !isAdminPage && !maintenanceAccess) {

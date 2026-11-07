@@ -28,3 +28,74 @@
   vertical-align: -2px;
   margin-right: 3px;
 }
+
+/* ===== 第二批 ===== */
+
+/* 成员卡纸面（修正版）：旧样式表有两处用 !important 把头像底色钉成浅灰蓝，
+   这里同以 !important 覆盖，档案纸才真正生效。 */
+.members-page .mcard .photo {
+  background:
+    repeating-linear-gradient(0deg, rgba(122, 98, 58, 0.055) 0 1px, transparent 1px 14px),
+    linear-gradient(158deg, #fbf6ea 0%, #f3ead6 100%) !important;
+}
+.members-page .mcard .photo-fallback {
+  font-family: "Songti SC", "STSong", "Noto Serif SC", "SimSun", Georgia, serif !important;
+  font-weight: 600 !important;
+  color: #54687f !important;
+}
+
+/* 段位徽章：深色时代的紫粉渐变发光药丸，浅色底上字几乎看不见。
+   改成档案标签：纸面、墨字、细边、无发光。 */
+.gbadge {
+  background: #faf6ec !important;
+  color: #54687f !important;
+  border: 1px solid rgba(84, 104, 127, 0.32) !important;
+  box-shadow: none !important;
+  border-radius: 8px;
+  font-weight: 600;
+}
+
+/* 探索页卡片右下角的大号水印数字（01、02…）：纯装饰编号，去掉。 */
+.discover-card::after {
+  content: none !important;
+}
+
+/* 成员卡档案印章：编号按建档先后（名单接口按 created_at 排序），
+   印泥色细边小方印，微微倾斜，盖在照片右上角。列表视图不盖。 */
+.members-page .mcard {
+  position: relative;
+}
+.members-page .mcard .mstamp {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 3;
+  padding: 3px 7px 4px;
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  color: #96402f;
+  border: 1.2px solid rgba(150, 64, 47, 0.55);
+  border-radius: 3px;
+  background: rgba(253, 250, 240, 0.85);
+  transform: rotate(2.5deg);
+  pointer-events: none;
+}
+.members-page .mgrid.list .mcard .mstamp {
+  display: none;
+}
+
+/* 成员主页头图上的档案印章：米色印盖在深蓝档案封面上。 */
+.member-profile-page .mp-stamp {
+  display: inline-block;
+  margin-top: 10px;
+  padding: 3px 9px 4px;
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  color: #e9dfc9;
+  border: 1px solid rgba(233, 223, 201, 0.55);
+  border-radius: 3px;
+  background: rgba(233, 223, 201, 0.08);
+  transform: rotate(-2deg);
+}

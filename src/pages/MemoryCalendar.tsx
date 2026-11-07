@@ -111,7 +111,6 @@ export default function MemoryCalendar() {
     <main className="page memory-calendar">
       <BackButton fallback="/home" />
       <header className="mc-heading">
-        <span className="mc-eyebrow">OUR SHARED MOMENTS</span>
         <h1>班级记忆日历</h1>
         <p>把活动、动态、公告和个人回忆，放回它们发生的日子。</p>
       </header>
@@ -143,7 +142,7 @@ export default function MemoryCalendar() {
 
       <section className="mc-list-section">
         <div className="mc-list-heading">
-          <div><span className="mc-eyebrow">ON THIS DAY</span><h2>{selected.replace(/-/g, ' / ')}</h2></div>
+          <div><h2>{selected.replace(/-/g, ' / ')}</h2></div>
           <span>{dayItems.length} 条记忆</span>
         </div>
         {loading ? <div className="mc-state">正在整理这一天的记忆…</div> : dayItems.length ? (

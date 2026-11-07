@@ -557,58 +557,58 @@ export default function Friends() {
     <div className="page im-inbox">
       <style>{`
         .im-inbox{position:relative;isolation:isolate;width:100%;height:100%;min-height:0;max-width:none;margin:0;padding:18px 16px 28px!important;overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain;background:transparent!important}
-        .im-inbox:before{content:'';position:absolute;z-index:-1;pointer-events:none;inset:0;background:radial-gradient(ellipse at 50% -5%,rgba(70,153,255,.58),transparent 43%),radial-gradient(ellipse at 10% 18%,rgba(27,190,221,.16),transparent 38%),linear-gradient(180deg,rgba(5,24,55,.28),rgba(3,12,31,.12) 48%,rgba(2,10,25,.28))}
+        .im-inbox:before{content:'';position:absolute;z-index:-1;pointer-events:none;inset:0;background:none}
         .im-inbox-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:6px 2px 20px}
         .im-inbox-kicker{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:#b7d9ff;margin-bottom:5px}
-        .im-inbox-title{font-size:30px;line-height:1.15;font-weight:780;letter-spacing:-.04em;color:#f7fbff}
-        .im-inbox-subtitle{font-size:12px;color:rgba(220,237,255,.7);margin-top:6px}
-        .im-search{display:flex;align-items:center;gap:10px;margin:0 0 16px;padding:0 14px;height:48px;border-radius:18px;background:rgba(190,220,255,.11);border:1px solid rgba(220,240,255,.18);box-shadow:inset 0 1px 0 rgba(255,255,255,.09);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px)}
-        .im-search span{font-size:20px;color:#c6e1ff}
-        .im-search input{flex:1;min-width:0;background:transparent!important;border:0!important;box-shadow:none!important;outline:none!important;color:#f4faff!important;padding:10px 0!important;font-size:14px}
-        .im-search input::placeholder{color:rgba(224,239,255,.64)}
+        .im-inbox-title{font-size:30px;line-height:1.15;font-weight:650;letter-spacing:-.01em;color:#22314a}
+        .im-inbox-subtitle{font-size:12px;color:#7c8798;margin-top:6px}
+        .im-search{display:flex;align-items:center;gap:10px;margin:0 0 16px;padding:0 14px;height:48px;border-radius:14px;background:#ffffff;border:1px solid rgba(34,49,74,.12)}
+        .im-search span{font-size:20px;color:#8a97a5}
+        .im-search input{flex:1;min-width:0;background:transparent!important;border:0!important;box-shadow:none!important;outline:none!important;color:#22314a!important;padding:10px 0!important;font-size:14px}
+        .im-search input::placeholder{color:#9aa7b4}
         .im-inbox-tabs{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin-bottom:14px}
-        .im-inbox-tabs button{min-width:0;min-height:42px;border-radius:15px;border:1px solid rgba(215,237,255,.16);background:rgba(10,31,65,.36);color:rgba(226,240,255,.75);font-size:13px;backdrop-filter:blur(18px)}
-        .im-inbox-tabs button.on{color:#fff;background:linear-gradient(120deg,rgba(35,135,255,.86),rgba(36,94,220,.82));border-color:rgba(168,216,255,.38);box-shadow:0 8px 24px rgba(0,94,255,.2)}
-        .im-primary-tabs{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:5px;margin:0 0 16px;border:1px solid rgba(215,237,255,.16);border-radius:18px;background:rgba(7,24,50,.48);backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px)}
-        .im-primary-tabs button{min-height:43px;border:0;border-radius:13px;background:transparent;color:rgba(226,240,255,.76);font-size:14px;font-weight:650;transition:background .18s ease,color .18s ease}
-        .im-primary-tabs button.on{background:linear-gradient(120deg,rgba(42,145,248,.9),rgba(55,105,222,.86));color:#fff;box-shadow:0 5px 18px rgba(0,94,255,.2)}
-        .im-primary-unread{display:inline-block;width:8px;height:8px;margin-left:8px;vertical-align:2px;border-radius:50%;background:#ff5968;box-shadow:0 0 0 3px rgba(255,89,104,.15),0 0 12px rgba(255,89,104,.45)}
+        .im-inbox-tabs button{min-width:0;min-height:42px;border-radius:12px;border:1px solid rgba(34,49,74,.12);background:#ffffff;color:#5a6b7f;font-size:13px}
+        .im-inbox-tabs button.on{color:#fff;background:#22314a;border-color:#22314a}
+        .im-primary-tabs{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:5px;margin:0 0 16px;border:1px solid rgba(34,49,74,.08);border-radius:14px;background:#eef1f4}
+        .im-primary-tabs button{min-height:43px;border:0;border-radius:10px;background:transparent;color:#5a6b7f;font-size:14px;font-weight:600;transition:background .18s ease,color .18s ease}
+        .im-primary-tabs button.on{background:#22314a;color:#fff}
+        .im-primary-unread{display:inline-block;width:8px;height:8px;margin-left:8px;vertical-align:2px;border-radius:50%;background:#d94f5c;box-shadow:0 0 0 3px rgba(217,79,92,.15)}
         .im-notification-toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:2px 0 14px}
-        .im-notification-toolbar button{min-height:36px;padding:7px 12px;border-radius:13px;border:1px solid rgba(215,237,255,.16);background:rgba(10,31,65,.36);color:rgba(226,240,255,.78);font-size:12px}
-        .im-notification-toolbar button.on{background:rgba(48,132,238,.34);border-color:rgba(168,216,255,.34);color:#fff}
+        .im-notification-toolbar button{min-height:36px;padding:7px 12px;border-radius:10px;border:1px solid rgba(34,49,74,.12);background:#ffffff;color:#5a6b7f;font-size:12px}
+        .im-notification-toolbar button.on{background:#22314a;border-color:#22314a;color:#fff}
         .im-notification-toolbar button:disabled{opacity:.45}
-        .im-notification-count{margin-left:auto;color:rgba(218,234,255,.62);font-size:11px}
+        .im-notification-count{margin-left:auto;color:#8a97a5;font-size:11px}
         .im-notification-list{display:flex;flex-direction:column;gap:10px}
-        .im-notification-row{display:flex;align-items:flex-start;gap:12px;width:100%;padding:14px;border:1px solid rgba(207,230,255,.14);border-radius:20px;background:linear-gradient(110deg,rgba(34,90,164,.3),rgba(11,27,57,.54));color:#f4f9ff;text-align:left;box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 8px 24px rgba(0,0,0,.07);cursor:pointer;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);transition:border-color .18s ease,transform .18s ease}
-        .im-notification-row.unread{border-color:rgba(255,112,125,.34);background:linear-gradient(110deg,rgba(84,54,83,.35),rgba(11,27,57,.58))}
+        .im-notification-row{display:flex;align-items:flex-start;gap:12px;width:100%;padding:14px;border:1px solid rgba(34,49,74,.1);border-radius:16px;background:#ffffff;color:#22314a;text-align:left;cursor:pointer;transition:border-color .18s ease,transform .18s ease}
+        .im-notification-row.unread{border-color:rgba(176,64,79,.35);background:#fdf6ee}
         .im-notification-row:active{transform:scale(.99)}
-        .im-notification-icon{display:grid;place-items:center;flex:none;width:40px;height:40px;border-radius:14px;background:rgba(90,153,226,.2);color:#d7eaff;font-size:18px}
-        .im-notification-icon.warning{background:rgba(255,174,86,.16);color:#ffd49d}
+        .im-notification-icon{display:grid;place-items:center;flex:none;width:40px;height:40px;border-radius:12px;background:#eef1f4;color:#54687f;font-size:18px}
+        .im-notification-icon.warning{background:#faf0dd;color:#9a7420}
         .im-notification-main{flex:1;min-width:0}
         .im-notification-title-line{display:flex;align-items:center;gap:8px;min-width:0}
-        .im-notification-title{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px;font-weight:750;color:#f7fbff}
-        .im-notification-unread{flex:none;border-radius:99px;padding:2px 7px;background:rgba(255,89,104,.17);color:#ffabb4;font-size:10px;font-weight:700}
-        .im-notification-body{margin:7px 0 0;color:rgba(224,238,255,.78);font-size:12px;line-height:1.75;white-space:pre-wrap;overflow-wrap:anywhere}
-        .im-notification-meta{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:10px;color:rgba(211,229,248,.56);font-size:10px}
-        .im-notification-type{padding:2px 7px;border:1px solid rgba(211,229,248,.16);border-radius:99px;white-space:nowrap}
-        .im-notification-arrow{flex:none;margin-top:8px;color:rgba(211,229,248,.58);font-size:20px}
+        .im-notification-title{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px;font-weight:650;color:#22314a}
+        .im-notification-unread{flex:none;border-radius:99px;padding:2px 7px;background:#fbe9ea;color:#b0404f;font-size:10px;font-weight:700}
+        .im-notification-body{margin:7px 0 0;color:#5a6b7f;font-size:12px;line-height:1.75;white-space:pre-wrap;overflow-wrap:anywhere}
+        .im-notification-meta{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:10px;color:#8a97a5;font-size:10px}
+        .im-notification-type{padding:2px 7px;border:1px solid rgba(34,49,74,.14);border-radius:99px;white-space:nowrap}
+        .im-notification-arrow{flex:none;margin-top:8px;color:#8a97a5;font-size:20px}
         .im-inbox-list{display:flex;flex-direction:column;gap:9px}
-        .im-inbox-row{width:100%;display:flex;align-items:center;gap:12px;text-align:left;padding:12px;border-radius:23px;border:1px solid rgba(207,230,255,.14);background:linear-gradient(110deg,rgba(34,90,164,.34),rgba(11,27,57,.56));box-shadow:inset 0 1px 0 rgba(255,255,255,.07),0 8px 24px rgba(0,0,0,.08);color:#f4f9ff;backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);cursor:pointer;transition:transform .18s ease,border-color .18s ease,background .18s ease}
-        button.im-inbox-row:active{transform:scale(.985);background:rgba(45,112,210,.38);border-color:rgba(160,213,255,.36)}
-        .im-list-avatar{flex:none;display:grid;place-items:center;border-radius:50%;overflow:hidden;color:white;font-size:18px;font-weight:700;background:linear-gradient(135deg,#61baff,#6578ff 58%,#a17bff);border:2px solid rgba(218,239,255,.28);box-shadow:0 0 0 4px rgba(92,157,255,.09)}
+        .im-inbox-row{width:100%;display:flex;align-items:center;gap:12px;text-align:left;padding:12px;border-radius:16px;border:1px solid rgba(34,49,74,.1);background:#ffffff;color:#22314a;cursor:pointer;transition:transform .18s ease,border-color .18s ease,background .18s ease}
+        button.im-inbox-row:active{transform:scale(.985);background:#f2f5f8;border-color:rgba(34,49,74,.2)}
+        .im-list-avatar{flex:none;display:grid;place-items:center;border-radius:50%;overflow:hidden;color:#54687f;font-size:18px;font-weight:600;background:#ece4d0;border:1px solid rgba(34,49,74,.12)}
         .im-list-avatar img{width:100%;height:100%;object-fit:cover}
         .im-avatar-link{flex:none;display:inline-block;padding:0;border:0;background:none;border-radius:50%;cursor:pointer;line-height:0;-webkit-tap-highlight-color:transparent}
         .im-avatar-link:active{transform:scale(.94)}
         .im-inbox-person{flex:1;min-width:0}
-        .im-inbox-name{font-size:14px;font-weight:700;color:#f7fbff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-        .im-inbox-preview{font-size:12px;color:rgba(218,234,255,.7);margin-top:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-        .im-inbox-time{font-size:10px;color:rgba(218,234,255,.68);white-space:nowrap;margin-left:4px}
-        .im-inbox-arrow{color:rgba(207,229,255,.72);font-size:21px;padding:0 3px}
-        .im-unread{min-width:20px;height:20px;border-radius:99px;padding:0 6px;display:grid;place-items:center;background:#3e9cff;color:white;font-size:10px;font-weight:750;box-shadow:0 3px 12px rgba(20,115,255,.3)}
-        .im-inbox-empty{padding:28px 18px;text-align:center;border-radius:23px;border:1px solid rgba(207,230,255,.13);background:rgba(10,27,55,.4);color:rgba(221,237,255,.75);backdrop-filter:blur(22px)}
-        .im-inbox-empty-title{font-weight:750;color:#f3f8ff;font-size:15px;margin-bottom:7px}
+        .im-inbox-name{font-size:14px;font-weight:650;color:#22314a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .im-inbox-preview{font-size:12px;color:#7c8798;margin-top:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .im-inbox-time{font-size:10px;color:#9aa7b4;white-space:nowrap;margin-left:4px}
+        .im-inbox-arrow{color:#9aa7b4;font-size:21px;padding:0 3px}
+        .im-unread{min-width:20px;height:20px;border-radius:99px;padding:0 6px;display:grid;place-items:center;background:#22314a;color:white;font-size:10px;font-weight:700}
+        .im-inbox-empty{padding:28px 18px;text-align:center;border-radius:16px;border:1px solid rgba(34,49,74,.1);background:#ffffff;color:#5a6b7f}
+        .im-inbox-empty-title{font-weight:650;color:#22314a;font-size:15px;margin-bottom:7px}
         .im-inbox-empty-copy{font-size:12px;line-height:1.7}
-        .im-inbox-message{margin:0 0 12px;padding:10px 13px;border-radius:14px;background:rgba(12,30,58,.68);border:1px solid rgba(210,232,255,.14);color:#d8eaff;font-size:12px}
+        .im-inbox-message{margin:0 0 12px;padding:10px 13px;border-radius:12px;background:#f2f5f8;border:1px solid rgba(34,49,74,.1);color:#43536a;font-size:12px}
         .im-request-email-option{display:flex;align-items:center;gap:10px;margin:0 2px 12px;padding:11px 13px;border:1px solid rgba(122,153,190,.2);border-radius:15px;background:rgba(255,255,255,.72);color:#243247;cursor:pointer;transition:border-color .18s ease,background .18s ease}
         .im-request-email-option:has(input:checked){border-color:rgba(55,125,220,.42);background:rgba(232,242,255,.92)}
         .im-request-email-option input{width:17px;height:17px;margin:0;flex:none;accent-color:#3478d4}
@@ -620,25 +620,24 @@ export default function Friends() {
         .im-request-actions{display:flex;gap:6px}
         .im-request-actions button{border-radius:12px;padding:8px 10px}
         .im-friend-actions{display:flex;align-items:center;justify-content:flex-end;gap:6px;flex-wrap:wrap}
-        .im-friend-actions button{min-height:34px;padding:7px 9px;border-radius:11px;border:1px solid rgba(165,212,255,.28);background:rgba(44,124,221,.2);color:#eef7ff;font-size:11px;white-space:nowrap}
-        .im-friend-actions button.danger{border-color:rgba(255,145,154,.3);background:rgba(190,56,74,.14);color:#ffc0c5}
+        .im-friend-actions button{min-height:34px;padding:7px 9px;border-radius:10px;border:1px solid rgba(34,49,74,.16);background:#ffffff;color:#43536a;font-size:11px;white-space:nowrap}
+        .im-friend-actions button.danger{border-color:rgba(176,64,79,.35);background:#fdf0f1;color:#b0404f}
         @media(max-width:520px){.im-inbox-tabs{grid-template-columns:repeat(2,minmax(0,1fr))}.im-inbox-row{flex-wrap:wrap}.im-friend-actions{width:100%;justify-content:flex-end;padding-left:58px}}
-        .im-inbox-primary{border:1px solid rgba(160,213,255,.36);background:linear-gradient(120deg,#2a91f8,#3a70e8);color:white;border-radius:13px;padding:9px 14px;font-weight:650;margin-top:14px}
-        .im-inbox-search-caption{display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:3px 3px 5px;color:#f3f8ff;font-size:13px;font-weight:750}
-        .im-inbox-search-caption small{font-size:10px;font-weight:450;color:rgba(218,234,255,.62)}
+        .im-inbox-primary{border:1px solid #22314a;background:#22314a;color:white;border-radius:11px;padding:9px 14px;font-weight:600;margin-top:14px}
+        .im-inbox-search-caption{display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:3px 3px 5px;color:#22314a;font-size:13px;font-weight:650}
+        .im-inbox-search-caption small{font-size:10px;font-weight:450;color:#8a97a5}
         .im-inbox-search-action{display:flex;align-items:center;flex:none}
-        .im-inbox-search-action button{width:auto!important;min-width:82px;padding:8px 11px;border-radius:13px;border:1px solid rgba(165,212,255,.3);background:rgba(44,124,221,.28);color:#eef7ff;font-size:11px;font-weight:700;white-space:nowrap}
+        .im-inbox-search-action button{width:auto!important;min-width:82px;padding:8px 11px;border-radius:11px;border:1px solid rgba(34,49,74,.18);background:#ffffff;color:#43536a;font-size:11px;font-weight:600;white-space:nowrap}
         .im-inbox-search-action button.is-friend{background:rgba(70,170,143,.2);border-color:rgba(142,226,200,.28)}
-        .im-inbox-search-action button.is-incoming{background:linear-gradient(120deg,#278fe9,#3267da);border-color:rgba(175,221,255,.5)}
+        .im-inbox-search-action button.is-incoming{background:#22314a;border-color:#22314a;color:#fff}
         .im-inbox-search-action button:disabled{opacity:.72;cursor:default}
-        .im-search:focus-within{border-color:rgba(169,219,255,.48);box-shadow:0 0 0 3px rgba(75,157,255,.12),inset 0 1px 0 rgba(255,255,255,.09)}
+        .im-search:focus-within{border-color:rgba(34,49,74,.3);box-shadow:0 0 0 3px rgba(34,49,74,.06)}
         @media(max-width:768px){.im-inbox{padding:calc(18px + env(safe-area-inset-top)) calc(16px + env(safe-area-inset-right)) calc(118px + env(safe-area-inset-bottom)) calc(16px + env(safe-area-inset-left))!important}}
         @media(prefers-reduced-motion:reduce){.im-inbox-row{transition:none}}
       `}</style>
 
       <header className="im-inbox-head">
         <div>
-          <div className="im-inbox-kicker">QIANZHI · MESSAGE CENTER</div>
           <div className="im-inbox-title">消息中心</div>
           <div className="im-inbox-subtitle">私信与账号通知，集中在这里</div>
         </div>

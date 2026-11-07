@@ -71,7 +71,7 @@ Deno.serve(async (req: Request) => {
   });
   const { data: userData, error: authError } = await authClient.auth.getUser(token);
   const user = userData.user;
-  if (authError || !user?.id || !user.email) {
+  if (authError || !user?.id || !user.email || !user.email_confirmed_at) {
     return json(req, { ok: false, code: 'unauthorized' }, 401);
   }
 

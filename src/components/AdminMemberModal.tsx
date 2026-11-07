@@ -63,7 +63,10 @@ export default function AdminMemberModal({ memberId, onClose, onChanged, isSuper
         const accountRows = (accounts ?? []) as Array<{ id: string; location: string | null; device: string | null }>;
         const account = accountRows.find(row => row.id === memberId);
         if (account) {
-          const parts = [account.location, account.device].filter((value: unknown) => typeof value === 'string' && value.trim());
+          const parts = [
+            account.location ? '自愿分享地区：' + account.location : '',
+            account.device ? '登录设备：' + account.device : '',
+          ].filter(Boolean);
           setPresence(parts.join(' · '));
         }
       }
@@ -142,7 +145,7 @@ export default function AdminMemberModal({ memberId, onClose, onChanged, isSuper
             <div>角色：{f.role === 'super_admin' ? '超级管理员' : f.role === 'admin' ? '管理员' : '成员'}</div>
             <div>状态：{f.joined ? '已加入班级' : '未加入'}</div>
             <div>注册：{(f.created_at || '').slice(0, 16).replace('T', ' ')}</div>
-            {presence && <div>位置设备：{presence}</div>}
+            {presence && <div>位置 / 设备：{presence}</div>}
             {game && <div>游戏：{game}</div>}
           </div>
 

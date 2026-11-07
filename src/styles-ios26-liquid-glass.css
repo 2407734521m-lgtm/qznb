@@ -511,3 +511,172 @@ button:focus-visible, a:focus-visible {
     backdrop-filter: blur(10px) saturate(1.16) !important;
   }
 }
+
+
+/* Four-item Dock + long-press optical quick panel. */
+.qz-ios26-dock-glass .tabbar {
+  min-width: 0 !important;
+  gap: 5px !important;
+  padding: 7px !important;
+  touch-action: pan-x pan-y;
+  -webkit-touch-callout: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.qz-ios26-dock-glass .dock-scroll {
+  max-width: none !important;
+  overflow: visible !important;
+}
+.qz-ios26-dock-glass .dock-item > a {
+  min-width: clamp(62px, 16vw, 82px) !important;
+  min-height: 48px !important;
+  padding: 8px 11px !important;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+.qz-ios26-dock-glass .dock-tab-label {
+  max-width: none !important;
+  opacity: 1 !important;
+  overflow: visible !important;
+  white-space: nowrap;
+  font-size: 12px !important;
+  letter-spacing: .01em;
+}
+.qz-ios26-dock-glass .dock-item > a.on {
+  transform: translateY(-1px);
+}
+.qz-ios26-dock-glass .dock-unread-dot {
+  position: absolute;
+  top: 6px;
+  right: 10px;
+}
+.qz-ios26-dock-glass.dock-collapsed .dock-scroll {
+  max-width: 0 !important;
+  width: 0 !important;
+}
+.qz-ios26-dock-glass.dock-collapsed .tabbar {
+  min-width: 54px !important;
+  width: 54px !important;
+}
+.qz-ios26-dock-glass .dock-action.dock-toggle {
+  display: grid;
+  place-items: center;
+  font-size: 20px;
+  font-weight: 400;
+}
+
+.qz-ios26-dock-more-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: rgba(30,43,65,.10) !important;
+  box-shadow: none !important;
+  -webkit-backdrop-filter: blur(5px) saturate(1.08) !important;
+  backdrop-filter: blur(5px) saturate(1.08) !important;
+}
+.qz-ios26-dock-more-glass {
+  box-sizing: border-box;
+  border: 1px solid rgba(255,255,255,.78) !important;
+  border-radius: 28px !important;
+  box-shadow: 0 22px 64px rgba(35,53,85,.22), inset 0 1px 0 rgba(255,255,255,.96) !important;
+}
+.qz-ios26-dock-more-panel {
+  padding: 17px;
+  color: var(--qz26-ink);
+}
+.qz-ios26-dock-more-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 2px 13px;
+  color: #253752;
+  font-size: 14px;
+  font-weight: 650;
+}
+.qz-ios26-dock-more-hint {
+  color: #7b8aa1;
+  font-size: 11px;
+  font-weight: 450;
+}
+.qz-ios26-dock-more-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 9px;
+}
+.qz-ios26-dock-more-item {
+  position: relative;
+  display: flex;
+  min-height: 48px;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 5px;
+  border: 1px solid rgba(255,255,255,.72);
+  border-radius: 15px;
+  color: #465a78 !important;
+  text-decoration: none !important;
+  font-size: 12px;
+  font-weight: 550;
+  background: linear-gradient(145deg, rgba(255,255,255,.72), rgba(232,240,252,.48));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.94), 0 3px 10px rgba(57,78,117,.05);
+  transition: transform .2s ease, background .2s ease, box-shadow .2s ease;
+}
+.qz-ios26-dock-more-item.on {
+  color: #243b60 !important;
+  border-color: rgba(255,255,255,.98);
+  background: linear-gradient(145deg, rgba(255,255,255,.96), rgba(211,226,249,.82));
+  box-shadow: 0 6px 16px rgba(72,101,151,.12), inset 0 1px 0 #fff;
+}
+.qz-ios26-dock-more-item:active { transform: scale(.97); }
+.qz-ios26-dock-more-unread {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #e56c7d;
+  box-shadow: 0 0 0 3px rgba(229,108,125,.12);
+}
+.qz-ios26-dock-more-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 13px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255,255,255,.62);
+}
+.qz-ios26-dock-more-actions button {
+  flex: 1 1 auto;
+  min-height: 34px;
+  padding: 7px 10px;
+  border: 1px solid rgba(255,255,255,.8) !important;
+  border-radius: 12px !important;
+  color: #52647f !important;
+  background: rgba(255,255,255,.48) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.9) !important;
+  font-size: 11px;
+}
+@media (max-width: 380px) {
+  .qz-ios26-dock-glass .dock-item > a {
+    min-width: 58px !important;
+    padding-inline: 8px !important;
+  }
+  .qz-ios26-dock-more-panel { padding: 14px; }
+  .qz-ios26-dock-more-grid { gap: 7px; }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .qz-ios26-dock-more-glass {
+    background: rgba(246,250,255,.98) !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+  }
+}

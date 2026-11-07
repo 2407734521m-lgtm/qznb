@@ -66,7 +66,9 @@ Deno.serve(async (req: Request) => {
         return response({ error: '维护计划时间无效，暂不能发送。' }, 503);
       }
       const now = Date.now();
-      maintenanceActive = maintenanceActive || (start <= now && now < end);
+      // Match public_guest_landing_data(): an enabled schedule takes priority
+      // over the manual switch, including after its end time.
+      maintenanceActive = schedule.enabled === true && start <= now && now < end;
     }
   }
   if (maintenanceActive) {

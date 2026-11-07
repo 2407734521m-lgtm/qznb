@@ -2,6 +2,8 @@ import { readFileSync } from 'node:fs';
 
 const read = (path) => readFileSync(new URL(path, import.meta.url), 'utf8');
 const styles = read('../src/styles-ios26-liquid-glass.css');
+const tokens = read('../src/styles-ios26-tokens.css');
+const mainEntry = read('../src/main.tsx');
 const wallpaper = read('../src/lib/wallpaper.ts');
 const app = read('../src/App.tsx');
 const home = read('../src/pages/Home.tsx');
@@ -16,7 +18,14 @@ function assert(condition, message) {
   }
 }
 
-assert(/--visual-bg:\s*#ffffff/.test(styles), 'the site canvas default must stay white');
+assert(/--visual-bg:\s*#ffffff/.test(tokens), 'the site canvas default must stay white');
+assert((tokens.match(/:root\s*\{/g) || []).length === 1, 'canonical material tokens must use one root block');
+assert(tokens.includes('--visual-bg: #ffffff;') && tokens.includes('--bg: #ffffff;'), 'canonical material tokens must preserve the white default canvas');
+assert(!styles.includes('--qz26-ink:'), 'component CSS must not redefine canonical material tokens');
+const tokenImport = mainEntry.indexOf("import './styles-ios26-tokens.css';");
+const materialImport = mainEntry.indexOf("import './styles-ios26-liquid-glass.css';");
+const formImport = mainEntry.indexOf("import './styles-form-ux.css';");
+assert(tokenImport >= 0 && materialImport > tokenImport && formImport > materialImport, 'material tokens must load before material components and form refinements');
 assert(/html, body, #root\s*\{[^}]*background:\s*#ffffff\s*!important/s.test(styles), 'the document canvas must stay white');
 assert(/\.glow\s*\{[^}]*background:\s*transparent\s*!important/s.test(styles), 'the glow layer must not cover the wallpaper');
 assert(!/\.app-bg(?:\.qz-ios26-backdrop)?\s*\{[^}]*background(?:-image)?\s*:[^;]*!important/s.test(styles), 'global CSS must not override the app wallpaper layer');

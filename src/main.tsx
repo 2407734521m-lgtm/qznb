@@ -9,6 +9,7 @@ import { supabase } from './lib/supabase';
 import { DialogHost } from './lib/dialog';
 import ErrorBoundary from './components/ErrorBoundary';
 import TestSwitchFab from './components/TestSwitchFab';
+/* Global foundation and legacy compatibility sheets. Keep their order stable. */
 import './styles.css';
 import './styles-cinematic.css';
 import './styles-editorial.css';
@@ -19,7 +20,12 @@ import './styles-particle-flower.css';
 import './styles-visual-rules.css';
 import './styles-liquid-glass.css';
 import './styles-liquid-backdrop.css';
+
+/* Canonical material tokens load after legacy themes and before their components. */
+import './styles-ios26-tokens.css';
 import './styles-ios26-liquid-glass.css';
+
+/* Form controls intentionally refine the shared component styles last. */
 import './styles-form-ux.css';
 
 // 只有精确匹配的管理员域名可以挂载后台；其他任何域名都不能加载 AdminShell。

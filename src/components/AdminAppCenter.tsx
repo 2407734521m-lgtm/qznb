@@ -8,7 +8,7 @@ const KEYS = ['app_version_name', 'app_version_code', 'app_apk_url', 'app_update
 
 // 应用管理：安卓 App 的版本推送独立成栏（原先在设置页里，现已移出）。
 // 功能：线上状态概览、版本推送六项设置、更新框实时预览、下载链接与二维码分享、发版步骤。
-// 数据仍是 site_settings 的 app_* 键，应用端经 public_app_update() 读取，保存即生效。
+// 版本信息通过受保护的发布函数统一写入，只有移动端软件成员能获取更新信息。
 export default function AdminAppCenter({ setMsg }: { setMsg: (s: string) => void }) {
   const [vals, setVals] = useState<Record<string, string>>({});
   const [saved, setSaved] = useState<Record<string, string>>({});
@@ -104,7 +104,7 @@ export default function AdminAppCenter({ setMsg }: { setMsg: (s: string) => void
 
       <div style={card}>
         <h3 style={h3}>版本推送</h3>
-        <p style={{ ...mut, margin: '0 0 10px' }}>同学打开应用时，应用拿自己的序号和这里比：这里更大就弹更新框。每项单独保存，保存即生效。</p>
+        <p style={{ ...mut, margin: '0 0 10px' }}>同学打开应用时，应用拿自己的序号和这里比：这里更大就弹更新框。填好后点击下方「确认发布移动端版本」，系统会一次性保存并生成发布记录。</p>
         <label style={mut}>最新版本号（如 1.1）</label>
         <div className="row" style={{ gap: 8, marginBottom: 10 }}>
           <input value={vals.app_version_name ?? ''} onChange={e => setVals({ ...vals, app_version_name: e.target.value })} style={{ flex: 1 }} placeholder="1.1" />
@@ -165,7 +165,7 @@ export default function AdminAppCenter({ setMsg }: { setMsg: (s: string) => void
       <div style={card}>
         <h3 style={h3}>下载与分享</h3>
         <p style={{ ...mut, margin: '0 0 8px' }}>把链接或二维码发到班群，同学点开/扫码就能装最新版；已经装了旧版的直接覆盖安装，不用卸载。</p>
-        <div style={{ fontSize: 13, background: '#f4f6f9', borderRadius: 10, padding: '9px 11px', overflowWrap: 'anywhere', userSelect: 'text' }}>{savedUrl || '（先在上面填好下载地址并保存）'}</div>
+        <div style={{ fontSize: 13, background: '#f4f6f9', borderRadius: 10, padding: '9px 11px', overflowWrap: 'anywhere', userSelect: 'text' }}>{savedUrl || '（先在上面填写下载地址并发布版本）'}</div>
         <div className="row" style={{ gap: 8, marginTop: 10, alignItems: 'flex-start' }}>
           <button className="mini" onClick={() => void copyUrl()}>复制链接</button>
           {savedUrl && (
@@ -186,7 +186,7 @@ export default function AdminAppCenter({ setMsg }: { setMsg: (s: string) => void
         <div style={{ fontSize: 13.5, lineHeight: 1.9 }}>
           <div>1. 先把新版安装包放好（替换网站里的安装包文件，或拿到新的直链）。</div>
           <div>2. 在「版本推送」里把版本号和版本序号一起改大，序号必须比现在的大。</div>
-          <div>3. 写好更新说明，逐项点保存，保存完即生效。</div>
+          <div>3. 写好更新说明，点击「确认发布移动端版本」一次性发布。</div>
           <div>4. 想先自己验一遍：把序号临时再多加 1，打开自己的应用（装的得是旧一版）看弹不弹框，验完改回来。</div>
           <div>5. 重要版本可以打开强制更新，或把最低可用序号设成新版序号，老版本就必须更了。</div>
         </div>

@@ -6,6 +6,7 @@ import { confirmDialog } from '../lib/dialog';
 import { getSignedUrls, downscaleImage, uploadWithProgress } from '../lib/media';
 import { fetchReviewEstimates, estimateText, type ReviewEstimates } from '../lib/reviewEstimate';
 import OptionSheet from '../components/OptionSheet';
+import Daily from './Daily';
 
 // 公开列表来自 love_wall_published()，不含 author_id；自己的投稿来自表查询，只含自己的 author_id。
 type PublicPost = { id: string; recipient_name: string | null; category: string; content: string; is_anonymous: boolean; author_display_name: string | null; status: string; created_at: string };
@@ -56,6 +57,7 @@ async function cleanupUnlinkedLoveMedia(paths: string[]): Promise<boolean> {
 export default function LoveWall() {
   const { session } = useAuth();
   const [searchParams] = useSearchParams();
+  const [activeTab, setActiveTab] = useState<'confessions' | 'posts'>('confessions');
   const [posts, setPosts] = useState<PublicPost[]>([]);
   const [myPosts, setMyPosts] = useState<MyPost[]>([]);
   const [content, setContent] = useState('');
@@ -348,13 +350,30 @@ export default function LoveWall() {
   }
 
   const shown = mine ? myPosts : posts;
+  const tabStyle = (selected: boolean): React.CSSProperties => ({
+    border: selected ? '1px solid #202632' : '1px solid #e2e6ed',
+    borderRadius: 999,
+    padding: '8px 15px',
+    background: selected ? '#202632' : '#fff',
+    color: selected ? '#fff' : '#475160',
+    cursor: 'pointer',
+    fontSize: 13,
+    fontWeight: selected ? 700 : 600,
+    whiteSpace: 'nowrap',
+  });
   return <main style={{ maxWidth: 760, margin: '0 auto', padding: '12px 0 110px', color: '#202124' }}>
-    {/* 头部：只留标题与页签，发布收成一个按钮 */}
-    <div style={{ padding: '6px 2px 0' }}>
-      <div style={{ fontSize: 11, letterSpacing: 3, color: '#737b89' }}>OUR CLASS · LITTLE FEELINGS</div>
-      <h1 style={{ fontSize: 27, margin: '8px 0 4px' }}>表白墙</h1>
-      <p style={{ color: '#606673', lineHeight: 1.7, fontSize: 13, margin: 0 }}>把喜欢、感谢和没来得及说的话，留在青春档案里。</p>
-    </div>
+    <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '6px 2px 14px' }}>
+      <div style={{ minWidth: 0 }}>
+        <div style={{ fontSize: 11, letterSpacing: 3, color: '#737b89' }}>OUR CLASS · COMMUNITY</div>
+        <h1 style={{ fontSize: 27, margin: '8px 0 0' }}>{activeTab === 'confessions' ? '表白墙' : '帖子'}</h1>
+      </div>
+      <div role="tablist" aria-label="表白墙内容类型" style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+        <button type="button" role="tab" aria-selected={activeTab === 'confessions'} onClick={() => setActiveTab('confessions')} style={tabStyle(activeTab === 'confessions')}>表白墙</button>
+        <button type="button" role="tab" aria-selected={activeTab === 'posts'} onClick={() => setActiveTab('posts')} style={tabStyle(activeTab === 'posts')}>帖子</button>
+      </div>
+    </header>
+    {activeTab === 'posts' ? <Daily /> : <>
+      <p style={{ color: '#606673', lineHeight: 1.7, fontSize: 13, margin: '0 0 4px' }}>把喜欢、感谢和没来得及说的话，留在这里。</p>
 
     <div style={{ display: 'flex', gap: 8, margin: '16px 2px 14px' }}>
       <button onClick={() => setMine(false)} style={mine ? ghost : segOn}>全部心意</button>
@@ -497,6 +516,7 @@ export default function LoveWall() {
         </section>
       </div>
     )}
+    </>}
   </main>;
 }
 

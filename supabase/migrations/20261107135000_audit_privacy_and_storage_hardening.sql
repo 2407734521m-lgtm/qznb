@@ -101,8 +101,8 @@ $function$;
 
 revoke all on function public.register_love_wall_media_upload(text) from public, anon;
 grant execute on function public.register_love_wall_media_upload(text) to authenticated;
-revoke all on function public.link_love_wall_media_post(text, bigint) from public, anon;
-grant execute on function public.link_love_wall_media_post(text, bigint) to authenticated;
+revoke all on function public.link_love_wall_media_post(text, uuid) from public, anon;
+grant execute on function public.link_love_wall_media_post(text, uuid) to authenticated;
 
 drop policy if exists media_ins on storage.objects;
 create policy media_ins on storage.objects

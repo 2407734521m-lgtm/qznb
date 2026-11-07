@@ -90,12 +90,12 @@ Deno.serve(async (req: Request) => {
 
     const contentType = (upstream.headers.get('content-type') ?? '').split(';')[0].trim().toLowerCase();
     const declaredLength = Number(upstream.headers.get('content-length') ?? 0);
-    if (declaredLength > 5 * 1024 * 1024) {
+    if (declaredLength > 2 * 1024 * 1024) {
       return json(req, { ok: false, code: 'avatar_too_large' }, 413);
     }
 
     const bytes = new Uint8Array(await upstream.arrayBuffer());
-    if (bytes.byteLength === 0 || bytes.byteLength > 5 * 1024 * 1024) {
+    if (bytes.byteLength === 0 || bytes.byteLength > 2 * 1024 * 1024) {
       return json(req, { ok: false, code: 'avatar_too_large_or_empty' }, 413);
     }
     const extension = imageExtension(contentType, bytes);

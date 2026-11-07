@@ -24,6 +24,22 @@ function MessageContent({ body }: { body: string }) {
   return <>{body}</>;
 }
 
+function messageTimeLabel(value: string | number) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  return date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+}
+
+function canShowInlineMeta(body: string, hasReply: boolean) {
+  const content = body.trim();
+  return Boolean(content)
+    && !hasReply
+    && !content.startsWith('[[im-image:')
+    && !content.startsWith('[[im-audio:')
+    && !content.includes('\\n')
+    && Array.from(content).length <= 18;
+}
+
 function ClockIcon() {
   return (<svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2.4" /><path d="M12 7v5l3.2 2" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" /></svg>);
 }
@@ -827,64 +843,79 @@ export default function Chat() {
             && new Date(nextMessage.created_at).getTime() - new Date(m.created_at).getTime() <= 300000);
           const deleted = Boolean(m.deleted_at);
           const canEdit = mine && !deleted && !m.body.startsWith('[[im-image:') && !m.body.startsWith('[[im-audio:');
+          const displayBody = deleted ? (mine ? '你撤回了一条消息' : '对方撤回了一条消息') : m.body;
+          const inlineMeta = editingId !== m.id && canShowInlineMeta(displayBody, Boolean(m.reply_to_id));
+          const receiptLabel = mine && m.id === latestOutgoingMessageId && userPreferences.chat.showReadReceipts
+            ? (otherLastReadMessageId !== null && otherLastReadMessageId >= m.id ? '已读' : '已送达')
+            : '';
           return (
             <div key={m.id}>
               {dateLabel(m.created_at, msgs[i - 1]?.created_at) && <div className="im-day">{dateLabel(m.created_at, msgs[i - 1]?.created_at)}</div>}
               <div className={'im-row ' + (mine ? 'mine ' : '') + (mine && m.id === latestOutgoingMessageId && userPreferences.chat.showReadReceipts ? 'im-row-has-receipt ' : '') + (samePrevious ? 'im-row-grouped-prev ' : '') + (sameNext ? 'im-row-grouped-next ' : '') + (swappedIdsRef.current.has(m.id) ? 'im-row-static' : '')}>
-                <div className={'im-bubble ' + (mine ? 'mine' : 'theirs') + (samePrevious ? ' im-bubble-grouped-prev' : '') + (sameNext ? ' im-bubble-grouped-next' : '')}
-                  onTouchStart={event => startMessagePress(m.id, event.currentTarget)}
-                  onTouchMove={clearMessagePress}
-                  onTouchEnd={clearMessagePress}
-                  onTouchCancel={clearMessagePress}
-                  onContextMenu={event => { event.preventDefault(); openMessageActions(m.id, event.currentTarget); }}>
-                  {m.reply_to_id && <div className="im-reply-quote">回复：{messageSummary(parent)}</div>}
-                  {editingId === m.id ? (
-                    <>
-                      <textarea className="im-edit-box" value={editingText} maxLength={2000} onChange={event => setEditingText(event.target.value)} aria-label="编辑消息" />
-                      <div className="im-edit-actions">
-                        <button type="button" className="im-action-btn" onClick={() => saveEdit(m.id)}>保存</button>
-                        <button type="button" className="im-action-btn" onClick={() => { setEditingId(null); setEditingText(''); }}>取消</button>
-                      </div>
-                    </>
-                  ) : (
-                    <MessageContent body={deleted ? (mine ? '你撤回了一条消息' : '对方撤回了一条消息') : m.body} />
-                  )}
-                  {m.edited_at && !deleted && <div className="im-edited-mark">已编辑</div>}
-                  {groups.length > 0 && <div className="im-reaction-groups">
-                    {groups.map(group => {
-                      const mineReacted = group.items.some(item => item.profile_id === me);
-                      return <button key={group.reaction} type="button" className={'im-reaction-chip' + (mineReacted ? ' mine' : '')} onClick={() => toggleReaction(m.id, group.reaction)}>{group.reaction} {group.items.length}</button>;
-                    })}
+                <div className={'im-message-column ' + (mine ? 'mine' : 'theirs')}>
+                  <div className={'im-bubble ' + (mine ? 'mine' : 'theirs') + (samePrevious ? ' im-bubble-grouped-prev' : '') + (sameNext ? ' im-bubble-grouped-next' : '')}
+                    onTouchStart={event => startMessagePress(m.id, event.currentTarget)}
+                    onTouchMove={clearMessagePress}
+                    onTouchEnd={clearMessagePress}
+                    onTouchCancel={clearMessagePress}
+                    onContextMenu={event => { event.preventDefault(); openMessageActions(m.id, event.currentTarget); }}>
+                    {m.reply_to_id && <div className="im-reply-quote">回复：{messageSummary(parent)}</div>}
+                    {editingId === m.id ? (
+                      <>
+                        <textarea className="im-edit-box" value={editingText} maxLength={2000} onChange={event => setEditingText(event.target.value)} aria-label="编辑消息" />
+                        <div className="im-edit-actions">
+                          <button type="button" className="im-action-btn" onClick={() => saveEdit(m.id)}>保存</button>
+                          <button type="button" className="im-action-btn" onClick={() => { setEditingId(null); setEditingText(''); }}>取消</button>
+                        </div>
+                      </>
+                    ) : (
+                      <MessageContent body={deleted ? (mine ? '你撤回了一条消息' : '对方撤回了一条消息') : m.body} />
+                    )}
+                    {inlineMeta && <span className={'im-inline-meta ' + (mine ? 'mine' : 'theirs')}>{messageTimeLabel(m.created_at)}{receiptLabel ? ' · ' + receiptLabel : ''}</span>}
+                    {m.edited_at && !deleted && <div className="im-edited-mark">已编辑</div>}
+                    {groups.length > 0 && <div className="im-reaction-groups">
+                      {groups.map(group => {
+                        const mineReacted = group.items.some(item => item.profile_id === me);
+                        return <button key={group.reaction} type="button" className={'im-reaction-chip' + (mineReacted ? ' mine' : '')} onClick={() => toggleReaction(m.id, group.reaction)}>{group.reaction} {group.items.length}</button>;
+                      })}
+                    </div>}
+                  </div>
+                  {!inlineMeta && <div className={'im-message-footer ' + (mine ? 'mine' : 'theirs')}>
+                    <span>{messageTimeLabel(m.created_at)}</span>
+                    {receiptLabel && <span>{receiptLabel}</span>}
                   </div>}
                 </div>
-                {mine && m.id === latestOutgoingMessageId && userPreferences.chat.showReadReceipts && (
-                  <div className="im-delivery-receipt" aria-live="polite">
-                    {otherLastReadMessageId !== null && otherLastReadMessageId >= m.id ? '已读' : '已送达'}
-                  </div>
-                )}
               </div>
             </div>
           );
         })}
-        {outbox.map(e => (
+        {outbox.map(e => {
+          const inlineMeta = canShowInlineMeta(e.body, e.replyToId !== null);
+          const phaseLabel = e.phase === 'sending' ? '发送中' : e.phase === 'failed' ? '发送失败' : '已送达';
+          return (
           <div key={e.tempKey}>
             <div className="im-row mine im-row-out">
-              <div className="im-out-col">
+              <div className="im-out-col im-message-column mine">
                 <div className={'im-bubble mine' + (e.phase === 'failed' ? ' im-bubble-failed' : '')}>
                   {e.replyToId !== null && <div className="im-reply-quote">回复：{e.replySummary ?? ''}</div>}
                   <MessageContent body={e.body} />
+                  {inlineMeta && <span className="im-inline-meta mine">{messageTimeLabel(e.createdAtMs)} · {phaseLabel}</span>}
                 </div>
-                <div className="im-outbox-status">
-                  <span className={'im-send-status' + (e.phase === 'sent' ? ' sent' : '')} role="img" aria-label={e.phase === 'sending' ? '发送中' : e.phase === 'failed' ? '发送失败' : '已发送'}>
-                    {e.phase === 'sending' ? <ClockIcon /> : e.phase === 'sent' ? <SentIcon /> : null}
+                {!inlineMeta && <div className="im-message-footer mine">
+                  <span>{messageTimeLabel(e.createdAtMs)}</span>
+                  <span className="im-outbox-phase">
+                    <span className={'im-send-status' + (e.phase === 'sent' ? ' sent' : '')} aria-hidden="true">
+                      {e.phase === 'sending' ? <ClockIcon /> : e.phase === 'sent' ? <SentIcon /> : '!'}
+                    </span>
+                    {phaseLabel}
                   </span>
-                  {e.phase === 'sending' ? '发送中' : e.phase === 'failed' ? '发送失败' : '已送达'}
-                </div>
+                </div>}
                 {e.phase === 'failed' && <button type="button" className="im-retry" onClick={() => retryEntry(e.tempKey)}><span className="im-retry-dot">↻</span>点击重试</button>}
               </div>
             </div>
           </div>
-        ))}
+          );
+        })}
         </>)}
         {otherTyping && <div className="im-typing" role="status" aria-live="polite">
           <span className="im-typing-dots"><i /><i /><i /></span>

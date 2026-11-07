@@ -6,6 +6,7 @@ import { useAuth } from '../auth';
 import { useSignedUrl } from '../lib/media';
 import type { ProfileSummary as Profile } from '../types/profile';
 import { confirmDialog } from '../lib/dialog';
+import { isInApp } from '../lib/installedApp';
 import KaiboxDialog from '../components/KaiboxDialog';
 import './Board.polish.css';
 
@@ -57,6 +58,7 @@ export default function Board() {
     const { data } = await supabase.from('board_messages')
       .select('id, author_id, title, content, is_admin_msg, is_pinned, created_at')
       .is('deleted_at', null)
+      .in('audience', isInApp() ? ['all', 'app'] : ['all'])
       .or(`expires_at.is.null,expires_at.gt.${nowIso}`)
       .order('is_pinned', { ascending: false }).order('is_admin_msg', { ascending: false }).order('created_at', { ascending: false }).limit(100);
     const list = (data ?? []) as Msg[];

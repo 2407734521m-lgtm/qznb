@@ -209,6 +209,7 @@ export type Database = {
           popup_on_login: boolean
           title: string | null
           popup_times: number
+          audience: string
         }
         Insert: {
           id?: number
@@ -222,6 +223,7 @@ export type Database = {
           popup_on_login?: boolean
           title?: string | null
           popup_times?: number
+          audience?: string
         }
         Update: {
           id?: number
@@ -235,6 +237,7 @@ export type Database = {
           popup_on_login?: boolean
           title?: string | null
           popup_times?: number
+          audience?: string
         }
         Relationships: [
           {
@@ -868,6 +871,7 @@ export type Database = {
           location_share_enabled: boolean
           location_consented_at: string | null
           updated_at: string
+          client: string | null
         }
         Insert: {
           profile_id: string
@@ -876,6 +880,7 @@ export type Database = {
           location_share_enabled?: boolean
           location_consented_at?: string | null
           updated_at?: string
+          client?: string | null
         }
         Update: {
           profile_id?: string
@@ -884,6 +889,7 @@ export type Database = {
           location_share_enabled?: boolean
           location_consented_at?: string | null
           updated_at?: string
+          client?: string | null
         }
         Relationships: [
           {

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+import { isInApp } from '../lib/installedApp';
 import { useAuth } from '../auth';
 
 type SearchResult = {
@@ -70,10 +71,10 @@ export default function GlobalSearch({ open, onClose }: { open: boolean; onClose
             .is('deleted_at', null).ilike('title', pattern)
             .order('created_at', { ascending: false }).limit(4),
           supabase.from('board_messages').select('id, title, content, created_at')
-            .is('deleted_at', null).ilike('content', pattern)
+            .is('deleted_at', null).in('audience', isInApp() ? ['all', 'app'] : ['all']).ilike('content', pattern)
             .order('created_at', { ascending: false }).limit(4),
           supabase.from('board_messages').select('id, title, content, created_at')
-            .is('deleted_at', null).ilike('title', pattern)
+            .is('deleted_at', null).in('audience', isInApp() ? ['all', 'app'] : ['all']).ilike('title', pattern)
             .order('created_at', { ascending: false }).limit(4),
         ]);
         if (!alive) return;

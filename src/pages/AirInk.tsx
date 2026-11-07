@@ -324,7 +324,9 @@ export default function AirInk() {
         const palm = Math.max(.001, distance(hand[0],hand[9]));
         const point = mapPoint(hand[8],video,window.innerWidth,window.innerHeight);
         const pinchRatio = distance(hand[4],hand[8])/palm;
-        const drawing = pinchRef.current ? pinchRatio < .48 : pinchRatio < .34;
+        // 捏合灵敏度（2026-11-08 用户反馈收紧）：原进入 .34 时指尖还差约 1cm 就开始写，
+        // 改为进入 .26、松开 .38，必须真正贴近才落笔，滞回带保留防抖。
+        const drawing = pinchRef.current ? pinchRatio < .38 : pinchRatio < .26;
         if (!drawing) {
           releaseStroke();
           // 手势开关：没在写字时，拇指贴住中指/无名指/小指并保持约 0.22 秒触发一次；

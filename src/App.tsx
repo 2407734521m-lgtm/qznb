@@ -798,7 +798,7 @@ function Shell() {
     setGpsError('');
     try {
       const region = await resolveApproximateRegion();
-      const saved = await saveSharedRegion(session.user.id, region);
+      const saved = await saveSharedRegion(region);
       setGpsResult(saved);
       setGpsManualLocation('');
     } catch (error) {
@@ -813,7 +813,7 @@ function Shell() {
     setGpsBusy(true);
     setGpsError('');
     try {
-      const saved = await saveSharedRegion(session.user.id, gpsManualLocation);
+      const saved = await saveSharedRegion(gpsManualLocation);
       setGpsResult(saved);
       setGpsManualLocation('');
     } catch (error) {

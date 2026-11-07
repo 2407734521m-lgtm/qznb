@@ -95,7 +95,9 @@ Deno.serve(async (req: Request) => {
       return response({ error: '邮件频率限制暂时无法确认，请稍后重试。' }, 503);
     }
     if ((senderLimitResult.count ?? 0) >= SENDER_LIMIT_PER_DAY || (recipientLimitResult.count ?? 0) >= RECIPIENT_LIMIT_PER_DAY) {
-      return response({ ok: true, sent: false, reason: 'rate_limited' }, 429);
+      // Rate limiting is an expected delivery outcome, not a transport failure.
+      // Return 200 so the client can display the specific reason from the JSON body.
+      return response({ ok: true, sent: false, reason: 'rate_limited' });
     }
 
     const username = String(requesterResult.data?.username ?? '');

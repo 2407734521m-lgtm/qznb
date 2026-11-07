@@ -22,6 +22,8 @@ import LoginSuccessOverlay from './components/LoginSuccessOverlay';
 import bgUrl from './assets/bg.jpg';
 import emblemUrl from './assets/pingzhong-emblem.png';
 import Login from './pages/Login';
+import GuestNicknameDialog from './components/GuestNicknameDialog';
+import GuestBrowse from './pages/GuestBrowse';
 import Members from './pages/Members';
 import Member from './pages/Member';
 import MyProfile from './pages/MyProfile';
@@ -145,7 +147,7 @@ function isTabActive(tab: string, path: string) {
 
 // /admin 路由守卫：已是管理员直接进后台，否则显示独立的管理员登录页
 function AdminRoute() {
-  const { session, loading } = useAuth();
+  const { session, loading, guest, enterGuest, leaveGuest } = useAuth();
   const [role, setRole] = useState<string | null>(null);
   const [verifiedUid, setVerifiedUid] = useState<string | null>(null);
   useEffect(() => {
@@ -278,19 +280,20 @@ function MaintenanceScreen({ title, msg, hasSession, onLogout, onAccessGranted }
   </div></>);
 }
 
-function LoginClosedScreen() {
+function LoginClosedScreen({ onGuestLogin }: { onGuestLogin: () => void }) {
   const nav = useNavigate();
   return (<><div className="glow" /><div style={{ minHeight: '78vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
     <section className="login-card" style={{ width: '100%', maxWidth: 430, textAlign: 'center' }}>
       <div style={{ fontSize: 11, letterSpacing: 3, color: '#7a8494' }}>ACCESS NOTICE</div>
       <h1 style={{ fontSize: 23, margin: '12px 0' }}>登录入口暂未开放</h1>
       <p style={{ color: 'var(--mut)', lineHeight: 1.8, fontSize: 14 }}>管理员暂时关闭了登录与注册入口，请稍后再来。</p>
+      <button className="pri" style={{ marginTop: 12 }} onClick={onGuestLogin}>游客登录（仅浏览）</button>
       <button className="mini ghost" style={{ marginTop: 12 }} onClick={() => nav('/admin')}>管理员入口</button>
     </section>
   </div></>);
 }
 
-function PublicLanding({ data, onLogin }: { data: any; onLogin: () => void }) {
+function PublicLanding({ data, onLogin, onGuestLogin }: { data: any; onLogin: () => void; onGuestLogin: () => void }) {
   const nav = useNavigate();
   const notices = Array.isArray(data?.notices) ? data.notices : [];
   const title = data?.site_title || '我们的班级';
@@ -324,6 +327,7 @@ function PublicLanding({ data, onLogin }: { data: any; onLogin: () => void }) {
     <footer style={{ textAlign: 'center', padding: '22px 0 0', color: '#929aa6', fontSize: 12 }}>访客浏览模式 · 登录后可使用完整社区功能</footer>
     <div style={{ display: 'flex', justifyContent: 'center', gap: 10, marginTop: 14 }}>
       <button className="mini ghost" onClick={() => nav('/admin')}>管理员入口</button>
+      <button className="mini ghost" onClick={onGuestLogin}>游客登录</button>
       {data?.close_login_entry !== 'true' && <button className="mini ghost" onClick={onLogin}>进入账号</button>}
     </div>
   </main></>);
@@ -624,6 +628,7 @@ function Shell() {
   const [siteConfig, setSiteConfig] = useState<any>(null);
   const [siteConfigLoading, setSiteConfigLoading] = useState(true);
   const [showLogin, setShowLogin] = useState(false);
+  const [guestEntryOpen, setGuestEntryOpen] = useState(false);
   const [maintenanceAccess, setMaintenanceAccess] = useState(false);
 
   // 临时通行权保存在当前标签页，并由服务端每 5 秒复核；撤销后会自动退回维护页。
@@ -757,13 +762,26 @@ function Shell() {
     setPwReset(false);
     try { window.history.replaceState(null, '', window.location.pathname + window.location.hash); } catch {}
   }} /></>);
+  if (!session && guest) {
+    if (siteConfigLoading) return <div className="center" style={{ minHeight: '60vh' }}><FxLoader text="正在加载公开内容…" /></div>;
+    if (siteConfig?.maintenance === 'true' && !maintenanceAccess) return <MaintenanceScreen title={siteConfig.maintenance_title || ''} msg={siteConfig.maintenance_msg || ''} hasSession={false} onLogout={() => { leaveGuest(); }} onAccessGranted={() => setMaintenanceAccess(true)} />;
+    return <GuestBrowse
+      nickname={guest.nickname}
+      siteConfig={siteConfig}
+      loginOpen={showLogin}
+      loginEnabled={siteConfig?.close_login_entry !== 'true'}
+      onOpenLogin={() => setShowLogin(true)}
+      onCloseLogin={() => setShowLogin(false)}
+      onExit={() => { setShowLogin(false); leaveGuest(); }}
+    />;
+  }
   if (!session) {
     if (siteConfigLoading) return <div className="center" style={{ minHeight: '60vh' }}><FxLoader text="正在加载公开内容…" /></div>;
     if (siteConfig?.maintenance === 'true' && !maintenanceAccess) return <MaintenanceScreen title={siteConfig.maintenance_title || ''} msg={siteConfig.maintenance_msg || ''} hasSession={false} onLogout={logout} onAccessGranted={() => setMaintenanceAccess(true)} />;
-    if (showLogin && siteConfig?.close_login_entry !== 'true') return <><div className="glow" /><Login siteTitle={siteConfig?.site_title} siteSubtitle={siteConfig?.site_subtitle} /><button className="mini ghost" style={{ position: 'fixed', top: 'calc(env(safe-area-inset-top) + 12px)', right: 14, zIndex: 900 }} onClick={() => setShowLogin(false)}>返回公开首页</button></>;
-    if (siteConfig?.skip_login_screen === 'true') return <PublicLanding data={siteConfig} onLogin={() => setShowLogin(true)} />;
-    if (siteConfig?.close_login_entry === 'true') return <LoginClosedScreen />;
-    return <><div className="glow" /><Login siteTitle={siteConfig?.site_title} siteSubtitle={siteConfig?.site_subtitle} /></>;
+    if (showLogin && siteConfig?.close_login_entry !== 'true') return <><div className="glow" /><Login siteTitle={siteConfig?.site_title} siteSubtitle={siteConfig?.site_subtitle} onGuestLogin={() => setGuestEntryOpen(true)} /><button className="mini ghost" style={{ position: 'fixed', top: 'calc(env(safe-area-inset-top) + 12px)', right: 14, zIndex: 900 }} onClick={() => setShowLogin(false)}>返回公开首页</button><GuestNicknameDialog open={guestEntryOpen} onClose={() => setGuestEntryOpen(false)} onConfirm={nickname => { enterGuest(nickname); setGuestEntryOpen(false); }} /></>;
+    if (siteConfig?.skip_login_screen === 'true') return <><PublicLanding data={siteConfig} onLogin={() => setShowLogin(true)} onGuestLogin={() => setGuestEntryOpen(true)} /><GuestNicknameDialog open={guestEntryOpen} onClose={() => setGuestEntryOpen(false)} onConfirm={nickname => { enterGuest(nickname); setGuestEntryOpen(false); }} /></>;
+    if (siteConfig?.close_login_entry === 'true') return <><LoginClosedScreen onGuestLogin={() => setGuestEntryOpen(true)} /><GuestNicknameDialog open={guestEntryOpen} onClose={() => setGuestEntryOpen(false)} onConfirm={nickname => { enterGuest(nickname); setGuestEntryOpen(false); }} /></>;
+    return <><div className="glow" /><Login siteTitle={siteConfig?.site_title} siteSubtitle={siteConfig?.site_subtitle} onGuestLogin={() => setGuestEntryOpen(true)} /><GuestNicknameDialog open={guestEntryOpen} onClose={() => setGuestEntryOpen(false)} onConfirm={nickname => { enterGuest(nickname); setGuestEntryOpen(false); }} /></>;
   }
   // 维护模式：后台开关开着时，主站所有人只显示维护页（管理后台页本身不受影响）。
   if (siteConfig?.maintenance === 'true' && !isAdminPage && !maintenanceAccess) {

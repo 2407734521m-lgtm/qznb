@@ -21,6 +21,26 @@ function MessageContent({ body }: { body: string }) {
   return <>{body}</>;
 }
 
+function ClockIcon() {
+  return (<svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2.4" /><path d="M12 7v5l3.2 2" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" /></svg>);
+}
+
+function SentIcon() {
+  return (<svg width="17" height="13" viewBox="0 0 28 24" fill="none" aria-hidden="true"><path d="M2.5 13.5 8 19 18.5 6" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" /><path d="M13.5 13.5 19 19 25 11" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" /></svg>);
+}
+
+// 本地秒发队列：消息先以本地条目上屏（时钟），服务器确认后换双勾，
+// 服务器副本经 load() 回来后本地条目无缝退场；失败则留在原地变红重试。
+type OutboxEntry = {
+  tempKey: string;
+  body: string;
+  replyToId: number | null;
+  replySummary: string | null;
+  createdAtMs: number;
+  phase: 'sending' | 'sent' | 'failed';
+  realId: number | null;
+};
+
 export default function Chat() {
   const { cid } = useParams();
   const me = useAuth().session!.user.id;
@@ -30,7 +50,9 @@ export default function Chat() {
   const [name, setName] = useState(loc.state?.name ?? '聊天');
   const [msgs, setMsgs] = useState<ChatMessage[]>([]);
   const [text, setText] = useState('');
-  const [sending, setSending] = useState(false);
+  const [outbox, setOutbox] = useState<OutboxEntry[]>([]);
+  const outboxSeqRef = useRef(0);
+  const swappedIdsRef = useRef<Set<number>>(new Set());
   const [uploading, setUploading] = useState(false);
   const [recording, setRecording] = useState(false);
   const [recordSeconds, setRecordSeconds] = useState(0);
@@ -183,7 +205,18 @@ export default function Chat() {
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: firstRef.current ? 'auto' : 'smooth' });
     firstRef.current = false;
-  }, [msgs.length]);
+  }, [msgs.length, outbox.length]);
+
+  // 服务器副本已随 load() 回来、且本地条目已翻成「已发送」时，本地条目退场，
+  // 位置由服务器行接替；接替行记入 swappedIds 不再重播入场动画，避免跳一下。
+  useEffect(() => {
+    setOutbox(prev => {
+      const done = prev.filter(e => e.phase === 'sent' && e.realId !== null && msgs.some(m => m.id === e.realId));
+      if (!done.length) return prev;
+      done.forEach(e => { if (e.realId !== null) swappedIdsRef.current.add(e.realId); });
+      return prev.filter(e => !done.includes(e));
+    });
+  }, [msgs]);
 
   async function sendImage(file?: File) {
     if (!file || uploading || !cid) return;
@@ -288,29 +321,67 @@ export default function Chat() {
     }
   }
 
-  async function sendSticker(sticker: string) {
-    if (sending || uploading || !cid) return;
-    setSending(true); setError('');
-    const { error: sendError } = await supabase.from('messages')
-      .insert({ conversation_id: Number(cid), sender_id: me, body: sticker, reply_to_id: replyTarget?.id ?? null });
-    setSending(false);
-    if (sendError) { setError('贴纸发送失败，请稍后重试。'); return; }
-    setShowStickers(false);
-    setReplyTarget(null);
-    await load();
+  // 秒发：条目已在本地上屏，这里只管把内容送到服务器。
+  // 成功也要至少展示约 1.2 秒时钟再换双勾，让状态变化看得见（按交互规格的模拟延迟）；
+  // 失败不弹窗，条目原地变浅红并给出「点击重试」。
+  function dispatch(entry: OutboxEntry) {
+    const startedAt = Date.now();
+    (async () => {
+      try {
+        const { data, error: sendError } = await supabase.from('messages')
+          .insert({ conversation_id: Number(cid), sender_id: me, body: entry.body, reply_to_id: entry.replyToId })
+          .select('id').single();
+        if (sendError) throw sendError;
+        const realId = (data as { id: number }).id;
+        const wait = Math.max(0, 1200 - (Date.now() - startedAt));
+        window.setTimeout(() => {
+          if (!mountedRef.current) return;
+          setOutbox(prev => prev.map(e => e.tempKey === entry.tempKey ? { ...e, phase: 'sent', realId } : e));
+          load();
+        }, wait);
+      } catch (err) {
+        console.error('chat send failed', err);
+        if (!mountedRef.current) return;
+        setOutbox(prev => prev.map(e => e.tempKey === entry.tempKey ? { ...e, phase: 'failed' } : e));
+      }
+    })();
   }
 
-  async function send() {
-    const b = text.trim();
-    if (!b || sending) return;
-    setSending(true); setError('');
-    const { error: sendError } = await supabase.from('messages')
-      .insert({ conversation_id: Number(cid), sender_id: me, body: b.slice(0, 2000), reply_to_id: replyTarget?.id ?? null });
-    setSending(false);
-    if (sendError) { setError('发送失败，请稍后重试。'); return; }
-    setText('');
+  function retryEntry(tempKey: string) {
+    const entry = outbox.find(e => e.tempKey === tempKey);
+    if (!entry || entry.phase !== 'failed') return;
+    setOutbox(prev => prev.map(e => e.tempKey === tempKey ? { ...e, phase: 'sending' } : e));
+    dispatch(entry);
+  }
+
+  function queueOutgoing(body: string) {
+    const entry: OutboxEntry = {
+      tempKey: 'tmp-' + (++outboxSeqRef.current),
+      body,
+      replyToId: replyTarget?.id ?? null,
+      replySummary: replyTarget ? messageSummary(replyTarget) : null,
+      createdAtMs: Date.now(),
+      phase: 'sending',
+      realId: null,
+    };
+    setOutbox(prev => [...prev, entry]);
     setReplyTarget(null);
-    await load();
+    setError('');
+    dispatch(entry);
+    return entry;
+  }
+
+  function sendSticker(sticker: string) {
+    if (uploading || !cid) return;
+    queueOutgoing(sticker);
+    setShowStickers(false);
+  }
+
+  function send() {
+    const b = text.trim();
+    if (!b || !cid) return;
+    queueOutgoing(b.slice(0, 2000));
+    setText('');
     inputRef.current?.focus();
   }
 
@@ -412,8 +483,17 @@ export default function Chat() {
         .im-edit-actions{display:flex;gap:6px;margin-top:6px}
         .im-read-status{font-size:10px;opacity:.78;margin-left:4px}
         @keyframes im-arrive{from{opacity:0;transform:translateY(6px) scale(.99)}to{opacity:1;transform:translateY(0) scale(1)}}
+        .im-row-out{animation:im-send-in .26s cubic-bezier(.34,1.45,.64,1) both}
+        @keyframes im-send-in{0%{opacity:0;transform:translateY(20px) scale(.94)}70%{opacity:1;transform:translateY(-2px) scale(1.005)}100%{opacity:1;transform:translateY(0) scale(1)}}
+        .im-row-static{animation:none}
+        .im-out-col{display:flex;flex-direction:column;align-items:flex-end;min-width:0}
+        .im-bubble-failed{background:linear-gradient(135deg,#fde8e9,#fbd9dc)!important;color:#7c2d38!important;border-color:rgba(214,90,105,.45)!important}
+        .im-send-status{display:inline-flex;align-items:center;margin-left:5px;vertical-align:-2px;color:rgba(255,255,255,.78)}
+        .im-send-status.sent{color:#8df0b3}
+        .im-retry{display:inline-flex;align-items:center;gap:6px;margin-top:6px;border:0;background:transparent;color:#ff8f9b;font-size:11px;cursor:pointer;padding:2px 0}
+        .im-retry-dot{width:18px;height:18px;border-radius:50%;background:#e5484d;color:#fff;display:grid;place-items:center;font-size:12px;line-height:1;flex:none}
         @media(min-width:700px){.im-page{height:var(--im-viewport-height,100dvh);min-height:0}.im-feed{padding:24px 28px}.im-composer{padding:14px 20px}}
-        @media(max-width:600px){.im-head{gap:10px}.im-avatar{width:40px;height:40px}.im-back,.im-icon{min-width:40px;height:40px}.im-feed{padding:14px 12px 18px}.im-bubble{max-width:84%;font-size:15px}.im-composer{gap:8px}.im-plus{width:40px;height:40px}}\n        @media(prefers-reduced-motion:reduce){.im-row{animation:none}}
+        @media(max-width:600px){.im-head{gap:10px}.im-avatar{width:40px;height:40px}.im-back,.im-icon{min-width:40px;height:40px}.im-feed{padding:14px 12px 18px}.im-bubble{max-width:84%;font-size:15px}.im-composer{gap:8px}.im-plus{width:40px;height:40px}}\n        @media(prefers-reduced-motion:reduce){.im-row{animation:none}.im-row-out{animation:none}}
       `}</style>
       <header className="im-head">
         <button className="im-back" aria-label="返回" onClick={() => goBackOr(nav, '/friends')}>‹</button>
@@ -426,9 +506,9 @@ export default function Chat() {
       </header>
       {showDetails && <div className="im-details"><span>私密对话</span><span>{msgs.length} 条消息</span><span>消息会同步刷新</span></div>}
       <main className="im-feed">
-        {msgs.length === 0 ? (
+        {msgs.length === 0 && outbox.length === 0 ? (
           <div className="im-empty"><div style={{fontWeight:750,color:'#f5fbff',fontSize:16}}>新的开始</div><p style={{fontSize:13,lineHeight:1.7}}>发出第一条消息，开启你们的对话吧。</p></div>
-        ) : msgs.map((m, i) => {
+        ) : (<>{msgs.map((m, i) => {
           const parent = m.reply_to_id ? msgs.find(item => item.id === m.reply_to_id) : null;
           const groups = reactionGroups(m.id);
           const mine = m.sender_id === me;
@@ -437,7 +517,7 @@ export default function Chat() {
           return (
             <div key={m.id}>
               {dateLabel(m.created_at, msgs[i - 1]?.created_at) && <div className="im-day">{dateLabel(m.created_at, msgs[i - 1]?.created_at)}</div>}
-              <div className={'im-row ' + (mine ? 'mine' : '')}>
+              <div className={'im-row ' + (mine ? 'mine' : '') + (swappedIdsRef.current.has(m.id) ? ' im-row-static' : '')}>
                 <div className={'im-bubble ' + (mine ? 'mine' : 'theirs')}>
                   {m.reply_to_id && <div className="im-reply-quote">回复：{messageSummary(parent)}</div>}
                   {editingId === m.id ? (
@@ -476,6 +556,26 @@ export default function Chat() {
             </div>
           );
         })}
+        {outbox.map(e => (
+          <div key={e.tempKey}>
+            <div className="im-row mine im-row-out">
+              <div className="im-out-col">
+                <div className={'im-bubble mine' + (e.phase === 'failed' ? ' im-bubble-failed' : '')}>
+                  {e.replyToId !== null && <div className="im-reply-quote">回复：{e.replySummary ?? ''}</div>}
+                  <MessageContent body={e.body} />
+                  <div className="im-time">
+                    {new Date(e.createdAtMs).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}
+                    <span className={'im-send-status' + (e.phase === 'sent' ? ' sent' : '')} role="img" aria-label={e.phase === 'sending' ? '发送中' : e.phase === 'failed' ? '发送失败' : '已发送'}>
+                      {e.phase === 'sending' ? <ClockIcon /> : e.phase === 'sent' ? <SentIcon /> : null}
+                    </span>
+                  </div>
+                </div>
+                {e.phase === 'failed' && <button type="button" className="im-retry" onClick={() => retryEntry(e.tempKey)}><span className="im-retry-dot">↻</span>点击重试</button>}
+              </div>
+            </div>
+          </div>
+        ))}
+        </>)}
         <div ref={bottomRef} />
       </main>
       {error && <div className="im-error">{error}</div>}
@@ -492,7 +592,7 @@ export default function Chat() {
         <div className="im-input-wrap">
           <input ref={inputRef} className="im-input" value={text} onChange={e => setText(e.target.value)}
             placeholder={recording ? '录音中 ' + String(Math.floor(recordSeconds / 60)).padStart(2, '0') + ':' + String(recordSeconds % 60).padStart(2, '0') + ' · 点红色按钮结束' : uploading ? '正在发送媒体…' : '发送信息…'} maxLength={2000} autoComplete="off" aria-label="输入消息" />
-          <button type="submit" className="im-send" aria-label="发送消息" disabled={sending || !text.trim()}>{sending ? '…' : '↑'}</button>
+          <button type="submit" className="im-send" aria-label="发送消息" disabled={!text.trim()}>↑</button>
         </div>
       </form>
     </div>

@@ -207,11 +207,10 @@ begin
   if to_regclass('public.love_wall_comments') is not null then
     execute 'create index if not exists love_wall_comments_author_id_idx on public.love_wall_comments(author_id)';
   end if;
-end;
-  
   if to_regclass('maintenance_private.access_attempts') is not null then
     execute 'create index if not exists access_attempts_ip_time_idx on maintenance_private.access_attempts(client_ip, attempted_at desc)';
   end if;
+end;
 $indexes$;
 
 commit;

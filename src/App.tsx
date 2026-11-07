@@ -409,9 +409,9 @@ function Shell() {
     return () => { alive = false; };
   }, [session, loc.pathname]);
   useEffect(() => {
+    if (!session) { setNotifUnread(false); return; }
     let alive = true;
     const h = async () => {
-      if (!session) { setNotifUnread(false); return; }
       try {
         const { count, error } = await supabase.from('notifications')
           .select('id', { count: 'exact', head: true })
@@ -421,10 +421,15 @@ function Shell() {
         // 请求失败时保留上次红点状态。
       }
     };
+    const channel = supabase.channel('notification-badge-' + session.user.id)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: 'profile_id=eq.' + session.user.id }, h)
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'notifications', filter: 'profile_id=eq.' + session.user.id }, h)
+      .subscribe();
     window.addEventListener('notif-read', h);
     return () => {
       alive = false;
       window.removeEventListener('notif-read', h);
+      void supabase.removeChannel(channel);
     };
   }, [session]);
 

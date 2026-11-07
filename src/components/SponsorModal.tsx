@@ -7,7 +7,7 @@ export default function SponsorModal({ onClose }: { onClose: () => void }) {
 
   return (
     <div className="crop-mask" onClick={onClose}>
-      <div className="card" style={{ width: 'min(92vw, 420px)', margin: 0, maxHeight: '86vh', overflowY: 'auto' }}
+      <div className="card" style={{ width: 'min(92vw, 420px)', margin: 0, maxHeight: 'calc(100dvh - 24px)', overflowY: 'auto' }}
         onClick={e => e.stopPropagation()}>
         {!agreed ? (
           <>

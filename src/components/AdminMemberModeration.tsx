@@ -39,7 +39,7 @@ const actionLabels: Record<ActionType, string> = {
 const panel: React.CSSProperties = {
   width: '100%',
   maxWidth: 600,
-  maxHeight: '88vh',
+  maxHeight: 'calc(100dvh - 24px)',
   overflowY: 'auto',
   borderRadius: '18px 18px 0 0',
   margin: 0,

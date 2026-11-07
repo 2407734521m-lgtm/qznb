@@ -1,0 +1,53 @@
+/* 全屏高弹窗（2026-11-07 用户定）：手机上长内容弹窗不再困在七八成高的小框里
+   内部滚动，统一把高度上限提到近全屏，一层滚动尽量一滑到底。
+   短内容弹窗按内容自适应，max-height 只是上限、不受影响。
+   本文件在 main.tsx 末位导入，覆盖各样式表里的旧限高。 */
+
+@media (max-width: 899px) {
+  /* 后台成员/账号详情等弹窗（原 86–88dvh） */
+  .admin-shell-v3 .admin-content .admin-modal-overlay .admin-modal-card {
+    max-height: calc(100dvh - 24px) !important;
+  }
+  /* 后台命令面板与它的结果列表（原 72dvh） */
+  .admin-shell-v3 .admin-command-palette {
+    max-height: calc(100dvh - 32px) !important;
+  }
+  .admin-shell-v3 .admin-command-results {
+    max-height: calc(100dvh - 148px) !important;
+  }
+  /* 后台移动端「更多」面板（原 68dvh） */
+  .admin-mobile-more {
+    max-height: calc(100dvh - 24px) !important;
+  }
+}
+
+@media (max-width: 700px) {
+  /* 全站搜索面板（原 78–82vh，含顶部大留白） */
+  .global-search-backdrop {
+    padding: max(12px, env(safe-area-inset-top)) 12px 12px !important;
+  }
+  .global-search-panel {
+    max-height: calc(100dvh - 24px) !important;
+  }
+  /* 指尖生花 / 空中书写开始前的设置面板（原约 70dvh） */
+  .bloom-page:not(.is-active) .bloom-intro.bloom-control-panel {
+    max-height: calc(100dvh - 84px - env(safe-area-inset-top)) !important;
+  }
+  /* 应用更新框里的更新说明区（原 38vh 小框内滚） */
+  .qz-update-notes {
+    max-height: calc(100dvh - 230px) !important;
+  }
+}
+
+@media (max-width: 600px) {
+  /* 私聊长按操作面板（原 72dvh 底部抽屉） */
+  .im-context-sheet {
+    max-height: calc(100dvh - 20px) !important;
+  }
+}
+
+/* 时光胶囊信件：取消信纸小框内部滚动（原 70dvh），整页一次滚到底 */
+.capsule-letter {
+  max-height: none !important;
+  overflow-y: visible !important;
+}

@@ -433,7 +433,7 @@ export default function LoveWall() {
         style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(16,20,28,.45)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}
         onClick={() => !busy && setComposing(false)}>
         <section onClick={e => e.stopPropagation()}
-          style={{ width: '100%', maxWidth: 620, maxHeight: '88dvh', overflowY: 'auto', background: '#fff', borderRadius: '22px 22px 0 0', padding: '18px 18px calc(18px + env(safe-area-inset-bottom))', boxSizing: 'border-box' }}>
+          style={{ width: '100%', maxWidth: 620, maxHeight: 'calc(100dvh - 12px)', overflowY: 'auto', background: '#fff', borderRadius: '22px 22px 0 0', padding: '18px 18px calc(18px + env(safe-area-inset-bottom))', boxSizing: 'border-box' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <b style={{ fontSize: 16 }}>写表白</b>
             <button onClick={() => !busy && setComposing(false)} aria-label="关闭" style={{ border: 0, background: '#f2f4f7', width: 32, height: 32, borderRadius: '50%', cursor: 'pointer', fontSize: 14, color: '#333946' }}>✕</button>

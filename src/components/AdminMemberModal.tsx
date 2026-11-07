@@ -116,7 +116,7 @@ export default function AdminMemberModal({ memberId, onClose, onChanged, isSuper
   return (
     <div className="admin-modal-overlay" style={{ position: 'fixed', inset: 0, zIndex: 200, background: '#000a', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
       <div className="card admin-modal-card" onClick={e => e.stopPropagation()}
-        style={{ width: '100%', maxWidth: 560, maxHeight: '88vh', overflowY: 'auto', borderRadius: '18px 18px 0 0', margin: 0 }}>
+        style={{ width: '100%', maxWidth: 560, maxHeight: 'calc(100dvh - 24px)', overflowY: 'auto', borderRadius: '18px 18px 0 0', margin: 0 }}>
         <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
           <h3 style={{ margin: 0 }}>成员详情</h3>
           <button className="mini" onClick={onClose}>关闭</button>

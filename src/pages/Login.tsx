@@ -544,7 +544,7 @@ export default function Login({ siteTitle, siteSubtitle, onGuestLogin }: { siteT
         </motion.div>
       </div>
       {showPrivacyPolicy && <div role="dialog" aria-modal="true" aria-labelledby="privacy-policy-title" onClick={() => setShowPrivacyPolicy(false)} style={{ position: 'fixed', inset: 0, zIndex: 500, background: 'rgba(0,0,0,.78)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, backdropFilter: 'blur(8px)' }}>
-        <section onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: 620, maxHeight: '85vh', overflowY: 'auto', padding: 22, borderRadius: 18, color: '#f4f6ff', background: 'linear-gradient(160deg,#171d35,#0b1020)', border: '1px solid rgba(255,255,255,.16)', boxShadow: '0 24px 70px #000b' }}>
+        <section onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: 620, maxHeight: 'calc(100dvh - 24px)', overflowY: 'auto', padding: 22, borderRadius: 18, color: '#f4f6ff', background: 'linear-gradient(160deg,#171d35,#0b1020)', border: '1px solid rgba(255,255,255,.16)', boxShadow: '0 24px 70px #000b' }}>
           <h2 id="privacy-policy-title" style={{ margin: '0 0 8px', fontSize: 22 }}>隐私政策与用户协议</h2>
           <p className="priv-note">版本：{PRIVACY_POLICY_VERSION} · 请认真阅读后再决定是否同意</p>
           <h3>一、我们可能处理的信息</h3>

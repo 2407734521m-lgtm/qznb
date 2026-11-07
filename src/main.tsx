@@ -30,6 +30,7 @@ import './styles-dock-rdev.css';
 
 /* 深色残留清理：全站页头横幅与成员页搜索框统一浅色，必须最后加载。 */
 import './styles-light-cleanup.css';
+import './styles-fullheight-dialogs.css';
 
 /* Canonical public-site design system; keep last to prevent legacy theme collisions. */
 import './styles-quiet-premium.css';

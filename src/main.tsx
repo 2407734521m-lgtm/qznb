@@ -11,14 +11,11 @@ import ErrorBoundary from './components/ErrorBoundary';
 import TestSwitchFab from './components/TestSwitchFab';
 /* Global foundation and legacy compatibility sheets. Keep their order stable. */
 import './styles.css';
-import './styles-cinematic.css';
 import './styles-editorial.css';
 import './styles-desktop.css';
-import './styles-premium.css';
 import './styles-motion-polish.css';
 import './styles-particle-flower.css';
 import './styles-visual-rules.css';
-import './styles-liquid-glass.css';
 import './styles-liquid-backdrop.css';
 
 /* Canonical material tokens load after legacy themes and before their components. */
@@ -33,6 +30,9 @@ import './styles-dock-rdev.css';
 
 /* 深色残留清理：全站页头横幅与成员页搜索框统一浅色，必须最后加载。 */
 import './styles-light-cleanup.css';
+
+/* Canonical public-site design system; keep last to prevent legacy theme collisions. */
+import './styles-quiet-premium.css';
 
 // 只有精确匹配的管理员域名可以挂载后台；其他任何域名都不能加载 AdminShell。
 const isAdminHost = window.location.hostname.toLowerCase() === 'admin.qianzhi.pw';

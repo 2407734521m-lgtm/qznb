@@ -867,6 +867,10 @@ function Shell() {
           zIndex: 50,
           display: 'block',
           width: 'max-content',
+          // LiquidGlass defaults to height: 100%; a fixed-position Dock must override it,
+          // otherwise the glass surface fills the viewport and its nav sticks to the top.
+          height: '66px',
+          minHeight: '66px',
           maxWidth: 'calc(100vw - 28px)',
         }}
       >
@@ -948,6 +952,9 @@ function Shell() {
                 transform: 'translateX(-50%)',
                 zIndex: 61,
                 width: 'min(420px, calc(100vw - 28px))',
+                // Let the quick panel size to its content instead of inheriting 100vh.
+                height: 'auto',
+                maxHeight: 'calc(100dvh - 120px)',
                 display: 'block',
               }}
             >

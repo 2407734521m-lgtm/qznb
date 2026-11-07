@@ -19,6 +19,7 @@ import ShinyText from './components/fx/ShinyText';
 import FxLoader from './components/fx/Loader';
 import WelcomeOverlay from './components/WelcomeOverlay';
 import GuideCarousel from './components/GuideCarousel';
+import AppUpdateDialog from './components/AppUpdateDialog';
 import LoginSuccessOverlay from './components/LoginSuccessOverlay';
 import bgUrl from './assets/bg.jpg';
 import emblemUrl from './assets/pingzhong-emblem.png';
@@ -363,6 +364,17 @@ function Shell() {
   const quietHoursActive = useQuietHoursActive(session?.user.id);  const [role, setRole] = useState('');
   const loc = useLocation();
   const emblem = emblemSpot(loc.pathname);
+  // 安卓应用更新：应用壳在 UA 里带 QianzhiApp/版本名 (序号)，与后台最新版本比对后弹更新框。
+  const [appUpdate, setAppUpdate] = useState<any>(null);
+  const [updateDismissed, setUpdateDismissed] = useState(false);
+  useEffect(() => {
+    if (!/QianzhiApp\//.test(navigator.userAgent)) return;
+    let alive = true;
+    supabase.rpc('public_app_update').then(({ data, error }) => {
+      if (alive && !error && data) setAppUpdate(data);
+    });
+    return () => { alive = false; };
+  }, []);
   const systemReduce = useReducedMotion();
   const [motionPreference, setMotionPreference] = useState<'system' | 'reduce' | 'full'>(() => {
     try { return (localStorage.getItem('qznb_motion_preference_v1') as 'system' | 'reduce' | 'full') || 'system'; } catch { return 'system'; }
@@ -883,6 +895,18 @@ function Shell() {
     ),
   }));
   const activeDockItem = TABS.find((tab) => isTabActive(tab.to, loc.pathname))?.to ?? TABS[0].to;
+  const uaMatch = navigator.userAgent.match(/QianzhiApp\/([0-9.]+) \((\d+)\)/);
+  const installedApp = uaMatch ? { name: uaMatch[1], code: Number(uaMatch[2]) } : null;
+  const latestAppCode = appUpdate ? Number(appUpdate.app_version_code || 0) : 0;
+  const appForce = appUpdate?.app_force_update === 'true';
+  let appIgnored = false;
+  try { appIgnored = localStorage.getItem('qz_app_update_ignored') === String(latestAppCode); } catch { /* storage unavailable */ }
+  const showAppUpdate = !!installedApp && !!appUpdate && latestAppCode > installedApp.code
+    && !!appUpdate.app_apk_url && !updateDismissed && (appForce || !appIgnored);
+  const ignoreAppUpdate = () => {
+    try { localStorage.setItem('qz_app_update_ignored', String(latestAppCode)); } catch { /* storage unavailable */ }
+    setUpdateDismissed(true);
+  };
 
   return (
     <LiquidGlassScene className="qz-ios26-scene">
@@ -893,6 +917,9 @@ function Shell() {
         : { backgroundImage: `url(${wp.src === 'default' ? bgUrl : wp.src})`, filter: `blur(${wp.blur}px) brightness(${100 - wp.dark}%)` }} />
       {emblem && <img src={emblemUrl} alt="" aria-hidden draggable={false}
         style={{ position: 'absolute', top: emblem.top, right: emblem.right, width: emblem.width, opacity: emblem.opacity, pointerEvents: 'none', userSelect: 'none', zIndex: 30 }} />}
+      {showAppUpdate && installedApp && appUpdate && (
+        <AppUpdateDialog currentName={installedApp.name} info={appUpdate} onIgnore={ignoreAppUpdate} />
+      )}
       {isAdminPage ? (
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', position: 'sticky', top: 0, zIndex: 40, background: 'rgba(255,255,255,.92)', backdropFilter: 'blur(12px)', borderBottom: '1px solid #e8eaf0' }}>
           <b style={{ fontSize: 15 }}>管理后台</b>

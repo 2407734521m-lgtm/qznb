@@ -377,6 +377,42 @@ export default function Settings({ me, setMsg }: { me: string; setMsg: (s: strin
     </div>
 
     <div style={card}>
+      <h3 style={h3}>应用更新（安卓 App）</h3>
+      <p style={mut}>同学打开应用时，应用会拿自己的版本和这里的最新版本比对：版本序号更高就弹更新框。发新版时先把新安装包放到下载地址，再改版本号、序号和说明保存。序号只能往大改，改小或相同不会推送；现在装的 1.0 版没有版本标识、收不到推送，需手动装一次 1.1，之后都能这样推。</p>
+      <label style={mut}>最新版本号（如 1.1）</label>
+      <div className="row" style={{ gap: 8, marginBottom: 10 }}>
+        <input value={vals.app_version_name ?? ''} onChange={e => setVals({ ...vals, app_version_name: e.target.value })} style={{ flex: 1 }} placeholder="1.1" />
+        <button className="mini" onClick={() => save('app_version_name', (vals.app_version_name ?? '').trim())}>保存</button>
+      </div>
+      <label style={mut}>版本序号（整数，装机序号低于它才推送）</label>
+      <div className="row" style={{ gap: 8, marginBottom: 10 }}>
+        <input value={vals.app_version_code ?? ''} inputMode="numeric" onChange={e => setVals({ ...vals, app_version_code: e.target.value.replace(/[^0-9]/g, '') })} style={{ flex: 1 }} placeholder="2" />
+        <button className="mini" onClick={() => { const v = (vals.app_version_code ?? '').trim(); if (!/^\d+$/.test(v)) { setMsg('版本序号必须是整数'); return; } save('app_version_code', v); }}>保存</button>
+      </div>
+      <label style={mut}>安装包下载地址</label>
+      <div className="row" style={{ gap: 8, marginBottom: 10 }}>
+        <input value={vals.app_apk_url ?? ''} onChange={e => setVals({ ...vals, app_apk_url: e.target.value })} style={{ flex: 1 }} placeholder="https://qianzhi.pw/app/qingchun-dangan.apk" />
+        <button className="mini" onClick={() => save('app_apk_url', (vals.app_apk_url ?? '').trim())}>保存</button>
+      </div>
+      <label style={mut}>更新说明（显示在更新框里，可多行）</label>
+      <textarea value={vals.app_update_notes ?? ''} onChange={e => setVals({ ...vals, app_update_notes: e.target.value })} rows={5} style={{ width: '100%', marginBottom: 8 }} placeholder={'比如：\n新增了……\n修复了……'} />
+      <div className="row" style={{ gap: 8, marginBottom: 10 }}>
+        <button className="mini" onClick={() => save('app_update_notes', vals.app_update_notes ?? '')}>保存说明</button>
+      </div>
+      <div className="row" style={{ gap: 8, alignItems: 'center' }}>
+        <span style={{ fontSize: 13.5 }}>强制更新（不能忽略）</span>
+        <button className={'mini' + (vals.app_force_update === 'true' ? '' : ' ghost')}
+          onClick={async () => {
+            const next = vals.app_force_update === 'true' ? 'false' : 'true';
+            if (next === 'true' && !(await confirmDialog('开启强制更新后，旧版应用一打开就被更新框挡住，只能更新、不能忽略。确定开启？', { confirmText: '确认开启', danger: true }))) return;
+            save('app_force_update', next);
+          }}>
+          {vals.app_force_update === 'true' ? '开' : '关'}
+        </button>
+      </div>
+    </div>
+
+    <div style={card}>
       <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
         <h3 style={h3}>全站功能开关中心</h3>
         <span style={{ ...mut, fontSize: 11 }}>数据库权限强制执行</span>

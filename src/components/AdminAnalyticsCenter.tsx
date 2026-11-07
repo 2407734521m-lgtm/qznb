@@ -84,7 +84,7 @@ function TrendChart({ data }: { data: DailyPoint[] }) {
       {ticks.map(tick => {
         const yy = y(tick);
         return <g key={tick}>
-          <line x1={left} x2={width - right} y1={yy} y2={yy} stroke="#ffffff18" strokeDasharray="3 5" />
+          <line x1={left} x2={width - right} y1={yy} y2={yy} stroke="rgba(34,49,74,.10)" strokeDasharray="3 5" />
           <text x={left - 7} y={yy + 3} fill="#8491a5" fontSize="9" textAnchor="end">{tick.toLocaleString()}</text>
         </g>;
       })}

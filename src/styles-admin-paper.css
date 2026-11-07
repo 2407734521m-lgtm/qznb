@@ -1,0 +1,346 @@
+/* 管理后台 · 纸面主题（2026-11-08，去AI味第四批，用户点选「后台也改成纸面风」）
+   在 Admin.tsx 里最后导入，压过 cinematic/unified/scaffold/tokens/pages/contrast。
+   思路与前台一致：暖纸底、墨色字、细线边、藏青主色、印泥红只做小点缀；
+   玻璃模糊、蓝青渐变、发光一律撤掉。布局与交互不动。 */
+
+/* ===== 1. 设计变量翻成纸面 ===== */
+.admin-shell-v3 {
+  --admin-bg-0: #f6f1e7;
+  --admin-bg-1: #fffdf9;
+  --admin-bg-2: #f1e9d8;
+  --admin-surface: #fffdf9;
+  --admin-surface-muted: #faf6ec;
+  --admin-field-bg: #fffdf9;
+  --admin-shadow-card: 0 6px 18px rgba(60, 48, 20, .05);
+  --admin-line: rgba(34, 49, 74, .13);
+  --admin-border: rgba(34, 49, 74, .16);
+  --admin-text: #22314a;
+  --admin-ink: #22314a;
+  --admin-muted: #6d6a5e;
+  --admin-muted-ink: #6d6a5e;
+  --admin-accent: #22314a;
+  --admin-accent-soft: rgba(34, 49, 74, .07);
+  --admin-teal: #22314a;
+  background: #f6f1e7;
+}
+
+/* ===== 2. 外壳：工作区 / 侧边栏 / 顶栏 ===== */
+.admin-shell-v3 .admin-workspace {
+  color: #22314a;
+  background: #f6f1e7;
+}
+.admin-shell-v3 .admin-sidebar {
+  color: #22314a;
+  background: #fffdf9;
+  border-right-color: rgba(34, 49, 74, .13);
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+.admin-shell-v3 .admin-brand-mark {
+  color: #fffdf9;
+  background: #22314a;
+  border-color: #22314a;
+  box-shadow: none;
+}
+.admin-shell-v3 .admin-brand-copy strong,
+.admin-shell-v3 .admin-sidebar-account-copy strong { color: #22314a; }
+.admin-shell-v3 .admin-brand-copy span,
+.admin-shell-v3 .admin-sidebar-caption,
+.admin-shell-v3 .admin-sidebar-account-copy small { color: #8a8271; }
+.admin-shell-v3 .admin-nav-group-title { color: #8a8271; }
+.admin-shell-v3 .admin-nav-group-title:hover { color: #22314a; }
+.admin-shell-v3 .admin-nav-group-title > svg { color: #a39a83; }
+.admin-shell-v3 .admin-nav-item { color: #54606f; }
+.admin-shell-v3 .admin-nav-item:hover { color: #22314a; background: #f7f2e4; }
+.admin-shell-v3 .admin-nav-item.is-active {
+  color: #22314a;
+  background: #f3ead6;
+  border-color: rgba(34, 49, 74, .10);
+  box-shadow: none;
+}
+.admin-shell-v3 .admin-nav-item.is-active:before { background: #b0404f; box-shadow: none; }
+.admin-shell-v3 .admin-nav-icon,
+.admin-shell-v3 .admin-nav-item.is-active .admin-nav-icon { color: #54687f; }
+.admin-shell-v3 .admin-nav-active-dot { background: #b0404f; box-shadow: none; }
+.admin-shell-v3 .admin-sidebar-avatar {
+  color: #22314a; background: #f3ead6; border-color: rgba(34, 49, 74, .14);
+}
+.admin-shell-v3 .admin-sidebar-logout {
+  color: #b0404f; background: #fdf1f1; border-color: rgba(176, 64, 79, .28);
+}
+.admin-shell-v3 .admin-sidebar-logout:hover {
+  color: #93333f; background: #fbe7e8; border-color: rgba(176, 64, 79, .4);
+}
+.admin-shell-v3 .admin-workspace-main { background: #f6f1e7; }
+.admin-shell-v3 .admin-console-topbar {
+  color: #43536a;
+  background: #fffdf9;
+  border-bottom-color: rgba(34, 49, 74, .13);
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+.admin-shell-v3 .admin-console-icon-button {
+  color: #54687f; background: #fffdf9; border-color: rgba(34, 49, 74, .16);
+  box-shadow: none;
+}
+.admin-shell-v3 .admin-console-icon-button:hover {
+  color: #22314a; background: #f7f2e4; border-color: rgba(34, 49, 74, .3);
+}
+.admin-shell-v3 .admin-console-breadcrumb { color: #8a8271; }
+.admin-shell-v3 .admin-console-breadcrumb > strong { color: #22314a; }
+.admin-shell-v3 .admin-command-trigger {
+  color: #6d6a5e; background: #fffdf9; border-color: rgba(34, 49, 74, .16); box-shadow: none;
+}
+.admin-shell-v3 .admin-command-trigger:hover {
+  color: #22314a; border-color: rgba(34, 49, 74, .32); background: #faf6ec;
+}
+.admin-shell-v3 .admin-command-trigger kbd {
+  color: #8a8271; background: #faf6ec; border-color: rgba(34, 49, 74, .14);
+}
+.admin-shell-v3 .admin-console-role {
+  color: #54687f; background: #faf6ec; border-color: rgba(34, 49, 74, .14);
+}
+.admin-shell-v3 .admin-console-logout { color: #6d6a5e; }
+.admin-shell-v3 .admin-console-logout:hover { color: #b0404f; background: #fdf1f1; }
+.admin-shell-v3 .admin-page-eyebrow { color: #a39a83; }
+.admin-shell-v3 .admin-page-heading h1 { color: #22314a; }
+.admin-shell-v3 .admin-page-heading p { color: #6d6a5e; }
+.admin-shell-v3 .admin-header { border-bottom-color: rgba(34, 49, 74, .13) !important; }
+.admin-shell-v3 .admin-header-title { color: #22314a !important; }
+
+/* ===== 3. 手机端条：快捷栏 / 底部 dock ===== */
+.admin-shell-v3 .admin-mobile-quickbar {
+  background: #fffdf9;
+  border-color: rgba(34, 49, 74, .13);
+  box-shadow: 0 -6px 20px rgba(60, 48, 20, .06);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+.admin-shell-v3 .admin-mobile-quick-item { color: #8a8271; }
+.admin-shell-v3 .admin-mobile-quick-item.is-active { color: #22314a; }
+.admin-shell-v3 .admin-mobile-quick-item.is-active .admin-mobile-quick-icon { background: #f3ead6; }
+.admin-shell-v3 .admin-dock {
+  background: #fffdf9 !important;
+  border-color: rgba(34, 49, 74, .14) !important;
+  box-shadow: 0 -6px 20px rgba(60, 48, 20, .08) !important;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+.admin-shell-v3 .admin-dock button { color: #6d6a5e !important; }
+.admin-shell-v3 .admin-dock button[aria-current="page"],
+.admin-shell-v3 .admin-mobile-dock button[aria-current="page"],
+.admin-shell-v3 .admin-mobile-dock button.active {
+  color: #ffffff !important;
+  background: #22314a !important;
+  background-image: none !important;
+  border-color: #22314a !important;
+  box-shadow: none !important;
+}
+.admin-shell-v3 .admin-sidebar-scrim { background: rgba(34, 40, 30, .3); }
+.admin-shell-v3 .admin-command-overlay { background: rgba(34, 40, 30, .32); }
+
+/* ===== 4. 命令面板 ===== */
+.admin-shell-v3 .admin-command-palette {
+  color: #22314a;
+  background: #fffdf9;
+  border-color: rgba(34, 49, 74, .16);
+  box-shadow: 0 24px 60px rgba(60, 48, 20, .18);
+}
+.admin-shell-v3 .admin-command-input-wrap { border-bottom-color: rgba(34, 49, 74, .12); }
+.admin-shell-v3 .admin-command-input-wrap > svg { color: #a39a83; }
+.admin-shell-v3 .admin-command-input-wrap input { color: #22314a; }
+.admin-shell-v3 .admin-command-result { color: #43536a; }
+.admin-shell-v3 .admin-command-result:hover,
+.admin-shell-v3 .admin-command-result.is-active { color: #22314a; background: #f3ead6; }
+.admin-shell-v3 .admin-command-result-icon { color: #54687f; background: #faf6ec; }
+.admin-shell-v3 .admin-command-result-copy strong { color: #22314a; }
+.admin-shell-v3 .admin-command-result-copy small,
+.admin-shell-v3 .admin-command-foot,
+.admin-shell-v3 .admin-command-empty { color: #8a8271; }
+.admin-shell-v3 .admin-command-palette kbd {
+  color: #8a8271; background: #faf6ec; border-color: rgba(34, 49, 74, .14);
+}
+.admin-shell-v3 .admin-command-palette button:focus-visible,
+.admin-shell-v3 .admin-command-palette input:focus-visible { outline-color: #22314a; }
+
+/* ===== 5. 正文基调 ===== */
+.admin-shell-v3 .admin-content { color: #2c3a52 !important; }
+.admin-shell-v3 .admin-content h2,
+.admin-shell-v3 .admin-content h3,
+.admin-shell-v3 .admin-content strong,
+.admin-shell-v3 .admin-content b { color: #22314a; }
+.admin-shell-v3 .admin-content p,
+.admin-shell-v3 .admin-content label { color: #5d6055 !important; }
+.admin-shell-v3 label { color: #5d6055; }
+
+/* ===== 6. 按钮：主按钮藏青纯色，其余纸面 ===== */
+.admin-shell-v3 .admin-content button.pri,
+.admin-shell-v3 .admin-content button.mini:not(.ghost):not(.danger),
+.admin-shell-v3 .admin-content .admin-analytics-page button.pri,
+.admin-shell-v3 .admin-content .admin-announcements-page button.pri,
+.admin-shell-v3 .admin-content .admin-approvals-page button:not(.ghost):not(.danger),
+.admin-shell-v3 .admin-content .admin-security-page button:not(.ghost):not(.danger),
+.admin-shell-v3 .admin-content .admin-system-page button:not(.ghost):not(.danger),
+.admin-shell-v3 .admin-content .admin-release-page button:not(.ghost):not(.danger),
+.admin-shell-v3 .admin-content .admin-backup-page button:not(.ghost):not(.danger),
+.admin-shell-v3 .admin-content .admin-logs-page button:not(.ghost):not(.danger),
+.admin-shell-v3 .admin-content .admin-settings-page button:not(.ghost):not(.danger) {
+  color: #ffffff !important;
+  background: #22314a !important;
+  background-image: none !important;
+  border: 1px solid #22314a !important;
+  box-shadow: none !important;
+}
+.admin-shell-v3 button.pri {
+  background-image: none !important;
+  background-color: #22314a !important;
+}
+.admin-shell-v3 .admin-content button.mini,
+.admin-shell-v3 .admin-content button.ghost {
+  color: #43536a !important;
+  background: #ffffff !important;
+  border: 1px solid rgba(34, 49, 74, .18) !important;
+  box-shadow: none !important;
+}
+.admin-shell-v3 .admin-content button.ghost:hover,
+.admin-shell-v3 .admin-content button.mini.ghost:hover,
+.admin-shell-v3 .admin-content button.mini:hover {
+  color: #22314a;
+  background: #f7f2e4;
+  border-color: rgba(34, 49, 74, .32);
+}
+.admin-shell-v3 .admin-content .admin-settings-page button.ghost {
+  color: #43536a !important;
+  background: #ffffff !important;
+  border: 1px solid rgba(34, 49, 74, .18) !important;
+}
+.admin-shell-v3 .admin-content button.danger,
+.admin-shell-v3 .admin-content .admin-announcements-page button.danger,
+.admin-shell-v3 .admin-content .admin-approvals-page button.danger {
+  color: #b0404f !important;
+  background: #fdf1f1 !important;
+  border: 1px solid rgba(176, 64, 79, .32) !important;
+}
+.admin-shell-v3 .admin-content [aria-pressed="true"] {
+  color: #22314a !important;
+  background: #f3ead6 !important;
+  border-color: rgba(34, 49, 74, .3) !important;
+}
+.admin-shell-v3 .admin-member-search label { color: #5d6055; }
+.admin-shell-v3 .admin-member-search-control {
+  background: #fffdf9; border-color: rgba(34, 49, 74, .16); box-shadow: none;
+}
+.admin-shell-v3 .admin-member-search-control > svg { color: #a39a83; }
+.admin-shell-v3 .admin-member-search-control input { color: #22314a; }
+.admin-shell-v3 .admin-member-search-control input::placeholder { color: #a39a83; }
+.admin-shell-v3 .admin-member-search-control button { background: #22314a; }
+.admin-shell-v3 .admin-member-search-control button:hover { background: #2e415f; }
+
+/* ===== 7. 表单 ===== */
+.admin-shell-v3 .admin-search input {
+  background: #fffdf9 !important;
+  border-color: rgba(34, 49, 74, .16) !important;
+  color: #22314a !important;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+.admin-shell-v3 .admin-search input::placeholder { color: #a39a83 !important; }
+.admin-shell-v3 .admin-content input,
+.admin-shell-v3 .admin-content textarea,
+.admin-shell-v3 .admin-content select {
+  background-color: #ffffff;
+  border-color: rgba(34, 49, 74, .18);
+  color: #22314a;
+}
+.admin-shell-v3 .admin-content input::placeholder,
+.admin-shell-v3 .admin-content textarea::placeholder { color: #a39a83 !important; }
+.admin-shell-v3 .admin-content input:focus,
+.admin-shell-v3 .admin-content textarea:focus,
+.admin-shell-v3 .admin-content select:focus {
+  border-color: rgba(34, 49, 74, .55) !important;
+  box-shadow: 0 0 0 3px rgba(34, 49, 74, .12) !important;
+}
+.admin-shell-v3 button:focus-visible,
+.admin-shell-v3 input:focus-visible,
+.admin-shell-v3 textarea:focus-visible,
+.admin-shell-v3 select:focus-visible { outline-color: #22314a; }
+.admin-shell-v3 input[type="checkbox"],
+.admin-shell-v3 input[type="radio"] { accent-color: #22314a; }
+
+/* ===== 8. 批量操作条（原深青渐变）===== */
+.admin-shell-v3 .admin-account-batchbar-active,
+.admin-shell-v3 .admin-moderation-batchbar {
+  background: #faf6ec;
+  background-image: none;
+  border-color: rgba(34, 49, 74, .18);
+  box-shadow: 0 8px 20px rgba(60, 48, 20, .08);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+.admin-shell-v3 .admin-moderation-batchbar-copy strong { color: #22314a; }
+.admin-shell-v3 .admin-moderation-batchbar-copy span { color: #6d6a5e; }
+.admin-shell-v3 .admin-moderation-item-select { color: #5d6055; }
+
+/* ===== 9. 总览卡片 ===== */
+.admin-shell-v3 .admin-content .admin-overview-panel,
+.admin-shell-v3 .admin-content .admin-overview-metric-card,
+.admin-shell-v3 .admin-content .admin-overview-todo > div {
+  color: #22314a !important;
+  background: #fffdf9 !important;
+  border: 1px solid rgba(34, 49, 74, .13) !important;
+  box-shadow: 0 6px 18px rgba(60, 48, 20, .05) !important;
+}
+.admin-shell-v3 .admin-content .admin-overview-header h2 { color: #22314a !important; }
+.admin-shell-v3 .admin-overview-shortcuts > button {
+  background: #fffdf9;
+  background-image: none;
+  color: #22314a;
+  border-color: rgba(34, 49, 74, .14);
+  box-shadow: none;
+}
+.admin-shell-v3 .admin-overview-shortcuts > button:hover {
+  background: #faf6ec;
+  border-color: rgba(34, 49, 74, .3);
+  box-shadow: 0 6px 16px rgba(60, 48, 20, .07);
+}
+.admin-shell-v3 .admin-overview-member-avatar {
+  color: #22314a;
+  background: #ece4d0;
+  border-color: rgba(34, 49, 74, .14);
+}
+.admin-shell-v3 .admin-loading-pulse {
+  background: #22314a !important;
+  box-shadow: 0 0 0 0 rgba(34, 49, 74, .25);
+}
+.admin-shell-v3 .admin-overview-timeout {
+  color: #6b5312 !important;
+  background: #faf3da !important;
+  border-color: rgba(146, 118, 52, .35) !important;
+}
+.admin-shell-v3 .admin-overview-timeout p { color: #6b5312 !important; }
+.admin-shell-v3 .admin-overview-timeout button {
+  color: #ffffff !important; background: #22314a !important; border-color: #22314a !important;
+}
+
+/* ===== 10. 内联渐变块一律压平（旧组件残留） ===== */
+.admin-shell-v3 .admin-content [style*="linear-gradient"] {
+  background-image: none !important;
+  background-color: #fffdf9 !important;
+}
+.admin-shell-v3 .admin-content [style*="linear-gradient"] h1,
+.admin-shell-v3 .admin-content [style*="linear-gradient"] h2,
+.admin-shell-v3 .admin-content [style*="linear-gradient"] h3,
+.admin-shell-v3 .admin-content [style*="linear-gradient"] h4,
+.admin-shell-v3 .admin-content [style*="linear-gradient"] strong,
+.admin-shell-v3 .admin-content [style*="linear-gradient"] b { color: #22314a !important; }
+.admin-shell-v3 .admin-content [style*="linear-gradient"] p,
+.admin-shell-v3 .admin-content [style*="linear-gradient"] label { color: #5d6055 !important; }
+
+/* ===== 11. 提示条 ===== */
+.admin-shell-v3 .admin-content .priv-note {
+  background: #f7f0dc !important;
+  color: #4f4632 !important;
+  border: 1px solid rgba(146, 118, 52, .35) !important;
+}

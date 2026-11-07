@@ -176,3 +176,15 @@ button.pri {
 .qz-rdev-dock canvas {
   display: none !important;
 }
+
+/* 管理员登录卡（admin 子域名）：未进后台时后台样式包还没加载，
+   只能在主包里处理。压平 ios26 的白玻璃渐变与模糊，改纯纸面。
+   主站登录卡在 .login-wrap 内、由更高优先级规则钉死，不受这里影响。 */
+.login-card {
+  background: #fffdf9 !important;
+  background-image: none !important;
+  border: 1px solid rgba(34, 49, 74, 0.14) !important;
+  box-shadow: 0 12px 32px rgba(30, 40, 60, 0.1) !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}

@@ -15,6 +15,17 @@ export const supabaseBaseUrl = window.__SUPABASE_URL || sameOriginApi || envUrl;
 const key = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
 export const supabaseAnonKey = key;
 export const configured = Boolean(supabaseBaseUrl && key);
+
+// Dedicated admin origin gets its own persisted Auth session. Do not change the
+// main site's default storage key: keeping it intact preserves existing member
+// sessions while admin sign-in/sign-out only touches this admin-specific key.
+const isDedicatedAdminHost = host === 'admin.qianzhi.pw';
+const authOptions = {
+  persistSession: true,
+  autoRefreshToken: true,
+  ...(isDedicatedAdminHost ? { storageKey: 'qznb-admin-auth-v1' } : {}),
+};
+
 export const supabase = createClient<Database>(supabaseBaseUrl ?? 'http://localhost', key ?? 'missing', {
-  auth: { persistSession: true, autoRefreshToken: true },
+  auth: authOptions,
 });

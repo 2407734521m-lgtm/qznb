@@ -205,3 +205,17 @@ body:has(.me-hub) {
 }
 body:has(.me-hub) .glow,
 body:has(.me-hub) .app-bg { display: none !important; }
+
+body:has(.me-hub) .topnav {
+  background: rgba(250, 247, 240, .96) !important;
+  border-bottom: 1px solid #e8dfd3 !important;
+  color: #29251f !important;
+}
+body:has(.me-hub) .topnav .brand { color: #29251f !important; }
+body:has(.me-hub) .topnav a,
+body:has(.me-hub) .topnav button { color: #6d6256 !important; }
+body:has(.me-hub) .topnav a.on {
+  color: #704632 !important;
+  background: #f1e7dc !important;
+  box-shadow: none !important;
+}

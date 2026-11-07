@@ -33,7 +33,7 @@ assert(admin.includes("import '../styles-admin-pages.css';"),'admin page refinem
 assert(accounts.includes('className=\"admin-accounts-page\"'),'account page must have a local style root');
 assert(notifications.includes('className=\"admin-notifications-page\"'),'notification page must have a local style root');
 assert(moderate.includes('className=\"admin-moderation-page\"'),'moderation page must have a local style root');
-assert(pages.includes('.admin-shell-v3 .admin-overview-dashboard')&&pages.includes('.admin-shell-v3 .admin-accounts-page'),'page refinements must be scoped to the admin shell');
+assert(pages.includes('.admin-shell-v3 .admin-content .admin-overview-panel')&&pages.includes('.admin-shell-v3 .admin-content .admin-accounts-page'),'page refinements must be scoped to the admin shell');
 assert(!/^\\s*\\.admin-(?:overview|accounts|notifications|moderation|email)/m.test(pages),'admin page CSS must not leak into public pages');
 if(process.exitCode)process.exit(process.exitCode);
 console.log('Admin style contracts passed: isolated selectors, session-bound role verification, and current admin branding.');

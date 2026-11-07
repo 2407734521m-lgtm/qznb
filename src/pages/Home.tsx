@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { motion, useReducedMotion, useScroll, useTransform } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import { useSignedUrls } from '../lib/media';
+import { isInApp } from '../lib/installedApp';
 import './Home.vibe.css';
 
 /**
@@ -76,6 +77,7 @@ export default function Home() {
         const [n, p, m, e, w] = await Promise.all([
           supabase.from('board_messages').select('id, title, content, created_at')
             .eq('is_admin_msg', true).is('deleted_at', null)
+            .in('audience', isInApp() ? ['all', 'app'] : ['all'])
             .or(`expires_at.is.null,expires_at.gt.${nowIso}`)
             .order('is_pinned', { ascending: false }).order('created_at', { ascending: false }).limit(3),
           supabase.from('posts').select('id, author_id, content, created_at').eq('section', 'feed').is('deleted_at', null)

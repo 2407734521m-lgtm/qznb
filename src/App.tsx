@@ -1003,7 +1003,10 @@ function Shell() {
               <Route path="/air-ink" element={<ErrorBoundary><AirInk /></ErrorBoundary>} />
               <Route path="/love-wall" element={<LoveWall />} />
               <Route path="/songs" element={<SongWall />} />
-              <Route path="/daily" element={<Daily searchQuery={typeof (loc.state as any)?.searchQuery === 'string' ? (loc.state as any).searchQuery : ''} />} />
+              <Route path="/daily" element={<Daily
+                searchQuery={typeof (loc.state as any)?.searchQuery === 'string' ? (loc.state as any).searchQuery : ''}
+                focusPostId={typeof (loc.state as any)?.focusPostId === 'number' ? (loc.state as any).focusPostId : null}
+              />} />
               <Route path="/members" element={<Members />} />
               <Route path="/members/:id" element={<Member />} />
               <Route path="/feed" element={<Discover />} />

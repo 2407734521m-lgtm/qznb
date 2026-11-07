@@ -60,7 +60,8 @@ export default function AdminMemberModal({ memberId, onClose, onChanged, isSuper
       if (gp) setGame(`${(gp as any).game_name}${(gp as any).rank ? ' · ' + (gp as any).rank : ''}（${(gp as any).status === 'approved' ? '已通过' : (gp as any).status === 'pending' ? '待审核' : '已驳回'}）`);
       if (isSuper) {
         const { data: accounts } = await supabase.rpc('admin_member_accounts');
-        const account = (accounts ?? []).find((row: any) => row.id === memberId);
+        const accountRows = (accounts ?? []) as Array<{ id: string; location: string | null; device: string | null }>;
+        const account = accountRows.find(row => row.id === memberId);
         if (account) {
           const parts = [account.location, account.device].filter((value: unknown) => typeof value === 'string' && value.trim());
           setPresence(parts.join(' · '));

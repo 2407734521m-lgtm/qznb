@@ -8,7 +8,6 @@ import FeedbackModal from '../components/FeedbackModal';
 import GamePicker, { type GameProfile, type Origin } from '../components/GamePicker';
 import SocialPicker from '../components/SocialPicker';
 import { badgeText } from '../data/games';
-import WelcomeOverlay from '../components/WelcomeOverlay';
 import BackButton from '../components/BackButton';
 import { fetchReviewEstimates, estimateText, type ReviewEstimates } from '../lib/reviewEstimate';
 import { confirmDialog } from '../lib/dialog';
@@ -89,12 +88,11 @@ export default function MyProfile() {
   const [notifUnread, setNotifUnread] = useState(0);
   const [uname, setUname] = useState('');
   const [theme, setTheme] = useState('aurora'); const [layout, setLayout] = useState('right');
-  const [joined, setJoined] = useState(true); const [avatar, setAvatar] = useState<string | null>(null);
-  const [code, setCode] = useState(''); const [msg, setMsg] = useState('');
+  const [avatar, setAvatar] = useState<string | null>(null);
+  const [msg, setMsg] = useState('');
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [cropSrc, setCropSrc] = useState<string | null>(null);
   const [fbOpen, setFbOpen] = useState(false);
-  const [welcome, setWelcome] = useState<string | null>(null);
   const [gprof, setGprof] = useState<GameProfile | null>(null);
   const [reviewEst, setReviewEst] = useState<ReviewEstimates | null>(null);
   useEffect(() => {
@@ -131,14 +129,6 @@ export default function MyProfile() {
         setNotifUnread(list.filter(n => !n.is_read).length);
       });
   }, [uid]);
-  useEffect(() => { // 注册时邀请码无效：在这里提示（登录页的报错会被跳转吞掉）
-    try {
-      if (sessionStorage.getItem('ca_invite_bad')) {
-        sessionStorage.removeItem('ca_invite_bad');
-        setMsg('邀请码不正确，请检查后重新填写');
-      }
-    } catch {}
-  }, []);
   async function logout() { await supabase.auth.signOut(); }
 
   useEffect(() => { (async () => {
@@ -163,7 +153,7 @@ export default function MyProfile() {
       show_game_id: pr.data.show_game_id,
       hide_love_wall_name: pr.data.hide_love_wall_name,
     });
-    setJoined(p.data.joined); setAvatar(p.data.avatar_path); setUname(p.data.username ?? '');
+    setAvatar(p.data.avatar_path); setUname(p.data.username ?? '');
     setVideoPath(p.data.intro_video_path ?? null);
     const rawTheme = p.data.theme;
     const themeSettings = typeof rawTheme === 'object' && rawTheme !== null && !Array.isArray(rawTheme) ? rawTheme : {};
@@ -275,17 +265,6 @@ export default function MyProfile() {
     setAvatar(path); setMsg('照片已更新 ✓');
   }
 
-  async function join() {
-    const c = code.trim();
-    if (!c) return setMsg('请填写邀请码');
-    const { data, error } = await supabase.rpc('join_with_code', { code: c });
-    if (error) return setMsg('加入失败：' + error.message);
-    if (data === null || data === undefined) return setMsg('邀请码不正确');
-    setJoined(true); setMsg('已加入班级 ✓'); setCode('');
-    // 欢迎动画：这个邀请码专属的昵称 — Welcome to Class 13!
-    setWelcome(data as string);
-  }
-
   async function loadKeys() {
     try {
       const { data, error } = await supabase.auth.passkey.list();
@@ -332,13 +311,6 @@ export default function MyProfile() {
         <input ref={fileRef} type="file" hidden accept="image/jpeg,image/png,image/webp"
           onChange={e => { pickAvatar(e.target.files?.[0]); e.target.value = ''; }} />
       </div>
-
-      {!joined && <div className="card"><h3 className="me-sec-t">加入班级</h3>
-        <p className="mut" style={{ fontSize: 13 }}>输入班级邀请码后，才能查看其他成员，也才会出现在成员页。</p>
-        <div className="row" style={{ gap: 8 }}>
-          <input placeholder="邀请码" value={code} onChange={e => setCode(e.target.value)} style={{ flex: 1 }} />
-          <button className="pri" style={{ width: 'auto', padding: '10px 26px' }} onClick={join}>加入</button>
-        </div></div>}
 
       <Collapsible sid="sec-base" title="基本资料" open={baseOpen} onToggle={() => setBaseOpen(o => !o)}>
         {PROFILE_FIELDS.map(([k, label]) => fieldInput(k, label))}
@@ -475,7 +447,7 @@ export default function MyProfile() {
       </p>
       {cropSrc && <AvatarCropper src={cropSrc} onCancel={closeCrop} onDone={uploadCropped} />}
       {fbOpen && <FeedbackModal kind="general" onClose={() => setFbOpen(false)} />}
-      {welcome !== null && <WelcomeOverlay nick={welcome} onDone={() => setWelcome(null)} />}
+
       {gpickOpen && <GamePicker initial={gprof} origin={gpickOrigin} onClose={() => setGpickOpen(false)}
         onDone={() => { setGpickOpen(false); reloadGame(); setMsg('已提交，等待管理员审核 ✓'); }} />}
       {/* 上传视频确认弹窗 */}

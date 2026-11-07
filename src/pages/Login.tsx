@@ -55,7 +55,6 @@ export default function Login({ siteTitle, siteSubtitle }: { siteTitle?: string;
   const [codeSent, setCodeSent] = useState(false); // 注册表单上已点过“发送验证码”
   const [resendIn, setResendIn] = useState(0);
   const [waitSec, setWaitSec] = useState(0); // 验证屏已等待秒数
-  const [invite, setInvite] = useState(''); // 注册页邀请码
   const [forgotSent, setForgotSent] = useState(false); // 忘记密码：重置验证码是否已发送
   const [forgotCode, setForgotCode] = useState('');
   const [forgotNewPw, setForgotNewPw] = useState('');
@@ -168,22 +167,13 @@ export default function Login({ siteTitle, siteSubtitle }: { siteTitle?: string;
     } finally { setBusy(false); }
   }
 
-  // 注册/验证拿到 session 后补做的事：展示名、用邀请码加入班级
-  // （欢迎动画递给 App 层播，这里播会被登录跳转直接卸载）
+  // 注册/验证拿到 session 后补做的事：展示名（入班已改为注册自动完成，不再需要邀请码）
   async function finishJoin(uid: string) {
     // 仅在新注册完成后安排一次自愿 GPS 说明；这里不请求位置，也不记录坐标。
     try { sessionStorage.setItem('ca_gps_offer', '1'); } catch {}
     const nm = name.trim();
     // 注意：username / real_name 由注册触发器写入，列级权限不允许前端直接改，这里只更新展示名
     if (nm) supabase.from('profiles').update({ display_name: nm }).eq('id', uid).then(() => {});
-    const iv = invite.trim();
-    if (!iv) return;
-    const { data: nick, error: e3 } = await supabase.rpc('join_with_code', { code: iv });
-    if (!e3 && nick !== null && nick !== undefined) {
-      try { sessionStorage.setItem('ca_welcome_nick', (nick as string) || nm); } catch {}
-    } else {
-      try { sessionStorage.setItem('ca_invite_bad', '1'); } catch {}
-    }
   }
 
   // 注册表单上的“发送验证码”：走 Supabase + Resend SMTP 发 6 位码。
@@ -227,7 +217,7 @@ export default function Login({ siteTitle, siteSubtitle }: { siteTitle?: string;
     } finally { setBusy(false); }
   }
 
-  // 注册表单上填码后点“验证并进入”：核对 Resend 发来的 6 位码，通过后补做展示名和邀请码加入。
+  // 注册表单上填码后点“验证并进入”：核对 Resend 发来的 6 位码，通过后补做展示名。
   async function doVerifyReg() {
     const c = code.trim();
     if (!/^\d{6,10}$/.test(c)) return setErr('请输入邮箱收到的数字验证码');
@@ -388,7 +378,7 @@ export default function Login({ siteTitle, siteSubtitle }: { siteTitle?: string;
             {err && <p className="err">{err}</p>}
             <button className="pri" disabled={busy} onClick={doLogin}>{busy ? <><Spin />登录中…</> : '进入班级'}</button>
             <p className="login-switch">忘记密码了？<button onClick={() => { setMode('forgot'); setErr(''); setForgotSent(false); }}>点我重置</button></p>
-            <p className="login-switch">还没有账号？<button onClick={() => { setMode('reg'); setErr(''); setCode(''); setInvite(''); setForgotSent(false); }}>去注册</button></p>
+            <p className="login-switch">还没有账号？<button onClick={() => { setMode('reg'); setErr(''); setCode(''); setForgotSent(false); }}>去注册</button></p>
             <p className="login-switch" style={{ marginTop: 2 }}>如果登录不上<button onClick={() => setFbOpen(true)}>点我反馈</button></p>
           </>) : mode === 'forgot' ? (<>
             <h1 style={{ fontSize: 22 }}>重置密码</h1>
@@ -447,9 +437,6 @@ export default function Login({ siteTitle, siteSubtitle }: { siteTitle?: string;
             <FloatField label="确认密码" value={pw2} error={terr('pw2', pw2Err)}>
               <PasswordField disabled={codeSent} value={pw2} onChange={setPw2} onBlur={touch('pw2')} placeholder="再输一次" autoComplete="new-password" ariaLabel="确认密码" />
             </FloatField>
-            <FloatField label="邀请码（选填）" value={invite} hint="没有先不填，注册后在个人中心补填">
-              <input disabled={codeSent} value={invite} onChange={e => setInvite(e.target.value)} placeholder="有就填，没有先不填，注册后在个人中心补填" aria-label="邀请码（选填）" />
-            </FloatField>
             <div style={{ margin: '14px 0 10px', padding: '12px 13px', borderRadius: 12, background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.12)' }}>
               <label style={{ display: 'flex', alignItems: 'flex-start', gap: 9, lineHeight: 1.6, cursor: 'pointer' }}>
                 <input type="checkbox" checked={policyAccepted} onChange={e => setPolicyAccepted(e.target.checked)} style={{ width: 18, height: 18, marginTop: 3, flexShrink: 0 }} />
@@ -459,7 +446,7 @@ export default function Login({ siteTitle, siteSubtitle }: { siteTitle?: string;
             </div>
             {err && <p ref={errorRef} className="err" role="alert" aria-live="polite">{err}</p>}
             <button className="pri" disabled={busy} onClick={codeSent ? doVerifyReg : sendCode}>{busy ? <><Spin />{codeSent ? '验证中…' : '发送中…'}</> : codeSent ? '验证并进入' : '发送验证码并注册'}</button>
-            <p className="login-switch">已有账号？<button onClick={() => { setMode('login'); setErr(''); setCode(''); setInvite(''); setForgotSent(false); }}>去登录</button></p>
+            <p className="login-switch">已有账号？<button onClick={() => { setMode('login'); setErr(''); setCode(''); setForgotSent(false); }}>去登录</button></p>
           </>)}
 
           <div className="bg-panel">

@@ -61,7 +61,7 @@ begin
       raise exception 'invalid boolean setting' using errcode = '22023';
     end if;
   elsif p_key = 'guest_session_minutes' then
-    if p_value not in (array['15','30','60','120','240','480','720','1440']::text[]) then
+    if not (p_value = any (array['15','30','60','120','240','480','720','1440']::text[])) then
       raise exception 'unsupported guest session duration' using errcode = '22023';
     end if;
   elsif p_key = 'guest_session_epoch' then
@@ -101,14 +101,12 @@ begin
   values (
     auth.uid(),
     'guest_setting_change',
-    pg_catalog.jsonb_build_object(
-      'key', p_key,
-      'value', case
-        when p_key in ('guest_session_epoch') then p_value
-        when p_key = 'guest_schedule' then pg_catalog.jsonb_build_object('enabled', coalesce(v_enabled, false))
-        else p_value
+    pg_catalog.jsonb_build_object('key', p_key)
+      || case
+        when p_key = 'guest_schedule'
+          then pg_catalog.jsonb_build_object('enabled', coalesce(v_enabled, false))
+        else pg_catalog.jsonb_build_object('value', p_value)
       end
-    )
   );
 end;
 $function$;

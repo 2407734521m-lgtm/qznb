@@ -32,7 +32,8 @@
   border-radius: 24px !important;
   scrollbar-width: thin;
 }
-.login-card > h1:first-child {
+.login-card > h1:first-child,
+.login-card .qz-login-card-content > h1:first-child {
   font-size: clamp(23px, 5vw, 27px);
   font-weight: 600;
   letter-spacing: 0;

@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase';
 import FeedbackModal from '../components/FeedbackModal';
 import PasswordField from '../components/PasswordField';
 import CodeInput from '../components/CodeInput';
+import RdevLiquidGlass from 'liquid-glass-react';
 import FloatField from '../components/FloatField';
 import { alertDialog } from '../lib/dialog';
 import './Login.polish.css';
@@ -340,9 +341,21 @@ export default function Login({ siteTitle, siteSubtitle }: { siteTitle?: string;
       {bg && <div className="login-bg" style={{ backgroundImage: `url(${bg})`, filter: `blur(${blur}px) brightness(${100 - dark}%)`, transform: 'scale(1.1)' }} />}
       {!bg && <div className="login-flow" aria-hidden="true" />}
       <div className="login-wrap">
-        <motion.div className="login-card page"
+        <motion.div className="login-card page qz-login-glass-host"
           initial={reduce ? {} : { opacity: 0, y: 24, scale: 0.98 }}
           animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}>
+          <RdevLiquidGlass
+            className="qz-rdev-login-card"
+            displacementScale={48}
+            blurAmount={0.12}
+            saturation={160}
+            aberrationIntensity={2}
+            elasticity={0}
+            cornerRadius={30}
+            padding="0px"
+            style={{ position: 'absolute', top: '50%', left: '50%', width: '100%', height: '100%', pointerEvents: 'none' }}
+          >{null}</RdevLiquidGlass>
+          <div className="qz-login-card-content">
           <h1>{brandTitle}</h1>
           {brandSubtitle ? <p className="sub">{brandSubtitle}</p> : null}
 
@@ -475,6 +488,7 @@ export default function Login({ siteTitle, siteSubtitle }: { siteTitle?: string;
               <div className="row"><span style={{ width: 52 }}>模糊</span><input type="range" min={0} max={24} value={blur} onChange={e => setBlur(+e.target.value)} /></div>
               <div className="row"><span style={{ width: 52 }}>暗度</span><input type="range" min={0} max={90} value={dark} onChange={e => setDark(+e.target.value)} /></div>
             </div>)}
+          </div>
           </div>
         </motion.div>
       </div>

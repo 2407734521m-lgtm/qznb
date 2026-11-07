@@ -6,6 +6,7 @@ import { useSignedUrls } from '../lib/media';
 import Photo from '../components/Photo';
 import { setShot, takeShot, shotFrom, flyTo } from '../lib/transition';
 import { badgeText } from '../data/games';
+import { SPRING_GENTLE } from '../lib/motion';
 import type { MemberListItem } from '../types/profile';
 
 const PAGE = 18;
@@ -31,7 +32,7 @@ function Card({ m, i, badge, signedUrl, onOpen, no }: { m: MemberListItem; i: nu
       whileTap={reduce ? undefined : { scale: 0.985 }}
       transition={reduce
         ? { duration: 0.01 }
-        : { type: 'spring', stiffness: 340, damping: 29, mass: 0.74, delay: (i % 6) * 0.035 }}
+        : { ...SPRING_GENTLE, delay: (i % 6) * 0.035 }}
       role="button"
       tabIndex={0}
       aria-label={`查看${name}的主页`}

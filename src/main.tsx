@@ -39,17 +39,7 @@ import './styles-quiet-editorial-detail.css';
 // 只有精确匹配的管理员域名可以挂载后台；其他任何域名都不能加载 AdminShell。
 const isAdminHost = window.location.hostname.toLowerCase() === 'admin.qianzhi.pw';
 
-// 主站不承载后台界面；历史入口只负责跳转到唯一管理员域名。
-function redirectLegacyAdminEntry() {
-  if (isAdminHost) return;
-  const isLegacyPath = window.location.pathname.replace(/\/+$/, '') === '/admin';
-  const isLegacyHash = /^#\/admin(?:\/|$|[?])/.test(window.location.hash);
-  if (isLegacyPath || isLegacyHash) {
-    window.location.replace('https://admin.qianzhi.pw/');
-  }
-}
-redirectLegacyAdminEntry();
-window.addEventListener('hashchange', redirectLegacyAdminEntry);
+// 主站不承载后台界面，也不再跳转：后台只在 admin.qianzhi.pw 上打开（用户 2026-11-07 定）。
 
 function AdminShell() {
   const { session, loading } = useAuth();

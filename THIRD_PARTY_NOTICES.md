@@ -71,7 +71,7 @@ SOFTWARE.
 
 - `simple-liquid-glass` 5.7.0 — https://github.com/lucaperullo/simple-liquid-glass — MIT. Used as an npm dependency for the React liquid-glass navigation and Dock surfaces; no upstream source files were copied into this repository.
 
-- `webgl-liquid-glass` 0.3.0 — https://github.com/clayharmon/webgl-liquid-glass — MIT. Used as the animated Dock navigation component; no upstream source files were copied into this repository.
+- `webgl-liquid-glass` source — https://github.com/clayharmon/webgl-liquid-glass — MIT. Adapted and vendored under `src/components/liquid-glass-dock/`; upstream source files retain attribution headers, and the full MIT license is included above.
 
 MIT License
 

@@ -2,6 +2,9 @@
 // 只用 transform / opacity，不触发布局重排；减动效由调用方的 useReducedMotion 处理。
 export const EASE: [number, number, number, number] = [0.22, 1, 0.36, 1];
 
+export const SPRING_GENTLE = { type: 'spring' as const, stiffness: 320, damping: 30, mass: 0.78 };
+export const SPRING_SNAPPY = { type: 'spring' as const, stiffness: 390, damping: 31, mass: 0.62 };
+
 export const DUR = {
   instant: 0.15, // 微反馈（按压、开关）
   fast: 0.22,    // Dock 收起/展开、菜单进出

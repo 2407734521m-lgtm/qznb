@@ -107,15 +107,14 @@ for (const localeName of localeFiles) {
     return line.replace(/\bFolia\b/g, 'Qianzhi').replace(/\bFOLIA\b/g, 'Qianzhi');
   }).join('\n');
 
-  const promptKey = locale.split('\n').find(line => /^\s*"prompt"\s*:/.test(line));
-  if (promptKey) {
-    for (const [from, to] of promptReplacements[localeName]) {
-      if (promptKey.includes(to)) continue;
-      if (!promptKey.includes(from)) {
-        throw new Error('Could not find the expected ' + localeName + ' support-prompt wording: ' + from);
-      }
-      locale = locale.replace(promptKey, promptKey.replace(from, to));
+  for (const [from, to] of promptReplacements[localeName]) {
+    const promptKey = locale.split('\n').find(line => /^\s*"prompt"\s*:/.test(line));
+    if (!promptKey) continue;
+    if (promptKey.includes(to)) continue;
+    if (!promptKey.includes(from)) {
+      throw new Error('Could not find the expected ' + localeName + ' support-prompt wording: ' + from);
     }
+    locale = locale.replace(promptKey, promptKey.replace(from, to));
   }
 
   if (!locale.includes('"qianzhiAttribution":')) {

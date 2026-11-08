@@ -106,6 +106,9 @@ function runLoginGuideParticles(done) {
   loginGuideRaf = requestAnimationFrame(draw);
 }
 function maybeRunStartupLoginGuide(source) {
+  // radio-web 二期补丁: 网页版不自动弹出登录框 (启动/待机引导触发的自动弹窗一律关掉),
+  // 登录入口保留在右上角头像按钮, 用户主动点开不受影响。
+  if (window.__MINERADIO_WEB__) return;
   if (startupLoginGuideShown || loginGuideAnimating) return;
   if (typeof loginEasterEggAllowsStartupGuide === 'function' && !loginEasterEggAllowsStartupGuide()) return;
   if (visualGuideActive) return;

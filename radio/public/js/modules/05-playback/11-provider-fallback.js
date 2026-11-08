@@ -125,7 +125,8 @@ function playbackRestrictionNotice(song, data) {
     return {
       category: category,
       title: '当前平台未登录',
-      body: (message || (provider + ' 需要登录后才能获取播放地址。')) + ' 正在打开对应登录入口。',
+      // radio-web 二期补丁: 网页版不再自动打开登录框, 文案去掉「正在打开对应登录入口」
+      body: (message || (provider + ' 需要登录后才能获取播放地址。')) + ' 可点右上角头像登录后重试。',
       action: 'login',
       toast: '当前平台未登录'
     };
@@ -752,11 +753,7 @@ function handlePlaybackUnavailable(song, data) {
   var category = notice.category;
   showToast(notice.toast || notice.title || playbackRestrictionMessage(song, data));
   showSourceFallbackNotice(notice.title, notice.body);
-  if (category === 'login_required') {
-    setTimeout(function () {
-      var modal = document.getElementById('login-modal');
-      if (!modal || modal.classList.contains('show')) return;
-      openProviderLogin(provider);
-    }, 520);
-  }
+  // radio-web 二期补丁: 删除原「login_required 时 520ms 后自动打开登录框」的逻辑——
+  // 网页版访客点到拿不到地址的歌就会被反复弹登录框 (且框面是彩蛋门「心愿是」),
+  // 遮挡并拦截点击。登录改为用户主动点右上角头像触发, 此处只出提示卡。
 }

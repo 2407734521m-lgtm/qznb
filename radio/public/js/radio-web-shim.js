@@ -5,6 +5,28 @@
   'use strict';
   window.__MINERADIO_WEB__ = true;
 
+  // radio-web 二期补丁 (问题 5): 背景/首页的 <video> 一旦进入错误态, 立即隐藏该元素,
+  // 不让浏览器把媒体错误占位字样 (如 "Unable to play media.") 画到首屏上;
+  // 之后若同一元素成功加载 (canplay), 自动恢复显示, 不影响自定义背景视频等正常功能。
+  // error 事件不冒泡, 必须用捕获阶段监听; <source> 的错误也要转到其 <video> 父元素。
+  document.addEventListener('error', function (e) {
+    var t = e && e.target;
+    if (!t || !t.tagName) return;
+    if (t.tagName === 'SOURCE') t = t.parentElement;
+    if (t && t.tagName === 'VIDEO') {
+      try { t.pause(); } catch (_) { }
+      t.style.setProperty('display', 'none', 'important');
+      t.setAttribute('data-radio-video-error', '1');
+    }
+  }, true);
+  document.addEventListener('canplay', function (e) {
+    var t = e && e.target;
+    if (t && t.tagName === 'VIDEO' && t.getAttribute('data-radio-video-error')) {
+      t.removeAttribute('data-radio-video-error');
+      t.style.removeProperty('display');
+    }
+  }, true);
+
   function hideEl(el) {
     if (el && el.style) el.style.setProperty('display', 'none', 'important');
   }

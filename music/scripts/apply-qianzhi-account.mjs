@@ -1,343 +1,48 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { gunzipSync } from "node:zlib";
 
-const scriptDir = path.dirname(fileURLToPath(import.meta.url));
-const foliaDir = path.resolve(scriptDir, "../folia");
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../folia");
+const files = [
+  ["src/services/qianzhiAccount.ts", "H4sIAAAAAAAC/61X227bRhB991dsgCIkEYlCir5UjuI4gR/SpLZjOS1aFBBW5EjamNpluUu5iq1/7+yNWlK04xTVgySSszNzzlzJ1qWoFLkjWQVUwbuCAVcDorYlkClIyQQnO7KoxJpEb2Rd0jmVMPJ/hl9kdHx0lAkuFQG+IRPCjMJ0DYqm+g6V5AoyUeWvpKoYXw6I/SX3pOY5LBiH/PWxU+H1fq4KVBXj+fS399dns09/nr+dTT9fnr49nZ7NPl99JPf3JIqSFFWt4yStoCxoBvHor9EPo4F+4jVSLvgH2D6i7fT84nz24eyPtkpEBf8YaqweJj8xyr+u2GmWiZqrd4Iv2LKuIEfVb4UogPI4dP/5c287aRjKDLuapAe1HRH8nLSiEaodeKUDcmdE9YfWajUOrvVHKlHRJaDkmER/f+Xz4bqWLBtq2eHmZTRoSZdQSSaVC/iYqKqGtgSeE1ewqECursUN9MrkoCDzSt5zdHdMFrSQgdjO/t0l5mdMeF0Ue6pN1jlmPool47+CWgnNcARryooIkyaqJVScriHan1vUPFM6U9E9UWzgUEXMcmSSLRhUY5eAybjP1L1xyZFpo7ahRQ06aI2KJke0EFuQ+JmRSdC+qivuUOmH7oZ5nDKeFXUOMo7eRAkG2YMat0Dtjo4aPDpaZ1UlqjgTOQSem5vOS28Ubu3t2MbbZEVEXhB9NGnrXdNy6pLKHgH9jTlE1hg9zJsTb+sYf6mq5YmO1XoOFXYDy1HHC8uVO45sTc1xq/gk9fd9jYmP4haqd2g/pNEJW4tkMpmQn378WZ9xxwMGKywPUrA1U0hlr4QSAnHybZQkQW04svbEGk0zownyyDmza1w61Ms4RpPlpNBZ85BxL4R1bLIGqyBKGid6j5hkIFyYjrNg1Vq70y9aUilvsaV+A9pTbfhMnOGD2f6BzkuHY9bCEXJ0yGfN6QaV0XkBkU07V6VUbnm2r1XJltgkfmdq1e6FPaU6IB5xUAKXOJOYhFeu37x2TJhytI02IWpVidvQuQahabYeypPq3Ce460gPtxrbC4Lm4M5gKJ95HD2uPUB1kInW8qTphmHwrXd3JKeKDogpJKzUCaG3lPnBk2pr6Z73S+dMfEeMwrGlYM829unjxkJToAaItpNKS70H099VAhUuWcKzPpfMTwFK81oiFmx2V+6fFVHVtpXr9lmDcAEqW7UG8AsSjXyyydHm5cj32KGt3EFnYlp+MecvL6bXnfm4AprjiOwOWTMYS3ajh6yfywcCEQ53hewPr3G6RaiflmXBMqr9Gn2Rgnds7dqXc5Gj9l+mF+epTX222GLAPJi+mLUVZDRboRim/lAvBdAxF6QbCgndUINx7WsdtSC/AfzDygKF5m/23aGJaEm3haC5ni7iBufI3G5Lx2YwhYPGZsSJFqRZhlczpVeNQKSyG0jnPrq360sSZ7jJEZ80qWY9TvRqqjcOsfCSTwbb6XEBYFPwjSFxo4vFaddXz7B69eLkmoG974GnIep+iRYBySMu+pOaY60qbnzqTFds/q0J+GDXb+P8jn4DfiWMg5U1QDomHZgtHgZBzQfYDw+1Hvs1s7Nb/LfW1du2HpxrS1BuKHjYh8PKrVC9M+tgh3w61cs91V3k/wfQ/eiu5zKr2NxPv1M0Hhf4AgFcD+1Y+veINtyETF6TjWA5EhI3F49wYIXudoc8GAJC6IJrJ6ZKvzWtKF9CHM9gY95lm1CjLu+kdzFpI7cGLX6LsdSA05o3kONv7TQXteosNEH8NeBHot4G+q0pjpZwEshMlLq/FyKj+DKx++7II5p/AQ6S0L0GEAAA"],
+  ["src/components/modal/settings/pages/QianzhiAccountRow.tsx", "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"],
+  ["test/unit/qianzhiAccount/loginMethod.test.ts", "H4sIAAAAAAAC/6WQS07DMBCG9z3F7OxIaXKACgSsCxLiAMhxpnSQH8GeRIWqd8dOmlJVZQOWLUt+fPPNT7bzgWEPLUYdqMEScNeh5hKI4QCb4C2IgRgji9WC5ucBozcDPpNyX1ta+zdyj8hb357+VFU9zRh0HTEMpDHWH9OHe6197zJxMReW4ggDNV2CyVSwI1aUIAu4uYX9AtIgloIDKo6AVpEBatExbQhDBBXhpe9UoyIeb0fSBSKPqVX5azNSpPK2wXCHO2U7g5XOrRVFxf4hGY90UaxG4CHtl3LOu+VVwXTmljHFCn3KximL/5CM3Gf6a8b8yM3gq34B3xM0qbgUUcefZ35/ywlOsTz1xsizmnl9A91mXhNnAgAA"],
+];
 
-const accountService = String.raw\`import { createClient, type Session, type User } from '@supabase/supabase-js';
-
-const env = import.meta.env as Record<string, string | undefined>;
-const supabaseUrl = (env.VITE_QZNB_SUPABASE_URL || '').trim().replace(/\\/$/, '');
-const anonKey = (env.VITE_QZNB_SUPABASE_ANON_KEY || '').trim();
-
-export const isQianzhiAccountConfigured = Boolean(supabaseUrl && anonKey);
-
-const client = isQianzhiAccountConfigured
-    ? createClient(supabaseUrl, anonKey, {
-        auth: {
-            storageKey: 'qznb-music-auth-v1',
-            persistSession: true,
-            autoRefreshToken: true,
-            detectSessionInUrl: false,
-        },
-    })
-    : null;
-
-export type QianzhiLoginMethod = 'email' | 'username';
-
-export function resolveQianzhiLoginMethod(identifier: string): QianzhiLoginMethod | null {
-    const value = identifier.trim();
-    if (!value) return null;
-    return value.includes('@') ? 'email' : 'username';
+async function writeExact(relativePath, value) {
+  const target = path.join(root, relativePath);
+  const content = gunzipSync(Buffer.from(value, "base64")).toString("utf8");
+  await fs.mkdir(path.dirname(target), { recursive: true });
+  let current = null;
+  try { current = await fs.readFile(target, "utf8"); }
+  catch (error) { if (error?.code !== "ENOENT") throw error; }
+  if (current === content) return;
+  if (current !== null) throw new Error("Refusing to overwrite different overlay file: " + relativePath);
+  await fs.writeFile(target, content, "utf8");
 }
 
-function authError(code: string): Error {
-    return new Error('qznb-auth:' + code);
-}
+for (const [relativePath, value] of files) await writeExact(relativePath, value);
 
-function mapSupabaseError(error: { message?: string; status?: number } | null): Error {
-    const message = String(error?.message || '').toLowerCase();
-    if (error?.status === 429 || message.includes('rate limit') || message.includes('too many')) {
-        return authError('rate_limited');
-    }
-    if (message.includes('invalid login') || message.includes('invalid credentials')
-        || message.includes('email not confirmed') || message.includes('password')) {
-        return authError(message.includes('email not confirmed') ? 'email_not_confirmed' : 'invalid_credentials');
-    }
-    return authError('unavailable');
-}
-
-export async function signInWithQianzhiAccount(identifier: string, password: string): Promise<Session> {
-    if (!client) throw authError('not_configured');
-    const value = identifier.trim();
-    const method = resolveQianzhiLoginMethod(value);
-    if (!method || !password) throw authError('invalid_credentials');
-
-    if (method === 'email') {
-        const { data, error } = await client.auth.signInWithPassword({ email: value, password });
-        if (error || !data.session) throw mapSupabaseError(error);
-        return data.session;
-    }
-
-    let response: Response;
-    try {
-        response = await fetch(supabaseUrl + '/functions/v1/username-login', {
-            method: 'POST',
-            headers: {
-                apikey: anonKey,
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ username: value, password }),
-            cache: 'no-store',
-            credentials: 'omit',
-        });
-    } catch {
-        throw authError('network');
-    }
-
-    let payload: { ok?: boolean; code?: string; session?: { access_token?: string; refresh_token?: string } };
-    try {
-        payload = await response.json() as typeof payload;
-    } catch {
-        throw authError('unavailable');
-    }
-
-    if (!response.ok || payload.ok !== true || !payload.session?.access_token || !payload.session?.refresh_token) {
-        throw authError(payload.code || (response.status === 429 ? 'rate_limited' : 'invalid_credentials'));
-    }
-
-    const { data, error } = await client.auth.setSession({
-        access_token: payload.session.access_token,
-        refresh_token: payload.session.refresh_token,
-    });
-    if (error || !data.session) throw mapSupabaseError(error);
-    return data.session;
-}
-
-export async function getQianzhiSession(): Promise<Session | null> {
-    if (!client) return null;
-    const { data, error } = await client.auth.getSession();
-    if (error) throw mapSupabaseError(error);
-    return data.session;
-}
-
-export function subscribeQianzhiAuth(listener: (session: Session | null) => void): () => void {
-    if (!client) return () => {};
-    const { data } = client.auth.onAuthStateChange((_event, session) => listener(session));
-    return () => data.subscription.unsubscribe();
-}
-
-export async function signOutQianzhiAccount(): Promise<void> {
-    if (!client) return;
-    const { error } = await client.auth.signOut({ scope: 'local' });
-    if (error) throw mapSupabaseError(error);
-}
-
-export type QianzhiAccountUser = User;
-\`;
-
-const accountRow = String.raw\`import React, { useEffect, useState } from 'react';
-import { useTranslation } from 'react-i18next';
-import type { Session } from '@supabase/supabase-js';
-import { Button, Row } from '../kit';
-import {
-    getQianzhiSession,
-    isQianzhiAccountConfigured,
-    signInWithQianzhiAccount,
-    signOutQianzhiAccount,
-    subscribeQianzhiAuth,
-} from '../../../../services/qianzhiAccount';
-import { openOutsideLink } from '../../../../utils/system/outsideLink';
-
-const COPY = {
-    zh: {
-        label: '堯账号',
-        description: '使用主站已有账号登录；账号数据与主站共用，音乐站会话独立保存。',
-        identifier: '邮箱或用户名',
-        password: '密码',
-        signIn: '登录堯账号',
-        signingIn: '正在登录…',
-        signOut: '退出音乐站账号',
-        register: '还没有账号？前往堯主站',
-        connected: '已连接',
-        notConfigured: '账号登录尚未配置。完成音乐站部署配置后即可使用。',
-        invalid_credentials: '账号或密码不正确。',
-        email_not_confirmed: '该邮箱尚未完成验证，请先在主站完成验证。',
-        rate_limited: '尝试次数过多，请稍后再试。',
-        unavailable: '登录服务暂时不可用，请稍后重试。',
-        network: '网络连接失败，请检查网络后重试。',
-        not_configured: '账号登录尚未配置。',
-        failed: '登录失败，请稍后重试。',
-    },
-    en: {
-        label: 'Qianzhi account',
-        description: 'Sign in with your existing main-site account. Music keeps a separate local session.',
-        identifier: 'Email or username',
-        password: 'Password',
-        signIn: 'Sign in',
-        signingIn: 'Signing in…',
-        signOut: 'Sign out on this music site',
-        register: 'Need an account? Visit Qianzhi',
-        connected: 'Connected',
-        notConfigured: 'Account sign-in is not configured for this deployment yet.',
-        invalid_credentials: 'The account name or password is incorrect.',
-        email_not_confirmed: 'Please verify this email on the main site first.',
-        rate_limited: 'Too many attempts. Please try again later.',
-        unavailable: 'The sign-in service is temporarily unavailable.',
-        network: 'Network error. Check your connection and try again.',
-        not_configured: 'Account sign-in is not configured.',
-        failed: 'Sign-in failed. Please try again.',
-    },
-} as const;
-
-const QianzhiAccountRow: React.FC = () => {
-    const { i18n } = useTranslation();
-    const copy = i18n.resolvedLanguage?.startsWith('zh') ? COPY.zh : COPY.en;
-    const [session, setSession] = useState<Session | null>(null);
-    const [identifier, setIdentifier] = useState('');
-    const [password, setPassword] = useState('');
-    const [busy, setBusy] = useState(false);
-    const [error, setError] = useState('');
-
-    useEffect(() => {
-        let alive = true;
-        void getQianzhiSession()
-            .then(value => { if (alive) setSession(value); })
-            .catch(() => { if (alive) setError(copy.unavailable); });
-        const unsubscribe = subscribeQianzhiAuth(value => {
-            if (alive) setSession(value);
-        });
-        return () => {
-            alive = false;
-            unsubscribe();
-        };
-    }, []);
-
-    const submit = async (event: React.FormEvent<HTMLFormElement>) => {
-        event.preventDefault();
-        if (busy || !isQianzhiAccountConfigured) return;
-        setBusy(true);
-        setError('');
-        try {
-            const value = await signInWithQianzhiAccount(identifier, password);
-            setSession(value);
-            setPassword('');
-        } catch (reason) {
-            const message = reason instanceof Error ? reason.message : '';
-            const code = message.startsWith('qznb-auth:') ? message.slice('qznb-auth:'.length) : 'failed';
-            setError(COPY.zh[code as keyof typeof COPY.zh] ? copy[code as keyof typeof copy] : copy.failed);
-        } finally {
-            setBusy(false);
-        }
-    };
-
-    const signOut = async () => {
-        if (busy) return;
-        setBusy(true);
-        setError('');
-        try {
-            await signOutQianzhiAccount();
-            setSession(null);
-        } catch {
-            setError(copy.failed);
-        } finally {
-            setBusy(false);
-        }
-    };
-
-    const userLabel = session?.user.email || copy.connected;
-
-    return (
-        <Row label={copy.label} note={copy.description}>
-            <div className="w-full min-w-0 space-y-2">
-                {!isQianzhiAccountConfigured ? (
-                    <p className="text-xs leading-5 text-[color:var(--st-t2)]">{copy.notConfigured}</p>
-                ) : session ? (
-                    <div className="flex min-w-0 flex-wrap items-center justify-end gap-2">
-                        <span className="min-w-0 break-all text-xs text-[color:var(--st-t2)]">{userLabel}</span>
-                        <Button variant="quiet" onClick={() => void signOut()} disabled={busy}>
-                            {copy.signOut}
-                        </Button>
-                    </div>
-                ) : (
-                    <form onSubmit={submit} className="w-full space-y-2">
-                        <input
-                            value={identifier}
-                            onChange={event => setIdentifier(event.target.value)}
-                            type="text"
-                            autoComplete="username"
-                            autoCapitalize="none"
-                            spellCheck={false}
-                            aria-label={copy.identifier}
-                            placeholder={copy.identifier}
-                            className="w-full min-w-0 rounded-lg border border-[var(--st-line)] bg-[var(--st-card)] px-3 py-2 text-sm text-[color:var(--st-t1)] outline-none placeholder:text-[color:var(--st-t3)] focus:border-[color:var(--st-t2)]"
-                        />
-                        <input
-                            value={password}
-                            onChange={event => setPassword(event.target.value)}
-                            type="password"
-                            autoComplete="current-password"
-                            aria-label={copy.password}
-                            placeholder={copy.password}
-                            className="w-full min-w-0 rounded-lg border border-[var(--st-line)] bg-[var(--st-card)] px-3 py-2 text-sm text-[color:var(--st-t1)] outline-none placeholder:text-[color:var(--st-t3)] focus:border-[color:var(--st-t2)]"
-                        />
-                        <div className="flex flex-wrap items-center justify-end gap-2">
-                            <Button variant="quiet" onClick={() => openOutsideLink('https://qianzhi.pw')}>
-                                {copy.register}
-                            </Button>
-                            <Button submit disabled={busy || !identifier.trim() || !password}>
-                                {busy ? copy.signingIn : copy.signIn}
-                            </Button>
-                        </div>
-                        {error && <p role="alert" className="text-xs leading-5 text-red-500">{error}</p>}
-                    </form>
-                )}
-                {session && error && <p role="alert" className="text-xs leading-5 text-red-500">{error}</p>}
-            </div>
-        </Row>
-    );
-};
-
-export default QianzhiAccountRow;
-\`;
-
-const testSource = String.raw\`import { describe, expect, it } from 'vitest';
-import { resolveQianzhiLoginMethod } from '../../../src/services/qianzhiAccount';
-
-describe('Qianzhi account login method', () => {
-    it('treats email identifiers as Supabase email login', () => {
-        expect(resolveQianzhiLoginMethod(' member@example.com ')).toBe('email');
-    });
-
-    it('treats non-email identifiers as main-site username login', () => {
-        expect(resolveQianzhiLoginMethod('student_name')).toBe('username');
-    });
-
-    it('rejects an empty identifier', () => {
-        expect(resolveQianzhiLoginMethod('   ')).toBeNull();
-    });
-});
-\`;
-
-async function writeFile(relativePath, content) {
-    const target = path.join(foliaDir, relativePath);
-    await fs.mkdir(path.dirname(target), { recursive: true });
-    let current = null;
-    try { current = await fs.readFile(target, 'utf8'); }
-    catch (error) { if (error?.code !== 'ENOENT') throw error; }
-    if (current === content) return;
-    if (current !== null) {
-        throw new Error('Refusing to overwrite an existing Folia overlay file with different contents: ' + relativePath);
-    }
-    await fs.writeFile(target, content, 'utf8');
-}
-
-const helpPath = path.join(foliaDir, 'src/components/modal/settings/pages/HelpPage.tsx');
-let help = await fs.readFile(helpPath, 'utf8');
+const helpPath = path.join(root, "src/components/modal/settings/pages/HelpPage.tsx");
+let help = await fs.readFile(helpPath, "utf8");
 const importLine = "import QianzhiAccountRow from './QianzhiAccountRow';";
 if (!help.includes(importLine)) {
-    const anchor = "import { iconLabel } from './iconLabel';";
-    const index = help.indexOf(anchor);
-    if (index < 0 || help.indexOf(anchor, index + anchor.length) >= 0) {
-        throw new Error('Could not safely locate HelpPage import anchor.');
-    }
-    help = help.slice(0, index + anchor.length) + '\n' + importLine + help.slice(index + anchor.length);
+  const anchor = "import { iconLabel } from './iconLabel';";
+  const index = help.indexOf(anchor);
+  if (index < 0 || help.indexOf(anchor, index + anchor.length) >= 0) {
+    throw new Error("Could not safely locate the HelpPage import anchor.");
+  }
+  help = help.slice(0, index + anchor.length) + "\n" + importLine + help.slice(index + anchor.length);
 }
-
-const groupAnchor = '<Group def={ABOUT} bare>';
-if (!help.includes('<QianzhiAccountRow />')) {
-    const index = help.indexOf(groupAnchor);
-    if (index < 0 || help.indexOf(groupAnchor, index + groupAnchor.length) >= 0) {
-        throw new Error('Could not safely locate HelpPage About group anchor.');
-    }
-    const insertAt = index + groupAnchor.length;
-    help = help.slice(0, insertAt) + '\n                <QianzhiAccountRow />' + help.slice(insertAt);
+const groupAnchor = "<Group def={ABOUT} bare>";
+if (!help.includes("<QianzhiAccountRow />")) {
+  const index = help.indexOf(groupAnchor);
+  if (index < 0 || help.indexOf(groupAnchor, index + groupAnchor.length) >= 0) {
+    throw new Error("Could not safely locate the HelpPage About group anchor.");
+  }
+  const insertAt = index + groupAnchor.length;
+  help = help.slice(0, insertAt) + "\n                <QianzhiAccountRow />" + help.slice(insertAt);
 }
-await fs.writeFile(helpPath, help, 'utf8');
-
-await writeFile('src/services/qianzhiAccount.ts', accountService);
-await writeFile('src/components/modal/settings/pages/QianzhiAccountRow.tsx', accountRow);
-await writeFile('test/unit/qianzhiAccount/loginMethod.test.ts', testSource);
-
-console.log('Applied optional shared Qianzhi Supabase account login to Folia Help > About.');
+await fs.writeFile(helpPath, help, "utf8");
+console.log("Applied optional Qianzhi Supabase account integration.");

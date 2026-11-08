@@ -116,25 +116,28 @@ export default function GuestPosts({ section, onLoginRequired }: Props) {
     setError('');
     setPosts([]);
     setHasMore(false);
-    supabase.rpc('guest_public_posts' as any, {
-      p_section: section,
-      p_limit: PAGE_SIZE,
-      p_offset: 0,
-    }).then(({ data, error: rpcError }) => {
-      if (!alive) return;
-      if (rpcError) {
-        setError('公开动态暂时无法加载，请稍后重试。');
-        setPosts([]);
-        return;
+    void (async () => {
+      try {
+        const { data, error: rpcError } = await supabase.rpc('guest_public_posts' as any, {
+          p_section: section,
+          p_limit: PAGE_SIZE,
+          p_offset: 0,
+        });
+        if (!alive) return;
+        if (rpcError) {
+          setError('公开动态暂时无法加载，请稍后重试。');
+          setPosts([]);
+          return;
+        }
+        const rows = (Array.isArray(data) ? data : []) as GuestPost[];
+        setPosts(rows);
+        setHasMore(rows.length === PAGE_SIZE);
+      } catch {
+        if (alive) setError('公开动态暂时无法加载，请稍后重试。');
+      } finally {
+        if (alive) setLoading(false);
       }
-      const rows = (Array.isArray(data) ? data : []) as GuestPost[];
-      setPosts(rows);
-      setHasMore(rows.length === PAGE_SIZE);
-    }).catch(() => {
-      if (alive) setError('公开动态暂时无法加载，请稍后重试。');
-    }).finally(() => {
-      if (alive) setLoading(false);
-    });
+    })();
     return () => { alive = false; };
   }, [section, reloadKey]);
 

@@ -199,7 +199,7 @@ async function jamendoRequest(params, clientId) {
     order: "relevance",
     limit: String(params.limit || 20),
     offset: String(params.offset || 0),
-    ...(params.query ? { namesearch: params.query } : {}),
+    ...(params.query ? { search: params.query } : {}),
     ...(params.id ? { id: params.id } : {}),
   }).toString();
   const response = await fetchJson(url.toString());

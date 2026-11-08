@@ -4,6 +4,7 @@ import express from "../folia/node_modules/express/index.js";
 import { handleAsNodeRequest } from "cloudflare:node";
 import createNeteaseRequest from "../folia/node_modules/@neteasecloudmusicapienhanced/api/util/request.js";
 import { NCM_MODULES } from "../folia/worker/netease-modules.generated.ts";
+import { isCrossSiteMusicApiRequest, normalizeMusicApiCookie } from "./netease-security.mjs";
 
 const PREFIX = "/api/netease";
 const PORT = 3918;
@@ -35,16 +36,7 @@ const sendCookies = (response, value) => {
   const cookies = Array.isArray(value) ? value : typeof value === "string" ? [value] : [];
   const safeCookies = cookies
     .filter(cookie => typeof cookie === "string" && cookie.length > 0)
-    .map(cookie => {
-      // The music app and its API are same-origin. Do not make upstream account cookies
-      // eligible for third-party requests; keep them first-party with the safer Lax default.
-      const normalized = cookie
-        .split(";")
-        .map(part => part.trim())
-        .filter(part => part && !/^SameSite=/i.test(part) && !/^Secure$/i.test(part))
-        .join("; ");
-      return `${normalized}; SameSite=Lax; Secure`;
-    });
+    .map(normalizeMusicApiCookie);
   if (safeCookies.length) response.append("Set-Cookie", safeCookies);
 };
 
@@ -126,11 +118,8 @@ server.listen(PORT);
 
 export async function handleNeteaseApi(request) {
   const url = new URL(request.url);
-  const origin = request.headers.get("origin");
-  const fetchSite = request.headers.get("sec-fetch-site");
-  // This service is a same-origin browser app. Reject cross-origin API calls before
-  // forwarding any ambient browser cookies to NetEase (CORS alone does not stop CSRF).
-  if ((origin && origin !== url.origin) || fetchSite === "cross-site") {
+  // CORS alone does not stop CSRF: this account-cookie proxy only accepts same-origin browser calls.
+  if (isCrossSiteMusicApiRequest(request)) {
     return new Response(
       JSON.stringify({ code: 403, msg: "Cross-site request blocked" }),
       {

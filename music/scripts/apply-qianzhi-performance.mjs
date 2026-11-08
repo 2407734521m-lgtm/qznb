@@ -200,8 +200,8 @@ preloader = replaceOnce(
 );
 preloader = replaceOnce(
     preloader,
-    '): void => {\n    const candidates = useMemo(() => {',
-    '): void => {\n    const performanceProfile = useMemo(() => resolveQianzhiPerformanceProfile(), []);\n    const candidates = useMemo(() => {',
+    '): void => {\n  const candidates = useMemo(() => {',
+    '): void => {\n  const performanceProfile = useMemo(() => resolveQianzhiPerformanceProfile(), []);\n  const candidates = useMemo(() => {',
     'cover preloader profile setup',
 );
 preloader = replaceAll(preloader, 'Math.min(INITIAL_INDEX_COUNT, coverCount)', 'Math.min(performanceProfile.initialPreloadCount, coverCount)', 'initial cover preload count');

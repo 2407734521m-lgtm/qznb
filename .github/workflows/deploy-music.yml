@@ -15,10 +15,12 @@ jobs:
           CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CF_ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           QQ_SECRET: ${{ secrets.QQ_SESSION_SECRET }}
+          QZNB_ANON_KEY: ${{ secrets.QZNB_SUPABASE_ANON_KEY }}
         run: |
           test -n "$CF_TOKEN" || { echo "::error::Missing CLOUDFLARE_API_TOKEN repository secret"; exit 1; }
           test -n "$CF_ACCOUNT" || { echo "::error::Missing CLOUDFLARE_ACCOUNT_ID repository secret"; exit 1; }
           test -n "$QQ_SECRET" || { echo "::error::Missing QQ_SESSION_SECRET repository secret"; exit 1; }
+          test -n "$QZNB_ANON_KEY" || { echo "::error::Missing QZNB_SUPABASE_ANON_KEY repository secret"; exit 1; }
 
       - name: Checkout including pinned Folia source
         uses: actions/checkout@v4
@@ -35,9 +37,16 @@ jobs:
       - name: Apply maintained Folia mobile gesture overlay
         run: node music/scripts/apply-folia-mobile-gestures.mjs
 
+      - name: Apply optional Qianzhi account integration
+        run: node music/scripts/apply-qianzhi-account.mjs
+
       - name: Install Folia dependencies
         working-directory: music/folia
         run: npm ci
+
+      - name: Install pinned Supabase browser client for the account overlay
+        working-directory: music/folia
+        run: npm install --no-save --package-lock=false --ignore-scripts @supabase/supabase-js@2.119.0
 
       - name: Typecheck Folia
         working-directory: music/folia
@@ -47,10 +56,16 @@ jobs:
         working-directory: music/folia
         run: npm run test:unit -- test/unit/components/playerSwipe.test.ts
 
+      - name: Test Qianzhi account integration
+        working-directory: music/folia
+        run: npm run test:unit -- test/unit/qianzhiAccount/loginMethod.test.ts
+
       - name: Build Folia Web + Worker
         working-directory: music/folia
         env:
           VITE_QQ_API_BASE: /api/qq
+          VITE_QZNB_SUPABASE_URL: https://ldypnxxxgscibopgiaso.supabase.co
+          VITE_QZNB_SUPABASE_ANON_KEY: ${{ secrets.QZNB_SUPABASE_ANON_KEY }}
         run: npm run build
 
       - name: Create the first Worker deployment

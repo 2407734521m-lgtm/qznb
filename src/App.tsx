@@ -22,6 +22,7 @@ import FxLoader from './components/fx/Loader';
 import WelcomeOverlay from './components/WelcomeOverlay';
 import GuideCarousel from './components/GuideCarousel';
 import AppUpdateDialog from './components/AppUpdateDialog';
+import BroadcastPopup from './components/BroadcastPopup';
 import AppAnnouncementDialog from './components/AppAnnouncementDialog';
 import LoginSuccessOverlay from './components/LoginSuccessOverlay';
 import bgUrl from './assets/bg.jpg';
@@ -964,6 +965,7 @@ function Shell() {
       {!showAppUpdate && detectInstalledApp() && appAnnouncements.length > 0 && (
         <AppAnnouncementDialog announcement={appAnnouncements[0]} onDismiss={id => void dismissAppAnnouncement(id)} />
       )}
+      {session && !isAdminPage && <BroadcastPopup uid={session.user.id} />}
       {isAdminPage ? (
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', position: 'sticky', top: 0, zIndex: 40, background: 'rgba(255,255,255,.92)', backdropFilter: 'blur(12px)', borderBottom: '1px solid #e8eaf0' }}>
           <b style={{ fontSize: 15 }}>管理后台</b>

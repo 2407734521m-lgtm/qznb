@@ -257,6 +257,22 @@ if (!workerEntry.includes(importAnchor)) throw new Error("Folia Worker QQ import
 if (!workerEntry.includes(routeAnchor)) throw new Error("Folia Worker route anchor changed");
 if (!workerEntry.includes(apiImport)) workerEntry = workerEntry.replace(importAnchor, importAnchor + "\n" + apiImport);
 if (!workerEntry.includes("/api/netease/")) workerEntry = workerEntry.replace(routeAnchor, routeBlock + routeAnchor);
+
+// Keep unknown API paths out of the SPA fallback. A typo or removed diagnostic endpoint
+// should return a real JSON 404 instead of index.html with HTTP 200.
+const apiFallbackAnchor = "    return env.ASSETS.fetch(request);";
+const apiFallback = `    if (url.pathname.startsWith("/api/")) {
+      return new Response(
+        JSON.stringify({ code: 404, msg: "API route not found" }),
+        { status: 404, headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" } },
+      );
+    }
+
+`;
+if (!workerEntry.includes(apiFallbackAnchor)) throw new Error("Folia Worker asset fallback anchor changed");
+if (!workerEntry.includes("API route not found")) {
+  workerEntry = workerEntry.replace(apiFallbackAnchor, apiFallback + apiFallbackAnchor);
+}
 await write(workerEntryPath, workerEntry);
 
 console.log(`Prepared ${routeNames.length} allowlisted NetEase API routes for Cloudflare Workers.`);

@@ -115,3 +115,21 @@
     -webkit-tap-highlight-color: transparent;
   }
 }
+
+/* radio-web: 首页仪表盘在矮屏(手机横屏)/窄屏下改为可纵向滚动。
+   上游首页是固定高度双列仪表盘、本身不滚动; 手机横屏高度不足时内容溢出被裁、且无处可滑。 */
+@media (max-width: 720px), (max-height: 600px) {
+  #empty-home {
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    top: 104px;
+    bottom: 52px;
+  }
+  .empty-home-shell {
+    height: auto;
+    min-height: 0;
+  }
+  .home-hero {
+    min-height: 300px;
+  }
+}

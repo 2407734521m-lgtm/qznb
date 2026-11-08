@@ -185,7 +185,7 @@ var fxDefaults = {
   shelfCameraExitSpeed: 0.24,
   performanceBackground: 'release',
   performanceQuality: 'eco',
-  foregroundFpsMode: 'vsync',
+  foregroundFpsMode: '45', // radio-web: 网页版默认固定 45fps 上限(原 vsync 跟随刷新率, 手机高刷屏会满负荷渲染导致卡顿发热); 控制台里仍可手动切换
   memoryAutoTrimApp: true,
   memoryAutoTrimOnBackground: true,
   memoryAutoSystemTrim: true,

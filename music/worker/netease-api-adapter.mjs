@@ -35,7 +35,15 @@ const sendCookies = (response, value) => {
   const cookies = Array.isArray(value) ? value : typeof value === "string" ? [value] : [];
   const safeCookies = cookies
     .filter(cookie => typeof cookie === "string" && cookie.length > 0)
-    .map(cookie => /;\\s*SameSite=/i.test(cookie) ? cookie : `${cookie}; SameSite=None; Secure`);
+    .map(cookie => {
+      // The music app and its API are same-origin. Do not make upstream account cookies
+      // eligible for third-party requests; keep them first-party with the safer Lax default.
+      const normalized = cookie
+        .replace(/;\\s*SameSite=[^;]*/gi, "")
+        .replace(/;\\s*Secure\\b/gi, "")
+        .replace(/;\\s*$/, "");
+      return `${normalized}; SameSite=Lax; Secure`;
+    });
   if (safeCookies.length) response.append("Set-Cookie", safeCookies);
 };
 
@@ -117,6 +125,23 @@ server.listen(PORT);
 
 export async function handleNeteaseApi(request) {
   const url = new URL(request.url);
+  const origin = request.headers.get("origin");
+  const fetchSite = request.headers.get("sec-fetch-site");
+  // This service is a same-origin browser app. Reject cross-origin API calls before
+  // forwarding any ambient browser cookies to NetEase (CORS alone does not stop CSRF).
+  if ((origin && origin !== url.origin) || fetchSite === "cross-site") {
+    return new Response(
+      JSON.stringify({ code: 403, msg: "Cross-site request blocked" }),
+      {
+        status: 403,
+        headers: {
+          "content-type": "application/json; charset=utf-8",
+          "cache-control": "no-store",
+          "vary": "Origin",
+        },
+      },
+    );
+  }
   if (url.pathname === PREFIX || url.pathname === `${PREFIX}/`) url.pathname = `${PREFIX}/healthz`;
   url.pathname = url.pathname === `${PREFIX}/healthz`
     ? "/healthz"

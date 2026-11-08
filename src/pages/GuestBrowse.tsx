@@ -1,6 +1,7 @@
 import { NavLink, Navigate, Route, Routes } from 'react-router-dom';
 import Login from './Login';
 import GuestLoveWall from './GuestLoveWall';
+import VisitCounter from '../components/VisitCounter';
 import GuestPosts from './GuestPosts';
 
 type Notice = { id?: number | string; title?: string | null; content?: string | null; created_at?: string | null };
@@ -220,6 +221,7 @@ export default function GuestBrowse({
       <div style={{ maxWidth: 820, margin: '20px auto 0', textAlign: 'center', color: '#929aa6', fontSize: 11, lineHeight: 1.6 }}>
         游客模式 · 公开内容只读 · 点赞、评论、投稿等互动需要正式账号
       </div>
+      <VisitCounter />
 
       {!loginEnabled && loginOpen && (
         <div role="dialog" aria-modal="true" onClick={onCloseLogin} style={{

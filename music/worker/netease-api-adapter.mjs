@@ -39,9 +39,10 @@ const sendCookies = (response, value) => {
       // The music app and its API are same-origin. Do not make upstream account cookies
       // eligible for third-party requests; keep them first-party with the safer Lax default.
       const normalized = cookie
-        .replace(/;\\s*SameSite=[^;]*/gi, "")
-        .replace(/;\\s*Secure\\b/gi, "")
-        .replace(/;\\s*$/, "");
+        .split(";")
+        .map(part => part.trim())
+        .filter(part => part && !/^SameSite=/i.test(part) && !/^Secure$/i.test(part))
+        .join("; ");
       return `${normalized}; SameSite=Lax; Secure`;
     });
   if (safeCookies.length) response.append("Set-Cookie", safeCookies);

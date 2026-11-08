@@ -559,6 +559,8 @@ export default function Friends() {
     admin_message: '管理员消息',
     moderation: '账号警告',
     friend_request: '好友申请',
+    anonymous_question: '匿名提问',
+    anonymous_answer: '匿名回答',
   };
   const visibleNotifications = notifications
     .filter(item => (item.type ? notificationPrefs[item.type] : true) !== false)

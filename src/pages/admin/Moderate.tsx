@@ -7,15 +7,17 @@ import { confirmDialog, promptDialog } from '../../lib/dialog';
 
 type Report = Database['public']['Tables']['reports']['Row'];
 type BoardRow = Database['public']['Tables']['board_messages']['Row'];
+type AnonymousQuestionReview = { id: string; question: string; answer: string | null; status: string; is_public: boolean; moderation_hidden: boolean; created_at: string; asker_id: string; recipient_id: string; asker_name: string | null; recipient_name: string | null };
 
 export default function Moderate({ setMsg }: { setMsg: (s: string) => void }) {
-  const [sub, setSub] = useState<'posts' | 'comments' | 'reports' | 'trash'>('reports');
+  const [sub, setSub] = useState<'posts' | 'comments' | 'reports' | 'trash' | 'questions'>('reports');
   const [posts, setPosts] = useState<Post[]>([]);
   const [cmts, setCmts] = useState<Cmt[]>([]);
   const [reports, setReports] = useState<Report[]>([]);
   const [trashP, setTrashP] = useState<Post[]>([]);
   const [trashC, setTrashC] = useState<Cmt[]>([]);
   const [trashB, setTrashB] = useState<BoardRow[]>([]);
+  const [anonymousQuestions, setAnonymousQuestions] = useState<AnonymousQuestionReview[]>([]);
   const [names, setNames] = useState<Record<string, string>>({});
   const [postSections, setPostSections] = useState<Record<number, string>>({});
   const [query, setQuery] = useState('');
@@ -35,6 +37,8 @@ export default function Moderate({ setMsg }: { setMsg: (s: string) => void }) {
       supabase.from('comments').select('id, post_id, author_id, content, created_at, deleted_at').not('deleted_at', 'is', null).order('deleted_at', { ascending: false }).limit(50),
       supabase.from('board_messages').select('*').not('deleted_at', 'is', null).order('deleted_at', { ascending: false }).limit(50),
     ]);
+    const aq = await (supabase as any).rpc('admin_list_anonymous_questions');
+    setAnonymousQuestions((aq.data ?? []) as AnonymousQuestionReview[]);
     setPosts(p.data ?? []); setCmts(c.data ?? []); setReports((r.data ?? []) as Report[]);
     setTrashP(tp.data ?? []); setTrashC(tc.data ?? []); setTrashB((tb.data ?? []) as BoardRow[]);
     const commentPostIds = [...new Set([...(c.data ?? []), ...(tc.data ?? [])].map(comment => comment.post_id))];
@@ -89,6 +93,18 @@ export default function Moderate({ setMsg }: { setMsg: (s: string) => void }) {
     if (!error) { await alog(hide ? 'comment_hide' : 'comment_restore', { id: c.id }); load(); }
     else setMsg('失败：' + error.message);
   }
+  async function setAnonymousQuestionHidden(question: AnonymousQuestionReview, hidden: boolean) {
+    if (!(await confirmDialog(hidden ? '隐藏这条匿名提问？成员将无法继续查看。' : '恢复这条匿名提问？'))) return;
+    const { error } = await (supabase as any).rpc('admin_set_anonymous_question_hidden', {
+      p_question_id: question.id,
+      p_hidden: hidden,
+    });
+    if (error) { setMsg('操作失败：' + error.message); return; }
+    await alog(hidden ? 'anonymous_question_hide' : 'anonymous_question_restore', { id: question.id });
+    await load();
+    setMsg(hidden ? '匿名提问已隐藏。' : '匿名提问已恢复。');
+  }
+
   async function restoreBoard(b: BoardRow) {
     if (!(await confirmDialog('恢复这条公告？恢复后立即公开显示。', { confirmText: '确认恢复' }))) return;
     const { error } = await supabase.from('board_messages').update({ deleted_at: null }).eq('id', b.id);
@@ -210,6 +226,7 @@ export default function Moderate({ setMsg }: { setMsg: (s: string) => void }) {
       <button className={'mini' + (sub === 'posts' ? '' : ' ghost')} onClick={() => setSub('posts')}>帖子</button>
       <button className={'mini' + (sub === 'comments' ? '' : ' ghost')} onClick={() => setSub('comments')}>评论</button>
       <button className={'mini' + (sub === 'trash' ? '' : ' ghost')} onClick={() => setSub('trash')}>回收站{trashCount ? `（${trashCount}）` : ''}</button>
+      <button className={'mini' + (sub === 'questions' ? '' : ' ghost')} onClick={() => setSub('questions')}>匿名提问（{anonymousQuestions.length}）</button>
     </div>
     <div style={{ ...card, marginBottom: 12 }}>
       <div className="row" style={{ gap: 8, alignItems: 'center' }}>

@@ -451,3 +451,41 @@
     transform: none !important;
   }
 }
+
+
+/* 匿名提问入口：白底轻卡片，沿用发现页的克制层次。 */
+.discover-card--questions {
+  grid-column: 1 / -1;
+  min-height: 150px;
+  background: linear-gradient(132deg, #f7f9fc 0%, #eef2f7 58%, #f7f8fa 100%);
+  color: #34465d;
+  border-color: rgba(91, 112, 139, .12);
+}
+.discover-card--questions h2 { color: #26384d; }
+.discover-card--questions p { color: rgba(38, 56, 77, .68); }
+.discover-card--questions .discover-card-action { color: #38536f; }
+.discover-card--questions .discover-card-action span { border-color: rgba(56, 83, 111, .22); }
+.discover-question-art {
+  position: absolute;
+  right: 11%;
+  bottom: -31px;
+  display: grid;
+  place-items: center;
+  width: 150px;
+  height: 150px;
+  border-radius: 38px;
+  border: 1px solid rgba(107, 130, 158, .18);
+  background: linear-gradient(145deg, rgba(255,255,255,.88), rgba(228,235,243,.75));
+  color: #7187a1;
+  font-family: Georgia, serif;
+  font-size: 116px;
+  line-height: 1;
+  font-weight: 500;
+  transform: rotate(-8deg);
+  box-shadow: 0 20px 45px rgba(52, 73, 99, .08);
+}
+@media (max-width: 600px) {
+  .discover-card--questions { min-height: 142px; }
+  .discover-card--questions .discover-card-copy { max-width: 66%; }
+  .discover-question-art { right: 4%; width: 112px; height: 112px; bottom: -18px; font-size: 88px; border-radius: 30px; }
+}

@@ -37,6 +37,14 @@ const cards = [
     action: '写下心意',
   },
   {
+    to: '/questions',
+    className: 'discover-card--questions',
+    eyebrow: '匿名互动',
+    title: '匿名提问',
+    description: '向成员匿名提问，也可以在自己的提问箱里回答。',
+    action: '打开提问箱',
+  },
+  {
     to: '/fate-notebook',
     className: 'discover-card--fate',
     eyebrow: '趣味玩法',
@@ -155,6 +163,7 @@ export default function Explore() {
               {index === 2 && <HotArtwork />}
               {card.to === '/love-wall' && <LoveArtwork />}
               {card.to === '/fate-notebook' && <FateArtwork />}
+              {card.to === '/questions' && <span className="discover-question-art" aria-hidden="true">?</span>}
             </Link>
           </motion.article>
         ))}

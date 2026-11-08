@@ -291,6 +291,18 @@ export default function Member() {
               </button>
             )
           )}
+          {!isMe && uid && m && fstat && !fstat.blocked_me && !fstat.blocked_by_me && (
+            <Link to={`/questions/${id}`} className="mp-act">
+              <span className="mp-act-circle">{actIcon(<><path d="M5 5h14v11H9l-4 4V5Z" /><path d="M9 9h6M9 12h4" /></>)}</span>
+              <span className="mp-act-label">匿名提问</span>
+            </Link>
+          )}
+          {isMe && (
+            <Link to="/questions" className="mp-act">
+              <span className="mp-act-circle">{actIcon(<><path d="M5 5h14v11H9l-4 4V5Z" /><path d="M9 9h6M9 12h4" /></>)}</span>
+              <span className="mp-act-label">我的提问箱</span>
+            </Link>
+          )}
           {m && (
             <Link to={`/timeline/${id}`} className="mp-act">
               <span className="mp-act-circle">{actIcon(<><path d="M3 3v5h5" /><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8" /><path d="M12 7v5l4 2" /></>)}</span>

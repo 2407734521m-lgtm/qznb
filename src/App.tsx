@@ -65,6 +65,7 @@ import Board from './pages/Board';
 import HotSnippets from './pages/HotSnippets';
 import LoveWall from './pages/LoveWall';
 import Explore from './pages/Explore';
+import QuestionBox from './pages/QuestionBox';
 import FateNotebook from './pages/FateNotebook';
 import SongWall from './pages/SongWall';
 import Daily from './pages/Daily';
@@ -1054,6 +1055,8 @@ function Shell() {
               <Route path="/particle-flower" element={<ErrorBoundary><ParticleFlower /></ErrorBoundary>} />
               <Route path="/air-ink" element={<ErrorBoundary><AirInk /></ErrorBoundary>} />
               <Route path="/love-wall" element={<LoveWall />} />
+              <Route path="/questions" element={<QuestionBox />} />
+              <Route path="/questions/:id" element={<QuestionBox />} />
               <Route path="/songs" element={<SongWall />} />
               <Route path="/daily" element={<Daily
                 searchQuery={typeof (loc.state as any)?.searchQuery === 'string' ? (loc.state as any).searchQuery : ''}

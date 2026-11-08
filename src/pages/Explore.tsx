@@ -175,10 +175,10 @@ export default function Explore() {
                   {card.to === '/love-wall' && <LoveArtwork />}
                   {card.to === '/fate-notebook' && <FateArtwork />}
                   {card.to === '/questions' && <span className="discover-question-art" aria-hidden="true">?</span>}
-                  {card.external && <span className="discover-music-art" aria-hidden="true"><svg viewBox="0 0 180 180" fill="none"><path d="M111 29v88.5a24 24 0 1 1-12-20.8V52l56-12v67.5a24 24 0 1 1-12-20.8V29l-32 7Z" stroke="currentColor" strokeWidth="8" strokeLinecap="round" strokeLinejoin="round"/><circle cx="42" cy="40" r="5" fill="currentColor"/><circle cx="147" cy="145" r="4" fill="currentColor"/></svg></span>}
+                  {card.to.startsWith('https://') && <span className="discover-music-art" aria-hidden="true"><svg viewBox="0 0 180 180" fill="none"><path d="M111 29v88.5a24 24 0 1 1-12-20.8V52l56-12v67.5a24 24 0 1 1-12-20.8V29l-32 7Z" stroke="currentColor" strokeWidth="8" strokeLinecap="round" strokeLinejoin="round"/><circle cx="42" cy="40" r="5" fill="currentColor"/><circle cx="147" cy="145" r="4" fill="currentColor"/></svg></span>}
                 </>
               );
-              return card.external
+              return card.to.startsWith('https://')
                 ? <a href={card.to} target="_blank" rel="noopener noreferrer" className="discover-card-link">{content}</a>
                 : <Link to={card.to} className="discover-card-link">{content}</Link>;
             })()}

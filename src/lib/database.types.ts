@@ -209,6 +209,7 @@ export type Database = {
           popup_on_login: boolean
           title: string | null
           popup_times: number
+          audience: string
         }
         Insert: {
           id?: number
@@ -222,6 +223,7 @@ export type Database = {
           popup_on_login?: boolean
           title?: string | null
           popup_times?: number
+          audience?: string
         }
         Update: {
           id?: number
@@ -235,6 +237,7 @@ export type Database = {
           popup_on_login?: boolean
           title?: string | null
           popup_times?: number
+          audience?: string
         }
         Relationships: [
           {
@@ -871,6 +874,7 @@ export type Database = {
           location_share_enabled: boolean
           location_consented_at: string | null
           updated_at: string
+          client: string | null
         }
         Insert: {
           profile_id: string
@@ -882,17 +886,16 @@ export type Database = {
           location_share_enabled?: boolean
           location_consented_at?: string | null
           updated_at?: string
+          client?: string | null
         }
         Update: {
           profile_id?: string
           device?: string | null
-          client_platform?: string
-          app_version_name?: string | null
-          app_version_code?: number | null
           location?: string | null
           location_share_enabled?: boolean
           location_consented_at?: string | null
           updated_at?: string
+          client?: string | null
         }
         Relationships: [
           {
@@ -1905,6 +1908,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: unknown
       }
+      public_admin_app_update: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
       admin_client_platform_members: {
         Args: Record<PropertyKey, never>
         Returns: { id: string; username: string; display_name: string | null; client_platform: string; device: string | null; app_version_name: string | null; app_version_code: number | null; presence_updated_at: string | null }[]
@@ -2048,6 +2055,10 @@ export type Database = {
       username_available: {
         Args: { u: string }
         Returns: unknown
+      }
+      withdraw_friend_request: {
+        Args: { target: string }
+        Returns: string
       }
     }
     Enums: {

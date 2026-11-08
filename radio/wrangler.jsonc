@@ -1,0 +1,1 @@
+{"$schema":"https://unpkg.com/wrangler/config-schema.json","assets":{"binding":"ASSETS","directory":"./public","run_worker_first":["/api/*"]},"compatibility_date":"2026-04-02","main":"./worker/index.mjs","name":"qianzhi-radio","preview_urls":false,"routes":[{"custom_domain":true,"pattern":"radio.qianzhi.pw"}],"workers_dev":false}

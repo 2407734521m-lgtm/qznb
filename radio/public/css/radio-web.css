@@ -1,0 +1,117 @@
+/* Mineradio 网页版 (radio.qianzhi.pw) 覆盖层:
+   1) 隐藏一期未开放的音源入口 (QQ/酷狗/汽水/Spotify) 与桌面专属入口;
+   2) 竖屏最小适配补丁 (上游 index.css 已有大量移动端媒体查询, 这里只补缺口)。
+   桌面专属的成段设置区 (桌面歌词/内存/本地缓存等) 由 js/radio-web-shim.js 按结构隐藏。 */
+
+/* ---- 未开放音源入口 ---- */
+#search-mode-qq,
+#search-mode-kugou,
+#search-mode-qishui,
+[data-home-recommend-source="qq"],
+[data-home-recommend-source="kugou"],
+[data-home-recommend-source="qishui"],
+#login-provider-qq,
+#login-provider-kugou,
+#login-provider-qishui,
+#user-provider-qq,
+#user-provider-kugou,
+#user-provider-qishui,
+#user-provider-both,
+#account-add-qq,
+#account-add-kugou,
+#account-add-qishui,
+#qq-web-login-card,
+#qq-cookie-panel,
+#qq-cookie-toggle-btn,
+#spotify-setup-wizard {
+  display: none !important;
+}
+
+/* ---- 桌面专属入口 ---- */
+#upload-actions,
+.wallpaper-engine-row,
+.wallpaper-engine-visual-controls,
+#t-desktopLyrics,
+#t-desktopLyricsClickThrough,
+#t-desktopLyricsCinema,
+#t-desktopLyricsHighlight,
+#t-wallpaperMode,
+#desktop-mode-control-panel,
+#update-entry {
+  display: none !important;
+}
+
+/* 桌面歌词相关滑杆 (大小/透明/高度) 与壁纸透明度滑杆 */
+.fx-slider:has(#fx-desktoplyricssize),
+.fx-slider:has(#fx-desktoplyricsopacity),
+.fx-slider:has(#fx-desktoplyricsy),
+.fx-slider:has(#fx-wallpaperopacity),
+#desktop-lyrics-fps-seg,
+#wallpaper-fps-seg {
+  display: none !important;
+}
+
+/* ---- 竖屏 / 窄屏最小补丁 ---- */
+@media (max-width: 720px) {
+  /* 搜索区占满宽度, 结果列表不溢出 */
+  #search-area {
+    left: 12px;
+    right: 12px;
+    width: auto;
+    max-width: none;
+  }
+  #search-results {
+    max-height: 52vh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  /* 搜索模式页签可横滑, 不挤压 */
+  .search-mode-tabs {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    scrollbar-width: none;
+  }
+  .search-mode-tabs::-webkit-scrollbar { display: none; }
+
+  /* 首页推荐墙改单列滚动 */
+  #empty-home .home-grid,
+  #empty-home .home-dashboard-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* 登录弹窗: 全屏化 + 可滚动, 二维码居中 */
+  .modal-mask .modal {
+    max-height: 92vh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  #login-node-graph {
+    transform: scale(0.92);
+    transform-origin: top center;
+  }
+
+  /* 歌单面板 / 队列面板不超出屏幕 */
+  .side-panel,
+  .queue-panel {
+    max-width: 94vw;
+  }
+}
+
+@media (max-width: 720px) and (orientation: portrait) {
+  /* 底部播放控制区与唱片架底栏留出安全距, 避免互相遮挡 */
+  #shelf-bottom-bar,
+  .shelf-bottom-bar {
+    bottom: max(10px, env(safe-area-inset-bottom));
+  }
+  /* 顶部视觉预设条 (FX 控制台打开时) 允许横滑 */
+  .preset-grid {
+    overflow-x: auto;
+  }
+}
+
+/* 触摸设备: 唱片架卡片关闭 hover 放大依赖, 保证点按区域稳定 */
+@media (hover: none) {
+  .shelf-card {
+    -webkit-tap-highlight-color: transparent;
+  }
+}

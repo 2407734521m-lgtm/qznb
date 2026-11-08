@@ -14,14 +14,19 @@ From the repository root:
 
 ```bash
 git submodule update --init --recursive
+node music/scripts/apply-folia-mobile-gestures.mjs
 cd music/folia
 npm ci
+npm run typecheck
+npm run test:unit -- test/unit/components/playerSwipe.test.ts
 VITE_QQ_API_BASE=/api/qq npm run build
 ```
 
+The overlay script applies the pinned Lark swipe resolver to Folia's existing mobile player capsule. It adds horizontal previous/next navigation, upward expansion and downward collapse without replacing Folia's playback store or adding a second player UI. It also writes a focused unit test; the original Lark source remains under `music/vendor/lark/`.
+
 This compiles Folia's web assets and Worker entry. It does not deploy the site.
 
-To publish the preview Worker (after authenticating Wrangler with the target Cloudflare account):
+To publish the preview Worker (after authenticating Wrangler with the target Cloudflare account), from `music/folia`:
 
 ```bash
 npx wrangler@4.120.0 deploy --config ../wrangler.jsonc

@@ -1182,3 +1182,44 @@ button.ghost, .mini.ghost {
 @media(prefers-reduced-motion:reduce) {
   .global-search-panel, .global-search-result, .feed-filters button, .album-categories button { transition:none!important; }
 }
+
+
+/* 帖子内的匿名印象投票 */
+.impression-composer-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:8px 0 12px}
+.impression-composer-actions>span{font-size:12px;color:var(--mut)}
+.impression-toggle{border:1px solid #d5e7e8;background:#f5fbfa;color:#287f8c;border-radius:999px;padding:8px 13px;font-size:12.5px;font-weight:650;cursor:pointer}
+.impression-toggle.is-active{background:#e8f5f3;border-color:#9fcfc8}
+.impression-builder{border:1px solid #dcebea;background:linear-gradient(145deg,#fbfefd,#f5faf9);border-radius:16px;padding:14px;margin:8px 0 14px}
+.impression-builder__heading{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:13px}
+.impression-builder__heading strong{font-size:14px;color:#244c54}
+.impression-builder__heading span,.impression-presets>span{font-size:11.5px;color:#82969a}
+.impression-field{display:grid;gap:6px;margin-bottom:10px}
+.impression-field>span,.impression-fields-heading{font-size:12px;font-weight:650;color:#526b70}
+.impression-field input,.impression-option-editor input{width:100%;min-width:0;border:1px solid #dce7e8;border-radius:10px;background:#fff;padding:10px 11px;font-size:13px;color:#29434b;outline:none}
+.impression-field input:focus,.impression-option-editor input:focus{border-color:#8bbfbb;box-shadow:0 0 0 3px #a7d5ce30}
+.impression-presets{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin:2px 0 14px}
+.impression-presets button{border:1px solid #e0e9e9;background:#fff;border-radius:999px;padding:5px 9px;color:#5b777a;font-size:11.5px}
+.impression-fields-heading{margin-bottom:7px}
+.impression-option-editor{display:grid;gap:7px}
+.impression-option-editor__row{display:flex;align-items:center;gap:8px}
+.impression-option-editor__row>span{width:22px;height:22px;display:grid;place-items:center;border-radius:7px;background:#e7f2f0;color:#4c7774;font-size:11px;flex:none}
+.impression-option-editor__row button{width:30px;height:34px;border:0;border-radius:9px;background:#f0f3f3;color:#839497;font-size:19px;flex:none}
+.impression-option-editor__row button:disabled{opacity:.3}
+.impression-add-option{margin-top:9px;border:0;background:transparent;color:#287f8c;font-size:12px;padding:5px 2px}
+.impression-privacy-note{margin:10px 0 0;color:#7a9194;font-size:11px;line-height:1.6}
+.impression-poll{border:1px solid #e0ebea;border-radius:16px;padding:14px;margin:12px 0 14px;background:#fbfefd}
+.impression-poll__top{display:flex;align-items:center;justify-content:space-between;margin-bottom:9px}
+.impression-poll__top strong{font-size:12px;color:#287f8c;letter-spacing:.02em}
+.impression-poll__top>span{font-size:10.5px;color:#6f9290;background:#edf6f4;border-radius:999px;padding:4px 8px}
+.impression-poll h3{font-size:15px;line-height:1.5;font-weight:700;color:#29484d;margin:0 0 12px}
+.impression-poll__options{display:grid;gap:8px}
+.impression-poll__option{width:100%;display:grid;grid-template-columns:minmax(0,1fr) 42px;gap:6px 10px;align-items:center;text-align:left;border:1px solid #e3ebeb;border-radius:11px;padding:9px 10px;background:#fff;color:#415d61;cursor:pointer;transition:border-color .18s ease,background .18s ease,transform .18s ease}
+.impression-poll__option:not(:disabled):active{transform:scale(.99)}
+.impression-poll__option:disabled{cursor:default;opacity:1}
+.impression-poll__option.is-selected{border-color:#8dbdb6;background:#f4fbf9}
+.impression-poll__label{font-size:13px;font-weight:600;min-width:0;overflow-wrap:anywhere}
+.impression-poll__option>strong{grid-column:2;grid-row:1 / span 2;justify-self:end;font-size:12px;color:#68817e;font-variant-numeric:tabular-nums;white-space:nowrap}
+.impression-poll__bar{height:5px;border-radius:99px;background:#eef3f2;overflow:hidden}
+.impression-poll__bar>span{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#8dc8bd,#5faaa3);transition:width .28s ease}
+.impression-poll__foot{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-top:11px;color:#829392;font-size:10.5px}
+@media(max-width:480px){.impression-builder,.impression-poll{padding:12px;border-radius:14px}.impression-poll__option{padding:9px}.impression-poll__foot{font-size:10px}}

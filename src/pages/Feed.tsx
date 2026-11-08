@@ -8,6 +8,15 @@ import type { ProfileSummary as Profile } from '../types/profile';
 import type { FeedPost as Post, FeedComment as Cmt } from '../types/content';
 import { confirmDialog, alertDialog, promptDialog } from '../lib/dialog';
 
+type ImpressionPollOption = { id: number; label: string; voteCount: number };
+type ImpressionPoll = {
+  question: string;
+  totalVotes: number;
+  myOptionId: number | null;
+  options: ImpressionPollOption[];
+};
+const DEFAULT_IMPRESSION_OPTIONS = ['阳光开朗', '安静慢热', '幽默有趣', '认真靠谱'];
+
 
 function Avatar({ p, url, size = 42 }: { p?: Profile; url?: string; size?: number }) {
   return (
@@ -52,6 +61,11 @@ export default function Feed({ searchQuery = '', focusPostId = null }: { searchQ
   const [highlightedPostId, setHighlightedPostId] = useState<number | null>(null);
   const focusedPostRef = useRef<number | null>(null);
   const [text, setText] = useState(''); const [img, setImg] = useState<File | null>(null);
+  const [impressionEnabled, setImpressionEnabled] = useState(false);
+  const [impressionQuestion, setImpressionQuestion] = useState('你觉得我给人的第一印象是？');
+  const [impressionOptions, setImpressionOptions] = useState<string[]>(DEFAULT_IMPRESSION_OPTIONS);
+  const [impressionPolls, setImpressionPolls] = useState<Record<number, ImpressionPoll>>({});
+  const [votingPostId, setVotingPostId] = useState<number | null>(null);
   const [upPct, setUpPct] = useState<number | null>(null);
   const [busy, setBusy] = useState(false); const [err, setErr] = useState('');
   const [isAdmin, setIsAdmin] = useState(false);
@@ -74,9 +88,35 @@ export default function Feed({ searchQuery = '', focusPostId = null }: { searchQ
     const { data: ps } = await postQuery;
     const list = ps ?? [];
     setPosts(list);
-    if (!list.length) return;
+    if (!list.length) { setImpressionPolls({}); return; }
     const ids = [...new Set(list.map(p => p.author_id))];
     const pids = list.map(p => p.id);
+    const { data: pollRows, error: pollError } = await (supabase as any).rpc(
+      'get_post_impression_poll_results',
+      { p_post_ids: pids },
+    );
+    if (!pollError) {
+      const grouped: Record<number, ImpressionPoll> = {};
+      for (const row of (pollRows ?? []) as Array<Record<string, any>>) {
+        const postId = Number(row.post_id);
+        if (!grouped[postId]) {
+          grouped[postId] = {
+            question: String(row.question ?? ''),
+            totalVotes: Number(row.total_votes ?? 0),
+            myOptionId: row.my_option_id == null ? null : Number(row.my_option_id),
+            options: [],
+          };
+        }
+        grouped[postId].options.push({
+          id: Number(row.option_id),
+          label: String(row.option_label ?? ''),
+          voteCount: Number(row.vote_count ?? 0),
+        });
+      }
+      setImpressionPolls(grouped);
+    } else {
+      setImpressionPolls({});
+    }
     const { data: pr } = await supabase.from('profiles').select('id, username, display_name, avatar_path').in('id', ids);
     const pm: Record<string, Profile> = {};
     (pr ?? []).forEach((x) => { pm[x.id] = x; });
@@ -132,15 +172,54 @@ export default function Feed({ searchQuery = '', focusPostId = null }: { searchQ
   }, [me]);
 
   async function publish() {
-    if (!text.trim() && !img) return setErr('写点什么再发布吧');
+    const question = impressionQuestion.trim();
+    const options = impressionOptions.map(option => option.trim());
+    if (!text.trim() && !img && !impressionEnabled) return setErr('写点什么再发布吧');
+    if (impressionEnabled) {
+      if (question.length < 2 || question.length > 120) return setErr('投票问题请填写 2–120 个字。');
+      if (options.length < 2 || options.length > 8 || options.some(option => !option || option.length > 40)) {
+        return setErr('请填写 2–8 个选项，每项不超过 40 个字。');
+      }
+      if (new Set(options.map(option => option.toLocaleLowerCase())).size !== options.length) {
+        return setErr('投票选项不能重复。');
+      }
+    }
     setBusy(true); setErr('');
+    let uploadedImagePath: string | null = null;
     try {
       let image_url: string | null = null;
-      if (img) image_url = await uploadMediaWithProgress('media', await downscaleImage(img), undefined, pct => setUpPct(pct));
-      const { error } = await withRetry(() => supabase.from('posts').insert({ author_id: me, content: text.trim(), image_url }));
+      if (img) {
+        image_url = await uploadMediaWithProgress('media', await downscaleImage(img), undefined, pct => setUpPct(pct));
+        uploadedImagePath = image_url;
+      }
+      const content = text.trim() || (impressionEnabled ? '来收集一下大家对我的印象吧。' : '');
+      const { data: createdPost, error } = await withRetry(() =>
+        supabase.from('posts').insert({ author_id: me, content, image_url }).select('id').single()
+      );
       if (error) throw error;
-      setText(''); setImg(null); load();
-    } catch (e: any) { setErr('发布失败：' + (e.message || '网络错误')); }
+      if (!createdPost?.id) throw new Error('帖子发布后没有返回记录编号。');
+      if (impressionEnabled) {
+        const { error: pollError } = await (supabase as any).rpc('create_post_impression_poll', {
+          p_post_id: createdPost.id,
+          p_question: question,
+          p_options: options,
+        });
+        if (pollError) {
+          await supabase.from('posts').delete().eq('id', createdPost.id).eq('author_id', me);
+          throw pollError;
+        }
+      }
+      setText(''); setImg(null);
+      if (impressionEnabled) {
+        setImpressionEnabled(false);
+        setImpressionQuestion('你觉得我给人的第一印象是？');
+        setImpressionOptions(DEFAULT_IMPRESSION_OPTIONS);
+      }
+      await load();
+    } catch (e: any) {
+      if (uploadedImagePath) await removeOwnedMedia(uploadedImagePath, me);
+      setErr('发布失败：' + (e.message || '网络错误'));
+    }
     finally { setBusy(false); setUpPct(null); }
   }
 
@@ -151,6 +230,23 @@ export default function Feed({ searchQuery = '', focusPostId = null }: { searchQ
       await supabase.from('post_likes').insert({ post_id: p.id, profile_id: me });
     }
     load();
+  }
+
+  async function voteForImpression(p: Post, optionId: number) {
+    if (p.author_id === me || votingPostId === p.id) return;
+    setVotingPostId(p.id);
+    try {
+      const { error } = await (supabase as any).rpc('cast_post_impression_vote', {
+        p_post_id: p.id,
+        p_option_id: optionId,
+      });
+      if (error) throw error;
+      await load();
+    } catch (error) {
+      alertDialog('投票没有成功：' + (error instanceof Error ? error.message : '请稍后重试。'));
+    } finally {
+      setVotingPostId(current => current === p.id ? null : current);
+    }
   }
 
   async function addCmt(p: Post) {
@@ -286,6 +382,43 @@ export default function Feed({ searchQuery = '', focusPostId = null }: { searchQ
       </div>
       <div className="composer">
         <textarea value={text} onChange={e => setText(e.target.value)} placeholder="写下此刻的想法，分享给大家…" rows={3} maxLength={2000} />
+        <div className="impression-composer-actions">
+          <button type="button" className={impressionEnabled ? 'impression-toggle is-active' : 'impression-toggle'}
+            onClick={() => setImpressionEnabled(value => !value)} disabled={busy}>
+            {impressionEnabled ? '收起印象投票' : '＋ 发起印象投票'}
+          </button>
+          <span>让大家匿名选一选对你的印象</span>
+        </div>
+        {impressionEnabled && <section className="impression-builder">
+          <div className="impression-builder__heading">
+            <strong>印象投票</strong>
+            <span>匿名参与 · 只展示票数</span>
+          </div>
+          <label className="impression-field">
+            <span>你想问什么？</span>
+            <input value={impressionQuestion} onChange={event => setImpressionQuestion(event.target.value)}
+              placeholder="例如：你觉得我给人的第一印象是？" maxLength={120} />
+          </label>
+          <div className="impression-presets" aria-label="问题模板">
+            <span>快速套用</span>
+            <button type="button" onClick={() => { setImpressionQuestion('你觉得我给人的第一印象是？'); setImpressionOptions(['阳光开朗', '安静慢热', '幽默有趣', '认真靠谱']); }}>第一印象</button>
+            <button type="button" onClick={() => { setImpressionQuestion('你觉得我的性格更接近哪一种？'); setImpressionOptions(['活泼外向', '温柔细腻', '理性冷静', '慢热随和']); }}>性格类型</button>
+            <button type="button" onClick={() => { setImpressionQuestion('你最常用哪个词形容我？'); setImpressionOptions(['真诚', '有趣', '靠谱', '有想法']); }}>关键词</button>
+          </div>
+          <div className="impression-fields-heading">让别人选择的选项</div>
+          <div className="impression-option-editor">
+            {impressionOptions.map((option, index) => <div className="impression-option-editor__row" key={index}>
+              <span>{index + 1}</span>
+              <input value={option} onChange={event => setImpressionOptions(current => current.map((item, itemIndex) => itemIndex === index ? event.target.value : item))}
+                placeholder={`选项 ${index + 1}`} maxLength={40} aria-label={`投票选项 ${index + 1}`} />
+              <button type="button" aria-label={`删除选项 ${index + 1}`} disabled={impressionOptions.length <= 2}
+                onClick={() => setImpressionOptions(current => current.filter((_, itemIndex) => itemIndex !== index))}>×</button>
+            </div>)}
+          </div>
+          {impressionOptions.length < 8 && <button type="button" className="impression-add-option"
+            onClick={() => setImpressionOptions(current => [...current, ''])}>＋ 添加选项</button>}
+          <p className="impression-privacy-note">每人只能投一票，可修改自己的选择。其他人看不到是谁投的，只能看到各选项票数。</p>
+        </section>}
         <div className="row">
           <button className="ghost" onClick={() => fref.current?.click()}>{img ? '重新选图' : '＋ 图片'}</button>
           <input ref={fref} type="file" accept="image/*" hidden onChange={e => setImg(e.target.files?.[0] ?? null)} />
@@ -314,6 +447,7 @@ export default function Feed({ searchQuery = '', focusPostId = null }: { searchQ
         const a = profiles[p.author_id];
         const list = cmts[p.id] ?? [];
         const open = !!openCmt[p.id];
+        const poll = impressionPolls[p.id];
         return (
           <motion.article key={p.id} id={`feed-post-${p.id}`}
             className={`post${highlightedPostId === p.id ? ' post--focused' : ''}`}
@@ -338,6 +472,34 @@ export default function Feed({ searchQuery = '', focusPostId = null }: { searchQ
                 </div>
               </div>
             ) : <><p className="bd">{p.content}</p>{p.image_url && <PostImg url={postImageUrls[p.image_url]} />}</>}
+            {poll && <section className="impression-poll" aria-label="印象匿名投票">
+              <div className="impression-poll__top">
+                <strong>✦ 印象投票</strong>
+                <span>匿名</span>
+              </div>
+              <h3>{poll.question}</h3>
+              <div className="impression-poll__options">
+                {poll.options.map(option => {
+                  const percent = poll.totalVotes ? Math.round(option.voteCount / poll.totalVotes * 100) : 0;
+                  const selected = poll.myOptionId === option.id;
+                  return <button key={option.id} type="button"
+                    className={selected ? 'impression-poll__option is-selected' : 'impression-poll__option'}
+                    disabled={p.author_id === me || votingPostId === p.id}
+                    aria-pressed={selected}
+                    onClick={() => void voteForImpression(p, option.id)}>
+                    <span className="impression-poll__label">{option.label}</span>
+                    <span className="impression-poll__bar" aria-hidden="true">
+                      <span style={{ width: `${percent}%` }} />
+                    </span>
+                    <strong>{option.voteCount} 票</strong>
+                  </button>;
+                })}
+              </div>
+              <div className="impression-poll__foot">
+                <span>共 {poll.totalVotes} 票</span>
+                <span>{p.author_id === me ? '这是你发起的投票 · 仅显示统计' : poll.myOptionId == null ? '点击选项匿名投票' : '已匿名投票 · 可重新选择'}</span>
+              </div>
+            </section>}
             <div className="ft">
               <button className={liked[p.id] ? 'liked' : ''} onClick={() => toggleLike(p)}>
                 <svg className="like-ico" viewBox="0 0 24 24" aria-hidden="true" fill={liked[p.id] ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21.2l7.8-7.8 1-1a5.5 5.5 0 0 0 0-7.8z"/></svg>{likes[p.id] || ''}

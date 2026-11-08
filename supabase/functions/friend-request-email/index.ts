@@ -120,8 +120,10 @@ Deno.serve(async (req: Request) => {
     const dispatchResponse = await fetch(`${url}/functions/v1/email-dispatch`, {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${serviceKey}`,
-        apikey: anonKey,
+        // Supabase sb_ keys must be supplied consistently as the API key.
+        // Sending a publishable key alongside a service key caused
+        // UNAUTHORIZED_API_KEY_CONFLICTS at the Edge Gateway.
+        apikey: serviceKey,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({

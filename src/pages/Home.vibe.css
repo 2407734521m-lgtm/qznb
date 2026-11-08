@@ -829,3 +829,10 @@ body:has(.vibe-home), body:has(.vibe-home) #root, body:has(.vibe-home) .qz-ios26
 @media (prefers-reduced-motion: reduce) {
   .vibe-home .vh-notice, .vibe-home .vh-shortcut, .vibe-home .vh-search, .vibe-home .vh-hero-link { transition: none !important; }
 }
+
+/* Give the signed-in homepage a wider editorial canvas on desktop. */
+.wrap:has(.vibe-home) {
+  max-width: 1180px;
+  padding-right: clamp(20px,3vw,42px);
+  padding-left: clamp(20px,3vw,42px);
+}

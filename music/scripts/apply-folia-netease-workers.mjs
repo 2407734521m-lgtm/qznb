@@ -148,7 +148,9 @@ await write(requestPath, requestSource);
 
 let anonymousSource = await read(anonymousPath);
 if (!anonymousSource.includes("createOption(query, 'xeapi')")) throw new Error("Anonymous registration crypto anchor changed");
-// Keep the upstream XEAPI registration flow; the Workers build now supplies X25519 via Web Crypto.
+anonymousSource = anonymousSource.replace("createOption(query, 'xeapi')", "createOption(query, 'eapi')");
+// NetEase's anonymous bootstrap endpoint returns business code 400 with XEAPI in the Worker runtime;
+ // keep that one registration endpoint on its accepted EAPI mode. Song URL requests remain XEAPI.
 await write(anonymousPath, anonymousSource);
 
 const songUrlSource = `// Cloudflare Workers edition: keep the upstream song URL endpoint, without optional external unblocking.

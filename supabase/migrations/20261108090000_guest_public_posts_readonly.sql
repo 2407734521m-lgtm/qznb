@@ -60,7 +60,7 @@ as $function$
   offset greatest(coalesce(p_offset, 0), 0);
 $function$;
 
-revoke all on function guest_api_private.guest_public_posts(text, integer, integer) from public;
+revoke all on function guest_api_private.guest_public_posts(text, integer, integer) from public, anon, authenticated;
 grant execute on function guest_api_private.guest_public_posts(text, integer, integer) to anon, authenticated;
 
 -- Expose only the narrow feed RPC in the public Data API; the underlying table
@@ -111,7 +111,7 @@ as $function$
     );
 $function$;
 
-revoke all on function guest_api_private.guest_post_image_public_readable(text) from public;
+revoke all on function guest_api_private.guest_post_image_public_readable(text) from public, anon, authenticated;
 grant execute on function guest_api_private.guest_post_image_public_readable(text) to anon, authenticated;
 
 drop policy if exists guest_public_post_image_read on storage.objects;

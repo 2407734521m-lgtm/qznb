@@ -39,67 +39,6 @@ const sendCookies = (response, value) => {
   if (safeCookies.length) response.append("Set-Cookie", safeCookies);
 };
 
-app.get("/__preview/guest-play-probe", async (request, response) => {
-  if (
-    request.get("host") !== "qianzhi-music-preview.2407734521m.workers.dev" ||
-    request.query.debug !== "1"
-  ) {
-    response.status(404).json({ code: 404, msg: "Not found" });
-    return;
-  }
-
-  const songId = String(request.query.id || "");
-  if (!/^\d+$/.test(songId)) {
-    response.status(400).json({ code: 400, msg: "A numeric song id is required" });
-    return;
-  }
-
-  const registerModule = NCM_MODULES.find(item => item.name === "register_anonimous");
-  const playbackModule = NCM_MODULES.find(item => item.name === "song_url_v1");
-  if (!registerModule || !playbackModule) {
-    response.status(500).json({ code: 500, msg: "Required NetEase modules are not loaded" });
-    return;
-  }
-
-  try {
-    const registered = await registerModule.handler(
-      { cookie: {} },
-      (...args) => requestModule(...args),
-    );
-    const cookieHeader = String(
-      (registered && registered.body && registered.body.cookie) ||
-      (registered && Array.isArray(registered.cookie) ? registered.cookie.join(";") : ""),
-    );
-    const guestCookie = parseCookies(cookieHeader);
-    const playback = await playbackModule.handler(
-      { id: songId, level: "standard", cookie: guestCookie },
-      (...args) => requestModule(...args),
-    );
-    const item = playback && playback.body && Array.isArray(playback.body.data)
-      ? playback.body.data[0]
-      : null;
-
-    response.setHeader("Cache-Control", "no-store");
-    response.status(200).json({
-      ok: true,
-      registrationStatus: Number(registered && registered.status) || null,
-      registrationCode: Number(registered && registered.body && registered.body.code) || null,
-      cookieNames: Object.keys(guestCookie),
-      deviceIdAvailable: Boolean(global.deviceId),
-      playbackStatus: Number(playback && playback.status) || null,
-      playbackCode: Number(item && item.code) || null,
-      hasUrl: Boolean(item && item.url),
-    });
-  } catch (error) {
-    response.setHeader("Cache-Control", "no-store");
-    response.status(502).json({
-      ok: false,
-      stage: "guest-registration-or-playback",
-      errorName: String((error && error.name) || "Error"),
-    });
-  }
-});
-
 app.get("/healthz", (_request, response) => {
   response.setHeader("Cache-Control", "no-store");
   response.status(200).json({
@@ -169,49 +108,6 @@ app.all("/{*splat}", async (request, response) => {
       message: message.slice(0, 240),
     });
 
-    // Safe, narrowly scoped diagnostics are available only on this public preview Worker.
-    // Never return raw request config, cookies, headers, upstream bodies, or key material.
-    const isPreviewDiagnostic =
-      request.hostname === "qianzhi-music-preview.2407734521m.workers.dev" &&
-      request.query && request.query.debug === "1";
-    if (isPreviewDiagnostic) {
-      const safeMessages = new Set([
-        "xeapi public key request failed",
-        "xeapi public key response signature mismatch",
-        "xeapi public key response missing sk",
-        "xeapi public key is missing",
-      ]);
-      const errorCode = error && typeof error.code === "string" && /^[A-Z0-9_]+$/.test(error.code)
-        ? error.code
-        : undefined;
-      const upstreamStatus = Number(error && (error.status || (error.response && error.response.status))) || undefined;
-      const typeErrorMessage = error instanceof TypeError
-        ? message
-            .replace(/https?:\/\/\S+/g, "[url]")
-            .replace(/[A-Za-z0-9+/_=-]{40,}/g, "[redacted]")
-            .replace(/[\r\n\t]/g, " ")
-            .slice(0, 160)
-        : undefined;
-      const safeMessage = safeMessages.has(message) || /^Request failed with status code \d{3}$/.test(message)
-        ? message
-        : typeErrorMessage;
-      response.status(502).json({
-        code: 502,
-        msg: "NetEase upstream request failed",
-        diagnostic: {
-          errorName: String((error && error.name) || "Error"),
-          ...(errorCode ? { errorCode } : {}),
-          ...(upstreamStatus ? { upstreamStatus } : {}),
-          ...(safeMessage ? { safeMessage } : {}),
-          stage: message.toLowerCase().includes("xeapi public key")
-            ? "xeapi-key-initialization"
-            : message.toLowerCase().includes("fetch")
-              ? "outbound-fetch"
-              : "upstream-request",
-        },
-      });
-      return;
-    }
     response.status(502).json({ code: 502, msg: "NetEase upstream request failed" });
   }
 });

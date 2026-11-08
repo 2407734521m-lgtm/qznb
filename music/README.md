@@ -50,6 +50,9 @@ The overlay is idempotent, validates its source anchors, and creates a focused u
 
 ## Integration status
 
+- Current preview verification: the Workers adapter, 52 allowlisted routes, QR SVG rendering, search, song details and lyrics have returned successful responses. XEAPI now uses Web Crypto X25519 instead of the unsupported Node `diffieHellman()` call. The upstream guest-registration route has returned business code `400` in recent tests, and test tracks have returned `url: null` / `code: 404`; therefore actual playable audio URLs and signed-in account playback are **not yet verified**. Availability remains dependent on NetEase's own account, catalog, region and rights responses.
+
+
 - Folia's own playback state, queue, player and audio pipeline remain the runtime foundation.
 - Lark's gesture resolver is now connected through the build-time host overlay; the complete Lark mini-player component remains vendored for further review, not mounted as a duplicate player.
 - Folia's NetEase API `v4.41.1` is exposed through an isolated Express 5 / Cloudflare Node HTTP adapter at `/api/netease`. The build overlay limits requests to the exact provider routes used by Folia, uses Axios's Fetch adapter instead of Node sockets, removes temporary-file state and outbound proxy options, and keeps login cookies in the browser session. QR login, search, song URL and all upstream behaviors still require live preview validation; no provider is considered production-ready before those checks pass.

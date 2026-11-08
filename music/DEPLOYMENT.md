@@ -77,3 +77,7 @@ The Sync Server is a separate service and is not included in this first Web Work
 The preview and production music Workers are separate from the existing `qianzhi.pw` and `admin.qianzhi.pw` Workers. The music deployment does not modify the production Supabase schema.
 
 No production deployment should be considered complete until preview, provider, account and mobile checks pass.
+
+### NetEase preview verification status
+
+The isolated preview has confirmed the Express/Workers adapter, health check, allowlisted search, song metadata, lyrics, and SVG QR request routes. XEAPI's X25519 key exchange is implemented with Web Crypto because the Workers Node compatibility layer does not provide `crypto.diffieHellman()`. The upstream anonymous-registration route has returned business code `400` during recent checks, and the sample track URL checks returned `url: null` / `code: 404`. Do not treat playback as production-ready until a real account QR sign-in and an eligible track return an actual audio URL and play successfully in the browser.

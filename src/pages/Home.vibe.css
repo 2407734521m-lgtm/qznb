@@ -836,3 +836,26 @@ body:has(.vibe-home), body:has(.vibe-home) #root, body:has(.vibe-home) .qz-ios26
   padding-right: clamp(20px,3vw,42px);
   padding-left: clamp(20px,3vw,42px);
 }
+
+
+/* Additional discovery layer; deliberately scoped to page content, never the global Dock. */
+.vibe-home .vh-discovery-section { margin-top:32px; }
+.vibe-home .vh-discovery-section .vh-section-head { margin-top:0; }
+.vibe-home .vh-discovery-index { color:#a0a6ad; font-size:9px; font-weight:700; letter-spacing:.14em; }
+.vibe-home .vh-discovery-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:11px; }
+.vibe-home .vh-discovery-card { display:flex; min-width:0; min-height:112px; align-items:center; gap:13px; padding:16px; border:1px solid var(--vh-line); border-radius:15px; background:#fff; color:inherit; text-align:left; cursor:pointer; transition:transform .2s ease,border-color .2s ease,background .2s ease; }
+.vibe-home .vh-discovery-card:hover { transform:translateY(-2px); border-color:#cbd2d9; background:#fcfcfc; }
+.vibe-home .vh-discovery-symbol { display:grid; width:39px; height:39px; flex:0 0 39px; place-items:center; border-radius:12px; background:#f3f5f6; color:#56616d; font-size:20px; }
+.vibe-home .vh-discovery-copy { display:grid; min-width:0; gap:5px; }
+.vibe-home .vh-discovery-copy strong { color:#303943; font-size:13px; font-weight:700; }
+.vibe-home .vh-discovery-copy small { color:#9299a1; font-size:10px; line-height:1.5; }
+.vibe-home .vh-discovery-arrow { margin-left:auto; color:#929ba4; font-size:15px; }
+@media(max-width:760px) {
+ .vibe-home .vh-discovery-section { margin-top:25px; }
+ .vibe-home .vh-discovery-grid { grid-template-columns:1fr; gap:8px; }
+ .vibe-home .vh-discovery-card { min-height:82px; padding:13px; }
+}
+@media(prefers-reduced-motion:reduce) {
+ .vibe-home .vh-discovery-card { transition:none; }
+ .vibe-home .vh-discovery-card:hover { transform:none; }
+}

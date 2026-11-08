@@ -81,6 +81,40 @@ export default function Feed({ searchQuery = '', focusPostId = null }: { searchQ
   const [friendIds, setFriendIds] = useState<string[]>([]);
   const fref = useRef<HTMLInputElement>(null);
 
+  async function refreshImpressionPolls(postIds: number[]) {
+    if (!postIds.length) return;
+    const { data: pollRows, error } = await (supabase as any).rpc(
+      'get_post_impression_poll_results',
+      { p_post_ids: postIds },
+    );
+    // Keep the last known results when a transient request fails.
+    if (error) return;
+
+    const grouped: Record<number, ImpressionPoll> = {};
+    for (const row of (pollRows ?? []) as Array<Record<string, any>>) {
+      const postId = Number(row.post_id);
+      if (!Number.isFinite(postId)) continue;
+      if (!grouped[postId]) {
+        grouped[postId] = {
+          question: String(row.question ?? ''),
+          totalVotes: Number(row.total_votes ?? 0),
+          myOptionId: row.my_option_id == null ? null : Number(row.my_option_id),
+          options: [],
+        };
+      }
+      grouped[postId].options.push({
+        id: Number(row.option_id),
+        label: String(row.option_label ?? ''),
+        voteCount: Number(row.vote_count ?? 0),
+      });
+    }
+    setImpressionPolls(current => {
+      const next = { ...current };
+      postIds.forEach(postId => { delete next[postId]; });
+      return { ...next, ...grouped };
+    });
+  }
+
   async function load() {
     let postQuery = supabase.from('posts').select('*').eq('section', 'feed').is('deleted_at', null)
       .order('created_at', { ascending: false }).limit(30);
@@ -91,32 +125,7 @@ export default function Feed({ searchQuery = '', focusPostId = null }: { searchQ
     if (!list.length) { setImpressionPolls({}); return; }
     const ids = [...new Set(list.map(p => p.author_id))];
     const pids = list.map(p => p.id);
-    const { data: pollRows, error: pollError } = await (supabase as any).rpc(
-      'get_post_impression_poll_results',
-      { p_post_ids: pids },
-    );
-    if (!pollError) {
-      const grouped: Record<number, ImpressionPoll> = {};
-      for (const row of (pollRows ?? []) as Array<Record<string, any>>) {
-        const postId = Number(row.post_id);
-        if (!grouped[postId]) {
-          grouped[postId] = {
-            question: String(row.question ?? ''),
-            totalVotes: Number(row.total_votes ?? 0),
-            myOptionId: row.my_option_id == null ? null : Number(row.my_option_id),
-            options: [],
-          };
-        }
-        grouped[postId].options.push({
-          id: Number(row.option_id),
-          label: String(row.option_label ?? ''),
-          voteCount: Number(row.vote_count ?? 0),
-        });
-      }
-      setImpressionPolls(grouped);
-    } else {
-      setImpressionPolls({});
-    }
+    await refreshImpressionPolls(pids);
     const { data: pr } = await supabase.from('profiles').select('id, username, display_name, avatar_path').in('id', ids);
     const pm: Record<string, Profile> = {};
     (pr ?? []).forEach((x) => { pm[x.id] = x; });
@@ -234,6 +243,23 @@ export default function Feed({ searchQuery = '', focusPostId = null }: { searchQ
 
   async function voteForImpression(p: Post, optionId: number) {
     if (p.author_id === me || votingPostId === p.id) return;
+    const previousPoll = impressionPolls[p.id];
+    if (!previousPoll || previousPoll.myOptionId === optionId) return;
+
+    // Update the card immediately; reconcile with the server without reloading the feed.
+    const previousOptionId = previousPoll.myOptionId;
+    const optimisticPoll: ImpressionPoll = {
+      ...previousPoll,
+      totalVotes: previousPoll.totalVotes + (previousOptionId == null ? 1 : 0),
+      myOptionId: optionId,
+      options: previousPoll.options.map(option => ({
+        ...option,
+        voteCount: option.voteCount
+          + (option.id === optionId ? 1 : 0)
+          - (option.id === previousOptionId ? 1 : 0),
+      })),
+    };
+    setImpressionPolls(current => ({ ...current, [p.id]: optimisticPoll }));
     setVotingPostId(p.id);
     try {
       const { error } = await (supabase as any).rpc('cast_post_impression_vote', {
@@ -241,8 +267,9 @@ export default function Feed({ searchQuery = '', focusPostId = null }: { searchQ
         p_option_id: optionId,
       });
       if (error) throw error;
-      await load();
+      await refreshImpressionPolls([p.id]);
     } catch (error) {
+      setImpressionPolls(current => ({ ...current, [p.id]: previousPoll }));
       alertDialog('投票没有成功：' + (error instanceof Error ? error.message : '请稍后重试。'));
     } finally {
       setVotingPostId(current => current === p.id ? null : current);
@@ -384,18 +411,19 @@ export default function Feed({ searchQuery = '', focusPostId = null }: { searchQ
         <textarea value={text} onChange={e => setText(e.target.value)} placeholder="写下此刻的想法，分享给大家…" rows={3} maxLength={2000} />
         <div className="impression-composer-actions">
           <button type="button" className={impressionEnabled ? 'impression-toggle is-active' : 'impression-toggle'}
+            aria-expanded={impressionEnabled} aria-controls="impression-poll-builder"
             onClick={() => setImpressionEnabled(value => !value)} disabled={busy}>
             {impressionEnabled ? '收起印象投票' : '＋ 发起印象投票'}
           </button>
           <span>让大家匿名选一选对你的印象</span>
         </div>
-        {impressionEnabled && <section className="impression-builder">
+        {impressionEnabled && <section className="impression-builder" id="impression-poll-builder">
           <div className="impression-builder__heading">
             <strong>印象投票</strong>
             <span>匿名参与 · 只展示票数</span>
           </div>
           <label className="impression-field">
-            <span>你想问什么？</span>
+            <span className="impression-field__label">你想问什么？ <small>{impressionQuestion.length}/120</small></span>
             <input value={impressionQuestion} onChange={event => setImpressionQuestion(event.target.value)}
               placeholder="例如：你觉得我给人的第一印象是？" maxLength={120} />
           </label>
@@ -405,7 +433,10 @@ export default function Feed({ searchQuery = '', focusPostId = null }: { searchQ
             <button type="button" onClick={() => { setImpressionQuestion('你觉得我的性格更接近哪一种？'); setImpressionOptions(['活泼外向', '温柔细腻', '理性冷静', '慢热随和']); }}>性格类型</button>
             <button type="button" onClick={() => { setImpressionQuestion('你最常用哪个词形容我？'); setImpressionOptions(['真诚', '有趣', '靠谱', '有想法']); }}>关键词</button>
           </div>
-          <div className="impression-fields-heading">让别人选择的选项</div>
+          <div className="impression-fields-heading">
+            <span>让别人选择的选项</span>
+            <small>{impressionOptions.length}/8</small>
+          </div>
           <div className="impression-option-editor">
             {impressionOptions.map((option, index) => <div className="impression-option-editor__row" key={index}>
               <span>{index + 1}</span>
@@ -472,10 +503,10 @@ export default function Feed({ searchQuery = '', focusPostId = null }: { searchQ
                 </div>
               </div>
             ) : <><p className="bd">{p.content}</p>{p.image_url && <PostImg url={postImageUrls[p.image_url]} />}</>}
-            {poll && <section className="impression-poll" aria-label="印象匿名投票">
+            {poll && <section className="impression-poll" aria-label="印象匿名投票" aria-busy={votingPostId === p.id}>
               <div className="impression-poll__top">
                 <strong>✦ 印象投票</strong>
-                <span>匿名</span>
+                <span>匿名统计 · 不显示投票者</span>
               </div>
               <h3>{poll.question}</h3>
               <div className="impression-poll__options">
@@ -486,18 +517,30 @@ export default function Feed({ searchQuery = '', focusPostId = null }: { searchQ
                     className={selected ? 'impression-poll__option is-selected' : 'impression-poll__option'}
                     disabled={p.author_id === me || votingPostId === p.id}
                     aria-pressed={selected}
+                    aria-label={`${option.label}，${option.voteCount} 票，${percent}%`}
                     onClick={() => void voteForImpression(p, option.id)}>
-                    <span className="impression-poll__label">{option.label}</span>
-                    <span className="impression-poll__bar" aria-hidden="true">
+                    <span className="impression-poll__option-head">
+                      <span className="impression-poll__label">{option.label}</span>
+                      {selected && <span className="impression-poll__selected">已选择</span>}
+                    </span>
+                    <span className="impression-poll__bar" role="progressbar"
+                      aria-label={`${option.label}得票比例`} aria-valuemin={0}
+                      aria-valuemax={100} aria-valuenow={percent}>
                       <span style={{ width: `${percent}%` }} />
                     </span>
-                    <strong>{option.voteCount} 票</strong>
+                    <span className="impression-poll__option-meta">
+                      <strong>{option.voteCount} 票</strong><em>{percent}%</em>
+                    </span>
                   </button>;
                 })}
               </div>
               <div className="impression-poll__foot">
                 <span>共 {poll.totalVotes} 票</span>
-                <span>{p.author_id === me ? '这是你发起的投票 · 仅显示统计' : poll.myOptionId == null ? '点击选项匿名投票' : '已匿名投票 · 可重新选择'}</span>
+                <span aria-live="polite">{p.author_id === me
+                  ? '这是你发起的投票 · 只能查看汇总结果'
+                  : votingPostId === p.id ? '正在提交投票…'
+                    : poll.myOptionId == null ? '选择一项表达印象'
+                      : '已匿名投票 · 再次选择可修改'}</span>
               </div>
             </section>}
             <div className="ft">

@@ -36,7 +36,7 @@ export default function AdminAppCenter({ setMsg }: { setMsg: (s: string) => void
     (data ?? []).forEach((x: any) => { o[x.key] = x.value; });
     setVals(o);
     setSaved(o);
-    const { data: history, error: historyError } = await supabase.rpc('admin_list_admin_app_releases');
+    const { data: history, error: historyError } = await (supabase as any).rpc('admin_list_admin_app_releases');
     if (!historyError) setAdminReleases(Array.isArray(history) ? history as AdminAppRelease[] : []);
   }
   useEffect(() => { void load(); }, []);
@@ -58,7 +58,7 @@ export default function AdminAppCenter({ setMsg }: { setMsg: (s: string) => void
     if (notes.length > 4000) { setMsg('管理版更新说明不能超过 4000 个字符。'); return; }
     setAdminReleaseBusy(true);
     try {
-      const { error } = await supabase.rpc('admin_publish_admin_app_release', {
+      const { error } = await (supabase as any).rpc('admin_publish_admin_app_release', {
         p_version_name: name,
         p_version_code: code,
         p_apk_url: url,

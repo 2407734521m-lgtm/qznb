@@ -31,9 +31,16 @@ jobs:
       - name: Apply maintained Folia mobile gesture overlay
         run: node music/scripts/apply-folia-mobile-gestures.mjs
 
+      - name: Apply optional Qianzhi account integration
+        run: node music/scripts/apply-qianzhi-account.mjs
+
       - name: Install Folia dependencies
         working-directory: music/folia
         run: npm ci
+
+      - name: Install pinned Supabase browser client for the account overlay
+        working-directory: music/folia
+        run: npm install --no-save --package-lock=false --ignore-scripts @supabase/supabase-js@2.119.0
 
       - name: Typecheck Folia
         working-directory: music/folia
@@ -43,10 +50,15 @@ jobs:
         working-directory: music/folia
         run: npm run test:unit -- test/unit/components/playerSwipe.test.ts
 
+      - name: Test Qianzhi account integration
+        working-directory: music/folia
+        run: npm run test:unit -- test/unit/qianzhiAccount/loginMethod.test.ts
+
       - name: Build Folia Web + Worker
         working-directory: music/folia
         env:
           VITE_QQ_API_BASE: /api/qq
+          VITE_QZNB_SUPABASE_URL: https://ldypnxxxgscibopgiaso.supabase.co
         run: npm run build
 
       - name: Validate the isolated Cloudflare Worker bundle

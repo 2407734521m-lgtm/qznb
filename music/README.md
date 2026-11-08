@@ -50,7 +50,7 @@ The overlay is idempotent, validates its source anchors, and creates a focused u
 
 ## Integration status
 
-- Current preview verification: the Workers adapter, 52 allowlisted routes, QR SVG rendering, search, song details and lyrics have returned successful responses. XEAPI now uses Web Crypto X25519 instead of the unsupported Node `diffieHellman()` call. The upstream guest-registration route has returned business code `400` in recent tests, and test tracks have returned `url: null` / `code: 404`; therefore actual playable audio URLs and signed-in account playback are **not yet verified**. Availability remains dependent on NetEase's own account, catalog, region and rights responses.
+- Current preview verification: the Workers adapter, 52 allowlisted routes, QR SVG rendering, search, song details and lyrics have returned successful responses. XEAPI now uses Web Crypto X25519 instead of the unsupported Node `diffieHellman()` call. QR polling also relays NetEase's original rejected status/body so Folia can distinguish transient network failures from expired codes and account risk-control responses. The upstream guest-registration route has returned business code `400` in recent tests, and test tracks have returned `url: null` / `code: 404`; therefore actual playable audio URLs and signed-in account playback are **not yet verified**. Availability remains dependent on NetEase's own account, catalog, region and rights responses.
 
 
 - Folia's own playback state, queue, player and audio pipeline remain the runtime foundation.

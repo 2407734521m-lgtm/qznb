@@ -16,6 +16,8 @@ type Broadcast = {
   expires_at: string | null;
   options: unknown;
   target_ids: unknown;
+  starts_at: string | null;
+  poke_at: string | null;
 };
 
 const KICKER: Record<BroadcastKind, string> = {
@@ -54,6 +56,9 @@ function voteOptions(b: Broadcast): string[] {
 // - signup：报名征集，参加回执 joined、不参加回执 not_joined。
 // - refresh：远程刷新，不弹窗，领到后先写回执再刷新页面（sessionStorage 防重复刷新）。
 // - 受众 selected：只给 target_ids 里的指定成员，其他人客户端直接跳过。
+// - 定时发布：starts_at 在未来的广播对成员不可见，到点自动生效。
+// - 催办重弹：管理员点「催办」后（poke_at 晚于本人 declined 回执），之前选了
+//   「暂不参与」的人会被重新弹一次；其他已有回执的人仍不重复弹。refresh 不参与。
 // 三种征集都可以点「暂不参与」跳过（回执 declined），之后不再重复弹。
 export default function BroadcastPopup({ uid }: { uid: string }) {
   const [current, setCurrent] = useState<Broadcast | null>(null);
@@ -73,10 +78,11 @@ export default function BroadcastPopup({ uid }: { uid: string }) {
       const now = new Date().toISOString();
       const audiences = isInApp() ? ['all', 'app', 'selected'] : ['all', 'web', 'selected'];
       const { data } = await supabase.from('admin_broadcasts')
-        .select('id, kind, title, body, button_label, audience, created_at, expires_at, options, target_ids')
+        .select('id, kind, title, body, button_label, audience, created_at, expires_at, options, target_ids, starts_at, poke_at')
         .eq('revoked', false)
         .in('audience', audiences)
         .or(`expires_at.is.null,expires_at.gt.${now}`)
+        .or(`starts_at.is.null,starts_at.lte.${now}`)
         .order('created_at', { ascending: false })
         .limit(10);
       if (!data?.length) return;
@@ -84,11 +90,20 @@ export default function BroadcastPopup({ uid }: { uid: string }) {
       if (!visible.length) return;
       const ids = visible.map(d => d.id);
       const { data: mine } = await supabase.from('broadcast_receipts')
-        .select('broadcast_id')
+        .select('broadcast_id, status, updated_at')
         .eq('user_id', uid)
         .in('broadcast_id', ids);
-      const done = new Set((mine ?? []).map(r => r.broadcast_id));
-      const next = visible.find(d => !done.has(d.id));
+      const mineMap = new Map((mine ?? []).map(r => [r.broadcast_id, r]));
+      const next = visible.find(d => {
+        const r = mineMap.get(d.id);
+        if (!r) return true;
+        // 催办重弹：管理员催办时刻晚于本人「暂不参与」回执时，这条重新当作未处理。
+        // 重新提交走既有 upsert 覆盖旧回执；其余已有回执（已读/已投等）仍排除。
+        return d.kind !== 'refresh'
+          && r.status === 'declined'
+          && !!d.poke_at
+          && new Date(d.poke_at).getTime() > new Date(r.updated_at).getTime();
+      });
       if (next && next.kind === 'refresh') {
         // 远程刷新：不弹窗。先写回执（刷新后靠回执排除），再用 sessionStorage 守卫防循环。
         const guardKey = `bc_refresh_done_${next.id}`;

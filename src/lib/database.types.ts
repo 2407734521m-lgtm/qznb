@@ -30,6 +30,9 @@ export type Database = {
           revoked: boolean
           options: Json
           target_ids: Json
+          starts_at: string | null
+          poke_at: string | null
+          poke_count: number
         }
         Insert: {
           id?: number
@@ -44,6 +47,9 @@ export type Database = {
           revoked?: boolean
           options?: Json
           target_ids?: Json
+          starts_at?: string | null
+          poke_at?: string | null
+          poke_count?: number
         }
         Update: {
           id?: number
@@ -58,6 +64,9 @@ export type Database = {
           revoked?: boolean
           options?: Json
           target_ids?: Json
+          starts_at?: string | null
+          poke_at?: string | null
+          poke_count?: number
         }
         Relationships: [
           {
@@ -110,6 +119,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      broadcast_templates: {
+        Row: {
+          id: number
+          name: string
+          kind: string
+          title: string | null
+          body: string | null
+          options: Json
+          audience: string
+          created_by: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: number
+          name: string
+          kind: string
+          title?: string | null
+          body?: string | null
+          options?: Json
+          audience?: string
+          created_by?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: number
+          name?: string
+          kind?: string
+          title?: string | null
+          body?: string | null
+          options?: Json
+          audience?: string
+          created_by?: string | null
+          created_at?: string
+        }
+        Relationships: []
       }
       admin_audit_logs: {
         Row: {

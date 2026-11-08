@@ -29,6 +29,7 @@ export type Database = {
           expires_at: string | null
           revoked: boolean
           options: Json
+          target_ids: Json
         }
         Insert: {
           id?: number
@@ -42,6 +43,7 @@ export type Database = {
           expires_at?: string | null
           revoked?: boolean
           options?: Json
+          target_ids?: Json
         }
         Update: {
           id?: number
@@ -55,6 +57,7 @@ export type Database = {
           expires_at?: string | null
           revoked?: boolean
           options?: Json
+          target_ids?: Json
         }
         Relationships: [
           {
@@ -1726,6 +1729,10 @@ export type Database = {
       admin_presence_summary: {
         Args: Record<PropertyKey, never>
         Returns: { online_count: number; active_count: number; sampled_at: string }
+      }
+      admin_client_stats: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
       }
       admin_revoke_maintenance_codes: {
         Args: Record<PropertyKey, never>

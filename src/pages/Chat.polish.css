@@ -1422,3 +1422,62 @@
 .im-page .im-bubble {
   min-width: 0;
 }
+
+
+/* Refined compact message rhythm for small-screen Android */
+.im-page .im-message-column {
+  max-width: min(80%, 560px);
+  gap: 0;
+}
+.im-page .im-message-column .im-bubble {
+  padding: 9px 13px;
+  border-radius: 19px !important;
+  line-height: 1.48;
+  box-shadow: 0 1px 2px rgba(24, 39, 61, .07) !important;
+}
+.im-page .im-bubble.mine {
+  background: #087cff !important;
+  border-bottom-right-radius: 7px !important;
+}
+.im-page .im-bubble.theirs {
+  background: #f0f1f3 !important;
+  border-bottom-left-radius: 7px !important;
+  color: #20232a !important;
+}
+.im-page .im-bubble.mine::after,
+.im-page .im-bubble.theirs::after {
+  display: none !important;
+}
+.im-page .im-message-footer {
+  min-height: 14px;
+  margin-top: 5px;
+  padding: 0 4px;
+  gap: 6px;
+  color: #a0a6b0;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: .01em;
+}
+.im-page .im-message-footer.mine {
+  color: #929ba9;
+}
+.im-page .im-message-footer > span + span {
+  position: relative;
+}
+.im-page .im-message-footer > span + span::before {
+  content: "·";
+  margin-right: 6px;
+  color: #c1c6ce;
+}
+.im-page .im-inline-meta {
+  display: inline-block;
+  margin-left: 8px;
+  font-size: 10px;
+  font-weight: 500;
+  opacity: .78;
+}
+@media(max-width:600px) {
+  .im-page .im-message-column { max-width: min(82%, 420px); }
+  .im-page .im-message-column .im-bubble { padding: 8px 12px; }
+  .im-page .im-message-footer { margin-top: 4px; }
+}

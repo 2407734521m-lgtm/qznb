@@ -1,0 +1,1 @@
+performance overlay test will be generated in pinned Folia submodule by CI

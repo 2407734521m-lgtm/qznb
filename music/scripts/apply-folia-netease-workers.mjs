@@ -129,7 +129,7 @@ await write(qrCheckPath, qrCheckSource);
 
 const routeNames = ["register_anonimous","login_qr_key","login_qr_create","login_qr_check","login_status","logout","user_account","song_detail","song_copyright_rcmd","like","scrobble_v1","likelist","user_playlist","playlist_track_all","playlist_detail","playlist_tracks","album","album_sublist","artist_detail","artist_album","artist_top_song","artist_songs","song_url_v1","lyric_new","song_chorus","cloud_lyric_get","user_record","user_cloud","user_cloud_detail","cloudsearch","personal_fm","personal_fm_mode","recommend_songs","recommend_songs_dislike","history_recommend_songs","history_recommend_songs_detail","recommend_category_configs","recommend_category_songs","recommend_category_set","personalized","homepage_block_page","recommend_resource","toplist","top_song","album_new","top_playlist","simi_song","fm_trash","playlist_subscribe","album_sub","playlist_detail_dynamic","album_detail_dynamic"];
 const imports = routeNames.map((name, index) =>
-  `import module${index} from "../node_modules/@neteasecloudmusicapienhanced/api/module/${name}.js";`
+  `// @ts-ignore Upstream API module is CommonJS JavaScript without declaration files.\nimport module${index} from "../node_modules/@neteasecloudmusicapienhanced/api/module/${name}.js";`
 ).join("\n");
 const definitions = routeNames.map((name, index) => {
   const route = name === "personal_fm" ? "/personal_fm" : name === "fm_trash" ? "/fm_trash" : "/" + name.replace(/_/g, "/");

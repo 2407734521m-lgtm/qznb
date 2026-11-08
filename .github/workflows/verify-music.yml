@@ -1,0 +1,46 @@
+name: Verify music app
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "music/**"
+      - ".gitmodules"
+      - ".github/workflows/verify-music.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout including pinned Folia source
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Set up Node.js 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: music/folia/package-lock.json
+
+      - name: Install Folia dependencies
+        working-directory: music/folia
+        run: npm ci
+
+      - name: Typecheck Folia
+        working-directory: music/folia
+        run: npm run typecheck
+
+      - name: Build Folia Web + Worker
+        working-directory: music/folia
+        env:
+          VITE_QQ_API_BASE: /api/qq
+        run: npm run build
+
+      - name: Validate the isolated Cloudflare Worker bundle
+        run: npx --yes wrangler@4.120.0 deploy --dry-run --config music/wrangler.jsonc

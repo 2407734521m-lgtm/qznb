@@ -67,14 +67,6 @@ jobs:
       - name: Apply optional Qianzhi account integration
         run: node music/scripts/apply-qianzhi-account.mjs
 
-      - name: Apply Cloudflare Node HTTP adapter probe (preview only)
-        run: |
-          if [ "$WRANGLER_CONFIG" = "wrangler.preview.jsonc" ]; then
-            node music/scripts/apply-folia-netease-http-adapter-probe.mjs
-          else
-            echo "Skipping the adapter probe for production."
-          fi
-
       - name: Install Folia dependencies
         working-directory: music/folia
         run: npm ci

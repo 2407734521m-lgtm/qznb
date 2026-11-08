@@ -1,6 +1,7 @@
 import { NavLink, Navigate, Route, Routes } from 'react-router-dom';
 import Login from './Login';
 import GuestLoveWall from './GuestLoveWall';
+import GuestPosts from './GuestPosts';
 
 type Notice = { id?: number | string; title?: string | null; content?: string | null; created_at?: string | null };
 type Props = {
@@ -54,6 +55,8 @@ function GuestHome({ siteConfig, onLoginRequired, showLoveWall, showAnnouncement
         </div>
       </section>
 
+      <GuestPosts section="all" onLoginRequired={onLoginRequired} />
+
       <section style={{ marginTop: 18 }}>
         <div style={{ display: 'flex', alignItems: 'end', justifyContent: 'space-between', gap: 12, marginBottom: 12 }}>
           <div>
@@ -74,11 +77,11 @@ function GuestHome({ siteConfig, onLoginRequired, showLoveWall, showAnnouncement
               </NavLink>
             : <FeatureCard title="公告" description="管理员暂未向游客开放公告浏览。" locked />}
           <button type="button" onClick={onLoginRequired} style={{ textAlign: 'left', cursor: 'pointer', font: 'inherit' }}>
-            <FeatureCard title="歌声墙" description="了解声音分享功能，登录后即可参与。" locked />
+            <FeatureCard title="歌声墙" description="登录后可以上传、分享和互动。" locked />
           </button>
-          <button type="button" onClick={onLoginRequired} style={{ textAlign: 'left', cursor: 'pointer', font: 'inherit' }}>
-            <FeatureCard title="日常与动态" description="了解日常分享功能，正式账号可发布和互动。" locked />
-          </button>
+          <NavLink to="/feed" style={{ textDecoration: 'none', color: 'inherit' }}>
+            <FeatureCard title="日常与动态" description="浏览所有公开帖子；点赞、评论和发布需要登录。" />
+          </NavLink>
         </div>
       </section>
 
@@ -191,6 +194,8 @@ export default function GuestBrowse({
       }}>
         {[
           { to: '/home', label: '首页' },
+          { to: '/feed', label: '动态' },
+          { to: '/daily', label: '日常' },
           ...(showLoveWall ? [{ to: '/love-wall', label: '表白墙' }] : []),
           ...(showAnnouncements ? [{ to: '/board', label: '公告' }] : []),
         ].map(item => (
@@ -205,6 +210,8 @@ export default function GuestBrowse({
       <Routes>
         <Route path="/" element={<Navigate to="/home" replace />} />
         <Route path="/home" element={<GuestHome siteConfig={siteConfig} onLoginRequired={requestLogin} showLoveWall={showLoveWall} showAnnouncements={showAnnouncements} />} />
+        <Route path="/feed" element={<GuestPosts section="feed" onLoginRequired={requestLogin} />} />
+        <Route path="/daily" element={<GuestPosts section="daily" onLoginRequired={requestLogin} />} />
         <Route path="/love-wall" element={showLoveWall ? <GuestLoveWall onLoginRequired={requestLogin} /> : <GuestUnavailable />} />
         <Route path="/board" element={showAnnouncements ? <GuestBoard siteConfig={siteConfig} /> : <GuestUnavailable />} />
         <Route path="*" element={<Navigate to="/home" replace />} />

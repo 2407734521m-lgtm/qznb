@@ -696,6 +696,8 @@ function Shell() {
   const [showLogin, setShowLogin] = useState(false);
   const [guestEntryOpen, setGuestEntryOpen] = useState(false);
   const [maintenanceAccess, setMaintenanceAccess] = useState(false);
+  // A visitor enters guest browse once per tab. Do not silently restart an expired or revoked session.
+  const guestAutoEntryStarted = useRef(false);
 
   // 临时通行权保存在当前标签页，并由服务端每 5 秒复核；撤销后会自动退回维护页。
   useEffect(() => {
@@ -748,6 +750,30 @@ function Shell() {
     return () => { alive = false; window.clearInterval(timer); };
   }, [loc.pathname]);
   useEffect(() => { setShowLogin(false); }, [session]);
+
+  // Public-first entry: once the public site settings are available, create a tab-scoped
+  // guest browsing identity automatically. No nickname form or login gate on first visit.
+  useEffect(() => {
+    if (guest) {
+      guestAutoEntryStarted.current = true;
+      return;
+    }
+    if (session || loading || siteConfigLoading || !siteConfig) return;
+    if (siteConfig.maintenance === 'true') return;
+    if (siteConfig.guest_browse_available !== true || guestAutoEntryStarted.current) return;
+
+    guestAutoEntryStarted.current = true;
+    enterGuest(
+      '游客',
+      Number(siteConfig.guest_session_minutes || 60),
+      String(siteConfig.guest_session_epoch || '1')
+    );
+  }, [
+    guest, session?.user.id, loading, siteConfigLoading,
+    siteConfig?.maintenance, siteConfig?.guest_browse_available,
+    siteConfig?.guest_session_minutes, siteConfig?.guest_session_epoch,
+    enterGuest,
+  ]);
 
   // 管理员关闭游客模式、结束计划或清退会话版本变化时，当前游客会被撤销。
   useEffect(() => {
@@ -904,6 +930,9 @@ function Shell() {
   if (!session) {
     if (siteConfigLoading) return <div className="center" style={{ minHeight: '60vh' }}><FxLoader text="正在加载公开内容…" /></div>;
     if (siteConfig?.maintenance === 'true' && !maintenanceAccess) return <MaintenanceScreen title={siteConfig.maintenance_title || ''} msg={siteConfig.maintenance_msg || ''} hasSession={false} onLogout={logout} onAccessGranted={() => setMaintenanceAccess(true)} />;
+    if (siteConfig?.guest_browse_available === true && !guestAutoEntryStarted.current) {
+      return <div className="center" style={{ minHeight: '60vh' }}><FxLoader text="正在进入公开浏览…" /></div>;
+    }
     const showGuestEntry = siteConfig?.guest_browse_available === true && siteConfig?.guest_entry_visible === true;
     const openGuestEntry = () => setGuestEntryOpen(true);
     const finishGuestEntry = (nickname: string) => {

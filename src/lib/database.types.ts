@@ -16,6 +16,92 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      admin_broadcasts: {
+        Row: {
+          id: number
+          kind: string
+          title: string
+          body: string
+          button_label: string
+          audience: string
+          created_by: string | null
+          created_at: string
+          expires_at: string | null
+          revoked: boolean
+        }
+        Insert: {
+          id?: number
+          kind: string
+          title?: string
+          body?: string
+          button_label?: string
+          audience?: string
+          created_by?: string | null
+          created_at?: string
+          expires_at?: string | null
+          revoked?: boolean
+        }
+        Update: {
+          id?: number
+          kind?: string
+          title?: string
+          body?: string
+          button_label?: string
+          audience?: string
+          created_by?: string | null
+          created_at?: string
+          expires_at?: string | null
+          revoked?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_broadcasts_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      broadcast_receipts: {
+        Row: {
+          broadcast_id: number
+          user_id: string
+          status: string
+          region: string | null
+          updated_at: string
+        }
+        Insert: {
+          broadcast_id: number
+          user_id: string
+          status: string
+          region?: string | null
+          updated_at?: string
+        }
+        Update: {
+          broadcast_id?: number
+          user_id?: string
+          status?: string
+          region?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "broadcast_receipts_broadcast_id_fkey"
+            columns: ["broadcast_id"]
+            isOneToOne: false
+            referencedRelation: "admin_broadcasts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "broadcast_receipts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       admin_audit_logs: {
         Row: {
           id: number

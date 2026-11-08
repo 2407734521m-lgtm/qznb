@@ -18,7 +18,7 @@ const NAV_GROUPS = [
   { label: '工作台', ids: ['overview', 'analytics'] },
   { label: '成员与权限', ids: ['accounts', 'invite', 'approvals'] },
   { label: '内容运营', ids: ['moderate', 'loveWall', 'songWall', 'authorizedRequests', 'board', 'events', 'game'] },
-  { label: '消息与反馈', ids: ['notifications', 'bulkEmail', 'feedback'] },
+  { label: '消息与反馈', ids: ['notifications', 'bulkEmail', 'broadcast', 'feedback'] },
   { label: '系统管理', ids: ['backups', 'release', 'appCenter', 'logs', 'security', 'system', 'guestAccess', 'settings', 'test'] },
 ] as const;
 
@@ -37,6 +37,7 @@ const ICON_PATHS: Record<string, string> = {
   game: 'M6 8h12a4 4 0 0 1 3.7 5.5l-1.1 2.8a2.5 2.5 0 0 1-4.3.7L14.5 15h-5l-1.8 2a2.5 2.5 0 0 1-4.3-.7l-1.1-2.8A4 4 0 0 1 6 8z M7 11v4 M5 13h4 M16 12h.01 M18.5 14h.01',
   notifications: 'M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9 M10 21h4',
   bulkEmail: 'M3 5h18v14H3z M3 6l9 7 9-7',
+  broadcast: 'M4 10v4h3l7 5V5l-7 5H4z M18 9a4 4 0 0 1 0 6 M20.5 6.5a8 8 0 0 1 0 11',
   feedback: 'M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.4 8.4 0 0 1 3.8-.9h.5a8.5 8.5 0 0 1 8 8z',
   backups: 'M4 7h16 M4 12h16 M4 17h16 M7 4v6 M17 14v6',
   release: 'M12 3v12 M7 10l5 5 5-5 M4 20h16',
@@ -84,6 +85,7 @@ function descriptionFor(id: string) {
     game: '维护游戏段位资料和相关审核。',
     notifications: '向成员发送站内通知并查看送达情况。',
     bulkEmail: '管理面向成员的邮件通知。',
+    broadcast: '发布全站弹窗与位置征集，查看成员回执。',
     feedback: '查看成员反馈、建议与问题报告。',
     backups: '查看备份任务与恢复点。',
     release: '查看网站与项目的版本发布和更新记录。',

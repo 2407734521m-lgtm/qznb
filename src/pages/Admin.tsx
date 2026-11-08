@@ -27,6 +27,7 @@ import AdminNotificationCenter from '../components/AdminNotificationCenter';
 import AdminAuthorizedRequests from '../components/AdminAuthorizedRequests';
 import AdminSongWall from '../components/AdminSongWall';
 import AdminBulkEmail from '../components/AdminBulkEmail';
+import AdminBroadcast from '../components/AdminBroadcast';
 import AdminAccountManagement from '../components/AdminAccountManagement';
 import Logs from './admin/Logs';
 import InviteTab from './admin/InviteTab';
@@ -58,6 +59,7 @@ const TABS_ALL: [string, string, boolean][] = [
   ['authorizedRequests', '开盒队列', false],
   ['songWall', '歌声墙', false],
   ['bulkEmail', '批量邮件', false],
+  ['broadcast', '弹窗广播', false],
   ['feedback', '反馈', false],
   ['game', '段位', false],
   ['board', '公告', false],
@@ -188,6 +190,7 @@ export default function Admin({ verifiedRole }: { verifiedRole: 'admin' | 'super
           {tab === 'authorizedRequests' && <AdminAuthorizedRequests setMsg={setMsg} />}
           {tab === 'songWall' && <AdminSongWall setMsg={setMsg} />}
           {tab === 'bulkEmail' && <AdminBulkEmail setMsg={setMsg} />}
+          {tab === 'broadcast' && <AdminBroadcast me={me} setMsg={setMsg} />}
           {tab === 'board' && <BoardMgr me={me} setMsg={setMsg} />}
           {tab === 'events' && <EventTab me={me} setMsg={setMsg} />}
           {tab === 'logs' && <Logs />}

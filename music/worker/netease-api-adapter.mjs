@@ -102,10 +102,48 @@ app.all("/{*splat}", async (request, response) => {
       response.status(status >= 400 && status < 600 ? status : 502).send(body);
       return;
     }
+    const message = String((error && error.message) || error);
     console.error("[netease-worker] upstream request failed", {
       route,
-      message: String((error && error.message) || error).slice(0, 240),
+      message: message.slice(0, 240),
     });
+
+    // Safe, narrowly scoped diagnostics are available only on this public preview Worker.
+    // Never return raw request config, cookies, headers, upstream bodies, or key material.
+    const isPreviewDiagnostic =
+      request.hostname === "qianzhi-music-preview.2407734521m.workers.dev" &&
+      request.query && request.query.debug === "1";
+    if (isPreviewDiagnostic) {
+      const safeMessages = new Set([
+        "xeapi public key request failed",
+        "xeapi public key response signature mismatch",
+        "xeapi public key response missing sk",
+        "xeapi public key is missing",
+      ]);
+      const errorCode = error && typeof error.code === "string" && /^[A-Z0-9_]+$/.test(error.code)
+        ? error.code
+        : undefined;
+      const upstreamStatus = Number(error && (error.status || (error.response && error.response.status))) || undefined;
+      const safeMessage = safeMessages.has(message) || /^Request failed with status code \d{3}$/.test(message)
+        ? message
+        : undefined;
+      response.status(502).json({
+        code: 502,
+        msg: "NetEase upstream request failed",
+        diagnostic: {
+          errorName: String((error && error.name) || "Error"),
+          ...(errorCode ? { errorCode } : {}),
+          ...(upstreamStatus ? { upstreamStatus } : {}),
+          ...(safeMessage ? { safeMessage } : {}),
+          stage: message.toLowerCase().includes("xeapi public key")
+            ? "xeapi-key-initialization"
+            : message.toLowerCase().includes("fetch")
+              ? "outbound-fetch"
+              : "upstream-request",
+        },
+      });
+      return;
+    }
     response.status(502).json({ code: 502, msg: "NetEase upstream request failed" });
   }
 });

@@ -1,5 +1,7 @@
-/* Announcement board: distinct announcement hierarchy, shared glass composer.
-   Styles are scoped to Board; all query, read, write and moderation logic stays unchanged. */
+/* Announcement board: distinct announcement hierarchy, shared paper composer.
+   Paper surfaces aligned with the rest of the site (Home / MeHub): warm white
+   cards, warm ink text, archive-red and muted-gold accents. All query, read,
+   write and moderation logic stays unchanged. */
 .board-page {
   --board-ease: cubic-bezier(.22, 1, .36, 1);
   width: min(100%, 900px);
@@ -13,24 +15,14 @@
   overflow: hidden;
   margin: 8px 0 23px;
   padding: 25px 23px 21px;
-  border: 1px solid rgba(156, 218, 220, .23);
+  border: 1px solid #e8dfd3;
   border-radius: 25px;
-  background:
-    radial-gradient(ellipse at 88% 0%, rgba(55, 190, 179, .20), transparent 44%),
-    radial-gradient(ellipse at 5% 100%, rgba(77, 145, 220, .18), transparent 48%),
-    linear-gradient(145deg, rgba(15, 48, 67, .92), rgba(6, 25, 43, .88));
-  box-shadow: 0 18px 44px rgba(0, 8, 20, .22), inset 0 1px 0 rgba(255,255,255,.10);
-  -webkit-backdrop-filter: blur(22px) saturate(1.2);
-  backdrop-filter: blur(22px) saturate(1.2);
+  background: #fffdf9;
+  box-shadow: 0 4px 16px rgba(54, 39, 25, .045);
 }
 
 .board-hero::after {
-  content: "";
-  position: absolute;
-  z-index: 0;
-  inset: 0;
-  pointer-events: none;
-  background: linear-gradient(112deg, transparent 34%, rgba(255,255,255,.055) 57%, transparent 79%);
+  content: none;
 }
 
 .board-hero > * {
@@ -41,14 +33,15 @@
 .board-hero h1 {
   width: fit-content;
   margin-bottom: 7px;
-  background: linear-gradient(110deg, #f3ffff, #9be8df 82%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
+  color: #29251f;
+  background: none;
+  -webkit-background-clip: initial;
+  background-clip: initial;
+  -webkit-text-fill-color: currentColor;
 }
 
 .board-hero p {
-  color: rgba(209, 232, 240, .72);
+  color: #83786b;
   letter-spacing: .19em;
   font-size: 11px;
 }
@@ -58,7 +51,7 @@
   align-items: center;
   gap: 9px;
   margin: 17px 3px 10px !important;
-  color: rgba(193, 218, 226, .78) !important;
+  color: #756d62 !important;
   font-size: 11px !important;
   font-weight: 750;
   letter-spacing: .13em;
@@ -69,11 +62,11 @@
   width: 17px;
   height: 1px;
   flex: 0 0 17px;
-  background: linear-gradient(90deg, rgba(95, 222, 207, .88), rgba(95, 222, 207, 0));
+  background: linear-gradient(90deg, rgba(128, 81, 60, .85), rgba(128, 81, 60, 0));
 }
 
 .board-section-label-admin::before {
-  background: linear-gradient(90deg, rgba(238, 197, 119, .95), rgba(238, 197, 119, 0));
+  background: linear-gradient(90deg, rgba(178, 132, 52, .9), rgba(178, 132, 52, 0));
 }
 
 .board-post {
@@ -81,21 +74,19 @@
   overflow: hidden;
   margin-bottom: 12px;
   padding: 16px 17px;
-  border: 1px solid rgba(155, 213, 222, .13) !important;
+  border: 1px solid #e8dfd3 !important;
   border-radius: 19px;
-  background: linear-gradient(145deg, rgba(13, 39, 57, .78), rgba(8, 27, 44, .72)) !important;
-  box-shadow: 0 12px 30px rgba(0, 7, 18, .16), inset 0 1px 0 rgba(255,255,255,.055) !important;
-  -webkit-backdrop-filter: blur(18px) saturate(1.15);
-  backdrop-filter: blur(18px) saturate(1.15);
+  background: #fffdf9 !important;
+  box-shadow: 0 4px 14px rgba(54, 39, 25, .05) !important;
   transition: transform .25s var(--board-ease), border-color .22s ease, box-shadow .22s ease;
 }
 
 .board-post-admin {
-  border-color: rgba(222, 189, 120, .32) !important;
-  border-left: 3px solid rgba(224, 188, 113, .82) !important;
+  border-color: #e7d6ae !important;
+  border-left: 3px solid rgba(195, 154, 74, .85) !important;
   background:
-    radial-gradient(ellipse at 100% 0%, rgba(221, 185, 111, .10), transparent 45%),
-    linear-gradient(145deg, rgba(42, 47, 54, .88), rgba(15, 34, 49, .82)) !important;
+    radial-gradient(ellipse at 100% 0%, rgba(195, 154, 74, .07), transparent 45%),
+    linear-gradient(145deg, #fffaf1, #fffdf9) !important;
 }
 
 .board-post-head {
@@ -103,17 +94,17 @@
 }
 
 .board-post .nm {
-  color: #edfaff;
+  color: #2b2823;
   font-weight: 760;
 }
 
 .board-post .tm {
-  color: rgba(186, 211, 221, .62);
+  color: #948a7c;
 }
 
 .board-post-title {
   margin: 5px 0 7px;
-  color: #f1fbff;
+  color: #2b2823;
   font-size: 15px;
   font-weight: 820;
   letter-spacing: -.02em;
@@ -122,20 +113,26 @@
 
 .board-post-body {
   margin-top: 6px;
-  color: rgba(226, 241, 246, .88);
+  color: #45403a;
   font-size: 14px;
   line-height: 1.82;
   overflow-wrap: anywhere;
 }
 
 .board-post-admin .board-post-title {
-  color: #f4dfb6;
+  color: #8a6414;
+}
+
+.board-post .chip {
+  border: 1px solid #e8dfd3;
+  background: #f4ece3;
+  color: #80513c;
 }
 
 .board-post-admin .chip.ad {
-  border-color: rgba(227, 191, 120, .38);
-  background: rgba(227, 191, 120, .13);
-  color: #f1d7a2;
+  border-color: rgba(195, 154, 74, .38);
+  background: rgba(195, 154, 74, .13);
+  color: #8a6414;
 }
 
 .board-composer-wrap {
@@ -147,57 +144,55 @@
 }
 
 .board-composer {
-  border: 1px solid rgba(163, 222, 225, .22) !important;
+  border: 1px solid #e8dfd3 !important;
   border-radius: 21px !important;
-  background: linear-gradient(145deg, rgba(13, 43, 62, .88), rgba(5, 25, 43, .84)) !important;
-  box-shadow: 0 18px 42px rgba(0, 7, 18, .32), inset 0 1px 0 rgba(255,255,255,.12) !important;
-  -webkit-backdrop-filter: blur(28px) saturate(1.5) !important;
-  backdrop-filter: blur(28px) saturate(1.5) !important;
+  background: #fffdf9 !important;
+  box-shadow: 0 12px 32px rgba(54, 39, 25, .12) !important;
 }
 
 .board-composer-input {
   min-width: 0;
   min-height: 42px;
   margin: 0 !important;
-  border: 1px solid rgba(172, 220, 228, .17) !important;
+  border: 1px solid #ddd3c4 !important;
   border-radius: 14px !important;
-  background: rgba(2, 17, 31, .48) !important;
-  color: #f0fbff !important;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.04) !important;
+  background: #ffffff !important;
+  color: #2b2823 !important;
+  box-shadow: none !important;
 }
 
 .board-composer-input::placeholder {
-  color: rgba(208, 230, 237, .55);
+  color: #a29885;
 }
 
 .board-composer-input:focus {
-  border-color: rgba(108, 220, 211, .58) !important;
-  box-shadow: 0 0 0 3px rgba(95, 218, 205, .10) !important;
+  border-color: rgba(128, 81, 60, .55) !important;
+  box-shadow: 0 0 0 3px rgba(128, 81, 60, .10) !important;
 }
 
 .board-send {
   min-width: 70px;
   min-height: 42px;
   border-radius: 13px !important;
-  box-shadow: 0 8px 20px rgba(43, 170, 163, .18), inset 0 1px 0 rgba(255,255,255,.44) !important;
+  box-shadow: 0 6px 16px rgba(28, 32, 48, .16) !important;
 }
 
 .board-page .feed-search-banner {
-  border-color: rgba(109, 206, 203, .24);
+  border-color: #e8dfd3;
   border-radius: 13px;
-  background: rgba(13, 48, 63, .68);
-  color: #e7f7fa;
+  background: #fffdf9;
+  color: #2b2823;
 }
 
 @media (hover: hover) and (pointer: fine) {
   .board-post:hover {
     transform: translateY(-2px);
-    border-color: rgba(119, 213, 211, .30) !important;
-    box-shadow: 0 18px 38px rgba(0, 7, 18, .23), inset 0 1px 0 rgba(255,255,255,.075) !important;
+    border-color: #d9cbb6 !important;
+    box-shadow: 0 10px 24px rgba(54, 39, 25, .08) !important;
   }
 
   .board-post-admin:hover {
-    border-color: rgba(230, 195, 131, .46) !important;
+    border-color: rgba(195, 154, 74, .5) !important;
   }
 }
 

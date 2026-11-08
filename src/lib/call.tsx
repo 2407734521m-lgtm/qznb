@@ -64,7 +64,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
   const showNote = useCallback((text: string) => {
     setNote(text);
     if (noteTimerRef.current) window.clearTimeout(noteTimerRef.current);
-    noteTimerRef.current = window.setTimeout(() => setNote(''), 3600);
+    noteTimerRef.current = window.setTimeout(() => setNote(''), 4800);
   }, []);
 
   const stopRing = useCallback(() => {
@@ -352,7 +352,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
     <CallContext.Provider value={{ phase, busy: phase !== 'idle', startCall }}>
       {children}
       <audio ref={remoteAudioRef} autoPlay playsInline style={{ display: 'none' }} />
-      {note && phase === 'idle' && <div className="call-note" role="status">{note}</div>}
+      {note && phase === 'idle' && <div className="call-note" role="status" aria-live="polite"><span aria-hidden="true">☎</span><span>{note}</span></div>}
       {phase !== 'idle' && (
         <div className="call-overlay" role="dialog" aria-modal="true" aria-label="语音通话">
           <div className="call-card">

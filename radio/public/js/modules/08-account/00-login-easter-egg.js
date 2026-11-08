@@ -24,7 +24,10 @@ function loginEasterEggEyeMarkup(compact) {
 }
 
 function loginEasterEggBrowserPreviewUnlocked() {
-  try { return localStorage.getItem(LOGIN_EASTER_EGG_BROWSER_PREVIEW_KEY) === '1'; } catch (_) { return false; }
+  // radio-web 二期补丁: 网页版没有桌面桥 (window.desktopWindow), 彩蛋门在浏览器里
+  // 永远处于未解锁态, 会把登录框的扫码区盖住、只剩「心愿是」输入框。网页版直接视为
+  // 已解锁, 登录框打开即是扫码登录; 桌面版走桌面桥状态, 不受此补丁影响。
+  return true;
 }
 
 async function ensureLoginEasterEggStatus(force) {

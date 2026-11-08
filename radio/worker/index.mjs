@@ -428,15 +428,18 @@ const vipReady =!!(loginInfo && (loginInfo.isVip || loginInfo.isSvip || loginInf
 const fee = Number(lastData && lastData.fee);
 const code = Number(lastData && lastData.code);
 const freeTrial = lastData && lastData.freeTrialInfo;
-if (!loggedIn) return playbackRestriction('netease', 'login_required', '网易云需要登录后尝试获取完整播放地址', 'login', { code, fee});
 if (freeTrial) return playbackRestriction('netease', 'trial_only', '网易云仅返回试听片段，完整播放需要会员或购买', 'upgrade', { code, fee});
+// radio-web 二期修复: 上游明确 404/403 (无地址、无试听) 是「这首歌拿不到」而非「未登录」——
+// 实测游客态下大量曲目 (屋顶/晴天/稻香/麻雀等) 经 XEAPI 返回 code=404, 旧顺序先判
+// !loggedIn 会把它们全误标 login_required, 触发渲染层自动弹登录框。404 判定必须在登录判定之前。
+if (code === 404 || code === 403) return playbackRestriction('netease', 'copyright_unavailable', '网易云没有返回这首歌的播放地址，多为版权下架或地区限制', 'switch_source', { code, fee});
+if (!loggedIn) return playbackRestriction('netease', 'login_required', '网易云需要登录后尝试获取完整播放地址', 'login', { code, fee});
 if (fee === 1) {
 if (vipReady) return playbackRestriction('netease', 'copyright_unavailable', '当前会员状态下仍未取得可播放地址，已尝试在网易云内匹配同一录音版本', 'switch_source', { code, fee});
 return playbackRestriction('netease', 'vip_required', '网易云歌曲需要 VIP 权限，当前无法获取完整播放地址', 'upgrade', { code, fee});
 }
 if (fee === 4) return playbackRestriction('netease', 'paid_required', '网易云歌曲需要单曲、专辑购买或更高权限', 'purchase', { code, fee});
 if (fee === 8) return playbackRestriction('netease', 'copyright_unavailable', '当前网易云版本没有返回完整音源，已尝试匹配站内同一录音版本', 'switch_source', { code, fee});
-if (code === 404 || code === 403) return playbackRestriction('netease', 'copyright_unavailable', '网易云版权暂不可播，换源或稍后重试会更稳', 'switch_source', { code, fee});
 return playbackRestriction('netease', 'url_unavailable', '网易云没有返回可播放地址，可能是版权、会员或地区限制', loggedIn? 'switch_source': 'login', { code, fee});
 }
 
@@ -508,6 +511,10 @@ try {
 const result = await xeapi('/song/url/v1', { id, level: q.level}, cookieStr, 6000);
 const d = result.body && result.body.data && result.body.data[0];
 if (d) lastData = d;
+// radio-web 二期修复: 上游对该曲明确返回 404 (无 url、无试听信息) 时, 其余音质档
+// 实测均为同一 404 (standard/exhigh/hires 已逐档核验), 不再逐档重试, 直接进同曲匹配,
+// 把单曲解析耗时从约 5-11 秒压下来。
+if (d && Number(d.code) === 404 && !d.url && !d.freeTrialInfo) break;
 const url = d && d.url;
 const freeTrial = d && d.freeTrialInfo;
 let probe = null;

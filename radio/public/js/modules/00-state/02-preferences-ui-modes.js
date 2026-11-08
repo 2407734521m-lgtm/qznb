@@ -32,7 +32,9 @@ function saveAudioFadePreference() {
   } catch (e) { }
 }
 function readDiyModePreference() {
-  try { return localStorage.getItem(DIY_MODE_STORE_KEY) === '1'; } catch (e) { return false; }
+  // radio-web 二期补丁: 与 preload-mode.js 口径一致——未存偏好时默认开启 DIY 玩家模式
+  // (视觉控制台/预设/3D 歌单架入口的门槛); 用户手动关过 (存 '0') 则尊重其选择。
+  try { return localStorage.getItem(DIY_MODE_STORE_KEY) !== '0'; } catch (e) { return true; }
 }
 function saveDiyModePreference(on) {
   try { localStorage.setItem(DIY_MODE_STORE_KEY, on ? '1' : '0'); } catch (e) { }

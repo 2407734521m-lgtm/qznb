@@ -7,7 +7,7 @@ import { NCM_MODULES } from "../folia/worker/netease-modules.generated.ts";
 
 const PREFIX = "/api/netease";
 const PORT = 3918;
-const requestModule = (createNeteaseRequest as any)?.default ?? createNeteaseRequest;
+const requestModule = (createNeteaseRequest && createNeteaseRequest.default) || createNeteaseRequest;
 
 const app = express();
 app.disable("x-powered-by");
@@ -15,7 +15,7 @@ app.use(express.json({ limit: "128kb" }));
 app.use(express.urlencoded({ extended: false, limit: "128kb" }));
 
 const parseCookies = (value = "") => {
-  const result: Record<string, string> = {};
+  const result = {};
   for (const item of value.split(";")) {
     const index = item.indexOf("=");
     if (index <= 0) continue;
@@ -30,16 +30,16 @@ const parseCookies = (value = "") => {
   return result;
 };
 
-const allowed = new Map(NCM_MODULES.map((item: any) => [item.route, item]));
-const sendCookies = (response: any, value: unknown) => {
+const allowed = new Map(NCM_MODULES.map(item => [item.route, item]));
+const sendCookies = (response, value) => {
   const cookies = Array.isArray(value) ? value : typeof value === "string" ? [value] : [];
   const safeCookies = cookies
-    .filter((cookie): cookie is string => typeof cookie === "string" && cookie.length > 0)
-    .map(cookie => /;\s*SameSite=/i.test(cookie) ? cookie : `${cookie}; SameSite=None; Secure`);
+    .filter(cookie => typeof cookie === "string" && cookie.length > 0)
+    .map(cookie => /;\\s*SameSite=/i.test(cookie) ? cookie : `${cookie}; SameSite=None; Secure`);
   if (safeCookies.length) response.append("Set-Cookie", safeCookies);
 };
 
-app.get("/healthz", (_request: any, response: any) => {
+app.get("/healthz", (_request, response) => {
   response.setHeader("Cache-Control", "no-store");
   response.status(200).json({
     ok: true,
@@ -50,9 +50,9 @@ app.get("/healthz", (_request: any, response: any) => {
   });
 });
 
-app.all("/{*splat}", async (request: any, response: any) => {
+app.all("/{*splat}", async (request, response) => {
   const route = request.path;
-  const definition: any = allowed.get(route);
+  const definition = allowed.get(route);
   if (!definition) {
     response.status(404).json({ code: 404, msg: "NetEase API route is not enabled" });
     return;
@@ -74,36 +74,37 @@ app.all("/{*splat}", async (request: any, response: any) => {
     return;
   }
 
-  const query: Record<string, any> = {
+  const query = {
     cookie: parseCookies(request.headers.cookie),
-    ...(request.query ?? {}),
+    ...(request.query || {}),
     ...(request.body && typeof request.body === "object" ? request.body : {}),
   };
   if (typeof query.cookie === "string") query.cookie = parseCookies(query.cookie);
 
+  // Do not turn this endpoint into a proxy or let a caller spoof upstream client IPs.
   for (const key of ["proxy", "realIP", "ip", "headers", "domain", "ua", "timeout", "checkToken", "randomCNIP", "unblock", "source", "crypto"]) {
     delete query[key];
   }
 
   try {
-    const result = await definition.handler(query, (...args: any[]) => requestModule(...args));
+    const result = await definition.handler(query, (...args) => requestModule(...args));
     if (!result || typeof result !== "object") {
       response.status(502).json({ code: 502, msg: "Invalid NetEase API response" });
       return;
     }
     sendCookies(response, result.cookie);
     response.status(Number(result.status) || 200).send(result.body ?? result);
-  } catch (error: any) {
-    const status = Number(error?.status);
-    const body = error?.body;
+  } catch (error) {
+    const status = Number(error && error.status);
+    const body = error && error.body;
     if (body && typeof body === "object") {
-      sendCookies(response, error?.cookie);
+      sendCookies(response, error.cookie);
       response.status(status >= 400 && status < 600 ? status : 502).send(body);
       return;
     }
     console.error("[netease-worker] upstream request failed", {
       route,
-      message: String(error?.message ?? error).slice(0, 240),
+      message: String((error && error.message) || error).slice(0, 240),
     });
     response.status(502).json({ code: 502, msg: "NetEase upstream request failed" });
   }
@@ -112,7 +113,7 @@ app.all("/{*splat}", async (request: any, response: any) => {
 const server = createServer(app);
 server.listen(PORT);
 
-export async function handleNeteaseApi(request: Request): Promise<Response> {
+export async function handleNeteaseApi(request) {
   const url = new URL(request.url);
   if (url.pathname === PREFIX || url.pathname === `${PREFIX}/`) url.pathname = `${PREFIX}/healthz`;
   url.pathname = url.pathname === `${PREFIX}/healthz`

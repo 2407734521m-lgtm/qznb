@@ -34,6 +34,9 @@ jobs:
       - name: Apply optional Qianzhi account integration
         run: node music/scripts/apply-qianzhi-account.mjs
 
+      - name: Apply first-run music provider login tour
+        run: node music/scripts/apply-music-login-tour.mjs
+
       - name: Test NetEase Worker security helpers
         run: node music/scripts/test-netease-security.mjs
 

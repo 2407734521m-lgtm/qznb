@@ -199,6 +199,7 @@
 .discover-photo--love { width: 47%; object-position: 74% 50%; }
 .discover-photo--questions { width: 47%; object-position: 76% 50%; }
 .discover-photo--music { width: 47%; object-position: 50% 50%; }
+.discover-photo--radio { width: 47%; object-position: 50% 50%; }
 .discover-photo--fate { width: 47%; object-position: 50% 50%; }
 
 @media (min-width: 760px) {
@@ -302,6 +303,7 @@
   .discover-photo--love,
   .discover-photo--questions,
   .discover-photo--music,
+  .discover-photo--radio,
   .discover-photo--fate {
     width: 54%;
   }
@@ -450,4 +452,23 @@
 @media (max-width: 600px) {
   .discover-card--music { min-height: 148px; }
   .discover-card--music .discover-card-copy { max-width: 66%; }
+}
+
+/* Mineradio 3D 电台入口：深色沉浸卡，金与青的粒子光呼应照片，区别于命运笔记的灰调。 */
+.discover-card--radio {
+  grid-column: 1 / -1;
+  min-height: 158px;
+  background:
+    radial-gradient(ellipse at 84% 12%, rgba(217, 179, 108, .15), transparent 42%),
+    linear-gradient(132deg, #10151d 0%, #18222d 55%, #1b2a30 100%);
+  color: #c8b490;
+  border-color: rgba(24, 30, 40, .14);
+}
+.discover-card--radio h2 { color: #f6efdf; }
+.discover-card--radio p { color: rgba(240, 234, 220, .68); }
+.discover-card--radio .discover-card-action { color: #e7c88a; }
+.discover-card--radio .discover-card-action span { border-color: rgba(231, 200, 138, .3); }
+@media (max-width: 600px) {
+  .discover-card--radio { min-height: 148px; }
+  .discover-card--radio .discover-card-copy { max-width: 66%; }
 }

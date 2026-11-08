@@ -77,11 +77,11 @@ function GuestHome({ siteConfig, onLoginRequired, showLoveWall, showAnnouncement
               </NavLink>
             : <FeatureCard title="公告" description="管理员暂未向游客开放公告浏览。" locked />}
           <button type="button" onClick={onLoginRequired} style={{ textAlign: 'left', cursor: 'pointer', font: 'inherit' }}>
-            <FeatureCard title="歌声墙" description="了解声音分享功能，登录后即可参与。" locked />
+            <FeatureCard title="歌声墙" description="登录后可以上传、分享和互动。" locked />
           </button>
-          <button type="button" onClick={onLoginRequired} style={{ textAlign: 'left', cursor: 'pointer', font: 'inherit' }}>
-            <FeatureCard title="日常与动态" description="了解日常分享功能，正式账号可发布和互动。" locked />
-          </button>
+          <NavLink to="/feed" style={{ textDecoration: 'none', color: 'inherit' }}>
+            <FeatureCard title="日常与动态" description="浏览所有公开帖子；点赞、评论和发布需要登录。" />
+          </NavLink>
         </div>
       </section>
 

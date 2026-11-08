@@ -1,6 +1,7 @@
 import { NavLink, Navigate, Route, Routes } from 'react-router-dom';
 import Login from './Login';
 import GuestLoveWall from './GuestLoveWall';
+import GuestPosts from './GuestPosts';
 
 type Notice = { id?: number | string; title?: string | null; content?: string | null; created_at?: string | null };
 type Props = {
@@ -53,6 +54,8 @@ function GuestHome({ siteConfig, onLoginRequired, showLoveWall, showAnnouncement
           </div>
         </div>
       </section>
+
+      <GuestPosts section="all" onLoginRequired={onLoginRequired} />
 
       <section style={{ marginTop: 18 }}>
         <div style={{ display: 'flex', alignItems: 'end', justifyContent: 'space-between', gap: 12, marginBottom: 12 }}>
@@ -191,6 +194,8 @@ export default function GuestBrowse({
       }}>
         {[
           { to: '/home', label: '首页' },
+          { to: '/feed', label: '动态' },
+          { to: '/daily', label: '日常' },
           ...(showLoveWall ? [{ to: '/love-wall', label: '表白墙' }] : []),
           ...(showAnnouncements ? [{ to: '/board', label: '公告' }] : []),
         ].map(item => (
@@ -205,6 +210,8 @@ export default function GuestBrowse({
       <Routes>
         <Route path="/" element={<Navigate to="/home" replace />} />
         <Route path="/home" element={<GuestHome siteConfig={siteConfig} onLoginRequired={requestLogin} showLoveWall={showLoveWall} showAnnouncements={showAnnouncements} />} />
+        <Route path="/feed" element={<GuestPosts section="feed" onLoginRequired={requestLogin} />} />
+        <Route path="/daily" element={<GuestPosts section="daily" onLoginRequired={requestLogin} />} />
         <Route path="/love-wall" element={showLoveWall ? <GuestLoveWall onLoginRequired={requestLogin} /> : <GuestUnavailable />} />
         <Route path="/board" element={showAnnouncements ? <GuestBoard siteConfig={siteConfig} /> : <GuestUnavailable />} />
         <Route path="*" element={<Navigate to="/home" replace />} />

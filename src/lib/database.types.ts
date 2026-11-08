@@ -209,7 +209,6 @@ export type Database = {
           popup_on_login: boolean
           title: string | null
           popup_times: number
-          audience: string
         }
         Insert: {
           id?: number
@@ -223,7 +222,6 @@ export type Database = {
           popup_on_login?: boolean
           title?: string | null
           popup_times?: number
-          audience?: string
         }
         Update: {
           id?: number
@@ -237,7 +235,6 @@ export type Database = {
           popup_on_login?: boolean
           title?: string | null
           popup_times?: number
-          audience?: string
         }
         Relationships: [
           {
@@ -867,29 +864,35 @@ export type Database = {
         Row: {
           profile_id: string
           device: string | null
+          client_platform: string
+          app_version_name: string | null
+          app_version_code: number | null
           location: string | null
           location_share_enabled: boolean
           location_consented_at: string | null
           updated_at: string
-          client: string | null
         }
         Insert: {
           profile_id: string
           device?: string | null
+          client_platform?: string
+          app_version_name?: string | null
+          app_version_code?: number | null
           location?: string | null
           location_share_enabled?: boolean
           location_consented_at?: string | null
           updated_at?: string
-          client?: string | null
         }
         Update: {
           profile_id?: string
           device?: string | null
+          client_platform?: string
+          app_version_name?: string | null
+          app_version_code?: number | null
           location?: string | null
           location_share_enabled?: boolean
           location_consented_at?: string | null
           updated_at?: string
-          client?: string | null
         }
         Relationships: [
           {
@@ -1902,9 +1905,37 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: unknown
       }
-      public_admin_app_update: {
+      admin_client_platform_members: {
         Args: Record<PropertyKey, never>
+        Returns: { id: string; username: string; display_name: string | null; client_platform: string; device: string | null; app_version_name: string | null; app_version_code: number | null; presence_updated_at: string | null }[]
+      }
+      admin_create_app_announcement: {
+        Args: { p_title: string; p_body: string; p_show_popup?: boolean; p_expires_at?: string | null }
         Returns: Json
+      }
+      admin_list_app_announcements: {
+        Args: Record<PropertyKey, never>
+        Returns: { id: number; title: string; body: string; show_popup: boolean; is_published: boolean; published_at: string | null; expires_at: string | null; created_at: string }[]
+      }
+      admin_list_app_releases: {
+        Args: Record<PropertyKey, never>
+        Returns: { id: number; version_name: string; version_code: number; apk_url: string; update_notes: string; force_update: boolean; min_code: number; published_at: string }[]
+      }
+      admin_publish_app_release: {
+        Args: { p_version_name: string; p_version_code: number; p_apk_url: string; p_notes?: string; p_force_update?: boolean; p_min_code?: number }
+        Returns: number
+      }
+      admin_set_app_announcement_status: {
+        Args: { p_announcement_id: number; p_is_published: boolean }
+        Returns: undefined
+      }
+      mark_app_announcement_read: {
+        Args: { p_announcement_id: number }
+        Returns: undefined
+      }
+      public_app_announcements: {
+        Args: Record<PropertyKey, never>
+        Returns: { id: number; title: string; body: string; created_at: string }[]
       }
       public_app_update: {
         Args: Record<PropertyKey, never>
@@ -2017,10 +2048,6 @@ export type Database = {
       username_available: {
         Args: { u: string }
         Returns: unknown
-      }
-      withdraw_friend_request: {
-        Args: { target: string }
-        Returns: string
       }
     }
     Enums: {

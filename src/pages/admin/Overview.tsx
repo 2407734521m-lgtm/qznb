@@ -60,6 +60,52 @@ function TodoCenter({ go }: { go: (tab: string) => void }) {
   </div>;
 }
 
+/* ---------------- 客户端构成（总览底部卡） ---------------- */
+// 数据来自 admin_client_stats RPC：按 member_presence 每位成员最近一次上报的 client 聚合，
+// 只给管理员看计数与版本分布，不展示成员身份。
+type ClientStats = {
+  total: number; app: number; web: number; admin: number; unknown: number;
+  versions: { kind: string; version: string; count: number }[];
+};
+function ClientStatsCard() {
+  const [stats, setStats] = useState<ClientStats | null>(null);
+  const [err, setErr] = useState(false);
+
+  async function load() {
+    const { data, error } = await supabase.rpc('admin_client_stats');
+    if (error || !data) { setErr(true); return; }
+    setErr(false);
+    setStats(data as ClientStats);
+  }
+  useEffect(() => { void load(); }, []);
+
+  const rows: [string, number][] = stats ? [
+    ['软件版（青春档案）', stats.app],
+    ['网页版', stats.web],
+    ['管理版（青春管理）', stats.admin],
+    ['未上报客户端', stats.unknown],
+  ] : [];
+  return <section className="admin-overview-panel" style={card}>
+    <div className="admin-overview-panel-heading">
+      <div><h3>客户端构成</h3><p>按每位成员最近一次打开网站 / 应用时上报的客户端统计，共 {stats ? stats.total : '—'} 人有记录</p></div>
+      <button className="mini ghost" type="button" onClick={() => void load()}>刷新</button>
+    </div>
+    {err && <p className="admin-overview-empty">客户端统计读取失败，点刷新重试。</p>}
+    {!stats && !err && <p className="admin-overview-empty">正在统计…</p>}
+    {stats && rows.map(([label, n]) => (
+      <div key={label} className="admin-overview-system-row">
+        <span>{label}</span>
+        <strong>{n} 人</strong>
+      </div>
+    ))}
+    {stats && stats.versions.length > 0 && (
+      <p style={{ ...mut, margin: '8px 0 0' }}>
+        版本分布：{stats.versions.map(v => `${v.kind === 'admin' ? '管理版' : '软件版'} ${v.version}：${v.count} 人`).join(' · ')}
+      </p>
+    )}
+  </section>;
+}
+
 export default function Overview({ setMsg, go }: { setMsg: (s: string) => void; go: (tab: string) => void }) {
   const [st, setSt] = useState<any>(null);
   const [presence, setPresence] = useState<{ online: number; active: number; sampledAt: string; error: boolean } | null>(null);
@@ -360,6 +406,10 @@ export default function Overview({ setMsg, go }: { setMsg: (s: string) => void; 
             <strong className={st.pendingReports > 0 ? 'is-warning' : 'is-healthy'}>{st.pendingReports} 条</strong>
           </div>
         </section>
+      </div>
+
+      <div style={{ marginTop: 16 }}>
+        <ClientStatsCard />
       </div>
     </div>
   );

@@ -4,7 +4,7 @@ import { isInApp } from '../lib/installedApp';
 import { resolveApproximateRegion, saveSharedRegion } from '../lib/location';
 import './BroadcastPopup.css';
 
-type BroadcastKind = 'popup' | 'location' | 'vote' | 'form' | 'signup';
+type BroadcastKind = 'popup' | 'location' | 'vote' | 'form' | 'signup' | 'refresh';
 type Broadcast = {
   id: number;
   kind: BroadcastKind;
@@ -15,6 +15,7 @@ type Broadcast = {
   created_at: string;
   expires_at: string | null;
   options: unknown;
+  target_ids: unknown;
 };
 
 const KICKER: Record<BroadcastKind, string> = {
@@ -23,6 +24,7 @@ const KICKER: Record<BroadcastKind, string> = {
   vote: '投票征集',
   form: '信息征集',
   signup: '活动报名',
+  refresh: '远程刷新',
 };
 const DEFAULT_TITLE: Record<BroadcastKind, string> = {
   popup: '管理员消息',
@@ -30,7 +32,13 @@ const DEFAULT_TITLE: Record<BroadcastKind, string> = {
   vote: '投票征集',
   form: '信息征集',
   signup: '活动报名',
+  refresh: '远程刷新',
 };
+
+function targetList(b: Broadcast): string[] {
+  if (!Array.isArray(b.target_ids)) return [];
+  return b.target_ids.filter((o): o is string => typeof o === 'string');
+}
 
 function voteOptions(b: Broadcast): string[] {
   if (!Array.isArray(b.options)) return [];
@@ -44,6 +52,8 @@ function voteOptions(b: Broadcast): string[] {
 // - vote：投票征集，选项来自 options，选一项提交，回执 status=voted、answer=选项原文。
 // - form：填写征集，填文字提交，回执 status=submitted、answer=填写内容。
 // - signup：报名征集，参加回执 joined、不参加回执 not_joined。
+// - refresh：远程刷新，不弹窗，领到后先写回执再刷新页面（sessionStorage 防重复刷新）。
+// - 受众 selected：只给 target_ids 里的指定成员，其他人客户端直接跳过。
 // 三种征集都可以点「暂不参与」跳过（回执 declined），之后不再重复弹。
 export default function BroadcastPopup({ uid }: { uid: string }) {
   const [current, setCurrent] = useState<Broadcast | null>(null);
@@ -61,22 +71,43 @@ export default function BroadcastPopup({ uid }: { uid: string }) {
     if (currentRef.current) return;
     try {
       const now = new Date().toISOString();
-      const audiences = isInApp() ? ['all', 'app'] : ['all', 'web'];
+      const audiences = isInApp() ? ['all', 'app', 'selected'] : ['all', 'web', 'selected'];
       const { data } = await supabase.from('admin_broadcasts')
-        .select('id, kind, title, body, button_label, audience, created_at, expires_at, options')
+        .select('id, kind, title, body, button_label, audience, created_at, expires_at, options, target_ids')
         .eq('revoked', false)
         .in('audience', audiences)
         .or(`expires_at.is.null,expires_at.gt.${now}`)
         .order('created_at', { ascending: false })
-        .limit(5);
+        .limit(10);
       if (!data?.length) return;
-      const ids = data.map(d => d.id);
+      const visible = (data as Broadcast[]).filter(d => d.audience !== 'selected' || targetList(d).includes(uid));
+      if (!visible.length) return;
+      const ids = visible.map(d => d.id);
       const { data: mine } = await supabase.from('broadcast_receipts')
         .select('broadcast_id')
         .eq('user_id', uid)
         .in('broadcast_id', ids);
       const done = new Set((mine ?? []).map(r => r.broadcast_id));
-      const next = data.find(d => !done.has(d.id));
+      const next = visible.find(d => !done.has(d.id));
+      if (next && next.kind === 'refresh') {
+        // 远程刷新：不弹窗。先写回执（刷新后靠回执排除），再用 sessionStorage 守卫防循环。
+        const guardKey = `bc_refresh_done_${next.id}`;
+        try {
+          await supabase.from('broadcast_receipts').upsert({
+            broadcast_id: next.id,
+            user_id: uid,
+            status: 'seen',
+            region: null,
+            answer: null,
+            updated_at: new Date().toISOString(),
+          }, { onConflict: 'broadcast_id,user_id' });
+        } catch { /* 回执失败也继续靠守卫避免死循环 */ }
+        if (!window.sessionStorage.getItem(guardKey)) {
+          window.sessionStorage.setItem(guardKey, '1');
+          window.location.reload();
+        }
+        return;
+      }
       if (next) {
         setSharedRegion(null);
         setError('');

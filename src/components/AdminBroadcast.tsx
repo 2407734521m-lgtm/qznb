@@ -10,11 +10,13 @@ const KIND_OPTIONS = [
   { value: 'vote', label: '投票征集弹窗' },
   { value: 'form', label: '填写征集弹窗' },
   { value: 'signup', label: '报名弹窗' },
+  { value: 'refresh', label: '远程刷新（不弹窗）' },
 ];
 const AUDIENCE_OPTIONS = [
   { value: 'all', label: '全部成员' },
   { value: 'app', label: '仅软件版' },
   { value: 'web', label: '仅网页版' },
+  { value: 'selected', label: '指定成员' },
 ];
 const EXP_OPTIONS = [
   { value: '0', label: '不过期' },
@@ -24,8 +26,8 @@ const EXP_OPTIONS = [
 ];
 const SHEET_BTN = { padding: '8px 10px', borderRadius: 10, border: '1px solid rgba(34,49,74,.25)', background: '#fff', color: '#22314a', fontSize: 13.5 } as const;
 
-const KIND_LABEL: Record<string, string> = { popup: '普通弹窗', location: '位置征集', vote: '投票征集', form: '填写征集', signup: '报名' };
-const AUDIENCE_LABEL: Record<string, string> = { all: '全部', app: '仅软件版', web: '仅网页版' };
+const KIND_LABEL: Record<string, string> = { popup: '普通弹窗', location: '位置征集', vote: '投票征集', form: '填写征集', signup: '报名', refresh: '远程刷新' };
+const AUDIENCE_LABEL: Record<string, string> = { all: '全部', app: '仅软件版', web: '仅网页版', selected: '指定成员' };
 const STATUS_LABEL: Record<string, string> = {
   seen: '已读', declined: '暂不分享', shared: '已共享', denied: '系统未授权',
   voted: '已投票', submitted: '已填写', joined: '参加', not_joined: '不参加',
@@ -33,6 +35,7 @@ const STATUS_LABEL: Record<string, string> = {
 
 function statusLabel(kind: string, status: string): string {
   if (status === 'declined') return kind === 'location' ? '暂不分享' : '暂不参与';
+  if (status === 'seen' && kind === 'refresh') return '已刷新';
   return STATUS_LABEL[status] ?? status;
 }
 
@@ -40,7 +43,13 @@ type BroadcastRow = {
   id: number; kind: string; title: string; body: string; button_label: string;
   audience: string; created_at: string; expires_at: string | null; revoked: boolean;
   options: unknown;
+  target_ids: unknown;
 };
+
+function rowTargets(row: BroadcastRow): string[] {
+  if (!Array.isArray(row.target_ids)) return [];
+  return row.target_ids.filter((o): o is string => typeof o === 'string');
+}
 type ReceiptRow = { broadcast_id: number; user_id: string; status: string; region: string | null; answer: string | null; updated_at: string };
 
 function rowOptions(row: BroadcastRow): string[] {
@@ -63,10 +72,31 @@ export default function AdminBroadcast({ me, setMsg }: { me: string; setMsg: (s:
   const [respondents, setRespondents] = useState<ReceiptRow[]>([]);
   const [names, setNames] = useState<Record<string, string>>({});
   const [loadingDetail, setLoadingDetail] = useState(false);
+  const [members, setMembers] = useState<{ id: string; label: string }[]>([]);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+
+  // 指定成员受众：第一次切到「指定成员」时拉一次成员名单供勾选。
+  useEffect(() => {
+    if (audience !== 'selected' || members.length) return;
+    void (async () => {
+      const { data } = await supabase.from('profiles')
+        .select('id, display_name, username')
+        .order('created_at', { ascending: true })
+        .limit(200);
+      setMembers((data ?? []).map((p: { id: string; display_name: string | null; username: string | null }) => ({
+        id: p.id,
+        label: p.display_name || p.username || '成员',
+      })));
+    })();
+  }, [audience, members.length]);
+
+  function toggleTarget(id: string) {
+    setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  }
 
   const load = useCallback(async () => {
     const { data } = await supabase.from('admin_broadcasts')
-      .select('id, kind, title, body, button_label, audience, created_at, expires_at, revoked, options')
+      .select('id, kind, title, body, button_label, audience, created_at, expires_at, revoked, options, target_ids')
       .order('created_at', { ascending: false })
       .limit(30);
     const rows = (data ?? []) as BroadcastRow[];
@@ -101,23 +131,27 @@ export default function AdminBroadcast({ me, setMsg }: { me: string; setMsg: (s:
     }
     if (kind === 'form' && !t && !b) { setMsg('填写征集的标题和说明至少填一个'); return; }
     if (kind === 'signup' && !t && !b) { setMsg('报名弹窗的标题和说明至少填一个'); return; }
+    if (audience === 'selected' && selectedIds.length === 0) { setMsg('指定成员要先勾选至少一位成员'); return; }
     setBusy(true);
     const days = parseInt(exp, 10);
     const { error } = await supabase.from('admin_broadcasts').insert({
       kind,
-      title: t || (kind === 'location' ? '位置共享邀请' : ''),
+      title: t || (kind === 'location' ? '位置共享邀请' : kind === 'refresh' ? '远程刷新' : ''),
       body: b,
       button_label: kind === 'popup' ? (buttonLabel.trim() || '知道了') : '知道了',
       audience,
       created_by: me,
       options: voteOpts,
+      target_ids: audience === 'selected' ? selectedIds : [],
       expires_at: days > 0 ? new Date(Date.now() + days * 864e5).toISOString() : null,
     });
     setBusy(false);
     if (error) { setMsg('发布失败：' + error.message); return; }
-    await alog('broadcast_post', { kind, audience, exp_days: days });
-    setTitle(''); setBody(''); setButtonLabel('知道了'); setOptionsText(''); setExp('0');
-    setMsg(`${KIND_LABEL[kind]}已发布，成员打开网站时就会弹窗`);
+    await alog('broadcast_post', { kind, audience, exp_days: days, targets: audience === 'selected' ? selectedIds.length : 0 });
+    setTitle(''); setBody(''); setButtonLabel('知道了'); setOptionsText(''); setSelectedIds([]); setExp('0');
+    setMsg(kind === 'refresh'
+      ? '远程刷新已发布，成员打开或停留在网站时会自动刷新到最新页面'
+      : `${KIND_LABEL[kind]}已发布，成员打开网站时就会弹窗`);
     void load();
   }
 
@@ -178,13 +212,30 @@ export default function AdminBroadcast({ me, setMsg }: { me: string; setMsg: (s:
       <div style={card}>
         <h3 style={h3}>发布弹窗</h3>
         <p style={mut}>
-          普通弹窗：弹一次，点按钮记已读。位置征集：成员自愿共享城市 / 地区，本人点同意才定位，不存精确位置。投票征集：成员选一项，后台看票数和名单。填写征集：成员填一段文字提交。报名：成员选参加 / 不参加，后台自动统计。五种都能选可见范围和有效期、能撤回，每人只弹一次。
+          普通弹窗：弹一次，点按钮记已读。位置征集：成员自愿共享城市 / 地区，本人点同意才定位，不存精确位置。投票征集：成员选一项，后台看票数和名单。填写征集：成员填一段文字提交。报名：成员选参加 / 不参加，后台自动统计。远程刷新：不弹窗，成员在网站时会自动刷新到最新页面，专治旧缓存。可见范围可选全部 / 仅软件版 / 仅网页版 / 指定成员（勾谁谁收到），都能设有效期、能撤回，每人只处理一次。
         </p>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '10px 0' }}>
           <OptionSheet value={kind} options={KIND_OPTIONS} onChange={setKind} buttonText={KIND_LABEL[kind]} title="弹窗类型" buttonStyle={SHEET_BTN} />
           <OptionSheet value={audience} options={AUDIENCE_OPTIONS} onChange={setAudience} buttonText={AUDIENCE_LABEL[audience]} title="可见范围" buttonStyle={SHEET_BTN} />
           <OptionSheet value={exp} options={EXP_OPTIONS} onChange={setExp} buttonText={EXP_OPTIONS.find(o => o.value === exp)?.label ?? '不过期'} title="有效期" buttonStyle={SHEET_BTN} />
         </div>
+        {audience === 'selected' && (
+          <div style={{ border: '1px solid rgba(34,49,74,.15)', borderRadius: 10, padding: '8px 10px', marginBottom: 10, background: '#fff' }}>
+            <p style={{ ...mut, margin: '0 0 6px' }}>勾选要收到的成员（已选 {selectedIds.length} 人）：</p>
+            {members.length === 0 && <p style={mut}>正在加载成员名单…</p>}
+            <div style={{ maxHeight: 168, overflowY: 'auto' }}>
+              {members.map(m => (
+                <label key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 2px', fontSize: 13.5, color: '#22314a', cursor: 'pointer' }}>
+                  <input type="checkbox" checked={selectedIds.includes(m.id)} onChange={() => toggleTarget(m.id)} />
+                  {m.label}
+                </label>
+              ))}
+            </div>
+          </div>
+        )}
+        {kind === 'refresh' && (
+          <p style={{ ...mut, margin: '0 0 8px' }}>远程刷新不用填标题和正文，发布后成员的页面会自动刷新一次；谁刷新了会记在下面的回执名单里。</p>
+        )}
         <input style={inputStyle} value={title} onChange={e => setTitle(e.target.value)} maxLength={60}
           placeholder={kind === 'location' ? '标题（留空用「位置共享邀请」）' : kind === 'vote' ? '投票问题（标题，必填）' : '弹窗标题'} />
         <textarea style={{ ...inputStyle, marginTop: 8, minHeight: 76, resize: 'vertical' }} value={body} onChange={e => setBody(e.target.value)} maxLength={500}
@@ -225,6 +276,9 @@ export default function AdminBroadcast({ me, setMsg }: { me: string; setMsg: (s:
             {row.body && <p style={{ ...mut, margin: '4px 0 0', whiteSpace: 'pre-wrap' }}>{row.body}</p>}
             {row.kind === 'vote' && rowOptions(row).length > 0 && (
               <p style={{ ...mut, margin: '4px 0 0' }}>选项：{rowOptions(row).join(' / ')}</p>
+            )}
+            {row.audience === 'selected' && rowTargets(row).length > 0 && (
+              <p style={{ ...mut, margin: '4px 0 0' }}>指定 {rowTargets(row).length} 位成员</p>
             )}
             <p style={{ ...mut, margin: '4px 0 0' }}>{countText(row)}</p>
             {expanded === row.id && (

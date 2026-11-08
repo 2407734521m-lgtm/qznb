@@ -5,7 +5,8 @@ The music hostname is isolated from the existing site:
 - Web app: `music.qianzhi.pw`
 - Runtime/build environment: Node.js 24+
 - Hosting runtime: Cloudflare Workers + Static Assets
-- Worker name: `qianzhi-music`
+- Production Worker: `qianzhi-music`
+- Preview Worker: `qianzhi-music-preview`
 - Source: Folia `v0.7.27`, pinned in `music/folia`
 
 ## Build locally
@@ -25,52 +26,49 @@ npm run test:unit -- test/unit/qianzhiAccount/loginMethod.test.ts
 VITE_QQ_API_BASE=/api/qq VITE_QZNB_SUPABASE_URL=https://ldypnxxxgscibopgiaso.supabase.co VITE_QZNB_SUPABASE_ANON_KEY=YOUR_PUBLIC_ANON_KEY npm run build
 ```
 
-The overlay script applies the pinned Lark swipe resolver to Folia's existing mobile player capsule. It adds horizontal previous/next navigation, upward expansion and downward collapse without replacing Folia's playback store or adding a second player UI. It also writes a focused unit test; the original Lark source remains under `music/vendor/lark/`.
+The overlays apply the Lark swipe resolver to Folia's existing mobile player capsule and add the optional Qianzhi account row to Settings → Help → About. The music account uses the same Supabase Auth user pool as the main site, but it stores a separate local session. It is not seamless SSO; a user signs in once on the music hostname. Music playback remains available without an account.
 
-This compiles Folia's web assets and Worker entry. It does not deploy the site.
+The Supabase browser client is pinned at `@supabase/supabase-js@2.119.0`. The account panel requires the public anon/publishable key. Never supply a service-role key or any privileged server key to `VITE_*` variables.
 
-To publish the preview Worker (after authenticating Wrangler with the target Cloudflare account), from `music/folia`:
+## Preview first — no production DNS
 
-```bash
-npx wrangler@4.120.0 deploy --config ../wrangler.jsonc
-```
+The preview config is `music/wrangler.preview.jsonc`. It creates a separate Worker named `qianzhi-music-preview` with `workers.dev` enabled and **no custom domain route**.
 
-The first verified deployment should be tested on its `workers.dev` hostname before relying on the production custom domain.
-
-## Qianzhi account connection
-
-The optional account row appears in Folia Settings → Help → About. It uses the same Supabase Auth project and user IDs as the main site, supports email login and the main site's username-login function, and saves its session under a separate `qznb-music-auth-v1` storage key. Signing out from the music site clears only its local session; it does not sign out the main site. This is shared authentication, not seamless single sign-on: the user signs in once on the music hostname. Music playback remains available without an account.
-
-Before production deployment, add the project's public anon/publishable key as the GitHub Actions repository secret `QZNB_SUPABASE_ANON_KEY`. It is a browser-visible public key, not a service-role key. Never use `SUPABASE_SERVICE_ROLE_KEY` or any privileged server key in this frontend build. The Supabase URL is already configured in the workflow.
-
-## Cloudflare secrets
-
-Before publishing, create a long random server-side secret and add it with Wrangler. The GitHub deployment workflow also requires `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `QQ_SESSION_SECRET`, and `QZNB_SUPABASE_ANON_KEY` repository secrets:
+From `music/folia`, after authenticating Wrangler:
 
 ```bash
-openssl rand -hex 32
-npx wrangler@4.120.0 secret put QQ_SESSION_SECRET --config ../wrangler.jsonc
-npx wrangler@4.120.0 deploy --config ../wrangler.jsonc
+npx wrangler@4.120.0 deploy --config ../wrangler.preview.jsonc
 ```
 
-Do not put `QQ_SESSION_SECRET` in `VITE_*` variables, frontend source, Git, or public build logs. After adding the secret, redeploy the Worker.
-
-## Preview and production
-
-First publish to the Worker preview/`workers.dev` address and verify:
+The first deployed URL is the preview's `workers.dev` hostname. Verify this URL before touching the production hostname:
 
 - `/healthz` and static app loading
 - `/api/qq/login/channels`
 - NetEase, Kugou and QQ search/playback behavior
 - lyrics, playlist and mobile touch interactions
-- login/session persistence and error handling
+- Qianzhi email and username login, session persistence, and local-only sign-out
+- error states when the QQ service or Supabase is unavailable
 
-Only after those checks should the custom domain `music.qianzhi.pw` be attached. Wrangler's custom-domain route will create the DNS record; do not add a conflicting CNAME record manually.
+The GitHub Actions workflow `.github/workflows/deploy-music.yml` is manual-only and has a required target choice. It defaults to **preview**. Select **production** only after the preview has been tested and explicitly approved; that target uses `music/wrangler.jsonc` and activates the `music.qianzhi.pw` custom domain.
+
+## Qianzhi account and GitHub secrets
+
+Before production deployment, add the project's public anon/publishable key as the GitHub Actions repository secret `QZNB_SUPABASE_ANON_KEY`. It is a browser-visible public key, not a service-role key. The Supabase URL is configured in the workflow.
+
+The manual deployment workflow requires these repository secrets:
+- `CLOUDFLARE_API_TOKEN`
+- `CLOUDFLARE_ACCOUNT_ID`
+- `QQ_SESSION_SECRET`
+- `QZNB_SUPABASE_ANON_KEY`
+
+Do not put `QQ_SESSION_SECRET` in `VITE_*` variables, frontend source, Git, or public build logs. It is stored as a Cloudflare Worker secret for whichever target you publish.
+
+## Sync server
 
 The Sync Server is a separate service and is not included in this first Web Worker. It needs a separate Worker, D1 database, `SYNC_TOKEN`, and a separate hostname/configuration. Do not expose its token in the browser.
 
 ## Safety and scope
 
-This build does not modify the existing `qianzhi.pw` or `admin.qianzhi.pw` Workers. It also does not modify the production Supabase database.
+The preview and production music Workers are separate from the existing `qianzhi.pw` and `admin.qianzhi.pw` Workers. The music deployment does not modify the production Supabase schema.
 
-No production deployment should be considered complete until the build and provider checks above pass.
+No production deployment should be considered complete until preview, provider, account and mobile checks pass.

@@ -66,12 +66,12 @@ Deno.serve(async (req: Request) => {
   const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
   const url = Deno.env.get('SUPABASE_URL');
   const resendKey = Deno.env.get('RESEND_API_KEY');
-  const authorization = req.headers.get('Authorization') ?? '';
+  const suppliedApiKey = req.headers.get('apikey') ?? '';
 
   // This endpoint is intentionally internal-only. The Edge Gateway JWT check is
-  // disabled for this function because service-role keys may be non-JWT secrets;
-  // exact server-side key comparison remains mandatory here.
-  if (!serviceKey || authorization !== `Bearer ${serviceKey}`) {
+  // disabled because the internal caller authenticates with the server-only key
+  // in the apikey header. Do not send a different publishable key alongside it.
+  if (!serviceKey || suppliedApiKey !== serviceKey) {
     return json({ error: 'Unauthorized' }, 401);
   }
   if (!url || !resendKey) return json({ error: 'Mail service is not configured', errorCode: 'mail_not_configured' }, 503);

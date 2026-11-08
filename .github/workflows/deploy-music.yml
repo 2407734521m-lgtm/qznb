@@ -3,6 +3,7 @@ name: Deploy music.qianzhi.pw
 on:
   push:
     branches:
+      - main
       - feat/music-vendored-open-source-modules
   workflow_dispatch:
     inputs:
@@ -15,10 +16,10 @@ on:
         default: preview
         required: true
 
-# Serialize preview deploys so an older build cannot finish last and replace the newest preview.
-# Production dispatches use a separate group and are not cancelled by ordinary preview pushes.
+# Main branch pushes deploy production; feature-branch pushes deploy the isolated preview.
+# Keep production and preview deployments in separate concurrency groups.
 concurrency:
-  group: music-deploy-${{ github.ref }}-${{ github.event_name == 'workflow_dispatch' && inputs.target == 'production' && 'production' || 'preview' }}
+  group: music-deploy-${{ github.ref }}-${{ ((github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_dispatch' && inputs.target == 'production')) && 'production' || 'preview' }}
   cancel-in-progress: true
 
 permissions:
@@ -40,13 +41,16 @@ jobs:
           test -n "$QQ_SECRET" || { echo "::error::Missing QQ_SESSION_SECRET repository secret"; exit 1; }
           test -n "$QZNB_ANON_KEY" || { echo "::error::Missing QZNB_SUPABASE_ANON_KEY repository secret"; exit 1; }
 
-      - name: Select Worker target (preview is the safe default)
+      - name: Select Worker target (main is production; feature branch is preview)
         env:
           TARGET: ${{ inputs.target }}
         run: |
-          if [ "$TARGET" = "production" ]; then
+          if [ "$GITHUB_EVENT_NAME" = "push" ] && [ "$GITHUB_REF" = "refs/heads/main" ]; then
             echo "WRANGLER_CONFIG=wrangler.jsonc" >> "$GITHUB_ENV"
-            echo "Selected production Worker; the music.qianzhi.pw custom domain will be activated."
+            echo "Selected production Worker; music.qianzhi.pw will be activated."
+          elif [ "$TARGET" = "production" ]; then
+            echo "WRANGLER_CONFIG=wrangler.jsonc" >> "$GITHUB_ENV"
+            echo "Selected production Worker; music.qianzhi.pw will be activated."
           elif [ "$TARGET" = "preview" ] || [ -z "$TARGET" ]; then
             echo "WRANGLER_CONFIG=wrangler.preview.jsonc" >> "$GITHUB_ENV"
             echo "Selected isolated workers.dev preview Worker."

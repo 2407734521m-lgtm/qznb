@@ -24,11 +24,34 @@ begin
   assert has_function_privilege('anon', 'guest_api_private.guest_post_image_public_readable(text)', 'EXECUTE'),
     'storage policy can check exact public-post image paths';
 
-  assert not has_table_privilege('anon', 'public.profile_privacy', 'SELECT'),
-    'anonymous clients cannot read privacy settings directly';
-  assert not has_table_privilege('anon', 'public.profiles', 'SELECT'),
-    'anonymous clients cannot read profiles directly';
+  assert (
+    select relrowsecurity
+    from pg_class
+    where oid = 'public.posts'::regclass
+  ), 'posts RLS remains enabled';
+  assert (
+    select relrowsecurity
+    from pg_class
+    where oid = 'public.profiles'::regclass
+  ), 'profiles RLS remains enabled';
+  assert (
+    select relrowsecurity
+    from pg_class
+    where oid = 'public.profile_privacy'::regclass
+  ), 'profile privacy RLS remains enabled';
 end;
 $test$;
+
+set local role anon;
+do $test$
+begin
+  assert (select count(*) = 0 from public.posts), 'anon cannot read the base posts table directly';
+  assert (select count(*) = 0 from public.profiles), 'anon cannot read the base profiles table directly';
+  assert (select count(*) = 0 from public.profile_privacy), 'anon cannot read privacy settings directly';
+  assert (select count(*) = 0 from public.post_likes), 'anon cannot read individual like records';
+  assert (select count(*) = 0 from public.comments), 'anon cannot read individual comments';
+end;
+$test$;
+reset role;
 
 rollback;

@@ -60,7 +60,7 @@ function GuestHome({ siteConfig, onLoginRequired, showLoveWall, showAnnouncement
         <div className="guest-quick-grid">
           <NavLink to="/feed" className="guest-quick-card"><span className="guest-quick-icon">↗</span><strong>社区动态</strong><small>看看最近的新鲜事</small></NavLink>
           <NavLink to="/daily" className="guest-quick-card"><span className="guest-quick-icon">☼</span><strong>日常片段</strong><small>发现生活里的小事</small></NavLink>
-          <NavLink to="/members" className="guest-quick-card"><span className="guest-quick-icon">◎</span><strong>认识成员</strong><small>认识这个社区的人</small></NavLink>
+          <button type="button" className="guest-quick-card is-locked" onClick={onLoginRequired}><span className="guest-quick-icon">◎</span><strong>认识成员</strong><small>登录后探索成员主页</small></button>
           {showLoveWall ? <NavLink to="/love-wall" className="guest-quick-card"><span className="guest-quick-icon">♡</span><strong>表白墙</strong><small>阅读公开的心意</small></NavLink> : <button type="button" className="guest-quick-card is-locked" onClick={onLoginRequired}><span className="guest-quick-icon">♡</span><strong>表白墙</strong><small>暂未开放游客浏览</small></button>}
         </div>
       </section>
@@ -122,7 +122,7 @@ function GuestHome({ siteConfig, onLoginRequired, showLoveWall, showAnnouncement
           <span className="guest-section-index">02 / COMMUNITY</span>
         </div>
         <div className="guest-discovery-grid">
-          <NavLink to="/members" className="guest-discovery-card guest-discovery-members"><span>PEOPLE</span><strong>认识这里的人</strong><p>从成员主页开始，发现更多故事。</p><i>探索成员 ↗</i></NavLink>
+          <NavLink to="/feed" className="guest-discovery-card guest-discovery-members"><span>PEOPLE & STORIES</span><strong>从分享认识彼此</strong><p>在公开动态里，发现社区成员的故事。</p><i>浏览动态 ↗</i></NavLink>
           <NavLink to="/daily" className="guest-discovery-card guest-discovery-daily"><span>MOMENTS</span><strong>收集日常灵感</strong><p>看看大家分享的生活片段。</p><i>浏览日常 ↗</i></NavLink>
           <NavLink to="/feed" className="guest-discovery-card guest-discovery-feed"><span>DISCOVER</span><strong>让灵感继续发生</strong><p>在公开动态里，遇见新的话题。</p><i>继续发现 ↗</i></NavLink>
         </div>

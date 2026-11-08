@@ -1125,7 +1125,7 @@ function Shell() {
             <RdevLiquidGlass
               className="qz-rdev-dock"
               displacementScale={55}
-              blurAmount={0.1}
+              blurAmount={0.16}
               saturation={150}
               aberrationIntensity={2}
               elasticity={reduce ? 0 : 0.25}
@@ -1150,7 +1150,7 @@ function Shell() {
                 if (target && !isTabActive(target.to, loc.pathname)) nav(target.to);
               }}
               activeColor="#263b4f"
-              inactiveColor="rgba(58, 78, 96, 0.78)"
+              inactiveColor="rgba(43, 62, 79, 0.92)"
               reducedMotion={reduce}
               style={{
                 position: 'relative',

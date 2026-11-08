@@ -728,3 +728,104 @@ body:has(.vibe-home) .glow { display: none !important; }
   .vibe-home .vh-notice:hover,
   .vibe-home .vh-shortcut:hover { transform: none !important; }
 }
+
+/* 2026 homepage refresh: a calmer editorial layout shared with guest browsing. */
+.vibe-home {
+  --vh-ink: #20242b;
+  --vh-muted: #7d8690;
+  --vh-line: #e8eaed;
+  --vh-accent: #536171;
+  width: 100%;
+  max-width: 1120px;
+  margin-inline: auto;
+  padding: 16px 0 112px;
+  color: var(--vh-ink);
+  background: #fff;
+}
+body:has(.vibe-home), body:has(.vibe-home) #root, body:has(.vibe-home) .qz-ios26-scene, .wrap:has(.vibe-home) {
+  background: #fff !important;
+  color: var(--vh-ink) !important;
+}
+.vibe-home .vh-intro {
+  display: block;
+  padding: 11px 2px 20px;
+}
+.vibe-home .vh-brand-lockup { display: grid; gap: 2px; }
+.vibe-home .vh-brand-eyebrow { color: #a0a6ad; font-size: 9px; font-weight: 700; letter-spacing: .16em; }
+.vibe-home .vh-intro h1 { margin: 4px 0 0; color: var(--vh-ink); font-size: 25px; font-weight: 740; letter-spacing: -.04em; }
+.vibe-home .vh-intro p { margin: 3px 0 0; color: #9299a1; font-size: 12px; }
+.vibe-home .vh-hero {
+  min-height: 320px;
+  aspect-ratio: 16 / 6.8;
+  border: 0;
+  border-radius: 20px;
+  background: linear-gradient(115deg,#eceff2,#dce1e6);
+  box-shadow: none;
+}
+.vibe-home .vh-hero-shade {
+  background: linear-gradient(90deg,rgba(14,19,25,.72),rgba(14,19,25,.35) 48%,rgba(14,19,25,.03));
+}
+.vibe-home .vh-hero-content { padding: clamp(26px,5vw,54px); }
+.vibe-home .vh-hero-kicker { color: rgba(255,255,255,.78); font-size: 10px; font-weight: 700; letter-spacing: .14em; }
+.vibe-home .vh-hero-title { color: #fff; font-size: clamp(32px,5vw,54px); font-weight: 680; letter-spacing: -.045em; line-height: 1.12; }
+.vibe-home .vh-hero-sub { max-width: 470px; color: rgba(255,255,255,.82); font-size: 13px; }
+.vibe-home .vh-hero-link { min-height: 39px; margin-top: 18px; padding: 0 16px; border: 0; border-radius: 999px; background: #fff; color: #20242b; font-size: 12px; }
+.vibe-home .vh-search {
+  max-width: 550px;
+  min-height: 45px;
+  margin-top: 15px;
+  padding: 0 16px;
+  border: 1px solid var(--vh-line);
+  border-radius: 12px;
+  background: #f8f9fa;
+  color: #9299a1;
+  font-size: 12px;
+  box-shadow: none;
+}
+.vibe-home .vh-search-icon { color: #66727e; font-size: 18px; }
+.vibe-home .vh-section-head { margin: 31px 2px 13px; }
+.vibe-home .vh-section-head h2 { color: var(--vh-ink); font-size: 19px; font-weight: 700; letter-spacing: -.025em; }
+.vibe-home .vh-section-head p { color: #939aa2; font-size: 11px; }
+.vibe-home .vh-text-link { color: #616d79; font-size: 11px; }
+.vibe-home .vh-notices { grid-template-columns: repeat(3,minmax(0,1fr)); gap: 10px; }
+.vibe-home .vh-notice, .vibe-home .vh-shortcut, .vibe-home .vh-panel {
+  border: 1px solid var(--vh-line);
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: none;
+}
+.vibe-home .vh-notice { padding: 15px; }
+.vibe-home .vh-notice-tag { background: #f4f5f6; color: #6d7782; }
+.vibe-home .vh-notice strong { color: #303943; font-size: 13px; }
+.vibe-home .vh-notice p { color: #7f8892; font-size: 12px; }
+.vibe-home .vh-notice time { color: #a0a6ad; font-size: 10px; }
+.vibe-home .vh-shortcuts { gap: 9px; }
+.vibe-home .vh-shortcut { min-height: 88px; padding: 15px; }
+.vibe-home .vh-shortcut-name { color: #303943; font-size: 13px; font-weight: 680; }
+.vibe-home .vh-shortcut-index, .vibe-home .vh-shortcut-arrow { color: #8d96a0; }
+.vibe-home .vh-lower-grid { grid-template-columns: minmax(0,1.35fr) minmax(280px,.85fr); gap: 14px; margin-top: 30px; }
+.vibe-home .vh-panel { padding: 17px; }
+.vibe-home .vh-feed-row, .vibe-home .vh-event { border-color: #eff0f2; }
+.vibe-home .vh-feed-copy strong, .vibe-home .vh-event strong { color: #303943; font-size: 12px; }
+.vibe-home .vh-feed-copy p, .vibe-home .vh-event p { color: #7e8791; font-size: 12px; }
+.vibe-home .vh-member .av { border-color: var(--vh-line); }
+.vibe-home .vh-member span { color: #7e8791; }
+.vibe-home .vh-load-state, .vibe-home .vh-load-error { border-color: var(--vh-line); border-radius: 12px; background: #f8f9fa; color: #78828d; }
+.vibe-home .vh-load-error { background: #fff8f7; color: #8b5550; }
+.vibe-home .vh-load-spinner { border-color: #dfe3e7; border-top-color: #687582; }
+@media (max-width: 760px) {
+  .vibe-home { padding: 4px 0 112px; }
+  .vibe-home .vh-intro { padding: 8px 2px 16px; }
+  .vibe-home .vh-intro h1 { font-size: 22px; }
+  .vibe-home .vh-hero { min-height: 250px; aspect-ratio: 1.38; border-radius: 16px; }
+  .vibe-home .vh-hero-content { padding: 23px; }
+  .vibe-home .vh-hero-title { max-width: 340px; font-size: clamp(29px,8vw,40px); }
+  .vibe-home .vh-hero-sub { max-width: 290px; font-size: 12px; }
+  .vibe-home .vh-search { max-width: none; }
+  .vibe-home .vh-section-head { margin-top: 25px; }
+  .vibe-home .vh-notices { grid-template-columns: 1fr; }
+  .vibe-home .vh-lower-grid { grid-template-columns: 1fr; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .vibe-home .vh-notice, .vibe-home .vh-shortcut, .vibe-home .vh-search, .vibe-home .vh-hero-link { transition: none !important; }
+}

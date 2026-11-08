@@ -25,8 +25,11 @@ type Account = {
   last_sign_in_at: string | null;
   location: string | null;
   device: string | null;
-  presence_updated_at: string | null;
   client: string | null;
+  client_platform: 'mobile' | 'web' | 'unknown' | null;
+  app_version_name: string | null;
+  app_version_code: number | null;
+  presence_updated_at: string | null;
 };
 
 const panel: React.CSSProperties = {
@@ -153,12 +156,13 @@ export default function AdminAccountManagement({
       return;
     }
     const exportRows = [
-      ['显示名称', '用户名', '角色', '账号状态', '注册时间', '最近登录'],
+      ['显示名称', '用户名', '角色', '账号状态', '最近使用平台', '注册时间', '最近登录'],
       ...accounts.map(account => [
         account.display_name || account.username,
         account.username,
         account.role,
         account.joined ? '权限正常' : '班级权限已暂停',
+        account.client_platform === 'mobile' ? '移动端软件' : account.client_platform === 'web' ? '网页版' : '待识别',
         account.created_at,
         account.last_sign_in_at || '',
       ]),
@@ -333,6 +337,7 @@ export default function AdminAccountManagement({
       <div style={{ ...muted, marginTop: 8 }}>
         <div>注册时间：{stamp(r.created_at)}</div>
         <div>最近登录：{stamp(r.last_sign_in_at)}</div>
+        <div>最近使用平台：{r.client_platform === 'mobile' ? '移动端软件' : r.client_platform === 'web' ? '网页版' : '待识别'}</div>
         <div>所在地区：{r.location || '未分享'}</div>
       </div>
 
@@ -344,6 +349,8 @@ export default function AdminAccountManagement({
         <div style={muted}>邮箱：{r.email || '暂无记录'}</div>
         <div style={muted}>真实姓名：{r.real_name || '未填写'}</div>
         <div style={muted}>自愿分享的所在地区：{r.location || '未分享'}</div>
+        <div style={muted}>客户端类型：{r.client_platform === 'mobile' ? '移动端软件' : r.client_platform === 'web' ? '网页版' : '待识别'}</div>
+        <div style={muted}>软件版本：{r.app_version_name || '未上报'} · {r.app_version_code ?? '—'}</div>
         <div style={muted}>设备信息：{r.device || '暂无记录'}</div>
         <div style={muted}>客户端：{r.client ? (r.client.startsWith('app:') ? '软件版 ' + r.client.slice(4) : r.client.startsWith('admin:') ? '管理版 ' + r.client.slice(6) : '网页版') : '暂无记录'}</div>
         <div style={muted}>位置/设备资料更新时间：{stamp(r.presence_updated_at)}</div>

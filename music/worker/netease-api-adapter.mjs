@@ -124,9 +124,16 @@ app.all("/{*splat}", async (request, response) => {
         ? error.code
         : undefined;
       const upstreamStatus = Number(error && (error.status || (error.response && error.response.status))) || undefined;
+      const typeErrorMessage = error instanceof TypeError
+        ? message
+            .replace(/https?:\/\/\S+/g, "[url]")
+            .replace(/[A-Za-z0-9+/_=-]{40,}/g, "[redacted]")
+            .replace(/[\r\n\t]/g, " ")
+            .slice(0, 160)
+        : undefined;
       const safeMessage = safeMessages.has(message) || /^Request failed with status code \d{3}$/.test(message)
         ? message
-        : undefined;
+        : typeErrorMessage;
       response.status(502).json({
         code: 502,
         msg: "NetEase upstream request failed",

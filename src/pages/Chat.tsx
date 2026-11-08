@@ -128,6 +128,7 @@ function canShowInlineMeta(body: string, hasReply: boolean) {
     && !content.startsWith('[[im-image:')
     && !content.startsWith('[[im-audio:')
     && !content.includes('\n')
+    && Array.from(content).length >= 4
     && Array.from(content).length <= 18;
 }
 

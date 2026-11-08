@@ -1406,3 +1406,19 @@
 .im-page .im-sticker-tray {
   transform-origin: 50% 100%;
 }
+
+
+/* Keep metadata outside ultra-short bubbles: a single digit plus a timestamp
+   cannot fit comfortably on one line on narrow Android screens. */
+.im-page .im-inline-meta {
+  margin-left: 8px;
+  flex: none;
+}
+.im-page .im-message-footer {
+  gap: 8px;
+  padding-inline: 4px;
+  font-variant-numeric: tabular-nums;
+}
+.im-page .im-bubble {
+  min-width: 0;
+}

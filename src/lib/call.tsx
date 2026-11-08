@@ -64,7 +64,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
   const showNote = useCallback((text: string) => {
     setNote(text);
     if (noteTimerRef.current) window.clearTimeout(noteTimerRef.current);
-    noteTimerRef.current = window.setTimeout(() => setNote(''), 3600);
+    noteTimerRef.current = window.setTimeout(() => setNote(''), 4800);
   }, []);
 
   const stopRing = useCallback(() => {
@@ -92,8 +92,22 @@ export function CallProvider({ children }: { children: ReactNode }) {
     setPhaseBoth('idle');
   }, [stopRing, setPhaseBoth]);
 
-  const sendSession = useCallback((event: string, payload: Record<string, unknown>) => {
-    void sessionChRef.current?.send({ type: 'broadcast', event, payload });
+  // Wait briefly for the realtime server to accept terminal call events before
+  // removing the channel. Previously cleanup() could remove the channel while
+  // the fire-and-forget broadcast was still in flight, leaving the other side
+  // stuck in a ringing/connecting UI.
+  const sendSession = useCallback(async (event: string, payload: Record<string, unknown>) => {
+    const channel = sessionChRef.current;
+    if (!channel) return false;
+    try {
+      const result = await Promise.race([
+        channel.send({ type: 'broadcast', event, payload }),
+        new Promise<'timed out'>(resolve => window.setTimeout(() => resolve('timed out'), 1800)),
+      ]);
+      return result === 'ok';
+    } catch {
+      return false;
+    }
   }, []);
 
   const recordCallMessage = useCallback(async () => {
@@ -106,8 +120,11 @@ export function CallProvider({ children }: { children: ReactNode }) {
     });
   }, [myId]);
 
-  const endCall = useCallback((notifyEvent: string | null, noteText?: string) => {
-    if (notifyEvent) sendSession(notifyEvent, { fromId: myId });
+  const endCall = useCallback(async (notifyEvent: string | null, noteText?: string) => {
+    // Broadcast first; only tear down the session after the peer has had a
+    // chance to receive the end/reject/cancel event. The timeout keeps the
+    // local hang-up responsive if the network is unavailable.
+    if (notifyEvent) await sendSession(notifyEvent, { fromId: myId });
     void recordCallMessage();
     cleanup();
     if (noteText) showNote(noteText);
@@ -191,7 +208,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
           await pc.setLocalDescription(offer);
           sendSession('offer', { sdp: offer.sdp, fromId: myId });
         } catch {
-          endCall('end', '需要麦克风权限才能通话');
+          void endCall('end', '需要麦克风权限才能通话');
         }
       })();
     });
@@ -228,7 +245,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
     ch.on('broadcast', { event: 'reject' }, () => {
       if (phaseRef.current === 'outgoing' || phaseRef.current === 'connecting') {
         cleanup();
-        showNote('对方已拒绝通话');
+        showNote('对方拒绝了通话');
       }
     });
     ch.on('broadcast', { event: 'cancel' }, () => {
@@ -238,7 +255,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
       if (phaseRef.current !== 'idle') {
         void recordCallMessage();
         cleanup();
-        showNote('通话已结束');
+        showNote('对方已结束通话');
       }
     });
     return new Promise<void>(resolve => { ch.subscribe(status => { if (status === 'SUBSCRIBED') resolve(); }); });
@@ -305,7 +322,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
     })();
     if (waitTimerRef.current) window.clearTimeout(waitTimerRef.current);
     waitTimerRef.current = window.setTimeout(() => {
-      if (phaseRef.current === 'outgoing') endCall('cancel', '对方暂时没有接听');
+      if (phaseRef.current === 'outgoing') void endCall('cancel', '对方暂时没有接听');
     }, 45000);
   }, [endCall, joinSession, myId, setPhaseBoth, startRing]);
 
@@ -317,9 +334,9 @@ export function CallProvider({ children }: { children: ReactNode }) {
     void setupPeerConnection().catch(() => { endCall('end', '需要麦克风权限才能通话'); });
   }, [endCall, myId, sendSession, setPhaseBoth, setupPeerConnection, stopRing]);
 
-  const rejectCall = useCallback(() => { endCall('reject'); }, [endCall]);
-  const cancelCall = useCallback(() => { endCall('cancel'); }, [endCall]);
-  const hangUp = useCallback(() => { endCall('end'); }, [endCall]);
+  const rejectCall = useCallback(() => { void endCall('reject', '已拒绝通话'); }, [endCall]);
+  const cancelCall = useCallback(() => { void endCall('cancel', '已取消通话'); }, [endCall]);
+  const hangUp = useCallback(() => { void endCall('end', '已结束通话'); }, [endCall]);
 
   const toggleMute = useCallback(() => {
     const stream = localStreamRef.current;
@@ -335,7 +352,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
     <CallContext.Provider value={{ phase, busy: phase !== 'idle', startCall }}>
       {children}
       <audio ref={remoteAudioRef} autoPlay playsInline style={{ display: 'none' }} />
-      {note && phase === 'idle' && <div className="call-note" role="status">{note}</div>}
+      {note && phase === 'idle' && <div className="call-note" role="status" aria-live="polite"><span aria-hidden="true">☎</span><span>{note}</span></div>}
       {phase !== 'idle' && (
         <div className="call-overlay" role="dialog" aria-modal="true" aria-label="语音通话">
           <div className="call-card">

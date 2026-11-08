@@ -16,6 +16,10 @@ The pin was advanced after reviewing the v0.7.27 release notes and comparing it 
 
 See [Folia upstream and license](FOLIA_UPSTREAM.md) and [deployment instructions](DEPLOYMENT.md).
 
+## Main-site account connection
+
+An optional Settings → Help → About account row uses the existing Qianzhi Supabase Auth project. It supports email login and the main site's username-login Edge Function, stores a separate `qznb-music-auth-v1` session, and clears only that local session on sign-out. It shares the same Supabase user ID but is not seamless SSO; the user signs in once on the music hostname. Playback remains available without login. The build-time overlay is applied by `scripts/apply-qianzhi-account.mjs`; the GitHub deploy workflow expects the public key in `QZNB_SUPABASE_ANON_KEY`. Never use a service-role key in the frontend.
+
 ## Vendored source modules
 
 ### Lark

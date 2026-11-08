@@ -4,13 +4,15 @@ This folder prepares the independent `music.qianzhi.pw` service. It pins Folia a
 
 ## Runtime base
 
-- Folia: `v0.7.26`
-- Pinned commit: `cc6226e464050a456a2913e062374f23d3844cc5`
+- Folia: `v0.7.27`
+- Pinned commit: `4a545c96229664c0e07d4fb04971264e8d75fdd2`
 - Location: `music/folia` Git submodule
 - Build: Node.js 24+
 - Runtime: Cloudflare Workers + Static Assets
 - Isolated worker name: `qianzhi-music`
 - Custom domain: `music.qianzhi.pw`
+
+The pin was advanced after reviewing the v0.7.27 release notes and comparing it with v0.7.26. The player capsule file used by the Lark gesture overlay is unchanged in this release-to-release diff; the overlay will be validated again by CI.
 
 See [Folia upstream and license](FOLIA_UPSTREAM.md) and [deployment instructions](DEPLOYMENT.md).
 
@@ -46,6 +48,6 @@ The overlay is idempotent, validates its source anchors, and creates a focused u
 
 - Folia's own playback state, queue, player and audio pipeline remain the runtime foundation.
 - Lark's gesture resolver is now connected through the build-time host overlay; the complete Lark mini-player component remains vendored for further review, not mounted as a duplicate player.
-- Listen1's browser-extension adapters still rely on legacy host globals and old provider endpoints. They need wrappers and current compatibility checks before being used in Cloudflare Workers.
+- Listen1's copied master adapters are pinned to a repository revision last updated on 2025-06-17. Folia already has native NetEase, QQ and Kugou providers; the copied adapters for those services are not needed for a second implementation. Kuwo and Migu are the unique candidate additions, but their copied code depends on legacy browser-extension globals and provider endpoints. They need current endpoint tests and native Folia provider adapters before being enabled in Cloudflare Workers.
 
 Do not present an unverified provider as working. Do not remove upstream licenses or notices. The music service remains non-commercial under the Folia project's usage statement. Publish the full corresponding source and applicable notices for the modified hosted service.

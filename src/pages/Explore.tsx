@@ -45,6 +45,15 @@ const cards = [
     action: '打开提问箱',
   },
   {
+    to: 'https://music.qianzhi.pw',
+    external: true,
+    className: 'discover-card--music',
+    eyebrow: '独立音乐空间',
+    title: '音乐',
+    description: '发现音乐、搜索曲目，创建属于自己的播放体验。',
+    action: '进入音乐空间',
+  },
+  {
     to: '/fate-notebook',
     className: 'discover-card--fate',
     eyebrow: '趣味玩法',
@@ -151,20 +160,28 @@ export default function Explore() {
               ? { duration: 0.01 }
               : { ...SPRING_GENTLE, delay: index * 0.045 }}
           >
-            <Link to={card.to} className="discover-card-link">
-              <div className="discover-card-copy">
-                <span className="discover-card-eyebrow">{card.eyebrow}</span>
-                <h2>{card.title}</h2>
-                <p>{card.description}</p>
-                <span className="discover-card-action">{card.action}<span aria-hidden="true">↗</span></span>
-              </div>
-              {index === 0 && <BloomArtwork />}
-              {index === 1 && <InkArtwork />}
-              {index === 2 && <HotArtwork />}
-              {card.to === '/love-wall' && <LoveArtwork />}
-              {card.to === '/fate-notebook' && <FateArtwork />}
-              {card.to === '/questions' && <span className="discover-question-art" aria-hidden="true">?</span>}
-            </Link>
+            {(() => {
+              const content = (
+                <>
+                  <div className="discover-card-copy">
+                    <span className="discover-card-eyebrow">{card.eyebrow}</span>
+                    <h2>{card.title}</h2>
+                    <p>{card.description}</p>
+                    <span className="discover-card-action">{card.action}<span aria-hidden="true">↗</span></span>
+                  </div>
+                  {index === 0 && <BloomArtwork />}
+                  {index === 1 && <InkArtwork />}
+                  {index === 2 && <HotArtwork />}
+                  {card.to === '/love-wall' && <LoveArtwork />}
+                  {card.to === '/fate-notebook' && <FateArtwork />}
+                  {card.to === '/questions' && <span className="discover-question-art" aria-hidden="true">?</span>}
+                  {card.external && <span className="discover-music-art" aria-hidden="true"><svg viewBox="0 0 180 180" fill="none"><path d="M111 29v88.5a24 24 0 1 1-12-20.8V52l56-12v67.5a24 24 0 1 1-12-20.8V29l-32 7Z" stroke="currentColor" strokeWidth="8" strokeLinecap="round" strokeLinejoin="round"/><circle cx="42" cy="40" r="5" fill="currentColor"/><circle cx="147" cy="145" r="4" fill="currentColor"/></svg></span>}
+                </>
+              );
+              return card.external
+                ? <a href={card.to} target="_blank" rel="noopener noreferrer" className="discover-card-link">{content}</a>
+                : <Link to={card.to} className="discover-card-link">{content}</Link>;
+            })()}
           </motion.article>
         ))}
       </section>

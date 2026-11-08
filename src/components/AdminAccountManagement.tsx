@@ -5,6 +5,13 @@ import { alog } from '../pages/admin/shared';
 import AdminMemberModal from './AdminMemberModal';
 import AdminMemberModeration from './AdminMemberModeration';
 import AdminMemberMessageComposer from './AdminMemberMessageComposer';
+import OptionSheet from './OptionSheet';
+
+const SORT_OPTIONS = [
+  { value: 'newest', label: '最新注册' },
+  { value: 'recent_login', label: '最近登录' },
+  { value: 'oldest', label: '最早注册' },
+] as const;
 
 type Account = {
   id: string;
@@ -18,6 +25,7 @@ type Account = {
   last_sign_in_at: string | null;
   location: string | null;
   device: string | null;
+  client: string | null;
   client_platform: 'mobile' | 'web' | 'unknown' | null;
   app_version_name: string | null;
   app_version_code: number | null;
@@ -266,22 +274,20 @@ export default function AdminAccountManagement({
         style={{ width: '100%', boxSizing: 'border-box', padding: '10px 11px', borderRadius: 10, border: '1px solid #ffffff1c', background: '#ffffff08', color: '#fff', fontSize: 13 }} />
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 9 }}>
         {([['all', '全部'], ['active', '正常'], ['disabled', '已禁用']] as const).map(([value, label]) =>
-          <button key={value} style={{ ...btn, background: status === value ? '#5b8cff44' : '#ffffff08', borderColor: status === value ? '#7da0ff' : '#ffffff20' }}
+          <button key={value} style={{ ...btn, background: status === value ? '#22314a' : '#ffffff', color: status === value ? '#ffffff' : '#22314a', borderColor: status === value ? '#22314a' : 'rgba(34,49,74,.2)' }}
             aria-pressed={status === value} onClick={() => setStatus(value)}>{label}</button>)}
       </div>
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', marginTop: 8 }}>
         {([['all', '全部角色'], ['member', '普通成员'], ['admin', '内容管理员'], ['super_admin', '超级管理员']] as const).map(([value, label]) =>
-          <button key={value} style={{ ...btn, padding: '6px 9px', background: roleFilter === value ? '#278b9140' : '#ffffff08', borderColor: roleFilter === value ? '#54c4c9' : '#ffffff20' }}
+          <button key={value} style={{ ...btn, padding: '6px 9px', background: roleFilter === value ? '#22314a' : '#ffffff', color: roleFilter === value ? '#ffffff' : '#22314a', borderColor: roleFilter === value ? '#22314a' : 'rgba(34,49,74,.2)' }}
             aria-pressed={roleFilter === value} onClick={() => setRoleFilter(value)}>{label}</button>)}
       </div>
       <div style={{ display: 'flex', gap: 7, alignItems: 'center', flexWrap: 'wrap', marginTop: 8 }}>
-        <label htmlFor="admin-account-sort" style={{ ...muted, marginRight: 2 }}>排序</label>
-        <select id="admin-account-sort" value={sortBy} onChange={event => setSortBy(event.target.value as typeof sortBy)}
-          style={{ ...btn, color: '#eef0ff', background: '#ffffff08' }}>
-          <option value="newest">最新注册</option>
-          <option value="recent_login">最近登录</option>
-          <option value="oldest">最早注册</option>
-        </select>
+        <span style={{ ...muted, marginRight: 2 }}>排序</span>
+        <OptionSheet title="排序" value={sortBy} options={[...SORT_OPTIONS]}
+          onChange={v => setSortBy(v as typeof sortBy)}
+          buttonText={SORT_OPTIONS.find(o => o.value === sortBy)?.label ?? '最新注册'}
+          buttonStyle={{ ...btn, padding: '6px 9px' }} />
       </div>
       <p style={{ ...muted, margin: '8px 0 0' }}>当前 {filtered.length} 个账号 · 第 {page + 1}/{pageCount} 页。所在地区来自成员主动分享，仅超级管理员可查看；不采集 IP 定位。</p>
       <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap', marginTop: 9 }}>
@@ -320,6 +326,9 @@ export default function AdminAccountManagement({
           <div style={{ ...muted, overflowWrap: 'anywhere' }}>@{r.username} · {r.real_name || '未填写真实姓名'}</div>
           <div style={{ ...muted, overflowWrap: 'anywhere' }}>{r.email || '未取得邮箱记录'}</div>
         </div>
+        {r.client && <span style={{ flexShrink: 0, fontSize: 10.5, padding: '4px 7px', borderRadius: 999, border: r.client.startsWith('app:') ? '1px solid rgba(34,49,74,.2)' : '1px solid rgba(34,49,74,.14)', color: r.client.startsWith('app:') ? '#22314a' : '#6d6a5e', background: r.client.startsWith('app:') ? '#f3ead6' : '#f1ede2' }}>
+          {r.client.startsWith('app:') ? '软件版 ' + r.client.slice(4) : r.client.startsWith('admin:') ? '管理版 ' + r.client.slice(6) : '网页版'}
+        </span>}
         <span style={{ flexShrink: 0, fontSize: 10.5, padding: '4px 7px', borderRadius: 999, border: '1px solid #ffffff20', color: r.joined ? '#8de0b7' : '#ffb5c1', background: r.joined ? '#4ade8010' : '#ff879610' }}>
           {r.joined ? '正常' : '已禁用'}
         </span>
@@ -343,6 +352,7 @@ export default function AdminAccountManagement({
         <div style={muted}>客户端类型：{r.client_platform === 'mobile' ? '移动端软件' : r.client_platform === 'web' ? '网页版' : '待识别'}</div>
         <div style={muted}>软件版本：{r.app_version_name || '未上报'} · {r.app_version_code ?? '—'}</div>
         <div style={muted}>设备信息：{r.device || '暂无记录'}</div>
+        <div style={muted}>客户端：{r.client ? (r.client.startsWith('app:') ? '软件版 ' + r.client.slice(4) : r.client.startsWith('admin:') ? '管理版 ' + r.client.slice(6) : '网页版') : '暂无记录'}</div>
         <div style={muted}>位置/设备资料更新时间：{stamp(r.presence_updated_at)}</div>
         <div style={muted}>账号注册时间：{stamp(r.created_at)}</div>
         <div style={muted}>最近登录时间：{stamp(r.last_sign_in_at)}</div>

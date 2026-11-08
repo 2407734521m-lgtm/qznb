@@ -13,7 +13,7 @@
     "check:admin-styles": "node scripts/check-admin-style-contracts.mjs"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.118.0",
+    "@supabase/supabase-js": "^2.119.0",
     "framer-motion": "^14.9.1",
     "liquid-glass-react": "^1.1.1",
     "react": "^19.3.1",

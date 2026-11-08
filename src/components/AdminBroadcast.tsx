@@ -113,6 +113,10 @@ export default function AdminBroadcast({ me, setMsg }: { me: string; setMsg: (s:
       .order('updated_at', { ascending: false });
     const recs = (data ?? []) as ReceiptRow[];
     setRespondents(recs);
+    // 展开名单时顺手用最新回执刷新这一条的计数，避免列表计数还是打开页面时的旧数。
+    const agg: Record<string, number> = {};
+    recs.forEach(r => { agg[r.status] = (agg[r.status] ?? 0) + 1; });
+    setCounts(prev => ({ ...prev, [row.id]: agg }));
     if (recs.length) {
       const ids = [...new Set(recs.map(r => r.user_id))];
       const { data: profs } = await supabase.from('profiles').select('id, display_name, username').in('id', ids);

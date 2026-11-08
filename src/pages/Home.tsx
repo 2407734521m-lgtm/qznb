@@ -20,6 +20,11 @@ function timeAgo(s: string) {
   return new Date(s).toLocaleDateString();
 }
 
+function resolveHomeBannerTitle(value?: string | null) {
+  const title = (value || '').trim();
+  return !title || /^(测试|test|demo)$/i.test(title) ? '让分享与连接，自然发生。' : title;
+}
+
 function Av({ path, name, signedUrl }: { path: string | null; name: string; signedUrl?: string }) {
   return (
     <div className="av" style={{ width: 44, height: 44 }}>
@@ -47,7 +52,7 @@ export default function Home() {
   const [title, setTitle] = useState('堯');
   const [subtitle, setSubtitle] = useState('连接人与内容');
   const [bannerUrl, setBannerUrl] = useState('');
-  const [bannerText, setBannerText] = useState('把我们的青春，留在这里');
+  const [bannerText, setBannerText] = useState('让分享与连接，自然发生。');
   const [notices, setNotices] = useState<any[]>([]);
   const [posts, setPosts] = useState<any[]>([]);
   const [members, setMembers] = useState<any[]>([]);
@@ -72,7 +77,7 @@ export default function Home() {
           if (x.key === 'site_title') setTitle(!x.value || ['我们的班级', 'class', 'class-youth-archive', '青春档案'].includes(x.value) ? '堯' : x.value);
           if (x.key === 'site_subtitle') setSubtitle(!x.value || x.value === '青春档案' ? '连接人与内容' : x.value);
           if (x.key === 'home_banner_url') setBannerUrl(x.value || '');
-          if (x.key === 'home_banner_text') setBannerText(x.value && x.value !== '让重要内容，更容易被看见' ? x.value : '把我们的青春，留在这里');
+          if (x.key === 'home_banner_text') setBannerText(resolveHomeBannerTitle(x.value));
         });
         const nowIso = new Date().toISOString();
         const [n, p, m, e, w] = await Promise.all([
@@ -144,7 +149,8 @@ export default function Home() {
           </div>
         )}
         <header className="vh-intro">
-          <div>
+          <div className="vh-brand-lockup">
+            <span className="vh-brand-eyebrow">YOUR SPACE, YOUR STORIES</span>
             <h1>{title}</h1>
             <p>{subtitle}</p>
           </div>

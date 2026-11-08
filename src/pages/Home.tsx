@@ -232,6 +232,27 @@ export default function Home() {
         </motion.section>
       
 
+      <motion.section className="vh-discovery-section" initial={reduceMotion ? false : { opacity: 0, y: 18 }}
+            whileInView={reduceMotion ? undefined : { opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.14 }}
+            transition={{ duration: 0.48, ease: [0.22, 1, 0.36, 1] }}>
+        <div className="vh-section-head">
+          <div><h2>继续探索</h2><p>除了动态，还有更多值得发现的角落</p></div>
+          <span className="vh-discovery-index">DISCOVER MORE</span>
+        </div>
+        <div className="vh-discovery-grid">
+          <button type="button" className="vh-discovery-card" onClick={() => nav('/love-wall')}>
+            <span className="vh-discovery-symbol">♡</span><span className="vh-discovery-copy"><strong>表白墙</strong><small>看看大家留下的心意与故事</small></span><span className="vh-discovery-arrow">↗</span>
+          </button>
+          <button type="button" className="vh-discovery-card" onClick={() => nav('/wishes')}>
+            <span className="vh-discovery-symbol">✳</span><span className="vh-discovery-copy"><strong>愿望墙</strong><small>记录想法，也看看别人的愿望</small></span><span className="vh-discovery-arrow">↗</span>
+          </button>
+          <button type="button" className="vh-discovery-card" onClick={() => nav('/events')}>
+            <span className="vh-discovery-symbol">◷</span><span className="vh-discovery-copy"><strong>近期活动</strong><small>了解正在进行和即将开始的安排</small></span><span className="vh-discovery-arrow">↗</span>
+          </button>
+        </div>
+      </motion.section>
+
       <motion.section className="vh-lower-grid" initial={reduceMotion ? false : { opacity: 0, y: 18 }}
             whileInView={reduceMotion ? undefined : { opacity: 1, y: 0 }}
             viewport={{ once: true, amount: 0.14 }}

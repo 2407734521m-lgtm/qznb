@@ -28,6 +28,9 @@ jobs:
           cache: npm
           cache-dependency-path: music/folia/package-lock.json
 
+      - name: Apply maintained Folia mobile gesture overlay
+        run: node music/scripts/apply-folia-mobile-gestures.mjs
+
       - name: Install Folia dependencies
         working-directory: music/folia
         run: npm ci
@@ -35,6 +38,10 @@ jobs:
       - name: Typecheck Folia
         working-directory: music/folia
         run: npm run typecheck
+
+      - name: Test Lark mobile swipe integration
+        working-directory: music/folia
+        run: npm run test:unit -- test/unit/components/playerSwipe.test.ts
 
       - name: Build Folia Web + Worker
         working-directory: music/folia

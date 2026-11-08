@@ -36,6 +36,7 @@ export type QianzhiPerformanceProfile = {
     preloadNeighborRadius: number;
     initialPreloadCount: number;
     networkConstrained: boolean;
+    reduceComplexMotion: boolean;
 };
 
 /** Reads browser hints without requiring experimental Navigator fields to exist on every browser. */
@@ -81,12 +82,29 @@ export const resolveQianzhiPerformanceProfile = (
     return {
         coverSize: mobile || networkConstrained ? 512 : 1024,
         freezeAnimatedBackground: mobile || constrained,
+        reduceComplexMotion: mobile || constrained,
         preloadConcurrency: balanced ? 1 : 2,
         preloadNeighborRadius: networkConstrained ? 3 : balanced ? 6 : 12,
         initialPreloadCount: networkConstrained ? 4 : balanced ? 8 : 24,
         networkConstrained,
     };
 };
+
+const AUTO_REDUCED_MOTION_SURFACES = new Set([
+    'lattice',
+    'transitionOverlay',
+    'collectionMorph',
+    'monetBackground',
+]);
+
+/** Only complex, large-area motion is auto-reduced; small control feedback stays animated. */
+export const shouldAutoReduceQianzhiMotion = (
+    surface: string,
+    hints?: QianzhiPerformanceHints,
+): boolean => (
+    AUTO_REDUCED_MOTION_SURFACES.has(surface)
+    && resolveQianzhiPerformanceProfile(hints).reduceComplexMotion
+);
 `;
 
 let profile = '';
@@ -94,6 +112,22 @@ try { profile = await read(profilePath); }
 catch (error) { if (error?.code !== 'ENOENT') throw error; }
 if (profile && profile !== profileSource) throw new Error('Refusing to overwrite an existing Qianzhi performance profile.');
 if (!profile) await writeFile(profilePath, profileSource, 'utf8');
+
+const motionSettingsPath = resolve(root, 'src/stores/useMotionSettingsStore.ts');
+let motionSettings = await read(motionSettingsPath);
+motionSettings = replaceOnce(
+    motionSettings,
+    "import { getStoredBoolean, setStoredBoolean } from './storagePrimitives';",
+    "import { getStoredBoolean, setStoredBoolean } from './storagePrimitives';\nimport { shouldAutoReduceQianzhiMotion } from '../utils/qianzhiPerformance';",
+    'motion settings performance import',
+);
+motionSettings = replaceOnce(
+    motionSettings,
+    '    state.reducedMotionSurfaces[surface]\n    || (state.followSystemReducedMotion && state.systemPrefersReducedMotion)\n);',
+    '    state.reducedMotionSurfaces[surface]\n    || (state.followSystemReducedMotion && state.systemPrefersReducedMotion)\n    || shouldAutoReduceQianzhiMotion(surface)\n);',
+    'automatic heavy-motion fallback',
+);
+await write(motionSettingsPath, motionSettings);
 
 const backdropPath = resolve(root, 'src/components/visualizer/VisualizerBackdrop.tsx');
 let backdrop = await read(backdropPath);
@@ -194,7 +228,7 @@ preloader = replaceOnce(
 await write(preloaderPath, preloader);
 
 const performanceTestPath = resolve(root, 'test/unit/utils/qianzhiPerformance.test.ts');
-const performanceTestSource = "import { describe, expect, it } from 'vitest';\nimport { resolveQianzhiPerformanceProfile } from '@/utils/qianzhiPerformance';\n\ndescribe('Qianzhi adaptive performance profile', () => {\n    it('keeps full-quality rendering and normal preload budget on desktop', () => {\n        expect(resolveQianzhiPerformanceProfile({\n            isMobile: false,\n            deviceMemory: 16,\n            hardwareConcurrency: 12,\n        })).toEqual({\n            coverSize: 1024,\n            freezeAnimatedBackground: false,\n            preloadConcurrency: 2,\n            preloadNeighborRadius: 12,\n            initialPreloadCount: 24,\n            networkConstrained: false,\n        });\n    });\n\n    it('reduces cover size, background work and preload traffic on phones', () => {\n        expect(resolveQianzhiPerformanceProfile({\n            isMobile: true,\n            deviceMemory: 8,\n            hardwareConcurrency: 8,\n        })).toEqual({\n            coverSize: 512,\n            freezeAnimatedBackground: true,\n            preloadConcurrency: 1,\n            preloadNeighborRadius: 6,\n            initialPreloadCount: 8,\n            networkConstrained: false,\n        });\n    });\n\n    it('uses the smallest network budget when data saver or a slow connection is active', () => {\n        expect(resolveQianzhiPerformanceProfile({\n            isMobile: false,\n            hardwareConcurrency: 8,\n            saveData: true,\n            effectiveType: '4g',\n        })).toMatchObject({\n            coverSize: 512,\n            freezeAnimatedBackground: true,\n            preloadConcurrency: 1,\n            preloadNeighborRadius: 3,\n            initialPreloadCount: 4,\n            networkConstrained: true,\n        });\n    });\n\n    it('settles animated backgrounds on low-memory or low-core devices', () => {\n        expect(resolveQianzhiPerformanceProfile({\n            isMobile: false,\n            deviceMemory: 4,\n            hardwareConcurrency: 8,\n        }).freezeAnimatedBackground).toBe(true);\n        expect(resolveQianzhiPerformanceProfile({\n            isMobile: false,\n            deviceMemory: 8,\n            hardwareConcurrency: 4,\n        }).freezeAnimatedBackground).toBe(true);\n    });\n});\n";
+const performanceTestSource = "import { describe, expect, it } from 'vitest';\nimport { resolveQianzhiPerformanceProfile, shouldAutoReduceQianzhiMotion } from '@/utils/qianzhiPerformance';\n\ndescribe('Qianzhi adaptive performance profile', () => {\n    it('keeps full-quality rendering and normal preload budget on desktop', () => {\n        expect(resolveQianzhiPerformanceProfile({\n            isMobile: false,\n            deviceMemory: 16,\n            hardwareConcurrency: 12,\n        })).toEqual({\n            coverSize: 1024,\n            freezeAnimatedBackground: false,\n            preloadConcurrency: 2,\n            preloadNeighborRadius: 12,\n            initialPreloadCount: 24,\n            networkConstrained: false,\n            reduceComplexMotion: false,\n        });\n    });\n\n    it('reduces cover size, background work and preload traffic on phones', () => {\n        expect(resolveQianzhiPerformanceProfile({\n            isMobile: true,\n            deviceMemory: 8,\n            hardwareConcurrency: 8,\n        })).toEqual({\n            coverSize: 512,\n            freezeAnimatedBackground: true,\n            preloadConcurrency: 1,\n            preloadNeighborRadius: 6,\n            initialPreloadCount: 8,\n            networkConstrained: false,\n            reduceComplexMotion: true,\n        });\n    });\n\n    it('uses the smallest network budget when data saver or a slow connection is active', () => {\n        expect(resolveQianzhiPerformanceProfile({\n            isMobile: false,\n            hardwareConcurrency: 8,\n            saveData: true,\n            effectiveType: '4g',\n        })).toMatchObject({\n            coverSize: 512,\n            freezeAnimatedBackground: true,\n            preloadConcurrency: 1,\n            preloadNeighborRadius: 3,\n            initialPreloadCount: 4,\n            networkConstrained: true,\n            reduceComplexMotion: true,\n        });\n    });\n\n    it('settles animated backgrounds on low-memory or low-core devices', () => {\n        expect(resolveQianzhiPerformanceProfile({\n            isMobile: false,\n            deviceMemory: 4,\n            hardwareConcurrency: 8,\n        }).freezeAnimatedBackground).toBe(true);\n        expect(resolveQianzhiPerformanceProfile({\n            isMobile: false,\n            deviceMemory: 8,\n            hardwareConcurrency: 4,\n        }).freezeAnimatedBackground).toBe(true);\n    });\n\n    it('auto-reduces only complex motion on mobile and constrained devices', () => {\n        const mobile = { isMobile: true, deviceMemory: 8, hardwareConcurrency: 8 };\n        expect(shouldAutoReduceQianzhiMotion('lattice', mobile)).toBe(true);\n        expect(shouldAutoReduceQianzhiMotion('collectionMorph', mobile)).toBe(true);\n        expect(shouldAutoReduceQianzhiMotion('uiMicroMotion', mobile)).toBe(false);\n        expect(shouldAutoReduceQianzhiMotion('settingsScroll', mobile)).toBe(false);\n        expect(shouldAutoReduceQianzhiMotion('lattice', {\n            isMobile: false, deviceMemory: 16, hardwareConcurrency: 12,\n        })).toBe(false);\n    });\n});\n"
 let existingPerformanceTest = '';
 try { existingPerformanceTest = await read(performanceTestPath); }
 catch (error) { if (error?.code !== 'ENOENT') throw error; }

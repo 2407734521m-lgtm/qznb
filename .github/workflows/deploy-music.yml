@@ -15,6 +15,12 @@ on:
         default: preview
         required: true
 
+# Serialize preview deploys so an older build cannot finish last and replace the newest preview.
+# Production dispatches use a separate group and are not cancelled by ordinary preview pushes.
+concurrency:
+  group: music-deploy-${{ github.ref }}-${{ github.event_name == 'workflow_dispatch' && inputs.target == 'production' && 'production' || 'preview' }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 

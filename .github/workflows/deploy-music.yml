@@ -101,6 +101,10 @@ jobs:
         working-directory: music/folia
         run: npm run typecheck
 
+      - name: Test Folia mobile camera and empty-wall recovery
+        working-directory: music/folia
+        run: npm run test:unit -- test/unit/library/bravais/bravaisMobileRecovery.test.ts
+
       - name: Test Lark mobile swipe integration
         working-directory: music/folia
         run: npm run test:unit -- test/unit/components/playerSwipe.test.ts

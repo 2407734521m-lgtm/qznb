@@ -97,6 +97,9 @@ jobs:
       - name: Apply Folia mobile camera and empty-wall recovery
         run: node music/scripts/apply-folia-mobile-layout.mjs
 
+      - name: Apply Qianzhi player polish (softer background dithering)
+        run: node music/scripts/apply-folia-player-polish.mjs
+
       - name: Typecheck Folia
         working-directory: music/folia
         run: npm run typecheck

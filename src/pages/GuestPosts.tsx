@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import { useSignedUrls } from '../lib/media';
+import './GuestPosts.css';
 
 type GuestPost = {
   id: number;
@@ -142,7 +143,7 @@ export default function GuestPosts({ section, onLoginRequired }: Props) {
         </header>
       )}
       {section === 'all' && (
-        <header style={{ padding: '4px 2px 12px' }}>
+        <header className="guest-posts-heading">
           <h2>最新动态</h2>
           <p>所有公开动态与日常，按发布时间排列</p>
         </header>

@@ -1,6 +1,9 @@
 name: Deploy music.qianzhi.pw
 
 on:
+  push:
+    branches:
+      - feat/music-vendored-open-source-modules
   workflow_dispatch:
     inputs:
       target:

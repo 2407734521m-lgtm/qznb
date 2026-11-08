@@ -489,3 +489,47 @@
   .discover-card--questions .discover-card-copy { max-width: 66%; }
   .discover-question-art { right: 4%; width: 112px; height: 112px; bottom: -18px; font-size: 88px; border-radius: 30px; }
 }
+
+
+/* Folia 独立音乐空间入口 */
+.discover-card--music {
+  grid-column: 1 / -1;
+  min-height: 158px;
+  background:
+    radial-gradient(ellipse at 84% 12%, rgba(255,255,255,.9), transparent 42%),
+    linear-gradient(128deg, #f0f2f7 0%, #e8edf3 52%, #e9f1ed 100%);
+  color: #586b70;
+  border-color: rgba(106, 130, 137, .14);
+}
+.discover-card--music h2 { color: #263b40; }
+.discover-card--music p { color: rgba(38, 59, 64, .7); }
+.discover-card--music .discover-card-action { color: #31565a; }
+.discover-card--music .discover-card-action span { border-color: rgba(49, 86, 90, .2); }
+.discover-music-art {
+  position: absolute;
+  right: 8%;
+  bottom: -18px;
+  display: grid;
+  place-items: center;
+  width: 176px;
+  height: 176px;
+  border: 1px solid rgba(91, 119, 122, .13);
+  border-radius: 44px;
+  background: linear-gradient(145deg, rgba(255,255,255,.76), rgba(220,231,228,.58));
+  color: #789b95;
+  transform: rotate(8deg);
+  box-shadow: 0 18px 42px rgba(49, 75, 78, .08);
+}
+.discover-music-art svg { width: 112px; height: 112px; }
+@media (max-width: 600px) {
+  .discover-card--music { min-height: 148px; }
+  .discover-card--music .discover-card-copy { max-width: 66%; }
+  .discover-music-art {
+    right: 3%;
+    bottom: -20px;
+    width: 126px;
+    height: 126px;
+    border-radius: 34px;
+  }
+  .discover-music-art svg { width: 82px; height: 82px; }
+}

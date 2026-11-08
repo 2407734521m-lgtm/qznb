@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - feat/music-vendored-open-source-modules
+      - feat/music-first-run-login-tour
   workflow_dispatch:
     inputs:
       target:

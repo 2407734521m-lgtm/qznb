@@ -34,9 +34,6 @@ jobs:
       - name: Apply optional Qianzhi account integration
         run: node music/scripts/apply-qianzhi-account.mjs
 
-      - name: Apply Cloudflare Node HTTP adapter probe
-        run: node music/scripts/apply-folia-netease-http-adapter-probe.mjs
-
       - name: Install Folia dependencies
         working-directory: music/folia
         run: npm ci

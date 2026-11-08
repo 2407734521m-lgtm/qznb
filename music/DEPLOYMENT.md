@@ -19,11 +19,14 @@ node music/scripts/apply-folia-mobile-gestures.mjs
 node music/scripts/apply-qianzhi-account.mjs
 cd music/folia
 npm ci
+cd ../..
+node music/scripts/apply-folia-netease-workers.mjs
+cd music/folia
 npm install --no-save --package-lock=false --ignore-scripts @supabase/supabase-js@2.119.0
 npm run typecheck
 npm run test:unit -- test/unit/components/playerSwipe.test.ts
 npm run test:unit -- test/unit/qianzhiAccount/loginMethod.test.ts
-VITE_QQ_API_BASE=/api/qq VITE_QZNB_SUPABASE_URL=https://ldypnxxxgscibopgiaso.supabase.co VITE_QZNB_SUPABASE_ANON_KEY=YOUR_PUBLIC_ANON_KEY npm run build
+VITE_QQ_API_BASE=/api/qq VITE_NETEASE_API_BASE=/api/netease VITE_QZNB_SUPABASE_URL=https://ldypnxxxgscibopgiaso.supabase.co VITE_QZNB_SUPABASE_ANON_KEY=YOUR_PUBLIC_ANON_KEY npm run build
 ```
 
 The overlays apply the Lark swipe resolver to Folia's existing mobile player capsule and add the optional Qianzhi account row to Settings → Help → About. The music account uses the same Supabase Auth user pool as the main site, but it stores a separate local session. It is not seamless SSO; a user signs in once on the music hostname. Music playback remains available without an account.
@@ -44,7 +47,9 @@ The first deployed URL is the preview's `workers.dev` hostname. Verify this URL 
 
 - `/healthz` and static app loading
 - `/api/qq/login/channels`
-- NetEase, Kugou and QQ search/playback behavior
+- `/api/netease/healthz` reports the allowlisted upstream API routes
+- NetEase QR login, search, song detail, playback URL and lyrics
+- Kugou and QQ search/playback behavior
 - lyrics, playlist and mobile touch interactions
 - Qianzhi email and username login, session persistence, and local-only sign-out
 - error states when the QQ service or Supabase is unavailable

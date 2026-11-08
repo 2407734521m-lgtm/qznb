@@ -83,6 +83,9 @@ jobs:
         working-directory: music/folia
         run: npm install --no-save --package-lock=false --ignore-scripts @supabase/supabase-js@2.119.0
 
+      - name: Apply Folia NetEase API Workers adapter
+        run: node music/scripts/apply-folia-netease-workers.mjs
+
       - name: Typecheck Folia
         working-directory: music/folia
         run: npm run typecheck
@@ -99,6 +102,7 @@ jobs:
         working-directory: music/folia
         env:
           VITE_QQ_API_BASE: /api/qq
+          VITE_NETEASE_API_BASE: /api/netease
           VITE_QZNB_SUPABASE_URL: https://ldypnxxxgscibopgiaso.supabase.co
           VITE_QZNB_SUPABASE_ANON_KEY: ${{ secrets.QZNB_SUPABASE_ANON_KEY }}
         run: npm run build

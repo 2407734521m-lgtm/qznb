@@ -41,7 +41,7 @@ export type QianzhiPerformanceProfile = {
 
 /** Reads browser hints without requiring experimental Navigator fields to exist on every browser. */
 export const readQianzhiPerformanceHints = (): QianzhiPerformanceHints => {
-    if (typeof navigator === 'undefined') return {};
+    if (typeof navigator === 'undefined' || typeof window === 'undefined' || typeof document === 'undefined') return {};
     const extendedNavigator = navigator as Navigator & {
         deviceMemory?: number;
         connection?: { saveData?: boolean; effectiveType?: string };

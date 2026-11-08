@@ -1,0 +1,33 @@
+
+/* Shared guest feed cards */
+.guest-posts { min-width: 0; }
+.guest-posts-heading { padding: 0 0 12px; }
+.guest-posts-heading h1, .guest-posts-heading h2 { margin: 0; color: #20242b; font-size: 21px; font-weight: 700; letter-spacing: -.03em; }
+.guest-posts-heading p { margin: 6px 0 0; color: #9299a1; font-size: 11px; line-height: 1.6; }
+.guest-posts-heading > div:first-child > div { color: #9aa1a9 !important; font-size: 9px !important; letter-spacing: .15em !important; }
+.guest-post-list { display: grid; gap: 13px; }
+.guest-post-card { min-width: 0; padding: 18px; border: 1px solid #e9ebee; border-radius: 16px; background: #fff; transition: border-color .2s ease, transform .2s ease; }
+.guest-post-author { display: flex; align-items: center; gap: 11px; }
+.guest-post-avatar { display: grid; width: 39px; height: 39px; flex: 0 0 39px; place-items: center; border-radius: 50%; background: #eff1f3; color: #4b5661; font-size: 15px; font-weight: 700; }
+.guest-post-author-copy { display: grid; min-width: 0; gap: 3px; }
+.guest-post-author-copy strong { overflow: hidden; color: #333b44; font-size: 13px; font-weight: 680; text-overflow: ellipsis; white-space: nowrap; }
+.guest-post-author-copy span { color: #9aa1a9; font-size: 10px; }
+.guest-post-visibility { margin-left: auto; padding: 4px 8px; border-radius: 999px; background: #f5f6f7; color: #858e98; font-size: 10px; }
+.guest-post-content { margin: 15px 0 0; color: #323a43; font-size: 14px; line-height: 1.8; white-space: pre-wrap; overflow-wrap: anywhere; }
+.guest-post-image { display: block; width: 100%; max-height: 440px; margin-top: 13px; border-radius: 12px; background: #f1f2f3; object-fit: cover; }
+.guest-post-image-loading { display: grid; width: 100%; height: 150px; margin-top: 13px; place-items: center; border-radius: 12px; background: #f5f6f7; color: #9aa1a9; font-size: 11px; }
+.guest-post-actions { display: flex; align-items: center; gap: 17px; margin-top: 15px; padding-top: 12px; border-top: 1px solid #f0f1f2; }
+.guest-post-actions button { display: inline-flex; align-items: center; gap: 5px; padding: 0; border: 0; background: none; color: #68727e; font: inherit; font-size: 11px; cursor: pointer; }
+.guest-post-actions button:hover { color: #20242b; }
+.guest-post-login-hint { margin-left: auto; color: #a0a6ad; font-size: 10px; }
+.guest-post-state { padding: 22px 14px; border: 1px solid #e9ebee; border-radius: 14px; background: #fff; color: #9299a1; font-size: 12px; text-align: center; }
+.guest-post-error { color: #8b5550; }
+.guest-post-error p { margin: 0 0 12px; }
+.guest-post-empty { border-style: dashed; }
+.guest-retry-button, .guest-load-more { min-height: 39px; padding: 0 16px; border: 1px solid #e5e8eb; border-radius: 999px; background: #fff; color: #56616c; font: inherit; font-size: 12px; font-weight: 650; cursor: pointer; }
+.guest-load-more { width: 100%; margin-top: 14px; }
+.guest-retry-button:hover, .guest-load-more:hover { border-color: #bbc2c9; background: #f9fafb; }
+.guest-retry-button:disabled, .guest-load-more:disabled { opacity: .55; cursor: wait; }
+@media (hover:hover) and (pointer:fine) { .guest-post-card:hover { border-color: #d8dde2; transform: translateY(-1px); } }
+@media (max-width:760px) { .guest-post-card { padding: 15px; border-radius: 14px; } .guest-post-content { font-size: 13.5px; } .guest-post-login-hint { font-size: 9px; } }
+@media (prefers-reduced-motion:reduce) { .guest-post-card { transition: none; } .guest-post-card:hover { transform: none; } }

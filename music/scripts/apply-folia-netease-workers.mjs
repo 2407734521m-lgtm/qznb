@@ -148,7 +148,7 @@ await write(requestPath, requestSource);
 
 let anonymousSource = await read(anonymousPath);
 if (!anonymousSource.includes("createOption(query, 'xeapi')")) throw new Error("Anonymous registration crypto anchor changed");
-anonymousSource = anonymousSource.replace("createOption(query, 'xeapi')", "createOption(query, 'eapi')");
+// Keep the upstream XEAPI registration flow; the Workers build now supplies X25519 via Web Crypto.
 await write(anonymousPath, anonymousSource);
 
 const songUrlSource = `// Cloudflare Workers edition: keep the upstream song URL endpoint, without optional external unblocking.

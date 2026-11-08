@@ -39,6 +39,67 @@ const sendCookies = (response, value) => {
   if (safeCookies.length) response.append("Set-Cookie", safeCookies);
 };
 
+app.get("/__preview/guest-play-probe", async (request, response) => {
+  if (
+    request.get("host") !== "qianzhi-music-preview.2407734521m.workers.dev" ||
+    request.query.debug !== "1"
+  ) {
+    response.status(404).json({ code: 404, msg: "Not found" });
+    return;
+  }
+
+  const songId = String(request.query.id || "");
+  if (!/^\d+$/.test(songId)) {
+    response.status(400).json({ code: 400, msg: "A numeric song id is required" });
+    return;
+  }
+
+  const registerModule = NCM_MODULES.find(item => item.name === "register_anonimous");
+  const playbackModule = NCM_MODULES.find(item => item.name === "song_url_v1");
+  if (!registerModule || !playbackModule) {
+    response.status(500).json({ code: 500, msg: "Required NetEase modules are not loaded" });
+    return;
+  }
+
+  try {
+    const registered = await registerModule.handler(
+      { cookie: {} },
+      (...args) => requestModule(...args),
+    );
+    const cookieHeader = String(
+      (registered && registered.body && registered.body.cookie) ||
+      (registered && Array.isArray(registered.cookie) ? registered.cookie.join(";") : ""),
+    );
+    const guestCookie = parseCookies(cookieHeader);
+    const playback = await playbackModule.handler(
+      { id: songId, level: "standard", cookie: guestCookie },
+      (...args) => requestModule(...args),
+    );
+    const item = playback && playback.body && Array.isArray(playback.body.data)
+      ? playback.body.data[0]
+      : null;
+
+    response.setHeader("Cache-Control", "no-store");
+    response.status(200).json({
+      ok: true,
+      registrationStatus: Number(registered && registered.status) || null,
+      registrationCode: Number(registered && registered.body && registered.body.code) || null,
+      cookieNames: Object.keys(guestCookie),
+      deviceIdAvailable: Boolean(global.deviceId),
+      playbackStatus: Number(playback && playback.status) || null,
+      playbackCode: Number(item && item.code) || null,
+      hasUrl: Boolean(item && item.url),
+    });
+  } catch (error) {
+    response.setHeader("Cache-Control", "no-store");
+    response.status(502).json({
+      ok: false,
+      stage: "guest-registration-or-playback",
+      errorName: String((error && error.name) || "Error"),
+    });
+  }
+});
+
 app.get("/healthz", (_request, response) => {
   response.setHeader("Cache-Control", "no-store");
   response.status(200).json({

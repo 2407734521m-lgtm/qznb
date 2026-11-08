@@ -22,7 +22,7 @@ npm install --no-save --package-lock=false --ignore-scripts @supabase/supabase-j
 npm run typecheck
 npm run test:unit -- test/unit/components/playerSwipe.test.ts
 npm run test:unit -- test/unit/qianzhiAccount/loginMethod.test.ts
-VITE_QQ_API_BASE=/api/qq VITE_QZNB_SUPABASE_URL=https://ldypnxxxgscibopgiaso.supabase.co VITE_QZNB_SUPABASE_ANON_KEY=<your-public-anon-key> npm run build
+VITE_QQ_API_BASE=/api/qq VITE_QZNB_SUPABASE_URL=https://ldypnxxxgscibopgiaso.supabase.co VITE_QZNB_SUPABASE_ANON_KEY=YOUR_PUBLIC_ANON_KEY npm run build
 ```
 
 The overlay script applies the pinned Lark swipe resolver to Folia's existing mobile player capsule. It adds horizontal previous/next navigation, upward expansion and downward collapse without replacing Folia's playback store or adding a second player UI. It also writes a focused unit test; the original Lark source remains under `music/vendor/lark/`.

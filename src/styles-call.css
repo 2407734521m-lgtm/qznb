@@ -13,3 +13,66 @@
 .call-btn-mute{background:#f7f2e4;border:1px solid rgba(122,100,66,.35);color:#22314a}
 .call-btn-mute.is-muted{background:#22314a;border-color:#22314a;color:#fdf9ef}
 .call-note{position:fixed;left:50%;bottom:calc(104px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:301;display:flex;align-items:center;gap:10px;width:max-content;max-width:calc(100vw - 32px);padding:13px 19px;border:1px solid rgba(255,255,255,.78);border-radius:18px;background:#1d293b;color:#fff;font-size:14px;font-weight:650;line-height:1.35;white-space:normal;box-shadow:0 12px 34px rgba(22,35,55,.28),inset 0 1px 0 rgba(255,255,255,.12);animation:call-note-in .24s cubic-bezier(.22,1,.36,1) both}.call-note>span:first-child{display:grid;place-items:center;flex:none;width:28px;height:28px;border-radius:10px;background:rgba(255,255,255,.13);font-size:15px}@keyframes call-note-in{from{opacity:0;transform:translate(-50%,8px) scale(.97)}to{opacity:1;transform:translate(-50%,0) scale(1)}}@media(prefers-reduced-motion:reduce){.call-note{animation:none}}
+
+
+/* Refined, lightweight voice-call sheet */
+.call-overlay {
+  background: rgba(18,26,39,.28);
+  -webkit-backdrop-filter: blur(14px) saturate(1.12);
+  backdrop-filter: blur(14px) saturate(1.12);
+  padding: 22px;
+}
+.call-card {
+  width: min(340px,100%);
+  padding: 30px 24px 24px;
+  border: 1px solid rgba(255,255,255,.92);
+  border-radius: 28px;
+  background: rgba(255,255,255,.97);
+  box-shadow: 0 24px 70px rgba(20,35,58,.18),0 2px 8px rgba(20,35,58,.06);
+  color: #202938;
+}
+.call-avatar {
+  width: 78px;
+  height: 78px;
+  margin-bottom: 15px;
+  border: 3px solid #fff;
+  background: linear-gradient(145deg,#e8f1ff,#dce8f8);
+  color: #315b91;
+  box-shadow: 0 4px 18px rgba(50,91,145,.14);
+}
+.call-name { color:#202938; font-size:20px; letter-spacing:-.025em; }
+.call-status { margin-top:7px; color:#8993a2; font-size:13px; }
+.call-timer {
+  display:inline-block; margin-top:3px; color:#53647c;
+  font-size:14px; font-weight:600; font-variant-numeric:tabular-nums;
+}
+.call-actions { gap:10px; margin-top:24px; }
+.call-btn {
+  min-width:112px; padding:12px 18px; border-radius:15px;
+  font-size:14px; font-weight:650;
+  transition:transform .16s ease,background .16s ease,box-shadow .16s ease;
+}
+.call-btn:active { transform:scale(.97); }
+.call-btn-accept {
+  border-color:#087cff; background:#087cff; color:#fff;
+  box-shadow:0 5px 13px rgba(8,124,255,.18);
+}
+.call-btn-reject { border-color:#e5e8ed; background:#f6f7f9; color:#697487; }
+.call-btn-hangup {
+  border-color:#e34e59; background:#e34e59; color:#fff;
+  box-shadow:0 5px 13px rgba(227,78,89,.16);
+}
+.call-btn-mute { border-color:#e5e9ef; background:#f4f6f9; color:#46556b; }
+.call-btn-mute.is-muted { border-color:#d9e7fb; background:#eaf2ff; color:#1769c2; }
+.call-note {
+  bottom:calc(92px + env(safe-area-inset-bottom));
+  gap:9px; padding:11px 15px; border:1px solid rgba(225,230,237,.9);
+  border-radius:16px; background:rgba(255,255,255,.96); color:#273448;
+  font-size:13px; font-weight:600; box-shadow:0 8px 28px rgba(24,39,61,.13);
+  -webkit-backdrop-filter:blur(18px); backdrop-filter:blur(18px);
+}
+.call-note > span:first-child {
+  width:25px; height:25px; border-radius:9px;
+  background:#edf4ff; color:#2874cf; font-size:13px;
+}
+@media(prefers-reduced-motion:reduce) { .call-btn { transition:none; } }

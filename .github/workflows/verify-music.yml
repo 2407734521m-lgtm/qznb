@@ -54,6 +54,9 @@ jobs:
       - name: Apply free music catalog provider and license UI
         run: node music/scripts/apply-folia-free-catalog.mjs
 
+      - name: Apply Folia mobile camera and empty-wall recovery
+        run: node music/scripts/apply-folia-mobile-layout.mjs
+
       - name: Typecheck Folia
         working-directory: music/folia
         run: npm run typecheck

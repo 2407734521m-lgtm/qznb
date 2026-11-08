@@ -149,9 +149,12 @@ button.pri {
   color: #ffffff !important;
 }
 
-/* 底部导航：液态玻璃悬浮胶囊改为纸面长条。
-   杀掉折射/模糊层，壳改全宽贴底、白纸底、顶部细线；
-   里面的栏目与滑动高亮是独立渲染，不受影响。
+/* 底部导航：贴底长条布局不变，材质换液态玻璃（2026-11-08 用户点选）。
+   版式仍是全宽贴底长条：栏目、顺序、横滑与滑动高亮是独立渲染，不受影响。
+   玻璃来自壳上 rdev/liquid-glass-react 的折射层（.glass__warp 的行内
+   filter: url(#…) + backdrop blur/saturate），所以不能再像纸面版那样全局
+   filter/backdrop-filter: none 把它杀掉；这里只给玻璃补暖白半透明底色、
+   顶部液态光边和向上柔影，折射层透出后方页面、随滚动变化。
    注意：玻璃库给壳写了行内 transform: translate(-50%,-50%) 自居中，
    改成 left:0 全宽后必须一并清掉，否则整条左移半个身位、
    左侧栏目被推出屏幕（2026-11-08 云浏览器实拍发现）。 */
@@ -164,15 +167,36 @@ button.pri {
   width: 100% !important;
   height: calc(56px + env(safe-area-inset-bottom)) !important;
   border-radius: 0 !important;
-  background: rgba(255, 253, 249, 0.98) !important;
-  box-shadow: 0 -1px 0 rgba(34, 49, 74, 0.1), 0 -10px 28px rgba(30, 40, 60, 0.05) !important;
+  background: rgba(255, 253, 249, 0.34) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5), 0 -12px 32px rgba(30, 40, 60, 0.12) !important;
 }
-.qz-rdev-dock .glass,
-.qz-rdev-dock .glass * {
-  -webkit-backdrop-filter: none !important;
-  backdrop-filter: none !important;
-  filter: none !important;
+/* 玻璃层本体：保持长条方形轮廓（压过库行内的 30px 圆角与下沉重影），
+   暖白渐变底垫在折射层之下，透亮但压得住后方内容，保证文字可读。
+   重复类名抬优先级，防打包后样式顺序交错被 styles-dock-rdev 压回去。 */
+.qz-rdev-dock.qz-rdev-dock .glass {
+  border-radius: 0 !important;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.52), rgba(255, 253, 249, 0.34) 55%, rgba(244, 238, 226, 0.42)) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75), inset 0 -1px 0 rgba(255, 255, 255, 0.22), 0 -14px 34px rgba(30, 40, 60, 0.14) !important;
 }
+/* 库只给折射层写了标准 backdrop-filter，Safari 需要 -webkit 前缀才有效，
+   数值与 App.tsx 的 blurAmount/saturation 保持一致。 */
+.qz-rdev-dock .glass__warp {
+  -webkit-backdrop-filter: blur(9px) saturate(150%) !important;
+}
+/* 顶部液态光边：中间亮、两端隐没的 1.4px 渐变描边，只装饰不拦点击。 */
+.qz-rdev-dock::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1.4px;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.95) 18%, rgba(255, 255, 255, 0.55) 50%, rgba(255, 255, 255, 0.95) 82%, rgba(255, 255, 255, 0) 100%);
+  pointer-events: none;
+  z-index: 3;
+}
+/* 导航本体自带的 WebGL 叠加层仍保持关闭（它只是高亮折射的加分项），
+   玻璃质感由壳的折射层提供，避免两层玻璃互相打架。 */
 .qz-rdev-dock canvas {
   display: none !important;
 }

@@ -40,62 +40,32 @@ function GuestPostCard({ post, imageUrl, onLoginRequired, index }: {
   const name = post.author_name || '用户';
   return (
     <motion.article
+      className="guest-post-card"
       initial={reduce ? false : { opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.32, delay: Math.min(index % 8 * 0.025, 0.16) }}
-      style={{
-        padding: 17, borderRadius: 19, border: '1px solid #e9edf2',
-        background: '#fff', boxShadow: '0 8px 26px rgba(25,35,52,.045)',
-      }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <div aria-hidden="true" style={{
-          width: 40, height: 40, borderRadius: 15, display: 'grid', placeItems: 'center',
-          flexShrink: 0, background: '#f0f3f7', color: '#4d5969', fontSize: 16, fontWeight: 750,
-        }}>{name.slice(0, 1)}</div>
-        <div style={{ minWidth: 0, flex: 1 }}>
-          <div style={{ color: '#202632', fontSize: 13.5, fontWeight: 750 }}>{name}</div>
-          <div style={{ color: '#929aa6', fontSize: 11, marginTop: 3 }}>
-            {post.section === 'daily' ? '日常' : '动态'} · {timeAgo(post.created_at)}
-          </div>
+      <div className="guest-post-author">
+        <div className="guest-post-avatar">{name.slice(0, 1)}</div>
+        <div className="guest-post-author-copy">
+          <strong>{name}</strong>
+          <span>{post.section === 'daily' ? '日常' : '动态'} · {timeAgo(post.created_at)}</span>
         </div>
-        <span style={{
-          padding: '4px 8px', borderRadius: 999, background: '#f5f7fa',
-          color: '#778191', fontSize: 10.5,
-        }}>公开内容</span>
+        <span className="guest-post-visibility">公开</span>
       </div>
 
-      <p style={{
-        margin: '13px 0 0', color: '#303846', fontSize: 14, lineHeight: 1.85,
-        whiteSpace: 'pre-wrap', overflowWrap: 'anywhere',
-      }}>{post.content}</p>
+      <p className="guest-post-content">{post.content}</p>
 
       {post.image_url && (
         imageUrl
-          ? <img src={imageUrl} alt="动态配图" loading="lazy" decoding="async" style={{
-              display: 'block', width: '100%', maxHeight: 480, objectFit: 'cover',
-              borderRadius: 14, marginTop: 12, background: '#f3f5f8',
-            }} />
-          : <div role="status" style={{
-              width: '100%', height: 150, borderRadius: 14, marginTop: 12,
-              background: '#f6f7f9', display: 'grid', placeItems: 'center',
-              color: '#9aa2ae', fontSize: 12,
-            }}>图片加载中…</div>
+          ? <img className="guest-post-image" src={imageUrl} alt="动态配图" loading="lazy" decoding="async" />
+          : <div role="status" className="guest-post-image-loading">图片加载中…</div>
       )}
 
-      <div style={{
-        display: 'flex', alignItems: 'center', gap: 18, marginTop: 13,
-        paddingTop: 11, borderTop: '1px solid #f0f2f5',
-      }}>
-        <button type="button" onClick={onLoginRequired} style={{
-          border: 0, background: 'transparent', color: '#697386', padding: 0,
-          font: 'inherit', fontSize: 12.5, cursor: 'pointer',
-        }}>♡ {Number(post.like_count) || 0} 点赞</button>
-        <button type="button" onClick={onLoginRequired} style={{
-          border: 0, background: 'transparent', color: '#697386', padding: 0,
-          font: 'inherit', fontSize: 12.5, cursor: 'pointer',
-        }}>评论 {Number(post.comment_count) || 0}</button>
-        <span style={{ marginLeft: 'auto', color: '#a0a7b1', fontSize: 11 }}>登录后可互动</span>
+      <div className="guest-post-actions">
+        <button type="button" onClick={onLoginRequired}>♡ <span>{Number(post.like_count) || 0}</span></button>
+        <button type="button" onClick={onLoginRequired}>评论 <span>{Number(post.comment_count) || 0}</span></button>
+        <span className="guest-post-login-hint">登录后可互动</span>
       </div>
     </motion.article>
   );
@@ -161,40 +131,37 @@ export default function GuestPosts({ section, onLoginRequired }: Props) {
 
   const title = section === 'daily' ? '日常' : section === 'feed' ? '动态' : '最新动态';
   return (
-    <section style={{ marginTop: 18 }}>
+    <section className={`guest-posts${section === 'all' ? ' guest-posts-home' : ''}`}>
       {section !== 'all' && (
-        <header style={{ padding: '4px 2px 12px' }}>
+        <header className="guest-posts-heading">
           <div style={{ color: '#8a93a1', fontSize: 10, letterSpacing: 2 }}>PUBLIC COMMUNITY</div>
-          <h1 style={{ margin: '6px 0 0', color: '#202632', fontSize: 25 }}>{title}</h1>
-          <p style={{ margin: '5px 0 0', color: '#7b8492', fontSize: 12.5, lineHeight: 1.6 }}>
+          <h1>{title}</h1>
+          <p>
             可以自由浏览，点赞、评论和发布需要登录。
           </p>
         </header>
       )}
       {section === 'all' && (
         <header style={{ padding: '4px 2px 12px' }}>
-          <h2 style={{ margin: 0, color: '#202632', fontSize: 19 }}>最新动态</h2>
-          <p style={{ margin: '5px 0 0', color: '#929aa6', fontSize: 11.5 }}>所有公开动态与日常，按发布时间排列</p>
+          <h2>最新动态</h2>
+          <p>所有公开动态与日常，按发布时间排列</p>
         </header>
       )}
 
-      {loading && <div role="status" style={{ padding: 24, textAlign: 'center', color: '#929aa6', fontSize: 13 }}>正在加载公开内容…</div>}
+      {loading && <div role="status" className="guest-post-state">正在加载公开内容…</div>}
       {!loading && error && (
-        <div role="alert" style={{ padding: 20, borderRadius: 16, border: '1px solid #e9edf2', background: '#fff', color: '#697386', textAlign: 'center', fontSize: 13 }}>
+        <div role="alert" className="guest-post-state guest-post-error">
           <p style={{ margin: '0 0 12px' }}>{error}</p>
-          <button type="button" onClick={() => setReloadKey(value => value + 1)} style={{
-            border: '1px solid #dfe4eb', background: '#fff', color: '#303846',
-            borderRadius: 999, padding: '8px 14px', cursor: 'pointer',
-          }}>重新加载</button>
+          <button type="button" className="guest-retry-button" onClick={() => setReloadKey(value => value + 1)}>重新加载</button>
         </div>
       )}
       {!loading && !error && posts.length === 0 && (
-        <div style={{ padding: 24, borderRadius: 16, border: '1px dashed #dfe4eb', color: '#8a93a1', background: '#fff', textAlign: 'center', fontSize: 13 }}>
+        <div className="guest-post-state guest-post-empty">
           暂时还没有公开内容。
         </div>
       )}
 
-      <div style={{ display: 'grid', gap: 12 }}>
+      <div className="guest-post-list">
         {posts.map((post, index) => (
           <GuestPostCard
             key={post.id}
@@ -207,11 +174,7 @@ export default function GuestPosts({ section, onLoginRequired }: Props) {
       </div>
 
       {!loading && !error && hasMore && (
-        <button type="button" disabled={loadingMore} onClick={() => void loadMore()} style={{
-          display: 'block', width: '100%', marginTop: 14, border: '1px solid #e5e9ef',
-          borderRadius: 999, padding: '12px 16px', background: '#fff',
-          color: '#566173', fontSize: 13, fontWeight: 700, cursor: 'pointer',
-        }}>{loadingMore ? '正在加载…' : '加载更多动态'}</button>
+        <button type="button" className="guest-load-more" disabled={loadingMore} onClick={() => void loadMore()}>{loadingMore ? '正在加载…' : '加载更多动态'}</button>
       )}
     </section>
   );

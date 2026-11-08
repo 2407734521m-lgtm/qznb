@@ -1,0 +1,68 @@
+Lark incorporates and adapts visual-effect implementation ideas and code from:
+
+- Mineradio by XxHuberrr, licensed under GPL-3.0. The Mineradio Stage player includes adapted startup WebGL shader, cover-particle motion, audio-reactive stage, lyric glow, and 3D playlist shelf effect logic.
+- folia-major by chthollyphile, licensed under AGPL-3.0. Full-screen lyrics work may adapt lyric timing, glow, and rail interaction patterns from this project.
+- Walkman by GordenSun, licensed under MIT: https://github.com/GordenSun/Walkman. The desktop Walkman player theme adapts the 3D cassette-player model, smoked door, mechanical controls, reel animation, and amber dot-matrix display concepts.
+- cover-flow-showcase by opc8838-hub, licensed under MIT: https://github.com/opc8838-hub/cover-flow-showcase. The artist album Cover Flow adapts circular 3D positioning, depth, reflection, wheel navigation, and snap behavior from commit eda6308e7e936a0d51b3602640dd870ce76693bd.
+- Toaster by Colin, licensed under MIT: https://github.com/StopBanning/toaster. The optional Toaster Studio adapts browser audio analysis, Strudel code generation and MIDI/song export from commit cc8177d427f88ef780ac9cf596d1c2b6533b7816. The original source notice is retained in `frontend/src/features/toaster/upstream/LICENSE` and bundled at `/licenses/toaster.txt`; camera, media artwork and Electron code are not included.
+- Songloft by the Songloft Team, licensed under Apache-2.0: https://github.com/songloft-org/songloft. Lark's JS plugin compatibility layer derives QuickJS runtime, plugin package, lifecycle, permission, routing, and host-bridge behavior from commit 825f70f603a773fc8c0ded555a0cbe753d2a0d52, with Songloft's Chi/sqlc services replaced by Lark Echo/Ent adapters.
+- MyGo Music by egoist, licensed under AGPL-3.0: https://github.com/egoist/mygo-music. The native plugin adapter follows the ES module/host contract reviewed at cb5e4cc49f8d4774d3a57b993e5b53c89b5a8f73; its demo JavaScript is retained as a test fixture. Songloft compatibility was additionally reviewed at 518953c4edcc87d73342bf03e0f7cb6b1207e654, without changing the original attribution baseline or claiming every upstream capability.
+- MoeJS v0.1.0-alpha.11 by MoeForge, licensed under Apache-2.0: https://github.com/MoeForge/moejs. This engine runs MyGo sources; Songloft retains QuickJS and its bytecode support. The full license and bundled Unicode/ICU/V8 notices are retained in `licenses/moejs-LICENSE.txt` and `licenses/moejs-THIRD_PARTY_NOTICES.txt` and distributed alongside server binaries and in Docker images.
+
+- Vinyls by Sandheep (Sandy): https://vinyls.sandheep.xyz. The Vinyl room theme includes the reference deck, record, fixtures and tonearm SVG artwork retrieved on 2026-09-08. Source and extraction details are recorded in `frontend/src/components/player-themes/vinyl-collection/README.md`; these reference assets are not relicensed by this notice.
+
+QR Code Generator for JavaScript v2.0.4 by Kazuhiko Arase (MIT) renders MyGo sign-in QR payloads locally, without a third-party QR service. The full license is retained in `licenses/qrcode-generator-LICENSE.txt` and embedded at `/licenses/qrcode-generator.txt`.
+
+## Songloft Apache-2.0 Notice
+
+Songloft
+Copyright 2026 Songloft Team
+
+Licensed under the Apache License, Version 2.0. You may obtain a copy at
+<http://www.apache.org/licenses/LICENSE-2.0>.
+
+## cover-flow-showcase MIT License
+
+Copyright (c) 2026
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+## Toaster MIT License
+
+Copyright (c) 2026 Colin
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+Lark itself is distributed under the GNU Affero General Public License v3.0. See `LICENSE`.

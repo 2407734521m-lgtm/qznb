@@ -1,0 +1,81 @@
+name: Verify music app
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "music/**"
+      - ".gitmodules"
+      - ".github/workflows/verify-music.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout including pinned Folia source
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Set up Node.js 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: music/folia/package-lock.json
+
+      - name: Apply maintained Folia mobile gesture overlay
+        run: node music/scripts/apply-folia-mobile-gestures.mjs
+
+      - name: Apply optional Qianzhi account integration
+        run: node music/scripts/apply-qianzhi-account.mjs
+
+      - name: Test NetEase Worker security helpers
+        run: node music/scripts/test-netease-security.mjs
+
+      - name: Install Folia dependencies
+        working-directory: music/folia
+        run: npm ci
+
+      - name: Install pinned Supabase browser client for the account overlay
+        working-directory: music/folia
+        run: npm install --no-save --package-lock=false --ignore-scripts @supabase/supabase-js@2.119.0
+
+      - name: Apply Folia NetEase API Workers adapter
+        run: node music/scripts/apply-folia-netease-workers.mjs
+
+      - name: Test free music catalog Worker API
+        run: node music/scripts/test-free-music-api.mjs
+
+      - name: Apply free music catalog provider and license UI
+        run: node music/scripts/apply-folia-free-catalog.mjs
+
+      - name: Typecheck Folia
+        working-directory: music/folia
+        run: npm run typecheck
+
+      - name: Test Lark mobile swipe integration
+        working-directory: music/folia
+        run: npm run test:unit -- test/unit/components/playerSwipe.test.ts
+
+      - name: Test Qianzhi account integration
+        working-directory: music/folia
+        run: npm run test:unit -- test/unit/qianzhiAccount/loginMethod.test.ts
+
+      - name: Build Folia Web + Worker
+        working-directory: music/folia
+        env:
+          VITE_QQ_API_BASE: /api/qq
+          VITE_NETEASE_API_BASE: /api/netease
+          VITE_QZNB_SUPABASE_URL: https://ldypnxxxgscibopgiaso.supabase.co
+        run: npm run build
+
+      - name: Validate isolated workers.dev preview Worker config
+        run: npx --yes wrangler@4.120.0 deploy --dry-run --config music/wrangler.preview.jsonc
+
+      - name: Validate production custom-domain Worker config
+        run: npx --yes wrangler@4.120.0 deploy --dry-run --config music/wrangler.jsonc

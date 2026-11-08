@@ -1,0 +1,3 @@
+[submodule "music/folia"]
+	path = music/folia
+	url = https://github.com/chthollyphile/folia-major.git

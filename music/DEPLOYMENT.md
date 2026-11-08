@@ -15,11 +15,14 @@ From the repository root:
 ```bash
 git submodule update --init --recursive
 node music/scripts/apply-folia-mobile-gestures.mjs
+node music/scripts/apply-qianzhi-account.mjs
 cd music/folia
 npm ci
+npm install --no-save --package-lock=false --ignore-scripts @supabase/supabase-js@2.119.0
 npm run typecheck
 npm run test:unit -- test/unit/components/playerSwipe.test.ts
-VITE_QQ_API_BASE=/api/qq npm run build
+npm run test:unit -- test/unit/qianzhiAccount/loginMethod.test.ts
+VITE_QQ_API_BASE=/api/qq VITE_QZNB_SUPABASE_URL=https://ldypnxxxgscibopgiaso.supabase.co VITE_QZNB_SUPABASE_ANON_KEY=<your-public-anon-key> npm run build
 ```
 
 The overlay script applies the pinned Lark swipe resolver to Folia's existing mobile player capsule. It adds horizontal previous/next navigation, upward expansion and downward collapse without replacing Folia's playback store or adding a second player UI. It also writes a focused unit test; the original Lark source remains under `music/vendor/lark/`.
@@ -34,9 +37,15 @@ npx wrangler@4.120.0 deploy --config ../wrangler.jsonc
 
 The first verified deployment should be tested on its `workers.dev` hostname before relying on the production custom domain.
 
+## Qianzhi account connection
+
+The optional account row appears in Folia Settings → Help → About. It uses the same Supabase Auth project and user IDs as the main site, supports email login and the main site's username-login function, and saves its session under a separate `qznb-music-auth-v1` storage key. Signing out from the music site clears only its local session; it does not sign out the main site. This is shared authentication, not seamless single sign-on: the user signs in once on the music hostname. Music playback remains available without an account.
+
+Before production deployment, add the project's public anon/publishable key as the GitHub Actions repository secret `QZNB_SUPABASE_ANON_KEY`. It is a browser-visible public key, not a service-role key. Never use `SUPABASE_SERVICE_ROLE_KEY` or any privileged server key in this frontend build. The Supabase URL is already configured in the workflow.
+
 ## Cloudflare secrets
 
-Before publishing, create a long random server-side secret and add it with Wrangler:
+Before publishing, create a long random server-side secret and add it with Wrangler. The GitHub deployment workflow also requires `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `QQ_SESSION_SECRET`, and `QZNB_SUPABASE_ANON_KEY` repository secrets:
 
 ```bash
 openssl rand -hex 32

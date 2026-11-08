@@ -54,7 +54,7 @@ The first deployed URL is the preview's `workers.dev` hostname. Verify this URL 
 - Qianzhi email and username login, session persistence, and local-only sign-out
 - error states when the QQ service or Supabase is unavailable
 
-The GitHub Actions workflow `.github/workflows/deploy-music.yml` is manual-only and has a required target choice. It defaults to **preview**. Select **production** only after the preview has been tested and explicitly approved; that target uses `music/wrangler.jsonc` and activates the `music.qianzhi.pw` custom domain.
+The GitHub Actions workflow `.github/workflows/deploy-music.yml` automatically deploys pushes to this feature branch to the isolated **preview** Worker. A manual `workflow_dispatch` run also offers a required target choice and defaults to **preview**. Select **production** only after the preview has been tested and explicitly approved; that target uses `music/wrangler.jsonc` and activates the `music.qianzhi.pw` custom domain.
 
 ## Qianzhi account and GitHub secrets
 

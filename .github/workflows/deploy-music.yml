@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - feat/music-vendored-open-source-modules
+      - feat/music-landscape-player-adaptation
   workflow_dispatch:
     inputs:
       target:
@@ -99,6 +100,9 @@ jobs:
 
       - name: Apply Qianzhi player polish (softer background dithering)
         run: node music/scripts/apply-folia-player-polish.mjs
+
+      - name: Apply Qianzhi landscape player adaptation
+        run: node music/scripts/apply-folia-player-landscape.mjs
 
       - name: Apply Qianzhi music brand label
         run: node music/scripts/apply-folia-qianzhi-label.mjs

@@ -17,6 +17,7 @@ From the repository root:
 git submodule update --init --recursive
 node music/scripts/apply-folia-mobile-gestures.mjs
 node music/scripts/apply-qianzhi-account.mjs
+node music/scripts/apply-folia-player-landscape.mjs
 cd music/folia
 npm ci
 cd ../..
@@ -31,7 +32,7 @@ npm run test:unit -- test/unit/qianzhiAccount/loginMethod.test.ts
 VITE_QQ_API_BASE=/api/qq VITE_NETEASE_API_BASE=/api/netease VITE_QZNB_SUPABASE_URL=https://ldypnxxxgscibopgiaso.supabase.co VITE_QZNB_SUPABASE_ANON_KEY=YOUR_PUBLIC_ANON_KEY npm run build
 ```
 
-The overlays apply the Lark swipe resolver to Folia's existing mobile player capsule and add the optional Qianzhi account row to Settings → Help → About. The music account uses the same Supabase Auth user pool as the main site, but it stores a separate local session. It is not seamless SSO; a user signs in once on the music hostname. Music playback remains available without an account.
+The overlays apply the Lark swipe resolver to Folia's existing mobile player capsule and add the optional Qianzhi account row to Settings → Help → About. A separate host overlay adds a native landscape/fullscreen toggle and a compact now-playing cover card for short landscape viewports; browsers that cannot lock orientation fall back to responsive layout after the device is rotated. The music account uses the same Supabase Auth user pool as the main site, but it stores a separate local session. It is not seamless SSO; a user signs in once on the music hostname. Music playback remains available without an account.
 
 The Supabase browser client is pinned at `@supabase/supabase-js@2.119.0`. The account panel requires the public anon/publishable key. Never supply a service-role key or any privileged server key to `VITE_*` variables.
 

@@ -63,6 +63,9 @@ jobs:
       - name: Apply Qianzhi music brand label
         run: node music/scripts/apply-folia-qianzhi-label.mjs
 
+      - name: Apply qianzhi product branding
+        run: node music/scripts/apply-qianzhi-branding.mjs
+
       - name: Typecheck Folia
         working-directory: music/folia
         run: npm run typecheck

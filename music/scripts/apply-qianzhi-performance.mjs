@@ -161,8 +161,7 @@ model = replaceOnce(
 );
 model = replaceOnce(
     model,
-    'backgroundStaticMode: shouldPauseVisualizerBackground',
-        + '\n            || (',
+    'backgroundStaticMode: shouldPauseVisualizerBackground\n            || (',
     'backgroundStaticMode: shouldPauseVisualizerBackground\n            || resolveQianzhiPerformanceProfile().freezeAnimatedBackground\n            || (',
     'visualizer background throttling',
 );

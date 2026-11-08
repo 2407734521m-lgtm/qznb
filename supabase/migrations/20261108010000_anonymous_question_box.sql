@@ -204,15 +204,20 @@ as $function$
 declare
   v_actor uuid := auth.uid();
   v_asker uuid;
+  v_notify_asker boolean := false;
   v_answer text := pg_catalog.btrim(coalesce(p_answer, ''));
 begin
-  if v_actor is null or p_question_id is null then
-    raise exception 'authentication required' using errcode = '42501';
+  if v_actor is null or p_question_id is null
+     or not exists (
+       select 1 from public.profiles p
+       where p.id = auth.uid() and p.role = 'member' and p.joined = true
+     ) then
+    raise exception 'joined member required' using errcode = '42501';
   end if;
   if pg_catalog.char_length(v_answer) < 1 or pg_catalog.char_length(v_answer) > 600 then
     raise exception 'answer must be between 1 and 600 characters' using errcode = '22023';
   end if;
-  select q.asker_id into v_asker
+  select q.asker_id, q.asker_deleted_at is null into v_asker, v_notify_asker
   from public.anonymous_questions q
   where q.id = p_question_id
     and q.recipient_id = v_actor
@@ -227,9 +232,11 @@ begin
   set answer = v_answer, status = 'answered', is_public = coalesce(p_publish, false), answered_at = now()
   where id = p_question_id and recipient_id = v_actor;
 
-  insert into public.notifications(profile_id, type, title, body, link, is_read)
-  values (v_asker, 'anonymous_answer', '你的匿名提问有了回答',
-          '对方已回答你的匿名提问，打开“我发出的”查看。', '/questions', false);
+  if v_notify_asker then
+    insert into public.notifications(profile_id, type, title, body, link, is_read)
+    values (v_asker, 'anonymous_answer', '你的匿名提问有了回答',
+            '对方已回答你的匿名提问，打开“我发出的”查看。', '/questions', false);
+  end if;
   return true;
 end;
 $function$;
@@ -244,8 +251,12 @@ declare
   v_actor uuid := auth.uid();
   v_count integer;
 begin
-  if v_actor is null or p_question_id is null then
-    raise exception 'authentication required' using errcode = '42501';
+  if v_actor is null or p_question_id is null
+     or not exists (
+       select 1 from public.profiles p
+       where p.id = auth.uid() and p.role = 'member' and p.joined = true
+     ) then
+    raise exception 'joined member required' using errcode = '42501';
   end if;
   update public.anonymous_questions
   set recipient_deleted_at = case when recipient_id = v_actor then now() else recipient_deleted_at end,
@@ -270,6 +281,10 @@ declare
   v_reason text := pg_catalog.btrim(coalesce(p_reason, ''));
 begin
   if v_actor is null or p_question_id is null
+     or not exists (
+       select 1 from public.profiles p
+       where p.id = auth.uid() and p.role = 'member' and p.joined = true
+     )
      or pg_catalog.char_length(v_reason) < 1 or pg_catalog.char_length(v_reason) > 200 then
     raise exception 'invalid report' using errcode = '22023';
   end if;

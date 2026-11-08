@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import type { FormEvent } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { motion, useReducedMotion } from 'framer-motion';
 import { useAuth } from '../auth';
@@ -74,7 +75,7 @@ export default function QuestionBox() {
     else void loadOwn();
   }, [me, targetId]);
 
-  async function searchMembers(event: React.FormEvent<HTMLFormElement>) {
+  async function searchMembers(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const needle = search.trim();
     if (!needle) { setMembers([]); return; }
@@ -85,7 +86,7 @@ export default function QuestionBox() {
     setMembers((data ?? []) as MemberResult[]);
   }
 
-  async function sendQuestion(event: React.FormEvent<HTMLFormElement>) {
+  async function sendQuestion(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const content = questionText.trim();
     if (!target || !content || busy) return;

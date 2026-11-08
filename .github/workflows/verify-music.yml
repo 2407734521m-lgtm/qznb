@@ -60,6 +60,9 @@ jobs:
       - name: Apply Qianzhi player polish (softer background dithering)
         run: node music/scripts/apply-folia-player-polish.mjs
 
+      - name: Apply Qianzhi music brand label
+        run: node music/scripts/apply-folia-qianzhi-label.mjs
+
       - name: Typecheck Folia
         working-directory: music/folia
         run: npm run typecheck

@@ -21,6 +21,14 @@ VITE_QQ_API_BASE=/api/qq npm run build
 
 This compiles Folia's web assets and Worker entry. It does not deploy the site.
 
+To publish the preview Worker (after authenticating Wrangler with the target Cloudflare account):
+
+```bash
+npx wrangler@4.120.0 deploy --config ../wrangler.jsonc
+```
+
+The first verified deployment should be tested on its `workers.dev` hostname before relying on the production custom domain.
+
 ## Cloudflare secrets
 
 Before publishing, create a long random server-side secret and add it with Wrangler:
@@ -28,6 +36,7 @@ Before publishing, create a long random server-side secret and add it with Wrang
 ```bash
 openssl rand -hex 32
 npx wrangler@4.120.0 secret put QQ_SESSION_SECRET --config ../wrangler.jsonc
+npx wrangler@4.120.0 deploy --config ../wrangler.jsonc
 ```
 
 Do not put `QQ_SESSION_SECRET` in `VITE_*` variables, frontend source, Git, or public build logs. After adding the secret, redeploy the Worker.

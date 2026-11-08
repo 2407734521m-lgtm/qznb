@@ -124,7 +124,7 @@ returns table (
   question text,
   option_id bigint,
   option_label text,
-  position integer,
+  option_position integer,
   vote_count bigint,
   total_votes bigint,
   my_option_id bigint

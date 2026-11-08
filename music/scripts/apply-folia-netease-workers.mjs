@@ -181,20 +181,18 @@ await write(songUrlPath, songUrlSource);
 
 const qrCheckSource = `const createOption = require('../util/option.js')
 module.exports = async (query, request) => {
-  try {
-    const result = await request(
-      '/api/login/qrcode/client/login',
-      { key: query.key, type: 3 },
-      createOption(query),
-    )
-    return {
-      status: 200,
-      body: { ...result.body, cookie: (result.cookie || []).join(';') },
-      cookie: result.cookie || [],
-    }
-  } catch {
-    // A pending QR scan is an ordinary polling state, not an HTTP 500.
-    return { status: 200, body: {}, cookie: [] }
+  // Preserve NetEase's real rejection body/status. Folia's native provider distinguishes
+  // transient network failures from expired QR codes and account risk-control responses.
+  // The Express adapter relays rejected { status, body, cookie } answers to the browser.
+  const result = await request(
+    '/api/login/qrcode/client/login',
+    { key: query.key, type: 3 },
+    createOption(query),
+  )
+  return {
+    status: 200,
+    body: { ...result.body, cookie: (result.cookie || []).join(';') },
+    cookie: result.cookie || [],
   }
 }
 `;

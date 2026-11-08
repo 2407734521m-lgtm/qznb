@@ -6,7 +6,7 @@ The music hostname is isolated from the existing site:
 - Runtime/build environment: Node.js 24+
 - Hosting runtime: Cloudflare Workers + Static Assets
 - Worker name: `qianzhi-music`
-- Source: Folia `v0.7.26`, pinned in `music/folia`
+- Source: Folia `v0.7.27`, pinned in `music/folia`
 
 ## Build locally
 

@@ -6,6 +6,7 @@ const requestPath = resolve(packageRoot, "util/request.js");
 const anonymousPath = resolve(packageRoot, "module/register_anonimous.js");
 const songUrlPath = resolve(packageRoot, "module/song_url_v1.js");
 const qrCheckPath = resolve(packageRoot, "module/login_qr_check.js");
+const qrCreatePath = resolve(packageRoot, "module/login_qr_create.js");
 const generatedPath = resolve("music/folia/worker/netease-modules.generated.ts");
 const workerEntryPath = resolve("music/folia/worker/index.ts");
 
@@ -126,6 +127,33 @@ module.exports = async (query, request) => {
 }
 `;
 await write(qrCheckPath, qrCheckSource);
+
+const qrCreateSource = `const QRCode = require('qrcode')
+const { generateChainId } = require('../util/index.js')
+
+module.exports = async query => {
+  const platform = query.platform || 'pc'
+  const cookie = query.cookie || ''
+  let url = \`https://music.163.com/login?codekey=\${query.key}\`
+  if (platform === 'web') {
+    url += \`&chainId=\${generateChainId(cookie)}\`
+  }
+  // SVG rendering is pure JavaScript and avoids node-canvas/native bindings in Workers.
+  const svg = query.qrimg ? await QRCode.toString(url, { type: 'svg', margin: 1 }) : ''
+  return {
+    status: 200,
+    body: {
+      code: 200,
+      data: {
+        qrurl: url,
+        qrimg: svg ? \`data:image/svg+xml;charset=utf-8,\${encodeURIComponent(svg)}\` : '',
+      },
+    },
+    cookie: [],
+  }
+}
+`;
+await write(qrCreatePath, qrCreateSource);
 
 const routeNames = ["register_anonimous","login_qr_key","login_qr_create","login_qr_check","login_status","logout","user_account","song_detail","song_copyright_rcmd","like","scrobble_v1","likelist","user_playlist","playlist_track_all","playlist_detail","playlist_tracks","album","album_sublist","artist_detail","artist_album","artist_top_song","artist_songs","song_url_v1","lyric_new","song_chorus","cloud_lyric_get","user_record","user_cloud","user_cloud_detail","cloudsearch","personal_fm","personal_fm_mode","recommend_songs","recommend_songs_dislike","history_recommend_songs","history_recommend_songs_detail","recommend_category_configs","recommend_category_songs","recommend_category_set","personalized","homepage_block_page","recommend_resource","toplist","top_song","album_new","top_playlist","simi_song","fm_trash","playlist_subscribe","album_sub","playlist_detail_dynamic","album_detail_dynamic"];
 const imports = routeNames.map((name, index) =>

@@ -3,6 +3,7 @@ import Login from './Login';
 import GuestLoveWall from './GuestLoveWall';
 import VisitCounter from '../components/VisitCounter';
 import GuestPosts from './GuestPosts';
+import './GuestBrowse.css';
 
 type Notice = { id?: number | string; title?: string | null; content?: string | null; created_at?: string | null };
 type Props = {
@@ -26,83 +27,85 @@ function GuestHome({ siteConfig, onLoginRequired, showLoveWall, showAnnouncement
 }) {
   const notices = showAnnouncements && Array.isArray(siteConfig?.notices) ? siteConfig.notices as Notice[] : [];
   const title = siteConfig?.site_title || '堯';
-  const subtitle = siteConfig?.site_subtitle || '公开浏览';
-  const banner = siteConfig?.home_banner_text || '欢迎来到堯';
+  const subtitle = siteConfig?.site_subtitle || '连接人与内容';
+  const configuredBanner = typeof siteConfig?.home_banner_text === 'string' ? siteConfig.home_banner_text.trim() : '';
+  const banner = !configuredBanner || /^(测试|test|demo)$/i.test(configuredBanner)
+    ? '让分享与连接，自然发生。'
+    : configuredBanner;
   const bannerUrl = typeof siteConfig?.home_banner_url === 'string' && /^https?:\/\//.test(siteConfig.home_banner_url)
     ? siteConfig.home_banner_url : '';
 
   return (
-    <main style={{ maxWidth: 820, margin: '0 auto', padding: '10px 0 36px' }}>
-      <section style={{
-        position: 'relative', overflow: 'hidden', aspectRatio: '16 / 9',
-        borderRadius: 22, background: '#eef2f7', border: '1px solid #e5e8ee',
-        boxShadow: '0 12px 34px #202a3d0c',
-      }}>
-        {bannerUrl && <img src={bannerUrl} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />}
-        <div style={{
-          position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column',
-          justifyContent: 'flex-end', padding: 'clamp(18px,5vw,30px)',
-          background: bannerUrl ? 'linear-gradient(90deg,#10182870,transparent 75%)' : 'linear-gradient(145deg,#f7f9fc,#e9eef5)',
-        }}>
-          <div style={{
-            display: 'inline-block', alignSelf: 'flex-start', padding: 'clamp(14px,3vw,20px)',
-            borderRadius: 16, background: 'rgba(255,255,255,.62)',
-            border: '1px solid rgba(255,255,255,.7)', backdropFilter: 'blur(18px)',
-            WebkitBackdropFilter: 'blur(18px)',
-          }}>
-            <div style={{ fontSize: 10, letterSpacing: 2, color: '#737b89' }}>PUBLIC SPACE</div>
-            <h1 style={{ margin: '7px 0 0', color: '#202632', fontSize: 'clamp(22px,5vw,32px)', lineHeight: 1.3 }}>{banner}</h1>
+    <main className="guest-main">
+      <section className={`guest-hero${bannerUrl ? ' has-image' : ''}`} aria-label="堯社区介绍">
+        {bannerUrl ? <img className="guest-hero-image" src={bannerUrl} alt="" /> : null}
+        <div className="guest-hero-shade" />
+        <div className="guest-hero-content">
+          <span className="guest-eyebrow">堯 · OPEN COMMUNITY</span>
+          <h1>{banner}</h1>
+          <p>{subtitle}。浏览公开内容，发现正在发生的分享与故事。</p>
+          <div className="guest-hero-actions">
+            <NavLink to="/feed" className="guest-button guest-button-primary">浏览动态 <span aria-hidden="true">↗</span></NavLink>
+            {showAnnouncements && <NavLink to="/board" className="guest-button guest-button-quiet">查看公告</NavLink>}
           </div>
         </div>
+        <span className="guest-hero-index">01 <i /> PUBLIC SPACE</span>
       </section>
 
-      <GuestPosts section="all" onLoginRequired={onLoginRequired} />
+      <div className="guest-home-layout">
+        <div className="guest-home-feed">
+          <GuestPosts section="all" onLoginRequired={onLoginRequired} />
+        </div>
 
-      <section style={{ marginTop: 18 }}>
-        <div style={{ display: 'flex', alignItems: 'end', justifyContent: 'space-between', gap: 12, marginBottom: 12 }}>
-          <div>
-            <div style={{ fontSize: 11, letterSpacing: 2, color: '#8a93a1' }}>EXPLORE THE SITE</div>
-            <h2 style={{ margin: '5px 0 0', fontSize: 20, color: '#202632' }}>先逛一逛</h2>
+        <aside className="guest-home-aside">
+          <section className="guest-panel guest-explore">
+            <header className="guest-panel-heading">
+              <div><span className="guest-eyebrow">EXPLORE</span><h2>发现更多</h2></div>
+              <span className="guest-panel-note">公开浏览</span>
+            </header>
+            <div className="guest-feature-list">
+              {showLoveWall
+                ? <NavLink to="/love-wall" className="guest-feature-link"><FeatureCard symbol="♡" title="表白墙" description="看看公开的心意与故事。" /></NavLink>
+                : <FeatureCard symbol="♡" title="表白墙" description="管理员暂未开放游客浏览。" locked />}
+              {showAnnouncements
+                ? <NavLink to="/board" className="guest-feature-link"><FeatureCard symbol="↗" title="公告" description="了解网站消息与近期更新。" /></NavLink>
+                : <FeatureCard symbol="↗" title="公告" description="管理员暂未开放游客浏览。" locked />}
+              <button type="button" className="guest-feature-button" onClick={onLoginRequired}>
+                <FeatureCard symbol="♫" title="歌声墙" description="登录后分享声音与作品。" locked />
+              </button>
+              <NavLink to="/daily" className="guest-feature-link"><FeatureCard symbol="☼" title="日常" description="浏览大家记录的日常片段。" /></NavLink>
+            </div>
+          </section>
+
+          {showAnnouncements && (
+            <section className="guest-panel guest-announcements">
+              <header className="guest-panel-heading">
+                <div><span className="guest-eyebrow">UPDATES</span><h2>最近公告</h2></div>
+                <NavLink to="/board" className="guest-inline-link">全部 ↗</NavLink>
+              </header>
+              {notices.length ? notices.slice(0, 3).map((notice, index) => (
+                <article className="guest-notice-row" key={notice.id ?? index}>
+                  <span className="guest-notice-marker" />
+                  <div>
+                    {notice.title && <h3>{notice.title}</h3>}
+                    <p>{notice.content || '查看公告详情，了解最新消息。'}</p>
+                    {notice.created_at && <time>{new Date(notice.created_at).toLocaleDateString()}</time>}
+                  </div>
+                </article>
+              )) : <p className="guest-empty-note">暂时没有新的公开公告。</p>}
+            </section>
+          )}
+
+          <div className="guest-aside-note">
+            <span className="guest-note-dot" />
+            游客可以浏览公开内容；点赞、评论与发布需要登录。
           </div>
-          <span style={{ fontSize: 11, color: '#929aa6' }}>游客只读</span>
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,220px),1fr))', gap: 10 }}>
-          {showLoveWall
-            ? <NavLink to="/love-wall" style={{ textDecoration: 'none', color: 'inherit' }}>
-                <FeatureCard title="表白墙" description="查看已经审核公开的心意，点赞、评论和投稿需要登录。" />
-              </NavLink>
-            : <FeatureCard title="表白墙" description="管理员暂未向游客开放此内容。" locked />}
-          {showAnnouncements
-            ? <NavLink to="/board" style={{ textDecoration: 'none', color: 'inherit' }}>
-                <FeatureCard title="公告" description="浏览网站公开公告和近期通知。" />
-              </NavLink>
-            : <FeatureCard title="公告" description="管理员暂未向游客开放公告浏览。" locked />}
-          <button type="button" onClick={onLoginRequired} style={{ textAlign: 'left', cursor: 'pointer', font: 'inherit' }}>
-            <FeatureCard title="歌声墙" description="登录后可以上传、分享和互动。" locked />
-          </button>
-          <NavLink to="/feed" style={{ textDecoration: 'none', color: 'inherit' }}>
-            <FeatureCard title="日常与动态" description="浏览所有公开帖子；点赞、评论和发布需要登录。" />
-          </NavLink>
-        </div>
-      </section>
+        </aside>
+      </div>
 
-      {showAnnouncements && <section style={{ marginTop: 20, padding: '18px clamp(14px,4vw,22px)', borderRadius: 20, background: '#fff', border: '1px solid #e9ebf0', boxShadow: '0 8px 28px #202a3d0a' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, marginBottom: 10 }}>
-          <h2 style={{ margin: 0, fontSize: 18, color: '#202632' }}>公开公告</h2>
-          <NavLink to="/board" style={{ fontSize: 12, color: '#697386', textDecoration: 'none' }}>查看全部</NavLink>
-        </div>
-        {notices.length ? notices.slice(0, 4).map((notice, index) => (
-          <article key={notice.id ?? index} style={{ borderTop: '1px solid #edf0f4', padding: '12px 0' }}>
-            {notice.title && <h3 style={{ margin: '0 0 5px', fontSize: 14, color: '#303846' }}>{notice.title}</h3>}
-            <p style={{ margin: 0, whiteSpace: 'pre-wrap', lineHeight: 1.8, fontSize: 13, color: '#5b6472' }}>{notice.content}</p>
-            {notice.created_at && <div style={{ marginTop: 6, color: '#9aa2ae', fontSize: 11 }}>{new Date(notice.created_at).toLocaleString()}</div>}
-          </article>
-        )) : <p style={{ color: '#87909d', fontSize: 13, margin: 0 }}>暂时没有公开公告。</p>}
-      </section>}
-
-      <p style={{ margin: '18px 2px 0', color: '#929aa6', fontSize: 11, lineHeight: 1.7 }}>
-        {title} · {subtitle} · 游客可浏览公开信息，互动与个人功能需要正式账号。
-      </p>
+      <footer className="guest-footer">
+        <strong>{title}</strong><span>{subtitle}</span>
+      </footer>
     </main>
   );
 }
@@ -139,18 +142,20 @@ function GuestUnavailable() {
   );
 }
 
-function FeatureCard({ title, description, locked = false }: { title: string; description: string; locked?: boolean }) {
+function FeatureCard({ title, description, locked = false, symbol }: {
+  title: string;
+  description: string;
+  locked?: boolean;
+  symbol: string;
+}) {
   return (
-    <div style={{
-      minHeight: 108, height: '100%', boxSizing: 'border-box', padding: 16,
-      borderRadius: 18, border: '1px solid #e7eaf0', background: '#fff',
-      boxShadow: '0 8px 24px #202a3d08',
-    }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'center' }}>
-        <strong style={{ fontSize: 15, color: '#202632' }}>{title}</strong>
-        {locked && <span style={{ fontSize: 10, borderRadius: 999, background: '#f2f4f7', color: '#707988', padding: '4px 8px' }}>登录可用</span>}
+    <div className={`guest-feature-card${locked ? ' is-locked' : ''}`}>
+      <span className="guest-feature-symbol" aria-hidden="true">{symbol}</span>
+      <div className="guest-feature-copy">
+        <strong>{title}</strong>
+        <p>{description}</p>
       </div>
-      <p style={{ margin: '9px 0 0', fontSize: 12, color: '#697386', lineHeight: 1.65 }}>{description}</p>
+      <span className="guest-feature-arrow" aria-hidden="true">{locked ? '↗' : '→'}</span>
     </div>
   );
 }
@@ -164,35 +169,23 @@ export default function GuestBrowse({
   }
 
   return (
-    <div style={{
-      minHeight: '100dvh', boxSizing: 'border-box', padding: 'max(14px, env(safe-area-inset-top)) 14px calc(24px + env(safe-area-inset-bottom))',
-      background: '#f7f9fc', color: '#202632',
-    }}>
-      <header style={{
-        maxWidth: 900, margin: '0 auto 14px', padding: '12px 2px',
-        display: 'flex', alignItems: 'center', gap: 10,
-      }}>
-        <div style={{ minWidth: 0, flex: 1 }}>
-          <div style={{ fontSize: 10, letterSpacing: 2, color: '#8a93a1' }}>GUEST BROWSING</div>
-          <div style={{ fontSize: 19, fontWeight: 850, color: '#202632', marginTop: 3 }}>{siteConfig?.site_title || '堯'}</div>
-          <div style={{ fontSize: 11, color: '#7a8492', marginTop: 2 }}>
-            访客 · {nickname} · {new Date(expiresAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} 自动退出
-          </div>
+    <div className="guest-shell">
+      <header className="guest-header">
+        <NavLink to="/home" className="guest-brand" aria-label="堯首页">
+          <span className="guest-brand-mark">堯</span>
+          <span className="guest-brand-copy"><strong>堯</strong><small>连接人与内容</small></span>
+        </NavLink>
+        <div className="guest-header-status">
+          <span className="guest-status-label">访客浏览</span>
+          <span className="guest-status-detail">{nickname} · {new Date(expiresAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} 后退出</span>
         </div>
-        {loginEnabled && <button type="button" onClick={requestLogin} style={{
-          flex: '0 0 auto', border: 0, borderRadius: 999, padding: '10px 15px',
-          background: '#202632', color: '#fff', fontSize: 12, fontWeight: 800,
-        }}>登录 / 注册</button>}
-        <button type="button" onClick={onExit} style={{
-          flex: '0 0 auto', border: '1px solid #dfe3ea', borderRadius: 999,
-          padding: '9px 12px', background: '#fff', color: '#606673', fontSize: 12,
-        }}>退出游客</button>
+        <div className="guest-header-actions">
+          {loginEnabled && <button type="button" className="guest-button guest-button-primary" onClick={requestLogin}>登录 / 注册</button>}
+          <button type="button" className="guest-exit-button" onClick={onExit}>退出</button>
+        </div>
       </header>
 
-      <nav aria-label="游客浏览导航" style={{
-        maxWidth: 900, margin: '0 auto 14px', padding: 5, borderRadius: 999,
-        background: '#fff', border: '1px solid #e9ebf0', display: 'flex', gap: 4,
-      }}>
+      <nav className="guest-nav" aria-label="游客浏览导航">
         {[
           { to: '/home', label: '首页' },
           { to: '/feed', label: '动态' },
@@ -200,11 +193,9 @@ export default function GuestBrowse({
           ...(showLoveWall ? [{ to: '/love-wall', label: '表白墙' }] : []),
           ...(showAnnouncements ? [{ to: '/board', label: '公告' }] : []),
         ].map(item => (
-          <NavLink key={item.to} to={item.to} style={({ isActive }) => ({
-            flex: 1, textAlign: 'center', textDecoration: 'none', borderRadius: 999,
-            padding: '10px 8px', fontSize: 13, fontWeight: 750,
-            background: isActive ? '#202632' : 'transparent', color: isActive ? '#fff' : '#697386',
-          })}>{item.label}</NavLink>
+          <NavLink key={item.to} to={item.to} end={item.to === '/home'} className={({ isActive }) => isActive ? 'guest-nav-link is-active' : 'guest-nav-link'}>
+            {item.label}
+          </NavLink>
         ))}
       </nav>
 
@@ -218,9 +209,7 @@ export default function GuestBrowse({
         <Route path="*" element={<Navigate to="/home" replace />} />
       </Routes>
 
-      <div style={{ maxWidth: 820, margin: '20px auto 0', textAlign: 'center', color: '#929aa6', fontSize: 11, lineHeight: 1.6 }}>
-        游客模式 · 公开内容只读 · 点赞、评论、投稿等互动需要正式账号
-      </div>
+      <div className="guest-bottom-note">公开内容只读 · 登录后解锁完整互动与个人功能</div>
       <VisitCounter />
 
       {!loginEnabled && loginOpen && (

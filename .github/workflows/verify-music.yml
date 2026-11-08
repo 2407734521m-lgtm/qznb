@@ -54,9 +54,16 @@ jobs:
       - name: Apply free music catalog provider and license UI
         run: node music/scripts/apply-folia-free-catalog.mjs
 
+      - name: Apply Folia mobile camera and empty-wall recovery
+        run: node music/scripts/apply-folia-mobile-layout.mjs
+
       - name: Typecheck Folia
         working-directory: music/folia
         run: npm run typecheck
+
+      - name: Test Folia mobile camera and empty-wall recovery
+        working-directory: music/folia
+        run: npm run test:unit -- test/unit/library/bravais/bravaisMobileRecovery.test.ts
 
       - name: Test Lark mobile swipe integration
         working-directory: music/folia

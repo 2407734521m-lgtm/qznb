@@ -3,6 +3,7 @@ import { resolve, dirname } from "node:path";
 
 const packageRoot = resolve("music/folia/node_modules/@neteasecloudmusicapienhanced/api");
 const requestPath = resolve(packageRoot, "util/request.js");
+const cryptoPath = resolve(packageRoot, "util/crypto.js");
 const anonymousPath = resolve(packageRoot, "module/register_anonimous.js");
 const songUrlPath = resolve(packageRoot, "module/song_url_v1.js");
 const qrCheckPath = resolve(packageRoot, "module/login_qr_check.js");
@@ -15,6 +16,20 @@ const write = async (path, text) => {
   await mkdir(dirname(path), { recursive: true });
   await writeFile(path, text, "utf8");
 };
+
+let cryptoSource = await read(cryptoPath);
+const xeapiStart = cryptoSource.indexOf("const xeapiEncryptS =");
+const xeapiEnd = cryptoSource.indexOf("\n\nconst buildXeapiPlaintext", xeapiStart);
+if (xeapiStart < 0 || xeapiEnd < 0) throw new Error("Folia XEAPI X25519 helper anchor changed");
+const workersXeapiEncryptS = "const xeapiEncryptS = async (dynamicKey, publicKeyState, os) => {\n  const subtle = globalThis.crypto && globalThis.crypto.subtle\n  if (!subtle) throw new Error('Web Crypto subtle API is unavailable')\n\n  const peerRaw = Buffer.from(publicKeyState.publicKey, 'base64')\n  const ephemeralPair = await subtle.generateKey(\n    { name: 'X25519' },\n    true,\n    ['deriveBits'],\n  )\n  const ephemeralRaw = Buffer.from(await subtle.exportKey('raw', ephemeralPair.publicKey))\n  const peerKey = await subtle.importKey(\n    'raw',\n    peerRaw,\n    { name: 'X25519' },\n    false,\n    [],\n  )\n  const sharedSecret = Buffer.from(\n    await subtle.deriveBits(\n      { name: 'X25519', public: peerKey },\n      ephemeralPair.privateKey,\n      256,\n    ),\n  )\n  const aesKey = deriveX25519AesKey(sharedSecret, ephemeralRaw)\n  const iv = crypto.randomBytes(12)\n  const cipher = crypto.createCipheriv('aes-128-gcm', aesKey, iv)\n  const plaintext = Buffer.from(\n    dynamicKey.toString('base64') + '|' + os + '|' + (publicKeyState.sk || ''),\n  )\n  const encrypted = Buffer.concat([cipher.update(plaintext), cipher.final()])\n  return Buffer.concat([ephemeralRaw, iv, encrypted, cipher.getAuthTag()])\n}";
+cryptoSource = cryptoSource.slice(0, xeapiStart) + workersXeapiEncryptS + cryptoSource.slice(xeapiEnd);
+const syncXeapiDeclaration = "const xeapi = (uri, data, options = {}) => {";
+if (!cryptoSource.includes(syncXeapiDeclaration)) throw new Error("Folia XEAPI declaration anchor changed");
+cryptoSource = cryptoSource.replace(syncXeapiDeclaration, "const xeapi = async (uri, data, options = {}) => {");
+const syncXeapiS = "  const s = xeapiEncryptS(dynamicKey, publicKeyState, options.os || 'android')";
+if (!cryptoSource.includes(syncXeapiS)) throw new Error("Folia XEAPI S-field anchor changed");
+cryptoSource = cryptoSource.replace(syncXeapiS, "  const s = await xeapiEncryptS(dynamicKey, publicKeyState, options.os || 'android')");
+await write(cryptoPath, cryptoSource);
 
 let requestSource = await read(requestPath);
 const axiosImport = "const { default: axios } = require('axios')";
@@ -85,6 +100,23 @@ const ensureXeapiPublicKey = async () => {
 }`;
 if (!requestSource.includes(oldState)) throw new Error("NetEase temp-file state block changed");
 requestSource = requestSource.replace(oldState, newState);
+
+const encryptDataDeclaration = "    let encryptData = ''";
+if (!requestSource.includes(encryptDataDeclaration)) throw new Error("NetEase encryptData declaration anchor changed");
+requestSource = requestSource.replace(encryptDataDeclaration, encryptDataDeclaration + "\n    let pendingEncryptData = null");
+
+const xeapiEncryptAssignment = "        encryptData = encrypt.xeapi(uri, data, {";
+if (!requestSource.includes(xeapiEncryptAssignment)) throw new Error("NetEase XEAPI assignment anchor changed");
+requestSource = requestSource.replace(xeapiEncryptAssignment, "        pendingEncryptData = encrypt.xeapi(uri, data, {");
+
+const dispatchAnchor = "    const use_e_r = (crypto === 'eapi' || crypto === 'weapi') && data.e_r";
+if (!requestSource.includes(dispatchAnchor)) throw new Error("NetEase request dispatch anchor changed");
+requestSource = requestSource.replace(dispatchAnchor, "    const dispatch = () => {\n" + dispatchAnchor);
+
+const requestTailAnchor = "\n  })\n}\n\nmodule.exports = createRequest";
+const requestTailReplacement = "\n    }\n    if (pendingEncryptData) {\n      pendingEncryptData\n        .then(payload => {\n          encryptData = payload\n          dispatch()\n        })\n        .catch(reject)\n    } else {\n      dispatch()\n    }\n  })\n}\n\nmodule.exports = createRequest";
+if (!requestSource.includes(requestTailAnchor)) throw new Error("NetEase request executor tail anchor changed");
+requestSource = requestSource.replace(requestTailAnchor, requestTailReplacement);
 
 const createRequestAnchor = `const createRequest = async (uri, data, options) => {
   let token = ''`;

@@ -1355,24 +1355,24 @@ function Shell() {
       )}
       {loginPop && (
         <div onClick={closeLoginPop} style={{
-          position: 'fixed', inset: 0, zIndex: 300, background: '#000b',
+          position: 'fixed', inset: 0, zIndex: 300, background: 'rgba(24,20,16,.5)',
           display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24,
           backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)',
         }}>
           <div onClick={e => e.stopPropagation()} style={{
             width: '100%', maxWidth: 380, borderRadius: 18, padding: 20,
-            background: 'linear-gradient(160deg,#1a2140,#0e1428)',
-            border: '1px solid #5b8cff44', boxShadow: '0 20px 60px #000d',
+            background: '#fffdf9',
+            border: '1px solid #e8dfd3', boxShadow: '0 20px 60px rgba(20,16,8,.35)',
           }}>
-            <div style={{ fontSize: 11, color: '#8b93b0', marginBottom: 6 }}>班级公告</div>
-            {loginPop.title && <div style={{ fontSize: 16, fontWeight: 800, color: '#fff', marginBottom: 8 }}>{loginPop.title}</div>}
-            <div style={{ fontSize: 15, lineHeight: 1.8, whiteSpace: 'pre-wrap', color: '#fff' }}>{loginPop.content}</div>
-            <div style={{ color: 'var(--mut)', fontSize: 11.5, marginTop: 10 }}>
+            <div style={{ fontSize: 11, fontWeight: 600, color: '#80513c', marginBottom: 6 }}>班级公告</div>
+            {loginPop.title && <div style={{ fontSize: 16, fontWeight: 800, color: '#2b2823', marginBottom: 8 }}>{loginPop.title}</div>}
+            <div style={{ fontSize: 15, lineHeight: 1.8, whiteSpace: 'pre-wrap', color: '#45403a' }}>{loginPop.content}</div>
+            <div style={{ color: '#948a7c', fontSize: 11.5, marginTop: 10 }}>
               {(loginPop.created_at || '').slice(0, 16).replace('T', ' ')}
             </div>
             <button onClick={closeLoginPop} style={{
               marginTop: 14, width: '100%', padding: '11px 0', borderRadius: 999, border: 0,
-              background: 'linear-gradient(135deg,#5b8cff,#8b5cf6)', color: '#fff',
+              background: 'linear-gradient(135deg,#252b36,#555e6e)', color: '#fff',
               fontSize: 14, fontWeight: 700, cursor: 'pointer',
             }}>知道了</button>
           </div>

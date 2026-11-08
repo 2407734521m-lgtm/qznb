@@ -34,6 +34,16 @@ const nodeImports = [
 ];
 for (const line of nodeImports) requestSource = requestSource.replace(line, "");
 
+const deviceIdImportAnchor = `  generateRandomChineseIP,
+} = require('./index')`;
+if (!requestSource.includes(deviceIdImportAnchor)) throw new Error("NetEase device ID helper import anchor changed");
+requestSource = requestSource.replace(
+  deviceIdImportAnchor,
+  `  generateRandomChineseIP,
+  generateDeviceId,
+} = require('./index')`,
+);
+
 const oldState = `// 预先读取匿名token并缓存
 const anonymous_token = fs.readFileSync(
   path.resolve(tmpPath, './anonymous_token'),
@@ -53,11 +63,39 @@ const loadXeapiPublicKey = () => {
   }
   return xeapi_public_key
 }`;
-const newState = `// Workers edition: request-scoped filesystem writes are not used for provider state.
+const newState = `// Workers edition: keep XEAPI state in the current isolate, never in temporary files.
 const anonymous_token = ''
-const loadXeapiPublicKey = () => null`;
+let xeapi_public_key = null
+let xeapiPublicKeyPromise = null
+const { getXeapiPublicKey } = require('./xeapiKey')
+const loadXeapiPublicKey = () => xeapi_public_key
+const ensureXeapiPublicKey = async () => {
+  if (xeapi_public_key) return xeapi_public_key
+  if (!xeapiPublicKeyPromise) {
+    xeapiPublicKeyPromise = (async () => {
+      const deviceId = global.deviceId || generateDeviceId()
+      global.deviceId = deviceId
+      xeapi_public_key = await getXeapiPublicKey({}, deviceId)
+      return xeapi_public_key
+    })().finally(() => {
+      xeapiPublicKeyPromise = null
+    })
+  }
+  return xeapiPublicKeyPromise
+}`;
 if (!requestSource.includes(oldState)) throw new Error("NetEase temp-file state block changed");
 requestSource = requestSource.replace(oldState, newState);
+
+const createRequestAnchor = `const createRequest = async (uri, data, options) => {
+  let token = ''`;
+if (!requestSource.includes(createRequestAnchor)) throw new Error("NetEase createRequest anchor changed");
+requestSource = requestSource.replace(
+  createRequestAnchor,
+  `const createRequest = async (uri, data, options) => {
+  const requestedCrypto = options.crypto === '' ? (APP_CONF.encrypt ? 'eapi' : 'api') : options.crypto
+  if (requestedCrypto === 'xeapi') await ensureXeapiPublicKey()
+  let token = ''`,
+);
 
 const oldAgents = `// 预先创建HTTP/HTTPS agents并重用
 const createHttpAgent = () => new http.Agent({ keepAlive: true })
@@ -91,7 +129,7 @@ module.exports = async (query, request) => {
     level: query.level,
     encodeType: 'flac',
   }
-  const options = createOption(query, 'eapi')
+  const options = createOption(query, 'xeapi')
   if (data.level == 'sky') data.immerseType = query.immerseType || 'c51'
   if (data.level == 'vivid') {
     data.encodeType = 'mp3'

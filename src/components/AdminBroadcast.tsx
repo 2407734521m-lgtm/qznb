@@ -7,6 +7,9 @@ import OptionSheet from './OptionSheet';
 const KIND_OPTIONS = [
   { value: 'popup', label: '普通弹窗' },
   { value: 'location', label: '位置征集弹窗' },
+  { value: 'vote', label: '投票征集弹窗' },
+  { value: 'form', label: '填写征集弹窗' },
+  { value: 'signup', label: '报名弹窗' },
 ];
 const AUDIENCE_OPTIONS = [
   { value: 'all', label: '全部成员' },
@@ -21,15 +24,29 @@ const EXP_OPTIONS = [
 ];
 const SHEET_BTN = { padding: '8px 10px', borderRadius: 10, border: '1px solid rgba(34,49,74,.25)', background: '#fff', color: '#22314a', fontSize: 13.5 } as const;
 
-const KIND_LABEL: Record<string, string> = { popup: '普通弹窗', location: '位置征集' };
+const KIND_LABEL: Record<string, string> = { popup: '普通弹窗', location: '位置征集', vote: '投票征集', form: '填写征集', signup: '报名' };
 const AUDIENCE_LABEL: Record<string, string> = { all: '全部', app: '仅软件版', web: '仅网页版' };
-const STATUS_LABEL: Record<string, string> = { seen: '已读', declined: '暂不分享', shared: '已共享', denied: '系统未授权' };
+const STATUS_LABEL: Record<string, string> = {
+  seen: '已读', declined: '暂不分享', shared: '已共享', denied: '系统未授权',
+  voted: '已投票', submitted: '已填写', joined: '参加', not_joined: '不参加',
+};
+
+function statusLabel(kind: string, status: string): string {
+  if (status === 'declined') return kind === 'location' ? '暂不分享' : '暂不参与';
+  return STATUS_LABEL[status] ?? status;
+}
 
 type BroadcastRow = {
   id: number; kind: string; title: string; body: string; button_label: string;
   audience: string; created_at: string; expires_at: string | null; revoked: boolean;
+  options: unknown;
 };
-type ReceiptRow = { broadcast_id: number; user_id: string; status: string; region: string | null; updated_at: string };
+type ReceiptRow = { broadcast_id: number; user_id: string; status: string; region: string | null; answer: string | null; updated_at: string };
+
+function rowOptions(row: BroadcastRow): string[] {
+  if (!Array.isArray(row.options)) return [];
+  return row.options.filter((o): o is string => typeof o === 'string' && o.trim().length > 0);
+}
 
 export default function AdminBroadcast({ me, setMsg }: { me: string; setMsg: (s: string) => void }) {
   const [kind, setKind] = useState('popup');
@@ -38,6 +55,7 @@ export default function AdminBroadcast({ me, setMsg }: { me: string; setMsg: (s:
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
   const [buttonLabel, setButtonLabel] = useState('知道了');
+  const [optionsText, setOptionsText] = useState('');
   const [busy, setBusy] = useState(false);
   const [list, setList] = useState<BroadcastRow[]>([]);
   const [counts, setCounts] = useState<Record<number, Record<string, number>>>({});
@@ -48,7 +66,7 @@ export default function AdminBroadcast({ me, setMsg }: { me: string; setMsg: (s:
 
   const load = useCallback(async () => {
     const { data } = await supabase.from('admin_broadcasts')
-      .select('id, kind, title, body, button_label, audience, created_at, expires_at, revoked')
+      .select('id, kind, title, body, button_label, audience, created_at, expires_at, revoked, options')
       .order('created_at', { ascending: false })
       .limit(30);
     const rows = (data ?? []) as BroadcastRow[];
@@ -73,7 +91,16 @@ export default function AdminBroadcast({ me, setMsg }: { me: string; setMsg: (s:
   async function publish() {
     const t = title.trim();
     const b = body.trim();
+    const voteOpts = kind === 'vote'
+      ? [...new Set(optionsText.split('\n').map(s => s.trim()).filter(s => s.length > 0))].slice(0, 6)
+      : [];
     if (kind === 'popup' && !t && !b) { setMsg('弹窗标题和正文至少填一个'); return; }
+    if (kind === 'vote') {
+      if (!t) { setMsg('投票弹窗先填问题（标题）'); return; }
+      if (voteOpts.length < 2) { setMsg('投票至少要 2 个选项，一行一个'); return; }
+    }
+    if (kind === 'form' && !t && !b) { setMsg('填写征集的标题和说明至少填一个'); return; }
+    if (kind === 'signup' && !t && !b) { setMsg('报名弹窗的标题和说明至少填一个'); return; }
     setBusy(true);
     const days = parseInt(exp, 10);
     const { error } = await supabase.from('admin_broadcasts').insert({
@@ -83,13 +110,14 @@ export default function AdminBroadcast({ me, setMsg }: { me: string; setMsg: (s:
       button_label: kind === 'popup' ? (buttonLabel.trim() || '知道了') : '知道了',
       audience,
       created_by: me,
+      options: voteOpts,
       expires_at: days > 0 ? new Date(Date.now() + days * 864e5).toISOString() : null,
     });
     setBusy(false);
     if (error) { setMsg('发布失败：' + error.message); return; }
     await alog('broadcast_post', { kind, audience, exp_days: days });
-    setTitle(''); setBody(''); setButtonLabel('知道了'); setExp('0');
-    setMsg(kind === 'location' ? '位置征集已发布，成员打开网站时就会弹窗' : '广播弹窗已发布，成员打开网站时就会看到');
+    setTitle(''); setBody(''); setButtonLabel('知道了'); setOptionsText(''); setExp('0');
+    setMsg(`${KIND_LABEL[kind]}已发布，成员打开网站时就会弹窗`);
     void load();
   }
 
@@ -108,7 +136,7 @@ export default function AdminBroadcast({ me, setMsg }: { me: string; setMsg: (s:
     setExpanded(row.id);
     setLoadingDetail(true);
     const { data } = await supabase.from('broadcast_receipts')
-      .select('broadcast_id, user_id, status, region, updated_at')
+      .select('broadcast_id, user_id, status, region, answer, updated_at')
       .eq('broadcast_id', row.id)
       .order('updated_at', { ascending: false });
     const recs = (data ?? []) as ReceiptRow[];
@@ -139,7 +167,7 @@ export default function AdminBroadcast({ me, setMsg }: { me: string; setMsg: (s:
     const c = counts[row.id] ?? {};
     const total = Object.values(c).reduce((a, b) => a + b, 0);
     if (!total) return '暂无回执';
-    const parts = Object.entries(c).map(([s, n]) => `${STATUS_LABEL[s] ?? s} ${n}`);
+    const parts = Object.entries(c).map(([s, n]) => `${statusLabel(row.kind, s)} ${n}`);
     return `回执 ${total}：${parts.join(' · ')}`;
   }
 
@@ -150,7 +178,7 @@ export default function AdminBroadcast({ me, setMsg }: { me: string; setMsg: (s:
       <div style={card}>
         <h3 style={h3}>发布弹窗</h3>
         <p style={mut}>
-          普通弹窗：成员打开网站时弹一次，点按钮记为已读。位置征集：弹窗请成员自愿共享所在城市 / 地区，必须本人点同意才会定位，只回城市 / 地区文字，不存精确位置。
+          普通弹窗：弹一次，点按钮记已读。位置征集：成员自愿共享城市 / 地区，本人点同意才定位，不存精确位置。投票征集：成员选一项，后台看票数和名单。填写征集：成员填一段文字提交。报名：成员选参加 / 不参加，后台自动统计。五种都能选可见范围和有效期、能撤回，每人只弹一次。
         </p>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '10px 0' }}>
           <OptionSheet value={kind} options={KIND_OPTIONS} onChange={setKind} buttonText={KIND_LABEL[kind]} title="弹窗类型" buttonStyle={SHEET_BTN} />
@@ -158,9 +186,13 @@ export default function AdminBroadcast({ me, setMsg }: { me: string; setMsg: (s:
           <OptionSheet value={exp} options={EXP_OPTIONS} onChange={setExp} buttonText={EXP_OPTIONS.find(o => o.value === exp)?.label ?? '不过期'} title="有效期" buttonStyle={SHEET_BTN} />
         </div>
         <input style={inputStyle} value={title} onChange={e => setTitle(e.target.value)} maxLength={60}
-          placeholder={kind === 'location' ? '标题（留空用「位置共享邀请」）' : '弹窗标题'} />
+          placeholder={kind === 'location' ? '标题（留空用「位置共享邀请」）' : kind === 'vote' ? '投票问题（标题，必填）' : '弹窗标题'} />
         <textarea style={{ ...inputStyle, marginTop: 8, minHeight: 76, resize: 'vertical' }} value={body} onChange={e => setBody(e.target.value)} maxLength={500}
-          placeholder={kind === 'location' ? '说明为什么想收集大家的城市 / 地区（会显示在弹窗里）' : '弹窗正文'} />
+          placeholder={kind === 'location' ? '说明为什么想收集大家的城市 / 地区（会显示在弹窗里）' : kind === 'vote' ? '补充说明（可留空）' : kind === 'form' ? '说明要收集什么（会显示在弹窗里）' : kind === 'signup' ? '活动说明：时间、地点、要带什么' : '弹窗正文'} />
+        {kind === 'vote' && (
+          <textarea style={{ ...inputStyle, marginTop: 8, minHeight: 88, resize: 'vertical' }} value={optionsText} onChange={e => setOptionsText(e.target.value)} maxLength={300}
+            placeholder={'投票选项，一行一个，至少 2 个、最多 6 个\n例如：\n周六\n周日'} />
+        )}
         {kind === 'popup' && (
           <input style={{ ...inputStyle, marginTop: 8 }} value={buttonLabel} onChange={e => setButtonLabel(e.target.value)} maxLength={12}
             placeholder="按钮文字（默认「知道了」）" />
@@ -191,16 +223,30 @@ export default function AdminBroadcast({ me, setMsg }: { me: string; setMsg: (s:
               )}
             </div>
             {row.body && <p style={{ ...mut, margin: '4px 0 0', whiteSpace: 'pre-wrap' }}>{row.body}</p>}
+            {row.kind === 'vote' && rowOptions(row).length > 0 && (
+              <p style={{ ...mut, margin: '4px 0 0' }}>选项：{rowOptions(row).join(' / ')}</p>
+            )}
             <p style={{ ...mut, margin: '4px 0 0' }}>{countText(row)}</p>
             {expanded === row.id && (
               <div style={{ marginTop: 8 }}>
                 {loadingDetail && <p style={mut}>正在加载名单…</p>}
                 {!loadingDetail && respondents.length === 0 && <p style={mut}>还没有成员回执。</p>}
+                {!loadingDetail && row.kind === 'vote' && respondents.some(r => r.status === 'voted') && (
+                  <p style={{ ...mut, margin: '2px 0 6px' }}>
+                    票数：{rowOptions(row).map(opt => {
+                      const n = respondents.filter(r => r.status === 'voted' && r.answer === opt).length;
+                      return `${opt} ${n} 票`;
+                    }).join(' · ')}
+                  </p>
+                )}
                 {!loadingDetail && respondents.map(r => (
                   <div key={r.user_id} style={{ display: 'flex', gap: 8, padding: '6px 0', borderTop: '1px dashed rgba(34,49,74,.08)', fontSize: 13, color: '#22314a', flexWrap: 'wrap' }}>
                     <strong>{names[r.user_id] ?? '成员'}</strong>
-                    <span>{STATUS_LABEL[r.status] ?? r.status}</span>
+                    <span>{statusLabel(row.kind, r.status)}</span>
                     {r.region && <span style={{ color: '#817669' }}>{r.region}</span>}
+                    {r.answer && (r.status === 'voted' || r.status === 'submitted') && (
+                      <span style={{ color: '#4a4438', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{r.status === 'voted' ? `投了「${r.answer}」` : r.answer}</span>
+                    )}
                     <span style={{ color: '#817669' }}>{timeAgo(r.updated_at)}</span>
                   </div>
                 ))}

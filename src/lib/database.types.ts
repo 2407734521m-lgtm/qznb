@@ -28,6 +28,7 @@ export type Database = {
           created_at: string
           expires_at: string | null
           revoked: boolean
+          options: Json
         }
         Insert: {
           id?: number
@@ -40,6 +41,7 @@ export type Database = {
           created_at?: string
           expires_at?: string | null
           revoked?: boolean
+          options?: Json
         }
         Update: {
           id?: number
@@ -52,6 +54,7 @@ export type Database = {
           created_at?: string
           expires_at?: string | null
           revoked?: boolean
+          options?: Json
         }
         Relationships: [
           {
@@ -69,6 +72,7 @@ export type Database = {
           user_id: string
           status: string
           region: string | null
+          answer: string | null
           updated_at: string
         }
         Insert: {
@@ -76,6 +80,7 @@ export type Database = {
           user_id: string
           status: string
           region?: string | null
+          answer?: string | null
           updated_at?: string
         }
         Update: {
@@ -83,6 +88,7 @@ export type Database = {
           user_id?: string
           status?: string
           region?: string | null
+          answer?: string | null
           updated_at?: string
         }
         Relationships: [

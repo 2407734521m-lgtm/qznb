@@ -1,0 +1,77 @@
+import { useEffect, useState } from 'react';
+import { supabase } from '../lib/supabase';
+import { useAuth } from '../auth';
+
+// 反馈弹窗：登录页（未登录也能用）与站内共用
+export default function FeedbackModal({ kind, onClose }: { kind: 'login' | 'general'; onClose: () => void }) {
+  const session = useAuth().session;
+  const draftKey = 'qz_feedback_draft_v1_' + kind;
+  const draft = (() => { try { return JSON.parse(localStorage.getItem(draftKey) || 'null'); } catch { return null; } })();
+  const [name, setName] = useState(draft?.name ?? '');
+  const [contact, setContact] = useState(draft?.contact ?? '');
+  const [content, setContent] = useState(draft?.content ?? '');
+  useEffect(() => {
+    try {
+      if (name || contact || content) localStorage.setItem(draftKey, JSON.stringify({ name, contact, content }));
+      else localStorage.removeItem(draftKey);
+    } catch { /* 存储不可用就跳过草稿 */ }
+  }, [name, contact, content, draftKey]);
+  const [busy, setBusy] = useState(false);
+  const [done, setDone] = useState(false);
+  const [err, setErr] = useState('');
+
+  async function submit() {
+    const c = content.trim();
+    if (!c) return setErr('请填写反馈内容');
+    setBusy(true); setErr('');
+    const { error } = await supabase.from('feedbacks').insert({
+      user_id: session?.user.id ?? null,
+      name: name.trim() || null,
+      contact: contact.trim() || null,
+      content: c.slice(0, 1000),
+      kind,
+    });
+    setBusy(false);
+    if (error) return setErr('提交失败：' + error.message);
+    // 站内反馈同时发一封邮件给开发者（best-effort：邮件失败也不影响已存入后台的反馈记录）
+    if (kind === 'general' && session) {
+      supabase.functions.invoke('dev-feedback', {
+        body: { name: name.trim(), contact: contact.trim(), content: c.slice(0, 1000) },
+      }).catch(() => {});
+    }
+    try { localStorage.removeItem(draftKey); } catch { /* ignore */ }
+    setDone(true);
+  }
+
+  return (
+    <div className="crop-mask" onClick={() => { if (done || (!name.trim() && !contact.trim() && !content.trim())) onClose(); }}>
+      <div className="card" style={{ width: 'min(92vw, 420px)', margin: 0, maxHeight: 'calc(100dvh - 24px)', overflowY: 'auto' }}
+        onClick={e => e.stopPropagation()}>
+        {done ? (
+          <>
+            <h3 style={{ marginTop: 0 }}>✓ 已收到</h3>
+            <p className="mut">感谢反馈，提交记录已保存。登录账号可以在「我的空间 → 我的反馈」查看处理进度和管理员说明；未登录提交的反馈无法关联到个人记录。</p>
+            <button className="pri" onClick={onClose}>好的</button>
+          </>
+        ) : (
+          <>
+            <h3 style={{ marginTop: 0 }}>{kind === 'login' ? '登录问题反馈' : '意见反馈'}</h3>
+            <label>怎么称呼你</label>
+            <input value={name} onChange={e => setName(e.target.value)} placeholder="昵称 / 姓名" maxLength={30} />
+            <label>联系方式（选填）</label>
+            <input value={contact} onChange={e => setContact(e.target.value)} placeholder="QQ / 微信 / 手机号" maxLength={100} />
+            <label>{kind === 'login' ? '说说登录时遇到的问题' : '反馈内容'}</label>
+            <textarea value={content} onChange={e => setContent(e.target.value)} rows={4} maxLength={1000}
+              placeholder={kind === 'login' ? '比如：点登录没反应 / 提示密码错误…' : '想说的话…'} />
+            {err && <p className="err">{err}</p>}
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button className="ghost" style={{ flex: 1 }} onClick={onClose}>取消</button>
+              <button className="pri" style={{ flex: 1 }} disabled={busy} onClick={submit}>
+                {busy ? '提交中…' : '提交反馈'}</button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}

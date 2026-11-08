@@ -1,0 +1,513 @@
+/* 管理后台 · 纸面主题（2026-11-08，去AI味第四批，用户点选「后台也改成纸面风」）
+   在 Admin.tsx 里最后导入，压过 cinematic/unified/scaffold/tokens/pages/contrast。
+   思路与前台一致：暖纸底、墨色字、细线边、藏青主色、印泥红只做小点缀；
+   玻璃模糊、蓝青渐变、发光一律撤掉。布局与交互不动。 */
+
+/* ===== 1. 设计变量翻成纸面 ===== */
+.admin-shell-v3 {
+  --admin-bg-0: #f6f1e7;
+  --admin-bg-1: #fffdf9;
+  --admin-bg-2: #f1e9d8;
+  --admin-surface: #fffdf9;
+  --admin-surface-muted: #faf6ec;
+  --admin-field-bg: #fffdf9;
+  --admin-shadow-card: 0 6px 18px rgba(60, 48, 20, .05);
+  --admin-line: rgba(34, 49, 74, .13);
+  --admin-border: rgba(34, 49, 74, .16);
+  --admin-text: #22314a;
+  --admin-ink: #22314a;
+  --admin-muted: #6d6a5e;
+  --admin-muted-ink: #6d6a5e;
+  --admin-accent: #22314a;
+  --admin-accent-soft: rgba(34, 49, 74, .07);
+  --admin-teal: #22314a;
+  background: #f6f1e7;
+}
+
+/* ===== 2. 外壳：工作区 / 侧边栏 / 顶栏 ===== */
+.admin-shell-v3 .admin-workspace {
+  color: #22314a;
+  background: #f6f1e7;
+}
+.admin-shell-v3 .admin-sidebar {
+  color: #22314a;
+  background: #fffdf9;
+  border-right-color: rgba(34, 49, 74, .13);
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+.admin-shell-v3 .admin-brand-mark {
+  color: #fffdf9;
+  background: #22314a;
+  border-color: #22314a;
+  box-shadow: none;
+}
+.admin-shell-v3 .admin-brand-copy strong,
+.admin-shell-v3 .admin-sidebar-account-copy strong { color: #22314a; }
+.admin-shell-v3 .admin-brand-copy span,
+.admin-shell-v3 .admin-sidebar-caption,
+.admin-shell-v3 .admin-sidebar-account-copy small { color: #8a8271; }
+.admin-shell-v3 .admin-nav-group-title { color: #8a8271; }
+.admin-shell-v3 .admin-nav-group-title:hover { color: #22314a; }
+.admin-shell-v3 .admin-nav-group-title > svg { color: #a39a83; }
+.admin-shell-v3 .admin-nav-item { color: #54606f; }
+.admin-shell-v3 .admin-nav-item:hover { color: #22314a; background: #f7f2e4; }
+.admin-shell-v3 .admin-nav-item.is-active {
+  color: #22314a;
+  background: #f3ead6;
+  border-color: rgba(34, 49, 74, .10);
+  box-shadow: none;
+}
+.admin-shell-v3 .admin-nav-item.is-active:before { background: #b0404f; box-shadow: none; }
+.admin-shell-v3 .admin-nav-icon,
+.admin-shell-v3 .admin-nav-item.is-active .admin-nav-icon { color: #54687f; }
+.admin-shell-v3 .admin-nav-active-dot { background: #b0404f; box-shadow: none; }
+.admin-shell-v3 .admin-sidebar-avatar {
+  color: #22314a; background: #f3ead6; border-color: rgba(34, 49, 74, .14);
+}
+.admin-shell-v3 .admin-sidebar-logout {
+  color: #b0404f; background: #fdf1f1; border-color: rgba(176, 64, 79, .28);
+}
+.admin-shell-v3 .admin-sidebar-logout:hover {
+  color: #93333f; background: #fbe7e8; border-color: rgba(176, 64, 79, .4);
+}
+.admin-shell-v3 .admin-workspace-main { background: #f6f1e7; }
+.admin-shell-v3 .admin-console-topbar {
+  color: #43536a;
+  background: #fffdf9;
+  border-bottom-color: rgba(34, 49, 74, .13);
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+.admin-shell-v3 .admin-console-icon-button {
+  color: #54687f; background: #fffdf9; border-color: rgba(34, 49, 74, .16);
+  box-shadow: none;
+}
+.admin-shell-v3 .admin-console-icon-button:hover {
+  color: #22314a; background: #f7f2e4; border-color: rgba(34, 49, 74, .3);
+}
+.admin-shell-v3 .admin-console-breadcrumb { color: #8a8271; }
+.admin-shell-v3 .admin-console-breadcrumb > strong { color: #22314a; }
+.admin-shell-v3 .admin-command-trigger {
+  color: #6d6a5e; background: #fffdf9; border-color: rgba(34, 49, 74, .16); box-shadow: none;
+}
+.admin-shell-v3 .admin-command-trigger:hover {
+  color: #22314a; border-color: rgba(34, 49, 74, .32); background: #faf6ec;
+}
+.admin-shell-v3 .admin-command-trigger kbd {
+  color: #8a8271; background: #faf6ec; border-color: rgba(34, 49, 74, .14);
+}
+.admin-shell-v3 .admin-console-role {
+  color: #54687f; background: #faf6ec; border-color: rgba(34, 49, 74, .14);
+}
+.admin-shell-v3 .admin-console-logout { color: #6d6a5e; }
+.admin-shell-v3 .admin-console-logout:hover { color: #b0404f; background: #fdf1f1; }
+.admin-shell-v3 .admin-page-eyebrow { color: #a39a83; }
+.admin-shell-v3 .admin-page-heading h1 { color: #22314a; }
+.admin-shell-v3 .admin-page-heading p { color: #6d6a5e; }
+.admin-shell-v3 .admin-header { border-bottom-color: rgba(34, 49, 74, .13) !important; }
+.admin-shell-v3 .admin-header-title { color: #22314a !important; }
+
+/* ===== 3. 手机端条：快捷栏 / 底部 dock ===== */
+.admin-shell-v3 .admin-mobile-quickbar {
+  background: #fffdf9;
+  border-color: rgba(34, 49, 74, .13);
+  box-shadow: 0 -6px 20px rgba(60, 48, 20, .06);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+.admin-shell-v3 .admin-mobile-quick-item { color: #8a8271; }
+.admin-shell-v3 .admin-mobile-quick-item.is-active { color: #22314a; }
+.admin-shell-v3 .admin-mobile-quick-item.is-active .admin-mobile-quick-icon { background: #f3ead6; }
+.admin-shell-v3 .admin-dock {
+  background: #fffdf9 !important;
+  border-color: rgba(34, 49, 74, .14) !important;
+  box-shadow: 0 -6px 20px rgba(60, 48, 20, .08) !important;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+.admin-shell-v3 .admin-dock button { color: #6d6a5e !important; }
+.admin-shell-v3 .admin-dock button[aria-current="page"],
+.admin-shell-v3 .admin-mobile-dock button[aria-current="page"],
+.admin-shell-v3 .admin-mobile-dock button.active {
+  color: #ffffff !important;
+  background: #22314a !important;
+  background-image: none !important;
+  border-color: #22314a !important;
+  box-shadow: none !important;
+}
+.admin-shell-v3 .admin-sidebar-scrim { background: rgba(34, 40, 30, .3); }
+.admin-shell-v3 .admin-command-overlay { background: rgba(34, 40, 30, .32); }
+
+/* ===== 4. 命令面板 ===== */
+.admin-shell-v3 .admin-command-palette {
+  color: #22314a;
+  background: #fffdf9;
+  border-color: rgba(34, 49, 74, .16);
+  box-shadow: 0 24px 60px rgba(60, 48, 20, .18);
+}
+.admin-shell-v3 .admin-command-input-wrap { border-bottom-color: rgba(34, 49, 74, .12); }
+.admin-shell-v3 .admin-command-input-wrap > svg { color: #a39a83; }
+.admin-shell-v3 .admin-command-input-wrap input { color: #22314a; }
+.admin-shell-v3 .admin-command-result { color: #43536a; }
+.admin-shell-v3 .admin-command-result:hover,
+.admin-shell-v3 .admin-command-result.is-active { color: #22314a; background: #f3ead6; }
+.admin-shell-v3 .admin-command-result-icon { color: #54687f; background: #faf6ec; }
+.admin-shell-v3 .admin-command-result-copy strong { color: #22314a; }
+.admin-shell-v3 .admin-command-result-copy small,
+.admin-shell-v3 .admin-command-foot,
+.admin-shell-v3 .admin-command-empty { color: #8a8271; }
+.admin-shell-v3 .admin-command-palette kbd {
+  color: #8a8271; background: #faf6ec; border-color: rgba(34, 49, 74, .14);
+}
+.admin-shell-v3 .admin-command-palette button:focus-visible,
+.admin-shell-v3 .admin-command-palette input:focus-visible { outline-color: #22314a; }
+
+/* ===== 5. 正文基调 ===== */
+.admin-shell-v3 .admin-content { color: #2c3a52 !important; }
+.admin-shell-v3 .admin-content h2,
+.admin-shell-v3 .admin-content h3,
+.admin-shell-v3 .admin-content strong,
+.admin-shell-v3 .admin-content b { color: #22314a; }
+.admin-shell-v3 .admin-content p,
+.admin-shell-v3 .admin-content label { color: #5d6055 !important; }
+.admin-shell-v3 label { color: #5d6055; }
+
+/* ===== 6. 按钮：主按钮藏青纯色，其余纸面 ===== */
+.admin-shell-v3 .admin-content button.pri,
+.admin-shell-v3 .admin-content button.mini:not(.ghost):not(.danger),
+.admin-shell-v3 .admin-content .admin-analytics-page button.pri,
+.admin-shell-v3 .admin-content .admin-announcements-page button.pri,
+.admin-shell-v3 .admin-content .admin-approvals-page button:not(.ghost):not(.danger),
+.admin-shell-v3 .admin-content .admin-security-page button:not(.ghost):not(.danger),
+.admin-shell-v3 .admin-content .admin-system-page button:not(.ghost):not(.danger),
+.admin-shell-v3 .admin-content .admin-release-page button:not(.ghost):not(.danger),
+.admin-shell-v3 .admin-content .admin-backup-page button:not(.ghost):not(.danger),
+.admin-shell-v3 .admin-content .admin-logs-page button:not(.ghost):not(.danger),
+.admin-shell-v3 .admin-content .admin-settings-page button:not(.ghost):not(.danger) {
+  color: #ffffff !important;
+  background: #22314a !important;
+  background-image: none !important;
+  border: 1px solid #22314a !important;
+  box-shadow: none !important;
+}
+.admin-shell-v3 button.pri {
+  background-image: none !important;
+  background-color: #22314a !important;
+}
+.admin-shell-v3 .admin-content button.mini,
+.admin-shell-v3 .admin-content button.ghost {
+  color: #43536a !important;
+  background: #ffffff !important;
+  border: 1px solid rgba(34, 49, 74, .18) !important;
+  box-shadow: none !important;
+}
+.admin-shell-v3 .admin-content button.ghost:hover,
+.admin-shell-v3 .admin-content button.mini.ghost:hover,
+.admin-shell-v3 .admin-content button.mini:hover {
+  color: #22314a;
+  background: #f7f2e4;
+  border-color: rgba(34, 49, 74, .32);
+}
+.admin-shell-v3 .admin-content .admin-settings-page button.ghost {
+  color: #43536a !important;
+  background: #ffffff !important;
+  border: 1px solid rgba(34, 49, 74, .18) !important;
+}
+.admin-shell-v3 .admin-content button.danger,
+.admin-shell-v3 .admin-content .admin-announcements-page button.danger,
+.admin-shell-v3 .admin-content .admin-approvals-page button.danger {
+  color: #b0404f !important;
+  background: #fdf1f1 !important;
+  border: 1px solid rgba(176, 64, 79, .32) !important;
+}
+.admin-shell-v3 .admin-content [aria-pressed="true"] {
+  color: #22314a !important;
+  background: #f3ead6 !important;
+  border-color: rgba(34, 49, 74, .3) !important;
+}
+.admin-shell-v3 .admin-member-search label { color: #5d6055; }
+.admin-shell-v3 .admin-member-search-control {
+  background: #fffdf9; border-color: rgba(34, 49, 74, .16); box-shadow: none;
+}
+.admin-shell-v3 .admin-member-search-control > svg { color: #a39a83; }
+.admin-shell-v3 .admin-member-search-control input { color: #22314a; }
+.admin-shell-v3 .admin-member-search-control input::placeholder { color: #a39a83; }
+.admin-shell-v3 .admin-member-search-control button { background: #22314a; }
+.admin-shell-v3 .admin-member-search-control button:hover { background: #2e415f; }
+
+/* ===== 7. 表单 ===== */
+.admin-shell-v3 .admin-search input {
+  background: #fffdf9 !important;
+  border-color: rgba(34, 49, 74, .16) !important;
+  color: #22314a !important;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+.admin-shell-v3 .admin-search input::placeholder { color: #a39a83 !important; }
+.admin-shell-v3 .admin-content input,
+.admin-shell-v3 .admin-content textarea,
+.admin-shell-v3 .admin-content select {
+  background-color: #ffffff;
+  border-color: rgba(34, 49, 74, .18);
+  color: #22314a;
+}
+.admin-shell-v3 .admin-content input::placeholder,
+.admin-shell-v3 .admin-content textarea::placeholder { color: #a39a83 !important; }
+.admin-shell-v3 .admin-content input:focus,
+.admin-shell-v3 .admin-content textarea:focus,
+.admin-shell-v3 .admin-content select:focus {
+  border-color: rgba(34, 49, 74, .55) !important;
+  box-shadow: 0 0 0 3px rgba(34, 49, 74, .12) !important;
+}
+.admin-shell-v3 button:focus-visible,
+.admin-shell-v3 input:focus-visible,
+.admin-shell-v3 textarea:focus-visible,
+.admin-shell-v3 select:focus-visible { outline-color: #22314a; }
+.admin-shell-v3 input[type="checkbox"],
+.admin-shell-v3 input[type="radio"] { accent-color: #22314a; }
+
+/* ===== 8. 批量操作条（原深青渐变）===== */
+.admin-shell-v3 .admin-account-batchbar-active,
+.admin-shell-v3 .admin-moderation-batchbar {
+  background: #faf6ec;
+  background-image: none;
+  border-color: rgba(34, 49, 74, .18);
+  box-shadow: 0 8px 20px rgba(60, 48, 20, .08);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+.admin-shell-v3 .admin-moderation-batchbar-copy strong { color: #22314a; }
+.admin-shell-v3 .admin-moderation-batchbar-copy span { color: #6d6a5e; }
+.admin-shell-v3 .admin-moderation-item-select { color: #5d6055; }
+
+/* ===== 9. 总览卡片 ===== */
+.admin-shell-v3 .admin-content .admin-overview-panel,
+.admin-shell-v3 .admin-content .admin-overview-metric-card,
+.admin-shell-v3 .admin-content .admin-overview-todo > div {
+  color: #22314a !important;
+  background: #fffdf9 !important;
+  border: 1px solid rgba(34, 49, 74, .13) !important;
+  box-shadow: 0 6px 18px rgba(60, 48, 20, .05) !important;
+}
+.admin-shell-v3 .admin-content .admin-overview-header h2 { color: #22314a !important; }
+.admin-shell-v3 .admin-overview-shortcuts > button {
+  background: #fffdf9;
+  background-image: none;
+  color: #22314a;
+  border-color: rgba(34, 49, 74, .14);
+  box-shadow: none;
+}
+.admin-shell-v3 .admin-overview-shortcuts > button:hover {
+  background: #faf6ec;
+  border-color: rgba(34, 49, 74, .3);
+  box-shadow: 0 6px 16px rgba(60, 48, 20, .07);
+}
+.admin-shell-v3 .admin-overview-member-avatar {
+  color: #22314a;
+  background: #ece4d0;
+  border-color: rgba(34, 49, 74, .14);
+}
+.admin-shell-v3 .admin-loading-pulse {
+  background: #22314a !important;
+  box-shadow: 0 0 0 0 rgba(34, 49, 74, .25);
+}
+.admin-shell-v3 .admin-overview-timeout {
+  color: #6b5312 !important;
+  background: #faf3da !important;
+  border-color: rgba(146, 118, 52, .35) !important;
+}
+.admin-shell-v3 .admin-overview-timeout p { color: #6b5312 !important; }
+.admin-shell-v3 .admin-overview-timeout button {
+  color: #ffffff !important; background: #22314a !important; border-color: #22314a !important;
+}
+
+/* ===== 10. 内联渐变块一律压平（旧组件残留） ===== */
+.admin-shell-v3 .admin-content [style*="linear-gradient"] {
+  background-image: none !important;
+  background-color: #fffdf9 !important;
+}
+.admin-shell-v3 .admin-content [style*="linear-gradient"] h1,
+.admin-shell-v3 .admin-content [style*="linear-gradient"] h2,
+.admin-shell-v3 .admin-content [style*="linear-gradient"] h3,
+.admin-shell-v3 .admin-content [style*="linear-gradient"] h4,
+.admin-shell-v3 .admin-content [style*="linear-gradient"] strong,
+.admin-shell-v3 .admin-content [style*="linear-gradient"] b { color: #22314a !important; }
+.admin-shell-v3 .admin-content [style*="linear-gradient"] p,
+.admin-shell-v3 .admin-content [style*="linear-gradient"] label { color: #5d6055 !important; }
+
+/* ===== 11. 提示条 ===== */
+.admin-shell-v3 .admin-content .priv-note {
+  background: #f7f0dc !important;
+  color: #4f4632 !important;
+  border: 1px solid rgba(146, 118, 52, .35) !important;
+}
+
+/* ===== 12. 压过主包后置的 ios26 玻璃规则 =====
+   打包合并顺序里 styles-ios26-liquid-glass.css 排在后台样式之后，
+   它给 sidebar 与内容区 .card 写了 !important 玻璃面；
+   这里用更高优先级（多一层祖先）把这两处钉回纸面。 */
+.admin-shell-v3 .admin-workspace .admin-sidebar {
+  background: #fffdf9 !important;
+  border-right-color: rgba(34, 49, 74, .13) !important;
+  box-shadow: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+.admin-shell-v3 .admin-workspace .admin-content .card {
+  color: #22314a !important;
+  background: #fffdf9 !important;
+  background-image: none !important;
+  border: 1px solid rgba(34, 49, 74, .14) !important;
+  box-shadow: 0 16px 40px rgba(60, 48, 20, .12) !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+/* ===== 13. 实拍残留逐项收尾（2026-11-08 复拍后） ===== */
+/* 顶栏与抽屉遮罩：彻底去掉半透明与模糊 */
+.admin-shell-v3 .admin-console-topbar {
+  background: #fffdf9 !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+.admin-shell-v3 .admin-sidebar-scrim {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+/* 手机快捷栏选中项：米色底（压掉 scaffold 媒体查询里的蓝青渐变 tint） */
+.admin-shell-v3 .admin-mobile-quick-item.is-active {
+  color: #22314a !important;
+  background: #f3ead6 !important;
+  background-image: none !important;
+  border-color: rgba(34, 49, 74, .14) !important;
+}
+/* 批量操作条：pages 层同名规则是 (0,3,0) !important 淡蓝底，这里同级压回 */
+.admin-shell-v3 .admin-content .admin-account-batchbar-active,
+.admin-shell-v3 .admin-content .admin-moderation-batchbar {
+  background: #faf6ec !important;
+  background-image: none !important;
+  border-color: rgba(34, 49, 74, .18) !important;
+  box-shadow: 0 8px 20px rgba(60, 48, 20, .08) !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+.admin-shell-v3 .admin-content .admin-account-batchbar-active button,
+.admin-shell-v3 .admin-content .admin-moderation-batchbar button {
+  border-color: rgba(34, 49, 74, .18) !important;
+}
+/* 设置/系统/分析页的浅蓝灰内嵌面板 */
+.admin-shell-v3 .admin-content .admin-settings-page [style*="#f8fafc"] {
+  background: #faf6ec !important;
+  border-color: rgba(34, 49, 74, .14) !important;
+}
+.admin-shell-v3 .admin-content .admin-analytics-page > section > div[style*="var(--admin-surface-muted"],
+.admin-shell-v3 .admin-content .admin-system-page [style*="var(--admin-surface-muted"] {
+  background: #faf6ec !important;
+  border-color: rgba(34, 49, 74, .14) !important;
+}
+/* 总览：分类数量行、在线指标行、范围标签 */
+.admin-shell-v3 .admin-content .admin-overview-category-list > div,
+.admin-shell-v3 .admin-content .admin-overview-online-metrics > div {
+  color: #43536a !important;
+  background: #faf6ec !important;
+  border-color: rgba(34, 49, 74, .10) !important;
+}
+.admin-shell-v3 .admin-content .admin-overview-range-label,
+.admin-shell-v3 .admin-content .admin-overview-count {
+  color: #6d6a5e !important;
+  background: #faf6ec !important;
+  border-color: rgba(34, 49, 74, .12) !important;
+}
+/* 总览快捷入口图标片：多彩统一纸面（与 pages 的 nth-child 规则同级） */
+.admin-shell-v3 .admin-content .admin-overview-shortcuts > button > svg,
+.admin-shell-v3 .admin-content .admin-overview-shortcuts > button:nth-child(2) > svg,
+.admin-shell-v3 .admin-content .admin-overview-shortcuts > button:nth-child(3) > svg {
+  color: #54687f !important;
+  background: #f3ead6 !important;
+  border-color: rgba(34, 49, 74, .12) !important;
+}
+.admin-shell-v3 .admin-content .admin-overview-shortcuts > button:hover {
+  color: #22314a !important;
+  background: #faf6ec !important;
+  border-color: rgba(34, 49, 74, .3) !important;
+}
+/* 账号卡片上的展开/收起按钮 */
+.admin-shell-v3 .admin-content .admin-accounts-page article > button {
+  color: #43536a !important;
+  background: #ffffff !important;
+  border-color: rgba(34, 49, 74, .16) !important;
+}
+.admin-shell-v3 .admin-content .admin-accounts-page article > button:hover {
+  color: #22314a !important;
+  background: #f7f2e4 !important;
+  border-color: rgba(34, 49, 74, .32) !important;
+}
+/* 复选框/单选框着色（压掉 pages 的亮蓝 radio 与表单层亮蓝） */
+.admin-shell-v3 .admin-content input[type="checkbox"],
+.admin-shell-v3 .admin-content input[type="radio"] {
+  accent-color: #22314a !important;
+}
+/* 内容区链接统一墨蓝（pages 给发布/备份页单设的亮蓝一并压回） */
+.admin-shell-v3 .admin-content a,
+.admin-shell-v3 .admin-content .admin-release-page a,
+.admin-shell-v3 .admin-content .admin-backup-page a {
+  color: #2e415f !important;
+}
+
+/* ===== 14. 第二轮复拍残留（2026-11-08）：选中态被压白、悬停变蓝、遮罩模糊 =====
+   contrast.css 用 :is([style*="background: ..."]) 把浅色面板内按钮统一钉成白底
+   !important（优先级 0,5,1），§6 的米色选中规则（0,3,0）压不过它，账号页筛选片
+   选中与未选看不出区别；同源 :hover 规则（0,6,1）又把悬停钉成亮蓝。
+   这里用重复类名把优先级抬到其之上逐项压回。 */
+/* 筛选/切换按钮选中态：藏青实底白字，与未选的白底一眼可分 */
+.admin-shell-v3.admin-shell-v3 .admin-content.admin-content button[aria-pressed="true"][aria-pressed="true"] {
+  color: #ffffff !important;
+  background: #22314a !important;
+  background-image: none !important;
+  border-color: #22314a !important;
+}
+/* 公告受众钮是 .mini（未选时 §6 钉成藏青实底），选中改米色底藏青字区分；
+   本条排在上一条之后，同优先级时靠后胜出 */
+.admin-shell-v3.admin-shell-v3 .admin-content button.mini[aria-pressed="true"][aria-pressed="true"] {
+  color: #22314a !important;
+  background: #f3ead6 !important;
+  background-image: none !important;
+  border-color: rgba(34, 49, 74, .4) !important;
+}
+/* 面板内按钮悬停：米纸底（逐字复刻 contrast 的 :is 面板选择器，靠重复类名抬优先级） */
+.admin-shell-v3.admin-shell-v3 .admin-content.admin-content :is(
+  [style*="background: var(--admin-surface"],
+  [style*="background:var(--admin-surface"],
+  [style*="background: #fff"],
+  [style*="background:#fff"],
+  [style*="background: #ffffff"],
+  [style*="background:#ffffff"],
+  [style*="background: #f8fafc"],
+  [style*="background:#f8fafc"],
+  [style*="background: #f1f5f9"],
+  [style*="background:#f1f5f9"],
+  [style*="background: rgb(248, 250, 252)"],
+  [style*="background: rgb(241, 245, 249)"]
+) button:not(.pri):not(.danger):hover {
+  color: #22314a !important;
+  background: #f7f2e4 !important;
+  border-color: rgba(34, 49, 74, .32) !important;
+}
+/* 内容区其余按钮悬停统一米纸底，不再闪蓝 */
+.admin-shell-v3.admin-shell-v3 .admin-content.admin-content button:hover:not(.pri):not(.danger):not(:disabled) {
+  color: #22314a !important;
+  background-color: #f7f2e4 !important;
+}
+/* 各类遮罩彻底去模糊：抽屉 scrim、命令面板、成员弹窗、通用对话框、更多菜单底 */
+.admin-shell-v3 .admin-workspace .admin-sidebar-scrim,
+.admin-shell-v3 .admin-command-overlay,
+.admin-shell-v3 .admin-content .admin-modal-overlay,
+.admin-shell-v3 .admin-dialog-overlay,
+.admin-dialog-overlay,
+.admin-mobile-more-backdrop {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}

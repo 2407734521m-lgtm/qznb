@@ -1,0 +1,19 @@
+/* 底部弹窗打开时，背后页面「退后一步」：缩小、圆角、略暗，与弹窗弹簧同步过渡。
+   弹窗本体经 portal 挂在 body 下，不受 #root 缩放影响。 */
+#root {
+  transition:
+    transform 0.45s cubic-bezier(0.32, 0.72, 0.3, 1),
+    border-radius 0.45s cubic-bezier(0.32, 0.72, 0.3, 1),
+    filter 0.45s cubic-bezier(0.32, 0.72, 0.3, 1);
+}
+
+body.qz-sheet-bg {
+  background: #14171d;
+}
+
+body.qz-sheet-bg #root {
+  transform: scale(0.92);
+  border-radius: 26px;
+  filter: brightness(0.92);
+  overflow: hidden;
+}

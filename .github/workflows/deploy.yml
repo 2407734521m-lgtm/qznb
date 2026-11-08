@@ -1,0 +1,84 @@
+name: Deploy to GitHub Pages
+on:
+  push: { branches: [main] }
+  workflow_dispatch:
+permissions: { contents: read, pages: write, id-token: write }
+concurrency: { group: pages, cancel-in-progress: true }
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with: { node-version: 22, cache: 'npm' }
+      - run: npm ci
+      - run: npm run build
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          VITE_GIT_COMMIT_SHA: ${{ github.sha }}
+          VITE_BUILD_BRANCH: ${{ github.ref_name }}
+          VITE_GITHUB_RUN_ID: ${{ github.run_id }}
+          VITE_GITHUB_RUN_NUMBER: ${{ github.run_number }}
+      - uses: actions/upload-pages-artifact@v5
+        with: { path: dist }
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment: { name: github-pages, url: '${{ steps.d.outputs.page_url }}' }
+    steps:
+      - id: d
+        uses: actions/deploy-pages@v5
+      - name: Email deployment success
+        if: ${{ steps.d.outcome == 'success' }}
+        env:
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          DEPLOY_URL: ${{ steps.d.outputs.page_url }}
+          COMMIT_SHA: ${{ github.sha }}
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message || 'Manual deployment' }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          if [ -z "$RESEND_API_KEY" ]; then
+            echo "::warning::RESEND_API_KEY is not configured; deployment email was skipped."
+            exit 0
+          fi
+          node <<'NODE'
+          (async () => {
+            const escapeHtml = value => String(value).replace(/[&<>"']/g, c => ({
+              "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;"
+            })[c]);
+            const payload = {
+              from: "堯 <notice@qianzhi.pw>",
+              to: ["2407734521@qq.com"],
+              subject: "【堯】网站部署成功",
+              html: `<div style="font-family:Arial,sans-serif;line-height:1.7;color:#222">
+                <h2>堯网站已成功部署</h2>
+                <p>主站部署任务已完成。</p>
+                <p><b>分支：</b>${escapeHtml(process.env.BRANCH)}</p>
+                <p><b>提交：</b>${escapeHtml(process.env.COMMIT_SHA.slice(0,12))}</p>
+                <p><b>提交说明：</b>${escapeHtml(process.env.COMMIT_MESSAGE)}</p>
+                <p><a href="${escapeHtml(process.env.DEPLOY_URL)}">打开网站</a></p>
+                <p><a href="${escapeHtml(process.env.RUN_URL)}">查看部署记录</a></p>
+              </div>`
+            };
+            const response = await fetch("https://api.resend.com/emails", {
+              method: "POST",
+              headers: {
+                "Authorization": `Bearer ${process.env.RESEND_API_KEY}`,
+                "Content-Type": "application/json"
+              },
+              body: JSON.stringify(payload)
+            });
+            const body = await response.text();
+            if (!response.ok) {
+              console.error("Resend request failed:", response.status, body);
+              process.exitCode = 1;
+            } else {
+              console.log("Deployment notification accepted by Resend:", body);
+            }
+          })().catch(error => {
+            console.error("Unable to send deployment notification:", error);
+            process.exitCode = 1;
+          });
+          NODE

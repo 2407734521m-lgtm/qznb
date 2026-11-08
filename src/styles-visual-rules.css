@@ -1,0 +1,183 @@
+/* Layout tokens only. The active colors and surfaces are defined in styles-ios26-tokens.css. */
+:root {
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 32px;
+  --radius-sm: 6px;
+  --radius-control: 9px;
+  --radius-card: 14px;
+  --radius-panel: 18px;
+}
+
+/* Shared component refinements continue to use canonical visual tokens. */
+/* Shared surfaces: keep the chrome quiet and let real class content carry color. */
+.card,
+.post,
+.tl-item,
+.composer {
+  background: var(--visual-surface) !important;
+  border: 1px solid var(--visual-border) !important;
+  border-radius: var(--radius-card) !important;
+  box-shadow: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+button.pri {
+  background: var(--visual-accent) !important;
+  color: var(--visual-on-accent) !important;
+  border: 1px solid var(--visual-accent) !important;
+  border-radius: var(--radius-control) !important;
+  box-shadow: none !important;
+  font-weight: 600;
+}
+
+button.ghost,
+button.mini.ghost,
+.grow,
+.rankchip,
+.gprof {
+  background: var(--visual-surface-raised) !important;
+  color: var(--visual-text) !important;
+  border: 1px solid var(--visual-border) !important;
+  box-shadow: none !important;
+}
+
+input,
+textarea,
+select {
+  background: var(--visual-surface) !important;
+  color: var(--visual-text) !important;
+  border: 1px solid var(--visual-border) !important;
+  border-radius: var(--radius-control) !important;
+  box-shadow: none !important;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--visual-muted);
+  opacity: 1;
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  outline: 2px solid color-mix(in srgb, var(--visual-accent) 72%, transparent);
+  outline-offset: 2px;
+  border-color: var(--visual-accent) !important;
+  box-shadow: none !important;
+}
+
+.mcard,
+.lpop,
+.gexpand,
+.chat-bar {
+  background: var(--visual-surface) !important;
+  border-color: var(--visual-border) !important;
+  box-shadow: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+.mcard {
+  border-radius: var(--radius-card) !important;
+  transition: background-color 160ms ease, border-color 160ms ease, transform 160ms ease !important;
+}
+
+.mcard:hover,
+.mcard:focus-within {
+  background: var(--visual-surface-raised) !important;
+  border-color: color-mix(in srgb, var(--visual-accent) 34%, var(--visual-border)) !important;
+  box-shadow: none !important;
+  transform: translateY(-1px);
+}
+
+.bubble.me {
+  background: var(--visual-surface-raised) !important;
+  color: var(--visual-text) !important;
+  border: 1px solid var(--visual-border) !important;
+}
+
+.gbadge,
+.rankchip.on {
+  background: color-mix(in srgb, var(--visual-accent) 12%, var(--visual-surface-raised)) !important;
+  border: 1px solid color-mix(in srgb, var(--visual-accent) 25%, var(--visual-border)) !important;
+  color: var(--visual-text) !important;
+  box-shadow: none !important;
+}
+
+.hero h1,
+.welcome-nick {
+  background: none !important;
+  color: var(--visual-text) !important;
+  -webkit-text-fill-color: currentColor !important;
+  text-shadow: none !important;
+}
+
+.topnav a.on {
+  box-shadow: inset 0 0 0 1px var(--visual-border);
+}
+
+/* The compact mobile Dock remains warm white, with a safe solid fallback. */
+@media (max-width: 768px) {
+  .tabbar {
+    background: rgba(252, 249, 244, .97) !important;
+    background-image: none !important;
+    border: 1px solid rgba(255, 255, 255, .96) !important;
+    border-radius: 18px !important;
+    box-shadow:
+      0 10px 28px rgba(34, 25, 18, .15),
+      inset 0 1px 0 rgba(255, 255, 255, .98) !important;
+    -webkit-backdrop-filter: blur(18px) saturate(1.08) !important;
+    backdrop-filter: blur(18px) saturate(1.08) !important;
+  }
+
+  .tabbar .dock-item > a {
+    color: #71665a !important;
+    background: transparent !important;
+    border: 1px solid transparent !important;
+    box-shadow: none !important;
+    border-radius: 10px !important;
+    text-shadow: none !important;
+  }
+
+  .tabbar .dock-item > a.on,
+  .tabbar .dock-item > a[aria-current="page"] {
+    color: #704632 !important;
+    background: #f1e5d9 !important;
+    border-color: #e7d5c5 !important;
+    box-shadow: none !important;
+  }
+
+  .tabbar .dock-toggle {
+    color: #704632 !important;
+    background: #f5eee6 !important;
+    border: 1px solid #e8ddd1 !important;
+    box-shadow: none !important;
+  }
+
+  .tabbar .dock-active-indicator {
+    background: #9b654b !important;
+    box-shadow: none !important;
+  }
+}
+
+:where(button, a, input, textarea, select):focus-visible {
+  outline: 2px solid var(--visual-accent);
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }
+}

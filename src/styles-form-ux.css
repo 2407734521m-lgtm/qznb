@@ -1,0 +1,249 @@
+/* 表单体验（登录卡内使用）：
+   1. 浮动标签 .float-field：标签平时停在框内，聚焦或有内容后缩小上移到框内上方并一直显示；
+      占位符全程不显示，字段含义由标签承担，原占位里的说明改为框下常驻帮助字 .float-hint。
+   2. 验证码分格 .code-input：6 个独立方格，逻辑在 components/CodeInput.tsx。
+   线上登录卡最终生效的是浅色卡，输入框颜色在此明确钉死（背景/文字/聚焦三态一致），
+   避免与深色卡样式、玻璃样式的同名规则互相覆盖。 */
+
+.login-card .float-field {
+  position: relative;
+  margin: 12px 0 7px;
+}
+
+.login-card .float-field input:not([type="checkbox"]):not([type="range"]):not([type="file"]) {
+  margin: 0;
+  min-height: 54px;
+  padding: 22px 14px 5px;
+  background: #ffffff !important;
+  color: #20242c !important;
+  border: 1px solid #ddd5c7 !important;
+  caret-color: #b26a35;
+}
+
+.login-card .float-field input:not([type="checkbox"]):not([type="range"]):not([type="file"]):focus {
+  background: #ffffff !important;
+  color: #20242c !important;
+  border-color: #c68b69 !important;
+  box-shadow: 0 0 0 3px rgba(198, 139, 105, .18) !important;
+}
+
+.login-card .float-field input::placeholder {
+  color: transparent !important;
+}
+
+.login-card .float-tag {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 14px;
+  line-height: 1;
+  color: #8d94a3;
+  white-space: nowrap;
+  pointer-events: none;
+  transition: top 180ms cubic-bezier(.22, 1, .36, 1), font-size 180ms cubic-bezier(.22, 1, .36, 1), color 180ms ease;
+}
+
+.login-card .float-field:focus-within .float-tag,
+.login-card .float-field.has-value .float-tag {
+  top: 13px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .04em;
+  color: #b26a35;
+}
+
+.login-card .float-hint {
+  display: block;
+  margin: 4px 2px 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #8d94a3;
+}
+
+.login-card .password-reveal {
+  color: #7a6a58 !important;
+  font-size: 13px;
+}
+
+.login-card .code-input {
+  display: flex;
+  gap: 8px;
+  margin: 2px 0 10px;
+}
+
+.login-card .code-input input:not([type="checkbox"]):not([type="range"]):not([type="file"]) {
+  flex: 1 1 0;
+  min-width: 0;
+  height: 56px;
+  margin: 0;
+  padding: 8px 0;
+  text-align: center;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 0;
+  background: #ffffff !important;
+  color: #20242c !important;
+  border: 1px solid #ddd5c7 !important;
+  caret-color: #b26a35;
+}
+
+.login-card .code-input input:not([type="checkbox"]):not([type="range"]):not([type="file"]):focus {
+  background: #ffffff !important;
+  color: #20242c !important;
+  border-color: #c68b69 !important;
+  box-shadow: 0 0 0 3px rgba(198, 139, 105, .18) !important;
+}
+
+/* 失焦校验：报错就写在框正下方，说清怎么改；有报错时框变红 */
+.login-card .float-error {
+  display: block;
+  margin: 4px 2px 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #c0392b;
+}
+
+.login-card .float-field.has-error input:not([type="checkbox"]):not([type="range"]):not([type="file"]) {
+  border-color: #d9534f !important;
+}
+
+.login-card .float-field.has-error .float-tag {
+  color: #c0392b;
+}
+
+/* 密码强度条 */
+.login-card .pw-strength {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 6px 2px 0;
+}
+
+.login-card .pw-strength-bar {
+  flex: 1;
+  height: 4px;
+  border-radius: 2px;
+  background: #eee7db;
+  overflow: hidden;
+}
+
+.login-card .pw-strength-bar > span {
+  display: block;
+  height: 100%;
+  border-radius: 2px;
+  transition: width 200ms ease, background-color 200ms ease;
+}
+
+.login-card .pw-strength-txt {
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* 标签输入（兴趣爱好）：回车生成标签，点叉删除 */
+.tag-input {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  border: 1px solid #e2e5ec;
+  border-radius: 10px;
+  background: #fff;
+  padding: 7px 9px;
+  margin-top: 6px;
+}
+
+.tag-input:focus-within {
+  border-color: #8b95a7;
+  box-shadow: 0 0 0 3px rgba(100, 116, 139, .11);
+}
+
+.tag-input .tag-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #eef2f7;
+  color: #202632;
+  border-radius: 999px;
+  padding: 4px 6px 4px 11px;
+  font-size: 13px;
+  line-height: 1.3;
+}
+
+.tag-input .tag-chip button {
+  border: 0;
+  background: rgba(32, 38, 50, .08);
+  color: #5b6472;
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  font-size: 11px;
+  line-height: 17px;
+  padding: 0;
+  cursor: pointer;
+}
+
+.tag-input input.tag-draft {
+  flex: 1 1 110px;
+  min-width: 0;
+  border: 0 !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  padding: 5px 2px !important;
+  margin: 0 !important;
+  font-size: 14px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .login-card .float-tag { transition: none; }
+}
+
+/* 登录/注册页滑不动修复：外层原先只有 min-height、没有确定高度，
+   容器被长表单撑高后它自己的 overflow-y:auto 不生效；
+   注册表单比屏幕长时，手机上就够不到底部按钮。
+   改为确定高度的滚动区，登录、注册、找回、验证四种状态共用。 */
+.login-wrap {
+  height: 100vh;
+  height: 100dvh;
+  max-height: 100dvh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+}
+
+/* ===== 登录卡文字配色（白卡深字）=====
+   styles-cinematic 里深色卡时代的浅字规则（.priv-note/.login-switch/.err/button.ghost）
+   还在层叠里，白卡上发淡看不清。这里以更高优先级统一钉成深色，只改颜色不动布局。 */
+.login-wrap .login-card .priv-note { color: #5d6575; }
+.login-wrap .login-card .login-switch { color: #5d6575; }
+.login-wrap .login-card .login-switch button,
+.login-wrap .login-card .linklike { color: #2f5fd0; }
+.login-wrap .login-card .err { color: #c22f47; }
+.login-wrap .login-card label { color: #3a4152; }
+.login-wrap .login-card button.ghost {
+  color: #3a4152;
+  background: rgba(32, 36, 44, .05);
+  border: 1px solid rgba(32, 36, 44, .14);
+}
+.login-wrap .login-card .float-hint { color: #6e7585; }
+.login-wrap .login-card .float-tag { color: #6e7585; }
+
+/* 协议复选框修正：styles-cinematic 的通用 input 规则（min-height:48px + 深色底）
+   没排除 checkbox，把它撑成一条深灰竖框、原生勾选方块嵌在中间。这里钉回
+   18×18 透明底，只保留 accent-color 着色。 */
+.login-wrap .login-card input[type="checkbox"] {
+  width: 18px !important;
+  height: 18px !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  border-radius: 4px;
+  accent-color: #2456c8;
+  flex: none;
+}

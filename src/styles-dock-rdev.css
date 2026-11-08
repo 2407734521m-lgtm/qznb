@@ -1,0 +1,74 @@
+/* Dock shell: rdev/liquid-glass-react (SVG displacement refraction).
+   The library leans on Tailwind utilities for a few internal layers; this
+   project has no Tailwind, so the missing pieces are supplied here, the
+   library's black overlay layers (unused, overLight off) are hidden, and
+   the nav's own pinned white-glass material is switched off so the rdev
+   refraction layer underneath is the glass. Imported last. */
+
+/* Black overlay layers rendered by the library (Tailwind opacity /
+   pointer-events utilities do not exist here) — keep them out entirely. */
+.qz-ios26-dock-host > .bg-black { display: none !important; }
+
+/* The glass box fills the fixed shell; the content row fills the box. */
+.qz-rdev-dock .glass {
+  display: flex !important;
+  width: 100%;
+  height: 100%;
+}
+.qz-rdev-dock .glass > div {
+  flex: 1 1 auto;
+  display: flex;
+  font: inherit !important;
+  text-shadow: none !important;
+  color: inherit;
+}
+
+/* Nav inside the shell: transparent, no material of its own. Beats the
+   pinned .qz-ios26-liquid-dock material in styles-ios26-liquid-glass.css
+   by specificity (0,3,0) — tab sizing rules there are untouched. */
+.qz-ios26-dock-host .qz-ios26-liquid-dock.qz-rdev-nav {
+  position: relative !important;
+  width: 100% !important;
+  max-width: none !important;
+  height: 100% !important;
+  background: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+/* ===== Login: full-screen sheet (2026-11-07, user call) =====
+   The rdev liquid-glass login card is retired. The login surface is now the
+   screen itself: solid paper background, no floating panel, no radius, no
+   shadow, no backdrop blur. The .login-bg/.login-flow backdrop layers stay
+   mounted behind it but are fully covered. Specificity (0,2,0) + !important
+   in this last-imported file beats the iOS 26 glass material pinned on
+   .login-card. The wrap stays the 100dvh scroller (styles-form-ux); the
+   sheet aligns to its top so tall forms (registration) scroll from the
+   first field, and centers its content column when shorter than the screen. */
+.login-wrap {
+  padding: 0 !important;
+  align-items: flex-start !important;
+}
+.login-wrap .login-card {
+  width: 100% !important;
+  max-width: none !important;
+  min-height: 100dvh;
+  margin: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: #fffdf9 !important;
+  box-shadow: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  padding: calc(26px + env(safe-area-inset-top)) 20px calc(26px + env(safe-area-inset-bottom)) !important;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.login-wrap .qz-login-card-content {
+  width: 100%;
+  max-width: 400px;
+  margin: 0 auto;
+}

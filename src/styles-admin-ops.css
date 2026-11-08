@@ -1,0 +1,93 @@
+/* Admin operations toolbars: glass surfaces shared by account and moderation tools. */
+.admin-shell-v3 .admin-account-batchbar-active,
+.admin-shell-v3 .admin-moderation-batchbar {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  flex-wrap:wrap;
+  gap:9px;
+  padding:10px 11px;
+  border:1px solid rgba(156,196,218,.20);
+  border-radius:14px;
+  background:linear-gradient(145deg,rgba(34,61,79,.88),rgba(19,37,55,.92));
+  box-shadow:0 9px 24px rgba(0,0,0,.16),inset 0 1px 0 rgba(255,255,255,.05);
+  -webkit-backdrop-filter:blur(18px) saturate(1.25);
+  backdrop-filter:blur(18px) saturate(1.25);
+}
+.admin-shell-v3 .admin-moderation-batchbar-copy {
+  display:flex;
+  flex-direction:column;
+  gap:3px;
+  min-width:0;
+}
+.admin-shell-v3 .admin-moderation-batchbar-copy strong {
+  color:#e8f4f6;
+  font-size:12px;
+}
+.admin-shell-v3 .admin-moderation-batchbar-copy span {
+  color:#9db2c2;
+  font-size:10px;
+}
+.admin-shell-v3 .admin-moderation-batchbar-actions {
+  display:flex;
+  align-items:center;
+  flex-wrap:wrap;
+  gap:6px;
+}
+.admin-shell-v3 .admin-moderation-item-select {
+  display:flex;
+  align-items:center;
+  gap:7px;
+  width:max-content;
+  max-width:100%;
+  margin:0 0 9px;
+  color:#a9bfd0;
+  font-size:11px;
+  cursor:pointer;
+}
+.admin-shell-v3 .admin-moderation-item-select input {
+  width:17px;
+  height:17px;
+  margin:0;
+  accent-color:#43b9b0;
+}
+.admin-shell-v3 .admin-account-batchbar-active button,
+.admin-shell-v3 .admin-moderation-batchbar button {
+  min-height:34px;
+  touch-action:manipulation;
+}
+@media(max-width:899px) {
+  .admin-shell-v3 .admin-account-batchbar-active,
+  .admin-shell-v3 .admin-moderation-batchbar {
+    position:sticky;
+    bottom:calc(9px + env(safe-area-inset-bottom));
+    z-index:36;
+    justify-content:flex-start;
+    padding:11px;
+    margin-inline:-2px;
+    border-color:rgba(105,190,190,.30);
+    background:rgba(19,39,57,.94);
+    box-shadow:0 12px 28px rgba(0,0,0,.32),inset 0 1px 0 rgba(255,255,255,.08);
+  }
+  .admin-shell-v3 .admin-account-batchbar-active {
+    align-items:flex-start;
+  }
+  .admin-shell-v3 .admin-moderation-batchbar {
+    align-items:flex-start;
+  }
+  .admin-shell-v3 .admin-moderation-batchbar-copy {
+    flex:1 1 100%;
+  }
+  .admin-shell-v3 .admin-moderation-batchbar-actions {
+    width:100%;
+  }
+  .admin-shell-v3 .admin-moderation-batchbar-actions button {
+    flex:1 1 auto;
+  }
+}
+@media(prefers-reduced-motion:reduce) {
+  .admin-shell-v3 .admin-account-batchbar-active,
+  .admin-shell-v3 .admin-moderation-batchbar {
+    scroll-behavior:auto;
+  }
+}

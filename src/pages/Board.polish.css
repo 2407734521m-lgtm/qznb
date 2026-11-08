@@ -1,0 +1,252 @@
+/* Announcement board: distinct announcement hierarchy, shared glass composer.
+   Styles are scoped to Board; all query, read, write and moderation logic stays unchanged. */
+.board-page {
+  --board-ease: cubic-bezier(.22, 1, .36, 1);
+  width: min(100%, 900px);
+  margin-inline: auto;
+  padding-top: 4px;
+}
+
+.board-hero {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  margin: 8px 0 23px;
+  padding: 25px 23px 21px;
+  border: 1px solid rgba(156, 218, 220, .23);
+  border-radius: 25px;
+  background:
+    radial-gradient(ellipse at 88% 0%, rgba(55, 190, 179, .20), transparent 44%),
+    radial-gradient(ellipse at 5% 100%, rgba(77, 145, 220, .18), transparent 48%),
+    linear-gradient(145deg, rgba(15, 48, 67, .92), rgba(6, 25, 43, .88));
+  box-shadow: 0 18px 44px rgba(0, 8, 20, .22), inset 0 1px 0 rgba(255,255,255,.10);
+  -webkit-backdrop-filter: blur(22px) saturate(1.2);
+  backdrop-filter: blur(22px) saturate(1.2);
+}
+
+.board-hero::after {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(112deg, transparent 34%, rgba(255,255,255,.055) 57%, transparent 79%);
+}
+
+.board-hero > * {
+  position: relative;
+  z-index: 1;
+}
+
+.board-hero h1 {
+  width: fit-content;
+  margin-bottom: 7px;
+  background: linear-gradient(110deg, #f3ffff, #9be8df 82%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.board-hero p {
+  color: rgba(209, 232, 240, .72);
+  letter-spacing: .19em;
+  font-size: 11px;
+}
+
+.board-section-label {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: 17px 3px 10px !important;
+  color: rgba(193, 218, 226, .78) !important;
+  font-size: 11px !important;
+  font-weight: 750;
+  letter-spacing: .13em;
+}
+
+.board-section-label::before {
+  content: "";
+  width: 17px;
+  height: 1px;
+  flex: 0 0 17px;
+  background: linear-gradient(90deg, rgba(95, 222, 207, .88), rgba(95, 222, 207, 0));
+}
+
+.board-section-label-admin::before {
+  background: linear-gradient(90deg, rgba(238, 197, 119, .95), rgba(238, 197, 119, 0));
+}
+
+.board-post {
+  position: relative;
+  overflow: hidden;
+  margin-bottom: 12px;
+  padding: 16px 17px;
+  border: 1px solid rgba(155, 213, 222, .13) !important;
+  border-radius: 19px;
+  background: linear-gradient(145deg, rgba(13, 39, 57, .78), rgba(8, 27, 44, .72)) !important;
+  box-shadow: 0 12px 30px rgba(0, 7, 18, .16), inset 0 1px 0 rgba(255,255,255,.055) !important;
+  -webkit-backdrop-filter: blur(18px) saturate(1.15);
+  backdrop-filter: blur(18px) saturate(1.15);
+  transition: transform .25s var(--board-ease), border-color .22s ease, box-shadow .22s ease;
+}
+
+.board-post-admin {
+  border-color: rgba(222, 189, 120, .32) !important;
+  border-left: 3px solid rgba(224, 188, 113, .82) !important;
+  background:
+    radial-gradient(ellipse at 100% 0%, rgba(221, 185, 111, .10), transparent 45%),
+    linear-gradient(145deg, rgba(42, 47, 54, .88), rgba(15, 34, 49, .82)) !important;
+}
+
+.board-post-head {
+  align-items: center;
+}
+
+.board-post .nm {
+  color: #edfaff;
+  font-weight: 760;
+}
+
+.board-post .tm {
+  color: rgba(186, 211, 221, .62);
+}
+
+.board-post-title {
+  margin: 5px 0 7px;
+  color: #f1fbff;
+  font-size: 15px;
+  font-weight: 820;
+  letter-spacing: -.02em;
+  line-height: 1.5;
+}
+
+.board-post-body {
+  margin-top: 6px;
+  color: rgba(226, 241, 246, .88);
+  font-size: 14px;
+  line-height: 1.82;
+  overflow-wrap: anywhere;
+}
+
+.board-post-admin .board-post-title {
+  color: #f4dfb6;
+}
+
+.board-post-admin .chip.ad {
+  border-color: rgba(227, 191, 120, .38);
+  background: rgba(227, 191, 120, .13);
+  color: #f1d7a2;
+}
+
+.board-composer-wrap {
+  width: min(calc(100% - 24px), 900px) !important;
+  left: 50% !important;
+  right: auto !important;
+  transform: translateX(-50%);
+  bottom: calc(82px + env(safe-area-inset-bottom)) !important;
+}
+
+.board-composer {
+  border: 1px solid rgba(163, 222, 225, .22) !important;
+  border-radius: 21px !important;
+  background: linear-gradient(145deg, rgba(13, 43, 62, .88), rgba(5, 25, 43, .84)) !important;
+  box-shadow: 0 18px 42px rgba(0, 7, 18, .32), inset 0 1px 0 rgba(255,255,255,.12) !important;
+  -webkit-backdrop-filter: blur(28px) saturate(1.5) !important;
+  backdrop-filter: blur(28px) saturate(1.5) !important;
+}
+
+.board-composer-input {
+  min-width: 0;
+  min-height: 42px;
+  margin: 0 !important;
+  border: 1px solid rgba(172, 220, 228, .17) !important;
+  border-radius: 14px !important;
+  background: rgba(2, 17, 31, .48) !important;
+  color: #f0fbff !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.04) !important;
+}
+
+.board-composer-input::placeholder {
+  color: rgba(208, 230, 237, .55);
+}
+
+.board-composer-input:focus {
+  border-color: rgba(108, 220, 211, .58) !important;
+  box-shadow: 0 0 0 3px rgba(95, 218, 205, .10) !important;
+}
+
+.board-send {
+  min-width: 70px;
+  min-height: 42px;
+  border-radius: 13px !important;
+  box-shadow: 0 8px 20px rgba(43, 170, 163, .18), inset 0 1px 0 rgba(255,255,255,.44) !important;
+}
+
+.board-page .feed-search-banner {
+  border-color: rgba(109, 206, 203, .24);
+  border-radius: 13px;
+  background: rgba(13, 48, 63, .68);
+  color: #e7f7fa;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .board-post:hover {
+    transform: translateY(-2px);
+    border-color: rgba(119, 213, 211, .30) !important;
+    box-shadow: 0 18px 38px rgba(0, 7, 18, .23), inset 0 1px 0 rgba(255,255,255,.075) !important;
+  }
+
+  .board-post-admin:hover {
+    border-color: rgba(230, 195, 131, .46) !important;
+  }
+}
+
+@media (min-width: 769px) {
+  .board-page {
+    padding-bottom: 90px !important;
+  }
+
+  .board-composer-wrap {
+    width: min(calc(100% - 64px), 820px) !important;
+    bottom: 22px !important;
+  }
+}
+
+@media (max-width: 520px) {
+  .board-page {
+    padding-left: 2px;
+    padding-right: 2px;
+  }
+
+  .board-hero {
+    margin-top: 4px;
+    margin-bottom: 20px;
+    padding: 21px 17px 18px;
+    border-radius: 21px;
+  }
+
+  .board-post {
+    padding: 14px;
+    border-radius: 17px;
+  }
+
+  .board-post-body {
+    font-size: 13.5px;
+    line-height: 1.78;
+  }
+
+  .board-composer-wrap {
+    width: calc(100% - 20px) !important;
+    bottom: calc(80px + env(safe-area-inset-bottom)) !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .board-post {
+    transition: none !important;
+  }
+
+  .board-post:hover {
+    transform: none !important;
+  }
+}

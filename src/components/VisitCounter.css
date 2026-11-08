@@ -1,0 +1,17 @@
+.visit-counter {
+  margin: 26px auto 4px;
+  text-align: center;
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  color: #a08b74;
+}
+
+.visit-counter--fixed {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+  margin: 0;
+  z-index: 5;
+  pointer-events: none;
+}

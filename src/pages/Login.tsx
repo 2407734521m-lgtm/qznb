@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import FeedbackModal from '../components/FeedbackModal';
+import VisitCounter from '../components/VisitCounter';
 import PasswordField from '../components/PasswordField';
 import CodeInput from '../components/CodeInput';
 import FloatField from '../components/FloatField';
@@ -571,6 +572,7 @@ export default function Login({ siteTitle, siteSubtitle, onGuestLogin }: { siteT
           <button className="pri" onClick={() => setShowPrivacyPolicy(false)} style={{ width: '100%', marginTop: 12 }}>返回注册</button>
         </section>
       </div>}
+      <VisitCounter fixed />
       {fbOpen && <FeedbackModal kind="login" onClose={() => setFbOpen(false)} />}
     </>
   );

@@ -1767,6 +1767,14 @@ export type Database = {
         Args: { p_location: string }
         Returns: string
       }
+      bump_page_view: {
+        Args: { p_key: string }
+        Returns: number
+      }
+      get_page_views: {
+        Args: { p_key: string }
+        Returns: number
+      }
       revoke_my_shared_region: {
         Args: Record<PropertyKey, never>
         Returns: undefined

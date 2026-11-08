@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, useReducedMotion, useScroll, useTransform } from 'framer-motion';
 import { supabase } from '../lib/supabase';
+import VisitCounter from '../components/VisitCounter';
 import { useSignedUrls } from '../lib/media';
 import { isInApp } from '../lib/installedApp';
 import './Home.vibe.css';
@@ -304,6 +305,7 @@ export default function Home() {
           </article>
         </div>
       )}
+      <VisitCounter />
     </div>
   );
 }

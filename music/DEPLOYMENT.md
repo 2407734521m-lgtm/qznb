@@ -21,6 +21,8 @@ cd music/folia
 npm ci
 cd ../..
 node music/scripts/apply-folia-netease-workers.mjs
+node music/scripts/test-free-music-api.mjs
+node music/scripts/apply-folia-free-catalog.mjs
 cd music/folia
 npm install --no-save --package-lock=false --ignore-scripts @supabase/supabase-js@2.119.0
 npm run typecheck
@@ -48,6 +50,7 @@ The first deployed URL is the preview's `workers.dev` hostname. Verify this URL 
 - `/healthz` and static app loading
 - `/api/qq/login/channels`
 - `/api/netease/healthz` reports the allowlisted upstream API routes
+- `/api/free-music/search?q=...` returns only audio items with an accepted Creative Commons / public-domain license
 - NetEase QR login, search, song detail, playback URL and lyrics
 - Kugou and QQ search/playback behavior
 - lyrics, playlist and mobile touch interactions
@@ -67,6 +70,12 @@ The manual deployment workflow requires these repository secrets:
 - `QZNB_SUPABASE_ANON_KEY`
 
 Do not put `QQ_SESSION_SECRET` in `VITE_*` variables, frontend source, Git, or public build logs. It is stored as a Cloudflare Worker secret for whichever target you publish.
+
+## Free legal music catalog
+
+The Web build includes an accountless `免费曲库` provider backed by Internet Archive audio items with an explicit accepted Creative Commons or public-domain license. Search rows link to the license and source item. Audio is played directly from the official source URL; it is not proxied or rehosted. Jamendo is an optional second source. Its official API requires a free read-only developer Client ID; add it to the preview Worker as a secret with `npx wrangler@4.120.0 secret put JAMENDO_CLIENT_ID --config music/wrangler.preview.jsonc`. Configure production only after separately approving production deployment. Jamendo queries request non-commercial Creative Commons tracks (`ccnc=true`) and use the official `audio` stream field, never `audiodownload`. Without the Jamendo secret, Internet Archive remains available.
+
+These sources are not a replacement for a mainstream commercial catalog. Items without an explicit accepted license are omitted. Follow each track's license and attribution terms; non-commercial restrictions still apply.
 
 ## Sync server
 

@@ -48,6 +48,12 @@ jobs:
       - name: Apply Folia NetEase API Workers adapter
         run: node music/scripts/apply-folia-netease-workers.mjs
 
+      - name: Test free music catalog Worker API
+        run: node music/scripts/test-free-music-api.mjs
+
+      - name: Apply free music catalog provider and license UI
+        run: node music/scripts/apply-folia-free-catalog.mjs
+
       - name: Typecheck Folia
         working-directory: music/folia
         run: npm run typecheck

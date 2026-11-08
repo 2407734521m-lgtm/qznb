@@ -1,26 +1,40 @@
 # Music open-source components
 
-This folder vendors selected source files for the separate `music.qianzhi.pw` project.
-They are copied from upstream repositories, not rewritten from screenshots.
+This folder prepares the independent `music.qianzhi.pw` service. It pins Folia as the complete Web music-player base and vendors selected reusable source modules from other open-source players.
 
-## Included source
+## Runtime base
+
+- Folia: `v0.7.26`
+- Pinned commit: `cc6226e464050a456a2913e062374f23d3844cc5`
+- Location: `music/folia` Git submodule
+- Build: Node.js 24+
+- Runtime: Cloudflare Workers + Static Assets
+- Isolated worker name: `qianzhi-music`
+- Custom domain: `music.qianzhi.pw`
+
+See [Folia upstream and license](FOLIA_UPSTREAM.md) and [deployment instructions](DEPLOYMENT.md).
+
+## Vendored source modules
 
 ### Lark
 - Upstream: https://github.com/ca-x/lark
-- Pinned upstream commit: `c5ae829dae661446e090014637d44ae0e1017ea1`
+- Source commit: `c5ae829dae661446e090014637d44ae0e1017ea1`
 - License: AGPL-3.0
-- Copied files: mobile mini-player and player swipe gesture logic
-- Original `LICENSE` and `NOTICE.md` are retained in `vendor/lark/`.
+- Copied: mobile mini-player component and touch-swipe gesture logic
+- Original `LICENSE` and `NOTICE.md` retained under `vendor/lark/`
 
 ### Listen1
 - Upstream: https://github.com/listen1/listen1_chrome_extension
-- Pinned upstream commit: `3f24efa045125875a609dcb0f3f3f0be4edb8b37`
+- Source commit: `3f24efa045125875a609dcb0f3f3f0be4edb8b37`
 - License: MIT
-- Copied files: NetEase, QQ Music, Kugou, Kuwo and Migu provider adapters
-- Original MIT license is retained in `vendor/listen1/LICENSE`.
+- Copied: NetEase, QQ Music, Kugou, Kuwo and Migu provider adapters
+- Original MIT license retained under `vendor/listen1/LICENSE`
 
-## Integration notes
+## Integration status
 
-These are vendored upstream source files, not yet wired into Folia's runtime. The Listen1 adapters were written for its browser-extension host and use legacy provider endpoints and globals; they must be wrapped, checked for current endpoint behavior, and tested before being enabled in a Workers deployment. Lark's mini-player component imports Lark-specific types and Phosphor icons; it must be adapted to Folia's player state and dependency set before being enabled.
+The Folia source is pinned, and the reusable Lark/Listen1 source files are copied into this repository. The copied modules are **not yet enabled in the running music player**:
 
-Do not remove the upstream notices. The resulting public music service remains non-commercial and must publish the corresponding modified source and applicable license notices. This folder does not claim that all provider endpoints are currently operational.
+- Lark's mini-player imports Lark-specific types and Phosphor icons. It needs a Folia player-state adapter, styles and dependency review.
+- Listen1's adapters target a browser-extension host, rely on legacy globals and contain old provider endpoints. They need wrappers and live compatibility checks before being used in Cloudflare Workers.
+
+Do not present an unverified provider as working. Do not remove upstream licenses or notices. The music service remains non-commercial under the Folia project's usage statement. Publish the full corresponding source and applicable notices for the modified hosted service.

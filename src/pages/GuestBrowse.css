@@ -48,6 +48,7 @@
 .guest-hero:not(.has-image) .guest-hero-content > p { color: #626d78; }
 .guest-hero-actions { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 22px; }
 .guest-hero:not(.has-image) .guest-button-primary { background: #20242b; color: #fff; }
+.guest-hero:not(.has-image) .guest-button-quiet { border-color: #cfd4da; background: rgba(255,255,255,.5); color: #414b56; }
 .guest-hero-index { position: absolute; right: 25px; bottom: 25px; display: inline-flex; align-items: center; gap: 9px; color: rgba(255,255,255,.74); font-size: 9px; font-weight: 650; letter-spacing: .14em; }
 .guest-hero-index i { width: 22px; height: 1px; background: currentColor; }
 .guest-hero:not(.has-image) .guest-hero-index { color: #7b848e; }

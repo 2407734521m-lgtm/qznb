@@ -190,7 +190,6 @@ export default function MeHub() {
           <section className="me-hub-group" key={group.title}>
             <header className="me-hub-group-head">
               <div><h2>{group.title}</h2><p>{group.note}</p></div>
-              <span>{String(group.entries.length).padStart(2, '0')}</span>
             </header>
             <div className="me-hub-grid">
               {group.entries.map(entry => (

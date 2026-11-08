@@ -8,6 +8,7 @@ import hotPhoto from '../assets/discover/card-hot.jpg';
 import lovePhoto from '../assets/discover/card-love.jpg';
 import questionsPhoto from '../assets/discover/card-questions.jpg';
 import musicPhoto from '../assets/discover/card-music.jpg';
+import radioPhoto from '../assets/discover/card-radio.jpg';
 import fatePhoto from '../assets/discover/card-fate.jpg';
 
 const cards = [
@@ -71,6 +72,17 @@ const cards = [
     title: '音乐',
     description: '发现音乐、搜索曲目，创建属于自己的播放体验。',
     action: '进入音乐空间',
+  },
+  {
+    to: 'https://radio.qianzhi.pw',
+    external: true,
+    className: 'discover-card--radio',
+    art: 'radio',
+    photo: radioPhoto,
+    eyebrow: '沉浸式电台',
+    title: '3D 电台',
+    description: '在视觉舞台与 3D 唱片架之间听歌，建议横屏打开。',
+    action: '进入电台',
   },
   {
     to: '/fate-notebook',

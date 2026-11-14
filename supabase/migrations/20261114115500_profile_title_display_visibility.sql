@@ -47,6 +47,7 @@ returns table(
   theme jsonb,
   contact text,
   social text,
+  game_id text,
   profile_title text
 )
 language sql
@@ -67,6 +68,7 @@ as $$
     p.theme,
     case when pr.show_contact then c.contact end,
     case when pr.show_social then c.social end,
+    case when pr.show_game_id then c.game_id end,
     case when pr.show_title or p.id = auth.uid() then p.profile_title end
   from public.profiles p
   join public.profile_privacy pr on pr.profile_id = p.id

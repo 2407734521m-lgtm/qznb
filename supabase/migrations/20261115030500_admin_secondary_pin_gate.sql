@@ -1,4 +1,4 @@
--- Replace the admin TOTP/AAL2 gate with a per-admin six-digit secondary password.
+-- Replace the legacy authenticator gate with a per-admin six-digit secondary password.
 -- Authorization remains server-side: a successful PIN check marks only the current
 -- Supabase session as verified for up to eight hours. All existing my_role()-based
 -- RLS policies and admin RPC guards continue to enforce the gate.
@@ -222,12 +222,16 @@ begin
       updated_at = now()
   where user_id = auth.uid();
 
+  if not found then
+    return false;
+  end if;
+
   -- Rotate the PIN and revoke every other session's previously granted admin access.
   delete from private.admin_secondary_verified_sessions
   where user_id = auth.uid()
     and session_id <> v_session_id;
 
-  return found;
+  return true;
 end;
 $function$;
 

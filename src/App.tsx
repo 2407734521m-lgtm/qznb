@@ -258,7 +258,7 @@ function MaintenanceScreen({ title, msg, allowCode, hasSession, onLogout, onAcce
         维护期间暂不开放访客临时进入。你可以登记邮箱，网站恢复后会收到通知。
       </p>}
       <div style={{ marginTop: 18, paddingTop: 16, borderTop: '1px solid #ffffff14' }}>
-        <p style={{ fontSize: 13, color: 'var(--mut)', margin: '0 0 10px', lineHeight: 1.7 }}>没有验证码？留下邮箱，网站恢复后我们会第一时间发邮件通知你。</p>
+        <p style={{ fontSize: 13, color: 'var(--mut)', margin: '0 0 10px', lineHeight: 1.7 }}>{allowCode ? '没有临时访问码？留下邮箱，网站恢复后我们会第一时间发邮件通知你。' : '想知道网站何时恢复？留下邮箱，恢复后我们会第一时间发邮件通知你。'}</p>
         {subDone ? <p style={{ fontSize: 13.5, color: '#7ee2a8', margin: 0 }}>已登记，网站恢复后会发邮件到 {email.trim().toLowerCase()}</p> : (<>
           <input type="email" value={email} onChange={e => { setEmail(e.target.value); setSubNote(''); }} placeholder="填写您的邮箱地址" autoComplete="email" />
           {subNote && <p className="err" role="alert">{subNote}</p>}

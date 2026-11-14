@@ -95,3 +95,26 @@ create trigger maintenance_access_codes_disabled_revoke
   for each row
   when (new.key = 'maintenance_access_codes_enabled')
   execute function maintenance_private.revoke_access_codes_when_disabled();
+
+
+-- Also clear any previously issued credentials on first installation when the
+-- switch is already disabled. This avoids reviving stale codes after re-enabling.
+update maintenance_private.access_codes
+  set revoked_at = coalesce(revoked_at, pg_catalog.now())
+  where revoked_at is null
+    and coalesce((
+      select s.value
+      from public.site_settings s
+      where s.key = 'maintenance_access_codes_enabled'
+      limit 1
+    ), 'false') <> 'true';
+
+update maintenance_private.access_sessions
+  set revoked_at = coalesce(revoked_at, pg_catalog.now())
+  where revoked_at is null
+    and coalesce((
+      select s.value
+      from public.site_settings s
+      where s.key = 'maintenance_access_codes_enabled'
+      limit 1
+    ), 'false') <> 'true';

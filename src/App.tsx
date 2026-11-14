@@ -29,7 +29,6 @@ import bgUrl from './assets/bg.jpg';
 const Login = lazy(() => import('./pages/Login'));
 import GuestNicknameDialog from './components/GuestNicknameDialog';
 const GuestBrowse = lazy(() => import('./pages/GuestBrowse'));
-const Members = lazy(() => import('./pages/Members'));
 const Member = lazy(() => import('./pages/Member'));
 const MyProfile = lazy(() => import('./pages/MyProfile'));
 const Timeline = lazy(() => import('./pages/Timeline'));
@@ -77,12 +76,11 @@ import { resolveApproximateRegion, saveSharedRegion } from './lib/location';
 import GlobalSearch from './components/GlobalSearch';
 import { BRAND_NAME, BRAND_SUBTITLE, resolveBrandTitle, resolveBrandSubtitle } from './lib/brand';
 
-// Dock 保留五个高频入口：首页、班级、回忆、私聊、我的。
+// Dock 保留四个高频入口：首页、回忆、私聊、我的。成员列表页已下线（2026-11-14 用户定）。
 // 发现、公告、消息等其余页面通过长按 Dock 打开的玻璃快捷面板访问。
-type DockKind = 'home' | 'members' | 'memories' | 'explore' | 'friends' | 'me';
+type DockKind = 'home' | 'memories' | 'explore' | 'friends' | 'me';
 const TABS: { to: string; label: string; kind: DockKind }[] = [
   { to: '/home', label: '首页', kind: 'home' },
-  { to: '/members', label: '班级', kind: 'members' },
   { to: '/timeline', label: '回忆', kind: 'memories' },
   { to: '/friends', label: '私聊', kind: 'friends' },
   { to: '/me', label: '我的', kind: 'me' },
@@ -118,14 +116,6 @@ function DockIcon({ kind, unread = false }: {
           <>
             <circle cx="12" cy="8" r="3.4" />
             <path d="M4.5 20c.8-3.1 3.4-4.9 7.5-4.9s6.7 1.8 7.5 4.9" />
-          </>
-        )}
-        {kind === 'members' && (
-          <>
-            <circle cx="9" cy="8.5" r="3" />
-            <path d="M3.5 19c.6-2.9 2.8-4.5 5.5-4.5s4.9 1.6 5.5 4.5" />
-            <path d="M15.5 5.8a3 3 0 0 1 0 5.4" />
-            <path d="M17.2 14.6c1.5.5 2.6 2 3 4.2" />
           </>
         )}
         {kind === 'memories' && (
@@ -165,7 +155,6 @@ function parseDevice(ua: string): string {
 function isTabActive(tab: string, path: string) {
   if (tab === '/home') return path.startsWith('/home') || path.startsWith('/board');
   if (tab === '/board') return path.startsWith('/board');
-  if (tab === '/members') return path.startsWith('/members');
   if (tab === '/explore') return ['/explore','/feed','/albums','/hot','/greetings','/events','/capsule','/wishes','/particle-flower','/air-ink','/calendar','/love-wall','/fate-notebook'].some(p => path.startsWith(p));
   if (tab === '/friends') return ['/friends','/chat'].some(p => path.startsWith(p));
   if (tab === '/songs') return path.startsWith('/songs');
@@ -1018,7 +1007,7 @@ function Shell() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', position: 'sticky', top: 0, zIndex: 40, background: 'rgba(255,255,255,.92)', backdropFilter: 'blur(12px)', borderBottom: '1px solid #e8eaf0' }}>
           <b style={{ fontSize: 15 }}>管理后台</b>
           <span style={{ flex: 1 }} />
-          <NavLink to="/members" style={{ fontSize: 13, color: '#303642', textDecoration: 'none' }}>← 回站点</NavLink>
+          <NavLink to="/home" style={{ fontSize: 13, color: '#303642', textDecoration: 'none' }}>← 回站点</NavLink>
           <button className="mini ghost" onClick={logout}>退出</button>
         </div>
       ) : !isChatPage && !isImmersivePage ? (
@@ -1082,7 +1071,6 @@ function Shell() {
                 searchQuery={typeof (loc.state as any)?.searchQuery === 'string' ? (loc.state as any).searchQuery : ''}
                 focusPostId={typeof (loc.state as any)?.focusPostId === 'number' ? (loc.state as any).focusPostId : null}
               />} />
-              <Route path="/members" element={<Members />} />
               <Route path="/members/:id" element={<Member />} />
               <Route path="/feed" element={<Discover />} />
               <Route path="/albums" element={<Navigate to="/feed" replace state={{ openTab: "albums" }} />} />

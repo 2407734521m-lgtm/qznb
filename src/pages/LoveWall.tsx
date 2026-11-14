@@ -348,10 +348,11 @@ export default function LoveWall() {
         uploaded.push({ path, kind: it.kind });
       }
       // 匿名与否由发布表单里的开关决定（打开表单时按个人隐私设置初始化默认值）；历史帖子不受影响。
+      // 先发后审：点发布即直接公开展示，巡查在发布后复核，违规会被下架。
       const { data: post, error } = await supabase.from('love_wall_posts').insert({
         author_id: session.user.id, recipient_id: recipientId || null,
         recipient_name: recipientLabel || null,
-        category, content: text, is_anonymous: anon, status: 'pending'
+        category, content: text, is_anonymous: anon, status: 'published'
       }).select('id').single();
       if (error || !post) throw new Error('发布失败：请确认网站数据库迁移已执行。');
       let attachFailed = false;
@@ -378,7 +379,7 @@ export default function LoveWall() {
       setMine(true);
       setNotice(attachFailed
         ? (cleanupFailed ? '投稿已提交，但附件关联失败且部分文件未清理，请联系管理员。' : '投稿已提交，附件没有关联成功，已清理未关联文件。')
-        : recipientId ? '投稿已提交；审核通过后公开展示，收件人会收到匿名通知。' : '投稿已提交，审核通过后会展示在表白墙。');
+        : recipientId ? '已发布，现在就能在表白墙看到，收件人会收到匿名通知。' : '已发布，现在就能在表白墙看到。');
       await load();
     } catch (err) {
       // 失败发生在附件记录提交之前时，清理已上传的文件，避免产生孤立对象。

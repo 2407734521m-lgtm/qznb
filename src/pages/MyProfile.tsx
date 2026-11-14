@@ -50,13 +50,12 @@ function Collapsible({ icon, title, sub, open, onToggle, children, sid }: {
   icon?: string; title: string; sub?: string; open: boolean; onToggle: () => void; children: React.ReactNode; sid?: string;
 }) {  return (
     <div className="card" id={sid} style={{ padding: 0, overflow: 'hidden' }}>
-      <BackButton fallback="/me" />
       <button type="button" onClick={onToggle}
         style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '16px 20px', background: 'none', border: 0, color: 'inherit', font: 'inherit', cursor: 'pointer', textAlign: 'left' }}>
         <span style={{ fontSize: 16, fontWeight: 700 }}>{icon ? `${icon} ${title}` : title}</span>
-        {sub && <span style={{ fontSize: 12, color: '#fff', opacity: 0.85 }}>{sub}</span>}
+        {sub && <span style={{ fontSize: 12, color: '#7a8894' }}>{sub}</span>}
         <span style={{ flex: 1 }} />
-        <span style={{ fontSize: 13, color: '#fff', display: 'inline-block', transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .25s' }}>▼</span>
+        <span style={{ fontSize: 13, color: '#5f6d7d', display: 'inline-block', transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .25s' }}>▼</span>
       </button>
       <div className={'xpanel' + (open ? ' open' : '')}><div><div className="xbody" style={{ padding: '0 20px 20px' }}>
         {children}
@@ -314,6 +313,7 @@ export default function MyProfile() {
 
   return (
     <div className="page me-page">
+      <BackButton fallback="/me" />
       {/* 头部：头像 + 名字 */}
       <div className="card me-head">
         <div className="me-ava" onClick={() => fileRef.current?.click()} title="点击更换照片">

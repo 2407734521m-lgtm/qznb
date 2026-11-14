@@ -73,7 +73,7 @@ export default function Wishes() {
 
   // 瀑布流式愿望卡片
   return (
-    <div className="page" style={{ paddingBottom: 100 }}>
+    <div className="page" style={{ paddingBottom: 16 }}>
       <BackButton fallback="/explore" />
       <div className="hero"><h1>愿望墙</h1><p>写 下 共 同 的 愿 望</p></div>
       <div className="card">

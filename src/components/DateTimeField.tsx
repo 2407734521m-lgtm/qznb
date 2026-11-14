@@ -142,8 +142,8 @@ export default function DateTimeField({ value, onChange, mode = 'datetime', min,
         type="button" onClick={openSheet}
         style={{
           width: '100%', textAlign: 'left', padding: '12px', margin: '6px 0 12px',
-          borderRadius: 12, border: '1px solid rgba(255,255,255,.13)',
-          background: 'rgba(255,255,255,.05)', color: text ? '#f2f5ff' : 'rgba(235,240,255,.45)',
+          borderRadius: 12, border: '1px solid #dfe3ea',
+          background: '#ffffff', color: text ? '#202124' : '#9298a3',
           font: 'inherit', fontSize: 14.5, cursor: 'pointer', boxSizing: 'border-box',
           ...style,
         }}

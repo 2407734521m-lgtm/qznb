@@ -203,7 +203,7 @@
 
   .board-composer-wrap {
     width: min(calc(100% - 64px), 820px) !important;
-    bottom: 22px !important;
+    bottom: calc(82px + env(safe-area-inset-bottom)) !important;
   }
 }
 

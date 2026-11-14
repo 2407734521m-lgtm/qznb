@@ -9,11 +9,13 @@ import { GridSkeleton, useDelayedLoading } from '../components/fx/Skeleton';
 import BlurImg from '../components/fx/BlurImg';
 import './Album.afilmory.css'; // Afilmory 式瀑布流版式（只借版式，样式自写）
 
-type A = { id: number; title: string; category: string; cover_url: string | null; created_at: string; n?: number };
+type A = { id: number; title: string; category: string; cover_url: string | null; created_at: string; n?: number; first_photo?: string | null };
 const CATS = ['班级日常', '军训', '运动会', '春游', '聚会', '毕业', '自定义'];
 
-function Cover({ url }: { url?: string }) {
-  return url ? <BlurImg src={url} alt="" /> : <span style={{ fontSize: 34 }}></span>;
+function Cover({ url, title }: { url?: string; title: string }) {
+  if (url) return <BlurImg src={url} alt="" />;
+  // 没封面也没照片时显示相册名首字，不留空白灰块。
+  return <span style={{ fontSize: 34 }}>{(title || '?').slice(0, 1)}</span>;
 }
 
 export default function Album() {
@@ -23,7 +25,7 @@ export default function Album() {
   const [loading, setLoading] = useState(true);
   const showSkeleton = useDelayedLoading(loading);
   const [loadError, setLoadError] = useState('');
-  const signedCovers = useSignedUrls('media', rows.map(a => a.cover_url));
+  const signedCovers = useSignedUrls('media', rows.map(a => a.cover_url ?? a.first_photo ?? null));
   const [show, setShow] = useState(false);
   const [categoryFilter, setCategoryFilter] = useState('全部');
   const [title, setTitle] = useState(''); const [cat, setCat] = useState(CATS[0]); const [custom, setCustom] = useState('');
@@ -36,11 +38,14 @@ export default function Album() {
       if (albumError) throw albumError;
       const list = (a ?? []) as A[];
       if (list.length) {
-        const { data: p, error: photoError } = await supabase.from('album_photos').select('album_id').in('album_id', list.map(x => x.id));
+        // 封面缺失的老相册用第一张照片兜底：cover_url 只在上传时写，
+        // 早期传的照片没写过封面，列表就一直是空白灰块。
+        const { data: p, error: photoError } = await supabase.from('album_photos').select('album_id, photo_url').in('album_id', list.map(x => x.id)).order('created_at', { ascending: true });
         if (photoError) throw photoError;
         const cnt: Record<number, number> = {};
-        (p ?? []).forEach((r: any) => { cnt[r.album_id] = (cnt[r.album_id] || 0) + 1; });
-        list.forEach(x => { x.n = cnt[x.id] || 0; });
+        const first: Record<number, string> = {};
+        (p ?? []).forEach((r: any) => { cnt[r.album_id] = (cnt[r.album_id] || 0) + 1; if (!first[r.album_id] && r.photo_url) first[r.album_id] = r.photo_url; });
+        list.forEach(x => { x.n = cnt[x.id] || 0; x.first_photo = first[x.id] ?? null; });
       }
       setRows(list);
     } catch (e: any) {
@@ -89,7 +94,7 @@ export default function Album() {
             initial={reduce ? {} : { opacity: 0, y: 22 }} animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.45, delay: Math.min(i * 0.05, 0.4) }}
             onClick={() => nav(`/albums/${a.id}`)}>
-            <div className="af-cov"><Cover url={a.cover_url ? signedCovers[a.cover_url] : undefined} /></div>
+            <div className="af-cov"><Cover url={(a.cover_url ?? a.first_photo) ? signedCovers[(a.cover_url ?? a.first_photo) as string] : undefined} title={a.title} /></div>
             <div className="af-t"><h4>{a.title}</h4><p>{a.category} · {a.n ?? 0} 张</p></div>
           </motion.div>
         ))}

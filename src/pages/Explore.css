@@ -1,7 +1,9 @@
 .discover-page {
   width: min(100%, 980px);
   margin: 0 auto;
-  padding: 8px 0 132px;
+  /* 底部留白：.wrap 已留 14px + 悬浮 Dock 高度（56px + 16px 间隙）的空间，
+     本页只补 16px 呼吸感；之前 132px 是旧底栏时代的残留，滚到底空出近三分之一屏。 */
+  padding: 8px 0 16px;
   color: var(--qz26-ink, #202b38);
 }
 
@@ -106,6 +108,26 @@
   color: #5f7d70;
 }
 
+/* 文字保护罩：铺在照片之上、文字之下，左侧 68% 实色、向右渐隐，
+   简介文字始终坐在不透明的卡面底色上，而不是坐在照片上。
+   位置：必须在卡片链接内部（照片 z-1 < 保护罩 z-2 < 文字 z-3），
+   因为 .discover-card-link 本身是 z-index:1 的层叠上下文，罩子放在链接外面会被整块盖住文字。
+   底色：用 --card-bg 变量，值要跟 styles-quiet-editorial-detail.css 里实际生效的扁平底色一致
+   （bloom #f4f6f8、ink/hot #fafbfc、其余 #f8f9fb；那张表把 Explore.css 的渐变底色全盖掉了）。 */
+.discover-card-veil {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  background: var(--card-bg, #f8f9fb);
+  -webkit-mask-image: linear-gradient(90deg, #000 0, #000 68%, transparent 88%);
+  mask-image: linear-gradient(90deg, #000 0, #000 68%, transparent 88%);
+  pointer-events: none;
+}
+
+.discover-card--bloom { --card-bg: #f4f6f8; }
+.discover-card--ink,
+.discover-card--hot { --card-bg: #fafbfc; }
+
 .discover-card-link {
   position: relative;
   display: flex;
@@ -120,11 +142,14 @@
 
 .discover-card-copy {
   position: relative;
-  z-index: 2;
+  /* 文字层：必须高于保护罩（z-2），否则会被罩子盖住。 */
+  z-index: 3;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  max-width: 62%;
+  /* 文字区收在照片不透明区之前：照片从右侧起 60% 宽、左缘 45% 渐隐，
+     不透明部分约从卡片 67% 处开始，文字最多到 58% 就收住。 */
+  max-width: 58%;
 }
 
 .discover-card--bloom .discover-card-copy {
@@ -148,7 +173,8 @@
 
 .discover-card p {
   margin: 0;
-  color: rgba(48, 59, 72, .68);
+  /* 简介字色加深：之前 .68 透明度压在照片上淡到看不清。 */
+  color: rgba(48, 59, 72, .8);
   font-size: 12px;
   line-height: 1.75;
 }
@@ -179,7 +205,9 @@
   background: rgba(255,255,255,.55);
 }
 
-/* 卡片照片：贴卡片右侧满高，左缘渐隐融进卡面，文字区不受影响。 */
+/* 卡片照片：贴卡片右侧满高，左缘渐隐融进卡面，文字区不受影响。
+   渐隐带加宽到 45%，照片不透明部分只留在卡片右三分之一内，
+   文字再也不会压在看得见的照片上。 */
 .discover-photo {
   position: absolute;
   z-index: 1;
@@ -189,8 +217,8 @@
   object-fit: cover;
   pointer-events: none;
   user-select: none;
-  -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 36%);
-  mask-image: linear-gradient(90deg, transparent 0, #000 36%);
+  -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 45%);
+  mask-image: linear-gradient(90deg, transparent 0, #000 45%);
 }
 
 .discover-photo--bloom { width: 60%; object-position: 50% 28%; }
@@ -218,7 +246,7 @@
 
 @media (max-width: 600px) {
   .discover-page {
-    padding: 2px 0 118px;
+    padding: 2px 0 16px;
   }
 
   .discover-heading {
@@ -251,15 +279,22 @@
     padding: 15px;
   }
 
+  /* 手机窄屏：照片渐隐带加宽到 55%，不透明部分只剩卡片右四分之一；
+     文字区同步收窄，收在不透明区之前，不再压图。 */
+  .discover-photo {
+    -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 55%);
+    mask-image: linear-gradient(90deg, transparent 0, #000 55%);
+  }
+
   .discover-card-copy,
   .discover-card--bloom .discover-card-copy {
-    max-width: 74%;
+    max-width: 68%;
     padding-top: 2px;
   }
 
   .discover-card--ink .discover-card-copy,
   .discover-card--hot .discover-card-copy {
-    max-width: 100%;
+    max-width: 72%;
   }
 
   .discover-card h2 {
@@ -289,15 +324,15 @@
   }
 
   .discover-photo--bloom {
-    width: 64%;
+    width: 56%;
   }
 
   .discover-photo--ink,
   .discover-photo--hot {
-    width: 74%;
-    opacity: .5;
-    -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 54%);
-    mask-image: linear-gradient(90deg, transparent 0, #000 54%);
+    width: 58%;
+    opacity: .38;
+    -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 60%);
+    mask-image: linear-gradient(90deg, transparent 0, #000 60%);
   }
 
   .discover-photo--love,
@@ -305,7 +340,7 @@
   .discover-photo--music,
   .discover-photo--radio,
   .discover-photo--fate {
-    width: 54%;
+    width: 48%;
   }
 }
 
@@ -333,7 +368,7 @@
 }
 
 .discover-card--fate p {
-  color: rgba(233, 237, 245, .7);
+  color: rgba(233, 237, 245, .82);
 }
 
 .discover-card--fate .discover-card-action {
@@ -352,7 +387,7 @@
   }
 
   .discover-card--fate .discover-card-copy {
-    max-width: 64%;
+    max-width: 60%;
   }
 
 }
@@ -373,7 +408,7 @@
 }
 
 .discover-card--love p {
-  color: rgba(68, 51, 58, .68);
+  color: rgba(68, 51, 58, .8);
 }
 
 .discover-card--love .discover-card-action {
@@ -392,7 +427,7 @@
   }
 
   .discover-card--love .discover-card-copy {
-    max-width: 64%;
+    max-width: 60%;
   }
 
 }
@@ -426,12 +461,12 @@
   border-color: rgba(91, 112, 139, .12);
 }
 .discover-card--questions h2 { color: #26384d; }
-.discover-card--questions p { color: rgba(38, 56, 77, .68); }
+.discover-card--questions p { color: rgba(38, 56, 77, .8); }
 .discover-card--questions .discover-card-action { color: #38536f; }
 .discover-card--questions .discover-card-action span { border-color: rgba(56, 83, 111, .22); }
 @media (max-width: 600px) {
   .discover-card--questions { min-height: 142px; }
-  .discover-card--questions .discover-card-copy { max-width: 66%; }
+  .discover-card--questions .discover-card-copy { max-width: 60%; }
 }
 
 
@@ -446,12 +481,12 @@
   border-color: rgba(106, 130, 137, .14);
 }
 .discover-card--music h2 { color: #263b40; }
-.discover-card--music p { color: rgba(38, 59, 64, .7); }
+.discover-card--music p { color: rgba(38, 59, 64, .82); }
 .discover-card--music .discover-card-action { color: #31565a; }
 .discover-card--music .discover-card-action span { border-color: rgba(49, 86, 90, .2); }
 @media (max-width: 600px) {
   .discover-card--music { min-height: 148px; }
-  .discover-card--music .discover-card-copy { max-width: 66%; }
+  .discover-card--music .discover-card-copy { max-width: 60%; }
 }
 
 /* Mineradio 3D 电台入口：深色沉浸卡，金与青的粒子光呼应照片，区别于命运笔记的灰调。 */
@@ -465,10 +500,10 @@
   border-color: rgba(24, 30, 40, .14);
 }
 .discover-card--radio h2 { color: #f6efdf; }
-.discover-card--radio p { color: rgba(240, 234, 220, .68); }
+.discover-card--radio p { color: rgba(240, 234, 220, .82); }
 .discover-card--radio .discover-card-action { color: #e7c88a; }
 .discover-card--radio .discover-card-action span { border-color: rgba(231, 200, 138, .3); }
 @media (max-width: 600px) {
   .discover-card--radio { min-height: 148px; }
-  .discover-card--radio .discover-card-copy { max-width: 66%; }
+  .discover-card--radio .discover-card-copy { max-width: 60%; }
 }

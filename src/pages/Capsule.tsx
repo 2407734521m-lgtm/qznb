@@ -202,7 +202,7 @@ export default function Capsule() {
   };
 
   return (
-    <div className="page" style={{ paddingBottom: 100 }}>
+    <div className="page" style={{ paddingBottom: 16 }}>
       <BackButton fallback="/explore" />
       <div className="hero"><h1>时光胶囊</h1><p>写 给 未 来 的 信</p></div>
       <div className="card">

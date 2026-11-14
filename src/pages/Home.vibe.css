@@ -6,7 +6,9 @@
   --vh-line: rgba(78, 59, 42, .13);
   --vh-accent: #9b654b;
   color: var(--vh-ink);
-  padding: 8px 0 116px;
+  /* 底部留白：.wrap 已留 14px + 悬浮 Dock 高度，本页只补 16px；
+     之前 116px 是旧底栏时代的残留，滚到底空出近三分之一屏。 */
+  padding: 8px 0 16px;
   isolation: isolate;
 }
 .vibe-home * { box-sizing: border-box; }
@@ -66,7 +68,13 @@
   font-weight: 700;
   letter-spacing: .04em;
 }
-.vh-ticker .fx-marquee { flex: 1; min-width: 0; }
+.vh-ticker .fx-marquee {
+  flex: 1;
+  min-width: 0;
+  /* 两端渐隐：跑马灯滚动时文字在边缘淡出，被截断看起来是故意的，而不是断掉的。 */
+  -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 22px, #000 calc(100% - 22px), transparent 100%);
+  mask-image: linear-gradient(90deg, transparent 0, #000 22px, #000 calc(100% - 22px), transparent 100%);
+}
 .vh-ticker-item {
   display: inline-flex;
   align-items: center;
@@ -309,7 +317,8 @@
 }
 .vh-notice p {
   display: -webkit-box;
-  -webkit-line-clamp: 2;
+  /* 3 行：之前 2 行会把公告里的网址（music.qianzhi.pw）截掉，点进弹窗才能看到。 */
+  -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
   margin: 7px 0 0;
@@ -777,7 +786,7 @@ body:has(.vibe-home) .glow { display: none !important; }
   width: 100%;
   max-width: 1120px;
   margin-inline: auto;
-  padding: 16px 0 112px;
+  padding: 16px 0 16px;
   color: var(--vh-ink);
   background: #fff;
 }
@@ -853,7 +862,7 @@ body:has(.vibe-home), body:has(.vibe-home) #root, body:has(.vibe-home) .qz-ios26
 .vibe-home .vh-load-error { background: #fff8f7; color: #8b5550; }
 .vibe-home .vh-load-spinner { border-color: #dfe3e7; border-top-color: #687582; }
 @media (max-width: 760px) {
-  .vibe-home { padding: 4px 0 112px; }
+  .vibe-home { padding: 4px 0 16px; }
   .vibe-home .vh-intro { padding: 8px 2px 16px; }
   .vibe-home .vh-intro h1 { font-size: 22px; }
   .vibe-home .vh-hero { min-height: 250px; aspect-ratio: 1.38; border-radius: 16px; }
@@ -989,7 +998,8 @@ body:has(.vibe-home), body:has(.vibe-home) #root, body:has(.vibe-home) .qz-ios26
 }
 .vh-wall-content {
   display: -webkit-box;
-  -webkit-line-clamp: 6;
+  /* 8 行：帖子预览本来就要点进详情读全文，但 6 行截得太狠，长帖只剩半句。 */
+  -webkit-line-clamp: 8;
   -webkit-box-orient: vertical;
   overflow: hidden;
   margin: 8px 0 0;

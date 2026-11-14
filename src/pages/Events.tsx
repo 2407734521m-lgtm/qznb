@@ -44,7 +44,7 @@ export default function Events() {
   }
 
   return (
-    <div className="page" style={{ paddingBottom: 100 }}>
+    <div className="page" style={{ paddingBottom: 16 }}>
       <BackButton fallback="/explore" />
       <div className="hero"><h1>班级活动</h1><p>聚 会 · 出 游 · 纪 念 日</p></div>
       {list.map(e => {
@@ -61,7 +61,12 @@ export default function Events() {
               已报名 {(regs[e.id] || []).length} 人：{(regs[e.id] || []).slice(0, 8).map(id => names[id] || '').filter(Boolean).join('、')}
               {(regs[e.id] || []).length > 8 ? '…' : ''}
             </div>
-            <button className={joined ? 'mini ghost' : 'mini'} style={{ marginTop: 8 }} onClick={() => toggle(e.id, joined)}>
+            <button
+              className={joined ? 'ghost' : 'pri'}
+              style={joined
+                ? { width: 'auto', padding: '9px 20px', marginTop: 8, border: '1px solid #dbe2ea', background: '#fff', color: '#43536a' }
+                : { width: 'auto', padding: '9px 20px', marginTop: 8 }}
+              onClick={() => toggle(e.id, joined)}>
               {joined ? '取消报名' : '报名参加'}
             </button>
           </div>

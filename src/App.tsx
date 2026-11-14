@@ -1,6 +1,6 @@
 import { Suspense, useEffect, useRef, useState } from 'react';
 import type { MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent } from 'react';
-import { Routes, Route, NavLink, Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { Routes, Route, NavLink, Navigate, useLocation, useNavigate, useNavigationType } from 'react-router-dom';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { LiquidGlass } from 'simple-liquid-glass';
 import FloatingDock from './components/FloatingDock';
@@ -157,7 +157,9 @@ function parseDevice(ua: string): string {
 function isTabActive(tab: string, path: string) {
   if (tab === '/home') return path.startsWith('/home') || path.startsWith('/board');
   if (tab === '/board') return path.startsWith('/board');
-  if (tab === '/explore') return ['/explore','/feed','/albums','/hot','/greetings','/events','/capsule','/wishes','/particle-flower','/air-ink','/calendar','/love-wall','/fate-notebook'].some(p => path.startsWith(p));
+  // 注意：/feed 不属于发现栏——动态页是独立的一级内容页，之前把它算进发现，
+  // 导致在动态页 Dock 还高亮「发现」，误导当前所在页面。
+  if (tab === '/explore') return ['/explore','/albums','/hot','/greetings','/events','/capsule','/wishes','/particle-flower','/air-ink','/calendar','/love-wall','/fate-notebook'].some(p => path.startsWith(p));
   if (tab === '/friends') return ['/friends','/chat'].some(p => path.startsWith(p));
   if (tab === '/songs') return path.startsWith('/songs');
   if (tab === '/love-wall') return path.startsWith('/love-wall');
@@ -166,6 +168,17 @@ function isTabActive(tab: string, path: string) {
   if (tab === '/me/notifications') return path.startsWith('/me/notifications');
   if (tab === '/me') return path.startsWith('/me') && !path.startsWith('/me/notifications');
   return path === tab;
+}
+
+// 切页回顶：点链接进新页面时回到顶部；浏览器前进/后退（POP）时保持原来的滚动位置，
+// 比如从动态详情返回列表时还停在刚才那条附近。没有这个，/feed、/me 等页从别处跳过来会停在半中间。
+function ScrollToTopOnPush() {
+  const { pathname } = useLocation();
+  const navType = useNavigationType();
+  useEffect(() => {
+    if (navType !== 'POP') window.scrollTo(0, 0);
+  }, [pathname, navType]);
+  return null;
 }
 
 // /admin 路由守卫：已是管理员直接进后台，否则显示独立的管理员登录页
@@ -977,7 +990,8 @@ function Shell() {
       />
     ),
   }));
-  const activeDockItem = TABS.find((tab) => isTabActive(tab.to, loc.pathname))?.to ?? TABS[0].to;
+  // 没有任何一栏匹配时（比如 /feed 动态页）不默认高亮首页：没有高亮比错误高亮诚实。
+  const activeDockItem = TABS.find((tab) => isTabActive(tab.to, loc.pathname))?.to ?? '';
   const installedApp = detectInstalledAdminApp() ?? detectInstalledApp();
   const latestAppCode = appUpdate ? Number(appUpdate.app_version_code || 0) : 0;
   const appForce = appUpdate?.app_force_update === 'true';
@@ -998,6 +1012,7 @@ function Shell() {
 
   return (
     <LiquidGlassScene className="qz-ios26-scene">
+      <ScrollToTopOnPush />
       <>
       <div className="glow" />
       <div className="app-bg qz-ios26-backdrop" style={wp.kind === 'grad'

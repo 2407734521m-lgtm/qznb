@@ -143,7 +143,7 @@ export default function MeGrowth() {
   const eventRecords = records.filter(item => item.id.startsWith('e'));
 
   return (
-    <main className="page" style={{ paddingBottom: 110, color: '#203b4b' }}>
+    <main className="page" style={{ paddingBottom: 16, color: '#203b4b' }}>
       <BackButton fallback="/me" />
       <header style={{ margin: '8px 0 16px' }}>
         <div style={{ fontSize: 10, letterSpacing: 2, color: '#63818c' }}>GROWTH · COMMUNITY FOOTPRINT</div>

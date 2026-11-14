@@ -1584,6 +1584,8 @@ export default function ParticleFlower() {
             </div>
           </div>
           <label className="bloom-signature-field"><span>作品签名</span><input maxLength={24} value={signature} onChange={event=>setSignature(event.target.value)} placeholder="为作品留下名字或一句话" /></label>
+          {/* 四个进入按钮贴在面板底部：面板内容超出视口要内部滚动时，入口按钮始终可见，不用翻到底才找得到。 */}
+          <div className="bloom-entry-sticky">
           <div className="bloom-start-actions">
             <button className="bloom-primary bloom-immersive-start" onClick={()=>void askStart('flower')} disabled={loading}>
               {loading?'正在准备沉浸空间…':'沉浸式开始'}<span>进入全屏互动</span>
@@ -1596,6 +1598,7 @@ export default function ParticleFlower() {
             <span className="bloom-air-ink-arrow">↗</span>
           </button>
           <button type="button" className="bloom-auto-demo" onClick={() => { setExperienceMode('demo'); autoDemoStartedAtRef.current=performance.now(); autoDemoRef.current=true; setAutoDemo(true); setStatus('自动演示'); }}>✦ 自动演示完整花期</button>
+          </div>
           <div className="bloom-privacy">摄像头与手势数据只在本地浏览器处理，不会上传；作品收藏仅保存在本机</div>
           {savedArtworks.length>0 && <section className="bloom-artwork-library"><div className="bloom-artwork-library-title">本机作品集 <small>{savedArtworks.length}/8</small></div><div className="bloom-artwork-grid">{savedArtworks.map(item=><div className="bloom-artwork-card" key={item.id}><a href={item.dataUrl} download={item.name+'.jpg'}><img src={item.dataUrl} alt={item.name}/><span>{item.name}</span></a><button type="button" aria-label={'删除'+item.name} onClick={()=>{const next=savedArtworks.filter(saved=>saved.id!==item.id);setSavedArtworks(next);try{window.localStorage.setItem('qznb-bloom-artworks',JSON.stringify(next));}catch{setMediaMessage('删除失败，请检查浏览器存储权限');}}}>删除</button></div>)}</div></section>}
           {error&&<div className="bloom-error" role="alert">{error}</div>}

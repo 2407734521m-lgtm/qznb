@@ -45,7 +45,7 @@ export default function MeFavorites() {
   }
 
   return (
-    <div className="page" style={{ paddingBottom: 110 }}>
+    <div className="page" style={{ paddingBottom: 16 }}>
       <BackButton fallback="/me" />
       <h2 style={{ margin: '4px 0 12px', fontSize: 20 }}>我的收藏</h2>
       <div className="row" style={{ gap: 8, marginBottom: 12 }}>

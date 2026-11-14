@@ -203,8 +203,6 @@ function MusicIsland() {
             zIndex: isMusicPage ? 1000 : 1,
             pointerEvents: isMusicPage ? 'auto' : 'none',
             overflow: 'hidden',
-            transformOrigin: '50% 0%',
-            willChange: isMusicPage ? 'transform, opacity' : 'opacity',
           }}
           aria-hidden={!isMusicPage}
         >

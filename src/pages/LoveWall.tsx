@@ -7,7 +7,7 @@ import { getSignedUrls, downscaleImage, uploadWithProgress } from '../lib/media'
 import { timeAgo } from '../lib/time';
 import BlurImg from '../components/fx/BlurImg';
 import SmoothProgress from '../components/fx/SmoothProgress';
-import { FeedSkeleton } from '../components/fx/Skeleton';
+import { FeedSkeleton, useDelayedLoading } from '../components/fx/Skeleton';
 import { fetchReviewEstimates, estimateText, type ReviewEstimates } from '../lib/reviewEstimate';
 import OptionSheet from '../components/OptionSheet';
 import Daily from './Daily';
@@ -65,6 +65,7 @@ export default function LoveWall() {
   };
   const [posts, setPosts] = useState<PublicPost[]>([]);
   const [loading, setLoading] = useState(true);
+  const showSkeleton = useDelayedLoading(loading);
   const [myPosts, setMyPosts] = useState<MyPost[]>([]);
   const [content, setContent] = useState('');
   const [recipientId, setRecipientId] = useState('');
@@ -427,7 +428,7 @@ export default function LoveWall() {
     {notice && <p role="status" style={{ background: '#f2f5fb', border: '1px solid #dfe6f2', borderRadius: 12, padding: '10px 12px', color: '#333946', fontSize: 12.5, lineHeight: 1.6, margin: '0 2px 12px' }}>{notice}</p>}
 
     {/* 信息流：和班级动态一样的时间流卡片 */}
-    {loading && <FeedSkeleton count={3} />}
+    {showSkeleton && <FeedSkeleton count={2} />}
     {!loading && shown.length === 0 && <div style={{ padding: 24, textAlign: 'center', color: '#606673', border: '1px dashed #dfe3ea', borderRadius: 18 }}>{mine ? '你还没有投稿，点右下角按钮写下第一份心意吧。' : '这里还没有内容，点右下角按钮写下第一份温柔的心意吧。'}</div>}
     <div style={{ display: 'grid', gap: 12 }}>
       {shown.map(p => {

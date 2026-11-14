@@ -4,13 +4,14 @@ import { useAuth } from '../auth';
 import BackButton from '../components/BackButton';
 import OptionSheet from '../components/OptionSheet';
 import { confirmDialog, alertDialog, promptDialog } from '../lib/dialog';
-import { FeedSkeleton } from '../components/fx/Skeleton';
+import { FeedSkeleton, useDelayedLoading } from '../components/fx/Skeleton';
 
 /** 留言祝福墙：给全班或某位同学留祝福 */
 export default function Greetings() {
   const me = useAuth().session!.user.id;
   const [list, setList] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const showSkeleton = useDelayedLoading(loading);
   const [names, setNames] = useState<Record<string, string>>({});
   const [members, setMembers] = useState<any[]>([]);
   const [text, setText] = useState('');
@@ -87,9 +88,9 @@ export default function Greetings() {
         </div>
         {msg && <p className="priv-note" style={{ margin: '8px 0 0' }}>{msg}</p>}
       </div>
-      {loading ? (
-        <FeedSkeleton count={3} />
-      ) : list.length === 0 ? (
+      {showSkeleton ? (
+        <FeedSkeleton count={2} />
+      ) : loading ? null : list.length === 0 ? (
         <div className="card" style={{ textAlign: 'center', color: 'var(--mut)', padding: '36px 14px' }}>
           <div style={{ fontSize: 15, marginBottom: 6, color: '#202124' }}>还没有留言</div>
           写下第一条祝福吧

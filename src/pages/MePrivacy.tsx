@@ -5,7 +5,7 @@ import { withRetry } from '../lib/retry';
 import { confirmDialog } from '../lib/dialog';
 import { resolveApproximateRegion, revokeSharedRegion, saveSharedRegion } from '../lib/location';
 import SettingsShell from '../components/SettingsShell';
-import { RowSkeleton } from '../components/fx/Skeleton';
+import { RowSkeleton, useDelayedLoading } from '../components/fx/Skeleton';
 
 // 与编辑资料页隐私折叠栏同一批开关、同一张 profile_privacy 表（2026-11-07 从设置页拆成独立子页）。
 const ROWS: [string, string][] = [
@@ -25,6 +25,7 @@ export default function MePrivacy() {
   const uid = useAuth().session!.user.id;
   const [priv, setPriv] = useState<Record<string, boolean>>({});
   const [loaded, setLoaded] = useState(false);
+  const showPrivacySkeleton = useDelayedLoading(!loaded);
   const [status, setStatus] = useState('');
   const privRef = useRef<Record<string, boolean>>({});
   const [sharedLocation, setSharedLocation] = useState<string | null>(null);
@@ -132,11 +133,11 @@ export default function MePrivacy() {
   return (
     <SettingsShell title="隐私设置">
       <p>哪些资料对其他成员公开，点一下开关就行{loaded ? `（${openCount}/${ROWS.length} 项公开）` : ''}</p>
-      {!loaded ? <RowSkeleton count={4} /> : ROWS.map(([flag, label]) => (
+      {showPrivacySkeleton ? <RowSkeleton count={4} /> : loaded ? ROWS.map(([flag, label]) => (
         <label key={flag} className="qz-sub-row"><span>{label}</span>
           <input type="checkbox" disabled={!loaded} checked={!!priv[flag]} onChange={() => void toggle(flag)} />
         </label>
-      ))}
+      )) : null}
       <div className="qz-settings-subsection">
         <p>表白墙：开启后，新发布的表白默认匿名；关闭后，新帖子显示你的昵称。只影响新帖子，老帖子保持原样。</p>
         <label className="qz-sub-row"><span>表白墙隐藏姓名</span>

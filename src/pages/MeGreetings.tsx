@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../auth';
 import BackButton from '../components/BackButton';
 import { confirmDialog } from '../lib/dialog';
-import { RowSkeleton } from '../components/fx/Skeleton';
+import { RowSkeleton, useDelayedLoading } from '../components/fx/Skeleton';
 
 /** 我的留言 */
 export default function MeGreetings() {
@@ -12,6 +12,7 @@ export default function MeGreetings() {
   const me = useAuth().session!.user.id;
   const [list, setList] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const showSkeleton = useDelayedLoading(loading);
   const [names, setNames] = useState<Record<string, string>>({});
   const [msg, setMsg] = useState('');
 
@@ -43,7 +44,7 @@ export default function MeGreetings() {
       <BackButton fallback="/me" />
       <h2 style={{ margin: '4px 0 12px', fontSize: 20 }}>我的留言（{loading ? '…' : list.length}）</h2>
       {msg && <p className="priv-note">{msg}</p>}
-      {loading && <RowSkeleton count={3} />}
+      {showSkeleton && <RowSkeleton count={3} />}
       {!loading && list.length === 0 && (
         <div className="card" style={{ textAlign: 'center', color: 'var(--mut)', padding: '36px 14px' }}>
           <div style={{ marginBottom: 10 }}>还没有留过言</div>

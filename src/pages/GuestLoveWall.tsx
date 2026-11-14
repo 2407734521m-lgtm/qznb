@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { getSignedUrls } from '../lib/media';
 import { timeAgo } from '../lib/time';
-import { FeedSkeleton } from '../components/fx/Skeleton';
+import { FeedSkeleton, useDelayedLoading } from '../components/fx/Skeleton';
 import './Guest.cruip.css';
 
 type GuestPost = {
@@ -34,6 +34,7 @@ export default function GuestLoveWall({ onLoginRequired }: { onLoginRequired: ()
   const [posts, setPosts] = useState<GuestPost[]>([]);
   const [media, setMedia] = useState<Record<string, Array<GuestMedia & { url?: string }>>>({});
   const [loading, setLoading] = useState(true);
+  const showSkeleton = useDelayedLoading(loading);
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -101,7 +102,7 @@ export default function GuestLoveWall({ onLoginRequired }: { onLoginRequired: ()
         <button type="button" className="guest-button guest-button-primary" onClick={onLoginRequired}>登录后参与</button>
       </div>
 
-      {loading && <FeedSkeleton count={2} />}
+      {showSkeleton && <FeedSkeleton count={2} />}
       {!loading && error && (
         <div role="status" style={{ padding: 22, borderRadius: 16, background: '#fff', border: '1px solid #e9ebf0', color: '#697386', textAlign: 'center' }}>
           <p style={{ margin: '0 0 12px' }}>{error}</p>

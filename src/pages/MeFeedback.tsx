@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../auth';
 import BackButton from '../components/BackButton';
-import { FeedSkeleton } from '../components/fx/Skeleton';
+import { FeedSkeleton, useDelayedLoading } from '../components/fx/Skeleton';
 
 type MyFeedbackItem = {
   id: number;
@@ -29,6 +29,7 @@ export default function MeFeedback() {
   const me = useAuth().session?.user.id ?? '';
   const [items, setItems] = useState<MyFeedbackItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const showSkeleton = useDelayedLoading(loading);
   const [error, setError] = useState('');
 
   const load = useCallback(async () => {
@@ -61,7 +62,7 @@ export default function MeFeedback() {
       </button>
     </section>
 
-    {loading && <FeedSkeleton count={2} />}
+    {showSkeleton && <FeedSkeleton count={2} />}
     {!loading && error && <section className="card" role="alert">{error}</section>}
     {!loading && !error && items.length === 0 && <section className="card" style={{ textAlign: 'center', padding: 28 }}>
       <div style={{ fontWeight: 700 }}>还没有反馈记录</div>

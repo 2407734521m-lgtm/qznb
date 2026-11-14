@@ -16,7 +16,7 @@ import { toast } from 'sonner';
 import BlurImg from './fx/BlurImg';
 import ShimmerButton from './fx/ShimmerButton';
 import SmoothProgress from './fx/SmoothProgress';
-import { FeedSkeleton } from './fx/Skeleton';
+import { FeedSkeleton, useDelayedLoading } from './fx/Skeleton';
 
 type ImpressionPollOption = { id: number; label: string; voteCount: number };
 type ImpressionPoll = {
@@ -105,6 +105,7 @@ export default function PostList({ section, searchQuery = '', embedded = false, 
   const [posts, setPosts] = useState<Post[]>([]);
   // 首屏骨架只显示一次：搜索换词会重复拉取，那时列表留在原地不闪骨架。
   const [initialLoading, setInitialLoading] = useState(true);
+  const showSkeleton = useDelayedLoading(initialLoading);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(false);
   const [profiles, setProfiles] = useState<Record<string, Profile>>({});
@@ -703,7 +704,7 @@ export default function PostList({ section, searchQuery = '', embedded = false, 
           </button>
         </div>
       )}
-      {initialLoading && <FeedSkeleton count={3} />}
+      {showSkeleton && <FeedSkeleton count={2} />}
       {isFeed && !initialLoading && visiblePosts.length === 0 && <div className="center" style={{ minHeight: 200 }}><div className="card">{searchQuery.trim() ? '没有找到匹配的动态。' : feedScope === 'friends' ? '暂时没有好友动态。添加好友后，这里会显示他们分享的内容。' : '还没有动态，来发第一条吧'}</div></div>}
       {!isFeed && !initialLoading && posts.length === 0 && <div className="center" style={{ minHeight: 200 }}><div className="card">{embedded ? '还没有帖子，来发第一条吧' : '还没有日常，来发第一条吧'}</div></div>}
       </PostListShell>

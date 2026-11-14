@@ -6,7 +6,7 @@ import { useAuth } from '../auth';
 import { useSignedUrl, uploadMedia, uploadMediaWithProgress, downscaleImage, removeOwnedMedia } from '../lib/media';
 import SmoothProgress from '../components/fx/SmoothProgress';
 import BlurImg from '../components/fx/BlurImg';
-import { FeedSkeleton } from '../components/fx/Skeleton';
+import { FeedSkeleton, useDelayedLoading } from '../components/fx/Skeleton';
 import { confirmDialog, alertDialog } from '../lib/dialog';
 import DateTimeField from '../components/DateTimeField';
 import './Timeline.starterblog.css';
@@ -28,6 +28,7 @@ export default function Timeline() {
   const target = uid ?? me; const mine = target === me;
   const [rows, setRows] = useState<T[]>([]);
   const [loading, setLoading] = useState(true);
+  const showSkeleton = useDelayedLoading(loading);
   const [who, setWho] = useState('');
   const [show, setShow] = useState(false);
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
@@ -155,7 +156,7 @@ export default function Timeline() {
         </div>}
       </>}
       <div className="tl">
-        {loading && <FeedSkeleton count={3} />}
+        {showSkeleton && <FeedSkeleton count={2} />}
         {!loading && rows.length === 0 && <p className="mut" style={{ padding: '20px 0' }}>还没有记录，去创造第一条吧</p>}
         {years.map(y => (
           <div key={y}>

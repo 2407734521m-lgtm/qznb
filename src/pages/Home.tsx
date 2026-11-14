@@ -6,7 +6,7 @@ import { supabase } from '../lib/supabase';
 import { timeAgo } from '../lib/time';
 import VisitCounter from '../components/VisitCounter';
 import Marquee from '../components/fx/Marquee';
-import { FeedSkeleton } from '../components/fx/Skeleton';
+import { InlineLoading, useDelayedLoading } from '../components/fx/Skeleton';
 import { isInApp } from '../lib/installedApp';
 import './Home.vibe.css';
 
@@ -67,6 +67,7 @@ export default function Home() {
   const [names, setNames] = useState<Record<string, string>>({});
   const [annPop, setAnnPop] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const showWallLoading = useDelayedLoading(loading);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
   const [filter, setFilter] = useState<Filter>('all');
@@ -157,7 +158,6 @@ export default function Home() {
 
   return (
     <div className="page vibe-home">
-      {loading && <FeedSkeleton count={3} />}
       {loadError && (
         <div className="vh-load-error" role="alert">
           <span>{loadError}</span>
@@ -242,7 +242,7 @@ export default function Home() {
           ))}
         </div>
 
-        {bothEmpty ? (
+        {loading ? (showWallLoading ? <div className="vh-load-state"><InlineLoading label="帖子加载中…" /></div> : null) : bothEmpty ? (
           <div className="vh-wall-empty">
             <p>还没有内容，去表白墙或动态发第一条吧。</p>
             <div className="vh-wall-actions vh-wall-empty-actions">

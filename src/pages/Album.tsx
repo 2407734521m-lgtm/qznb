@@ -5,7 +5,7 @@ import { supabase } from '../lib/supabase';
 import { withRetry } from '../lib/retry';
 import { useAuth } from '../auth';
 import { useSignedUrls } from '../lib/media';
-import { GridSkeleton } from '../components/fx/Skeleton';
+import { GridSkeleton, useDelayedLoading } from '../components/fx/Skeleton';
 import BlurImg from '../components/fx/BlurImg';
 import './Album.afilmory.css'; // Afilmory 式瀑布流版式（只借版式，样式自写）
 
@@ -21,6 +21,7 @@ export default function Album() {
   const me = useAuth().session!.user.id;
   const [rows, setRows] = useState<A[]>([]);
   const [loading, setLoading] = useState(true);
+  const showSkeleton = useDelayedLoading(loading);
   const [loadError, setLoadError] = useState('');
   const signedCovers = useSignedUrls('media', rows.map(a => a.cover_url));
   const [show, setShow] = useState(false);
@@ -93,7 +94,7 @@ export default function Album() {
           </motion.div>
         ))}
       </div>
-      {loading && <GridSkeleton count={4} />}
+      {showSkeleton && <GridSkeleton count={4} />}
       {!loading && loadError && <div className="card err">{loadError}<button className="mini ghost" onClick={load}>重试</button></div>}
       {!loading && !loadError && rows.length === 0 && <div className="center" style={{ minHeight: 200 }}><div className="card">还没有相册，创建一个吧</div></div>}
       {!loading && !loadError && rows.length > 0 && visibleRows.length === 0 && <div className="center" style={{ minHeight: 140 }}><div className="card">这个分类暂时没有相册。</div></div>}

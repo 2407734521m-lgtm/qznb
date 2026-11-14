@@ -7,7 +7,7 @@ import { useAuth } from '../auth';
 import { useSignedUrl } from '../lib/media';
 import type { ProfileSummary as Profile } from '../types/profile';
 import { confirmDialog } from '../lib/dialog';
-import { FeedSkeleton } from '../components/fx/Skeleton';
+import { FeedSkeleton, useDelayedLoading } from '../components/fx/Skeleton';
 import { isInApp } from '../lib/installedApp';
 import KaiboxDialog from '../components/KaiboxDialog';
 import './Board.polish.css';
@@ -31,6 +31,7 @@ export default function Board() {
   const searchQuery = new URLSearchParams(location.search).get('q')?.trim() || '';
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const [loading, setLoading] = useState(true);
+  const showSkeleton = useDelayedLoading(loading);
   const [profiles, setProfiles] = useState<Record<string, Profile>>({});
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
@@ -142,7 +143,7 @@ export default function Board() {
         {talks.map((m, i) => renderMsg(m, i + notices.length))}
       </>}
 
-      {loading && <FeedSkeleton count={3} />}
+      {showSkeleton && <FeedSkeleton count={2} />}
       {!loading && displayMsgs.length === 0 && <div className="center" style={{ minHeight: 160 }}><div className="card">{searchQuery ? '公告板没有匹配内容。' : '还没有留言，来发第一条吧'}</div></div>}
 
       <div style={{ height: 70 }} />

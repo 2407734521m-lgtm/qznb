@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../auth';
 import BackButton from '../components/BackButton';
-import { RowSkeleton } from '../components/fx/Skeleton';
+import { RowSkeleton, useDelayedLoading } from '../components/fx/Skeleton';
 
 /** 我的收藏：收藏的同学档案 + 动态 / 日常帖子 */
 export default function MeFavorites() {
@@ -15,6 +15,7 @@ export default function MeFavorites() {
   const [msg, setMsg] = useState('');
   // 首屏骨架只显示一次：切分类会重复拉取，那时列表留在原地不闪骨架。
   const [initialLoading, setInitialLoading] = useState(true);
+  const showSkeleton = useDelayedLoading(initialLoading);
 
   async function load(t: 'member' | 'post') {
     const { data } = await supabase.from('favorites')
@@ -57,7 +58,7 @@ export default function MeFavorites() {
         <button className={'mini' + (postSection === 'daily' ? '' : ' ghost')} onClick={() => setPostSection('daily')}>日常</button>
       </div>}
       {msg && <p className="priv-note">{msg}</p>}
-      {initialLoading && <RowSkeleton count={3} />}
+      {showSkeleton && <RowSkeleton count={3} />}
       {!initialLoading && items.length === 0 && <div className="card" style={{ textAlign: 'center', color: 'var(--mut)', padding: '36px 14px' }}>还没有收藏</div>}
       {items.map(r => (
         <div key={r.target_id} className="card">

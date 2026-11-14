@@ -76,8 +76,13 @@
   transition: filter .7s cubic-bezier(.16, 1, .3, 1), opacity .7s cubic-bezier(.16, 1, .3, 1);
 }
 
+/* 小加载提示：不画假内容形状，只有一行小字，缓慢呼吸，不抢眼 */
+.fx-inline-loading { text-align: center; color: #7a8894; font-size: 13px; padding: 20px 0; animation: fx-inline-pulse 1.2s ease-in-out infinite; }
+@keyframes fx-inline-pulse { 50% { opacity: .45; } }
+
 @media (prefers-reduced-motion: reduce) {
   .fx-skel-wrap::after { animation: none !important; }
+  .fx-inline-loading { animation: none; }
   .fx-progress-fill { transition: none; }
   .fx-blur-in { filter: none; opacity: 1; }
   .fx-blur-in.fx-in { transition: none; }

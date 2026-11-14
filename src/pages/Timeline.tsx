@@ -9,6 +9,7 @@ import BlurImg from '../components/fx/BlurImg';
 import { FeedSkeleton } from '../components/fx/Skeleton';
 import { confirmDialog, alertDialog } from '../lib/dialog';
 import DateTimeField from '../components/DateTimeField';
+import './Timeline.starterblog.css';
 
 type T = { id: number; profile_id: string; happened_on: string; title: string; content: string | null; media_url: string | null };
 
@@ -131,7 +132,7 @@ export default function Timeline() {
   const years = [...new Set(rows.map(r => r.happened_on.slice(0, 4)))];
 
   return (
-    <div className="page">
+    <div className="page timeline-longform">
       <button className="backbtn" onClick={() => nav(-1)}>← 返回</button>
       <div className="hero" style={{ paddingTop: 8 }}>
         <h1 style={{ fontSize: 24 }}>青春时间线</h1>

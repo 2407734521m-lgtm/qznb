@@ -1,0 +1,237 @@
+/* 公告板长文版式（Board.tsx 用）
+ *
+ * 版式来源：Starter Blog（timlrx/tailwind-nextjs-starter-blog，10,554 星、MIT，
+ * https://github.com/timlrx/tailwind-nextjs-starter-blog）——只借长文时间线的
+ * 版式（长文标题层级、正文行距与宽度、元信息排布），不复制其代码，
+ * 全部按本站自研 CSS + 冷白纸面重写。
+ * Starter Blog 的做法（layouts/PostLayout.tsx）：日期元信息在上、居中大标题、
+ * 作者行（头像＋名字）、正文 prose 行距约 1.75、宽屏作者信息排在左侧栏、
+ * 正文居中收窄到舒适阅读宽度、底部标签与评论之间以细分隔线区分。
+ * 本站的改编：
+ *  - 公告是信息流而不是单篇长文，标题与元信息保持左对齐（手机优先），
+ *    不照搬居中大标题；
+ *  - 管理员公告是本站的“长文”：标题加大加粗、正文行距 1.85、宽度收窄到 68ch、
+ *    宽屏时作者元信息排到左侧栏（10rem）、正文在右侧；
+ *  - 同学留言保持单栏，只换冷白纸面与正文行距；
+ *  - 暖纸底（#fffdf9 / 藏青 / 鎏金）全部换成冷白纸面 token
+ *   （底 #f7f8f8、卡片 #ffffff、墨色 #1f2a3a、灰字 #7a8894、描边 #e5e8ea、
+ *    印泥红 #b0404f）；暖金点缀换成印泥红。
+ * 数据逻辑（公告查询、已读标记、发送、删除）一律不动，只换排布与样式。
+ * 本文件在 Board.tsx 里 import 在 Board.polish.css 之后，同等特异度下后加载者胜；
+ * 关键色值沿用本站惯例加 !important，避免被旧暖纸层叠盖住。
+ */
+
+/* 页容器：冷白底，阅读宽度收窄。 */
+.board-page {
+  background: #f7f8f8;
+}
+
+/* 页头：冷白卡片，标题墨色、副标灰字。 */
+.board-page .board-hero {
+  border: 1px solid #e5e8ea !important;
+  background: #ffffff !important;
+  box-shadow: 0 4px 16px rgba(31, 42, 58, .05) !important;
+}
+
+.board-page .board-hero h1 {
+  color: #1f2a3a !important;
+  font-weight: 800;
+  letter-spacing: -.02em;
+}
+
+.board-page .board-hero p {
+  color: #7a8894 !important;
+}
+
+/* 分组标题：Starter Blog 式小字大写元信息＋细分隔线。 */
+.board-page .board-section-label {
+  margin: 20px 3px 12px !important;
+  color: #7a8894 !important;
+  font-size: 11px !important;
+  font-weight: 750;
+  letter-spacing: .14em;
+}
+
+.board-page .board-section-label::before {
+  background: #e5e8ea !important;
+}
+
+.board-page .board-section-label-admin::before {
+  background: linear-gradient(90deg, rgba(176, 64, 79, .85), rgba(176, 64, 79, 0)) !important;
+}
+
+/* 公告卡片：冷白纸面。 */
+.board-page .board-post {
+  border: 1px solid #e5e8ea !important;
+  background: #ffffff !important;
+  box-shadow: 0 4px 14px rgba(31, 42, 58, .05) !important;
+}
+
+/* 管理员公告＝长文：印泥红左线＋极淡红晕，替代原来的鎏金。 */
+.board-page .board-post-admin {
+  border-color: #e5e8ea !important;
+  border-left: 3px solid #b0404f !important;
+  background:
+    radial-gradient(ellipse at 100% 0%, rgba(176, 64, 79, .05), transparent 45%),
+    #ffffff !important;
+}
+
+/* 长文头：作者行是元信息（灰字小写字母间距），标题是层级主体。 */
+.board-page .board-post .nm {
+  color: #1f2a3a !important;
+  font-size: 14px !important;
+  font-weight: 700;
+}
+
+.board-page .board-post .tm {
+  color: #7a8894 !important;
+  font-size: 11.5px !important;
+  letter-spacing: .04em;
+}
+
+/* 长文标题层级：加大、加粗、收紧字距。 */
+.board-page .board-post-title {
+  margin: 8px 0 10px !important;
+  color: #1f2a3a !important;
+  font-size: 17px !important;
+  font-weight: 800;
+  letter-spacing: -.015em;
+  line-height: 1.55;
+}
+
+/* 长文正文：行距 1.85、宽度收窄到 68ch、墨色。 */
+.board-page .board-post-body {
+  max-width: 68ch;
+  color: #1f2a3a !important;
+  font-size: 15px !important;
+  line-height: 1.85 !important;
+  overflow-wrap: anywhere;
+}
+
+.board-page .board-post-admin .board-post-title {
+  color: #1f2a3a !important;
+}
+
+/* 元信息 chip：冷白＋印泥红。 */
+.board-page .board-post .chip {
+  border: 1px solid #e5e8ea !important;
+  background: #f7f8f8 !important;
+  color: #7a8894 !important;
+}
+
+.board-page .board-post-admin .chip.ad {
+  border-color: rgba(176, 64, 79, .35) !important;
+  background: rgba(176, 64, 79, .08) !important;
+  color: #b0404f !important;
+}
+
+/* 悬停：只抬卡片，不改色。 */
+@media (hover: hover) and (pointer: fine) {
+  .board-page .board-post:hover {
+    border-color: #d5dbe0 !important;
+    box-shadow: 0 10px 24px rgba(31, 42, 58, .07) !important;
+  }
+
+  .board-page .board-post-admin:hover {
+    border-color: #e5e8ea !important;
+    border-left-color: #b0404f !important;
+  }
+}
+
+/* 底部输入框：冷白纸面。 */
+.board-page .board-composer {
+  border: 1px solid #e5e8ea !important;
+  background: #ffffff !important;
+  box-shadow: 0 12px 32px rgba(31, 42, 58, .12) !important;
+}
+
+.board-page .board-composer-input {
+  border: 1px solid #e5e8ea !important;
+  background: #ffffff !important;
+  color: #1f2a3a !important;
+}
+
+.board-page .board-composer-input::placeholder {
+  color: #7a8894 !important;
+}
+
+.board-page .board-composer-input:focus {
+  border-color: rgba(176, 64, 79, .55) !important;
+  box-shadow: 0 0 0 3px rgba(176, 64, 79, .10) !important;
+}
+
+.board-page .board-send {
+  box-shadow: 0 6px 16px rgba(31, 42, 58, .16) !important;
+}
+
+.board-page .feed-search-banner {
+  border-color: #e5e8ea !important;
+  background: #ffffff !important;
+  color: #1f2a3a !important;
+}
+
+/* 宽屏：管理员公告按 Starter Blog 的双栏排布——左侧 10rem 元信息栏
+ *（头像＋作者＋时间＋操作），右侧长文（标题＋正文）。标题与正文缺失时，
+ * 空的自动行高为 0，不会留出空白行。手机保持单栏。 */
+@media (min-width: 1024px) {
+  .board-page .board-post-admin {
+    display: grid;
+    grid-template-columns: 10rem minmax(0, 1fr);
+    column-gap: 18px;
+    padding: 20px 22px;
+  }
+
+  .board-page .board-post-admin .board-post-head {
+    grid-column: 1;
+    grid-row: 1 / span 2;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    margin-bottom: 0;
+  }
+
+  .board-page .board-post-admin .board-post-head > div {
+    flex: none !important;
+  }
+
+  .board-page .board-post-admin .board-post-title {
+    grid-column: 2;
+    grid-row: 1;
+    margin-top: 2px !important;
+  }
+
+  .board-page .board-post-admin .board-post-body {
+    grid-column: 2;
+    grid-row: 2;
+    margin-top: 0;
+  }
+}
+
+@media (max-width: 520px) {
+  .board-page .board-hero {
+    padding: 21px 17px 18px;
+  }
+
+  .board-page .board-post {
+    padding: 14px;
+  }
+
+  .board-page .board-post-title {
+    font-size: 16px !important;
+  }
+
+  .board-page .board-post-body {
+    font-size: 14.5px !important;
+    line-height: 1.8 !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .board-page .board-post {
+    transition: none !important;
+  }
+
+  .board-page .board-post:hover {
+    transform: none !important;
+  }
+}

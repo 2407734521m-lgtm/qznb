@@ -1,0 +1,109 @@
+/* 长动态正文统一样式（PostList.tsx 用，动态 / 日常共用）
+ *
+ * 版式来源：Starter Blog（timlrx/tailwind-nextjs-starter-blog，10,554 星、MIT，
+ * https://github.com/timlrx/tailwind-nextjs-starter-blog）——只借长文时间线的
+ * 版式（长文标题层级、正文行距与宽度、元信息排布、底部细分隔线），
+ * 不复制其代码，全部按本站自研 CSS + 冷白纸面重写。
+ * Starter Blog 的做法（layouts/PostLayout.tsx）：正文 prose 行距约 1.75、
+ * 内容收窄到舒适阅读宽度、作者与日期是小字灰字元信息、评论区上方有细分隔线。
+ * 本站的改编：
+ *  - 动态没有标题，正文就是长文主体：15px / 行距 1.85、墨色、宽度收窄到 68ch，
+ *    长帖与短帖用同一套正文排版（不另做展开/收起，不改数据逻辑）；
+ *  - 作者行收紧为元信息（名字 14px/700 墨色、时间 11.5px 灰字字母间距）；
+ *  - 底部操作栏与评论区之间保持细分隔线，描边换成冷白 token；
+ *  - 只作用于 PostList 根节点（.postlist-longform），不影响公告板等同样用
+ *    .post 类的页面；不碰第 5 项的三栏排布（PostList.layout.css）。
+ * 数据逻辑（发帖/点赞/评论/举报/删除/加载更多/印象投票）一律不动。
+ * 本文件在 PostList.tsx 里 import 在 PostList.layout.css 之后；
+ * 关键排版数值沿用本站惯例加 !important，避免被旧层叠盖住。
+ */
+
+/* 正文＝长文主体：行距 1.85、宽度 68ch、墨色。 */
+.postlist-longform .post .bd {
+  max-width: 68ch;
+  color: #1f2a3a !important;
+  font-size: 15px !important;
+  line-height: 1.85 !important;
+  overflow-wrap: anywhere;
+}
+
+/* 作者行＝元信息：名字墨色加粗、时间灰字小字。 */
+.postlist-longform .post .hd {
+  margin-bottom: 12px;
+}
+
+.postlist-longform .post .hd .nm {
+  color: #1f2a3a !important;
+  font-size: 14px !important;
+  font-weight: 700;
+}
+
+.postlist-longform .post .hd .tm {
+  color: #7a8894 !important;
+  font-size: 11.5px !important;
+  letter-spacing: .04em;
+}
+
+/* 卡片：冷白纸面、圆角 16px。 */
+.postlist-longform .post {
+  border-color: #e5e8ea !important;
+  border-radius: 16px !important;
+  background: #ffffff !important;
+}
+
+/* 配图：圆角、与正文留距。 */
+.postlist-longform .post .bdimg {
+  margin-top: 4px;
+  border-radius: 12px !important;
+}
+
+/* 底部操作栏：细分隔线＋灰字，点赞态印泥红。 */
+.postlist-longform .post .ft {
+  border-top: 1px solid #e5e8ea !important;
+}
+
+.postlist-longform .post .ft button {
+  color: #7a8894 !important;
+}
+
+.postlist-longform .post .ft button.liked {
+  color: #b0404f !important;
+}
+
+/* 评论区：细分隔线在上，评论作者墨色、时间灰字。 */
+.postlist-longform .post .cmt {
+  border-top: 1px solid #e5e8ea !important;
+}
+
+.postlist-longform .post .cmt .one b {
+  color: #1f2a3a;
+}
+
+.postlist-longform .post .cmt .one .tm {
+  color: #7a8894;
+}
+
+.postlist-longform .post .cmt-empty {
+  color: #7a8894;
+}
+
+@media (max-width: 520px) {
+  .postlist-longform .post {
+    padding: 14px !important;
+  }
+
+  .postlist-longform .post .bd {
+    font-size: 14.5px !important;
+    line-height: 1.8 !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .postlist-longform .post {
+    transition: none !important;
+  }
+
+  .postlist-longform .post:hover {
+    transform: none !important;
+  }
+}

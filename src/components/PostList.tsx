@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { motion, useReducedMotion } from 'framer-motion';
 import './PostList.layout.css';
+import './PostList.longform.css';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../auth';
 import { useSignedUrls, uploadMedia, uploadMediaWithProgress, downscaleImage, removeOwnedMedia } from '../lib/media';
@@ -499,7 +500,7 @@ export default function PostList({ section, searchQuery = '', embedded = false, 
   const totalLikes = visiblePosts.reduce((sum, post) => sum + (likes[post.id] || 0), 0);
 
   return (
-    <div className={isFeed ? 'page feed-page' : 'page'}>
+    <div className={isFeed ? 'page feed-page postlist-longform' : 'page postlist-longform'}>
       <PostListShell
         embedded={embedded}
         side={<PostListSidePanels section={section} loadedCount={visiblePosts.length} myCount={myPostCount} totalLikes={totalLikes} />}

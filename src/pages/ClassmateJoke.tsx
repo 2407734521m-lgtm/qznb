@@ -31,25 +31,25 @@ export default function ClassmateJoke() {
       <section className="joke-hero">
         <div className="joke-hero-copy">
           <span className="joke-eyebrow"><i /> 本期特别企划 · 001</span>
-          <h1>听说有个<br /><em>免费活动？</em></h1>
-          <p>从一句“现在做活动”开始，一场一本正经的胡说八道就此展开。</p>
-          <a className="joke-primary" href="#story">看看事情经过 <span>↘</span></a>
+          <h1>免费<br /><em>领娃</em></h1>
+          <p>会聊天 · 只敲门，不开锁。全程免费，不用助力。</p>
+          <a className="joke-primary" href="#story">看看活动详情 <span>↘</span></a>
           <div className="joke-meta"><span>CLASSMATE SPECIAL</span><span>JUST FOR FUN</span></div>
         </div>
         <div className="joke-poster-wrap">
-          <div className="joke-poster-tag">主视觉海报 / 待补充</div>
+          <div className="joke-poster-tag">活动主视觉 / 海报</div>
           <div className="joke-poster-placeholder">
             <div className="joke-poster-cross">✳</div>
             <div className="joke-poster-frame">
               <span className="joke-poster-small">LIMITED-TIME NONSENSE</span>
-              <strong>限时<br /><b>整活</b><br />活动</strong>
+              <strong>免费<br /><b>领娃</b></strong>
               <span className="joke-poster-line" />
-              <span className="joke-poster-sub">免费领取 · 送货上门？</span>
-              <span className="joke-poster-foot">海报图片稍后替换至此处</span>
+              <span className="joke-poster-sub">会聊天 · 只敲门，不开锁</span>
+              <span className="joke-poster-foot">今晚 2:10 上链接，到时候发你</span>
             </div>
-            <span className="joke-poster-stamp">NOT<br />REAL</span>
+            <span className="joke-poster-stamp">JUST<br />FUN</span>
           </div>
-          <p className="joke-poster-caption">正式海报上传后，将替换这个预留画面。</p>
+          <p className="joke-poster-caption">海报主图已收到，后续会替换为完整海报。</p>
         </div>
         <span className="joke-hero-index">01 — 03</span>
       </section>

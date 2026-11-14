@@ -81,7 +81,7 @@ const QianzhiEmbedBridge = ({ model }: Props) => {
             if (!parentOrigin) return;
             const playback = playbackRef.current;
             const playing = playback.displayPlayerState === PlayerState.PLAYING;
-            const available = playing && playback.playbackRoute === 'web';
+            const available = playing && playback.playbackRoute === 'web' && audioBands.spectrum.get().length > 0;
             const normalize = (value: number) => Math.max(0, Math.min(1, Number.isFinite(value) ? value / 255 : 0));
             window.parent.postMessage({
                 source: 'qznb-music',

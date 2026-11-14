@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../auth';
 import { confirmDialog } from '../lib/dialog';
 import { getSignedUrls, downscaleImage, uploadWithProgress } from '../lib/media';
+import { timeAgo } from '../lib/time';
 import BlurImg from '../components/fx/BlurImg';
 import SmoothProgress from '../components/fx/SmoothProgress';
 import { FeedSkeleton } from '../components/fx/Skeleton';
@@ -35,14 +36,6 @@ const catColor: Record<string, { bg: string; fg: string }> = {
   '毕业寄语': { bg: '#eceffd', fg: '#4c5ec2' },
 };
 
-function timeAgo(s: string) {
-  const d = (Date.now() - new Date(s).getTime()) / 1000;
-  if (d < 60) return '刚刚';
-  if (d < 3600) return Math.floor(d / 60) + ' 分钟前';
-  if (d < 86400) return Math.floor(d / 3600) + ' 小时前';
-  if (d < 86400 * 30) return Math.floor(d / 86400) + ' 天前';
-  return new Date(s).toLocaleDateString();
-}
 
 async function cleanupUnlinkedLoveMedia(paths: string[]): Promise<boolean> {
   if (!paths.length) return false;

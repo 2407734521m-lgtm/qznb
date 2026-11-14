@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion, useReducedMotion } from 'framer-motion';
 import { supabase } from '../lib/supabase';
+import { timeAgo } from '../lib/time';
 import { useAuth } from '../auth';
 import { useSignedUrl } from '../lib/media';
 import type { ProfileSummary as Profile } from '../types/profile';
@@ -20,13 +21,6 @@ function Avatar({ p, size = 38 }: { p?: Profile; size?: number }) {
       {url ? <img src={url} alt="" /> : <span>{(p?.display_name ?? p?.username ?? '?').slice(0, 1)}</span>}
     </div>
   );
-}
-function timeAgo(s: string) {
-  const d = (Date.now() - new Date(s).getTime()) / 1000;
-  if (d < 60) return '刚刚'; if (d < 3600) return Math.floor(d / 60) + ' 分钟前';
-  if (d < 86400) return Math.floor(d / 3600) + ' 小时前';
-  if (d < 86400 * 30) return Math.floor(d / 86400) + ' 天前';
-  return new Date(s).toLocaleDateString();
 }
 
 export default function Board() {

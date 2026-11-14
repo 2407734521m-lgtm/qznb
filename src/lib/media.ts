@@ -159,3 +159,17 @@ export function downscaleImage(file: File, maxDim = 1280, quality = 0.82): Promi
     img.src = url;
   });
 }
+
+/**
+ * 删除属于指定作者的 storage 文件（仅当 path 为该作者名下的相对路径时才删；
+ * 绝对 URL / 空路径 / 非本人路径一律不动，返回 null；删失败返回错误信息）。
+ */
+export async function removeOwnedMedia(path: string | null | undefined, ownerId: string): Promise<string | null> {
+  if (!path || path.startsWith('http://') || path.startsWith('https://') || !path.startsWith(`${ownerId}/`)) return null;
+  try {
+    const { error } = await supabase.storage.from('media').remove([path]);
+    return error?.message ?? null;
+  } catch (error) {
+    return error instanceof Error ? error.message : '存储服务暂时不可用';
+  }
+}

@@ -37,6 +37,9 @@ jobs:
       - name: Apply first-run music provider login tour
         run: node music/scripts/apply-music-login-tour.mjs
 
+      - name: Apply NetEase cross-device sync overlay
+        run: node music/scripts/apply-folia-netease-sync.mjs
+
       - name: Test NetEase Worker security helpers
         run: node music/scripts/test-netease-security.mjs
 
@@ -87,6 +90,10 @@ jobs:
       - name: Test Qianzhi account integration
         working-directory: music/folia
         run: npm run test:unit -- test/unit/qianzhiAccount/loginMethod.test.ts
+
+      - name: Test NetEase sync client
+        working-directory: music/folia
+        run: npm run test:unit -- test/unit/qianzhiNeteaseSync/syncClient.test.ts
 
       - name: Test adaptive Qianzhi performance profile
         working-directory: music/folia

@@ -539,14 +539,14 @@ export default function Login({ siteTitle, siteSubtitle, onGuestLogin }: { siteT
               </button>
             </>)}
             <FloatField label="密码" value={pw} hint="至少 8 位" error={terr('pwReg', pwErr)}>
-              <PasswordField value={pw} onChange={setPw} onBlur={touch('pwReg')} placeholder="至少 8 位" autoComplete="new-password" strength />
+              <PasswordField disabled={codeSent} value={pw} onChange={setPw} onBlur={touch('pwReg')} placeholder="至少 8 位" autoComplete="new-password" strength />
             </FloatField>
             <FloatField label="确认密码" value={pw2} error={terr('pw2', pw2Err)}>
               <PasswordField disabled={codeSent} value={pw2} onChange={setPw2} onBlur={touch('pw2')} placeholder="再输一次" autoComplete="new-password" ariaLabel="确认密码" />
             </FloatField>
             <div style={{ margin: '14px 0 10px', padding: '12px 13px', borderRadius: 12, background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.12)' }}>
               <label style={{ display: 'flex', alignItems: 'flex-start', gap: 9, lineHeight: 1.6, cursor: 'pointer' }}>
-                <input type="checkbox" checked={policyAccepted} onChange={e => setPolicyAccepted(e.target.checked)} style={{ width: 18, height: 18, marginTop: 3, flexShrink: 0 }} />
+                <input type="checkbox" disabled={codeSent} checked={policyAccepted} onChange={e => setPolicyAccepted(e.target.checked)} style={{ width: 18, height: 18, marginTop: 3, flexShrink: 0 }} />
                 <span>我已阅读并同意 <button type="button" className="linklike" onClick={() => setShowPrivacyPolicy(true)} style={{ border: 0, padding: 0, background: 'none', color: '#2f5fd0', textDecoration: 'underline', cursor: 'pointer', font: 'inherit' }}>《隐私政策与用户协议》</button></span>
               </label>
               <p className="priv-note" style={{ margin: '7px 0 0', lineHeight: 1.65 }}>政策说明账号、设备信息及 IP 推算地区的处理方式。所在地区分享不会由本协议自动授权。</p>

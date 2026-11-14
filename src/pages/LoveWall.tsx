@@ -44,10 +44,11 @@ function timeAgo(s: string) {
 async function cleanupUnlinkedLoveMedia(paths: string[]): Promise<boolean> {
   if (!paths.length) return false;
   // 写入请求可能已在服务端成功但客户端超时；先保留已被附件记录引用的文件。
-  const { data: linkedRows, error: lookupError } = await supabase.from('love_wall_media')
-    .select('path').in('path', paths);
+  const { data: linkedRows, error: lookupError } = await supabase.rpc('love_wall_media_paths_referenced' as any, {
+    p_paths: paths,
+  });
   if (lookupError) return true;
-  const linked = new Set((linkedRows ?? []).map(row => row.path));
+  const linked = new Set((linkedRows ?? []).map((row: { path: string }) => row.path));
   const unlinked = paths.filter(path => !linked.has(path));
   if (!unlinked.length) return false;
   const { error: removeError } = await supabase.storage.from('media').remove(unlinked);
@@ -114,9 +115,8 @@ export default function LoveWall() {
     }
     const ids = [...pubList.map(x => x.id), ...mineList.map(x => x.id)];
     if (ids.length) {
-      const { data: mrows } = await supabase.from('love_wall_media')
-        .select('id,post_id,path,kind,sort').in('post_id', ids).order('sort');
-      const rows = (mrows || []) as MediaRow[];
+      const { data: mrows } = await supabase.rpc('love_wall_media_for_posts' as any, { p_post_ids: ids });
+      const rows = ((mrows || []) as MediaRow[]).filter(row => typeof row.path === 'string' && row.path.length > 0);
       if (rows.length) {
         const signed = await getSignedUrls('media', rows.map(r => r.path)).catch(() => ({} as Record<string, string>));
         const grouped: Record<string, MediaItem[]> = {};

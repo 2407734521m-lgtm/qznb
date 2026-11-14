@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import type { MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent } from 'react';
 import { Routes, Route, NavLink, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
@@ -26,51 +26,51 @@ import BroadcastPopup from './components/BroadcastPopup';
 import AppAnnouncementDialog from './components/AppAnnouncementDialog';
 import LoginSuccessOverlay from './components/LoginSuccessOverlay';
 import bgUrl from './assets/bg.jpg';
-import Login from './pages/Login';
+const Login = lazy(() => import('./pages/Login'));
 import GuestNicknameDialog from './components/GuestNicknameDialog';
-import GuestBrowse from './pages/GuestBrowse';
-import Members from './pages/Members';
-import Member from './pages/Member';
-import MyProfile from './pages/MyProfile';
-import Timeline from './pages/Timeline';
-import AlbumDetail from './pages/AlbumDetail';
-import Discover from './pages/Discover';
-import Friends from './pages/Friends';
-import Chat from './pages/Chat';
-import Admin from './pages/Admin';
-import Home from './pages/Home';
-import Capsule from './pages/Capsule';
-import MemoryCalendar from './pages/MemoryCalendar';
-import Wishes from './pages/Wishes';
-import Events from './pages/Events';
-import Greetings from './pages/Greetings';
-import MeHub from './pages/MeHub';
-import MeContent from './pages/MeContent';
-import MePosts from './pages/MePosts';
-import MeFavorites from './pages/MeFavorites';
-import MeGreetings from './pages/MeGreetings';
-import MeNotifications from './pages/MeNotifications';
-import MeFeedback from './pages/MeFeedback';
-import MeAccount from './pages/MeAccount';
-import MeSettings from './pages/MeSettings';
-import MePasskey from './pages/MePasskey';
-import MePrivacy from './pages/MePrivacy';
-import MeDevices from './pages/MeDevices';
-import MeGeneral from './pages/MeGeneral';
-import MeNotifySettings from './pages/MeNotifySettings';
-import MeGrowth from './pages/MeGrowth';
+const GuestBrowse = lazy(() => import('./pages/GuestBrowse'));
+const Members = lazy(() => import('./pages/Members'));
+const Member = lazy(() => import('./pages/Member'));
+const MyProfile = lazy(() => import('./pages/MyProfile'));
+const Timeline = lazy(() => import('./pages/Timeline'));
+const AlbumDetail = lazy(() => import('./pages/AlbumDetail'));
+const Discover = lazy(() => import('./pages/Discover'));
+const Friends = lazy(() => import('./pages/Friends'));
+const Chat = lazy(() => import('./pages/Chat'));
+const Admin = lazy(() => import('./pages/Admin'));
+const Home = lazy(() => import('./pages/Home'));
+const Capsule = lazy(() => import('./pages/Capsule'));
+const MemoryCalendar = lazy(() => import('./pages/MemoryCalendar'));
+const Wishes = lazy(() => import('./pages/Wishes'));
+const Events = lazy(() => import('./pages/Events'));
+const Greetings = lazy(() => import('./pages/Greetings'));
+const MeHub = lazy(() => import('./pages/MeHub'));
+const MeContent = lazy(() => import('./pages/MeContent'));
+const MePosts = lazy(() => import('./pages/MePosts'));
+const MeFavorites = lazy(() => import('./pages/MeFavorites'));
+const MeGreetings = lazy(() => import('./pages/MeGreetings'));
+const MeNotifications = lazy(() => import('./pages/MeNotifications'));
+const MeFeedback = lazy(() => import('./pages/MeFeedback'));
+const MeAccount = lazy(() => import('./pages/MeAccount'));
+const MeSettings = lazy(() => import('./pages/MeSettings'));
+const MePasskey = lazy(() => import('./pages/MePasskey'));
+const MePrivacy = lazy(() => import('./pages/MePrivacy'));
+const MeDevices = lazy(() => import('./pages/MeDevices'));
+const MeGeneral = lazy(() => import('./pages/MeGeneral'));
+const MeNotifySettings = lazy(() => import('./pages/MeNotifySettings'));
+const MeGrowth = lazy(() => import('./pages/MeGrowth'));
 import ErrorBoundary from './components/ErrorBoundary';
-import AdminLogin from './pages/AdminLogin';
-import Board from './pages/Board';
-import HotSnippets from './pages/HotSnippets';
-import LoveWall from './pages/LoveWall';
-import Explore from './pages/Explore';
-import QuestionBox from './pages/QuestionBox';
-import FateNotebook from './pages/FateNotebook';
-import SongWall from './pages/SongWall';
-import Daily from './pages/Daily';
-import ParticleFlower from './pages/ParticleFlower';
-import AirInk from './pages/AirInk';
+const AdminLogin = lazy(() => import('./pages/AdminLogin'));
+const Board = lazy(() => import('./pages/Board'));
+const HotSnippets = lazy(() => import('./pages/HotSnippets'));
+const LoveWall = lazy(() => import('./pages/LoveWall'));
+const Explore = lazy(() => import('./pages/Explore'));
+const QuestionBox = lazy(() => import('./pages/QuestionBox'));
+const FateNotebook = lazy(() => import('./pages/FateNotebook'));
+const SongWall = lazy(() => import('./pages/SongWall'));
+const Daily = lazy(() => import('./pages/Daily'));
+const ParticleFlower = lazy(() => import('./pages/ParticleFlower'));
+const AirInk = lazy(() => import('./pages/AirInk'));
 import { alertDialog } from './lib/dialog';
 import { resolveApproximateRegion, saveSharedRegion } from './lib/location';
 import GlobalSearch from './components/GlobalSearch';
@@ -1047,6 +1047,7 @@ function Shell() {
             animate={isImmersivePage ? { opacity: 1 } : { opacity: 1, y: 0, scale: 1 }}
             exit={reduce ? { opacity: 1 } : isImmersivePage ? { opacity: 0 } : { opacity: 0, y: -7, scale: 0.996 }}
             transition={{ duration: reduce ? 0 : DUR.base + 0.06, ease: EASE }}>
+            <Suspense fallback={<div className="center" role="status">加载中…</div>}>
             <Routes location={loc}>
               <Route path="/" element={<Navigate to="/home" replace />} />
               <Route path="/board" element={<Board />} />
@@ -1098,6 +1099,7 @@ function Shell() {
               <Route path="/admin" element={<ErrorBoundary><AdminRoute /></ErrorBoundary>} />
               <Route path="*" element={<Navigate to="/home" replace />} />
             </Routes>
+            </Suspense>
           </motion.div>
         </AnimatePresence>
       </div>

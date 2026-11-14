@@ -1,9 +1,9 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { HashRouter } from 'react-router-dom';
-import App from './App';
-import Admin from './pages/Admin';
-import AdminLogin from './pages/AdminLogin';
+const App = lazy(() => import('./App'));
+const Admin = lazy(() => import('./pages/Admin'));
+const AdminLogin = lazy(() => import('./pages/AdminLogin'));
 import { AuthProvider, useAuth } from './auth';
 import { supabase } from './lib/supabase';
 import { DialogHost } from './lib/dialog';
@@ -166,7 +166,9 @@ function AdminShell() {
 createRoot(document.getElementById('root')!).render(
   <React.StrictMode><HashRouter><AuthProvider>
     <ErrorBoundary>
-      {isAdminHost ? <AdminShell /> : <App />}
+      <Suspense fallback={<div className="center" role="status">加载中…</div>}>
+        {isAdminHost ? <AdminShell /> : <App />}
+      </Suspense>
       <TestSwitchFab />
     </ErrorBoundary>
     <DialogHost />

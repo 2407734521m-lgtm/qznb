@@ -58,13 +58,17 @@ export default function GuestLoveWall({ onLoginRequired }: { onLoginRequired: ()
           setMedia({});
           return;
         }
-        const { data: mediaRows, error: mediaError } = await supabase.from('love_wall_media')
-          .select('id,post_id,path,kind,sort').in('post_id', ids).order('sort');
+        const { data: mediaRows, error: mediaError } = await supabase.rpc('love_wall_media_for_posts' as any, { p_post_ids: ids });
         if (mediaError || !mediaRows?.length) {
           setMedia({});
           return;
         }
-        const listed = mediaRows as GuestMedia[];
+        const listed = (mediaRows as Array<GuestMedia & { path: string | null }>)
+          .filter((item): item is typeof item & { path: string } => typeof item.path === 'string' && item.path.length > 0);
+        if (!listed.length) {
+          setMedia({});
+          return;
+        }
         let signed: Record<string, string> = {};
         try {
           signed = await getSignedUrls('media', listed.map(item => item.path));

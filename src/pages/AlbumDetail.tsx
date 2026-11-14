@@ -10,6 +10,7 @@ import { confirmDialog, alertDialog } from '../lib/dialog';
 import { toast } from 'sonner';
 import { PageSkeleton } from '../components/fx/Skeleton';
 import BlurImg from '../components/fx/BlurImg';
+import './Album.afilmory.css'; // Afilmory 式瀑布流版式（只借版式，样式自写）
 
 type P = { id: number; photo_url: string; caption: string | null; uploaded_by: string | null };
 
@@ -87,7 +88,7 @@ function AlbumHero({ title, meta, coverUrl, onBack, reduce }: {
 function Thumb({ p, url, onView }: { p: P; url?: string; onView: () => void }) {
   if (!url) return null;
   return (
-    <figure onClick={onView}>
+    <figure className="af-figure" onClick={onView}>
       <BlurImg src={url} alt={p.caption ?? ''} />
       {p.caption && <figcaption>{p.caption}</figcaption>}
     </figure>
@@ -111,6 +112,22 @@ export default function AlbumDetail() {
   const [manageNotice, setManageNotice] = useState('');
   const fref = useRef<HTMLInputElement>(null);
   const viewUrl = useSignedUrl('media', view?.photo_url);
+  // 查看器左右切换：当前张在 photos 里的下标，首尾循环；键盘 ←/→/Esc 同步支持。
+  const viewIndex = view ? photos.findIndex(photo => photo.id === view.id) : -1;
+  function goView(delta: number) {
+    if (!photos.length || viewIndex < 0) return;
+    setView(photos[(viewIndex + delta + photos.length) % photos.length]);
+  }
+  useEffect(() => {
+    if (!view) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') setView(null);
+      else if (e.key === 'ArrowLeft') goView(-1);
+      else if (e.key === 'ArrowRight') goView(1);
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [view, photos]);
 
   async function load() {
     setErr('');
@@ -267,7 +284,7 @@ export default function AlbumDetail() {
         </div>
         {err && <p className="err">{err}</p>}
       </div>
-      <div className="masonry">
+      <div className="af-masonry">
         {photos.map(p => (
           <div key={p.id} style={{ position: 'relative' }}>
             <Thumb p={p} url={photoUrls[p.photo_url]} onView={() => setView(p)} />
@@ -282,14 +299,25 @@ export default function AlbumDetail() {
 
       <AnimatePresence>
         {view && (
-          <motion.div className="viewer" onClick={() => setView(null)}
+          <motion.div className="af-viewer" onClick={() => setView(null)}
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             transition={{ duration: reduce ? 0 : 0.25 }}>
-            <button className="x" onClick={() => setView(null)}>✕</button>
-            {viewUrl && <motion.img src={viewUrl} alt=""
+            <button className="af-viewer-x" onClick={() => setView(null)} aria-label="关闭">✕</button>
+            {photos.length > 1 && viewIndex >= 0 && (
+              <span className="af-viewer-count">{viewIndex + 1} / {photos.length}</span>
+            )}
+            {viewUrl && <motion.img key={view.id} className="af-viewer-img" src={viewUrl} alt={view.caption ?? ''}
               initial={reduce ? {} : { scale: 0.94 }} animate={{ scale: 1 }}
               transition={{ duration: reduce ? 0 : 0.3, ease: [0.22, 1, 0.36, 1] }} />}
-            {view.caption && <div className="cap">{view.caption}</div>}
+            {photos.length > 1 && (
+              <>
+                <button type="button" className="af-viewer-nav af-viewer-prev" aria-label="上一张"
+                  onClick={e => { e.stopPropagation(); goView(-1); }}>‹</button>
+                <button type="button" className="af-viewer-nav af-viewer-next" aria-label="下一张"
+                  onClick={e => { e.stopPropagation(); goView(1); }}>›</button>
+              </>
+            )}
+            {view.caption && <div className="af-viewer-cap">{view.caption}</div>}
           </motion.div>
         )}
       </AnimatePresence>

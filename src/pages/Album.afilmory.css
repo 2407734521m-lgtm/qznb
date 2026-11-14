@@ -1,0 +1,186 @@
+/* 相册页 Afilmory 式瀑布流版式（只借版式，样式与结构全部自写，未复制对方代码）。
+ * 借的版式点：多列错落（自然高宽比、列内依次下落）、12px 卡片间距、
+ * 白卡 + 圆角、查看器左右切换 + 计数 + 底部说明。
+ * 冷白纸面：底 #f7f8f8、卡片 #ffffff、墨色 #1f2a3a、灰字 #7a8894、
+ * 描边 #e5e8ea、印泥红 #b0404f。无 Tailwind，无新依赖。
+ * 数据逻辑（新建/上传/删除/封面回写）一律不动，只换排布与样式。
+ */
+
+/* ---- 相册列表：瀑布流（手机 2 列，平板 3 列，桌面 4 列，无横向溢出） ---- */
+.af-album-masonry {
+  columns: 2;
+  column-gap: 12px;
+  margin: 14px 0;
+  max-width: 100%;
+}
+@media (min-width: 700px) {
+  .af-album-masonry { columns: 3; }
+}
+@media (min-width: 1100px) {
+  .af-album-masonry { columns: 4; }
+}
+
+.af-acard {
+  break-inside: avoid;
+  margin: 0 0 12px;
+  background: #ffffff;
+  border: 1px solid #e5e8ea;
+  border-radius: 16px;
+  overflow: hidden;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(31, 42, 58, 0.04);
+  transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.25s ease;
+}
+@media (hover: hover) {
+  .af-acard:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(31, 42, 58, 0.1);
+  }
+}
+
+/* 封面用照片自然高宽比（不等高才有错落感），加载前以冷白底占位 */
+.af-cov {
+  background: #f7f8f8;
+  min-height: 120px;
+  display: grid;
+  place-items: center;
+  color: #7a8894;
+}
+.af-cov img {
+  width: 100%;
+  height: auto;
+  max-width: 100%;
+  display: block;
+}
+
+.af-t { padding: 10px 12px 12px; }
+.af-t h4 { margin: 0; font-size: 15px; color: #1f2a3a; line-height: 1.35; }
+.af-t p { margin: 3px 0 0; font-size: 12px; color: #7a8894; }
+
+/* ---- 相册详情：照片瀑布流（与列表同列数，保持一致） ---- */
+.af-masonry {
+  columns: 2;
+  column-gap: 12px;
+  margin: 14px 0;
+  max-width: 100%;
+}
+@media (min-width: 700px) {
+  .af-masonry { columns: 3; }
+}
+@media (min-width: 1100px) {
+  .af-masonry { columns: 4; }
+}
+/* 列内直接子项是包着 figure + 删除按钮的 div，防断列与间距都落在这里 */
+.af-masonry > div {
+  break-inside: avoid;
+  margin: 0 0 12px;
+}
+
+.af-figure {
+  margin: 0;
+  break-inside: avoid;
+  border-radius: 16px;
+  overflow: hidden;
+  position: relative;
+  cursor: zoom-in;
+  background: #ffffff;
+  border: 1px solid #e5e8ea;
+  box-shadow: 0 1px 2px rgba(31, 42, 58, 0.04);
+}
+.af-figure img {
+  width: 100%;
+  height: auto;
+  max-width: 100%;
+  display: block;
+}
+.af-figure figcaption {
+  font-size: 12px;
+  color: #7a8894;
+  padding: 8px 12px 10px;
+  background: #ffffff;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+/* ---- 全屏查看器：暗底居中 + 左右切换 + 计数 + 底部说明 ---- */
+.af-viewer {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  background: rgba(9, 13, 20, 0.94);
+  display: grid;
+  place-items: center;
+  cursor: zoom-out;
+}
+.af-viewer-img {
+  max-width: 100%;
+  max-height: 82vh;
+  object-fit: contain;
+  border-radius: 8px;
+}
+.af-viewer-x {
+  position: absolute;
+  top: calc(14px + env(safe-area-inset-top));
+  right: 18px;
+  background: rgba(255, 255, 255, 0.14);
+  border: 0;
+  color: #fff;
+  font-size: 20px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  cursor: pointer;
+}
+.af-viewer-count {
+  position: absolute;
+  top: calc(14px + env(safe-area-inset-top));
+  left: 18px;
+  background: rgba(255, 255, 255, 0.14);
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 13px;
+  line-height: 40px;
+  padding: 0 14px;
+  border-radius: 999px;
+}
+.af-viewer-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 0;
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
+  font-size: 26px;
+  line-height: 1;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  padding: 0 0 2px;
+  z-index: 1;
+}
+.af-viewer-prev { left: 12px; }
+.af-viewer-next { right: 12px; }
+@media (hover: hover) {
+  .af-viewer-nav:hover,
+  .af-viewer-x:hover { background: rgba(255, 255, 255, 0.28); }
+}
+.af-viewer-cap {
+  position: absolute;
+  bottom: calc(20px + env(safe-area-inset-bottom));
+  left: 0;
+  right: 0;
+  color: #fff;
+  font-size: 14px;
+  text-align: center;
+  padding: 0 20px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+/* ---- 减弱动效：悬停上浮与过渡一律关闭 ---- */
+@media (prefers-reduced-motion: reduce) {
+  .af-acard { transition: none; }
+  .af-acard:hover { transform: none; }
+}

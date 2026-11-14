@@ -17,3 +17,114 @@ body.qz-sheet-bg #root {
   filter: brightness(0.92);
   overflow: hidden;
 }
+
+/* ---- OptionSheet 升级（2026-11-14）：搜索 / 分组 / 键盘高亮，冷白纸面 ---- */
+.qz-optionsheet:focus {
+  outline: none;
+}
+
+/* 搜索框：选项多时出现；聚焦时描边变印泥红 */
+.qz-sheet-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #f7f8f8;
+  border: 1px solid #e5e8ea;
+  border-radius: 12px;
+  padding: 0 10px;
+  margin: 2px 0 8px;
+}
+.qz-sheet-search:focus-within {
+  border-color: #b0404f;
+}
+.qz-sheet-search-icon {
+  color: #7a8894;
+  font-size: 15px;
+  line-height: 1;
+}
+.qz-sheet-search-input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  font: inherit;
+  font-size: 14px;
+  color: #1f2a3a;
+  padding: 10px 0;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.qz-sheet-search-input::placeholder {
+  color: #7a8894;
+}
+.qz-sheet-search-input::-webkit-search-cancel-button {
+  display: none;
+}
+.qz-sheet-search-clear {
+  border: 0;
+  background: #e5e8ea;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 9px;
+  line-height: 1;
+  color: #1f2a3a;
+  flex-shrink: 0;
+}
+
+/* 分组标题 */
+.qz-sheet-group {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #7a8894;
+  padding: 12px 10px 6px;
+}
+
+/* 选项行：默认白底；--on 为当前选中（印泥红淡底 + 红勾）；--active 为键盘/悬停高亮 */
+.qz-sheet-opt {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  padding: 12px 10px;
+  border: 0;
+  border-bottom: 1px solid #e5e8ea;
+  background: #ffffff;
+  color: #1f2a3a;
+  font-size: 14px;
+  font-family: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+.qz-sheet-opt--active {
+  background: #f7f8f8;
+}
+.qz-sheet-opt--on {
+  background: rgba(176, 64, 79, 0.07);
+}
+.qz-sheet-opt--on.qz-sheet-opt--active {
+  background: rgba(176, 64, 79, 0.12);
+}
+.qz-sheet-check {
+  color: #b0404f;
+  font-weight: 700;
+}
+
+/* 搜索无结果 */
+.qz-sheet-empty {
+  padding: 18px 10px;
+  text-align: center;
+  color: #7a8894;
+  font-size: 13px;
+}
+
+/* 减弱动效：背后页面「退后一步」的缩放过渡也一并停掉（抽屉本身由 useReducedMotion 接管） */
+@media (prefers-reduced-motion: reduce) {
+  #root {
+    transition: none;
+  }
+}

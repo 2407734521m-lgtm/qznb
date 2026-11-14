@@ -52,10 +52,18 @@ for (const file of [
     `${file} must authenticate internal email-dispatch calls with the service key`);
 }
 
-assert.match(login, /PasswordField disabled=\{codeSent\} value=\{pw\}/,
-  'password must not change after signup has sent the verification code');
-assert.match(login, /type="checkbox" disabled=\{codeSent\} checked=\{policyAccepted\}/,
-  'policy acceptance must not change after signup has been created');
+assert.match(login, /PasswordField disabled=\{codeSent \|\| busy\} value=\{pw\}/,
+  'password must not change while signup is pending or after its verification code has been sent');
+assert.match(login, /type="checkbox" disabled=\{codeSent \|\| busy\} checked=\{policyAccepted\}/,
+  'policy acceptance must not change while signup is pending or after account creation');
+assert.match(login, /<input disabled=\{codeSent \|\| busy\} value=\{email\}/,
+  'registration email must not change while signup is in flight');
+assert.match(loveWall, /async function saveEditComment\(c: CommentItem\)/,
+  'Love Wall users must be able to edit their own comments');
+assert.match(loveWall, /\.eq\('author_id', session\.user\.id\)/,
+  'Love Wall comment edits must be scoped to the current author');
+assert.match(loveWall, /editingComment\?\.id === c\.id/,
+  'Love Wall comment editor must only render for the selected comment');
 assert.match(packageJson.scripts?.['check:priority-fixes'] ?? '', /check-priority-fixes/,
   'package.json must expose the priority regression check');
 

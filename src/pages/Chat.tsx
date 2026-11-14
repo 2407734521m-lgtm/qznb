@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import { useVirtualizer } from '@tanstack/react-virtual';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../auth';
@@ -211,6 +212,35 @@ export default function Chat() {
   const wallpaperUrl = useSignedUrl('chat-media', backgroundPath);
   const peerAvatarUrl = useSignedUrl('avatars', peer?.avatar_path);
 
+  // 第 2 阶段虚拟化：只渲染可视区的消息行（变高行用 measureElement 动态测量）。
+  // 滚动容器就是 .im-feed；outbox（秒发本地条目）数量极小，仍直接渲染在列表之后。
+  const feedRef = useRef<HTMLElement | null>(null);
+  const virtualizer = useVirtualizer({
+    count: msgs.length,
+    getScrollElement: () => feedRef.current,
+    estimateSize: () => 76,
+    overscan: 8,
+  });
+  // 新消息只保留一个透明度淡入（不做位移/缩放，避免影响行高测量与滚动锚点）。
+  const prevMsgsLenRef = useRef(0);
+  const [freshId, setFreshId] = useState<number | null>(null);
+  const stickToBottomRef = useRef(true);
+  // 渲染期 O(n²) 查找改为 O(1)：回复父消息与每条消息的回应分组各建一次索引。
+  const msgsById = useMemo(() => new Map(msgs.map(m => [m.id, m])), [msgs]);
+  const reactionsByMessage = useMemo(() => {
+    const map = new Map<number, Array<{ reaction: string; items: ChatReaction[] }>>();
+    for (const item of reactions) {
+      let groups = map.get(item.message_id);
+      if (!groups) {
+        groups = QUICK_REACTIONS.map(reaction => ({ reaction, items: [] as ChatReaction[] }));
+        map.set(item.message_id, groups);
+      }
+      groups.find(group => group.reaction === item.reaction)?.items.push(item);
+    }
+    for (const [id, groups] of map) map.set(id, groups.filter(group => group.items.length > 0));
+    return map;
+  }, [reactions]);
+
   // Android 虚拟键盘打开时，可视视口会缩小；用它同步聊天容器高度。
   useEffect(() => {
     const page = pageRef.current;
@@ -384,10 +414,43 @@ export default function Chat() {
     };
   }, [cid, me]);
 
+  // 新消息到达时把视图钉到底部（与虚拟化前行为一致：每次条数变化都回到底部）。
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: firstRef.current ? 'auto' : 'smooth' });
+    if (msgs.length > 0) {
+      virtualizer.scrollToIndex(msgs.length - 1, { align: 'end', behavior: firstRef.current ? 'auto' : 'smooth' });
+    } else {
+      bottomRef.current?.scrollIntoView({ behavior: firstRef.current ? 'auto' : 'smooth' });
+    }
     firstRef.current = false;
-  }, [msgs.length, outbox.length]);
+  }, [msgs.length, outbox.length, virtualizer]);
+
+  // 只有条数变多且不是首次加载时，才把最后一条记为“新消息”做淡入动画。
+  useEffect(() => {
+    if (prevMsgsLenRef.current > 0 && msgs.length > prevMsgsLenRef.current) {
+      setFreshId(msgs[msgs.length - 1]?.id ?? null);
+    }
+    prevMsgsLenRef.current = msgs.length;
+  }, [msgs]);
+
+  // 底部粘滞：已在底部时，行高实测落地（图片加载、文字换行）导致总高度变化，
+  // 跟着把视图补到底部；用户上翻读历史时不动，避免把人拽回底部。
+  const totalSize = virtualizer.getTotalSize();
+  useEffect(() => {
+    const feed = feedRef.current;
+    if (!feed) return;
+    const onScroll = () => {
+      stickToBottomRef.current = feed.scrollHeight - feed.scrollTop - feed.clientHeight < 48;
+    };
+    feed.addEventListener('scroll', onScroll, { passive: true });
+    return () => feed.removeEventListener('scroll', onScroll);
+  }, []);
+  useEffect(() => {
+    if (msgs.length > 0 && stickToBottomRef.current) {
+      virtualizer.scrollToIndex(msgs.length - 1, { align: 'end', behavior: 'auto' });
+    }
+    // 只在总高度实测变化时补位；不依赖 msgs，避免与上面的回到底部重复触发。
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [totalSize]);
 
   // 服务器副本已随 load() 回来、且本地条目已翻成「已发送」时，本地条目退场，
   // 位置由服务器行接替；接替行记入 swappedIds 不再重播入场动画，避免跳一下。
@@ -775,13 +838,6 @@ export default function Chat() {
     return message.body;
   }
 
-  function reactionGroups(messageId: number) {
-    return QUICK_REACTIONS.map(reaction => ({
-      reaction,
-      items: reactions.filter(item => item.message_id === messageId && item.reaction === reaction),
-    })).filter(group => group.items.length > 0);
-  }
-
   const dateLabel = (value: string, previous?: string) => {
     const current = new Date(value);
     const time = current.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
@@ -855,6 +911,10 @@ export default function Chat() {
         .im-row-out{animation:im-send-in .26s cubic-bezier(.34,1.45,.64,1) both}
         @keyframes im-send-in{0%{opacity:0;transform:translateY(20px) scale(.94)}70%{opacity:1;transform:translateY(-2px) scale(1.005)}100%{opacity:1;transform:translateY(0) scale(1)}}
         .im-row-static{animation:none}
+        .im-vrow{box-sizing:border-box}
+        .im-page .im-vrow .im-row{margin:0 !important;animation:none !important}
+        .im-vrow-fresh{animation:im-vrow-fade .25s ease-out both}
+        @keyframes im-vrow-fade{from{opacity:0}to{opacity:1}}
         .im-out-col{display:flex;flex-direction:column;align-items:flex-end;min-width:0}
         .im-bubble-failed{background:linear-gradient(135deg,#fde8e9,#fbd9dc)!important;color:#7c2d38!important;border-color:rgba(214,90,105,.45)!important}
         .im-send-status{display:inline-flex;align-items:center;margin-left:5px;vertical-align:-2px;color:rgba(255,255,255,.78)}
@@ -862,7 +922,7 @@ export default function Chat() {
         .im-retry{display:inline-flex;align-items:center;gap:6px;margin-top:6px;border:0;background:transparent;color:#ff8f9b;font-size:11px;cursor:pointer;padding:2px 0}
         .im-retry-dot{width:18px;height:18px;border-radius:50%;background:#e5484d;color:#fff;display:grid;place-items:center;font-size:12px;line-height:1;flex:none}
         @media(min-width:700px){.im-page{height:var(--im-viewport-height,100dvh);min-height:0}.im-feed{padding:24px 28px}.im-composer{padding:14px 20px}}
-        @media(max-width:600px){.im-head{gap:10px}.im-avatar{width:40px;height:40px}.im-back,.im-icon{min-width:40px;height:40px}.im-feed{padding:14px 12px 18px}.im-bubble{max-width:84%;font-size:15px}.im-composer{gap:8px}.im-plus{width:40px;height:40px}}\n        @media(prefers-reduced-motion:reduce){.im-row{animation:none}.im-row-out{animation:none}}
+        @media(max-width:600px){.im-head{gap:10px}.im-avatar{width:40px;height:40px}.im-back,.im-icon{min-width:40px;height:40px}.im-feed{padding:14px 12px 18px}.im-bubble{max-width:84%;font-size:15px}.im-composer{gap:8px}.im-plus{width:40px;height:40px}}\n        @media(prefers-reduced-motion:reduce){.im-row{animation:none}.im-row-out{animation:none}.im-vrow-fresh{animation:none}}
       `}</style>
       <header className="im-head">
         <button className="im-back" aria-label="返回会话列表" onClick={() => goBackOr(nav, '/friends')}>
@@ -957,7 +1017,7 @@ export default function Chat() {
           </div>
         </section>
       </div>}
-      <main className="im-feed">
+      <main ref={feedRef} className="im-feed">
         {msgs.length === 0 && outbox.length === 0 ? (
           loadingMsgs ? (
             <div role="status" aria-label="消息加载中" style={{ padding: '18px 14px' }}>
@@ -970,9 +1030,13 @@ export default function Chat() {
           ) : (
             <div className="im-empty"><div style={{fontWeight:750,color:'#f5fbff',fontSize:16}}>新的开始</div><p style={{fontSize:13,lineHeight:1.7}}>发出第一条消息，开启你们的对话吧。</p></div>
           )
-        ) : (<AnimatePresence initial={false}>{msgs.map((m, i) => {
-          const parent = m.reply_to_id ? msgs.find(item => item.id === m.reply_to_id) : null;
-          const groups = reactionGroups(m.id);
+        ) : (<>
+          {msgs.length > 0 && <div style={{ height: virtualizer.getTotalSize(), width: '100%', position: 'relative' }}>
+            {virtualizer.getVirtualItems().map(virtualRow => {
+              const m = msgs[virtualRow.index];
+              const i = virtualRow.index;
+          const parent = m.reply_to_id ? msgsById.get(m.reply_to_id) ?? null : null;
+          const groups = reactionsByMessage.get(m.id) ?? [];
           const mine = m.sender_id === me;
           const previousMessage = msgs[i - 1];
           const nextMessage = msgs[i + 1];
@@ -992,11 +1056,10 @@ export default function Chat() {
             ? (otherLastReadMessageId !== null && otherLastReadMessageId >= m.id ? '已读' : '已送达')
             : '';
           return (
-            <motion.div key={m.id}
-              initial={reduceMotion ? false : { opacity: 0, y: 8, scale: 0.985 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: -4, scale: 0.99 }}
-              transition={reduceMotion ? { duration: 0.01 } : SPRING_SNAPPY}>
+            <div key={virtualRow.key} data-index={virtualRow.index} ref={virtualizer.measureElement}
+              className={'im-vrow' + (freshId === m.id ? ' im-vrow-fresh' : '')}
+              onAnimationEnd={() => { if (freshId === m.id) setFreshId(null); }}
+              style={{ position: 'absolute', top: 0, left: 0, width: '100%', transform: `translateY(${virtualRow.start}px)`, padding: `${samePrevious ? 1 : 3}px 0 ${sameNext ? 1 : 3}px 0`, boxSizing: 'border-box' }}>
               {dateLabel(m.created_at, msgs[i - 1]?.created_at) && <div className="im-day">{dateLabel(m.created_at, msgs[i - 1]?.created_at)}</div>}
               <div className={'im-row ' + (mine ? 'mine ' : '') + (mine && m.id === latestOutgoingMessageId && userPreferences.chat.showReadReceipts ? 'im-row-has-receipt ' : '') + (samePrevious ? 'im-row-grouped-prev ' : '') + (sameNext ? 'im-row-grouped-next ' : '') + (swappedIdsRef.current.has(m.id) ? 'im-row-static' : '')}>
                 <div className={'im-message-column ' + (mine ? 'mine' : 'theirs')}>
@@ -1033,10 +1096,12 @@ export default function Chat() {
                   </div>}
                 </div>
               </div>
-            </motion.div>
+            </div>
           );
-        })}
-        {outbox.map(e => {
+            })}
+          </div>}
+          <AnimatePresence initial={false}>
+          {outbox.map(e => {
           const inlineMeta = canShowInlineMeta(e.body, e.replyToId !== null);
           const phaseLabel = e.phase === 'sending' ? '发送中' : e.phase === 'failed' ? '发送失败' : '已送达';
           return (
@@ -1067,7 +1132,8 @@ export default function Chat() {
           </motion.div>
           );
         })}
-        </AnimatePresence>)}
+        </AnimatePresence>
+        </>)}
         {otherTyping && <div className="im-typing" role="status" aria-live="polite">
           <span className="im-typing-dots"><i /><i /><i /></span>
           <span>{name} 正在输入</span>
@@ -1075,7 +1141,7 @@ export default function Chat() {
         <div ref={bottomRef} />
       </main>
       {actionFor !== null && (() => {
-        const message = msgs.find(item => item.id === actionFor);
+        const message = msgsById.get(actionFor);
         if (!message) return null;
         const mine = message.sender_id === me;
         const deleted = Boolean(message.deleted_at);
@@ -1084,7 +1150,7 @@ export default function Chat() {
           {tapbackAnchor && <div className={'im-tapback-preview ' + (mine ? 'mine' : 'theirs')}
             style={{ left: tapbackAnchor.left, top: tapbackAnchor.top, width: tapbackAnchor.width }}
             aria-hidden="true">
-            {message.reply_to_id && <div className="im-reply-quote">回复：{messageSummary(msgs.find(item => item.id === message.reply_to_id))}</div>}
+            {message.reply_to_id && <div className="im-reply-quote">回复：{messageSummary(msgsById.get(message.reply_to_id))}</div>}
             <MessageContent body={deleted ? (mine ? '你撤回了一条消息' : '对方撤回了一条消息') : message.body} />
             <div className="im-tapback-preview-time">{new Date(message.created_at).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}</div>
           </div>}

@@ -6,8 +6,10 @@
  * 样式：自研 CSS，冷白纸面（底 #f7f8f8、卡片 #ffffff、墨色 #1f2a3a、灰字 #7a8894、描边 #e5e8ea、印泥红 #b0404f）。
  * 只覆盖游客页（.guest-shell 内），不动 Dock、不动登录／游客准入逻辑、不动数据逻辑。 */
 
-/* 冷白纸面 token：覆盖 GuestBrowse.css 里的暖灰 token */
-.guest-shell {
+/* 冷白纸面 token：覆盖 GuestBrowse.css 里的暖灰 token。
+ * 注意：打包后本文件排在 GuestBrowse.css 之前，同特异度会被后者盖掉，
+ * 所以壳规则用双 class（.guest-shell.guest-shell）写死特异度，不依赖顺序。 */
+.guest-shell.guest-shell {
   --guest-ink: #1f2a3a;
   --guest-muted: #7a8894;
   --guest-soft: #f7f8f8;
@@ -74,7 +76,7 @@
 .guest-cruip-footer-brand { display: flex; align-items: center; gap: 11px; min-width: 0; }
 .guest-cruip-footer-brand .guest-brand-mark { width: 38px; height: 38px; border-radius: 12px; font-size: 18px; }
 .guest-cruip-footer-brand > div { display: grid; gap: 2px; }
-.guest-cruip-footer-brand strong { color: #1f2a3a; font-size: 13px; }
+.guest-cruip-footer .guest-cruip-footer-brand strong { color: #1f2a3a; font-size: 13px; }
 .guest-cruip-footer-brand span { color: #7a8894; font-size: 11px; }
 .guest-cruip-footer-nav { display: flex; flex-wrap: wrap; gap: 18px; }
 .guest-cruip-footer-nav a { color: #7a8894; font-size: 12px; text-decoration: none; }

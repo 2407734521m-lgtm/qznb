@@ -24,8 +24,9 @@ type TopicSummary = {
 
 const TOPIC_PATTERN = /#([\p{L}\p{N}_-]{1,24})/gu;
 
-function getTopicNames(content: string) {
-const TOPIC_PATTERN = /#([\p{L}\p{N}_-]{1,24})/gu;
+function getTopicNames(content: string): string[] {
+  const matches = content.match(TOPIC_PATTERN) ?? [];
+  return matches.map(tag => tag.slice(1));
 }
 
 function shortDate(value: string) {

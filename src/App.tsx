@@ -9,7 +9,7 @@ import CodeInput from './components/CodeInput';
 import { LiquidGlassScene } from 'simple-liquid-glass/backdrop';
 import { DUR, EASE } from './lib/motion';
 import { supabase } from './lib/supabase';
-import { detectInstalledApp, detectInstalledAdminApp, isInApp } from './lib/installedApp';
+import { detectInstalledApp, detectInstalledAdminApp, isBelowMinCode, isInApp, isNewerAppCode } from './lib/installedApp';
 import { CallProvider } from './lib/call';
 import { startSitePresence } from './lib/sitePresence';
 import { useAuth } from './auth';
@@ -978,10 +978,10 @@ function Shell() {
   const latestAppCode = appUpdate ? Number(appUpdate.app_version_code || 0) : 0;
   const appForce = appUpdate?.app_force_update === 'true';
   const appMinCode = appUpdate ? Number(appUpdate.app_min_code || 0) : 0;
-  const appForced = appForce || (appMinCode > 0 && !!installedApp && installedApp.code < appMinCode);
+  const appForced = appForce || (!!installedApp && isBelowMinCode(installedApp.code, appMinCode));
   let appIgnored = false;
   try { appIgnored = localStorage.getItem('qz_app_update_ignored') === String(latestAppCode); } catch { /* storage unavailable */ }
-  const showAppUpdate = !!installedApp && !!appUpdate && latestAppCode > installedApp.code
+  const showAppUpdate = !!installedApp && !!appUpdate && isNewerAppCode(installedApp.code, latestAppCode)
     && !!appUpdate.app_apk_url && !updateDismissed && (appForced || !appIgnored);
   const dismissAppAnnouncement = async (id: number) => {
     const { error } = await supabase.rpc('mark_app_announcement_read', { p_announcement_id: id });

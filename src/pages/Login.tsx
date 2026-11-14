@@ -11,6 +11,7 @@ import FloatField from '../components/FloatField';
 import { alertDialog } from '../lib/dialog';
 import './Login.polish.css';
 import { getQqAvatarPreviewUrl, getQqNumberFromEmail } from '../lib/qqAvatar';
+import { isPasswordLongEnough, isPhoneNumber, isQQEmail } from '../lib/validate';
 
 const BG_KEY = 'ca_login_bg_v2';
 const DEFAULT_BG = '';
@@ -77,7 +78,7 @@ export default function Login({ siteTitle, siteSubtitle, onGuestLogin }: { siteT
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const touch = (k: string) => () => setTouched(t => (t[k] ? t : { ...t, [k]: true }));
   const terr = (k: string, msg: string | null) => (touched[k] && msg) ? msg : undefined;
-  const emailErr = /^[1-9]\d{4,10}@qq\.com$/i.test(email.trim()) ? null : '请填写正确的 QQ 邮箱，如 123456@qq.com';
+  const emailErr = isQQEmail(email) ? null : '请填写正确的 QQ 邮箱，如 123456@qq.com';
   const qqNumber = getQqNumberFromEmail(email);
   const qqAvatarPreviewUrl = getQqAvatarPreviewUrl(email, qqAvatarPreviewAttempt);
   function updateRegistrationEmail(value: string) {
@@ -86,10 +87,10 @@ export default function Login({ siteTitle, siteSubtitle, onGuestLogin }: { siteT
     setQqAvatarPreviewAttempt(0);
     setQqAvatarLoadState(getQqNumberFromEmail(value) ? 'loading' : 'idle');
   }
-  const phoneErr = !phone.trim() || /^1\d{10}$/.test(phone.trim()) ? null : '手机号要 11 位数字，没有可以留空';
-  const pwErr = pw.length >= 8 ? null : '密码至少 8 位';
+  const phoneErr = !phone.trim() || isPhoneNumber(phone) ? null : '手机号要 11 位数字，没有可以留空';
+  const pwErr = isPasswordLongEnough(pw) ? null : '密码至少 8 位';
   const pw2Err = pw2 === pw ? null : '两次输入的密码不一致';
-  const fPwErr = forgotNewPw.length >= 8 ? null : '新密码至少 8 位';
+  const fPwErr = isPasswordLongEnough(forgotNewPw) ? null : '新密码至少 8 位';
   const fPw2Err = forgotNewPw2 === forgotNewPw ? null : '两次输入的新密码不一致';
   const [blur, setBlur] = useState(3); const [dark, setDark] = useState(45);
   const [showBg, setShowBg] = useState(false);

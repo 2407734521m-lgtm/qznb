@@ -28,3 +28,14 @@ export function detectInstalledAdminApp(): { name: string; code: number } | null
 export function isInApp(): boolean {
   return detectInstalledApp() !== null;
 }
+
+// 版本号比较：本站版本用数字序号（app_version_code）比较，不用 semver 字符串。
+// latest > current 即有新版；相等或更小（回滚/同版）都不弹更新。
+export function isNewerAppCode(currentCode: number, latestCode: number): boolean {
+  return latestCode > currentCode;
+}
+
+// 最低可用序号：minCode <= 0 表示未设下限；低于下限时强制更新。
+export function isBelowMinCode(code: number, minCode: number): boolean {
+  return minCode > 0 && code < minCode;
+}

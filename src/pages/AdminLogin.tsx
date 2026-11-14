@@ -104,6 +104,11 @@ export default function AdminLogin({
       const { data: isAdmin, error: identityError } = await supabase.rpc('admin_login_is_admin' as any);
       if (identityError) throw identityError;
       if (isAdmin !== true) {
+        const { error: monitorError } = await supabase.rpc('record_auth_login_failure' as any, {
+          p_method: 'admin',
+          p_failure_class: 'other',
+        } as any);
+        if (monitorError) console.warn('管理员登录失败统计暂不可用：', monitorError.message);
         await supabase.auth.signOut({ scope: 'local' });
         setHasSession(false);
         startedRef.current = false;
@@ -152,6 +157,9 @@ export default function AdminLogin({
       throw new Error('admin_role_required');
     }
     if (recoveredLogin) void alog('admin_totp_rebound_after_recovery', { method: 'recovery_code' });
+    // Emit a login-success audit event only after the server role and signed
+    // MFA assurance checks above have completed successfully.
+    await alog('admin_login_success', { method: 'password_and_totp' });
     setStep('success');
     setErr('');
     onAuthenticated?.();
@@ -175,8 +183,19 @@ export default function AdminLogin({
       if (loginError) throw loginError;
       setPw('');
       setHasSession(true);
-    } catch {
+    } catch (error) {
       loginFailed = true;
+      const message = String((error as { message?: unknown })?.message ?? error).toLowerCase();
+      const failureClass = /429|rate.?limit|too many/.test(message)
+        ? 'rate_limited'
+        : /network|fetch|timeout|failed to fetch/.test(message)
+          ? 'network'
+          : 'invalid_credentials';
+      const { error: monitorError } = await supabase.rpc('record_auth_login_failure' as any, {
+        p_method: 'admin',
+        p_failure_class: failureClass,
+      } as any);
+      if (monitorError) console.warn('管理员登录失败统计暂不可用：', monitorError.message);
       setErr('账号或密码错误，或暂时无法登录，请检查后重试');
     } finally {
       setBusy(false);

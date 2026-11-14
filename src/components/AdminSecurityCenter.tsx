@@ -14,6 +14,7 @@ type SecurityData = {
     auth_failures_24h?: number;
     email_failures_24h?: number;
     username_failures_24h?: number;
+    admin_failures_24h?: number;
     failure_latest_at?: string | null;
   };
   recent_admin_actions?: Array<{
@@ -23,6 +24,17 @@ type SecurityData = {
     actor_name: string;
     high_risk: boolean;
   }>;
+};
+
+
+type AdminSession = {
+  session_id: string;
+  created_at: string;
+  updated_at: string | null;
+  refreshed_at: string | null;
+  not_after: string | null;
+  device_label: string;
+  is_current: boolean;
 };
 
 function deviceName() {
@@ -48,6 +60,9 @@ export default function AdminSecurityCenter({ session, setMsg }: { session: Sess
   const [error, setError] = useState('');
   const [signingOut, setSigningOut] = useState(false);
   const [signingOutOthers, setSigningOutOthers] = useState(false);
+  const [sessions, setSessions] = useState<AdminSession[]>([]);
+  const [sessionsLoading, setSessionsLoading] = useState(false);
+  const [sessionsError, setSessionsError] = useState('');
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -58,7 +73,22 @@ export default function AdminSecurityCenter({ session, setMsg }: { session: Sess
     setLoading(false);
   }, []);
 
-  useEffect(() => { void load(); }, [load]);
+  const loadSessions = useCallback(async () => {
+    setSessionsLoading(true);
+    setSessionsError('');
+    const { data: rows, error: rpcError } = await supabase.rpc('admin_list_own_sessions' as any);
+    if (rpcError) {
+      setSessionsError(rpcError.message);
+    } else {
+      setSessions((rows ?? []) as AdminSession[]);
+    }
+    setSessionsLoading(false);
+  }, []);
+
+  useEffect(() => {
+    void load();
+    void loadSessions();
+  }, [load, loadSessions]);
 
   const expiresAt = useMemo(() => session.expires_at ? new Date(session.expires_at * 1000) : null, [session.expires_at]);
   const expiryLabel = expiresAt
@@ -80,7 +110,10 @@ export default function AdminSecurityCenter({ session, setMsg }: { session: Sess
     const { error: signOutError } = await supabase.auth.signOut({ scope: 'others' });
     setSigningOutOthers(false);
     if (signOutError) setMsg('退出其他设备失败：' + signOutError.message);
-    else setMsg('已请求退出此账号的其他设备；当前设备保持登录。');
+    else {
+      setMsg('已请求退出此账号的其他设备；当前设备保持登录。');
+      await loadSessions();
+    }
   }
 
   const login = data?.login ?? {};
@@ -107,6 +140,7 @@ export default function AdminSecurityCenter({ session, setMsg }: { session: Sess
         <Metric label="24 小时登录失败" value={login.auth_failures_24h ?? '—'} hint="网站端匿名聚合计数" warn={(login.auth_failures_24h ?? 0) > 0} />
         <Metric label="邮箱登录失败" value={login.email_failures_24h ?? '—'} hint="仅统计网站登录表单" />
         <Metric label="用户名登录失败" value={login.username_failures_24h ?? '—'} hint="仅统计网站登录表单" />
+        <Metric label="管理员登录失败" value={login.admin_failures_24h ?? '—'} hint="管理员密码登录页统计" warn={(login.admin_failures_24h ?? 0) > 0} />
         <Metric label="当前限流对象" value={login.currently_rate_limited ?? '—'} hint="15 分钟窗口内超过 8 次" warn={(login.currently_rate_limited ?? 0) > 0} />
       </div>
       <p style={mut}>失败计数仅记录登录方式、固定失败类别和分钟时间桶，不保存邮箱、用户名、密码、验证码、IP 或设备标识。它统计网站登录表单捕获的失败，不等于 Supabase 全平台认证日志；客户端未能上报的失败不会计入。</p>
@@ -129,6 +163,34 @@ export default function AdminSecurityCenter({ session, setMsg }: { session: Sess
         </button>
       </div>
       <p style={{ ...mut, marginBottom: 0 }}>「退出其他设备」仅作用于当前登录的管理员账号，并保留本设备。它不是撤销其他管理员账号的会话；被撤销会话的 Access Token 仍可能在过期前短暂有效。</p>
+    </section>
+
+    <section style={card}>
+      <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
+        <h3 style={h3}>管理员登录设备</h3>
+        <button className="mini" disabled={sessionsLoading} onClick={() => void loadSessions()}>
+          {sessionsLoading ? '刷新中…' : '刷新设备'}
+        </button>
+      </div>
+      {sessionsError && <p style={{ color: '#b42336', fontSize: 12.5 }}>{sessionsError}</p>}
+      {sessionsLoading && sessions.length === 0
+        ? <p style={mut}>正在读取当前管理员账号的会话…</p>
+        : sessions.length === 0
+          ? <p style={mut}>没有读取到其他有效会话。</p>
+          : <div style={{ display: 'grid', gap: 9 }}>
+            {sessions.map((item) => <div key={item.session_id} style={{ borderTop: '1px solid #e5eaf2', paddingTop: 9 }}>
+              <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                <strong style={{ fontSize: 13 }}>{item.device_label || '未知设备'}</strong>
+                {item.is_current && <span style={{ fontSize: 11, color: '#067647', fontWeight: 700 }}>当前设备</span>}
+              </div>
+              <div style={mut}>登录时间：{new Date(item.created_at).toLocaleString()}</div>
+              <div style={mut}>最近活动：{item.updated_at ? new Date(item.updated_at).toLocaleString() : '暂无记录'}</div>
+              {item.not_after && <div style={mut}>会话截止：{new Date(item.not_after).toLocaleString()}</div>}
+            </div>)}
+          </div>}
+      <p style={{ ...mut, marginBottom: 0 }}>
+        这里只列出当前管理员账号的会话，不显示其他管理员或普通用户的设备。单个历史会话的独立撤销不是 Supabase Auth 当前公开的 signOut 范围；可使用上方“退出其他设备”一次撤销本账号除当前设备外的会话。
+      </p>
     </section>
 
     <section style={card}>

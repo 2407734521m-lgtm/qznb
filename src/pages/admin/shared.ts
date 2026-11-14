@@ -9,11 +9,21 @@ export const h3: React.CSSProperties = { margin: '0 0 10px', fontSize: 15, fontW
 export const mut: React.CSSProperties = { color: 'var(--admin-muted, #64748b)', fontSize: 12.5, lineHeight: 1.6 };
 export const rowBtn: React.CSSProperties = { display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 8 };
 
-export async function alog(action: string, detail: unknown) {
+export async function alog(action: string, detail: unknown): Promise<boolean> {
   try {
-    await supabase.rpc('log_admin_action', { p_action: action, p_detail: JSON.stringify(detail) });
-  } catch {
-    // Audit logging must not interrupt the primary admin action.
+    const { error } = await supabase.rpc('log_admin_action', {
+      p_action: action,
+      p_detail: JSON.stringify(detail),
+    });
+    if (error) {
+      console.warn('管理员审计日志写入失败：', error.message);
+      return false;
+    }
+    return true;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'unknown error';
+    console.warn('管理员审计日志写入失败：', message);
+    return false;
   }
 }
 

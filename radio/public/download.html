@@ -39,6 +39,8 @@
   .dlbtn:disabled { opacity:.45; cursor:default; }
   .notice { background:#fdf3ef; border:1px solid #f0d4cd; color:#7c2d38; border-radius:12px; padding:10px 12px; font-size:12.5px; line-height:1.7; }
   .pill { display:inline-block; font-size:11px; border:1px solid var(--line); border-radius:99px; padding:2px 8px; color:var(--mut); }
+  .confirm-box { border:1px solid var(--line); border-radius:12px; padding:12px; margin-top:10px; background:#fffdf9; }
+  .confirm-box p { margin:0 0 8px; }
   .plist { display:flex; gap:10px; align-items:center; width:100%; text-align:left; border:1px solid var(--line); background:#fff; border-radius:12px; padding:10px 12px; margin-top:8px; cursor:pointer; font-size:14px; color:var(--ink); }
   .plist small { color:var(--mut); font-size:12px; }
   .gate-modal { position:fixed; inset:0; z-index:50; display:none; align-items:center; justify-content:center; padding:24px 16px; background:rgba(34,49,74,.45); }
@@ -111,6 +113,13 @@
   var SITE_SESSION_KEY = 'qz_site_session_v1';
   var siteSession = null; // {access_token, refresh_token, expires_at, user_id, label}
   var siteAuthLost = false; // 本站凭证失效时为 true，各接口 catch 里不再重复弹错
+  // 网易云跨设备同步本地标记
+  var SYNC_CONSENT_KEY = 'qz_netease_sync_consent_v1'; // '1' 同意绑定同步 / 'declined' 仅这台设备
+  var SYNCED_KEY = 'qz_netease_synced_v1'; // 已绑定同步的本站 user_id
+  var NO_RESTORE_KEY = 'qz_netease_no_restore_v1'; // '1' 本设备点过“退出本设备音乐”，不要自动恢复
+  var restoreAttempted = false; // 一次页面加载只尝试自动恢复一次
+  var neteaseNickname = '';
+  var autoLinkKey = ''; // 已对该（本站账号 + 网易云账号）组合尝试过自动绑定，避免重复调 link
 
   function loadSiteSession() {
     try {
@@ -162,14 +171,28 @@
   // 注册提醒弹窗（站内弹窗，不用浏览器原生弹窗）：未登本站就弹，告诉对方必须先注册。
   function showSiteGatePopup() { $('siteGateModal').classList.add('open'); }
   function hideSiteGatePopup() { $('siteGateModal').classList.remove('open'); }
-  // 本站凭证失效：清会话、锁住音乐、只显示本站登录卡，不再调任何接口。
+  // 本站凭证失效：先用旧凭证尽力调一次 logout-local（原生 fetch、失败静默，
+  // 不走 apiFetch，避免 401 递归），再清会话与同步标记、锁住音乐、只显示本站登录卡。
   function onSiteAuthLost() {
+    if (siteAuthLost) return;
+    try {
+      if (siteSession && siteSession.access_token) {
+        fetch(API + '/api/dl/netease/logout-local', { method: 'POST', headers: { 'Authorization': 'Bearer ' + siteSession.access_token, 'Content-Type': 'application/json' }, body: JSON.stringify({}), credentials: 'same-origin' }).catch(function () {});
+      }
+    } catch (_) {}
     siteAuthLost = true;
     clearSiteSession();
+    removeLocal(SYNCED_KEY);
+    removeLocal(NO_RESTORE_KEY);
+    removeLocal(SYNC_CONSENT_KEY);
+    autoLinkKey = '';
+    hideBindConfirm();
     loggedIn = false; myUserId = '';
+    neteaseNickname = '';
     setLocked(true); clearMusic();
     renderSiteLoggedOut('本站登录已失效，请重新登录。');
     $('loginBox').innerHTML = '<p class="mut">请先登录本站账号。</p>';
+    renderSyncStatus();
     showSiteGatePopup();
   }
   // 所有下载相关接口一律走 /api/dl/* 并带本站凭证；Worker 先验本站账号再转 /api/*。
@@ -183,9 +206,236 @@
       if (init) { for (var k2 in init) { if (k2 !== 'headers') opts[k2] = init[k2]; } }
       return fetch(API + '/api/dl' + path, opts);
     }).then(function (r) {
-      if (r.status === 401) { onSiteAuthLost(); throw new Error('SITE_LOGIN_REQUIRED'); }
+      // 401 不一定是本站登录失效：/netease/link 在网易云会话无效时也会回
+      // 401 NETEASE_SESSION_INVALID（本站 token 是好的）。只有服务端明确
+      // 说 SITE_LOGIN_REQUIRED 时才算本站登录失效；读不到明确字段时仍按
+      // 旧行为处理，避免把网易云失效误判成本站掉登录。
+      if (r.status === 401) {
+        return r.clone().json().then(function (d) {
+          if (d && (d.error === 'SITE_LOGIN_REQUIRED' || d.code === 'SITE_LOGIN_REQUIRED')) {
+            onSiteAuthLost(); throw new Error('SITE_LOGIN_REQUIRED');
+          }
+          return r;
+        }).catch(function (e) {
+          if (e && e.message === 'SITE_LOGIN_REQUIRED') throw e;
+          onSiteAuthLost(); throw new Error('SITE_LOGIN_REQUIRED');
+        });
+      }
       return r;
     });
+  }
+
+  function getLocal(k) { try { return localStorage.getItem(k); } catch (_) { return null; } }
+  function setLocal(k, v) { try { localStorage.setItem(k, v); } catch (_) {} }
+  function removeLocal(k) { try { localStorage.removeItem(k); } catch (_) {} }
+
+  // ---- 网易云跨设备同步 ----
+  // 绑定确认是站内卡片（不用 alert/confirm），插在 #loginCard 内。
+  function hideBindConfirm() {
+    var el = $('bindConfirmBox');
+    if (el) el.remove();
+  }
+  function linkErrorText(d, fallback) {
+    if (d) return d.msg || d.message || d.error_description || (typeof d.error === 'string' ? d.error : '') || fallback;
+    return fallback;
+  }
+  function requestLink(confirm) {
+    return apiFetch('/netease/link', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(confirm ? { confirm: true } : {}), credentials: 'same-origin' })
+      .then(function (r) { return r.json().then(function (d) { return { status: r.status, ok: r.ok, d: d || {} }; }).catch(function () { return { status: r.status, ok: r.ok, d: {} }; }); });
+  }
+  function isAccountChanged(res) {
+    if (!res) return false;
+    // 409 有两种：NOT_LINKED_NO_LOCAL_SESSION（本机无会话）不是换号；
+    // 只有明确的 NETEASE_ACCOUNT_CHANGED 才弹改绑确认。
+    var c = res.d && (res.d.error || res.d.code || res.d.error_code || res.d.reason);
+    return c === 'NETEASE_ACCOUNT_CHANGED';
+  }
+  function showBindConfirm(opts) {
+    opts = opts || {};
+    hideBindConfirm();
+    var box = document.createElement('div');
+    box.id = 'bindConfirmBox';
+    box.className = 'confirm-box';
+    var isRebind = !!opts.rebind;
+    var title = isRebind
+      ? '将改绑为 ' + (opts.newName || '新账号') + '，原绑定失效'
+      : '把这次网易云登录绑定到本站账号吗？绑定后，别的设备登录本站账号就能自动登上音乐。';
+    box.innerHTML = '<p class="mut" style="margin:0 0 4px;">' + esc(title) + '</p>' +
+      '<p class="err" id="bindErr"></p>' +
+      '<div class="row"><button class="btn seal" id="bindYesBtn" type="button">' + (isRebind ? '确认改绑' : '绑定并同步') + '</button>' +
+      '<button class="btn ghost" id="bindNoBtn" type="button">' + (isRebind ? '取消' : '仅这台设备') + '</button></div>';
+    var card = $('loginCard');
+    if (card) card.appendChild(box);
+    $('bindYesBtn').addEventListener('click', function () {
+      var errEl = $('bindErr');
+      $('bindYesBtn').disabled = true; $('bindNoBtn').disabled = true;
+      if (errEl) errEl.textContent = '';
+      requestLink(isRebind).then(function (res) {
+        if (res.ok) {
+          if (siteSession) setLocal(SYNCED_KEY, siteSession.user_id || '');
+          setLocal(SYNC_CONSENT_KEY, '1');
+          removeLocal(NO_RESTORE_KEY);
+          hideBindConfirm();
+          renderSyncStatus();
+          return;
+        }
+        if (isAccountChanged(res) && !isRebind) {
+          var nm = (res.d && (res.d.nickname || res.d.newNickname || res.d.neteaseNickname || res.d.new_nickname)) || neteaseNickname || '新账号';
+          showBindConfirm({ rebind: true, newName: nm });
+          return;
+        }
+        if (errEl) errEl.textContent = linkErrorText(res.d, '绑定失败，请重试。');
+        $('bindYesBtn').disabled = false; $('bindNoBtn').disabled = false;
+      }).catch(function () {
+        if (siteAuthLost) return;
+        if (errEl) errEl.textContent = '绑定失败，请检查网络后重试。';
+        var y = $('bindYesBtn'), n = $('bindNoBtn');
+        if (y) y.disabled = false; if (n) n.disabled = false;
+      });
+    });
+    $('bindNoBtn').addEventListener('click', function () {
+      if (!isRebind) setLocal(SYNC_CONSENT_KEY, 'declined');
+      hideBindConfirm();
+      renderSyncStatus();
+    });
+  }
+  function maybePromptBind() {
+    if (!siteSession || !loggedIn) return;
+    if (getLocal(SYNC_CONSENT_KEY)) return;
+    if ($('bindConfirmBox')) return;
+    showBindConfirm({ rebind: false });
+  }
+  // 已同意过同步（consent='1'）但本地没有 synced 标记时（重扫 / 恢复失效后），
+  // 静默重调一次 link；换号（409）时改弹改绑确认，不直接覆盖原绑定。
+  function ensureNetEaseLink() {
+    if (!siteSession || !loggedIn) return;
+    var consent = getLocal(SYNC_CONSENT_KEY);
+    if (!consent) { maybePromptBind(); return; }
+    if (consent === 'declined') { renderSyncStatus(); return; }
+    if (consent !== '1') return;
+    var synced = getLocal(SYNCED_KEY);
+    if (synced && siteSession.user_id && synced === siteSession.user_id) { renderSyncStatus(); return; }
+    var key = (siteSession.user_id || '') + '|' + myUserId;
+    if (autoLinkKey === key) { renderSyncStatus(); return; }
+    autoLinkKey = key;
+    requestLink(false).then(function (res) {
+      if (res.ok) {
+        if (siteSession) setLocal(SYNCED_KEY, siteSession.user_id || '');
+        setLocal(SYNC_CONSENT_KEY, '1');
+        removeLocal(NO_RESTORE_KEY);
+      } else if (isAccountChanged(res)) {
+        var nm = (res.d && (res.d.nickname || res.d.newNickname || res.d.neteaseNickname || res.d.new_nickname)) || neteaseNickname || '新账号';
+        showBindConfirm({ rebind: true, newName: nm });
+      }
+      renderSyncStatus();
+    }).catch(function () { renderSyncStatus(); });
+  }
+  // 登录卡内的绑定状态行 + 两个按钮（退出本设备音乐 / 解绑全部设备）。
+  function renderSyncStatus() {
+    var box = $('syncStatusBox');
+    if (!box) {
+      box = document.createElement('div');
+      box.id = 'syncStatusBox';
+      var card = $('loginCard');
+      if (card) card.appendChild(box); else return;
+    }
+    if (!loggedIn || !siteSession) { box.innerHTML = ''; return; }
+    var synced = getLocal(SYNCED_KEY);
+    var bound = !!(synced && siteSession.user_id && synced === siteSession.user_id);
+    var name = neteaseNickname || myUserId || '';
+    box.innerHTML = '<div class="mut" style="margin-top:10px;">绑定状态：' + (bound ? '已绑定网易云 ' + esc(name) : '未绑定') + '</div>' +
+      '<div class="row" style="margin-top:8px;"><button class="btn ghost" id="logoutLocalBtn" type="button">退出本设备音乐</button>' +
+      '<button class="btn ghost" id="unlinkBtn" type="button"' + (bound ? '' : ' disabled') + '>解绑网易云（全部设备）</button></div>' +
+      '<p class="err" id="syncStatusErr"></p>';
+    $('logoutLocalBtn').addEventListener('click', function () {
+      var errEl = $('syncStatusErr');
+      if (errEl) errEl.textContent = '';
+      $('logoutLocalBtn').disabled = true;
+      apiFetch('/netease/logout-local', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}), credentials: 'same-origin' })
+        .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d || {} }; }).catch(function () { return { ok: r.ok, d: {} }; }); })
+        .then(function (res) {
+          if (!res.ok) throw new Error(linkErrorText(res.d, '退出失败，请重试。'));
+          setLocal(NO_RESTORE_KEY, '1');
+          removeLocal(SYNCED_KEY);
+          autoLinkKey = '';
+          checkLogin();
+        })
+        .catch(function (e) {
+          if (siteAuthLost) return;
+          renderSyncStatus();
+          var el = $('syncStatusErr');
+          if (el) el.textContent = (e && e.message) || '退出失败，请重试。';
+        });
+    });
+    $('unlinkBtn').addEventListener('click', showUnlinkConfirm);
+  }
+  // 解绑二次确认（站内卡片，不用 confirm）：点确认才调 DELETE /netease/unlink。
+  function showUnlinkConfirm() {
+    var box = $('syncStatusBox');
+    if (!box || $('unlinkConfirmBox')) return;
+    var div = document.createElement('div');
+    div.id = 'unlinkConfirmBox';
+    div.className = 'confirm-box';
+    div.innerHTML = '<p class="mut" style="margin:0 0 4px;">解绑后，全部设备都会掉登录，确定要解绑吗？</p>' +
+      '<p class="err" id="unlinkErr"></p>' +
+      '<div class="row"><button class="btn seal" id="unlinkYesBtn" type="button">确认解绑</button>' +
+      '<button class="btn ghost" id="unlinkNoBtn" type="button">取消</button></div>';
+    box.appendChild(div);
+    $('unlinkNoBtn').addEventListener('click', function () { div.remove(); });
+    $('unlinkYesBtn').addEventListener('click', function () {
+      var errEl = $('unlinkErr');
+      $('unlinkYesBtn').disabled = true; $('unlinkNoBtn').disabled = true;
+      if (errEl) errEl.textContent = '';
+      apiFetch('/netease/unlink', { method: 'DELETE', credentials: 'same-origin' })
+        .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d || {} }; }).catch(function () { return { ok: r.ok, d: {} }; }); })
+        .then(function (res) {
+          if (!res.ok) throw new Error(linkErrorText(res.d, '解绑失败，请重试。'));
+          removeLocal(SYNCED_KEY);
+          removeLocal(NO_RESTORE_KEY);
+          removeLocal(SYNC_CONSENT_KEY);
+          autoLinkKey = '';
+          checkLogin();
+        })
+        .catch(function (e) {
+          if (siteAuthLost) return;
+          if (errEl) errEl.textContent = (e && e.message) || '解绑失败，请重试。';
+          var y = $('unlinkYesBtn'), n = $('unlinkNoBtn');
+          if (y) y.disabled = false; if (n) n.disabled = false;
+        });
+    });
+  }
+  function showQrLoginBox() {
+    $('loginBox').innerHTML = '<p class="mut">未登录。登录后才能读你的歌单、拿到可下载的歌。</p><button class="btn" id="qrBtn" type="button">扫码登录</button>';
+    $('qrBtn').addEventListener('click', startQr);
+  }
+  function showExpiredBox() {
+    $('loginBox').innerHTML = '<p class="mut">网易云登录已失效，请重新扫码登录。</p><button class="btn" id="qrBtn" type="button">扫码登录</button>';
+    $('qrBtn').addEventListener('click', startQr);
+  }
+  // 自动恢复：一次页面加载只试一次；不弹任何弹窗，失败就保持扫码态。
+  function tryRestoreNetEase() {
+    if (restoreAttempted) return Promise.resolve('failed');
+    restoreAttempted = true;
+    if (getLocal(NO_RESTORE_KEY) === '1') return Promise.resolve('failed');
+    return apiFetch('/netease/restore', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}), credentials: 'same-origin' })
+      .then(function (r) { return r.json().then(function (d) { return { status: r.status, ok: r.ok, d: d || {} }; }).catch(function () { return { status: r.status, ok: r.ok, d: {} }; }); })
+      .then(function (res) {
+        var d = res.d;
+        var reason = d.reason || d.error_code || d.code || '';
+        if (reason === 'EXPIRED') {
+          removeLocal(SYNCED_KEY);
+          removeLocal(SYNC_CONSENT_KEY);
+          return 'expired';
+        }
+        if (d.linked === false) {
+          removeLocal(SYNCED_KEY);
+          if (getLocal(SYNC_CONSENT_KEY) === '1') removeLocal(SYNC_CONSENT_KEY);
+          return 'unlinked';
+        }
+        if (res.ok) return 'restored';
+        return 'failed';
+      })
+      .catch(function () { return 'failed'; });
   }
 
   function $(id) { return document.getElementById(id); }
@@ -299,7 +549,9 @@
       .then(function (d) {
         if (!d || d.loggedIn === false) {
           loggedIn = false; myUserId = '';
+          neteaseNickname = '';
           setLocked(true); clearMusic();
+          hideBindConfirm(); renderSyncStatus();
           $('loginBox').innerHTML = '<p class="mut">登录已失效，请重新扫码登录。</p><button class="btn" id="qrBtn" type="button">扫码登录</button>';
           $('qrBtn').addEventListener('click', startQr);
           return;
@@ -399,6 +651,7 @@
       '<div class="mut">' + esc(info.vipLabel || '') + ' · 已登录</div></div></div>' +
       '<div class="row" style="margin-top:10px;"><button class="btn ghost" id="logoutBtn" type="button">退出登录</button></div>';
     $('logoutBtn').addEventListener('click', function () {
+      restoreAttempted = true; // 用户主动退出网易云，本次页面加载不再自动恢复
       apiFetch('/logout', { credentials: 'same-origin' }).finally(checkLogin);
     });
   }
@@ -464,11 +717,29 @@
     box.innerHTML = '<p class="mut">已登录本站账号：<strong style="color:var(--ink);">' + esc(siteSession.label || '') + '</strong></p>' +
       '<div class="row" style="margin-top:10px;"><button class="btn ghost" id="siteLogoutBtn" type="button">退出本站登录</button></div>';
     $('siteLogoutBtn').addEventListener('click', function () {
-      stopQr(); clearSiteSession(); siteAuthLost = false;
-      loggedIn = false; myUserId = '';
-      setLocked(true); clearMusic();
-      renderSiteLoggedOut('');
-      $('loginBox').innerHTML = '<p class="mut">请先登录本站账号。</p>';
+      stopQr();
+      var btn = $('siteLogoutBtn');
+      if (btn) btn.disabled = true;
+      function finishLogout() {
+        clearSiteSession(); siteAuthLost = false;
+        removeLocal(SYNCED_KEY);
+        removeLocal(NO_RESTORE_KEY);
+        removeLocal(SYNC_CONSENT_KEY);
+        autoLinkKey = '';
+        restoreAttempted = false;
+        hideBindConfirm();
+        loggedIn = false; myUserId = '';
+        neteaseNickname = '';
+        setLocked(true); clearMusic();
+        renderSiteLoggedOut('');
+        $('loginBox').innerHTML = '<p class="mut">请先登录本站账号。</p>';
+        renderSyncStatus();
+        hideSiteGatePopup();
+      }
+      // 先调 logout-local（失败静默），再清本站会话与同步标记，避免下一个本站账号继承上一个的网易云登录。
+      apiFetch('/netease/logout-local', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}), credentials: 'same-origin' })
+        .catch(function () { /* 失败静默 */ })
+        .finally(finishLogout);
     });
   }
   function siteLoginError(code, fallback) {
@@ -499,16 +770,40 @@
           var code = d.code || d.error_code || '';
           throw new Error(siteLoginError(code, d.msg || d.error_description || d.message || d.error || ''));
         }
-        saveSiteSession({
-          access_token: sess.access_token,
-          refresh_token: sess.refresh_token || '',
-          expires_at: Date.now() + (Number(sess.expires_in) || 3600) * 1000,
-          user_id: (d.user && d.user.id) || (sess.user && sess.user.id) || '',
-          label: ident
-        });
-        siteAuthLost = false;
-        renderSiteLoggedIn();
-        checkLogin();
+        var newUserId = (d.user && d.user.id) || (sess.user && sess.user.id) || '';
+        var prevSynced = getLocal(SYNCED_KEY);
+        var prevSession = siteSession;
+        function proceedAfterLogin() {
+          saveSiteSession({
+            access_token: sess.access_token,
+            refresh_token: sess.refresh_token || '',
+            expires_at: Date.now() + (Number(sess.expires_in) || 3600) * 1000,
+            user_id: newUserId,
+            label: ident
+          });
+          siteAuthLost = false;
+          restoreAttempted = false;
+          renderSiteLoggedIn();
+          checkLogin();
+        }
+        // 换号防护：本地 synced 标记属于另一个本站账号时，先用旧本站凭证调
+        // logout-local（失败静默）清掉旧绑定，再走 checkLogin / 恢复流程。
+        if (prevSynced && newUserId && prevSynced !== newUserId) {
+          removeLocal(SYNCED_KEY);
+          removeLocal(NO_RESTORE_KEY);
+          removeLocal(SYNC_CONSENT_KEY);
+          autoLinkKey = '';
+          if (prevSession && prevSession.access_token) {
+            try {
+              fetch(API + '/api/dl/netease/logout-local', { method: 'POST', headers: { 'Authorization': 'Bearer ' + prevSession.access_token, 'Content-Type': 'application/json' }, body: JSON.stringify({}), credentials: 'same-origin' })
+                .then(function () { proceedAfterLogin(); }, function () { proceedAfterLogin(); });
+            } catch (_) { proceedAfterLogin(); }
+          } else {
+            proceedAfterLogin();
+          }
+        } else {
+          proceedAfterLogin();
+        }
       })
       .catch(function (e) {
         // 网络层真的失败时（fetch 本身抛错），不要把浏览器原话 Failed to fetch 显示出来。
@@ -525,16 +820,32 @@
         if (info && info.loggedIn) {
           loggedIn = true;
           myUserId = String(info.userId || '');
+          neteaseNickname = info.nickname || '';
+          removeLocal(NO_RESTORE_KEY);
           setLocked(false);
           showLoggedIn(info);
+          renderSyncStatus();
+          ensureNetEaseLink();
           loadMyPlaylists();
         }
         else {
           loggedIn = false; myUserId = '';
+          neteaseNickname = '';
           setLocked(true);
           clearMusic();
-          $('loginBox').innerHTML = '<p class="mut">未登录。登录后才能读你的歌单、拿到可下载的歌。</p><button class="btn" id="qrBtn" type="button">扫码登录</button>';
-          $('qrBtn').addEventListener('click', startQr);
+          hideBindConfirm();
+          renderSyncStatus();
+          if (!restoreAttempted && getLocal(NO_RESTORE_KEY) !== '1') {
+            $('loginBox').innerHTML = '<p class="mut">正在恢复网易云登录…</p>';
+            tryRestoreNetEase().then(function (action) {
+              if (siteAuthLost) return;
+              if (action === 'restored') { checkLogin(); return; }
+              if (action === 'expired') { showExpiredBox(); return; }
+              showQrLoginBox();
+            });
+          } else {
+            showQrLoginBox();
+          }
         }
       })
       .catch(function () {

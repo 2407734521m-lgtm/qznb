@@ -65,6 +65,7 @@ function updateUserModalUi() {
   if (hint) hint.textContent = dualAccountMode
     ? '右上角已切换为多平台并排展示。'
     : '可切换右上角展示的平台；“我两个都要”会并排显示当前已登录的平台。';
+  if (typeof renderSiteAccountSection === 'function') renderSiteAccountSection();
 }
 function showUserModal() {
   if (!hasAnyPlatformLogin()) return showLoginModal();
@@ -281,15 +282,10 @@ async function logoutActiveAccount() {
     showToast('已退出 QQ 音乐');
     return;
   }
+  if (activeAccountProvider === 'netease') return logoutNeteaseOnThisDevice();
   doLogout();
 }
-async function doLogout() {
-  await apiJson('/api/logout');
-  try {
-    if (window.desktopWindow && typeof window.desktopWindow.clearNeteaseMusicLogin === 'function') {
-      await window.desktopWindow.clearNeteaseMusicLogin();
-    }
-  } catch (e) { }
+function resetNeteaseLocalLoginState() {
   loginStatus = { loggedIn: false };
   neteasePlaylists = [];
   if (!hasPlatformLogin('netease') || loggedProviderCount() < 2) dualAccountMode = false;
@@ -305,5 +301,65 @@ async function doLogout() {
   renderUserBtn();
   safeShelfRebuild('logout');
   closeUserModal();
+}
+async function doLogout() {
+  await apiJson('/api/logout');
+  try {
+    if (window.desktopWindow && typeof window.desktopWindow.clearNeteaseMusicLogin === 'function') {
+      await window.desktopWindow.clearNeteaseMusicLogin();
+    }
+  } catch (e) { }
+  resetNeteaseLocalLoginState();
   showToast('已退出登录');
+}
+// 只退本设备：调 /api/dl/netease/logout-local（服务端清本设备会话并写
+// no_restore 标记），不调上游 /api/logout、不删服务端绑定行，其他设备不受影响。
+async function logoutNeteaseOnThisDevice() {
+  try { if (typeof logoutNeteaseLocal === 'function') await logoutNeteaseLocal(); } catch (e) { }
+  try {
+    if (window.desktopWindow && typeof window.desktopWindow.clearNeteaseMusicLogin === 'function') {
+      await window.desktopWindow.clearNeteaseMusicLogin();
+    }
+  } catch (e) { }
+  resetNeteaseLocalLoginState();
+  showToast('已退出本设备网易云登录，其他设备不受影响');
+}
+var unlinkNeteaseConfirmUntil = 0;
+var unlinkNeteaseConfirmTimer = null;
+// 解绑网易云（全部设备）：站内二次确认（沿用“再次点击确认”的两步模式，
+// 不用浏览器原生弹窗）。确认后调 unlinkNetease() 删服务端绑定行，本设备也一并退出。
+function requestUnlinkNetease() {
+  var button = document.getElementById('site-unlink-btn');
+  if (Date.now() < unlinkNeteaseConfirmUntil) {
+    unlinkNeteaseConfirmUntil = 0;
+    if (unlinkNeteaseConfirmTimer) { window.clearTimeout(unlinkNeteaseConfirmTimer); unlinkNeteaseConfirmTimer = null; }
+    if (button) button.disabled = true;
+    Promise.resolve(typeof unlinkNetease === 'function' ? unlinkNetease() : null).then(function (res) {
+      if (!res || res.error) {
+        if (button) { button.disabled = false; button.classList.remove('confirming'); button.textContent = '解绑网易云（全部设备）'; }
+        showToast(res && res.error === 'SITE_LOGIN_REQUIRED' ? '请先登录本站账号' : '解绑失败，请检查网络后重试');
+        return;
+      }
+      try {
+        if (window.desktopWindow && typeof window.desktopWindow.clearNeteaseMusicLogin === 'function') {
+          window.desktopWindow.clearNeteaseMusicLogin();
+        }
+      } catch (e) { }
+      resetNeteaseLocalLoginState();
+      showToast('已解绑网易云，全部设备都要重新扫码登录');
+    });
+    return;
+  }
+  unlinkNeteaseConfirmUntil = Date.now() + 5000;
+  if (button) {
+    button.classList.add('confirming');
+    button.textContent = '再次点击确认解绑';
+  }
+  showToast('解绑后，全部设备上的网易云登录都会失效，需要重新扫码');
+  if (unlinkNeteaseConfirmTimer) window.clearTimeout(unlinkNeteaseConfirmTimer);
+  unlinkNeteaseConfirmTimer = window.setTimeout(function () {
+    unlinkNeteaseConfirmUntil = 0;
+    var btn = document.getElementById('site-unlink-btn');
+    if (btn) { btn.classList.remove('confirming'); btn.textContent = '解绑网易云（全部设备）'; }
+  }, 5000);
 }

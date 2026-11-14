@@ -3,7 +3,10 @@
 // 形态: 静态托管 public/ (Mineradio v2.2.0 渲染层, GPL-3.0, 见 ../LICENSE / ../NOTICE.md)
 //       + /api/* 翻译层: 把 Mineradio 归一化形状翻译到现网 Workers 网易云 API
 //         (https://music.qianzhi.pw/api/netease, XEAPI 4.41.1, 浏览器持有 Cookie 模式)。
-// 登录 Cookie 只存访客浏览器 (本站域名 mr_session, HttpOnly), 服务端不落盘。
+// 登录 Cookie 默认只存访客浏览器 (本站域名 mr_session, HttpOnly), 服务端不落盘。
+// 只有用户首次扫码登录后点确认绑定, 才把网易云凭证 AES-GCM 加密后存 Supabase
+// public.netease_account_links、绑到本站账号 (见 /api/dl/netease/*); 换设备时
+// 用该行解密恢复, 只给本次设备重新种 mr_session, 前端永不见明文/密文。
 // 一期只接网易云; QQ/酷狗/汽水/Spotify 返回未开放形状 (入口已在渲染层隐藏)。
 
 const XEAPI_BASE = 'https://music.qianzhi.pw/api/netease';
@@ -469,6 +472,293 @@ async function proxyLogDownload(site, request) {
   } catch (_) {
     return json({ error: 'UPSTREAM_UNREACHABLE' }, 502);
   }
+}
+
+// ---------------------------------------------------------------- netease cross-device sync (/api/dl/netease/*)
+//
+// 网易云凭证跨设备同步：默认只存浏览器 mr_session；只有用户首次扫码后点确认
+// 绑定，才把凭证 AES-GCM 加密后存 public.netease_account_links、绑本站账号。
+// 密钥只放 Worker secret（NETEASE_SYNC_KEY / NETEASE_SYNC_KEY_PREVIOUS），
+// 绝不进仓库、日志、错误信息或响应；前端永不见明文/密文。
+// Supabase 读写只用 env.SUPABASE_SERVICE_ROLE_KEY 经 PostgREST，调用前都已
+// 在 /api/dl/* 门禁里 requireSiteAuth()，再按 token 里的 id 过滤。
+
+function bytesToBase64(bytes) {
+  let bin = '';
+  for (const b of bytes) bin += String.fromCharCode(b);
+  return btoa(bin);
+}
+
+function base64ToBytes(value) {
+  try {
+    const clean = String(value || '').trim().replace(/-/g, '+').replace(/_/g, '/');
+    const bin = atob(clean);
+    const out = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+    return out;
+  } catch (_) {
+    return null;
+  }
+}
+
+// base64 解码成 32 字节后 importKey；缺失/长度不对/解码失败都回 null（不抛、不记值）。
+async function importSyncKey(env, varName) {
+  const raw = env && env[varName];
+  if (!raw) return null;
+  try {
+    const bytes = base64ToBytes(String(raw).trim());
+    if (!bytes || bytes.length !== 32) return null;
+    return await crypto.subtle.importKey('raw', bytes, 'AES-GCM', false, ['encrypt', 'decrypt']);
+  } catch (_) {
+    return null;
+  }
+}
+
+// 每次保存重生成 12 字节 IV；AAD = site_user_id（uuid 字符串）；当前密钥版 1。
+async function encryptNeteaseCookie(plaintext, siteUserId, env) {
+  const key = await importSyncKey(env, 'NETEASE_SYNC_KEY');
+  if (!key) return null;
+  try {
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    const data = new TextEncoder().encode(plaintext);
+    const aad = new TextEncoder().encode(siteUserId);
+    const ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv, additionalData: aad }, key, data);
+    return { ciphertext: bytesToBase64(new Uint8Array(ct)), iv: bytesToBase64(iv), key_version: 1 };
+  } catch (_) {
+    return null;
+  }
+}
+
+// 先试当前密钥，再试旧密钥（若存在）。成功且用旧密钥解出的，调用方负责重加密回写。
+async function decryptNeteaseCookie(row, siteUserId, env) {
+  const ctBytes = base64ToBytes(row.cookie_ciphertext);
+  const ivBytes = base64ToBytes(row.cookie_iv);
+  if (!ctBytes || !ivBytes) return null;
+  const aad = new TextEncoder().encode(siteUserId);
+  const attempts = [];
+  const current = await importSyncKey(env, 'NETEASE_SYNC_KEY');
+  if (current) attempts.push({ key: current, usedPrevious: false });
+  const previous = await importSyncKey(env, 'NETEASE_SYNC_KEY_PREVIOUS');
+  if (previous) attempts.push({ key: previous, usedPrevious: true });
+  for (const attempt of attempts) {
+    try {
+      const pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: ivBytes, additionalData: aad }, attempt.key, ctBytes);
+      return { plaintext: new TextDecoder().decode(pt), usedPrevious: attempt.usedPrevious };
+    } catch (_) {}
+  }
+  return null;
+}
+
+function neteaseLinkHeaders(env) {
+  const serviceKey = env && env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!serviceKey) return null;
+  return { apikey: serviceKey, Authorization: 'Bearer ' + serviceKey, 'Content-Type': 'application/json' };
+}
+
+const NETEASE_LINK_SELECT = 'site_user_id,netease_user_id,nickname,avatar_url,cookie_ciphertext,cookie_iv,key_version,last_verified_at,updated_at';
+
+// 未配置 service_role 时回 { notConfigured: true }；上游非 2xx 时抛错（调用方回 502，不带上游细节）。
+async function fetchNeteaseLinkRow(env, siteUserId) {
+  const headers = neteaseLinkHeaders(env);
+  if (!headers) return { notConfigured: true, row: null };
+  const res = await fetch(
+    SUPABASE_URL + '/rest/v1/netease_account_links?site_user_id=eq.' + encodeURIComponent(siteUserId) + '&select=' + NETEASE_LINK_SELECT,
+    { headers, signal: AbortSignal.timeout(10000) },
+  );
+  if (!res.ok) throw new Error('link read failed');
+  const rows = await res.json().catch(() => []);
+  return { notConfigured: false, row: Array.isArray(rows) ? (rows[0] || null) : null };
+}
+
+async function upsertNeteaseLinkRow(env, row) {
+  const headers = neteaseLinkHeaders(env);
+  if (!headers) throw new Error('sync not configured');
+  const res = await fetch(SUPABASE_URL + '/rest/v1/netease_account_links', {
+    method: 'POST',
+    headers: { ...headers, Prefer: 'resolution=merge-duplicates' },
+    body: JSON.stringify(row),
+    signal: AbortSignal.timeout(10000),
+  });
+  if (!res.ok) throw new Error('link upsert failed');
+}
+
+async function deleteNeteaseLinkRow(env, siteUserId) {
+  const headers = neteaseLinkHeaders(env);
+  if (!headers) throw new Error('sync not configured');
+  const res = await fetch(
+    SUPABASE_URL + '/rest/v1/netease_account_links?site_user_id=eq.' + encodeURIComponent(siteUserId),
+    { method: 'DELETE', headers, signal: AbortSignal.timeout(10000) },
+  );
+  if (!res.ok) throw new Error('link delete failed');
+}
+
+// 对外只给非凭证字段：不解密、不验活、不返回任何凭证字段。
+function publicNeteaseLink(row) {
+  return {
+    linked: true,
+    neteaseUserId: row.netease_user_id,
+    nickname: row.nickname || '',
+    avatar: row.avatar_url || '',
+    lastVerifiedAt: row.last_verified_at || null,
+    updatedAt: row.updated_at || null,
+  };
+}
+
+async function handleNeteaseLink(site, request, env) {
+  const body = await readRequestBody(request);
+  const cookieStr = readSession(request);
+  if (!cookieStr) return json({ error: 'NOT_LINKED_NO_LOCAL_SESSION' }, 409);
+  const info = await getLoginInfo(cookieStr, { fresh: true });
+  if (!info.loggedIn || !info.userId) return json({ error: 'NETEASE_SESSION_INVALID' }, 401);
+  const enc = await encryptNeteaseCookie(cookieStr, site.id, env);
+  if (!enc) return json({ error: 'SYNC_NOT_CONFIGURED' }, 500);
+  let existing;
+  try {
+    existing = await fetchNeteaseLinkRow(env, site.id);
+  } catch (_) {
+    return json({ error: 'LINK_STORE_UNAVAILABLE' }, 502);
+  }
+  if (existing.notConfigured) return json({ error: 'SYNC_NOT_CONFIGURED' }, 500);
+  const oldRow = existing.row;
+  if (oldRow && String(oldRow.netease_user_id) !== String(info.userId)) {
+    if (body.confirm !== true) {
+      return json({
+        error: 'NETEASE_ACCOUNT_CHANGED',
+        oldNickname: oldRow.nickname || '',
+        newNickname: info.nickname || '',
+        oldNeteaseUserId: oldRow.netease_user_id,
+        newNeteaseUserId: String(info.userId),
+      }, 409);
+    }
+  }
+  const now = new Date().toISOString();
+  try {
+    await upsertNeteaseLinkRow(env, {
+      site_user_id: site.id,
+      netease_user_id: String(info.userId),
+      nickname: info.nickname || '',
+      avatar_url: info.avatar || '',
+      cookie_ciphertext: enc.ciphertext,
+      cookie_iv: enc.iv,
+      key_version: enc.key_version,
+      last_verified_at: now,
+    });
+  } catch (_) {
+    return json({ error: 'LINK_STORE_UNAVAILABLE' }, 502);
+  }
+  return json({
+    linked: true,
+    neteaseUserId: String(info.userId),
+    nickname: info.nickname || '',
+    avatar: info.avatar || '',
+    vipLabel: info.vipLabel || '无VIP',
+    lastVerifiedAt: now,
+  });
+}
+
+async function handleNeteaseStatus(site, env) {
+  let result;
+  try {
+    result = await fetchNeteaseLinkRow(env, site.id);
+  } catch (_) {
+    return json({ error: 'LINK_STORE_UNAVAILABLE' }, 502);
+  }
+  if (result.notConfigured) return json({ error: 'SYNC_NOT_CONFIGURED' }, 500);
+  if (!result.row) return json({ linked: false });
+  return json(publicNeteaseLink(result.row));
+}
+
+async function handleNeteaseRestore(site, request, env) {
+  let result;
+  try {
+    result = await fetchNeteaseLinkRow(env, site.id);
+  } catch (_) {
+    return json({ error: 'LINK_STORE_UNAVAILABLE' }, 502);
+  }
+  if (result.notConfigured) return json({ error: 'SYNC_NOT_CONFIGURED' }, 500);
+  if (!result.row) return json({ linked: false, restored: false });
+  const row = result.row;
+  const failExpired = async () => {
+    try { await deleteNeteaseLinkRow(env, site.id); } catch (_) {}
+    const local = readSession(request);
+    if (local) loginInfoCache.delete(hashString(local));
+    return json({ linked: false, restored: false, reason: 'EXPIRED' }, 200, { 'set-cookie': sessionClearCookie() });
+  };
+  if (!env || !env.NETEASE_SYNC_KEY) return json({ error: 'SYNC_NOT_CONFIGURED' }, 500);
+  const decrypted = await decryptNeteaseCookie(row, site.id, env);
+  if (!decrypted) return await failExpired();
+  const info = await getLoginInfo(decrypted.plaintext, { fresh: true });
+  if (!info.loggedIn || !info.userId) return await failExpired();
+  // 旧密钥解出的，立即用当前密钥重加密回写（best-effort：回写失败不影响本次恢复）。
+  const now = new Date().toISOString();
+  try {
+    let ciphertext = row.cookie_ciphertext;
+    let iv = row.cookie_iv;
+    let keyVersion = row.key_version;
+    if (decrypted.usedPrevious) {
+      const reEnc = await encryptNeteaseCookie(decrypted.plaintext, site.id, env);
+      if (reEnc) { ciphertext = reEnc.ciphertext; iv = reEnc.iv; keyVersion = reEnc.key_version; }
+    }
+    await upsertNeteaseLinkRow(env, {
+      site_user_id: site.id,
+      netease_user_id: row.netease_user_id,
+      nickname: info.nickname || row.nickname || '',
+      avatar_url: info.avatar || row.avatar_url || '',
+      cookie_ciphertext: ciphertext,
+      cookie_iv: iv,
+      key_version: keyVersion,
+      last_verified_at: now,
+    });
+  } catch (_) {}
+  return json({
+    linked: true,
+    restored: true,
+    loggedIn: true,
+    userId: info.userId,
+    nickname: info.nickname || '',
+    avatar: info.avatar || '',
+    vipType: info.vipType || 0,
+    vipLevel: info.vipLevel || 'none',
+    isVip: !!info.isVip,
+    isSvip: !!info.isSvip,
+    vipLabel: info.vipLabel || '无VIP',
+    lastVerifiedAt: now,
+  }, 200, { 'set-cookie': sessionSetCookie(decrypted.plaintext) });
+}
+
+async function handleNeteaseUnlink(site, request, env) {
+  let result;
+  try {
+    result = await fetchNeteaseLinkRow(env, site.id);
+  } catch (_) {
+    return json({ error: 'LINK_STORE_UNAVAILABLE' }, 502);
+  }
+  if (result.notConfigured) return json({ error: 'SYNC_NOT_CONFIGURED' }, 500);
+  const row = result.row;
+  const local = readSession(request);
+  if (row) {
+    // 用解密出的 cookie 调一次上游作废；静默失败也不影响删行。
+    try {
+      const decrypted = await decryptNeteaseCookie(row, site.id, env);
+      if (decrypted && decrypted.plaintext) {
+        try { await xeapi('/logout', {}, decrypted.plaintext, 5000); } catch (_) {}
+        loginInfoCache.delete(hashString(decrypted.plaintext));
+      }
+    } catch (_) {}
+    try {
+      await deleteNeteaseLinkRow(env, site.id);
+    } catch (_) {
+      return json({ error: 'LINK_STORE_UNAVAILABLE' }, 502);
+    }
+  }
+  if (local) loginInfoCache.delete(hashString(local));
+  return json({ ok: true, unlinked: true }, 200, { 'set-cookie': sessionClearCookie() });
+}
+
+function handleNeteaseLogoutLocal(request) {
+  const local = readSession(request);
+  if (local) loginInfoCache.delete(hashString(local));
+  return json({ ok: true }, 200, { 'set-cookie': sessionClearCookie() });
 }
 
 // ---------------------------------------------------------------- search
@@ -1030,7 +1320,7 @@ function providerUnavailable(pn) {
 
 // ---------------------------------------------------------------- API router
 
-async function handleApi(request, url) {
+async function handleApi(request, url, env) {
   let pn = url.pathname;
   const q = url.searchParams;
   const cookieStr = readSession(request);
@@ -1051,6 +1341,27 @@ async function handleApi(request, url) {
     if (pn === '/api/dl/log-download') {
       if (request.method !== 'POST') return json({ error: 'METHOD_NOT_ALLOWED' }, 405);
       return await proxyLogDownload(site, request);
+    }
+    // ---- netease cross-device sync: /api/dl/netease/*（门禁内，改写回 /api/* 之前截获）----
+    if (pn === '/api/dl/netease/link') {
+      if (request.method !== 'POST') return json({ error: 'METHOD_NOT_ALLOWED' }, 405);
+      return await handleNeteaseLink(site, request, env);
+    }
+    if (pn === '/api/dl/netease/status') {
+      if (request.method !== 'GET') return json({ error: 'METHOD_NOT_ALLOWED' }, 405);
+      return await handleNeteaseStatus(site, env);
+    }
+    if (pn === '/api/dl/netease/restore') {
+      if (request.method !== 'POST') return json({ error: 'METHOD_NOT_ALLOWED' }, 405);
+      return await handleNeteaseRestore(site, request, env);
+    }
+    if (pn === '/api/dl/netease/unlink') {
+      if (request.method !== 'DELETE') return json({ error: 'METHOD_NOT_ALLOWED' }, 405);
+      return await handleNeteaseUnlink(site, request, env);
+    }
+    if (pn === '/api/dl/netease/logout-local') {
+      if (request.method !== 'POST') return json({ error: 'METHOD_NOT_ALLOWED' }, 405);
+      return handleNeteaseLogoutLocal(request);
     }
     pn = '/api/' + pn.slice('/api/dl/'.length);
   }
@@ -1496,7 +1807,7 @@ export default {
     const url = new URL(request.url);
     if (url.pathname === '/api' || url.pathname.startsWith('/api/')) {
       try {
-        return await handleApi(request, url);
+        return await handleApi(request, url, env);
       } catch (err) {
         return json({ error: String(err && err.message || err) }, 500);
       }

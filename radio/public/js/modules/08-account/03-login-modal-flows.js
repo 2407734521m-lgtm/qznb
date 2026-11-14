@@ -1354,6 +1354,7 @@ async function openNeteaseWebLogin() {
     loadHomeDiscover(true);
     if (statusEl) { statusEl.textContent = '网易云会话已保存'; statusEl.className = 'scan'; }
     offerLoginCookieExport('netease', info);
+    if (typeof maybeLinkNeteaseAfterLogin === 'function') maybeLinkNeteaseAfterLogin();
     setTimeout(function () {
       closeLoginModal();
       showToast('网易云已登录: ' + (info.nickname || info.userId || ''));
@@ -1559,6 +1560,7 @@ async function submitNeteaseCookieLogin() {
     loadHomeDiscover(true);
     if (statusEl) { statusEl.textContent = '网易云会话已保存'; statusEl.className = 'scan'; }
     offerLoginCookieExport('netease', info);
+    if (typeof maybeLinkNeteaseAfterLogin === 'function') maybeLinkNeteaseAfterLogin();
     setTimeout(function () {
       closeLoginModal();
       showToast('网易云已登录: ' + (info.nickname || info.userId || ''));
@@ -1595,6 +1597,7 @@ async function checkQr() {
         closeLoginModal();
         offerLoginCookieExport('netease', fresh);
         showToast('欢迎 ' + (fresh && fresh.nickname ? fresh.nickname : ''));
+        if (typeof maybeLinkNeteaseAfterLogin === 'function') maybeLinkNeteaseAfterLogin();
       }, r.pendingProfile ? 1200 : 500);
     } else if (r.code === 803) {
       $st.textContent = '扫码已确认，但没有拿到登录凭证，请刷新二维码重试'; $st.className = 'fail';

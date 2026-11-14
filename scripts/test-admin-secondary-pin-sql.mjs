@@ -115,16 +115,25 @@ console.log('PASS successful PIN verification unlocks the current session and ex
 await claimsFor(adminId, adminSessionB);
 result = await db.query('select public.my_role() as role');
 assert.equal(result.rows[0].role, 'member', 'another session for the same admin must remain locked');
-console.log('PASS PIN verification is scoped to one Supabase session');
+result = await db.query("select public.admin_verify_secondary_password('482916') as verified");
+assert.equal(result.rows[0].verified, true, 'a second device can independently verify its own session');
+result = await db.query('select public.my_role() as role');
+assert.equal(result.rows[0].role, 'super_admin', 'second device gets its own grant only after PIN verification');
+console.log('PASS PIN verification is scoped to each Supabase session');
 
 await claimsFor(adminId, adminSessionA);
 result = await db.query("select public.admin_change_secondary_password('482916', '739204') as changed");
 assert.equal(result.rows[0].changed, true, 'current PIN can be rotated after verification');
+result = await db.query('select public.my_role() as role');
+assert.equal(result.rows[0].role, 'super_admin', 'current session remains authorized after rotation');
+await claimsFor(adminId, adminSessionB);
+result = await db.query('select public.my_role() as role');
+assert.equal(result.rows[0].role, 'member', 'changing the PIN must revoke other devices’ prior admin grants');
 result = await db.query("select public.admin_verify_secondary_password('482916') as verified");
 assert.equal(result.rows[0].verified, false, 'the previous PIN must stop working after rotation');
 result = await db.query("select public.admin_verify_secondary_password('739204') as verified");
 assert.equal(result.rows[0].verified, true, 'the new PIN must verify');
-console.log('PASS PIN rotation invalidates the old PIN');
+console.log('PASS PIN rotation invalidates the old PIN and revokes other sessions');
 
 await claimsFor(secondAdminId, secondAdminSession);
 result = await db.query("select public.admin_set_secondary_password('384920') as created");

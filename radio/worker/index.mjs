@@ -700,104 +700,6 @@ return { candidate: {...candidate, fingerprintMatches: 0, officialRecommendation
 return null;
 }
 
-// ---------------------------------------------------------------- 备选源: 酷狗音乐 (仅下载页 fallback 用, 主站不调用)
-// 免费公开接口, 无需登录、无需 key、不付费: 搜歌 song_search_v2 + 取地址 getSongInfo(playInfo)。
-// 只取 pay_type===0 的免费曲完整地址; VIP/付费曲 (pay_type 3) 无地址, 不绕付费。
-// QQ 音乐已调研: 游客态 vkey 两个接口均被拒 (musicu 500005 / mobile3 104003, 免费歌亦然),
-// 须登录 QQ 账号才能拿地址, 故不接。
-const KUGOU_SEARCH_URL = 'https://songsearch.kugou.com/song_search_v2';
-const KUGOU_PLAYINFO_URL = 'https://m.kugou.com/app/i/getSongInfo.php';
-
-function stripEmTags(value) {
-return String(value || '').replace(/<[^>]*>/g, '');
-}
-
-function stripVersionSuffix(value) {
-return String(value || '').replace(/\s*[（(\[][^）)\]】]*[）)\]】]\s*$/g, '').trim();
-}
-
-function hasRemixMarker(value) {
-return /DJ|Remix|remix|翻唱|伴奏|纯享|KTV|8D|变速|慢速|加快|gfan/i.test(String(value || ''));
-}
-
-function parseKugouFileName(fileName) {
-const clean = stripEmTags(fileName || '').trim();
-const idx = clean.indexOf(' - ');
-if (idx > 0) return { artist: clean.slice(0, idx).trim(), name: clean.slice(idx + 3).trim() };
-return { artist: '', name: clean };
-}
-
-async function searchKugouSongs(keywords, limit) {
-try {
-const url = new URL(KUGOU_SEARCH_URL);
-url.searchParams.set('keyword', keywords);
-url.searchParams.set('page', '1');
-url.searchParams.set('pagesize', String(Math.max(1, Math.min(10, limit || 8))));
-url.searchParams.set('userid', '0');
-url.searchParams.set('clientver', '');
-url.searchParams.set('platform', 'WebFilter');
-url.searchParams.set('tag', 'em');
-url.searchParams.set('filter', '2');
-url.searchParams.set('iscorrection', '1');
-url.searchParams.set('privilege_filter', '0');
-const res = await fetch(url.toString(), { headers: { 'user-agent': UA, accept: 'application/json' }, signal: AbortSignal.timeout(6000) });
-const body = await res.json();
-const lists = (body && body.data && body.data.lists) || [];
-return lists.map(it => {
-const parsed = parseKugouFileName(it.FileName || '');
-return { hash: String(it.FileHash || ''), name: parsed.name, artist: parsed.artist || stripEmTags(it.SingerName || ''), duration: Number(it.Duration) || 0 };
-}).filter(s => s.hash && s.name);
-} catch (_) { return []; }
-}
-
-async function fetchKugouPlayUrl(hash) {
-try {
-const url = new URL(KUGOU_PLAYINFO_URL);
-url.searchParams.set('cmd', 'playInfo');
-url.searchParams.set('hash', hash);
-const res = await fetch(url.toString(), { headers: { 'user-agent': UA, accept: 'application/json' }, signal: AbortSignal.timeout(6000) });
-const d = await res.json();
-const playUrl = String((d && d.url) || '').trim();
-// 只接受免费曲 (pay_type 0) 的真实地址; VIP/付费曲 pay_type 3 时 url 为空, 不绕付费。
-if (!d || Number(d.pay_type) !== 0 || !/^https?:\/\/[^/]*kugou\.com\//.test(playUrl)) return null;
-return { url: playUrl, fileSize: Number(d.fileSize) || null, ext: String(d.extName || 'mp3').replace(/^\./, '') || 'mp3' };
-} catch (_) { return null; }
-}
-
-// 酷狗备选: 按歌名+歌手搜, 名称与歌手都须对上 (防翻唱/同名错版), 时长相差 12 秒内优先;
-// DJ/翻唱/伴奏等改编版一律不要; 逐个取地址, 只取免费曲, 地址须过音频探测才返回。
-async function resolveKugouFallbackSongUrl(name, artist, durationMs) {
-const wantName = matchText(name || '');
-const wantArtists = new Set(String(artist || '').split(/[/、,，&]/).map(matchText).filter(Boolean));
-if (!wantName || !wantArtists.size) return null;
-const wantDuration = Math.round((Number(durationMs) || 0) / 1000);
-let rows = await searchKugouSongs(`${name} ${artist}`, 8);
-if (!rows.length) rows = await searchKugouSongs(name, 8);
-const scored = [];
-for (const row of rows) {
-if (hasRemixMarker(row.name)) continue;
-const rowName = matchText(row.name);
-const rowArtist = matchText(row.artist);
-if (!rowName || !rowArtist) continue;
-const artistOk = [...wantArtists].some(a => rowArtist === a || rowArtist.includes(a) || a.includes(rowArtist));
-if (!artistOk) continue;
-const tier = rowName === wantName ? 1 : (matchText(stripVersionSuffix(row.name)) === matchText(stripVersionSuffix(name)) ? 2 : 0);
-if (!tier) continue;
-const durDiff = wantDuration && row.duration ? Math.abs(row.duration - wantDuration) : 999;
-if (wantDuration && row.duration && durDiff > 12) continue;
-scored.push({ row, tier, durDiff });
-}
-scored.sort((a, b) => (a.tier - b.tier) || (a.durDiff - b.durDiff));
-for (const item of scored.slice(0, 3)) {
-const play = await fetchKugouPlayUrl(item.row.hash);
-if (!play) continue;
-const probe = await probePlaybackAudioUrl(play.url);
-if (!probe.ok) continue;
-return { provider: 'kugou', source: 'kugou', url: play.url, trial: false, playable: true, ext: play.ext, fileSize: play.fileSize, matchedSong: { name: item.row.name, artist: item.row.artist, duration: item.row.duration ? item.row.duration * 1000 : 0, hash: item.row.hash }, matchTier: item.tier, probeStatus: probe.status, probeBytes: probe.bytes, probeMagic: probe.magic };
-}
-return null;
-}
-
 async function handleSongUrl(id, loginInfo, qualityPreference, matchHints, cookieStr) {
 const hints = matchHints || {};
 let direct = null;
@@ -810,19 +712,7 @@ direct = { provider: 'netease', source: 'netease', url: null, trial: false, play
 if (direct && direct.url &&!direct.trial) return direct;
 const sourceMatchAttempted =!!(String(hints.name || '').trim() && String(hints.artist || '').trim());
 const matched = await resolveNeteaseSameTrackPlayback(id, loginInfo, qualityPreference, hints, cookieStr);
-if (!matched) {
-const base = {...direct, sourceMatchAttempted};
-// 备选源只在两种情况跑: 网易云明确没地址 (copyright_unavailable), 或只有试听 (trial);
-// 需要登录才能拿地址的歌 (login_required) 不跑——登录后网易云本身就有, 别拿别家版本顶替。
-const needFallback = hints.fallback && direct &&
-((direct.restriction && direct.restriction.category === 'copyright_unavailable') || direct.trial === true);
-if (needFallback) {
-const kg = await resolveKugouFallbackSongUrl(hints.name, hints.artist, hints.duration);
-if (kg) return {...kg, sourceMatchAttempted: true, fallback: true, fallbackTried: true, fallbackProvider: 'kugou', originalRestriction: (direct && direct.restriction) || null};
-return {...base, fallbackTried: true, fallbackProvider: 'kugou', message: '网易云和酷狗都没有返回这首歌的完整版地址（多为 VIP/付费或版权下架）'};
-}
-return base;
-}
+if (!matched) return {...direct, sourceMatchAttempted};
 return {
 ...matched.playback,
 provider: 'netease',
@@ -1306,7 +1196,6 @@ async function handleApi(request, url) {
         artistId: q.get('artistId') || '', artistIds: q.get('artistIds') || '', artistNames: q.get('artistNames') || '',
         album: q.get('album') || '', duration: q.get('duration') || '',
         excludeIds: q.get('excludeIds') || '', skipDirect: q.get('skipDirect') === '1',
-        fallback: q.get('fallback') === '1',
       };
       const loginInfo = cookieStr ? await getLoginInfo(cookieStr) : notLoggedInfo();
       const info = await handleSongUrl(id, loginInfo, quality, hints, cookieStr);

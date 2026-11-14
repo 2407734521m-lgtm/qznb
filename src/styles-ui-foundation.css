@@ -1,26 +1,490 @@
 /* Public UI foundations: scoped to page roots, never Dock or navigation. */
-#root .vibe-home{--vh-ink:var(--qz-ink);--vh-muted:var(--qz-muted);--vh-line:var(--qz-line);--vh-accent:var(--qz-accent);color:var(--qz-ink)}
-#root .vibe-home .vh-intro{padding:24px 2px 18px}#root .vibe-home .vh-intro h1,#root .vibe-home .vh-section-head h2{color:var(--qz-ink);font-weight:640;letter-spacing:-.025em}#root .vibe-home .vh-intro p,#root .vibe-home .vh-section-head p{color:var(--qz-muted)}
-#root .vibe-home .vh-hero:not(.has-image){min-height:clamp(190px,24vw,288px);aspect-ratio:auto;border:1px solid var(--qz-line)!important;border-radius:var(--qz-radius-lg)!important;background:var(--qz-surface-soft)!important;box-shadow:none!important}
-#root .vibe-home .vh-hero:not(.has-image) .vh-hero-kicker,#root .vibe-home .vh-hero:not(.has-image) .vh-hero-title{color:var(--qz-ink)!important;text-shadow:none!important}#root .vibe-home .vh-hero:not(.has-image) .vh-hero-sub{color:var(--qz-muted)!important}
-#root .vibe-home .vh-hero-link{border:1px solid var(--qz-line-strong);border-radius:10px;background:#fff;color:var(--qz-ink);box-shadow:none}#root .vibe-home .vh-search{border-color:var(--qz-line);border-radius:12px;background:#fff;color:var(--qz-muted);box-shadow:none}#root .vibe-home .vh-search:hover{border-color:var(--qz-line-strong);background:var(--qz-surface-soft)}
-#root .vibe-home .vh-notice,#root .vibe-home .vh-panel,#root .vibe-home .vh-shortcut,#root .vibe-home .vh-discovery-card{border:1px solid var(--qz-line)!important;border-radius:var(--qz-radius-md)!important;background:#fff!important;box-shadow:none!important}
-#root .vibe-home .vh-notice-tag{background:var(--qz-surface-soft);color:var(--qz-muted)}#root .vibe-home .vh-notice strong,#root .vibe-home .vh-feed-copy strong,#root .vibe-home .vh-event strong,#root .vibe-home .vh-shortcut-name,#root .vibe-home .vh-discovery-card strong{color:var(--qz-ink)}#root .vibe-home .vh-notice p,#root .vibe-home .vh-feed-copy p,#root .vibe-home .vh-event p,#root .vibe-home .vh-shortcut small,#root .vibe-home .vh-discovery-card p{color:var(--qz-muted)}
-#root .vibe-home .vh-shortcut{min-height:84px;padding:14px}#root .vibe-home .vh-lower-grid{gap:14px;margin-top:26px}#root .vibe-home .vh-panel{padding:16px}#root .vibe-home .vh-feed-row,#root .vibe-home .vh-event{border-color:var(--qz-line)}#root .vibe-home .vh-empty,#root .vibe-home .vh-load-state{border-color:var(--qz-line);border-radius:12px;background:var(--qz-surface-soft);color:var(--qz-muted)}#root .vibe-home .vh-load-error{border-color:#eedcdd;background:#fff8f8;color:#94545a}
-#root .feed-page,#root .daily-page{width:min(100%,880px);margin-inline:auto}
-#root .feed-page .composer,#root .daily-page .composer,#root .feed-page .post,#root .daily-page .post{border:1px solid var(--qz-line)!important;border-radius:var(--qz-radius-md)!important;background:var(--qz-surface)!important;background-image:none!important;box-shadow:none!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
-#root .feed-page .composer,#root .daily-page .composer{padding:15px}#root .feed-page .post,#root .daily-page .post{padding:16px;margin-block:12px}
-#root .feed-page .post .hd,#root .daily-page .post .hd{display:flex;align-items:center;gap:11px;margin-bottom:12px}#root .feed-page .post .nm,#root .daily-page .post .nm{color:var(--qz-ink);font-size:14px;font-weight:650}#root .feed-page .post .tm,#root .daily-page .post .tm{color:var(--qz-muted);font-size:11px}
-#root .feed-page .post .bd,#root .daily-page .post .bd{color:var(--qz-ink);font-size:14px;line-height:1.75;overflow-wrap:anywhere;white-space:pre-wrap}#root .feed-page .post .bdimg,#root .daily-page .post .bdimg{display:block;max-width:100%;max-height:620px;margin-top:10px;border-radius:12px;object-fit:contain}
-#root .feed-page .post .ft,#root .daily-page .post .ft{display:flex;align-items:center;flex-wrap:wrap;gap:6px;padding-top:10px;border-top:1px solid var(--qz-line)}#root .feed-page .post .ft button,#root .daily-page .post .ft button{min-height:38px;padding:7px 10px;border:1px solid transparent;border-radius:9px;background:transparent;color:var(--qz-muted);font:inherit;font-size:12px}#root .feed-page .post .ft button.liked{color:#b85d69}
-#root .feed-page .post .cmt,#root .daily-page .post .cmt{margin-top:10px;padding:10px;border:1px solid var(--qz-line);border-radius:12px;background:var(--qz-surface-soft)}#root .feed-page .post .one,#root .daily-page .post .one{padding:9px 2px;border-bottom:1px solid var(--qz-line);color:var(--qz-ink)}#root .feed-page .cmt-empty,#root .daily-page .cmt-empty{color:var(--qz-muted)}
-#root .feed-page .feed-filters{display:flex;gap:7px;overflow-x:auto;padding:2px 0 8px;scrollbar-width:none}#root .feed-page .feed-filters button{min-height:38px;flex:0 0 auto;padding:8px 12px;border:1px solid var(--qz-line);border-radius:10px;background:#fff;color:var(--qz-muted);font:inherit;font-size:12px}#root .feed-page .feed-filters button.on{border-color:var(--qz-line-strong);background:var(--qz-surface-soft);color:var(--qz-ink);font-weight:650}
-#root .me-hub{--mh-ink:var(--qz-ink);--mh-muted:var(--qz-muted);--mh-line:var(--qz-line)}#root .me-hub .me-hub-hero,#root .me-hub .me-hub-stats,#root .me-hub .me-hub-shortcuts,#root .me-hub .me-hub-group,#root .me-hub .me-hub-feature,#root .me-hub .me-hub-tile{border-color:var(--qz-line)!important;background:var(--qz-surface)!important;background-image:none!important;box-shadow:none!important}
-#root .me-hub :is(.me-hub-topbar h1,.me-hub-identity strong,.me-hub-stat-grid strong,.me-hub-section-head h2,.me-hub-group-head h2,.me-hub-feature strong,.me-hub-tile-copy strong,.me-hub-shortcut strong){color:var(--qz-ink)!important}#root .me-hub :is(.me-hub-identity span,.me-hub-identity small,.me-hub-section-head p,.me-hub-group-head p,.me-hub-stat-grid span,.me-hub-feature small,.me-hub-tile-copy small,.me-hub-shortcut small){color:var(--qz-muted)!important}#root .me-hub :is(.me-hub-mark,.me-hub-shortcut-icon){border-color:var(--qz-line)!important;background:var(--qz-surface-soft)!important;color:var(--qz-accent)!important;box-shadow:none!important}
-#root :is(.feed-page,.daily-page,.me-hub) :is(button.pri,.btn-primary){min-height:42px;border:1px solid var(--qz-accent)!important;border-radius:10px!important;background:var(--qz-accent)!important;color:#fff!important;box-shadow:none!important;font-weight:650}#root :is(.feed-page,.daily-page,.me-hub) :is(button.ghost,button.mini.ghost){min-height:38px;border:1px solid var(--qz-line-strong)!important;border-radius:9px!important;background:#fff!important;color:var(--qz-ink)!important;box-shadow:none!important}
-#root :is(.feed-page,.daily-page) :is(input:not([type="file"]),textarea){border:1px solid var(--qz-line-strong);border-radius:10px;background:#fff;color:var(--qz-ink);font-size:16px}#root :is(.feed-page,.daily-page) :is(input:not([type="file"]),textarea)::placeholder{color:var(--qz-faint)}#root :is(.feed-page,.daily-page) :is(input:not([type="file"]),textarea):focus{border-color:var(--qz-accent);outline:none;box-shadow:0 0 0 3px rgba(82,107,140,.12)}
-#root :is(.feed-page,.daily-page) .center>.card{width:min(100%,480px);border:1px solid var(--qz-line);border-radius:var(--qz-radius-md);background:var(--qz-surface);color:var(--qz-muted);box-shadow:none}#root :is(.feed-page,.daily-page) .err{color:#a94f59}
-#root .im-page .im-bubble{overflow-wrap:anywhere}#root .im-page .im-composer{padding-bottom:max(10px,env(safe-area-inset-bottom))}#root .im-page .im-input{min-height:44px;font-size:16px}#root .im-page :is(.im-plus,.im-mic,.im-send){min-width:44px;min-height:44px}
-@media(max-width:680px){#root .vibe-home{padding-bottom:108px}#root .vibe-home .vh-intro{grid-template-columns:1fr;gap:10px;padding:17px 2px 14px}#root .vibe-home .vh-intro h1{font-size:clamp(24px,6vw,30px)}#root .vibe-home .vh-hero:not(.has-image){min-height:205px}#root .vibe-home .vh-hero-content{padding:20px}#root .vibe-home .vh-hero-title{font-size:clamp(25px,7vw,34px)}#root .vibe-home .vh-shortcuts{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}#root .vibe-home .vh-shortcut{min-height:78px;padding:11px}#root .vibe-home .vh-lower-grid{grid-template-columns:1fr}#root .vibe-home .vh-notices,#root .vibe-home .vh-discovery-grid{grid-template-columns:1fr}#root .feed-page .post,#root .daily-page .post{padding:13px}#root .feed-page .composer,#root .daily-page .composer{padding:13px}#root .me-hub :is(.me-hub-hero,.me-hub-shortcuts,.me-hub-group){padding:14px}#root .im-page .im-composer{margin-inline:8px}#root .im-page .im-input{min-width:0}}
-@media(max-width:380px){#root .vibe-home .vh-shortcut{padding:9px}#root .vibe-home .vh-shortcut-name{font-size:11px}#root .feed-page .community-page-heading h1,#root .daily-page .hero h1{font-size:22px}}
-@media(prefers-reduced-motion:reduce){#root .vibe-home :is(.vh-search,.vh-notice,.vh-shortcut,.vh-hero-link,.vh-discovery-card),#root .feed-page :is(button,a),#root .daily-page :is(button,a),#root .me-hub :is(button,a){transition:none!important}}
+
+/* Home: one typography and surface language without replacing user-selected hero imagery. */
+#root .vibe-home {
+  --vh-ink: var(--qz-ink);
+  --vh-muted: var(--qz-muted);
+  --vh-line: var(--qz-line);
+  --vh-accent: var(--qz-accent);
+  color: var(--qz-ink);
+}
+
+#root .vibe-home .vh-intro {
+  padding: 24px 2px 18px;
+}
+
+#root .vibe-home .vh-intro h1,
+#root .vibe-home .vh-section-head h2 {
+  color: var(--qz-ink);
+  font-weight: 640;
+  letter-spacing: -.025em;
+}
+
+#root .vibe-home .vh-intro p,
+#root .vibe-home .vh-section-head p {
+  color: var(--qz-muted);
+}
+
+#root .vibe-home .vh-hero:not(.has-image) {
+  min-height: clamp(190px, 24vw, 288px);
+  aspect-ratio: auto;
+  border: 1px solid var(--qz-line) !important;
+  border-radius: var(--qz-radius-lg) !important;
+  background: var(--qz-surface-soft) !important;
+  box-shadow: none !important;
+}
+
+#root .vibe-home .vh-hero:not(.has-image) .vh-hero-kicker,
+#root .vibe-home .vh-hero:not(.has-image) .vh-hero-title {
+  color: var(--qz-ink) !important;
+  text-shadow: none !important;
+}
+
+#root .vibe-home .vh-hero:not(.has-image) .vh-hero-sub {
+  color: var(--qz-muted) !important;
+}
+
+#root .vibe-home .vh-hero-link {
+  border: 1px solid var(--qz-line-strong);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--qz-ink);
+  box-shadow: none;
+}
+
+#root .vibe-home .vh-search {
+  border-color: var(--qz-line);
+  border-radius: 12px;
+  background: #fff;
+  color: var(--qz-muted);
+  box-shadow: none;
+}
+
+#root .vibe-home .vh-search:hover {
+  border-color: var(--qz-line-strong);
+  background: var(--qz-surface-soft);
+}
+
+#root .vibe-home .vh-notice,
+#root .vibe-home .vh-panel,
+#root .vibe-home .vh-shortcut,
+#root .vibe-home .vh-discovery-card {
+  border: 1px solid var(--qz-line) !important;
+  border-radius: var(--qz-radius-md) !important;
+  background: #fff !important;
+  box-shadow: none !important;
+}
+
+#root .vibe-home .vh-notice-tag {
+  background: var(--qz-surface-soft);
+  color: var(--qz-muted);
+}
+
+#root .vibe-home .vh-notice strong,
+#root .vibe-home .vh-feed-copy strong,
+#root .vibe-home .vh-event strong,
+#root .vibe-home .vh-shortcut-name,
+#root .vibe-home .vh-discovery-card strong {
+  color: var(--qz-ink);
+}
+
+#root .vibe-home .vh-notice p,
+#root .vibe-home .vh-feed-copy p,
+#root .vibe-home .vh-event p,
+#root .vibe-home .vh-shortcut small,
+#root .vibe-home .vh-discovery-card p {
+  color: var(--qz-muted);
+}
+
+#root .vibe-home .vh-shortcut {
+  min-height: 84px;
+  padding: 14px;
+}
+
+#root .vibe-home .vh-lower-grid {
+  gap: 14px;
+  margin-top: 26px;
+}
+
+#root .vibe-home .vh-panel {
+  padding: 16px;
+}
+
+#root .vibe-home .vh-feed-row,
+#root .vibe-home .vh-event {
+  border-color: var(--qz-line);
+}
+
+#root .vibe-home .vh-empty,
+#root .vibe-home .vh-load-state {
+  border-color: var(--qz-line);
+  border-radius: 12px;
+  background: var(--qz-surface-soft);
+  color: var(--qz-muted);
+}
+
+#root .vibe-home .vh-load-error {
+  border-color: #eedcdd;
+  background: #fff8f8;
+  color: #94545a;
+}
+
+/* Feed and Daily: shared content width, post rhythm, text hierarchy and comments. */
+#root .feed-page,
+#root .daily-page {
+  width: min(100%, 880px);
+  margin-inline: auto;
+}
+
+#root .feed-page .composer,
+#root .daily-page .composer,
+#root .feed-page .post,
+#root .daily-page .post {
+  border: 1px solid var(--qz-line) !important;
+  border-radius: var(--qz-radius-md) !important;
+  background: var(--qz-surface) !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+#root .feed-page .composer,
+#root .daily-page .composer {
+  padding: 15px;
+}
+
+#root .feed-page .post,
+#root .daily-page .post {
+  padding: 16px;
+  margin-block: 12px;
+}
+
+#root .feed-page .post .hd,
+#root .daily-page .post .hd {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  margin-bottom: 12px;
+}
+
+#root .feed-page .post .nm,
+#root .daily-page .post .nm {
+  color: var(--qz-ink);
+  font-size: 14px;
+  font-weight: 650;
+}
+
+#root .feed-page .post .tm,
+#root .daily-page .post .tm {
+  color: var(--qz-muted);
+  font-size: 11px;
+}
+
+#root .feed-page .post .bd,
+#root .daily-page .post .bd {
+  color: var(--qz-ink);
+  font-size: 14px;
+  line-height: 1.75;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+#root .feed-page .post .bdimg,
+#root .daily-page .post .bdimg {
+  display: block;
+  max-width: 100%;
+  max-height: 620px;
+  margin-top: 10px;
+  border-radius: 12px;
+  object-fit: contain;
+}
+
+#root .feed-page .post .ft,
+#root .daily-page .post .ft {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding-top: 10px;
+  border-top: 1px solid var(--qz-line);
+}
+
+#root .feed-page .post .ft button,
+#root .daily-page .post .ft button {
+  min-height: 38px;
+  padding: 7px 10px;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--qz-muted);
+  font: inherit;
+  font-size: 12px;
+}
+
+#root .feed-page .post .ft button.liked {
+  color: #b85d69;
+}
+
+#root .feed-page .post .cmt,
+#root .daily-page .post .cmt {
+  margin-top: 10px;
+  padding: 10px;
+  border: 1px solid var(--qz-line);
+  border-radius: 12px;
+  background: var(--qz-surface-soft);
+}
+
+#root .feed-page .post .one,
+#root .daily-page .post .one {
+  padding: 9px 2px;
+  border-bottom: 1px solid var(--qz-line);
+  color: var(--qz-ink);
+}
+
+#root .feed-page .cmt-empty,
+#root .daily-page .cmt-empty {
+  color: var(--qz-muted);
+}
+
+#root .feed-page .feed-filters {
+  display: flex;
+  gap: 7px;
+  overflow-x: auto;
+  padding: 2px 0 8px;
+  scrollbar-width: none;
+}
+
+#root .feed-page .feed-filters button {
+  min-height: 38px;
+  flex: 0 0 auto;
+  padding: 8px 12px;
+  border: 1px solid var(--qz-line);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--qz-muted);
+  font: inherit;
+  font-size: 12px;
+}
+
+#root .feed-page .feed-filters button.on {
+  border-color: var(--qz-line-strong);
+  background: var(--qz-surface-soft);
+  color: var(--qz-ink);
+  font-weight: 650;
+}
+
+/* Account center: keep its current sections but share the same visual tokens. */
+#root .me-hub {
+  --mh-ink: var(--qz-ink);
+  --mh-muted: var(--qz-muted);
+  --mh-line: var(--qz-line);
+}
+
+#root .me-hub .me-hub-hero,
+#root .me-hub .me-hub-stats,
+#root .me-hub .me-hub-shortcuts,
+#root .me-hub .me-hub-group,
+#root .me-hub .me-hub-feature,
+#root .me-hub .me-hub-tile {
+  border-color: var(--qz-line) !important;
+  background: var(--qz-surface) !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+
+#root .me-hub :is(
+  .me-hub-topbar h1,
+  .me-hub-identity strong,
+  .me-hub-stat-grid strong,
+  .me-hub-section-head h2,
+  .me-hub-group-head h2,
+  .me-hub-feature strong,
+  .me-hub-tile-copy strong,
+  .me-hub-shortcut strong
+) {
+  color: var(--qz-ink) !important;
+}
+
+#root .me-hub :is(
+  .me-hub-identity span,
+  .me-hub-identity small,
+  .me-hub-section-head p,
+  .me-hub-group-head p,
+  .me-hub-stat-grid span,
+  .me-hub-feature small,
+  .me-hub-tile-copy small,
+  .me-hub-shortcut small
+) {
+  color: var(--qz-muted) !important;
+}
+
+#root .me-hub :is(.me-hub-mark, .me-hub-shortcut-icon) {
+  border-color: var(--qz-line) !important;
+  background: var(--qz-surface-soft) !important;
+  color: var(--qz-accent) !important;
+  box-shadow: none !important;
+}
+
+/* Controls and touch targets. These selectors deliberately exclude the Dock. */
+#root :is(.feed-page, .daily-page, .me-hub) :is(button.pri, .btn-primary) {
+  min-height: 42px;
+  border: 1px solid var(--qz-accent) !important;
+  border-radius: 10px !important;
+  background: var(--qz-accent) !important;
+  color: #fff !important;
+  box-shadow: none !important;
+  font-weight: 650;
+}
+
+#root :is(.feed-page, .daily-page, .me-hub) :is(button.ghost, button.mini.ghost) {
+  min-height: 38px;
+  border: 1px solid var(--qz-line-strong) !important;
+  border-radius: 9px !important;
+  background: #fff !important;
+  color: var(--qz-ink) !important;
+  box-shadow: none !important;
+}
+
+#root :is(.feed-page, .daily-page) :is(input:not([type="file"]), textarea) {
+  border: 1px solid var(--qz-line-strong);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--qz-ink);
+  font-size: 16px;
+}
+
+#root :is(.feed-page, .daily-page) :is(input:not([type="file"]), textarea)::placeholder {
+  color: var(--qz-faint);
+}
+
+#root :is(.feed-page, .daily-page) :is(input:not([type="file"]), textarea):focus {
+  border-color: var(--qz-accent);
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(82, 107, 140, .12);
+}
+
+#root :is(.feed-page, .daily-page) .center > .card {
+  width: min(100%, 480px);
+  border: 1px solid var(--qz-line);
+  border-radius: var(--qz-radius-md);
+  background: var(--qz-surface);
+  color: var(--qz-muted);
+  box-shadow: none;
+}
+
+#root :is(.feed-page, .daily-page) .err {
+  color: #a94f59;
+}
+
+/* Keep iMessage-like bubble colors; improve only mobile composer ergonomics. */
+#root .im-page .im-bubble {
+  overflow-wrap: anywhere;
+}
+
+#root .im-page .im-composer {
+  padding-bottom: max(10px, env(safe-area-inset-bottom));
+}
+
+#root .im-page .im-input {
+  min-height: 44px;
+  font-size: 16px;
+}
+
+#root .im-page :is(.im-plus, .im-mic, .im-send) {
+  min-width: 44px;
+  min-height: 44px;
+}
+
+@media (max-width: 680px) {
+  #root .vibe-home {
+    padding-bottom: 108px;
+  }
+
+  #root .vibe-home .vh-intro {
+    grid-template-columns: 1fr;
+    gap: 10px;
+    padding: 17px 2px 14px;
+  }
+
+  #root .vibe-home .vh-intro h1 {
+    font-size: clamp(24px, 6vw, 30px);
+  }
+
+  #root .vibe-home .vh-hero:not(.has-image) {
+    min-height: 205px;
+  }
+
+  #root .vibe-home .vh-hero-content {
+    padding: 20px;
+  }
+
+  #root .vibe-home .vh-hero-title {
+    font-size: clamp(25px, 7vw, 34px);
+  }
+
+  #root .vibe-home .vh-shortcuts {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  #root .vibe-home .vh-shortcut {
+    min-height: 78px;
+    padding: 11px;
+  }
+
+  #root .vibe-home .vh-lower-grid {
+    grid-template-columns: 1fr;
+  }
+
+  #root .vibe-home .vh-notices,
+  #root .vibe-home .vh-discovery-grid {
+    grid-template-columns: 1fr;
+  }
+
+  #root .feed-page .post,
+  #root .daily-page .post {
+    padding: 13px;
+  }
+
+  #root .feed-page .composer,
+  #root .daily-page .composer {
+    padding: 13px;
+  }
+
+  #root .me-hub :is(.me-hub-hero, .me-hub-shortcuts, .me-hub-group) {
+    padding: 14px;
+  }
+
+  #root .im-page .im-composer {
+    margin-inline: 8px;
+  }
+
+  #root .im-page .im-input {
+    min-width: 0;
+  }
+}
+
+@media (max-width: 380px) {
+  #root .vibe-home .vh-shortcut {
+    padding: 9px;
+  }
+
+  #root .vibe-home .vh-shortcut-name {
+    font-size: 11px;
+  }
+
+  #root .feed-page .community-page-heading h1,
+  #root .daily-page .hero h1 {
+    font-size: 22px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #root .vibe-home :is(.vh-search, .vh-notice, .vh-shortcut, .vh-hero-link, .vh-discovery-card),
+  #root .feed-page :is(button, a),
+  #root .daily-page :is(button, a),
+  #root .me-hub :is(button, a) {
+    transition: none !important;
+  }
+}

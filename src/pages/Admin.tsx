@@ -15,6 +15,7 @@ import '../styles-admin-contrast.css';
 import '../styles-admin-paper.css';
 import '../styles-admin-overview-mosaic.css'; // 总览 Mosaic 版式：只覆盖总览页，最后引入
 import '../styles-admin-shadcn-shell.css'; // 后台整套壳 shadcn-admin 版式移植（冷白纸面）：只覆盖壳层，最后引入
+import '../styles-admin-antd-pro.css'; // 后台整套壳 Ant Design Pro 版式移植（蓝主色 #1677ff + 内容底 #f0f2f5）：只覆盖壳层，最后引入
 import AdminWorkspace from '../components/AdminWorkspace';
 import AdminGuestAccess from '../components/AdminGuestAccess';
 import AdminSystemCenter from '../components/AdminSystemCenter';

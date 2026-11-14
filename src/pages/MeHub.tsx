@@ -207,9 +207,6 @@ export default function MeHub() {
                 {gameProfile?.status === 'rejected' && (
                   <span className="me-hub-game-chip is-rejected">游戏资料未通过</span>
                 )}
-                {!gameProfile && (
-                  <span className="me-hub-game-chip is-empty">尚未设置游戏称号</span>
-                )}
                 {accountStatus && (
                   <span className={`me-hub-account-pill is-${accountCondition}`}>
                     {accountCondition === 'banned'

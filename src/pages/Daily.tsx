@@ -11,6 +11,7 @@ import type { FeedPost as Post, FeedComment as Cmt } from '../types/content';
 import { confirmDialog, alertDialog, promptDialog } from '../lib/dialog';
 import BlurImg from '../components/fx/BlurImg';
 import { showToast } from '../lib/toast';
+import { FeedSkeleton } from '../components/fx/Skeleton';
 
 
 function Avatar({ p, url, size = 42 }: { p?: Profile; url?: string; size?: number }) {
@@ -46,6 +47,8 @@ export default function Daily({ searchQuery = '', embedded = false, focusPostId 
   const nav = useNavigate();
   const me = useAuth().session!.user.id; const reduce = useReducedMotion();
   const [posts, setPosts] = useState<Post[]>([]);
+  // 首屏骨架只显示一次：搜索换词会重复拉取，那时列表留在原地不闪骨架。
+  const [initialLoading, setInitialLoading] = useState(true);
   const [profiles, setProfiles] = useState<Record<string, Profile>>({});
   const avatarUrls = useSignedUrls('avatars', Object.values(profiles).map(p => p.avatar_path));
   const postImageUrls = useSignedUrls('media', posts.map(p => p.image_url));
@@ -77,7 +80,7 @@ export default function Daily({ searchQuery = '', embedded = false, focusPostId 
     const { data: ps } = await postQuery;
     const list = ps ?? [];
     setPosts(list);
-    if (!list.length) return;
+    if (!list.length) { setInitialLoading(false); return; }
     const ids = [...new Set(list.map(p => p.author_id))];
     const pids = list.map(p => p.id);
     const { data: pr } = await supabase.from('profiles').select('id, username, display_name, avatar_path').in('id', ids);
@@ -101,6 +104,7 @@ export default function Daily({ searchQuery = '', embedded = false, focusPostId 
     }
     const { data: r } = await supabase.rpc('my_role');
     setIsAdmin(r === 'admin' || r === 'super_admin');
+    setInitialLoading(false);
   }
   useEffect(() => { void load(); }, [searchQuery]);
   useEffect(() => {
@@ -377,7 +381,8 @@ export default function Daily({ searchQuery = '', embedded = false, focusPostId 
           </motion.article>
         );
       })}
-      {posts.length === 0 && <div className="center" style={{ minHeight: 200 }}><div className="card">{embedded ? '还没有帖子，来发第一条吧' : '还没有日常，来发第一条吧'}</div></div>}
+      {initialLoading && <FeedSkeleton count={3} />}
+      {!initialLoading && posts.length === 0 && <div className="center" style={{ minHeight: 200 }}><div className="card">{embedded ? '还没有帖子，来发第一条吧' : '还没有日常，来发第一条吧'}</div></div>}
     </div>
   );
 }

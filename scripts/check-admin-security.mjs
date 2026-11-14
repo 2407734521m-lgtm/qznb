@@ -42,6 +42,8 @@ assert.doesNotMatch(pinGate, /aal2|amr|totp/i,
   'the replacement role gate must not depend on TOTP or AAL2');
 assert.match(pinSqlTest, /another session for the same admin must remain locked/,
   'database regression test must prove PIN verification is session-scoped');
+assert.match(pinSqlTest, /changing the PIN must revoke other devices/,
+  'database regression test must prove PIN rotation revokes other verified sessions');
 assert.match(pinSqlTest, /five failed attempts trigger a 15-minute account lock/,
   'database regression test must cover PIN lockout');
 

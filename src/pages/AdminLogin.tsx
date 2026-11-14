@@ -1,8 +1,20 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import PasswordField from '../components/PasswordField';
 import { alog } from './admin/shared';
+
+type Step = 'credentials' | 'pin_setup' | 'pin_verify' | 'success';
+
+function isValidPin(value: string) {
+  return /^\d{6}$/.test(value);
+}
+
+function isWeakPin(value: string) {
+  return /^(\d)\1{5}$/.test(value)
+    || ['012345', '123456', '234567', '345678', '456789',
+      '987654', '876543', '765432', '654321', '543210'].includes(value);
+}
 
 export default function AdminLogin({
   showBack = true,
@@ -13,9 +25,21 @@ export default function AdminLogin({
 }) {
   const [ident, setIdent] = useState('');
   const [pw, setPw] = useState('');
+  const [pin, setPin] = useState('');
+  const [pinConfirm, setPinConfirm] = useState('');
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [step, setStep] = useState<Step>('credentials');
+
+  useEffect(() => {
+    try {
+      if (sessionStorage.getItem('qz_admin_idle_logout') === '1') {
+        sessionStorage.removeItem('qz_admin_idle_logout');
+        setErr('管理员后台因超过 20 分钟无操作已退出，请重新登录。');
+      }
+    } catch { /* storage may be unavailable */ }
+  }, []);
 
   async function recordFailure(failureClass: 'invalid_credentials' | 'rate_limited' | 'network' | 'other') {
     const { error: monitorError } = await supabase.rpc('record_auth_login_failure' as any, {
@@ -23,6 +47,119 @@ export default function AdminLogin({
       p_failure_class: failureClass,
     } as any);
     if (monitorError) console.warn('管理员登录失败统计暂不可用：', monitorError.message);
+  }
+
+  async function finishAdminLogin() {
+    const { data: role, error: roleError } = await supabase.rpc('my_role');
+    if (roleError) throw roleError;
+    if (role !== 'admin' && role !== 'super_admin') {
+      throw new Error('admin_secondary_password_gate_failed');
+    }
+
+    await alog('admin_login_success', { method: 'password_and_secondary_pin' });
+    setPin('');
+    setPinConfirm('');
+    setSuccess(true);
+    setErr('');
+    setStep('success');
+    onAuthenticated?.();
+  }
+
+  async function beginSecondaryPasswordFlow() {
+    const { data: isAdmin, error: identityError } = await supabase.rpc('admin_login_is_admin' as any);
+    if (identityError) throw identityError;
+    if (isAdmin !== true) {
+      await recordFailure('other');
+      await supabase.auth.signOut({ scope: 'local' });
+      throw new Error('admin_identity_required');
+    }
+
+    const { data: configured, error: statusError } = await supabase.rpc(
+      'admin_secondary_password_status' as any
+    );
+    if (statusError) throw statusError;
+
+    setPin('');
+    setPinConfirm('');
+    setStep(configured === true ? 'pin_verify' : 'pin_setup');
+  }
+
+  async function verifyPin() {
+    if (!isValidPin(pin)) {
+      setErr('请输入 6 位数字二级密码。');
+      return;
+    }
+
+    setBusy(true);
+    setErr('');
+    try {
+      const { data: verified, error: verifyError } = await supabase.rpc(
+        'admin_verify_secondary_password' as any,
+        { p_pin: pin } as any
+      );
+      if (verifyError) throw verifyError;
+      if (verified !== true) throw new Error('secondary_pin_invalid_or_locked');
+      await finishAdminLogin();
+    } catch (error) {
+      console.error('管理员二级密码验证失败', error);
+      setPin('');
+      setErr('二级密码错误，或验证次数过多已暂时锁定。请检查后重试。');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function setupPin() {
+    if (!isValidPin(pin) || !isValidPin(pinConfirm)) {
+      setErr('请设置并确认 6 位数字二级密码。');
+      return;
+    }
+    if (pin !== pinConfirm) {
+      setErr('两次输入的二级密码不一致。');
+      return;
+    }
+    if (isWeakPin(pin)) {
+      setErr('请勿使用连续数字或 6 位相同数字。');
+      return;
+    }
+
+    setBusy(true);
+    setErr('');
+    try {
+      const { data: created, error: setError } = await supabase.rpc(
+        'admin_set_secondary_password' as any,
+        { p_pin: pin } as any
+      );
+      if (setError) throw setError;
+
+      if (created !== true) {
+        const { data: configured } = await supabase.rpc('admin_secondary_password_status' as any);
+        if (configured === true) {
+          setStep('pin_verify');
+          setPin('');
+          setPinConfirm('');
+          setErr('此账号的二级密码已设置，请输入现有二级密码。');
+          return;
+        }
+        throw new Error('secondary_pin_setup_failed');
+      }
+
+      const { data: verified, error: verifyError } = await supabase.rpc(
+        'admin_verify_secondary_password' as any,
+        { p_pin: pin } as any
+      );
+      if (verifyError || verified !== true) {
+        throw verifyError ?? new Error('secondary_pin_verify_failed');
+      }
+      await finishAdminLogin();
+    } catch (error) {
+      console.error('管理员二级密码初始化失败', error);
+      setPin('');
+      setPinConfirm('');
+      setErr('二级密码设置失败。请换一个 6 位数字组合后重试。');
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function doLogin() {
@@ -53,81 +190,88 @@ export default function AdminLogin({
       signedIn = true;
       setPw('');
 
-      // Verify the account's server-side role after password authentication.
-      const { data: isAdmin, error: identityError } = await supabase.rpc('admin_login_is_admin' as any);
-      if (identityError) throw identityError;
-      if (isAdmin !== true) {
-        await recordFailure('other');
+      try {
+        await beginSecondaryPasswordFlow();
+      } catch (error) {
         await supabase.auth.signOut({ scope: 'local' });
         signedIn = false;
-        setErr('账号或密码错误，或该账号没有管理权限');
-        return;
+        throw error;
       }
-
-      const { data: role, error: roleError } = await supabase.rpc('my_role');
-      if (roleError) throw roleError;
-      if (role !== 'admin' && role !== 'super_admin') {
-        await recordFailure('other');
-        await supabase.auth.signOut({ scope: 'local' });
-        signedIn = false;
-        setErr('管理员权限暂不可用，请稍后重试');
-        return;
-      }
-
-      await alog('admin_login_success', { method: 'password' });
-      setSuccess(true);
-      onAuthenticated?.();
     } catch (error) {
-      if (signedIn) {
-        await supabase.auth.signOut({ scope: 'local' });
-      }
+      if (signedIn) await supabase.auth.signOut({ scope: 'local' });
       const message = String((error as { message?: unknown })?.message ?? error).toLowerCase();
       const failureClass = /429|rate.?limit|too many/.test(message)
         ? 'rate_limited'
         : /network|fetch|timeout|failed to fetch/.test(message)
           ? 'network'
           : 'invalid_credentials';
-      await recordFailure(failureClass);
-      setErr('账号或密码错误，或暂时无法登录，请检查后重试');
+      if (!/admin_identity_required/.test(message)) await recordFailure(failureClass);
+      setErr(message.includes('admin_identity_required')
+        ? '账号或密码错误，或该账号没有管理权限'
+        : '账号或密码错误，或暂时无法登录，请检查后重试');
+      setStep('credentials');
     } finally {
       setBusy(false);
     }
   }
 
+  function submit() {
+    if (step === 'credentials') void doLogin();
+    else if (step === 'pin_setup') void setupPin();
+    else if (step === 'pin_verify') void verifyPin();
+  }
+
   return (
     <div style={{ minHeight: '72vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-      <div className="login-card" style={{ background: '#0d1017f2', border: '1px solid #ffffff1f', maxWidth: 380, width: '100%' }}>
+      <div className="login-card" style={{ background: '#ffffff', color: '#202a35', border: '1px solid #e5e8ec', maxWidth: 380, width: '100%' }}>
         <h1 style={{ fontSize: 20 }}>管理后台</h1>
-        <p className="sub">管 理 员 登 录</p>
+        <p className="sub">
+          {step === 'credentials' ? '管理员登录'
+            : step === 'pin_setup' ? '设置二级密码'
+              : step === 'pin_verify' ? '二级密码验证' : '验证成功'}
+        </p>
 
-        <label htmlFor="admin-ident">管理员账号</label>
-        <input
-          id="admin-ident"
-          value={ident}
-          onChange={(event) => setIdent(event.target.value)}
-          placeholder="QQ 邮箱 / 用户名"
-          autoComplete="username"
-          onKeyDown={(event) => event.key === 'Enter' && void doLogin()}
-          disabled={busy || success}
-        />
+        {step === 'credentials' && <>
+          <label htmlFor="admin-ident">管理员账号</label>
+          <input id="admin-ident" value={ident} onChange={(event) => setIdent(event.target.value)}
+            placeholder="QQ 邮箱 / 用户名" autoComplete="username"
+            onKeyDown={(event) => event.key === 'Enter' && submit()} disabled={busy} />
+          <label htmlFor="admin-password">密码</label>
+          <PasswordField value={pw} onChange={setPw} placeholder="管理员密码" autoComplete="current-password"
+            onKeyDown={(event) => event.key === 'Enter' && submit()} />
+        </>}
 
-        <label htmlFor="admin-password">密码</label>
-        <PasswordField
-          value={pw}
-          onChange={setPw}
-          placeholder="密码"
-          autoComplete="current-password"
-          onKeyDown={(event) => event.key === 'Enter' && void doLogin()}
-        />
+        {step === 'pin_setup' && <div style={{ display: 'grid', gap: 12 }}>
+          <p className="priv-note">首次登录需要为当前管理员账号设置个人专属的 6 位数字二级密码。以后每次进入后台都需要验证。</p>
+          <label htmlFor="admin-pin">设置 6 位二级密码</label>
+          <input id="admin-pin" type="password" value={pin}
+            onChange={(event) => setPin(event.target.value.replace(/\D/g, '').slice(0, 6))}
+            inputMode="numeric" autoComplete="new-password" maxLength={6} placeholder="输入 6 位数字"
+            onKeyDown={(event) => event.key === 'Enter' && submit()} />
+          <label htmlFor="admin-pin-confirm">再次输入二级密码</label>
+          <input id="admin-pin-confirm" type="password" value={pinConfirm}
+            onChange={(event) => setPinConfirm(event.target.value.replace(/\D/g, '').slice(0, 6))}
+            inputMode="numeric" autoComplete="new-password" maxLength={6} placeholder="再次输入 6 位数字"
+            onKeyDown={(event) => event.key === 'Enter' && submit()} />
+          <p className="priv-note">请勿使用生日、连续数字或 6 位相同数字。二级密码按账号分别保存，不会在前端或数据库明文存储。</p>
+        </div>}
 
-        {success && <p className="priv-note" role="status">登录成功，正在进入后台…</p>}
+        {step === 'pin_verify' && <div style={{ display: 'grid', gap: 12 }}>
+          <p className="priv-note">请输入当前管理员账号的 6 位数字二级密码。</p>
+          <label htmlFor="admin-pin">二级密码</label>
+          <input id="admin-pin" type="password" value={pin}
+            onChange={(event) => setPin(event.target.value.replace(/\D/g, '').slice(0, 6))}
+            inputMode="numeric" autoComplete="one-time-code" maxLength={6} placeholder="输入 6 位数字"
+            onKeyDown={(event) => event.key === 'Enter' && submit()} />
+        </div>}
+
+        {success && <p className="priv-note" role="status">验证成功，正在进入后台…</p>}
         {err && <p className="err" role="alert">{err}</p>}
-        {!success && (
-          <button className="pri" disabled={busy} onClick={() => void doLogin()}>
-            {busy ? '登录中…' : '登录并进入后台'}
-          </button>
-        )}
-        {showBack && <p className="login-switch"><Link to="/home">← 返回站点</Link></p>}
+        {step !== 'success' && <button className="pri" disabled={busy} onClick={submit}>
+          {busy ? '验证中…' : step === 'credentials' ? '验证账号密码并继续'
+            : step === 'pin_setup' ? '设置二级密码并进入后台' : '验证二级密码并进入后台'}
+        </button>}
+        {showBack && step === 'credentials' && <p className="login-switch"><Link to="/home">← 返回站点</Link></p>}
       </div>
     </div>
   );

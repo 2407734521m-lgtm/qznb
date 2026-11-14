@@ -19,9 +19,11 @@ assert.match(parent, /window\.setInterval\(sendHello, 2500\)/, 'The parent must 
 assert.match(parent, /if \(lastSeen > 0 && Date\.now\(\) - lastSeen > 6500\)/, 'A stale bridge must be detected instead of staying connected forever.');
 assert.match(parent, /onClick=\{\(\) => sendCommand\('toggle'\)\}/, 'The compact capsule play button must actually toggle playback.');
 assert.match(parent, /onPointerUp=\{commitSeekDraft\}/, 'Seeking should be committed when the user releases the progress control.');
-assert.match(parent, /<motion\.div[\s\S]*className="qz-music-frame-host"[\s\S]*opacity: isMusicPage \? 1 : 0,[\s\S]*scale: isMusicPage \? 1 : 0\.985,[\s\S]*filter: isMusicPage \? 'blur\(0px\)' : 'blur\(5px\)'/, 'The music page must smoothly shrink, blur and fade when leaving.');
+assert.match(parent, /<motion\.div[\s\S]*className="qz-music-frame-host"[\s\S]*opacity: isMusicPage \? 1 : 0,[\s\S]*y: isMusicPage \? 0 : 8,[\s\S]*opacity: \{ duration: isMusicPage \? 0\.34 : 0\.3,[\s\S]*y: \{ duration: isMusicPage \? 0\.38 : 0\.32, ease: \[0\.22, 1, 0\.36, 1\] \}/, 'The persistent music iframe must use lightweight opacity and transform transitions.');
+assert.doesNotMatch(parent, /filter: isMusicPage|blur\(5px\)/, 'Avoid full-screen blur filters that can stutter on mobile WebViews.');
 assert.match(parent, /pointerEvents: isMusicPage \? 'auto' : 'none'/, 'The hidden player must not intercept taps.');
-assert.match(parent, /stiffness: 520, damping: 38, mass: 0\.72/, 'The island should land with a spring transition after the music page exits.');
+assert.match(parent, /opacity: \{ duration: 0\.26, ease: \[0\.22, 1, 0\.36, 1\], delay: 0\.06 \}/, 'The island should ease in after the music view begins fading.');
+assert.match(parent, /scale: \{ duration: 0\.38, ease: \[0\.22, 1, 0\.36, 1\], delay: 0\.06 \}/, 'The island should use a restrained, non-bouncy scale transition.');
 assert.match(parent, /className="qz-music-island-collapsed-main"/, 'The compact island must separate expand and playback actions.');
 assert.match(bridgeSource, /event\.source !== window\.parent/);
 assert.match(bridgeSource, /MAIN_SITE_ORIGINS\.has\(event\.origin\)/);

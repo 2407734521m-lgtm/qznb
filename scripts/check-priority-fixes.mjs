@@ -15,6 +15,7 @@ const adminSettings = read('src/pages/admin/Settings.tsx');
 const adminWorkspace = read('src/components/AdminWorkspace.tsx');
 const adminApp = read('src/App.tsx');
 const maintenanceToggle = read('supabase/migrations/20261114124500_maintenance_access_codes_toggle.sql');
+const extraFeatureFlags = read('supabase/migrations/20261114145000_admin_extra_feature_flags.sql');
 const login = read('src/pages/Login.tsx');
 const packageJson = JSON.parse(read('package.json'));
 
@@ -100,5 +101,19 @@ assert.match(adminWorkspace, /descriptionFor\(item\.id\)[\s\S]*?toLocaleLowerCas
   'admin command search must search feature descriptions, not titles only');
 assert.match(maintenanceToggle, /maintenance_access_codes_disabled_revoke[\s\S]*?access_sessions[\s\S]*?revoked_at/,
   'disabling visitor codes must revoke existing temporary sessions at the database boundary');
+
+for (const key of ['likes', 'media_uploads', 'video_uploads']) {
+  assert.ok(adminSettings.includes(`key: '${key}'`), `admin settings must expose the ${key} switch`);
+  assert.ok(extraFeatureFlags.includes(`'${key}'`), `database allowlist must include ${key}`);
+}
+assert.match(extraFeatureFlags, /site_feature_likes_insert_gate[\s\S]*?as restrictive[\s\S]*?site_feature_enabled\('likes'\)/,
+  'likes must be gated by a restrictive policy so permissive moderation policies cannot bypass it');
+assert.match(extraFeatureFlags, /site_feature_media_uploads_insert_gate[\s\S]*?as restrictive[\s\S]*?bucket_id <> 'media'[\s\S]*?site_feature_enabled\('media_uploads'\)/,
+  'shared media uploads must be gated at the Storage boundary');
+assert.match(extraFeatureFlags, /site_feature_video_uploads_insert_gate[\s\S]*?as restrictive[\s\S]*?bucket_id <> 'videos'[\s\S]*?site_feature_enabled\('video_uploads'\)/,
+  'video uploads must be gated at the Storage boundary');
+assert.match(extraFeatureFlags, /create policy site_feature_likes_insert_gate[\s\S]*?as restrictive/i,
+  'likes flag must not replace existing permissive moderation/ownership policies');
+
 
 console.log('Priority regression checks passed.');

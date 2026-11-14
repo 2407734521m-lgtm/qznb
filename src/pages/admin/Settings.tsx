@@ -8,9 +8,12 @@ import DateTimeField from '../../components/DateTimeField';
 const FEATURE_FLAGS = [
   { key: 'posts', label: '动态与日常发帖', detail: '暂停新帖子发布；已有内容仍可浏览。' },
   { key: 'comments', label: '评论与回复', detail: '暂停新评论提交；已有评论仍可浏览。' },
+  { key: 'likes', label: '点赞', detail: '暂停新增点赞；已有点赞保留，成员仍可取消自己的点赞。' },
   { key: 'albums', label: '创建相册', detail: '暂停创建新相册。' },
   { key: 'album_photos', label: '相册照片上传', detail: '暂停向相册添加新照片。' },
-  { key: 'chat', label: '私聊消息', detail: '暂停发送新私聊消息；历史消息仍可查看。' },
+  { key: 'media_uploads', label: '共享媒体上传', detail: '暂停动态、日常、相册及表白墙等共享媒体存储桶的新上传。' },
+  { key: 'video_uploads', label: '视频上传', detail: '暂停 videos 存储桶的新上传；已有视频仍可读取。' },
+  { key: 'chat', label: '私聊消息', detail: '暂停发送新私聊消息及聊天附件；历史消息仍可查看。' },
   { key: 'greetings', label: '留言功能', detail: '暂停发布新留言。' },
   { key: 'love_wall', label: '表白墙', detail: '暂停发布表白、评论及相关媒体提交。' },
   { key: 'songs', label: '歌声墙', detail: '暂停发布新歌声内容。' },
@@ -91,22 +94,34 @@ export default function Settings({ me, setMsg }: { me: string; setMsg: (s: strin
     const feature = FEATURE_FLAGS.find(item => item.key === key);
     if (!feature) return;
     if (!enabled && !(await confirmDialog(
-      `暂停「${feature.label}」？用户将无法提交新的相关内容，但已有内容不会被删除。`,
+      `暂停「${feature.label}」？对应的新提交或上传将被数据库拦截，历史内容不会删除。`,
       { danger: true, confirmText: '确认暂停' }
     ))) return;
+
     setFeatureBusy(key);
-    const { error } = await supabase.from('site_settings').upsert(
-      { key: 'feature_' + key, value: String(enabled) },
-      { onConflict: 'key' }
-    );
-    setFeatureBusy(null);
-    if (error) {
-      setMsg('功能开关保存失败：' + error.message);
-      return;
+    try {
+      const { error } = await supabase.from('site_settings').upsert(
+        { key: 'feature_' + key, value: String(enabled) },
+        { onConflict: 'key' }
+      );
+      if (error) {
+        setMsg('功能开关保存失败：' + error.message);
+        return;
+      }
+
+      setFeatureFlags(current => ({ ...current, [key]: enabled }));
+      let auditNote = '';
+      try {
+        await alog('feature_flag_changed', { feature: key, enabled });
+      } catch {
+        auditNote = '（开关已保存，但审计日志写入失败）';
+      }
+      setMsg(`「${feature.label}」已${enabled ? '恢复开放' : '暂停'}。数据库写入权限已同步更新。${auditNote}`);
+    } catch (error: any) {
+      setMsg('功能开关保存失败：' + (error?.message || '网络异常，请重试。'));
+    } finally {
+      setFeatureBusy(null);
     }
-    setFeatureFlags(current => ({ ...current, [key]: enabled }));
-    await alog('feature_flag_changed', { feature: key, enabled });
-    setMsg(`「${feature.label}」已${enabled ? '恢复开放' : '暂停'}。数据库写入权限已同步更新。`);
   }
 
   async function save(key: string, value: string) {
@@ -421,7 +436,7 @@ export default function Settings({ me, setMsg }: { me: string; setMsg: (s: strin
         <h3 style={h3}>全站功能开关中心</h3>
         <span style={{ ...mut, fontSize: 11 }}>数据库权限强制执行</span>
       </div>
-      <p style={mut}>关闭某项功能后，数据库会拒绝普通成员提交对应的新内容；已有内容不会被删除。管理员公告保留独立权限。每次修改都会写入管理员审计日志。</p>
+      <p style={mut}>暂停后，数据库会拦截对应的新提交或上传；历史内容不会删除。每次修改都会记录管理员操作，管理员公告保留独立权限。</p>
       <div style={{ display: 'grid', gap: 8 }}>
         {FEATURE_FLAGS.map(feature => {
           const enabled = featureFlags[feature.key] !== false;
@@ -449,7 +464,7 @@ export default function Settings({ me, setMsg }: { me: string; setMsg: (s: strin
         })}
       </div>
       <p style={{ ...mut, marginBottom: 0, marginTop: 10 }}>
-        说明：这些开关控制数据库写入权限，不会自动撤回已发出的消息，也不会删除历史数据。文件存储上传入口及客户端按钮的完整联动会在后续阶段继续覆盖。
+        说明：暂停只拦截对应的新提交或上传，不删除历史数据。点赞暂停后仍可取消自己的点赞；媒体和视频暂停后，已有文件仍可读取。
       </p>
     </div>
 

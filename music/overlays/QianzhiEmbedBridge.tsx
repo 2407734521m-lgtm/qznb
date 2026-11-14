@@ -2,6 +2,11 @@ import { useEffect, useRef } from 'react';
 import type { AppOverlaysModel } from '../app/overlays/buildAppOverlaysModel';
 import { getSongArtistLabel } from '../../services/onlineMusic/songMetadata';
 import { PlayerState } from '../../types';
+import {
+    selectDisplayCoverUrl,
+    selectDisplayPlayerState,
+    usePlaybackStore,
+} from '../../stores/usePlaybackStore';
 
 const MAIN_SITE_ORIGINS = new Set([
     'https://qianzhi.pw',
@@ -19,8 +24,14 @@ type BridgeCommand = {
 type Props = { model: AppOverlaysModel };
 
 const QianzhiEmbedBridge = ({ model }: Props) => {
+    const currentSong = usePlaybackStore(state => state.currentSong);
+    const displayCoverUrl = usePlaybackStore(selectDisplayCoverUrl);
+    const displayPlayerState = usePlaybackStore(selectDisplayPlayerState);
+
     const modelRef = useRef(model);
     modelRef.current = model;
+    const playbackRef = useRef({ currentSong, displayCoverUrl, displayPlayerState });
+    playbackRef.current = { currentSong, displayCoverUrl, displayPlayerState };
 
     useEffect(() => {
         if (window.parent === window) return;
@@ -29,7 +40,8 @@ const QianzhiEmbedBridge = ({ model }: Props) => {
         const publish = () => {
             if (!parentOrigin) return;
             const controls = modelRef.current.floatingControls;
-            const song = controls?.currentSong ?? null;
+            const playback = playbackRef.current;
+            const song = playback.currentSong;
             if (!song) {
                 window.parent.postMessage({
                     source: 'qznb-music',
@@ -40,8 +52,8 @@ const QianzhiEmbedBridge = ({ model }: Props) => {
                 return;
             }
 
-            const currentTime = Number(controls.currentTime.get());
-            const duration = Number(controls.duration);
+            const currentTime = Number(controls?.currentTime.get() ?? 0);
+            const duration = Number(controls?.duration ?? 0);
             const artist = getSongArtistLabel(song) || song.artists?.map(item => item.name).filter(Boolean).join(' / ') || '';
             window.parent.postMessage({
                 source: 'qznb-music',
@@ -50,13 +62,13 @@ const QianzhiEmbedBridge = ({ model }: Props) => {
                 track: {
                     title: song.name || '未知歌曲',
                     artist,
-                    coverUrl: song.album?.coverUrl || null,
-                    isPlaying: controls.playerState === PlayerState.PLAYING,
+                    coverUrl: playback.displayCoverUrl || song.album?.coverUrl || null,
+                    isPlaying: playback.displayPlayerState === PlayerState.PLAYING,
                     currentTime: Number.isFinite(currentTime) ? Math.max(0, currentTime) : 0,
                     duration: Number.isFinite(duration) ? Math.max(0, duration) : 0,
-                    canPrevious: controls.trackNavigation?.canPrev === true,
-                    canNext: controls.trackNavigation?.canNext === true,
-                    canToggle: controls.canTogglePlay !== false,
+                    canPrevious: controls?.trackNavigation?.canPrev === true,
+                    canNext: controls?.trackNavigation?.canNext === true,
+                    canToggle: controls?.canTogglePlay === true && !!controls,
                 },
             }, parentOrigin);
         };
@@ -78,7 +90,7 @@ const QianzhiEmbedBridge = ({ model }: Props) => {
 
             switch (message.command) {
                 case 'toggle':
-                    if (controls.canTogglePlay !== false) controls.onTogglePlay();
+                    if (controls.canTogglePlay === true) controls.onTogglePlay();
                     break;
                 case 'previous':
                     if (controls.trackNavigation?.canPrev) controls.trackNavigation.onPrev();

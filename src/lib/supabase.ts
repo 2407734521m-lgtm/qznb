@@ -26,7 +26,6 @@ const authOptions = {
   ...(isDedicatedAdminHost
     ? {
         storageKey: 'qznb-admin-auth-v1',
-        experimental: { recoveryCodes: true },
       }
     : {}),
 };

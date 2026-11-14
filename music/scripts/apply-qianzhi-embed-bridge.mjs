@@ -61,7 +61,7 @@ const workerReplacement = [
   "      .split(';')",
   '      .map((directive) => directive.trim())',
   '      .filter(Boolean)',
-  '      .filter((directive) => !/^frame-ancestors\\\\b/i.test(directive));',
+  '      .filter((directive) => !directive.toLowerCase().startsWith('frame-ancestors'));',
   '    directives.push("frame-ancestors \'self\' https://qianzhi.pw https://www.qianzhi.pw");',
   "    headers.set('Content-Security-Policy', directives.join('; '));",
   "    headers.delete('X-Frame-Options');",

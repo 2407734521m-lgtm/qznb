@@ -112,6 +112,8 @@ assert.match(extraFeatureFlags, /site_feature_media_uploads_insert_gate[\s\S]*?a
   'shared media uploads must be gated at the Storage boundary');
 assert.match(extraFeatureFlags, /site_feature_video_uploads_insert_gate[\s\S]*?as restrictive[\s\S]*?bucket_id <> 'videos'[\s\S]*?site_feature_enabled\('video_uploads'\)/,
   'video uploads must be gated at the Storage boundary');
+assert.match(extraFeatureFlags, /\]::text\[\]\)\) then false/,
+  'feature allowlist SQL must have balanced parentheses before applying the migration');
 assert.match(extraFeatureFlags, /create policy site_feature_likes_insert_gate[\s\S]*?as restrictive/i,
   'likes flag must not replace existing permissive moderation/ownership policies');
 

@@ -16,7 +16,7 @@ as $$
       'posts', 'comments', 'albums', 'album_photos', 'chat',
       'greetings', 'love_wall', 'songs', 'board_posts',
       'likes', 'media_uploads', 'video_uploads'
-    ]::text[]) then false
+    ]::text[])) then false
     else coalesce(
       (select s.value = 'true'
        from public.site_settings as s

@@ -64,6 +64,9 @@ function MusicIsland() {
   const [showFallback, setShowFallback] = useState(false);
   const [track, setTrack] = useState<MusicTrack | null>(null);
   const [expanded, setExpanded] = useState(false);
+  const [seekDraft, setSeekDraft] = useState<number | null>(null);
+  const seekDraftRef = useRef<number | null>(null);
+  const lastStateMessageAtRef = useRef(0);
   const shouldMountFrame = openedOnce || isMusicPage;
 
   useEffect(() => {
@@ -74,7 +77,7 @@ function MusicIsland() {
   }, [isMusicPage]);
 
   useEffect(() => {
-    if (!shouldMountFrame || connected) return;
+    if (!shouldMountFrame || !frameLoaded) return;
     const sendHello = () => {
       frameRef.current?.contentWindow?.postMessage({
         source: 'qznb-main',
@@ -82,15 +85,25 @@ function MusicIsland() {
         version: 1,
       }, MUSIC_ORIGIN);
     };
+    // Keep a low-frequency handshake alive so an iframe reload or a transient bridge
+    // interruption can recover without requiring the user to revisit the music page.
     sendHello();
-    const timer = window.setInterval(sendHello, 900);
-    return () => window.clearInterval(timer);
-  }, [shouldMountFrame, connected]);
+    const helloTimer = window.setInterval(sendHello, 2500);
+    const watchdogTimer = window.setInterval(() => {
+      const lastSeen = lastStateMessageAtRef.current;
+      if (lastSeen > 0 && Date.now() - lastSeen > 6500) setConnected(false);
+    }, 1800);
+    return () => {
+      window.clearInterval(helloTimer);
+      window.clearInterval(watchdogTimer);
+    };
+  }, [shouldMountFrame, frameLoaded]);
 
   useEffect(() => {
     if (!shouldMountFrame) return;
     const onMessage = (event: MessageEvent<unknown>) => {
       if (event.origin !== MUSIC_ORIGIN || event.source !== frameRef.current?.contentWindow) return;
+      lastStateMessageAtRef.current = Date.now();
       const message = event.data as Partial<MusicStateMessage> | null;
       if (!message || message.source !== 'qznb-music' || message.type !== 'STATE' || message.version !== 1) return;
       setConnected(true);
@@ -151,6 +164,19 @@ function MusicIsland() {
     }, MUSIC_ORIGIN);
   };
 
+  const commitSeekDraft = () => {
+    const value = seekDraftRef.current;
+    if (value === null) return;
+    seekDraftRef.current = null;
+    setSeekDraft(null);
+    sendCommand('seek', value);
+  };
+
+  const cancelSeekDraft = () => {
+    seekDraftRef.current = null;
+    setSeekDraft(null);
+  };
+
   return (
     <>
       {shouldMountFrame && (
@@ -160,11 +186,11 @@ function MusicIsland() {
           style={{
             position: 'fixed',
             inset: 0,
-            left: isMusicPage ? 0 : '-200vw',
+            left: 0,
             width: '100vw',
             height: '100dvh',
-            zIndex: isMusicPage ? 1000 : -1,
-            opacity: isMusicPage ? 1 : 0.001,
+            zIndex: isMusicPage ? 1000 : 1,
+            opacity: isMusicPage ? 1 : 0,
             pointerEvents: isMusicPage ? 'auto' : 'none',
             overflow: 'hidden',
           }}
@@ -177,7 +203,11 @@ function MusicIsland() {
             allow="autoplay; encrypted-media"
             referrerPolicy="strict-origin"
             tabIndex={isMusicPage ? 0 : -1}
-            onLoad={() => setFrameLoaded(true)}
+            onLoad={() => {
+              lastStateMessageAtRef.current = 0;
+              setConnected(false);
+              setFrameLoaded(true);
+            }}
             style={{ display: 'block', width: '100%', height: '100%', border: 0, background: '#fff' }}
           />
           {isMusicPage && (
@@ -253,8 +283,16 @@ function MusicIsland() {
                       min={0}
                       max={Math.max(1, track.duration)}
                       step={1}
-                      value={Math.min(track.duration || 0, track.currentTime)}
-                      onChange={event => sendCommand('seek', Number(event.target.value))}
+                      value={Math.min(track.duration || 0, seekDraft ?? track.currentTime)}
+                      onChange={event => {
+                        const value = Number(event.target.value);
+                        seekDraftRef.current = value;
+                        setSeekDraft(value);
+                      }}
+                      onPointerUp={commitSeekDraft}
+                      onPointerCancel={cancelSeekDraft}
+                      onKeyUp={commitSeekDraft}
+                      onBlur={commitSeekDraft}
                       aria-label="歌曲播放进度"
                       disabled={!connected || track.duration <= 0}
                     />
@@ -276,25 +314,38 @@ function MusicIsland() {
                   </div>
                 </motion.section>
               ) : (
-                <motion.button
+                <motion.div
                   key="collapsed"
-                  type="button"
                   className="qz-music-island qz-music-island-collapsed"
-                  onClick={() => setExpanded(true)}
-                  aria-label={'展开播放器：' + track.title}
                   initial={false}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.96 }}
                 >
-                  {track.coverUrl ? (
-                    <img className="qz-music-island-mini-cover" src={track.coverUrl} alt="" />
-                  ) : (
-                    <span className="qz-music-island-mini-cover qz-music-island-cover-fallback" aria-hidden="true">♫</span>
-                  )}
-                  <span className="qz-music-island-mini-title">{track.title}</span>
-                  <span className={'qz-music-equalizer ' + (track.isPlaying ? 'is-playing' : '')} aria-hidden="true"><i /><i /><i /><i /></span>
-                  <span className="qz-music-island-mini-play"><MusicIcon name={track.isPlaying ? 'pause' : 'play'} size={15} /></span>
-                </motion.button>
+                  <button
+                    type="button"
+                    className="qz-music-island-collapsed-main"
+                    onClick={() => setExpanded(true)}
+                    aria-label={'展开播放器：' + track.title}
+                  >
+                    {track.coverUrl ? (
+                      <img className="qz-music-island-mini-cover" src={track.coverUrl} alt="" />
+                    ) : (
+                      <span className="qz-music-island-mini-cover qz-music-island-cover-fallback" aria-hidden="true">♫</span>
+                    )}
+                    <span className="qz-music-island-mini-title">{track.title}</span>
+                    <span className={'qz-music-equalizer ' + (track.isPlaying ? 'is-playing' : '')} aria-hidden="true"><i /><i /><i /><i /></span>
+                  </button>
+                  <button
+                    type="button"
+                    className="qz-music-island-mini-play"
+                    onClick={() => sendCommand('toggle')}
+                    disabled={!connected || !track.canToggle}
+                    aria-label={track.isPlaying ? '暂停音乐' : '继续播放音乐'}
+                    title={track.isPlaying ? '暂停' : '播放'}
+                  >
+                    <MusicIcon name={track.isPlaying ? 'pause' : 'play'} size={15} />
+                  </button>
+                </motion.div>
               )}
             </AnimatePresence>
           </motion.div>

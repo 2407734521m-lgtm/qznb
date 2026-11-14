@@ -12,7 +12,7 @@
 }
 .qz-music-island-wrap.is-qianzhi-app {
   /* Android WebView safe-area insets are often zero even below the system status bar. */
-  top: max(calc(env(safe-area-inset-top) + 8px), 34px);
+  top: max(calc(env(safe-area-inset-top) + 8px), 18px);
 }
 .qz-music-island {
   pointer-events: auto;

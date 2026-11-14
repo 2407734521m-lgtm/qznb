@@ -462,6 +462,7 @@
   }
   function siteLoginError(code, fallback) {
     if (/网络连不上/.test(fallback || '')) return fallback;
+    if (/invalid_credential/i.test(code || '')) return '账号或密码不对，请再试一次。';
     if (code === 'email_not_confirmed' || /email not confirmed/i.test(fallback || '')) return '邮箱还没验证：请先去邮箱里点验证链接，再回来登录。';
     if (code === 'rate_limited') return '登录太频繁了，请稍后再试。';
     if (/invalid/i.test(fallback || '')) return '账号或密码不对，请再试一次。';

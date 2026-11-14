@@ -58,6 +58,7 @@ function MusicIsland() {
   const reduceMotion = useReducedMotion();
   const frameRef = useRef<HTMLIFrameElement | null>(null);
   const isMusicPage = location.pathname === '/music';
+  const inQianzhiApp = typeof navigator !== 'undefined' && /QianzhiApp\//i.test(navigator.userAgent);
   const [openedOnce, setOpenedOnce] = useState(false);
   const [frameLoaded, setFrameLoaded] = useState(false);
   const [connected, setConnected] = useState(false);
@@ -187,12 +188,14 @@ function MusicIsland() {
           animate={{
             opacity: isMusicPage ? 1 : 0,
             y: isMusicPage ? 0 : 8,
+            scale: isMusicPage ? 1 : 0.985,
           }}
           transition={reduceMotion
             ? { duration: 0 }
             : {
-                opacity: { duration: isMusicPage ? 0.34 : 0.3, ease: [0.22, 1, 0.36, 1] },
-                y: { duration: isMusicPage ? 0.38 : 0.32, ease: [0.22, 1, 0.36, 1] },
+                opacity: { duration: isMusicPage ? 0.34 : 0.36, ease: [0.22, 1, 0.36, 1] },
+                y: { duration: isMusicPage ? 0.38 : 0.4, ease: [0.22, 1, 0.36, 1] },
+                scale: { duration: isMusicPage ? 0.38 : 0.4, ease: [0.22, 1, 0.36, 1] },
               } }
           style={{
             position: 'fixed',
@@ -200,7 +203,9 @@ function MusicIsland() {
             left: 0,
             width: '100vw',
             height: '100dvh',
-            zIndex: isMusicPage ? 1000 : 1,
+            // Keep the music surface above the destination route until its fade-out finishes.
+            // The iframe stays mounted and transparent/non-interactive while hidden.
+            zIndex: 1000,
             pointerEvents: isMusicPage ? 'auto' : 'none',
             overflow: 'hidden',
           }}
@@ -250,7 +255,7 @@ function MusicIsland() {
       <AnimatePresence>
         {track && !isMusicPage && (
           <motion.div
-            className="qz-music-island-wrap"
+            className={'qz-music-island-wrap' + (inQianzhiApp ? ' is-qianzhi-app' : '')}
             initial={reduceMotion ? false : { opacity: 0, y: -12, scale: 0.96 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -6, scale: 0.985 }}

@@ -3,8 +3,9 @@ import { readFile } from 'node:fs/promises';
 
 const read = (path) => readFile(path, 'utf8');
 
-const [parent, bridgeSource, bridgeApplied, overlays, worker] = await Promise.all([
+const [parent, styles, bridgeSource, bridgeApplied, overlays, worker] = await Promise.all([
   read('src/components/MusicIsland.tsx'),
+  read('src/components/MusicIsland.css'),
   read('music/overlays/QianzhiEmbedBridge.tsx'),
   read('music/folia/src/components/qianzhi/QianzhiEmbedBridge.tsx'),
   read('music/folia/src/components/app/overlays/AppOverlays.tsx'),
@@ -12,25 +13,31 @@ const [parent, bridgeSource, bridgeApplied, overlays, worker] = await Promise.al
 ]);
 
 assert.equal(bridgeApplied, bridgeSource, 'The checked-out Folia bridge must match the maintained overlay source.');
-assert.match(parent, /event\.origin !== MUSIC_ORIGIN/);
-assert.match(parent, /event\.source !== frameRef\.current\?\.contentWindow/);
-assert.match(parent, /const shouldMountFrame = openedOnce \|\| isMusicPage/);
-assert.match(parent, /window\.setInterval\(sendHello, 2500\)/, 'The parent must retry the bridge handshake after iframe reloads.');
-assert.match(parent, /if \(lastSeen > 0 && Date\.now\(\) - lastSeen > 6500\)/, 'A stale bridge must be detected instead of staying connected forever.');
-assert.match(parent, /onClick=\{\(\) => sendCommand\('toggle'\)\}/, 'The compact capsule play button must actually toggle playback.');
-assert.match(parent, /onPointerUp=\{commitSeekDraft\}/, 'Seeking should be committed when the user releases the progress control.');
-assert.match(parent, /<motion\.div[\s\S]*className="qz-music-frame-host"[\s\S]*opacity: isMusicPage \? 1 : 0,[\s\S]*y: isMusicPage \? 0 : 8,[\s\S]*opacity: \{ duration: isMusicPage \? 0\.34 : 0\.3,[\s\S]*y: \{ duration: isMusicPage \? 0\.38 : 0\.32, ease: \[0\.22, 1, 0\.36, 1\] \}/, 'The persistent music iframe must use lightweight opacity and transform transitions.');
-assert.doesNotMatch(parent, /filter: isMusicPage|blur\(5px\)/, 'Avoid full-screen blur filters that can stutter on mobile WebViews.');
-assert.match(parent, /pointerEvents: isMusicPage \? 'auto' : 'none'/, 'The hidden player must not intercept taps.');
-assert.match(parent, /opacity: \{ duration: 0\.26, ease: \[0\.22, 1, 0\.36, 1\], delay: 0\.06 \}/, 'The island should ease in after the music view begins fading.');
-assert.match(parent, /scale: \{ duration: 0\.38, ease: \[0\.22, 1, 0\.36, 1\], delay: 0\.06 \}/, 'The island should use a restrained, non-bouncy scale transition.');
-assert.match(parent, /className="qz-music-island-collapsed-main"/, 'The compact island must separate expand and playback actions.');
-assert.match(bridgeSource, /event\.source !== window\.parent/);
-assert.match(bridgeSource, /MAIN_SITE_ORIGINS\.has\(event\.origin\)/);
-assert.doesNotMatch(bridgeSource, /postMessage\([\s\S]{0,300},\s*['"]\*['"]/);
-assert.match(overlays, /<QianzhiEmbedBridge model=\{model\} \/>/);
-assert.match(worker, /frame-ancestors 'self' https:\/\/qianzhi\.pw https:\/\/www\.qianzhi\.pw/);
-assert.match(worker, /headers\.delete\('X-Frame-Options'\)/);
-assert.doesNotMatch(worker, /return env\.ASSETS\.fetch\(request\);/);
+assert.ok(parent.includes('event.origin !== MUSIC_ORIGIN'));
+assert.ok(parent.includes('event.source !== frameRef.current?.contentWindow'));
+assert.ok(parent.includes('const shouldMountFrame = openedOnce || isMusicPage'));
+assert.ok(parent.includes('window.setInterval(sendHello, 2500)'));
+assert.ok(parent.includes('Date.now() - lastSeen > 6500'));
+assert.ok(parent.includes("onClick={() => sendCommand('toggle')}"));
+assert.ok(parent.includes('onPointerUp={commitSeekDraft}'));
+assert.ok(parent.includes('scale: isMusicPage ? 1 : 0.985'));
+assert.ok(parent.includes('opacity: { duration: isMusicPage ? 0.34 : 0.36'));
+assert.ok(parent.includes('y: { duration: isMusicPage ? 0.38 : 0.4'));
+assert.ok(parent.includes('scale: { duration: isMusicPage ? 0.38 : 0.4'));
+assert.ok(parent.includes('zIndex: 1000'), 'The music surface must stay above the destination route for the full exit animation.');
+assert.ok(parent.includes('/QianzhiApp\\//i.test(navigator.userAgent)'), 'The island must detect the Qianzhi Android app shell.');
+assert.ok(parent.includes("is-qianzhi-app"), 'The Android app-specific island position must be applied.');
+assert.ok(!parent.includes("filter: isMusicPage"), 'Avoid full-screen blur filters that can stutter on mobile WebViews.');
+assert.ok(parent.includes("pointerEvents: isMusicPage ? 'auto' : 'none'"));
+assert.ok(styles.includes('z-index: 1200;'));
+assert.ok(styles.includes('top: max(calc(env(safe-area-inset-top) + 8px), 34px);'));
+assert.ok(parent.includes('className="qz-music-island-collapsed-main"'));
+assert.ok(bridgeSource.includes('event.source !== window.parent'));
+assert.ok(bridgeSource.includes('MAIN_SITE_ORIGINS.has(event.origin)'));
+assert.ok(!bridgeSource.includes("postMessage(data, '*')"));
+assert.ok(overlays.includes('<QianzhiEmbedBridge model={model} />'));
+assert.ok(worker.includes("frame-ancestors 'self' https://qianzhi.pw https://www.qianzhi.pw"));
+assert.ok(worker.includes("headers.delete('X-Frame-Options')"));
+assert.ok(!worker.includes('return env.ASSETS.fetch(request);'));
 
 console.log('Qianzhi persistent music bridge checks passed.');

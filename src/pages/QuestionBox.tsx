@@ -5,6 +5,7 @@ import { motion, useReducedMotion } from 'framer-motion';
 import { useAuth } from '../auth';
 import { supabase } from '../lib/supabase';
 import { alertDialog, confirmDialog, promptDialog } from '../lib/dialog';
+import { RowSkeleton } from '../components/fx/Skeleton';
 import './QuestionBox.css';
 
 type MemberResult = { id: string; username: string; display_name: string | null; signature?: string | null; avatar_path?: string | null };
@@ -198,7 +199,7 @@ export default function QuestionBox() {
             <button type="button" className={tab === 'public' ? 'active' : ''} onClick={() => setTab('public')}>已公开回答（{publicAnswers.length}）</button>
           </nav>
 
-          {loading ? <div className="question-empty">正在加载…</div> : (
+          {loading ? <RowSkeleton count={3} /> : (
             <section className="question-section">
               {tab === 'inbox' && inbox.map(question => (
                 <article className="question-answer-card" key={question.id}>

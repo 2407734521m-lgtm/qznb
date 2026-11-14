@@ -1,4 +1,5 @@
 import { resolveBrandTitle } from './lib/brand';
+import { PageSkeleton } from './components/fx/Skeleton';
 import React, { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { HashRouter } from 'react-router-dom';
@@ -167,7 +168,7 @@ function AdminShell() {
 createRoot(document.getElementById('root')!).render(
   <React.StrictMode><HashRouter><AuthProvider>
     <ErrorBoundary>
-      <Suspense fallback={<div className="center" role="status">加载中…</div>}>
+      <Suspense fallback={<PageSkeleton />}>
         {isAdminHost ? <AdminShell /> : <App />}
       </Suspense>
       <TestSwitchFab />

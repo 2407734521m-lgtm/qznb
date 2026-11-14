@@ -7,6 +7,8 @@ import { withRetry } from '../lib/retry';
 import type { ProfileSummary as Profile } from '../types/profile';
 import type { FeedPost as Post, FeedComment as Cmt } from '../types/content';
 import { confirmDialog, alertDialog, promptDialog } from '../lib/dialog';
+import BlurImg from '../components/fx/BlurImg';
+import SmoothProgress from '../components/fx/SmoothProgress';
 
 type ImpressionPollOption = { id: number; label: string; voteCount: number };
 type ImpressionPoll = {
@@ -21,12 +23,12 @@ const DEFAULT_IMPRESSION_OPTIONS = ['阳光开朗', '安静慢热', '幽默有�
 function Avatar({ p, url, size = 42 }: { p?: Profile; url?: string; size?: number }) {
   return (
     <div className="av" style={{ width: size, height: size }}>
-      {url ? <img src={url} alt="" /> : <span>{(p?.display_name ?? p?.username ?? '?').slice(0, 1)}</span>}
+      {url ? <BlurImg src={url} alt="" loading="eager" /> : <span>{(p?.display_name ?? p?.username ?? '?').slice(0, 1)}</span>}
     </div>
   );
 }
 function PostImg({ url }: { url?: string }) {
-  return url ? <img className="bdimg" src={url} alt="" loading="lazy" /> : null;
+  return url ? <BlurImg className="bdimg" src={url} alt="" /> : null;
 }
 function timeAgo(s: string) {
   const d = (Date.now() - new Date(s).getTime()) / 1000;
@@ -465,10 +467,7 @@ export default function Feed({ searchQuery = '', focusPostId = null }: { searchQ
         )}
         {busy && upPct !== null && (
           <div style={{ marginTop: 8 }}>
-            <div style={{ height: 6, borderRadius: 3, background: '#edf0f4', overflow: 'hidden' }}>
-              <div style={{ height: '100%', width: `${upPct}%`, background: '#58aeb0', transition: 'width .15s ease' }} />
-            </div>
-            <div style={{ fontSize: 12, color: '#8a93a1', marginTop: 4 }}>图片上传中 {upPct}%</div>
+            <SmoothProgress value={upPct} label={`图片上传中 ${upPct}%`} />
           </div>
         )}
         {err && <p className="err">{err}</p>}

@@ -3,7 +3,9 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { motion, useReducedMotion } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../auth';
-import { useSignedUrl, uploadMedia, downscaleImage } from '../lib/media';
+import { useSignedUrl, uploadMedia, uploadMediaWithProgress, downscaleImage } from '../lib/media';
+import SmoothProgress from '../components/fx/SmoothProgress';
+import BlurImg from '../components/fx/BlurImg';
 import { confirmDialog, alertDialog } from '../lib/dialog';
 import DateTimeField from '../components/DateTimeField';
 
@@ -24,7 +26,7 @@ function MediaView({ path }: { path: string }) {
   if (!url) return null;
   return /\.mp4$/i.test(path)
     ? <video src={url} controls playsInline />
-    : <img src={url} alt="" loading="lazy" />;
+    : <BlurImg src={url} alt="" />;
 }
 
 export default function Timeline() {
@@ -37,7 +39,7 @@ export default function Timeline() {
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [title, setTitle] = useState(''); const [content, setContent] = useState('');
   const [file, setFile] = useState<File | null>(null);
-  const [busy, setBusy] = useState(false); const [err, setErr] = useState('');
+  const [busy, setBusy] = useState(false); const [err, setErr] = useState(''); const [upPct, setUpPct] = useState<number | null>(null);
   const [editId, setEditId] = useState<number | null>(null);
   const [editDate, setEditDate] = useState('');
   const [editTitle, setEditTitle] = useState('');
@@ -67,14 +69,14 @@ export default function Timeline() {
       if (file) {
         const f = file.type.startsWith('image/') ? await downscaleImage(file) : file;
         if (f.size > 10 * 1024 * 1024) throw new Error('文件不能超过 10MB');
-        media_url = await uploadMedia('media', f);
+        media_url = await uploadMediaWithProgress('media', f, undefined, pct => setUpPct(pct));
       }
       const { error } = await supabase.from('timelines')
         .insert({ profile_id: me, happened_on: date, title: title.trim(), content: content.trim() || null, media_url });
       if (error) throw error;
       setTitle(''); setContent(''); setFile(null); setShow(false); load();
     } catch (e: any) { setErr('保存失败：' + (e.message || '网络错误')); }
-    finally { setBusy(false); }
+    finally { setBusy(false); setUpPct(null); }
   }
 
   function beginEdit(row: T) {
@@ -153,6 +155,7 @@ export default function Timeline() {
             <input ref={fref} type="file" accept="image/jpeg,image/png,image/webp,image/gif,image/heic,image/avif,video/mp4" hidden onChange={e => setFile(e.target.files?.[0] ?? null)} />
           </div>
           {err && <p className="err">{err}</p>}
+          {busy && upPct !== null && <div style={{ marginBottom: 10 }}><SmoothProgress value={upPct} label={`文件上传中 ${upPct}%`} /></div>}
           <button className="pri" disabled={busy} onClick={add}>{busy ? '保存中…' : '保存到时间线'}</button>
         </div>}
       </>}

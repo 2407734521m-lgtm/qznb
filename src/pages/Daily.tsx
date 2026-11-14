@@ -3,22 +3,24 @@ import { useNavigate } from 'react-router-dom';
 import { motion, useReducedMotion } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../auth';
-import { useSignedUrls, uploadMedia, downscaleImage } from '../lib/media';
+import { useSignedUrls, uploadMedia, uploadMediaWithProgress, downscaleImage } from '../lib/media';
+import SmoothProgress from '../components/fx/SmoothProgress';
 import { withRetry } from '../lib/retry';
 import type { ProfileSummary as Profile } from '../types/profile';
 import type { FeedPost as Post, FeedComment as Cmt } from '../types/content';
 import { confirmDialog, alertDialog, promptDialog } from '../lib/dialog';
+import BlurImg from '../components/fx/BlurImg';
 
 
 function Avatar({ p, url, size = 42 }: { p?: Profile; url?: string; size?: number }) {
   return (
     <div className="av" style={{ width: size, height: size }}>
-      {url ? <img src={url} alt="" /> : <span>{(p?.display_name ?? p?.username ?? '?').slice(0, 1)}</span>}
+      {url ? <BlurImg src={url} alt="" loading="eager" /> : <span>{(p?.display_name ?? p?.username ?? '?').slice(0, 1)}</span>}
     </div>
   );
 }
 function PostImg({ url }: { url?: string }) {
-  return url ? <img className="bdimg" src={url} alt="" loading="lazy" /> : null;
+  return url ? <BlurImg className="bdimg" src={url} alt="" /> : null;
 }
 function timeAgo(s: string) {
   const d = (Date.now() - new Date(s).getTime()) / 1000;
@@ -55,7 +57,7 @@ export default function Daily({ searchQuery = '', embedded = false, focusPostId 
   const [highlightedPostId, setHighlightedPostId] = useState<number | null>(null);
   const focusedPostRef = useRef<number | null>(null);
   const [text, setText] = useState(''); const [img, setImg] = useState<File | null>(null);
-  const [busy, setBusy] = useState(false); const [err, setErr] = useState('');
+  const [busy, setBusy] = useState(false); const [err, setErr] = useState(''); const [upPct, setUpPct] = useState<number | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [editPostId, setEditPostId] = useState<number | null>(null);
   const [editPostText, setEditPostText] = useState('');
@@ -127,7 +129,7 @@ export default function Daily({ searchQuery = '', embedded = false, focusPostId 
     try {
       let image_url: string | null = null;
       if (img) {
-        image_url = await uploadMedia('media', await downscaleImage(img));
+        image_url = await uploadMediaWithProgress('media', await downscaleImage(img), undefined, pct => setUpPct(pct));
         uploadedPath = image_url;
       }
       const { error } = await withRetry(() => supabase.from('posts').insert({ author_id: me, content: text.trim(), image_url, section: 'daily' }));
@@ -155,7 +157,7 @@ export default function Daily({ searchQuery = '', embedded = false, focusPostId 
           setErr('发布失败：' + failure + (cleanupError ? '；图片清理失败：' + cleanupError : ''));
         }
       }
-    } finally { setBusy(false); }
+    } finally { setBusy(false); setUpPct(null); }
   }
 
   async function toggleLike(p: Post) {
@@ -300,6 +302,7 @@ export default function Daily({ searchQuery = '', embedded = false, focusPostId 
           <button className="pri" style={{ width: 'auto', padding: '10px 28px' }} disabled={busy} onClick={publish}>
             {busy ? '发布中…' : '发布'}</button>
         </div>
+        {busy && upPct !== null && <div style={{ marginTop: 8 }}><SmoothProgress value={upPct} label={`图片上传中 ${upPct}%`} /></div>}
         {err && <p className="err">{err}</p>}
       </div>
 

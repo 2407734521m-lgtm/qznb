@@ -3,7 +3,9 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../auth';
-import { downscaleImage, uploadMedia, useSignedUrl } from '../lib/media';
+import { downscaleImage, uploadMedia, uploadMediaWithProgress, useSignedUrl } from '../lib/media';
+import SmoothProgress from '../components/fx/SmoothProgress';
+import BlurImg from '../components/fx/BlurImg';
 import { useCall } from '../lib/call';
 import { goBackOr } from '../components/BackButton';
 import { confirmDialog } from '../lib/dialog';
@@ -39,7 +41,7 @@ function MessageImagePreview({ url }: { url: string }) {
   return (
     <>
       <button type="button" className="im-photo-trigger" aria-label="放大查看聊天图片" onClick={() => setOpened(true)}>
-        <img className="im-photo" src={url} alt="聊天图片" loading="lazy" />
+        <BlurImg className="im-photo" src={url} alt="聊天图片" />
       </button>
       <AnimatePresence>
         {opened && (
@@ -167,6 +169,7 @@ export default function Chat() {
   const outboxSeqRef = useRef(0);
   const swappedIdsRef = useRef<Set<number>>(new Set());
   const [uploading, setUploading] = useState(false);
+  const [upPct, setUpPct] = useState<number | null>(null);
   const [recording, setRecording] = useState(false);
   const [recordSeconds, setRecordSeconds] = useState(0);
   const recorderRef = useRef<MediaRecorder | null>(null);
@@ -520,7 +523,8 @@ export default function Chat() {
     setUploading(true); setError('');
     try {
       const compact = await downscaleImage(file, 1440, 0.82);
-      const path = await uploadMedia('chat-media', compact, Number(cid) + '/' + me);
+      setUpPct(0);
+      const path = await uploadMediaWithProgress('chat-media', compact, Number(cid) + '/' + me, pct => setUpPct(pct));
       const { error: sendError } = await supabase.from('messages').insert({ conversation_id: Number(cid), sender_id: me, body: '[[im-image:' + path + ']]', reply_to_id: replyTarget?.id ?? null });
       if (sendError) throw sendError;
       setReplyTarget(null);
@@ -529,7 +533,7 @@ export default function Chat() {
       console.error('chat image upload failed', e);
       setError('图片发送失败。请确认聊天媒体存储策略已启用，然后重试。');
     } finally {
-      setUploading(false);
+      setUploading(false); setUpPct(null);
       if (imageRef.current) imageRef.current.value = '';
     }
   }
@@ -540,7 +544,8 @@ export default function Chat() {
     if (/\.(exe|apk|bat|cmd|sh|com|msi|scr)$/i.test(file.name)) { setError('这类程序文件不能发送。'); return; }
     setUploading(true); setError('');
     try {
-      const path = await uploadMedia('chat-media', file, Number(cid) + '/' + me);
+      setUpPct(0);
+      const path = await uploadMediaWithProgress('chat-media', file, Number(cid) + '/' + me, pct => setUpPct(pct));
       const safeName = file.name.replace(/[|\]]/g, '_').slice(0, 80) || '文件';
       const body = '[[im-file:' + path + '|' + safeName + '|' + file.size + ']]';
       const { error: sendError } = await supabase.from('messages').insert({ conversation_id: Number(cid), sender_id: me, body, reply_to_id: replyTarget?.id ?? null });
@@ -552,7 +557,7 @@ export default function Chat() {
       console.error('chat file upload failed', e);
       setError('文件发送失败，请重试。');
     } finally {
-      setUploading(false);
+      setUploading(false); setUpPct(null);
       if (fileRef.current) fileRef.current.value = '';
     }
   }
@@ -595,7 +600,8 @@ export default function Chat() {
           const mime = blob.type.includes('mp4') ? 'audio/mp4' : blob.type.includes('ogg') ? 'audio/ogg' : blob.type.includes('aac') ? 'audio/aac' : blob.type.includes('mpeg') ? 'audio/mpeg' : 'audio/webm';
           const ext = mime === 'audio/mp4' ? 'm4a' : mime === 'audio/ogg' ? 'ogg' : mime === 'audio/aac' ? 'aac' : mime === 'audio/mpeg' ? 'mp3' : 'webm';
           const file = new File([blob], 'voice-' + Date.now() + '.' + ext, { type: mime });
-          const path = await uploadMedia('chat-media', file, Number(cid) + '/' + me);
+          setUpPct(0);
+          const path = await uploadMediaWithProgress('chat-media', file, Number(cid) + '/' + me, pct => setUpPct(pct));
           const { error: sendError } = await supabase.from('messages').insert({ conversation_id: Number(cid), sender_id: me, body: '[[im-audio:' + path + ']]', reply_to_id: replyTarget?.id ?? null });
           if (sendError) throw sendError;
           setReplyTarget(null);
@@ -604,7 +610,7 @@ export default function Chat() {
           console.error('chat voice upload failed', e);
           setError('语音发送失败。请确认聊天媒体存储策略已启用，然后重试。');
         } finally {
-          setUploading(false);
+          setUploading(false); setUpPct(null);
           recorderRef.current = null;
         }
       };
@@ -1124,6 +1130,7 @@ export default function Chat() {
         <span className="im-reply-banner-main">{messageSummary(replyTarget)}</span>
         <button type="button" onClick={() => setReplyTarget(null)} aria-label="取消回复">取消</button>
       </div>}
+      {uploading && upPct !== null && <div style={{ padding: '8px 14px 0' }}><SmoothProgress value={upPct} label={`正在发送媒体 ${upPct}%`} /></div>}
       <form className="im-composer" onSubmit={e => { e.preventDefault(); send(); }}>
         <input ref={imageRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif,image/heic" hidden onChange={e => sendImage(e.target.files?.[0])} />
         <input ref={fileRef} type="file" hidden onChange={e => sendFile(e.target.files?.[0])} />

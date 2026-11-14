@@ -5,12 +5,14 @@ import { supabase } from '../lib/supabase';
 import { withRetry } from '../lib/retry';
 import { useAuth } from '../auth';
 import { useSignedUrls } from '../lib/media';
+import { GridSkeleton } from '../components/fx/Skeleton';
+import BlurImg from '../components/fx/BlurImg';
 
 type A = { id: number; title: string; category: string; cover_url: string | null; created_at: string; n?: number };
 const CATS = ['班级日常', '军训', '运动会', '春游', '聚会', '毕业', '自定义'];
 
 function Cover({ url }: { url?: string }) {
-  return url ? <img src={url} alt="" loading="lazy" decoding="async" /> : <span style={{ fontSize: 34 }}></span>;
+  return url ? <BlurImg src={url} alt="" /> : <span style={{ fontSize: 34 }}></span>;
 }
 
 export default function Album() {
@@ -90,7 +92,7 @@ export default function Album() {
           </motion.div>
         ))}
       </div>
-      {loading && <div className="center" style={{ minHeight: 200 }}><div className="card">正在加载相册…</div></div>}
+      {loading && <GridSkeleton count={4} />}
       {!loading && loadError && <div className="card err">{loadError}<button className="mini ghost" onClick={load}>重试</button></div>}
       {!loading && !loadError && rows.length === 0 && <div className="center" style={{ minHeight: 200 }}><div className="card">还没有相册，创建一个吧</div></div>}
       {!loading && !loadError && rows.length > 0 && visibleRows.length === 0 && <div className="center" style={{ minHeight: 140 }}><div className="card">这个分类暂时没有相册。</div></div>}

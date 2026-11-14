@@ -4,6 +4,8 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../auth';
 import { confirmDialog } from '../lib/dialog';
 import { getSignedUrls, downscaleImage, uploadWithProgress } from '../lib/media';
+import BlurImg from '../components/fx/BlurImg';
+import SmoothProgress from '../components/fx/SmoothProgress';
 import { fetchReviewEstimates, estimateText, type ReviewEstimates } from '../lib/reviewEstimate';
 import OptionSheet from '../components/OptionSheet';
 import Daily from './Daily';
@@ -565,15 +567,12 @@ export default function LoveWall() {
             {pick.map((x, i) => (
               <div key={i} style={{ position: 'relative', width: 76, height: 76, borderRadius: 12, overflow: 'hidden', background: '#f2f4f7', border: '1px solid #e9ebf0' }}>
                 {x.kind === 'image'
-                  ? <img src={x.url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  ? <BlurImg src={x.url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   : <video src={x.url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} muted playsInline />}
                 <button onClick={() => removePick(i)} aria-label="移除附件" style={{ position: 'absolute', top: 3, right: 3, width: 20, height: 20, borderRadius: '50%', border: 0, background: 'rgba(16,20,28,.65)', color: '#fff', fontSize: 11, cursor: 'pointer', lineHeight: '20px', padding: 0 }}>✕</button>
                 {busy && upPct[i] !== undefined && (
                   <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, background: 'rgba(16,20,28,.55)', padding: '3px 5px' }}>
-                    <div style={{ height: 4, borderRadius: 2, background: 'rgba(255,255,255,.3)', overflow: 'hidden' }}>
-                      <div style={{ height: '100%', width: `${upPct[i]}%`, background: '#fff', transition: 'width .15s ease' }} />
-                    </div>
-                    <div style={{ fontSize: 10, color: '#fff', marginTop: 2, textAlign: 'center' }}>{upPct[i] >= 100 ? '已上传' : `上传中 ${upPct[i]}%`}</div>
+                    <SmoothProgress value={upPct[i]} tone="dark" label={upPct[i] >= 100 ? '已上传' : `上传中 ${upPct[i]}%`} />
                   </div>
                 )}
               </div>
@@ -609,7 +608,7 @@ function LoveMediaGrid({ items }: { items: MediaItem[] }) {
   return <div style={{ margin: '2px 0 10px' }}>
     {imgs.length > 0 && <div style={{ display: 'grid', gridTemplateColumns: imgs.length === 1 ? '1fr' : 'repeat(3, 1fr)', gap: 6 }}>
       {imgs.map(m => m.url
-        ? <a key={m.id} href={m.url} target="_blank" rel="noreferrer"><img src={m.url} alt="" loading="lazy" style={{ width: '100%', aspectRatio: imgs.length === 1 ? 'auto' : '1 / 1', maxHeight: imgs.length === 1 ? 340 : undefined, objectFit: 'cover', borderRadius: 12, display: 'block' }} /></a>
+        ? <a key={m.id} href={m.url} target="_blank" rel="noreferrer"><BlurImg src={m.url} alt="" style={{ width: '100%', aspectRatio: imgs.length === 1 ? 'auto' : '1 / 1', maxHeight: imgs.length === 1 ? 340 : undefined, objectFit: 'cover', borderRadius: 12, display: 'block' }} /></a>
         : <div key={m.id} style={{ width: '100%', aspectRatio: '1 / 1', borderRadius: 12, background: '#f2f4f7' }} />)}
     </div>}
     {vids.map(m => m.url

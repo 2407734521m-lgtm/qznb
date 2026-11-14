@@ -3,9 +3,12 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { AnimatePresence, motion, useMotionValueEvent, useReducedMotion, useScroll, useTransform } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../auth';
-import { useSignedUrl, useSignedUrls, uploadMedia, downscaleImage } from '../lib/media';
+import { useSignedUrl, useSignedUrls, uploadMediaWithProgress, downscaleImage } from '../lib/media';
+import SmoothProgress from '../components/fx/SmoothProgress';
 import { withRetry } from '../lib/retry';
 import { confirmDialog, alertDialog } from '../lib/dialog';
+import { PageSkeleton } from '../components/fx/Skeleton';
+import BlurImg from '../components/fx/BlurImg';
 
 type P = { id: number; photo_url: string; caption: string | null; uploaded_by: string | null };
 
@@ -84,7 +87,7 @@ function Thumb({ p, url, onView }: { p: P; url?: string; onView: () => void }) {
   if (!url) return null;
   return (
     <figure onClick={onView}>
-      <img src={url} alt={p.caption ?? ''} loading="lazy" decoding="async" />
+      <BlurImg src={url} alt={p.caption ?? ''} />
       {p.caption && <figcaption>{p.caption}</figcaption>}
     </figure>
   );
@@ -131,16 +134,18 @@ export default function AlbumDetail() {
   useEffect(() => { load(); }, [id]);
 
   const [upProg, setUpProg] = useState('');
+  const [upPct, setUpPct] = useState<number | null>(null);
   async function upload(files: FileList | null) {
     const list = Array.from(files ?? []).filter(f => f.type.startsWith('image/'));
     if (!list.length) { if (files?.length) setErr('只能上传图片'); return; }
-    setBusy(true); setErr(''); setUpProg('');
+    setBusy(true); setErr(''); setUpProg(''); setUpPct(0);
     try {
       let firstPath: string | null = null;
       for (let i = 0; i < list.length; i++) {
-        setUpProg(`上传中 ${i + 1}/${list.length}…`);
+        setUpProg(`上传中 ${i + 1}/${list.length}`);
+        setUpPct(0);
         const small = await downscaleImage(list[i]);
-        const path = await uploadMedia('media', small);
+        const path = await uploadMediaWithProgress('media', small, undefined, pct => setUpPct(pct));
         if (!firstPath) firstPath = path;
         const { error } = await withRetry(() => supabase.from('album_photos')
           .insert({ album_id: Number(id), photo_url: path, caption: i === 0 ? (cap.trim() || null) : null, uploaded_by: me }));
@@ -149,7 +154,7 @@ export default function AlbumDetail() {
       if (!album?.cover_url && firstPath) await withRetry(() => supabase.from('albums').update({ cover_url: firstPath }).eq('id', Number(id)));
       setCap(''); setUpProg(''); load();
     } catch (e: any) { setErr('上传失败：' + (e.message || '网络错误')); }
-    finally { setBusy(false); setUpProg(''); }
+    finally { setBusy(false); setUpProg(''); setUpPct(null); }
   }
 
   async function saveAlbum() {
@@ -221,7 +226,7 @@ export default function AlbumDetail() {
     }
   }
 
-  if (album === null && !err) return <div className="page"><div className="center">加载中…</div></div>;
+  if (album === null && !err) return <div className="page"><PageSkeleton /></div>;
   if (album === null && err) return <div className="page"><div className="center" role="alert" style={{ padding: 24 }}><p>{err}</p><button className="ghost" onClick={() => void load()}>重试</button><button className="ghost" onClick={() => nav('/albums')}>返回相册</button></div></div>;
 
   return (
@@ -255,6 +260,7 @@ export default function AlbumDetail() {
         <input value={cap} onChange={e => setCap(e.target.value)} placeholder="给照片写句话（可选）" maxLength={200} />
         <div className="row">
           <button className="ghost" disabled={busy} onClick={() => fref.current?.click()}>{busy ? (upProg || '上传中…') : '选择照片（可多选）'}</button>
+          {busy && upPct !== null && <div style={{ marginTop: 8 }}><SmoothProgress value={upPct} label={upProg ? `${upProg} · ${upPct}%` : undefined} /></div>}
           <input ref={fref} type="file" accept="image/jpeg,image/png,image/webp,image/gif,image/heic,image/avif" multiple hidden onChange={e => { upload(e.target.files); e.target.value = ''; }} />
         </div>
         {err && <p className="err">{err}</p>}

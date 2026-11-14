@@ -5,6 +5,8 @@ import { useAuth } from '../auth';
 import BackButton from '../components/BackButton';
 import { confirmDialog, alertDialog } from '../lib/dialog';
 import { useSignedUrls } from '../lib/media';
+import { FeedSkeleton } from '../components/fx/Skeleton';
+import BlurImg from '../components/fx/BlurImg';
 
 /** 我的动态 */
 export default function MePosts() {
@@ -50,12 +52,12 @@ export default function MePosts() {
       <BackButton fallback="/me" />
       <h2 style={{ margin: '4px 0 12px', fontSize: 20 }}>我的动态（{posts.length}）</h2>
       {msg && <p className="priv-note" role="status">{msg}</p>}
-      {loading && <div className="card" style={{ textAlign: 'center', color: 'var(--mut)', padding: '22px 14px' }}>正在加载…</div>}
+      {loading && <FeedSkeleton count={2} />}
       {!loading && posts.length === 0 && <div className="card" style={{ textAlign: 'center', color: 'var(--mut)', padding: '36px 14px' }}>还没有发布过动态</div>}
       {posts.map(p => (
         <div key={p.id} className="card">
           <div style={{ fontSize: 13.5, lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>{p.content}</div>
-          {p.image_url && imageUrls[p.image_url] && <img src={imageUrls[p.image_url]} alt="" style={{ width: '100%', borderRadius: 10, marginTop: 8 }} loading="lazy" />}
+          {p.image_url && imageUrls[p.image_url] && <BlurImg src={imageUrls[p.image_url]} alt="" style={{ width: '100%', borderRadius: 10, marginTop: 8 }} />}
           <div className="row" style={{ justifyContent: 'space-between', marginTop: 8 }}>
             <span style={{ fontSize: 11.5, color: 'var(--mut)' }}><span style={{ marginRight: 6, padding: '1px 6px', borderRadius: 999, background: '#eef2ff', color: '#4c5ec2' }}>{p.section === 'daily' ? '日常' : '动态'}</span>{(p.created_at || '').slice(0, 16).replace('T', ' ')}</span>
             <div className="row" style={{ gap: 6 }}>

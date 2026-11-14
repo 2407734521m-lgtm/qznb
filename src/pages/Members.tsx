@@ -6,6 +6,7 @@ import { useSignedUrls } from '../lib/media';
 import Photo from '../components/Photo';
 import { setShot, takeShot, shotFrom, flyTo } from '../lib/transition';
 import { badgeText } from '../data/games';
+import { RowSkeleton } from '../components/fx/Skeleton';
 import { SPRING_GENTLE } from '../lib/motion';
 import type { MemberListItem } from '../types/profile';
 
@@ -156,7 +157,7 @@ export default function Members() {
       <div className={'mgrid ' + layout}>
         {rows.map((m, i) => <Card key={m.id} m={m} i={i} badge={badges[m.id]} signedUrl={m.avatar_path ? avatarUrls[m.avatar_path] : ''} no={q ? undefined : i + 1} onOpen={(mm, el, img) => open(mm, el, img, q ? undefined : i + 1)} />)}
       </div>
-      {state === 'loading' && <p className="center" style={{ minHeight: 120 }}>加载中…</p>}
+      {state === 'loading' && <RowSkeleton count={6} />}
       {state === 'ok' && more && <button className="pri" onClick={() => load(false, q, rows)}>加载更多</button>}
     </div>
   );

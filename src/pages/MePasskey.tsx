@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import SettingsShell from '../components/SettingsShell';
-import { RowSkeleton } from '../components/fx/Skeleton';
+import { RowSkeleton, useDelayedLoading } from '../components/fx/Skeleton';
 
 type PasskeyItem = { id: string; friendly_name?: string | null; created_at?: string };
 
@@ -9,6 +9,7 @@ type PasskeyItem = { id: string; friendly_name?: string | null; created_at?: str
 export default function MePasskey() {
   const [keys, setKeys] = useState<PasskeyItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const showSkeleton = useDelayedLoading(loading);
   const [msg, setMsg] = useState('');
 
   async function loadKeys() {
@@ -42,7 +43,7 @@ export default function MePasskey() {
       <div className="qz-settings-choice">
         <button type="button" onClick={() => void regKey()}>注册通行密钥</button>
       </div>
-      {loading && <RowSkeleton count={2} />}
+      {showSkeleton && <RowSkeleton count={2} />}
       {keys.map(k => (
         <div key={k.id} className="qz-sub-key-row">
           <span>{k.friendly_name || '通行密钥'} · {k.created_at?.slice(0, 10) ?? ''}</span>

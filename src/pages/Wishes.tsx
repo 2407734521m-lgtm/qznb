@@ -3,13 +3,14 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../auth';
 import BackButton from '../components/BackButton';
 import { confirmDialog, alertDialog } from '../lib/dialog';
-import { FeedSkeleton } from '../components/fx/Skeleton';
+import { FeedSkeleton, useDelayedLoading } from '../components/fx/Skeleton';
 
 /** 愿望墙：班级共同愿望 */
 export default function Wishes() {
   const me = useAuth().session!.user.id;
   const [list, setList] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const showSkeleton = useDelayedLoading(loading);
   const [text, setText] = useState('');
   const [msg, setMsg] = useState('');
   const [names, setNames] = useState<Record<string, string>>({});
@@ -98,7 +99,7 @@ export default function Wishes() {
           </div>
         ))}
       </div>
-      {loading && <FeedSkeleton count={3} />}
+      {showSkeleton && <FeedSkeleton count={2} />}
       {!loading && list.length === 0 && <div className="center"><div className="card">还没有愿望，来许第一个吧</div></div>}
     </div>
   );

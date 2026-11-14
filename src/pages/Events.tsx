@@ -3,13 +3,14 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../auth';
 import BackButton from '../components/BackButton';
 import { confirmDialog, alertDialog } from '../lib/dialog';
-import { FeedSkeleton } from '../components/fx/Skeleton';
+import { FeedSkeleton, useDelayedLoading } from '../components/fx/Skeleton';
 
 /** 班级活动：查看 + 报名 */
 export default function Events() {
   const me = useAuth().session!.user.id;
   const [list, setList] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const showSkeleton = useDelayedLoading(loading);
   const [regs, setRegs] = useState<Record<number, string[]>>({});
   const [names, setNames] = useState<Record<string, string>>({});
 
@@ -66,7 +67,7 @@ export default function Events() {
           </div>
         );
       })}
-      {loading && <FeedSkeleton count={2} />}
+      {showSkeleton && <FeedSkeleton count={2} />}
       {!loading && list.length === 0 && <div className="center"><div className="card">暂无活动，敬请期待</div></div>}
       <p style={{ textAlign: 'center', color: 'var(--mut)', fontSize: 12.5 }}>活动由管理员发布</p>
     </div>

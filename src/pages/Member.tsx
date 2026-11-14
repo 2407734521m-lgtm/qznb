@@ -9,7 +9,7 @@ import Photo from '../components/Photo';
 import { setShot, takeShot, shotFrom, flyTo } from '../lib/transition';
 import { badgeText } from '../data/games';
 import { alertDialog, confirmDialog, promptDialog } from '../lib/dialog';
-import { PageSkeleton } from '../components/fx/Skeleton';
+import { DelayedPageSkeleton } from '../components/fx/Skeleton';
 import { parseSocial } from '../data/social';
 import type { Dir } from '../lib/transition';
 import './Member.polish.css';
@@ -256,7 +256,7 @@ export default function Member() {
   }
 
   if (err) return <div className="page"><div className="center"><div className="card">{err}</div></div></div>;
-  if (m === null) return <div className="page"><PageSkeleton /></div>;
+  if (m === null) return <div className="page"><DelayedPageSkeleton /></div>;
   const name = m?.display_name ?? m?.username ?? '';
   const rows = m ? ([['性格', m.personality], ['年龄', m.age], ['个性签名', m.signature],
     ['简介', m.bio], ['兴趣爱好', m.hobbies], ['联系方式', m.contact]] as [string, any][])

@@ -6,6 +6,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../auth';
 import { downscaleImage, uploadMedia, uploadMediaWithProgress, useSignedUrl } from '../lib/media';
 import SmoothProgress from '../components/fx/SmoothProgress';
+import { useDelayedLoading } from '../components/fx/Skeleton';
 import BlurImg from '../components/fx/BlurImg';
 import { useCall } from '../lib/call';
 import { goBackOr } from '../components/BackButton';
@@ -167,6 +168,7 @@ export default function Chat() {
   const [peer, setPeer] = useState<ChatPeer | null>(null);
   const [msgs, setMsgs] = useState<ChatMessage[]>([]);
   const [loadingMsgs, setLoadingMsgs] = useState(true);
+  const showMsgsSkeleton = useDelayedLoading(loadingMsgs);
   const [text, setText] = useState('');
   const [outbox, setOutbox] = useState<OutboxEntry[]>([]);
   const outboxSeqRef = useRef(0);
@@ -1023,7 +1025,7 @@ export default function Chat() {
       </div>}
       <main ref={feedRef} className="im-feed">
         {msgs.length === 0 && outbox.length === 0 ? (
-          loadingMsgs ? (
+          showMsgsSkeleton ? (
             <div role="status" aria-label="消息加载中" style={{ padding: '18px 14px' }}>
               {[0, 1, 2].map(i => (
                 <div key={i} className="fx-skel-wrap" style={{ marginBottom: 12, display: 'flex', justifyContent: i % 2 ? 'flex-end' : 'flex-start' }}>
@@ -1031,7 +1033,7 @@ export default function Chat() {
                 </div>
               ))}
             </div>
-          ) : (
+          ) : loadingMsgs ? null : (
             <div className="im-empty"><div style={{fontWeight:750,color:'#f5fbff',fontSize:16}}>新的开始</div><p style={{fontSize:13,lineHeight:1.7}}>发出第一条消息，开启你们的对话吧。</p></div>
           )
         ) : (<>

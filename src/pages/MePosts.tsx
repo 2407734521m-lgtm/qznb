@@ -5,7 +5,7 @@ import { useAuth } from '../auth';
 import BackButton from '../components/BackButton';
 import { confirmDialog, alertDialog } from '../lib/dialog';
 import { useSignedUrls } from '../lib/media';
-import { FeedSkeleton } from '../components/fx/Skeleton';
+import { FeedSkeleton, useDelayedLoading } from '../components/fx/Skeleton';
 import BlurImg from '../components/fx/BlurImg';
 
 /** 我的动态 */
@@ -15,6 +15,7 @@ export default function MePosts() {
   const [posts, setPosts] = useState<any[]>([]);
   const [msg, setMsg] = useState('');
   const [loading, setLoading] = useState(true);
+  const showSkeleton = useDelayedLoading(loading);
   const imageUrls = useSignedUrls('media', posts.map(post => post.image_url));
 
   async function load() {
@@ -52,7 +53,7 @@ export default function MePosts() {
       <BackButton fallback="/me" />
       <h2 style={{ margin: '4px 0 12px', fontSize: 20 }}>我的动态（{posts.length}）</h2>
       {msg && <p className="priv-note" role="status">{msg}</p>}
-      {loading && <FeedSkeleton count={2} />}
+      {showSkeleton && <FeedSkeleton count={2} />}
       {!loading && posts.length === 0 && <div className="card" style={{ textAlign: 'center', color: 'var(--mut)', padding: '36px 14px' }}>还没有发布过动态</div>}
       {posts.map(p => (
         <div key={p.id} className="card">

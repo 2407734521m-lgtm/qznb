@@ -5,7 +5,7 @@ import { motion, useReducedMotion } from 'framer-motion';
 import { useAuth } from '../auth';
 import { supabase } from '../lib/supabase';
 import { alertDialog, confirmDialog, promptDialog } from '../lib/dialog';
-import { RowSkeleton } from '../components/fx/Skeleton';
+import { RowSkeleton, useDelayedLoading } from '../components/fx/Skeleton';
 import './QuestionBox.css';
 
 type MemberResult = { id: string; username: string; display_name: string | null; signature?: string | null; avatar_path?: string | null };
@@ -28,6 +28,7 @@ export default function QuestionBox() {
   const targetId = routeId && routeId !== me ? routeId : '';
   const [tab, setTab] = useState<'inbox' | 'sent' | 'public'>('inbox');
   const [loading, setLoading] = useState(true);
+  const showSkeleton = useDelayedLoading(loading);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
   const [members, setMembers] = useState<MemberResult[]>([]);
@@ -199,7 +200,7 @@ export default function QuestionBox() {
             <button type="button" className={tab === 'public' ? 'active' : ''} onClick={() => setTab('public')}>已公开回答（{publicAnswers.length}）</button>
           </nav>
 
-          {loading ? <RowSkeleton count={3} /> : (
+          {showSkeleton ? <RowSkeleton count={3} /> : loading ? null : (
             <section className="question-section">
               {tab === 'inbox' && inbox.map(question => (
                 <article className="question-answer-card" key={question.id}>

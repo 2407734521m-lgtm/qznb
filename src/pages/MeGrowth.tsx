@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../auth';
 import BackButton from '../components/BackButton';
-import { RowSkeleton } from '../components/fx/Skeleton';
+import { RowSkeleton, useDelayedLoading } from '../components/fx/Skeleton';
 
 type RecordItem = { id: string; title: string; detail: string; at: string; href: string };
 type BadgeItem = { title: string; note: string; earned: boolean; date?: string; mark: string };
@@ -14,6 +14,7 @@ export default function MeGrowth() {
   const nav = useNavigate();
   const me = useAuth().session!.user.id;
   const [loading, setLoading] = useState(true);
+  const showSkeleton = useDelayedLoading(loading);
   const [error, setError] = useState('');
   const [joinedAt, setJoinedAt] = useState('');
   const [activeDays, setActiveDays] = useState<number | null>(null);
@@ -211,7 +212,7 @@ export default function MeGrowth() {
       </section>
       <section className="card">
         <h2 style={{ fontSize: 15, margin: '0 0 8px' }}>最近贡献记录 <span style={{ fontSize: 11, color: 'var(--mut)', fontWeight: 400 }}>最近 40 条</span></h2>
-        {loading && <RowSkeleton count={3} />}
+        {showSkeleton && <RowSkeleton count={3} />}
         {error && <p className="err" role="alert">{error}</p>}
         {!loading && records.length === 0 && <p style={{ color: 'var(--mut)', fontSize: 12 }}>还没有可展示的贡献记录</p>}
         {records.map(item => <button key={item.id} onClick={() => nav(item.href)} style={{ width: '100%', display: 'block', textAlign: 'left', padding: '10px 0', border: 0, borderBottom: '1px solid #edf1f3', background: 'transparent', color: 'inherit' }}>

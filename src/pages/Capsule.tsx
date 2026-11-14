@@ -6,7 +6,7 @@ import BackButton from '../components/BackButton';
 import { EASE, DUR } from '../lib/motion';
 import { confirmDialog } from '../lib/dialog';
 import DateTimeField from '../components/DateTimeField';
-import { FeedSkeleton } from '../components/fx/Skeleton';
+import { FeedSkeleton, useDelayedLoading } from '../components/fx/Skeleton';
 
 /** 时光胶囊：写给未来的信，到期才能看。
  *  呈现照参考视频的信封收件箱来做：信封叠成一摞、日期居中、右上角火漆印、
@@ -47,6 +47,7 @@ export default function Capsule() {
   const reduce = useReducedMotion();
   const [list, setList] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const showSkeleton = useDelayedLoading(loading);
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [openAt, setOpenAt] = useState('');
@@ -323,7 +324,7 @@ export default function Capsule() {
           )}
         </>
       )}
-      {loading && <FeedSkeleton count={3} />}
+      {showSkeleton && <FeedSkeleton count={2} />}
       {list.length === 0 && trash.length === 0 && !loading && <div className="center"><div className="card">还没有时光胶囊，埋下第一个吧</div></div>}
 
       {/* 开封阅读：背景模糊 + 信封口翻开 + 信纸从信封里滑出；未到期永远进不了这里 */}

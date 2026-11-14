@@ -1,5 +1,5 @@
 import { resolveBrandTitle } from './lib/brand';
-import { PageSkeleton } from './components/fx/Skeleton';
+import { DelayedPageSkeleton, RouteLoading } from './components/fx/Skeleton';
 import React, { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { HashRouter } from 'react-router-dom';
@@ -160,7 +160,7 @@ function AdminShell() {
       });
     return () => { live = false; };
   }, []);
-  if (loading || (session && (role === null || verifiedUid !== session.user.id))) return <PageSkeleton />;
+  if (loading || (session && (role === null || verifiedUid !== session.user.id))) return <DelayedPageSkeleton />;
   const isAdmin = Boolean(session) && (role === 'admin' || role === 'super_admin');
   const adminApp = detectInstalledAdminApp();
   const latestAdminCode = adminUpdate ? Number(adminUpdate.app_version_code || 0) : 0;
@@ -189,7 +189,7 @@ function AdminShell() {
 createRoot(document.getElementById('root')!).render(
   <React.StrictMode><HashRouter><AuthProvider>
     <ErrorBoundary>
-      <Suspense fallback={<PageSkeleton />}>
+      <Suspense fallback={<RouteLoading />}>
         {isAdminHost ? <AdminShell /> : <App />}
       </Suspense>
       <TestSwitchFab />

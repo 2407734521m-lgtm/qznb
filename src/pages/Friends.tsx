@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../auth';
 import { useSignedUrl } from '../lib/media';
-import { RowSkeleton } from '../components/fx/Skeleton';
+import { RowSkeleton, useDelayedLoading } from '../components/fx/Skeleton';
 import { confirmDialog } from '../lib/dialog';
 
 type Friend = {
@@ -119,6 +119,7 @@ export default function Friends() {
   const [msg, setMsg] = useState('');
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(true);
+  const showInboxSkeleton = useDelayedLoading(loading);
   const [searchResults, setSearchResults] = useState<MemberSearchResult[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchError, setSearchError] = useState('');
@@ -129,6 +130,7 @@ export default function Friends() {
   const notificationsLoadSequenceRef = useRef(0);
   const [notifications, setNotifications] = useState<InboxNotification[]>([]);
   const [notificationsLoading, setNotificationsLoading] = useState(true);
+  const showNotifSkeleton = useDelayedLoading(notificationsLoading);
   const [notificationsError, setNotificationsError] = useState('');
   const [notificationActionError, setNotificationActionError] = useState('');
   const [notificationActionBusy, setNotificationActionBusy] = useState(false);
@@ -772,7 +774,7 @@ export default function Friends() {
         <>
           {tab === 'messages' && (
             <div className="im-inbox-list">
-              {loading ? <RowSkeleton count={4} /> : filteredConversations.length === 0 ? (
+              {showInboxSkeleton ? <RowSkeleton count={4} /> : loading ? null : filteredConversations.length === 0 ? (
                 <div className="im-inbox-empty">
                   <div className="im-inbox-empty-title">还没有聊天记录</div>
                   <div className="im-inbox-empty-copy">和好友开启一次对话，最近消息会自动显示在这里。</div>
@@ -883,7 +885,7 @@ export default function Friends() {
             <span className="im-notification-count">{unreadNotificationCount ? unreadNotificationCount + ' 条未读' : '已全部读完'}</span>
           </div>
           {notificationActionError && <p className="im-inbox-message" role="alert">{notificationActionError}</p>}
-          {notificationsLoading && <RowSkeleton count={3} />}
+          {showNotifSkeleton && <RowSkeleton count={3} />}
           {!notificationsLoading && notificationsError && (
             <div className="im-inbox-empty">
               <div className="im-inbox-empty-title">消息暂时无法显示</div>

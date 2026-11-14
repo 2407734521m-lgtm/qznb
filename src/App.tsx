@@ -26,7 +26,7 @@ const AppAnnouncementDialog = lazy(() => import('./components/AppAnnouncementDia
 const LoginSuccessOverlay = lazy(() => import('./components/LoginSuccessOverlay'));
 import BlurText from './components/fx/BlurText';
 import ShinyText from './components/fx/ShinyText';
-import { PageSkeleton } from './components/fx/Skeleton';
+import { DelayedPageSkeleton, RouteLoading } from './components/fx/Skeleton';
 import AppUpdateDialog from './components/AppUpdateDialog';
 import bgUrl from './assets/bg.jpg';
 const Login = lazy(() => import('./pages/Login'));
@@ -917,7 +917,7 @@ function Shell() {
 
   async function logout() { await supabase.auth.signOut({ scope: 'local' }); }
 
-  if (loading) return <PageSkeleton />;
+  if (loading) return <DelayedPageSkeleton />;
   if (!session && isAdminPage) return (<><div className="glow" /><div style={{ position: 'fixed', inset: 0, background: '#fff' }} /><div style={{ position: 'relative' }}><AdminLogin /></div></>);
   // 从重置密码邮件回来：优先显示设置新密码页。
   if (pwReset) return (<><div className="glow" /><ResetPassword onDone={() => {
@@ -925,7 +925,7 @@ function Shell() {
     try { window.history.replaceState(null, '', window.location.pathname + window.location.hash); } catch {}
   }} /></>);
   if (!session && guest) {
-    if (siteConfigLoading) return <PageSkeleton />;
+    if (siteConfigLoading) return <DelayedPageSkeleton />;
     if (siteConfig?.maintenance === 'true' && !maintenanceAccess) return <MaintenanceScreen title={siteConfig.maintenance_title || ''} msg={siteConfig.maintenance_msg || ''} allowCode={siteConfig?.maintenance_access_codes_enabled === true} hasSession={false} onLogout={() => { leaveGuest(); }} onAccessGranted={() => setMaintenanceAccess(true)} />;
     return <GuestBrowse
       nickname={guest.nickname}
@@ -941,10 +941,10 @@ function Shell() {
     />;
   }
   if (!session) {
-    if (siteConfigLoading) return <PageSkeleton />;
+    if (siteConfigLoading) return <DelayedPageSkeleton />;
     if (siteConfig?.maintenance === 'true' && !maintenanceAccess) return <MaintenanceScreen title={siteConfig.maintenance_title || ''} msg={siteConfig.maintenance_msg || ''} allowCode={siteConfig?.maintenance_access_codes_enabled === true} hasSession={false} onLogout={logout} onAccessGranted={() => setMaintenanceAccess(true)} />;
     if (siteConfig?.guest_browse_available === true && !guestAutoEntryStarted.current) {
-      return <PageSkeleton />;
+      return <DelayedPageSkeleton />;
     }
     const showGuestEntry = siteConfig?.guest_browse_available === true && siteConfig?.guest_entry_visible === true;
     const openGuestEntry = () => setGuestEntryOpen(true);
@@ -1065,7 +1065,7 @@ function Shell() {
             animate={isImmersivePage ? { opacity: 1 } : { opacity: 1, y: 0, scale: 1 }}
             exit={reduce ? { opacity: 1 } : isImmersivePage ? { opacity: 0 } : { opacity: 0, y: -7, scale: 0.996 }}
             transition={{ duration: reduce ? 0 : DUR.base + 0.06, ease: EASE }}>
-            <Suspense fallback={<PageSkeleton />}>
+            <Suspense fallback={<RouteLoading />}>
             <Routes location={loc}>
               <Route path="/" element={<Navigate to="/home" replace />} />
               <Route path="/board" element={<Board />} />

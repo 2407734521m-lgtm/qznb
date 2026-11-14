@@ -8,7 +8,7 @@ import SmoothProgress from '../components/fx/SmoothProgress';
 import { withRetry } from '../lib/retry';
 import { confirmDialog, alertDialog } from '../lib/dialog';
 import { toast } from 'sonner';
-import { PageSkeleton } from '../components/fx/Skeleton';
+import { DelayedPageSkeleton } from '../components/fx/Skeleton';
 import BlurImg from '../components/fx/BlurImg';
 import './Album.afilmory.css'; // Afilmory 式瀑布流版式（只借版式，样式自写）
 
@@ -245,7 +245,7 @@ export default function AlbumDetail() {
     }
   }
 
-  if (album === null && !err) return <div className="page"><PageSkeleton /></div>;
+  if (album === null && !err) return <div className="page"><DelayedPageSkeleton /></div>;
   if (album === null && err) return <div className="page"><div className="center" role="alert" style={{ padding: 24 }}><p>{err}</p><button className="ghost" onClick={() => void load()}>重试</button><button className="ghost" onClick={() => nav('/albums')}>返回相册</button></div></div>;
 
   return (

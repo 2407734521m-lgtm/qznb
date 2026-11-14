@@ -9,7 +9,7 @@ import GamePicker, { type GameProfile, type Origin } from '../components/GamePic
 import SocialPicker from '../components/SocialPicker';
 import { badgeText } from '../data/games';
 import BackButton from '../components/BackButton';
-import { PageSkeleton } from '../components/fx/Skeleton';
+import { DelayedPageSkeleton } from '../components/fx/Skeleton';
 import { fetchReviewEstimates, estimateText, type ReviewEstimates } from '../lib/reviewEstimate';
 import { isPhoneNumber } from '../lib/validate';
 import { confirmDialog } from '../lib/dialog';
@@ -310,7 +310,7 @@ export default function MyProfile() {
         : <input value={v[k] ?? ''} maxLength={100} placeholder={ph} onChange={e => setV({ ...v, [k]: e.target.value })} />}</label>
   );
 
-  if (loading) return <div className="page me-page"><PageSkeleton /></div>;
+  if (loading) return <div className="page me-page"><DelayedPageSkeleton /></div>;
 
   return (
     <div className="page me-page">

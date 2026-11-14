@@ -5,7 +5,7 @@ import { useSignedUrl } from '../lib/media';
 import type { SongWallPost as Song, PublicSongWallPost } from '../types/song';
 import { fetchReviewEstimates, estimateText, type ReviewEstimates } from '../lib/reviewEstimate';
 import { confirmDialog } from '../lib/dialog';
-import { FeedSkeleton } from '../components/fx/Skeleton';
+import { FeedSkeleton, useDelayedLoading } from '../components/fx/Skeleton';
 
 function SongCard({ song, mine, estText, onDelete, deleting }: { song: Song | PublicSongWallPost; mine: boolean; estText?: string; onDelete?: (song: Song) => void; deleting?: boolean }) {
   const url = useSignedUrl('song-audio', song.audio_path);
@@ -29,6 +29,7 @@ export default function SongWall() {
   const { session } = useAuth();
   const [songs, setSongs] = useState<PublicSongWallPost[]>([]);
   const [loading, setLoading] = useState(true);
+  const showSkeleton = useDelayedLoading(loading);
   const [mySongs, setMySongs] = useState<Song[]>([]);
   const [mine, setMine] = useState(false);
   const [title, setTitle] = useState('');
@@ -143,7 +144,7 @@ export default function SongWall() {
       <button onClick={() => setMine(v => !v)} style={ghost}>{mine ? '返回歌声墙' : '我的投稿'}</button>
     </div>
     <div style={{ display: 'grid', gap: 10 }}>
-      {loading && <FeedSkeleton count={3} />}
+      {showSkeleton && <FeedSkeleton count={2} />}
       {visible.map(song => {
         const est = mine && 'status' in song && song.status === 'pending' ? estimates?.byId.get(song.id) : undefined;
         return <SongCard key={song.id} song={song} mine={mine} estText={est ? estimateText(est, estimates?.adminActive ?? false) : undefined} onDelete={deleteSong} deleting={deletingId === song.id} />;

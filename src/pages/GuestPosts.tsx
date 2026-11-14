@@ -3,7 +3,7 @@ import { motion, useReducedMotion } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import { useSignedUrls } from '../lib/media';
 import { timeAgo } from '../lib/time';
-import { FeedSkeleton } from '../components/fx/Skeleton';
+import { FeedSkeleton, useDelayedLoading } from '../components/fx/Skeleton';
 import BlurImg from '../components/fx/BlurImg';
 import './GuestPosts.css';
 import './Guest.cruip.css';
@@ -71,6 +71,7 @@ function GuestPostCard({ post, imageUrl, onLoginRequired, index }: {
 export default function GuestPosts({ section, onLoginRequired }: Props) {
   const [posts, setPosts] = useState<GuestPost[]>([]);
   const [loading, setLoading] = useState(true);
+  const showSkeleton = useDelayedLoading(loading);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(false);
   const [error, setError] = useState('');
@@ -146,7 +147,7 @@ export default function GuestPosts({ section, onLoginRequired }: Props) {
         </header>
       )}
 
-      {loading && <FeedSkeleton count={2} />}
+      {showSkeleton && <FeedSkeleton count={2} />}
       {!loading && error && (
         <div role="alert" className="guest-post-state guest-post-error">
           <p style={{ margin: '0 0 12px' }}>{error}</p>

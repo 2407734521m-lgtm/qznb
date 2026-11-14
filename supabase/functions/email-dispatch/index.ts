@@ -133,19 +133,31 @@ Deno.serve(async (req: Request) => {
     return json({ error: 'A matching send is already being processed', errorCode: 'send_in_progress' }, 409);
   }
 
+  const claimToken = crypto.randomUUID();
   if (existing) {
-    const { error: resetError } = await admin
+    // Compare-and-swap the exact snapshot we read. Concurrent retries may both
+    // observe a failed/stale row, but only one can acquire this new lease token.
+    const { data: claimed, error: resetError } = await admin
       .from('email_delivery_logs')
       .update({
         status: 'pending',
         attempt_count: (existing.attempt_count ?? 0) + 1,
         error_code: null,
         updated_at: now,
+        claim_token: claimToken,
       })
-      .eq('id', existing.id);
+      .eq('id', existing.id)
+      .eq('status', existing.status)
+      .eq('updated_at', existing.updated_at)
+      .eq('attempt_count', existing.attempt_count ?? 0)
+      .select('id')
+      .maybeSingle();
     if (resetError) {
       console.error('email log retry state could not be saved');
       return json({ error: 'Email log is unavailable', errorCode: 'email_log_unavailable' }, 503);
+    }
+    if (!claimed) {
+      return json({ error: 'A matching send was claimed by another request', errorCode: 'send_in_progress' }, 409);
     }
   } else {
     const { error: insertError } = await admin
@@ -160,6 +172,7 @@ Deno.serve(async (req: Request) => {
         provider: 'resend',
         status: 'pending',
         attempt_count: 1,
+        claim_token: claimToken,
       });
     if (insertError) {
       // A concurrent request may have inserted the same event key.
@@ -209,7 +222,7 @@ Deno.serve(async (req: Request) => {
         status: 'failed',
         error_code: errorCode,
         updated_at: new Date().toISOString(),
-      }).eq('event_key', eventKey);
+      }).eq('event_key', eventKey).eq('claim_token', claimToken).eq('status', 'pending');
       return json({ error: 'Email provider rejected the message', errorCode }, providerResponse.status === 429 ? 429 : 502);
     }
 
@@ -220,7 +233,7 @@ Deno.serve(async (req: Request) => {
       provider_message_id: providerMessageId,
       error_code: null,
       updated_at: new Date().toISOString(),
-    }).eq('event_key', eventKey);
+    }).eq('event_key', eventKey).eq('claim_token', claimToken).eq('status', 'pending');
     if (updateError) console.error('accepted email log update failed');
 
     return json({ ok: true, status: 'accepted', providerMessageId });
@@ -229,7 +242,7 @@ Deno.serve(async (req: Request) => {
       status: 'failed',
       error_code: 'network_error',
       updated_at: new Date().toISOString(),
-    }).eq('event_key', eventKey);
+    }).eq('event_key', eventKey).eq('claim_token', claimToken).eq('status', 'pending');
     return json({ error: 'Email provider could not be reached', errorCode: 'network_error' }, 502);
   }
 });

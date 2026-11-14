@@ -44,9 +44,9 @@ export default function AdminLoveWall({ setMsg }: { setMsg: (s: string) => void 
     const nextRows = data ?? [];
     setRows(nextRows);
     if (nextRows.length) {
-      const { data: mrows } = await supabase.from('love_wall_media')
-        .select('id,post_id,path,kind,sort').in('post_id', nextRows.map(x => x.id)).order('sort');
-      const mlist = (mrows ?? []) as { id: string; post_id: string; path: string; kind: string; sort: number }[];
+      const { data: mrows } = await supabase.rpc('love_wall_media_for_posts' as any, { p_post_ids: nextRows.map(x => x.id) });
+      const mlist = ((mrows ?? []) as { id: string; post_id: string; path: string | null; kind: string; sort: number }[])
+        .filter((row): row is typeof row & { path: string } => typeof row.path === 'string' && row.path.length > 0);
       if (mlist.length) {
         const signed = await getSignedUrls('media', mlist.map(m => m.path)).catch(() => ({} as Record<string, string>));
         const grouped: Record<string, { id: string; path: string; kind: string; url?: string }[]> = {};

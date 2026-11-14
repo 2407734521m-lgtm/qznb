@@ -40,7 +40,7 @@ assert(!/\.app-bg(?:\.qz-ios26-backdrop)?\s*\{[^}]*background(?:-image)?\s*:[^;]
 assert(wallpaper.includes("return { src: '#ffffff', kind: 'grad', blur: 0, dark: 0 };"), 'fresh installs must use a white default canvas');
 assert(wallpaper.includes("return { src: 'default', kind: 'img', blur: 0, dark: 0 };"), 'an explicitly saved default wallpaper must be restored');
 assert(app.includes('className="app-bg qz-ios26-backdrop"') && app.includes('filter: `blur(${wp.blur}px) brightness(${100 - wp.dark}%)`'), 'the app must retain dynamic wallpaper and filter bindings');
-assert(home.includes('className="vh-load-state"') && home.includes('className="vh-load-error"'), 'the homepage must expose loading and error states');
+assert((home.includes('className="vh-load-state"') || home.includes('FeedSkeleton')) && home.includes('className="vh-load-error"'), 'the homepage must expose loading and error states');
 assert(home.includes('setReloadKey(value => value + 1)'), 'the homepage error state must offer a retry action');
 assert(home.includes('<Link') && homeCss.includes('.vh-hero:focus-visible') && homeCss.includes('.vh-feed-row:focus-visible'), 'homepage navigation links must have visible keyboard focus');
 assert(/body:has\(\.vibe-home\)\s*\{[^}]*background:\s*#ffffff\s*!important/s.test(homeCss), 'the homepage canvas must stay white');

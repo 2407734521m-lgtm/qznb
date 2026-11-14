@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { motion, useReducedMotion, useScroll, useTransform } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import VisitCounter from '../components/VisitCounter';
+import { FeedSkeleton } from '../components/fx/Skeleton';
 import { useSignedUrls } from '../lib/media';
 import { isInApp } from '../lib/installedApp';
 import './Home.vibe.css';
@@ -135,12 +136,7 @@ export default function Home() {
     <div className="page vibe-home">
 
 
-        {loading && (
-          <div className="vh-load-state" role="status" aria-live="polite">
-            <span className="vh-load-spinner" aria-hidden="true" />
-            首页内容正在加载…
-          </div>
-        )}
+        {loading && <FeedSkeleton count={3} />}
         {loadError && (
           <div className="vh-load-error" role="alert">
             <span>{loadError}</span>

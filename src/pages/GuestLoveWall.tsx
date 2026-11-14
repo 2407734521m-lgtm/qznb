@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { getSignedUrls } from '../lib/media';
+import { FeedSkeleton } from '../components/fx/Skeleton';
 
 type GuestPost = {
   id: string;
@@ -113,7 +114,7 @@ export default function GuestLoveWall({ onLoginRequired }: { onLoginRequired: ()
         }}>登录后参与</button>
       </div>
 
-      {loading && <div style={{ padding: 26, textAlign: 'center', color: '#87909d' }}>正在加载公开内容…</div>}
+      {loading && <FeedSkeleton count={2} />}
       {!loading && error && (
         <div role="status" style={{ padding: 22, borderRadius: 16, background: '#fff', border: '1px solid #e9ebf0', color: '#697386', textAlign: 'center' }}>
           <p style={{ margin: '0 0 12px' }}>{error}</p>

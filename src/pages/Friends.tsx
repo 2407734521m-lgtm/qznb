@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../auth';
 import { useSignedUrl } from '../lib/media';
+import { RowSkeleton } from '../components/fx/Skeleton';
 import { confirmDialog } from '../lib/dialog';
 
 type Friend = {
@@ -771,9 +772,9 @@ export default function Friends() {
         <>
           {tab === 'messages' && (
             <div className="im-inbox-list">
-              {filteredConversations.length === 0 ? (
+              {loading ? <RowSkeleton count={4} /> : filteredConversations.length === 0 ? (
                 <div className="im-inbox-empty">
-                  <div className="im-inbox-empty-title">{loading ? '正在加载消息…' : '还没有聊天记录'}</div>
+                  <div className="im-inbox-empty-title">还没有聊天记录</div>
                   <div className="im-inbox-empty-copy">和好友开启一次对话，最近消息会自动显示在这里。</div>
                   <button type="button" className="im-inbox-primary" onClick={() => setTab('friends')}>选择好友开始聊天</button>
                 </div>
@@ -882,7 +883,7 @@ export default function Friends() {
             <span className="im-notification-count">{unreadNotificationCount ? unreadNotificationCount + ' 条未读' : '已全部读完'}</span>
           </div>
           {notificationActionError && <p className="im-inbox-message" role="alert">{notificationActionError}</p>}
-          {notificationsLoading && <div className="im-inbox-empty" role="status">正在加载消息…</div>}
+          {notificationsLoading && <RowSkeleton count={3} />}
           {!notificationsLoading && notificationsError && (
             <div className="im-inbox-empty">
               <div className="im-inbox-empty-title">消息暂时无法显示</div>

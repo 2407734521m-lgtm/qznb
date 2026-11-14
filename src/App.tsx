@@ -18,7 +18,7 @@ import { useQuietHoursActive } from './lib/userPreferences';
 import WallpaperOnboarding from './components/WallpaperOnboarding';
 import BlurText from './components/fx/BlurText';
 import ShinyText from './components/fx/ShinyText';
-import FxLoader from './components/fx/Loader';
+import { PageSkeleton } from './components/fx/Skeleton';
 import WelcomeOverlay from './components/WelcomeOverlay';
 import GuideCarousel from './components/GuideCarousel';
 import AppUpdateDialog from './components/AppUpdateDialog';
@@ -923,7 +923,7 @@ function Shell() {
 
   async function logout() { await supabase.auth.signOut({ scope: 'local' }); }
 
-  if (loading) return <div className="center"><FxLoader text="加载中…" /></div>;
+  if (loading) return <PageSkeleton />;
   if (!session && isAdminPage) return (<><div className="glow" /><div style={{ position: 'fixed', inset: 0, background: '#fff' }} /><div style={{ position: 'relative' }}><AdminLogin /></div></>);
   // 从重置密码邮件回来：优先显示设置新密码页。
   if (pwReset) return (<><div className="glow" /><ResetPassword onDone={() => {
@@ -931,7 +931,7 @@ function Shell() {
     try { window.history.replaceState(null, '', window.location.pathname + window.location.hash); } catch {}
   }} /></>);
   if (!session && guest) {
-    if (siteConfigLoading) return <div className="center" style={{ minHeight: '60vh' }}><FxLoader text="正在加载公开内容…" /></div>;
+    if (siteConfigLoading) return <PageSkeleton />;
     if (siteConfig?.maintenance === 'true' && !maintenanceAccess) return <MaintenanceScreen title={siteConfig.maintenance_title || ''} msg={siteConfig.maintenance_msg || ''} hasSession={false} onLogout={() => { leaveGuest(); }} onAccessGranted={() => setMaintenanceAccess(true)} />;
     return <GuestBrowse
       nickname={guest.nickname}
@@ -947,10 +947,10 @@ function Shell() {
     />;
   }
   if (!session) {
-    if (siteConfigLoading) return <div className="center" style={{ minHeight: '60vh' }}><FxLoader text="正在加载公开内容…" /></div>;
+    if (siteConfigLoading) return <PageSkeleton />;
     if (siteConfig?.maintenance === 'true' && !maintenanceAccess) return <MaintenanceScreen title={siteConfig.maintenance_title || ''} msg={siteConfig.maintenance_msg || ''} hasSession={false} onLogout={logout} onAccessGranted={() => setMaintenanceAccess(true)} />;
     if (siteConfig?.guest_browse_available === true && !guestAutoEntryStarted.current) {
-      return <div className="center" style={{ minHeight: '60vh' }}><FxLoader text="正在进入公开浏览…" /></div>;
+      return <PageSkeleton />;
     }
     const showGuestEntry = siteConfig?.guest_browse_available === true && siteConfig?.guest_entry_visible === true;
     const openGuestEntry = () => setGuestEntryOpen(true);

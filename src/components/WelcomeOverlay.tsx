@@ -76,7 +76,7 @@ export default function WelcomeOverlay({ nick, onDone }: { nick: string; onDone:
         {step === 'welcome' ? <>
           <div style={{ fontSize: 11, letterSpacing: 4, color: '#aabfe8', marginBottom: 12 }}>SCHOOL · CLASS MEMORY</div>
           <h1 style={{ fontSize: 25, lineHeight: 1.4, margin: '0 0 8px', fontWeight: 750 }}>四川省平昌中学</h1>
-          <div style={{ color: '#d4dced', fontSize: 15 }}>{BRAND_NAME} · {BRAND_SUBTITLE}</div>
+          <div style={{ color: '#d4dced', fontSize: 15 }}>{BRAND_NAME} — {BRAND_SUBTITLE}</div>
           <p style={{ color: '#aeb8cc', fontSize: 14, lineHeight: 1.8, margin: '22px 0 24px' }}>
             {nick ? `欢迎回来，${nick}` : '欢迎来到我们的班级档案'}<br />我们会帮助你更好地管理个人资料与隐私。
           </p>

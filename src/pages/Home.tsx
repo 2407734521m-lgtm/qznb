@@ -245,10 +245,6 @@ export default function Home() {
         {loading ? (showWallLoading ? <div className="vh-load-state"><InlineLoading label="帖子加载中…" /></div> : null) : bothEmpty ? (
           <div className="vh-wall-empty">
             <p>还没有内容，去表白墙或动态发第一条吧。</p>
-            <div className="vh-wall-actions vh-wall-empty-actions">
-              <button type="button" className="vh-wall-compose-primary" onClick={() => nav('/love-wall')}>去表白墙</button>
-              <button type="button" className="vh-wall-compose" onClick={() => nav('/feed')}>去动态</button>
-            </div>
           </div>
         ) : visibleItems.length === 0 ? (
           <div className="vh-wall-empty">

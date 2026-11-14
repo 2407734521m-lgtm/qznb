@@ -60,6 +60,7 @@ function MusicIsland() {
   const isMusicPage = location.pathname === '/music';
   const inQianzhiApp = typeof navigator !== 'undefined' && /QianzhiApp\//i.test(navigator.userAgent);
   const [openedOnce, setOpenedOnce] = useState(false);
+  const [frameForeground, setFrameForeground] = useState(isMusicPage);
   const [frameLoaded, setFrameLoaded] = useState(false);
   const [connected, setConnected] = useState(false);
   const [showFallback, setShowFallback] = useState(false);
@@ -73,6 +74,7 @@ function MusicIsland() {
   useEffect(() => {
     if (isMusicPage) {
       setOpenedOnce(true);
+      setFrameForeground(true);
       setExpanded(false);
     }
   }, [isMusicPage]);
@@ -205,9 +207,12 @@ function MusicIsland() {
             height: '100dvh',
             // Keep the music surface above the destination route until its fade-out finishes.
             // The iframe stays mounted and transparent/non-interactive while hidden.
-            zIndex: 1000,
+            zIndex: frameForeground ? 1000 : 1,
             pointerEvents: isMusicPage ? 'auto' : 'none',
             overflow: 'hidden',
+          }}
+          onAnimationComplete={() => {
+            if (!isMusicPage) setFrameForeground(false);
           }}
           aria-hidden={!isMusicPage}
         >
@@ -262,16 +267,18 @@ function MusicIsland() {
             transition={reduceMotion
               ? { duration: 0 }
               : {
-                  opacity: { duration: 0.26, ease: [0.22, 1, 0.36, 1], delay: 0.06 },
-                  y: { duration: 0.38, ease: [0.22, 1, 0.36, 1], delay: 0.06 },
-                  scale: { duration: 0.38, ease: [0.22, 1, 0.36, 1], delay: 0.06 },
+                  opacity: { duration: 0.22, ease: [0.16, 1, 0.3, 1], delay: 0.08 },
+                  y: { duration: 0.42, ease: [0.16, 1, 0.3, 1], delay: 0.04 },
+                  scale: { duration: 0.42, ease: [0.16, 1, 0.3, 1], delay: 0.04 },
                 } }
           >
-            <AnimatePresence mode="wait" initial={false}>
+            <AnimatePresence mode="sync" initial={false}>
               {expanded ? (
                 <motion.section
                   key="expanded"
                   className="qz-music-island qz-music-island-expanded"
+                  layoutId="qz-music-island-shell"
+                  transition={{ layout: { duration: reduceMotion ? 0 : 0.34, ease: [0.16, 1, 0.3, 1] } }}
                   initial={reduceMotion ? false : { opacity: 0, y: -5, scale: 0.97 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: -4, scale: 0.98 }}
@@ -286,9 +293,9 @@ function MusicIsland() {
                   </div>
                   <button type="button" className="qz-music-island-track" onClick={() => navigate('/music')}>
                     {track.coverUrl ? (
-                      <img className="qz-music-island-cover" src={track.coverUrl} alt="" />
+                      <motion.img layoutId="qz-music-island-cover" className="qz-music-island-cover" src={track.coverUrl} alt="" />
                     ) : (
-                      <span className="qz-music-island-cover qz-music-island-cover-fallback" aria-hidden="true">♫</span>
+                      <motion.span layoutId="qz-music-island-cover" className="qz-music-island-cover qz-music-island-cover-fallback" aria-hidden="true">♫</motion.span>
                     )}
                     <span className="qz-music-island-track-copy">
                       <strong>{track.title}</strong>
@@ -338,6 +345,8 @@ function MusicIsland() {
                 <motion.div
                   key="collapsed"
                   className="qz-music-island qz-music-island-collapsed"
+                  layoutId="qz-music-island-shell"
+                  transition={{ layout: { duration: reduceMotion ? 0 : 0.34, ease: [0.16, 1, 0.3, 1] } }}
                   initial={false}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.96 }}
@@ -349,9 +358,9 @@ function MusicIsland() {
                     aria-label={'展开播放器：' + track.title}
                   >
                     {track.coverUrl ? (
-                      <img className="qz-music-island-mini-cover" src={track.coverUrl} alt="" />
+                      <motion.img layoutId="qz-music-island-cover" className="qz-music-island-mini-cover" src={track.coverUrl} alt="" />
                     ) : (
-                      <span className="qz-music-island-mini-cover qz-music-island-cover-fallback" aria-hidden="true">♫</span>
+                      <motion.span layoutId="qz-music-island-cover" className="qz-music-island-mini-cover qz-music-island-cover-fallback" aria-hidden="true">♫</motion.span>
                     )}
                     <span className="qz-music-island-mini-title">{track.title}</span>
                     <span className={'qz-music-equalizer ' + (track.isPlaying ? 'is-playing' : '')} aria-hidden="true"><i /><i /><i /><i /></span>

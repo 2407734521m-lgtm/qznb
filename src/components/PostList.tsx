@@ -11,6 +11,7 @@ import type { FeedPost as Post, FeedComment as Cmt } from '../types/content';
 import { confirmDialog, alertDialog, promptDialog } from '../lib/dialog';
 import { toast } from 'sonner';
 import BlurImg from './fx/BlurImg';
+import ShimmerButton from './fx/ShimmerButton';
 import SmoothProgress from './fx/SmoothProgress';
 import { FeedSkeleton } from './fx/Skeleton';
 
@@ -504,8 +505,8 @@ export default function PostList({ section, searchQuery = '', embedded = false, 
           <button className="ghost" onClick={() => fref.current?.click()}>{img ? (isFeed ? '重新选图' : '已选图片 ✓') : '＋ 图片'}</button>
           <input ref={fref} type="file" accept="image/*" hidden onChange={e => setImg(e.target.files?.[0] ?? null)} />
           <div className="sp" style={{ flex: 1 }} />
-          <button className="pri" style={{ width: 'auto', padding: '10px 28px' }} disabled={busy} onClick={publish}>
-            {busy ? '发布中…' : '发布'}</button>
+          <ShimmerButton style={{ width: 'auto', padding: '10px 28px' }} disabled={busy} onClick={publish}>
+            {busy ? '发布中…' : '发布'}</ShimmerButton>
         </div>
         {isFeed && img && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8, fontSize: 12.5, color: '#5b6472' }}>

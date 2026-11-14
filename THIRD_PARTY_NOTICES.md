@@ -2,13 +2,16 @@
 
 This file records third-party code and design references used by the administrator workspace.
 
-## Magic UI — NumberTicker
+## Magic UI — NumberTicker / Marquee / ShimmerButton
 
 - Repository: https://github.com/magicuidesign/magicui
-- Adapted source: `apps/www/registry/magicui/number-ticker.tsx`
-- Local adaptation: `src/components/admin/AdminNumberTicker.tsx`
-- License: MIT
-- Changes: adapted to the existing React + Framer Motion dependency, Chinese number formatting, local reduced-motion preference, and qznb visual styles.
+- Adapted sources: `apps/www/registry/magicui/number-ticker.tsx`, `apps/www/registry/magicui/marquee.tsx`, `apps/www/registry/magicui/shimmer-button.tsx`
+- Local adaptations:
+  - `src/components/fx/NumberTicker.tsx` — shared number ticker (framer-motion spring, zh-CN formatting, reduced-motion jumps straight to the final value); `src/components/admin/AdminNumberTicker.tsx` is only a thin wrapper around it, keeping the admin `admin-number-ticker` class.
+  - `src/components/fx/Marquee.tsx` + `src/components/fx/fx.css` — marquee rewritten in site CSS (repeated content, CSS translate loop, pause on hover, reduced-motion stops the animation and keeps a single scrollable copy).
+  - `src/components/fx/ShimmerButton.tsx` + `src/components/fx/fx.css` — shimmer button rewritten in site CSS (button face reuses the site primary-button gradient; a conic-gradient light travels around the border; reduced-motion and disabled states stop the shimmer). Used only on the primary publish button in the shared composer (`src/components/PostList.tsx`, serving Feed / Daily).
+- License: MIT (full text below)
+- Changes: adapted to the existing React + Framer Motion dependency, Chinese number formatting, local reduced-motion preference, and qznb visual styles (cold-white paper tokens: #f7f8f8 / #ffffff / #1f2a3a / #7a8894 / #e5e8ea / #b0404f). No Tailwind, no magicui package installed.
 
 MIT License
 

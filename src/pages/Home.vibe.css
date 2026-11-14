@@ -44,6 +44,45 @@
 }
 .vh-search-icon { color: var(--vh-accent); font-size: 18px; line-height: 1; }
 
+/* 公告快讯跑马灯条：冷白纸面（底 #f7f8f8 方向），只在有公告时出现 */
+.vh-ticker {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+  padding: 6px 10px 6px 6px;
+  border: 1px solid #e5e8ea;
+  border-radius: 12px;
+  background: #ffffff;
+  color: #1f2a3a;
+}
+.vh-ticker-label {
+  flex-shrink: 0;
+  padding: 3px 8px;
+  border-radius: 99px;
+  background: #b0404f;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .04em;
+}
+.vh-ticker .fx-marquee { flex: 1; min-width: 0; }
+.vh-ticker-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 4px;
+  border: 0;
+  background: none;
+  color: #1f2a3a;
+  font: inherit;
+  font-size: 13px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.vh-ticker-item:hover { color: #b0404f; }
+.vh-ticker-dot { color: #b0404f; font-size: 8px; }
+
 .vh-eyebrow {
   font-size: 12px;
   font-weight: 500;

@@ -82,3 +82,95 @@
   .fx-blur-in { filter: none; opacity: 1; }
   .fx-blur-in.fx-in { transition: none; }
 }
+
+/* 数字滚动：等宽数字，滚动时不左右跳（Magic UI NumberTicker 思路，自研重写） */
+.fx-number-ticker {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+/* 跑马灯：内容重复排布、整份平移循环（Magic UI Marquee 思路，自研 CSS 重写） */
+.fx-marquee {
+  --fx-marquee-gap: 1rem;
+  --fx-marquee-duration: 40s;
+  display: flex;
+  gap: var(--fx-marquee-gap);
+  overflow: hidden;
+  padding: 4px 2px;
+  min-width: 0;
+}
+.fx-marquee-copy {
+  display: flex;
+  flex-shrink: 0;
+  justify-content: space-around;
+  align-items: center;
+  gap: var(--fx-marquee-gap);
+  min-width: max-content;
+  animation: fx-marquee-move var(--fx-marquee-duration) linear infinite;
+  will-change: transform;
+}
+@keyframes fx-marquee-move {
+  from { transform: translateX(0); }
+  to { transform: translateX(calc(-100% - var(--fx-marquee-gap))); }
+}
+.fx-marquee-pause:hover .fx-marquee-copy { animation-play-state: paused; }
+
+/* 微光按钮：面沿用站内主按钮 button.pri 的渐变，一道微光沿边框匀速绕行
+   （Magic UI ShimmerButton 思路，自研 CSS 重写；只用在主按钮上） */
+.fx-shimmer-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  isolation: isolate;
+  padding: 10px 28px;
+  border: 0;
+  border-radius: var(--fx-shimmer-radius, 14px);
+  background: linear-gradient(135deg, var(--a, #287f8c), var(--b, #83d2c5));
+  color: #1c2030;
+  font: inherit;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: transform .15s, box-shadow .15s;
+}
+.fx-shimmer-btn:active { transform: scale(.98); }
+.fx-shimmer-btn:disabled { opacity: .55; cursor: not-allowed; }
+/* 旋转的锥形渐变光斑：超出按钮的部分被 overflow 裁掉，内层盖板只留出 1.5px 边框 */
+.fx-shimmer-ring {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 0;
+  width: 220%;
+  aspect-ratio: 1;
+  pointer-events: none;
+  background: conic-gradient(from 0deg, transparent 0deg, var(--fx-shimmer-color, rgba(255,255,255,.8)) 60deg, transparent 120deg, transparent 360deg);
+  animation: fx-shimmer-spin var(--fx-shimmer-duration, 3s) linear infinite;
+}
+@keyframes fx-shimmer-spin {
+  from { transform: translate(-50%, -50%) rotate(0deg); }
+  to { transform: translate(-50%, -50%) rotate(360deg); }
+}
+/* 内层盖板：与按钮面同渐变，盖住光斑，只留边框一圈微光 */
+.fx-shimmer-btn::after {
+  content: "";
+  position: absolute;
+  inset: 1.5px;
+  z-index: 1;
+  border-radius: calc(var(--fx-shimmer-radius, 14px) - 1.5px);
+  background: linear-gradient(135deg, var(--a, #287f8c), var(--b, #83d2c5));
+  pointer-events: none;
+}
+.fx-shimmer-label { position: relative; z-index: 2; }
+.fx-shimmer-btn:disabled .fx-shimmer-ring { animation: none; opacity: 0; }
+
+@media (prefers-reduced-motion: reduce) {
+  /* 跑马灯静止：只留一份内容，可横向滑动查看 */
+  .fx-marquee { overflow-x: auto; }
+  .fx-marquee-copy { animation: none; }
+  .fx-marquee-copy:not(:first-child) { display: none; }
+  /* 微光停掉：只留主按钮本身，不留静止光斑 */
+  .fx-shimmer-ring { animation: none; opacity: 0; }
+}

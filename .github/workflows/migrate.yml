@@ -17,6 +17,12 @@ permissions:
 jobs:
   migrate:
     runs-on: ubuntu-latest
+    # NOTE: SUPABASE_DB_HOST must stay on the Supavisor pooler
+    # (aws-0-<region>.pooler.supabase.com, session mode :5432) with
+    # SUPABASE_DB_USER as postgres.<project-ref>. The direct host
+    # db.<project-ref>.supabase.co is IPv6-only (no A record) and
+    # GitHub-hosted runners have no IPv6 egress, so psql fails with
+    # "Network is unreachable" before authentication.
     env:
       PGHOST: ${{ secrets.SUPABASE_DB_HOST }}
       PGPORT: ${{ secrets.SUPABASE_DB_PORT }}

@@ -33,6 +33,8 @@ type MusicSpectrumMessage = {
   version: 1;
   playing: boolean;
   available: boolean;
+  mode: 'spectrum' | 'level' | 'idle';
+  level: number;
   bands: { bass: number; lowMid: number; vocal: number; treble: number } | null;
 };
 
@@ -124,10 +126,15 @@ function MusicIsland() {
         const style = islandWrapRef.current?.style;
         if (!style) return;
         const names = ['bass', 'lowMid', 'vocal', 'treble'] as const;
+        const levelMultipliers = { bass: 0.68, lowMid: 0.86, vocal: 1, treble: 0.76 } as const;
+        const useSpectrum = spectrum.playing && spectrum.mode === 'spectrum' && spectrum.available && spectrum.bands;
+        const rmsLevel = spectrum.playing && spectrum.mode === 'level'
+          ? Math.max(0, Math.min(1, Number.isFinite(spectrum.level) ? spectrum.level : 0))
+          : 0;
         for (const name of names) {
-          const raw = spectrum.available && spectrum.playing ? spectrum.bands?.[name] : 0;
-          const energy = Number.isFinite(raw) ? Math.max(0, Math.min(1, raw as number)) : 0;
-          // A small floor keeps quiet passages visible without inventing a beat.
+          const raw = useSpectrum ? spectrum.bands[name] : rmsLevel * levelMultipliers[name];
+          const energy = Number.isFinite(raw) ? Math.max(0, Math.min(1, raw ?? 0)) : 0;
+          // Frequency mode keeps four independent bands; RMS mode moves all bars with overall loudness.
           style.setProperty(`--qz-music-eq-${name}`, String(0.12 + energy * 0.88));
         }
         return;

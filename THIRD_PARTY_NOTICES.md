@@ -159,3 +159,14 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+## Aceternity UI — 3D 倾斜卡（效果思路）
+
+- 来源：https://ui.aceternity.com（3D Card Effect；免费组件约 100+ 个，Tailwind + Motion 构建）
+- 许可：自定义许可，无公开组件仓库（组件以 copy-paste / shadcn registry 分发，无 npm 包）；免费组件可用于自己或客户的最终产品，不得转售或再分发源码。2026-11-14 按官网口径核对。
+- 本地实现（全部自写，上游代码一行没抄，无 Tailwind、无新依赖）：
+  - `src/components/fx/TiltCard.tsx` + `src/components/fx/TiltCard.css` — `useTiltCard()`：沿用站内已有的 framer-motion（MotionValue + useSpring 平滑），透视 900px、倾斜幅度仅 ±4°（原版深色大光晕 + 大幅度不适合本站，改成冷白纸面弱光晕：白色径向渐变最高 0.16 透明度）。
+  - 只在发现页第一张卡「指尖生花」试点（`src/pages/Explore.tsx`），其余卡片、Dock、点击/跳转行为一律不动。
+  - 触摸降级：只在细指针 + 可悬停设备上启用（`(hover: hover) and (pointer: fine)`），且只响应鼠标指针；触摸设备完全不倾斜、不注册触摸处理、不挡点击与滚动。
+  - 减弱动效：`prefers-reduced-motion` 时倾斜与光晕全关（组件内 `useReducedMotion` 判断 + CSS 兜底）。
+- License: 无上游代码复制，故不附上游许可全文；效果思路来源见上。

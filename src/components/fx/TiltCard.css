@@ -1,0 +1,16 @@
+/* Aceternity UI 3D 倾斜卡弱光晕：只在试点卡片内渲染。
+   pointer-events: none，绝不挡卡片点击；只改 background，不触发布局重排。
+   减弱动效时组件直接不渲染本层，本规则为兜底。 */
+.tilt-glare {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tilt-glare {
+    display: none;
+  }
+}

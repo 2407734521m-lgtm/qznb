@@ -61,7 +61,7 @@
 </div>
 <div class="wrap">
   <h1>千栀音乐下载</h1>
-  <p class="sub">隐藏页，仅供本站注册成员使用。先登录本站账号（须在网站注册过），再扫码登录网易云，登录后只读扫码那个账号自己的歌单与搜索结果，可下载的歌存为 MP3。没登录本站账号时这里什么歌都不会出现。网易云没有地址的歌会再试酷狗音乐（只下免费曲），两个源都下不了才显示“下不了”；付费、VIP、试听的歌一律显示“下不了”，不绕过。</p>
+  <p class="sub">隐藏页，仅供本站注册成员使用。先登录本站账号（须在网站注册过），再扫码登录网易云，登录后只读扫码那个账号自己的歌单与搜索结果，可下载的歌存为 MP3。没登录本站账号时这里什么歌都不会出现。付费、VIP、试听、无版权地址的歌一律显示“下不了”，不绕过。</p>
 
   <div class="card" id="siteCard">
     <h2>本站账号登录</h2>
@@ -107,7 +107,6 @@
   var currentKw = '';
   var qrTimer = null;
   var qrKey = '';
-  var resolvedSource = {}; // 歌 id -> 本次确认到的来源（netease / netease-same-track / kugou），记日志用
   // 本站账号会话：存在 localStorage，与网易云扫码登录是两道独立登录。
   var SITE_SESSION_KEY = 'qz_site_session_v1';
   var siteSession = null; // {access_token, refresh_token, expires_at, user_id, label}
@@ -192,26 +191,18 @@
   function $(id) { return document.getElementById(id); }
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function fmtDur(ms) { ms = Number(ms) || 0; var s = Math.round(ms / 1000); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); }
-  function fileName(t, ext) {
+  function fileName(t) {
     var n = (t.name + ' - ' + t.artist).replace(/[\\/:*?"<>|]/g, '').replace(/\s+/g, ' ').trim();
     if (!n) n = 'song-' + t.id;
-    return n.slice(0, 120) + '.' + (ext || 'mp3');
+    return n.slice(0, 120) + '.mp3';
   }
   function deviceLabel() { return inApp ? 'QianzhiMusicDL/1.0' : 'web'; }
 
   // 下载日志走同源代理 /api/dl/log-download，不直连 supabase.co（手机网络发不出去）。
   // site_user_id / site_username 由 Worker 从验证过的本站 token 取，不再由客户端传；
   // 先续期（快过期时）再记，失败仍静默，不影响下载本身。
-  // 日志里记下来源：网易云 / 酷狗音乐（备选源）/ 网易云+酷狗均无。
-  // 日志表没有来源列，不改表、不改 RPC，来源写进 device_label，后台记录行里能看见。
-  function sourceLabel(source) {
-    if (source === 'kugou') return '酷狗音乐';
-    if (source === 'netease+kugou') return '网易云+酷狗均无';
-    return '网易云';
-  }
-  function logDownload(t, status, fileSize, error, source) {
-    var label = deviceLabel() + (source ? ' · ' + sourceLabel(source) : '');
-    var body = { p_song_id: String(t.id), p_song_name: t.name || '', p_artist: t.artist || '', p_status: status, p_file_size: fileSize == null ? null : fileSize, p_error: error || '', p_device_label: label };
+  function logDownload(t, status, fileSize, error) {
+    var body = { p_song_id: String(t.id), p_song_name: t.name || '', p_artist: t.artist || '', p_status: status, p_file_size: fileSize == null ? null : fileSize, p_error: error || '', p_device_label: deviceLabel() };
     return ensureSiteToken().then(function () {
       var headers = { 'Content-Type': 'application/json' };
       if (siteSession && siteSession.access_token) headers['Authorization'] = 'Bearer ' + siteSession.access_token;
@@ -240,12 +231,12 @@
     var t = tracks.find(function (x) { return String(x.id) === String(songId); });
     setTrackStatus(songId, '已下载 ✓');
     setTrackProgress(songId, 100);
-    if (t) logDownload(t, 'success', Number(bytes) || null, '', resolvedSource[String(songId)] || '');
+    if (t) logDownload(t, 'success', Number(bytes) || null, '');
   };
   window.__musicdlError = function (songId, message) {
     var t = tracks.find(function (x) { return String(x.id) === String(songId); });
     setTrackStatus(songId, '下载失败：' + (message || '未知错误'));
-    if (t) logDownload(t, 'failed', null, message || 'download failed', resolvedSource[String(songId)] || '');
+    if (t) logDownload(t, 'failed', null, message || 'download failed');
   };
 
   function renderTracks(list, append) {
@@ -367,23 +358,21 @@
     if (!t) return;
     btn.disabled = true;
     setTrackStatus(id, '正在确认这首能不能下…');
-    // fallback=1：网易云明确没地址（或只有试听）时再试酷狗备选源；需要登录的歌不走备选。
-    apiFetch('/song/url?id=' + encodeURIComponent(id) + '&quality=standard&fallback=1&duration=' + encodeURIComponent(t.duration || '') + '&name=' + encodeURIComponent(t.name || '') + '&artist=' + encodeURIComponent(t.artist || ''), { credentials: 'same-origin' })
+    apiFetch('/song/url?id=' + encodeURIComponent(id) + '&quality=standard&name=' + encodeURIComponent(t.name || '') + '&artist=' + encodeURIComponent(t.artist || ''), { credentials: 'same-origin' })
       .then(function (r) { return r.json(); })
       .then(function (d) {
         if (!d || !d.url || d.playable !== true || d.trial === true) {
           var reason = (d && d.message) || '网易云没有返回这首歌的完整版地址';
           setTrackStatus(id, '下不了：' + reason);
-          logDownload(t, 'unavailable', null, reason, (d && d.fallbackTried) ? 'netease+kugou' : 'netease');
+          logDownload(t, 'unavailable', null, reason);
           btn.disabled = false;
           return;
         }
-        resolvedSource[String(t.id)] = d.source || 'netease';
-        var fname = fileName(t, d.ext);
+        var fname = fileName(t);
         if (inApp) {
           setTrackStatus(id, '请选择保存位置…');
           try { window.MusicDL.download(d.url, fname, String(t.id), t.name || '', t.artist || ''); }
-          catch (e) { setTrackStatus(id, '下载失败：' + (e && e.message)); logDownload(t, 'failed', null, String(e && e.message || e), d.source || 'netease'); }
+          catch (e) { setTrackStatus(id, '下载失败：' + (e && e.message)); logDownload(t, 'failed', null, String(e && e.message || e)); }
           btn.disabled = false;
           return;
         }
@@ -393,7 +382,7 @@
         a.href = d.url; a.download = fname; a.rel = 'noopener';
         document.body.appendChild(a); a.click(); a.remove();
         setTrackStatus(id, '已开始下载 ✓（浏览器默认文件夹）');
-        logDownload(t, 'success', null, '', d.source || 'netease');
+        logDownload(t, 'success', null, '');
         btn.disabled = false;
       })
       .catch(function (e) {

@@ -163,7 +163,8 @@ function AdminShell() {
       });
     return () => { live = false; };
   }, []);
-  // Keep AdminLogin mounted while the password session's administrator role lookup is pending.
+  // Keep AdminLogin mounted while the password + secondary PIN flow is pending.
+  // The DB returns a restricted role until the current Supabase session verifies its PIN.
   if (loading) return <DelayedPageSkeleton />;
   const isAdmin = Boolean(session) && (role === 'admin' || role === 'super_admin');
   const adminApp = detectInstalledAdminApp();

@@ -40,7 +40,7 @@ if (!overlays.includes(importLine)) {
   overlays = replaceOnce(overlays, importAnchor, importAnchor + '\n' + importLine, 'AppOverlays bridge import');
 }
 const renderAnchor = '        <>\n            {searchOverlay && <SearchWorkspace {...searchOverlay} />}';
-const renderReplacement = '        <>\n            <QianzhiEmbedBridge model={model} />\n            {searchOverlay && <SearchWorkspace {...searchOverlay} />';
+const renderReplacement = '        <>\n            <QianzhiEmbedBridge model={model} />\n            {searchOverlay && <SearchWorkspace {...searchOverlay} />}';
 overlays = replaceOnce(overlays, renderAnchor, renderReplacement, 'AppOverlays bridge mount');
 await fs.writeFile(overlaysPath, overlays, 'utf8');
 

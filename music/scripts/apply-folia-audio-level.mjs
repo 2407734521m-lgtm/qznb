@@ -65,8 +65,10 @@ await patchFile('src/components/app/playback/bridges/usePlaybackVisualizerBridge
                 sumSquares += sample * sample;
             }
             const rms = Math.sqrt(sumSquares / waveformData.length);
-            const normalizedRms = Math.min(1, Math.pow(Math.max(0, rms - 0.003) * 4.5, 0.72));
-            audioLevel.set(normalizedRms);`,
+            const normalizedRms = Math.min(1, Math.pow(Math.max(0, rms - 0.0015) * 6, 0.65));
+            const previousLevel = audioLevel.get();
+            const levelSmoothing = normalizedRms > previousLevel ? 0.55 : 0.2;
+            audioLevel.set(previousLevel + (normalizedRms - previousLevel) * levelSmoothing);`,
     'waveform RMS sampling',
   );
 

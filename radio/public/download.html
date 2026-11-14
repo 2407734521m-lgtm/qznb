@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>千栀音乐下载</title>
+<style>
+  :root { --paper:#fffdf9; --ink:#22314a; --seal:#b0404f; --mut:#7a6f5d; --line:#e8dfc9; --card:#ffffff; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--paper); color:var(--ink); font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif; }
+  .wrap { max-width:640px; margin:0 auto; padding:18px 16px 48px; }
+  h1 { font-size:20px; margin:4px 0 2px; }
+  .sub { color:var(--mut); font-size:13px; line-height:1.6; margin:0 0 14px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:14px; margin-bottom:12px; }
+  .card h2 { font-size:15px; margin:0 0 8px; }
+  .mut { color:var(--mut); font-size:12.5px; line-height:1.6; }
+  .btn { display:inline-block; border:0; border-radius:999px; background:var(--ink); color:#fff; font-size:14px; padding:9px 18px; cursor:pointer; }
+  .btn.ghost { background:#fff; color:var(--ink); border:1px solid var(--line); }
+  .btn.seal { background:var(--seal); }
+  .btn:disabled { opacity:.45; cursor:default; }
+  .row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  input[type=text] { flex:1; min-width:140px; border:1px solid var(--line); border-radius:999px; padding:9px 14px; font-size:14px; background:#fff; color:var(--ink); }
+  #qrImg { width:200px; height:200px; display:block; margin:10px auto; border:1px solid var(--line); border-radius:8px; background:#fff; }
+  .userline { display:flex; gap:10px; align-items:center; }
+  .userline img { width:44px; height:44px; border-radius:50%; object-fit:cover; background:#f3ead6; }
+  .track { display:flex; gap:10px; align-items:center; padding:10px 2px; border-top:1px solid #f1e8d5; }
+  .track:first-of-type { border-top:0; }
+  .tinfo { flex:1; min-width:0; }
+  .tname { font-size:14px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .tmeta { font-size:12px; color:var(--mut); margin-top:2px; }
+  .tstat { font-size:12px; color:var(--seal); margin-top:2px; min-height:15px; }
+  .prog { height:5px; background:#f1e8d5; border-radius:99px; overflow:hidden; margin-top:4px; display:none; }
+  .prog > i { display:block; height:100%; width:0; background:var(--seal); }
+  .dlbtn { flex:none; border:1px solid var(--ink); background:#fff; color:var(--ink); border-radius:999px; padding:7px 13px; font-size:13px; cursor:pointer; }
+  .dlbtn:disabled { opacity:.45; cursor:default; }
+  .notice { background:#fdf3ef; border:1px solid #f0d4cd; color:#7c2d38; border-radius:12px; padding:10px 12px; font-size:12.5px; line-height:1.7; }
+  .pill { display:inline-block; font-size:11px; border:1px solid var(--line); border-radius:99px; padding:2px 8px; color:var(--mut); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>千栀音乐下载</h1>
+  <p class="sub">隐藏页，仅供本人使用。扫码登录网易云后，读取歌单与搜索结果，可下载的歌存为 MP3。付费、VIP、试听、无版权地址的歌一律显示“下不了”，不绕过。</p>
+
+  <div class="card" id="loginCard">
+    <h2>网易云登录</h2>
+    <div id="loginBox"><p class="mut">正在检查登录状态…</p></div>
+  </div>
+
+  <div class="card">
+    <h2 id="plTitle">我喜欢的音乐</h2>
+    <div class="row">
+      <input type="text" id="kw" placeholder="搜歌名 / 歌手" autocomplete="off">
+      <button class="btn" id="searchBtn" type="button">搜索</button>
+      <button class="btn ghost" id="favBtn" type="button">我的歌单</button>
+    </div>
+    <p class="mut" id="listMeta" style="margin:10px 0 4px;"></p>
+    <div id="tracks"></div>
+    <div class="row" style="margin-top:10px;">
+      <button class="btn ghost" id="moreBtn" type="button" style="display:none;">加载更多</button>
+    </div>
+  </div>
+
+  <div class="notice">说明：在「千栀音乐下载」App 里点下载，会弹出系统文件选择器，你自己选保存位置和文件名；直接用浏览器打开本页下载，只能存到浏览器默认下载文件夹。每次下载（成功 / 失败 / 下不了）都会记一条记录，网站后台「音乐下载记录」里能看见。</div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  var API = '';
+  var SUPABASE_URL = 'https://ldypnxxxgscibopgiaso.supabase.co';
+  var SUPABASE_ANON_KEY = 'sb_publishable_BRt1PSH8umGRsfKE-0BDiw_H5IUUWKr';
+  var PLAYLIST_ID = '8288383507';
+  var inApp = !!(window.MusicDL && window.MusicDL.download);
+  var tracks = [];
+  var mode = 'fav';
+  var offset = 0;
+  var hasMore = false;
+  var currentKw = '';
+  var qrTimer = null;
+  var qrKey = '';
+
+  function $(id) { return document.getElementById(id); }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function fmtDur(ms) { ms = Number(ms) || 0; var s = Math.round(ms / 1000); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); }
+  function fileName(t) {
+    var n = (t.name + ' - ' + t.artist).replace(/[\\/:*?"<>|]/g, '').replace(/\s+/g, ' ').trim();
+    if (!n) n = 'song-' + t.id;
+    return n.slice(0, 120) + '.mp3';
+  }
+  function deviceLabel() { return inApp ? 'QianzhiMusicDL/1.0' : 'web'; }
+
+  function logDownload(t, status, fileSize, error) {
+    var body = { p_song_id: String(t.id), p_song_name: t.name || '', p_artist: t.artist || '', p_status: status, p_file_size: fileSize == null ? null : fileSize, p_error: error || '', p_device_label: deviceLabel() };
+    return fetch(SUPABASE_URL + '/rest/v1/rpc/log_music_download', {
+      method: 'POST',
+      headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + SUPABASE_ANON_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    }).catch(function () { /* 记录失败不影响下载本身 */ });
+  }
+
+  function setTrackStatus(id, text) {
+    var el = document.querySelector('[data-stat="' + id + '"]');
+    if (el) el.textContent = text || '';
+  }
+  function setTrackProgress(id, pct) {
+    var bar = document.querySelector('[data-prog="' + id + '"]');
+    if (!bar) return;
+    bar.style.display = 'block';
+    bar.firstElementChild.style.width = Math.max(0, Math.min(100, pct)) + '%';
+  }
+
+  // 原生 App 回调：下载进度 / 完成 / 失败
+  window.__musicdlProgress = function (songId, pct) { setTrackProgress(String(songId), Number(pct) || 0); };
+  window.__musicdlDone = function (songId, bytes) {
+    var t = tracks.find(function (x) { return String(x.id) === String(songId); });
+    setTrackStatus(songId, '已下载 ✓');
+    setTrackProgress(songId, 100);
+    if (t) logDownload(t, 'success', Number(bytes) || null, '');
+  };
+  window.__musicdlError = function (songId, message) {
+    var t = tracks.find(function (x) { return String(x.id) === String(songId); });
+    setTrackStatus(songId, '下载失败：' + (message || '未知错误'));
+    if (t) logDownload(t, 'failed', null, message || 'download failed');
+  };
+
+  function renderTracks(list, append) {
+    var box = $('tracks');
+    if (!append) box.innerHTML = '';
+    list.forEach(function (t) {
+      var div = document.createElement('div');
+      div.className = 'track';
+      div.innerHTML = '<div class="tinfo"><div class="tname">' + esc(t.name) + '</div>' +
+        '<div class="tmeta">' + esc(t.artist || '') + ' · ' + fmtDur(t.duration) + (t.album ? ' · ' + esc(t.album) : '') + '</div>' +
+        '<div class="tstat" data-stat="' + esc(t.id) + '"></div>' +
+        '<div class="prog" data-prog="' + esc(t.id) + '"><i></i></div></div>' +
+        '<button class="dlbtn" type="button" data-dl="' + esc(t.id) + '">下载 MP3</button>';
+      box.appendChild(div);
+    });
+    box.querySelectorAll('[data-dl]').forEach(function (btn) {
+      btn.addEventListener('click', function () { downloadTrack(btn.getAttribute('data-dl'), btn); });
+    });
+  }
+
+  function loadFav(reset) {
+    mode = 'fav';
+    if (reset) { offset = 0; tracks = []; }
+    $('listMeta').textContent = '正在读取歌单…';
+    fetch(API + '/api/playlist/tracks?id=' + PLAYLIST_ID + '&limit=200&offset=' + offset, { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        var list = d.tracks || [];
+        if (reset) tracks = list; else tracks = tracks.concat(list);
+        $('plTitle').textContent = (d.playlist && d.playlist.name) || '我喜欢的音乐';
+        $('listMeta').textContent = '共 ' + (d.total || tracks.length) + ' 首，已加载 ' + tracks.length + ' 首' + (inApp ? '' : '（浏览器里下载只能存默认文件夹）');
+        renderTracks(list, !reset);
+        hasMore = !!d.hasMore;
+        offset = d.nextOffset || (offset + list.length);
+        $('moreBtn').style.display = hasMore ? '' : 'none';
+      })
+      .catch(function () { $('listMeta').textContent = '歌单读取失败，检查网络后重试。'; });
+  }
+
+  function doSearch() {
+    var kw = $('kw').value.trim();
+    if (!kw) { loadFav(true); return; }
+    mode = 'search'; currentKw = kw; offset = 0; tracks = [];
+    $('listMeta').textContent = '正在搜索「' + kw + '」…';
+    fetch(API + '/api/search?keywords=' + encodeURIComponent(kw) + '&limit=30', { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        tracks = d.songs || [];
+        $('plTitle').textContent = '搜索：' + kw;
+        $('listMeta').textContent = '找到 ' + tracks.length + ' 首';
+        renderTracks(tracks, false);
+        $('moreBtn').style.display = 'none';
+      })
+      .catch(function () { $('listMeta').textContent = '搜索失败，检查网络后重试。'; });
+  }
+
+  function downloadTrack(id, btn) {
+    var t = tracks.find(function (x) { return String(x.id) === String(id); });
+    if (!t) return;
+    btn.disabled = true;
+    setTrackStatus(id, '正在确认这首能不能下…');
+    fetch(API + '/api/song/url?id=' + encodeURIComponent(id) + '&quality=standard&name=' + encodeURIComponent(t.name || '') + '&artist=' + encodeURIComponent(t.artist || ''), { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (!d || !d.url || d.playable !== true || d.trial === true) {
+          var reason = (d && d.message) || '网易云没有返回这首歌的完整版地址';
+          setTrackStatus(id, '下不了：' + reason);
+          logDownload(t, 'unavailable', null, reason);
+          btn.disabled = false;
+          return;
+        }
+        var fname = fileName(t);
+        if (inApp) {
+          setTrackStatus(id, '请选择保存位置…');
+          try { window.MusicDL.download(d.url, fname, String(t.id), t.name || '', t.artist || ''); }
+          catch (e) { setTrackStatus(id, '下载失败：' + (e && e.message)); logDownload(t, 'failed', null, String(e && e.message || e)); }
+          btn.disabled = false;
+          return;
+        }
+        // 浏览器兜底：直接下到默认下载文件夹
+        setTrackStatus(id, '正在下载到浏览器默认文件夹…');
+        var a = document.createElement('a');
+        a.href = d.url; a.download = fname; a.rel = 'noopener';
+        document.body.appendChild(a); a.click(); a.remove();
+        setTrackStatus(id, '已开始下载 ✓（浏览器默认文件夹）');
+        logDownload(t, 'success', null, '');
+        btn.disabled = false;
+      })
+      .catch(function (e) {
+        setTrackStatus(id, '确认失败：' + (e && e.message || '网络错误'));
+        logDownload(t, 'failed', null, String(e && e.message || e));
+        btn.disabled = false;
+      });
+  }
+
+  function showLoggedIn(info) {
+    var box = $('loginBox');
+    var av = info.avatar ? '<img src="' + esc(info.avatar) + '" alt="">' : '';
+    box.innerHTML = '<div class="userline">' + av + '<div><div style="font-weight:700;">' + esc(info.nickname || '网易云用户') + '</div>' +
+      '<div class="mut">' + esc(info.vipLabel || '') + ' · 已登录</div></div></div>' +
+      '<div class="row" style="margin-top:10px;"><button class="btn ghost" id="logoutBtn" type="button">退出登录</button></div>';
+    $('logoutBtn').addEventListener('click', function () {
+      fetch(API + '/api/logout', { credentials: 'same-origin' }).finally(checkLogin);
+    });
+  }
+
+  function startQr() {
+    var box = $('loginBox');
+    box.innerHTML = '<p class="mut">正在生成二维码…</p>';
+    fetch(API + '/api/login/qr/key', { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (!d.key) throw new Error('取不到 key');
+        qrKey = d.key;
+        return fetch(API + '/api/login/qr/create?key=' + encodeURIComponent(qrKey), { credentials: 'same-origin' }).then(function (r) { return r.json(); });
+      })
+      .then(function (d) {
+        if (!d.img) throw new Error('取不到二维码');
+        $('loginBox').innerHTML = '<p class="mut" style="text-align:center;">用网易云音乐 App 扫码登录</p>' +
+          '<img id="qrImg" src="' + esc(d.img) + '" alt="扫码登录二维码">' +
+          '<p class="mut" id="qrStat" style="text-align:center;">等待扫码…</p>' +
+          '<div class="row" style="justify-content:center;"><button class="btn ghost" id="qrRefresh" type="button">换一张二维码</button></div>';
+        $('qrRefresh').addEventListener('click', function () { stopQr(); startQr(); });
+        qrTimer = setInterval(function () {
+          fetch(API + '/api/login/qr/check?key=' + encodeURIComponent(qrKey), { credentials: 'same-origin' })
+            .then(function (r) { return r.json(); })
+            .then(function (c) {
+              var st = $('qrStat');
+              if (!st) return;
+              if (c.code === 803) { stopQr(); checkLogin(); loadFav(true); }
+              else if (c.code === 802) st.textContent = '已扫码，手机上点确认登录…';
+              else if (c.code === 801) st.textContent = '等待扫码…';
+              else if (c.code === 800) { st.textContent = '二维码过期了，正在换一张…'; stopQr(); startQr(); }
+              else st.textContent = c.message || '等待扫码…';
+            })
+            .catch(function () { /* 下一轮继续查 */ });
+        }, 2000);
+      })
+      .catch(function () {
+        box.innerHTML = '<p class="mut">二维码生成失败，检查网络后重试。</p><button class="btn" id="qrRetry" type="button">重试</button>';
+        $('qrRetry').addEventListener('click', startQr);
+      });
+  }
+  function stopQr() { if (qrTimer) { clearInterval(qrTimer); qrTimer = null; } }
+
+  function checkLogin() {
+    fetch(API + '/api/login/status', { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (info) {
+        if (info && info.loggedIn) { showLoggedIn(info); }
+        else {
+          $('loginBox').innerHTML = '<p class="mut">未登录。登录后才能读你的歌单、拿到可下载的歌。</p><button class="btn" id="qrBtn" type="button">扫码登录</button>';
+          $('qrBtn').addEventListener('click', startQr);
+        }
+      })
+      .catch(function () {
+        $('loginBox').innerHTML = '<p class="mut">登录状态检查失败，检查网络后刷新页面重试。</p>';
+      });
+  }
+
+  $('searchBtn').addEventListener('click', doSearch);
+  $('kw').addEventListener('keydown', function (e) { if (e.key === 'Enter') doSearch(); });
+  $('favBtn').addEventListener('click', function () { loadFav(true); });
+  $('moreBtn').addEventListener('click', function () { loadFav(false); });
+
+  checkLogin();
+  loadFav(true);
+})();
+</script>
+</body>
+</html>

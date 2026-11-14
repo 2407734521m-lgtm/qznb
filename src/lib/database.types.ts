@@ -845,6 +845,43 @@ export type Database = {
         Relationships: [
         ]
       }
+      music_download_logs: {
+        Row: {
+          id: number
+          created_at: string
+          song_id: string
+          song_name: string
+          artist: string
+          status: string
+          file_size: number | null
+          error: string | null
+          device_label: string
+        }
+        Insert: {
+          id?: number
+          created_at?: string
+          song_id: string
+          song_name?: string
+          artist?: string
+          status: string
+          file_size?: number | null
+          error?: string | null
+          device_label?: string
+        }
+        Update: {
+          id?: number
+          created_at?: string
+          song_id?: string
+          song_name?: string
+          artist?: string
+          status?: string
+          file_size?: number | null
+          error?: string | null
+          device_label?: string
+        }
+        Relationships: [
+        ]
+      }
       invite_codes: {
         Row: {
           id: number
@@ -1769,6 +1806,10 @@ export type Database = {
       }
       bump_page_view: {
         Args: { p_key: string }
+        Returns: number
+      }
+      log_music_download: {
+        Args: { p_song_id: string; p_song_name: string; p_artist: string; p_status: string; p_file_size: number | null; p_error: string; p_device_label: string }
         Returns: number
       }
       get_page_views: {

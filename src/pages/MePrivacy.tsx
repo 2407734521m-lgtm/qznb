@@ -8,7 +8,7 @@ import SettingsShell from '../components/SettingsShell';
 
 // 与编辑资料页隐私折叠栏同一批开关、同一张 profile_privacy 表（2026-11-07 从设置页拆成独立子页）。
 const ROWS: [string, string][] = [
-  ['show_avatar', '个人照片'], ['show_name', '名字'], ['show_age', '年龄'],
+  ['show_avatar', '个人照片'], ['show_title', '主页称号'], ['show_name', '名字'], ['show_age', '年龄'],
   ['show_personality', '性格'], ['show_signature', '个性签名'], ['show_bio', '个人简介'],
   ['show_hobbies', '兴趣爱好'], ['show_contact', '联系方式'], ['show_social', '社交平台'],
 ];
@@ -72,7 +72,7 @@ export default function MePrivacy() {
       show_personality: !!next.show_personality, show_signature: !!next.show_signature,
       show_bio: !!next.show_bio, show_hobbies: !!next.show_hobbies,
       show_contact: !!next.show_contact, show_social: !!next.show_social,
-      show_game_id: !!next.show_game_id, hide_love_wall_name: !!next.hide_love_wall_name,
+      show_title: !!next.show_title, show_game_id: !!next.show_game_id, hide_love_wall_name: !!next.hide_love_wall_name,
     };
     const { error } = await withRetry(() => supabase.from('profile_privacy').update(payload).eq('profile_id', uid));
     setStatus(error ? '保存失败：' + error.message : '已保存');

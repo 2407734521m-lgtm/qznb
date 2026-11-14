@@ -25,7 +25,7 @@ const THEMES = [['aurora', '极光', '#7c9cff', '#c27cff'], ['sunset', '晚霞',
   ['forest', '森林', '#4ade80', '#14b8a6'], ['mono', '黑白', '#e8e8e8', '#777777'],
   ['stars', '星空', '#818cf8', '#38bdf8'], ['ocean', '海洋', '#22d3ee', '#3b82f6']];
 const LAYOUTS = [['left', '照片在左'], ['right', '照片在右'], ['center', '居中']];
-const PRIV_ROWS: [string, string][] = [['show_avatar', '个人照片'], ...ALL_FIELDS.map(([, label, flag]) => [flag, label] as [string, string])];
+const PRIV_ROWS: [string, string][] = [['show_avatar', '个人照片'], ...ALL_FIELDS.map(([, label, flag]) => [flag, label] as [string, string]), ['show_title', '主页称号']];
 
 // 通用折叠栏
 // 折叠栏展开/收起状态持久化：记住，下次打开保持上次的样子
@@ -151,6 +151,7 @@ export default function MyProfile() {
       show_avatar: pr.data.show_avatar,
       show_contact: pr.data.show_contact,
       show_social: pr.data.show_social,
+      show_title: pr.data.show_title,
       show_game_id: pr.data.show_game_id,
       hide_love_wall_name: pr.data.hide_love_wall_name,
     });
@@ -211,6 +212,7 @@ export default function MyProfile() {
         show_avatar: !!snapshot.priv.show_avatar,
         show_contact: !!snapshot.priv.show_contact,
         show_social: !!snapshot.priv.show_social,
+        show_title: !!snapshot.priv.show_title,
         show_game_id: !!snapshot.priv.show_game_id,
         hide_love_wall_name: !!snapshot.priv.hide_love_wall_name,
       }).eq('profile_id', uid)),

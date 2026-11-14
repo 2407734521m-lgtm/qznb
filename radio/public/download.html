@@ -426,7 +426,13 @@
             .then(function (c) {
               var st = $('qrStat');
               if (!st) return;
-              if (c.code === 803) { stopQr(); checkLogin(); }
+              if (c.code === 803) {
+                // 803 只代表扫码确认成功，不代表拿到了登录凭证：Worker 没种下
+                // mr_session（hasCookie 为 false）时 checkLogin 必然还是未登录，
+                // 别默默回到二维码，给一句明白话，让用户自己点“换一张二维码”再试。
+                if (c.hasCookie === false) { stopQr(); st.textContent = '扫码成功了，但没拿到登录凭证，请点“换一张二维码”再试一次。'; }
+                else { stopQr(); checkLogin(); }
+              }
               else if (c.code === 802) st.textContent = '已扫码，手机上点确认登录…';
               else if (c.code === 801) st.textContent = '等待扫码…';
               else if (c.code === 800) { st.textContent = '二维码过期了，正在换一张…'; stopQr(); startQr(); }

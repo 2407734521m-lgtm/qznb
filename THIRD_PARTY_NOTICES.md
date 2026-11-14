@@ -35,6 +35,39 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
+## Starter Blog — longform timeline layout
+
+- Repository: https://github.com/timlrx/tailwind-nextjs-starter-blog
+- Stars / license verified 2026-11-14 via the GitHub API: 10,554 stars, MIT License.
+- Borrowed layout ideas only (from `layouts/PostLayout.tsx`): date meta above a large title, author row (avatar + name), prose body line-height with a comfortable reading measure, meta info arranged in a side column on wide screens, and hairline dividers before tags / comments.
+- Local rewrites (no upstream code copied, no Tailwind, no new dependency):
+  - `src/pages/Board.starterblog.css` — announcement board longform: cold-white paper, 17px / 800 titles, 15px / 1.85 body, 68ch measure, admin announcements with a seal-red left rule and a desktop meta sidebar.
+  - `src/pages/Timeline.starterblog.css` — timeline: cold-white spine and seal-red node dots, year section headings with hairline rules, date meta lines, longform title / body.
+  - `src/components/PostList.longform.css` — shared long-post prose for Feed / Daily (same 15px / 1.85 body, meta author row, hairline dividers above actions and comments).
+- License: MIT (full text below)
+
+MIT License
+
+Copyright (c) 2021-2025 Timothy Lin
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
 ## scaffold-master
 
 - Repository: https://github.com/wbr664393425-lgtm/scaffold-master

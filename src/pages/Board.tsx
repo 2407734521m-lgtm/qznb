@@ -11,6 +11,7 @@ import { FeedSkeleton } from '../components/fx/Skeleton';
 import { isInApp } from '../lib/installedApp';
 import KaiboxDialog from '../components/KaiboxDialog';
 import './Board.polish.css';
+import './Board.starterblog.css';
 
 type Msg = { id: number; author_id: string; title: string | null; content: string; is_admin_msg: boolean; is_pinned: boolean; created_at: string };
 

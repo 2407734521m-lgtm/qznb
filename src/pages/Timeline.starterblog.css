@@ -1,0 +1,155 @@
+/* 青春时间线长文版式（Timeline.tsx 用）
+ *
+ * 版式来源：Starter Blog（timlrx/tailwind-nextjs-starter-blog，10,554 星、MIT，
+ * https://github.com/timlrx/tailwind-nextjs-starter-blog）——只借长文时间线的
+ * 版式（时间线节点、日期元信息排布、长文标题层级、正文行距与宽度），
+ * 不复制其代码，全部按本站自研 CSS + 冷白纸面重写。
+ * Starter Blog 的做法（layouts/PostLayout.tsx / 列表页）：日期是小字灰字元信息、
+ * 标题加粗收紧字距、正文 prose 行距约 1.75、内容收窄到舒适阅读宽度、
+ * 条目之间以细分隔线区分；时间线列表按年份分组、日期栏在左。
+ * 本站的改编：
+ *  - 保留本站已有的竖线时间线结构（.tl 竖线＋条目节点），只把竖线由蓝紫渐变
+ *    换成冷白细线、节点换成白底印泥红圈（呼应冷白纸面 token）；
+ *  - 年份改成 Starter Blog 式分组标题（小字、粗体、大字母间距＋右侧细线）；
+ *  - 日期是每条的元信息行（小字、灰字、字母间距），标题 17px/800、正文
+ *    15px/1.85、宽度收窄到 68ch；
+ *  - 顺带修一个旧样式残留：styles.css 里 .tl-item p 仍是深色底上的浅灰字
+ *    （#d5d9e6），在白卡上几乎看不见，这里改成墨色。
+ * 数据逻辑（时间线查询、新增、编辑、删除、媒体上传）一律不动，只换排布与样式。
+ * 本文件在 Timeline.tsx 里 import；关键色值沿用本站惯例加 !important，
+ * 避免被旧深色玻璃层叠盖住。
+ */
+
+.timeline-longform {
+  background: #f7f8f8;
+}
+
+/* 竖线：冷白细线，替代原来的蓝紫渐变。 */
+.timeline-longform .tl {
+  padding-left: 26px;
+}
+
+.timeline-longform .tl::before {
+  background: #e5e8ea !important;
+  opacity: 1 !important;
+}
+
+/* 年份分组标题：小字元信息＋右侧细线。 */
+.timeline-longform .tl-year {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 26px 0 14px !important;
+  color: #7a8894 !important;
+  font-size: 12px !important;
+  font-weight: 750;
+  letter-spacing: .16em;
+}
+
+.timeline-longform .tl-year::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: #e5e8ea;
+}
+
+/* 条目：冷白卡片。 */
+.timeline-longform .tl-item {
+  padding: 18px !important;
+  border: 1px solid #e5e8ea !important;
+  border-radius: 16px !important;
+  background: #ffffff !important;
+  box-shadow: 0 4px 14px rgba(31, 42, 58, .05) !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+/* 节点：白底印泥红圈，落在竖线上。 */
+.timeline-longform .tl-item::before {
+  left: -24px !important;
+  top: 24px !important;
+  width: 10px !important;
+  height: 10px !important;
+  border: 2px solid #b0404f !important;
+  border-radius: 50% !important;
+  background: #ffffff !important;
+  box-shadow: 0 0 0 3px #f7f8f8 !important;
+}
+
+/* 日期元信息行：小字、灰字、字母间距。 */
+.timeline-longform .tl-item .d {
+  color: #7a8894 !important;
+  font-size: 11.5px !important;
+  font-weight: 700;
+  letter-spacing: .1em;
+}
+
+/* 长文标题层级。 */
+.timeline-longform .tl-item h4 {
+  margin: 6px 0 8px !important;
+  color: #1f2a3a !important;
+  font-size: 17px !important;
+  font-weight: 800;
+  letter-spacing: -.01em;
+  line-height: 1.55;
+}
+
+/* 长文正文：行距 1.85、宽度收窄到 68ch、墨色（修旧浅灰字残留）。 */
+.timeline-longform .tl-item p {
+  max-width: 68ch;
+  margin: 0 !important;
+  color: #1f2a3a !important;
+  font-size: 15px !important;
+  line-height: 1.85 !important;
+  overflow-wrap: anywhere;
+}
+
+/* 媒体：圆角、与正文留距、不撑出横向滚动。 */
+.timeline-longform .tl-item img,
+.timeline-longform .tl-item video {
+  max-width: 100%;
+  margin-top: 12px !important;
+  border-radius: 14px !important;
+}
+
+.timeline-longform .tl-del {
+  color: #7a8894 !important;
+}
+
+/* 宽屏：内容收窄到舒适阅读宽度，竖线与节点随之居中对齐。 */
+@media (min-width: 1024px) {
+  .timeline-longform .tl {
+    max-width: 720px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+}
+
+@media (max-width: 520px) {
+  .timeline-longform .tl {
+    padding-left: 24px;
+  }
+
+  .timeline-longform .tl-item {
+    padding: 14px !important;
+  }
+
+  .timeline-longform .tl-item h4 {
+    font-size: 16px !important;
+  }
+
+  .timeline-longform .tl-item p {
+    font-size: 14.5px !important;
+    line-height: 1.8 !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .timeline-longform .tl-item {
+    transition: none !important;
+  }
+
+  .timeline-longform .tl-item:hover {
+    transform: none !important;
+  }
+}

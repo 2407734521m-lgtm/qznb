@@ -10,7 +10,7 @@ import type { ProfileSummary as Profile } from '../types/profile';
 import type { FeedPost as Post, FeedComment as Cmt } from '../types/content';
 import { confirmDialog, alertDialog, promptDialog } from '../lib/dialog';
 import BlurImg from '../components/fx/BlurImg';
-import { FeedSkeleton } from '../components/fx/Skeleton';
+import { showToast } from '../lib/toast';
 
 
 function Avatar({ p, url, size = 42 }: { p?: Profile; url?: string; size?: number }) {
@@ -46,8 +46,6 @@ export default function Daily({ searchQuery = '', embedded = false, focusPostId 
   const nav = useNavigate();
   const me = useAuth().session!.user.id; const reduce = useReducedMotion();
   const [posts, setPosts] = useState<Post[]>([]);
-  // 首屏骨架只显示一次：搜索换词会重复拉取，那时列表留在原地不闪骨架。
-  const [initialLoading, setInitialLoading] = useState(true);
   const [profiles, setProfiles] = useState<Record<string, Profile>>({});
   const avatarUrls = useSignedUrls('avatars', Object.values(profiles).map(p => p.avatar_path));
   const postImageUrls = useSignedUrls('media', posts.map(p => p.image_url));
@@ -79,7 +77,7 @@ export default function Daily({ searchQuery = '', embedded = false, focusPostId 
     const { data: ps } = await postQuery;
     const list = ps ?? [];
     setPosts(list);
-    if (!list.length) { setInitialLoading(false); return; }
+    if (!list.length) return;
     const ids = [...new Set(list.map(p => p.author_id))];
     const pids = list.map(p => p.id);
     const { data: pr } = await supabase.from('profiles').select('id, username, display_name, avatar_path').in('id', ids);
@@ -103,7 +101,6 @@ export default function Daily({ searchQuery = '', embedded = false, focusPostId 
     }
     const { data: r } = await supabase.rpc('my_role');
     setIsAdmin(r === 'admin' || r === 'super_admin');
-    setInitialLoading(false);
   }
   useEffect(() => { void load(); }, [searchQuery]);
   useEffect(() => {
@@ -143,6 +140,7 @@ export default function Daily({ searchQuery = '', embedded = false, focusPostId 
       setText(''); setImg(null);
       if (fref.current) fref.current.value = '';
       void load();
+      showToast('日常已发布','success');
     } catch (e: any) {
       const failure = e.message || '网络错误';
       if (!uploadedPath) {
@@ -260,7 +258,8 @@ export default function Daily({ searchQuery = '', embedded = false, focusPostId 
     const { error } = await supabase.from('reports').insert({
       reporter_id: me, target_type: 'post', target_id: String(p.id), reason: reason.trim().slice(0, 200),
     });
-    alertDialog(error ? '举报失败：' + error.message : '已举报，管理员会处理');
+    if(error) alertDialog('举报失败：' + error.message);
+    else showToast('已举报，管理员会处理','success');
   }
 
   async function delCmt(c: Cmt) {
@@ -291,7 +290,7 @@ export default function Daily({ searchQuery = '', embedded = false, focusPostId 
   }
 
   return (
-    <div className="page">
+    <div className="page daily-page">
       <div className="hero">
         <h1>{embedded ? '帖子' : '日常'}</h1>
         <p>{embedded ? '分享想法 · 记录日常' : '记 录 生 活 · 分 享 点 滴'}</p>
@@ -378,8 +377,7 @@ export default function Daily({ searchQuery = '', embedded = false, focusPostId 
           </motion.article>
         );
       })}
-      {initialLoading && <FeedSkeleton count={3} />}
-      {!initialLoading && posts.length === 0 && <div className="center" style={{ minHeight: 200 }}><div className="card">{embedded ? '还没有帖子，来发第一条吧' : '还没有日常，来发第一条吧'}</div></div>}
+      {posts.length === 0 && <div className="center" style={{ minHeight: 200 }}><div className="card">{embedded ? '还没有帖子，来发第一条吧' : '还没有日常，来发第一条吧'}</div></div>}
     </div>
   );
 }

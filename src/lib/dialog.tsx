@@ -88,8 +88,8 @@ const overlayStyle: React.CSSProperties = {
 };
 const cardStyle: React.CSSProperties = {
   width: 'min(92vw, 400px)', borderRadius: 18, padding: '20px 18px 16px',
-  background: 'rgba(31,36,52,.96)', border: '1px solid rgba(255,255,255,.14)',
-  boxShadow: '0 24px 60px rgba(0,0,0,.5)', color: '#f2f5ff',
+  background: 'var(--qz-surface, #ffffff)', border: '1px solid var(--qz-line, #e7eaee)',
+  boxShadow: 'var(--qz-shadow-float, 0 12px 34px rgba(28,39,55,.12))', color: 'var(--qz-ink, #202733)',
 };
 const msgStyle: React.CSSProperties = {
   fontSize: 15, lineHeight: 1.65, whiteSpace: 'pre-wrap', wordBreak: 'break-word',
@@ -97,16 +97,16 @@ const msgStyle: React.CSSProperties = {
 const rowStyle: React.CSSProperties = { display: 'flex', gap: 10, marginTop: 18 };
 const cancelBtn: React.CSSProperties = {
   flex: 1, padding: '11px 0', borderRadius: 12, cursor: 'pointer', font: 'inherit', fontSize: 14.5,
-  background: 'rgba(255,255,255,.08)', border: '1px solid rgba(255,255,255,.16)', color: '#eef2ff',
+  background: '#ffffff', border: '1px solid var(--qz-line-strong, #d9dee5)', color: 'var(--qz-ink, #202733)',
 };
 const okBtn: React.CSSProperties = {
   flex: 1, padding: '11px 0', borderRadius: 12, cursor: 'pointer', font: 'inherit', fontSize: 14.5,
-  fontWeight: 700, border: 0, color: '#1c2030',
-  background: 'linear-gradient(135deg, var(--a), var(--b))',
+  fontWeight: 650, border: '1px solid var(--qz-accent, #526b8c)', color: '#ffffff',
+  background: 'var(--qz-accent, #526b8c)',
 };
 const dangerBtn: React.CSSProperties = {
   ...okBtn, color: '#fff',
-  background: 'linear-gradient(135deg, #ff8a7a, #f43f5e)',
+  background: 'var(--qz-danger, #bd5d68)', borderColor: 'var(--qz-danger, #bd5d68)',
 };
 
 function PromptBody({ req }: { req: PromptReq }) {
@@ -120,8 +120,8 @@ function PromptBody({ req }: { req: PromptReq }) {
         onChange={e => setText(e.target.value)}
         style={{
           width: '100%', marginTop: 12, padding: '10px 12px', borderRadius: 12, resize: 'vertical',
-          border: '1px solid rgba(255,255,255,.16)', background: 'rgba(255,255,255,.07)',
-          color: '#f2f5ff', font: 'inherit', fontSize: 14.5, boxSizing: 'border-box',
+          border: '1px solid var(--qz-line-strong, #d9dee5)', background: '#ffffff',
+          color: 'var(--qz-ink, #202733)', font: 'inherit', fontSize: 16, boxSizing: 'border-box',
         }}
       />
       <div style={rowStyle}>

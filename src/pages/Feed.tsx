@@ -9,7 +9,7 @@ import type { FeedPost as Post, FeedComment as Cmt } from '../types/content';
 import { confirmDialog, alertDialog, promptDialog } from '../lib/dialog';
 import BlurImg from '../components/fx/BlurImg';
 import SmoothProgress from '../components/fx/SmoothProgress';
-import { FeedSkeleton } from '../components/fx/Skeleton';
+import { showToast } from '../lib/toast';
 
 type ImpressionPollOption = { id: number; label: string; voteCount: number };
 type ImpressionPoll = {
@@ -52,8 +52,6 @@ async function removeOwnedMedia(path: string | null | undefined, ownerId: string
 export default function Feed({ searchQuery = '', focusPostId = null }: { searchQuery?: string; focusPostId?: number | null }) {
   const me = useAuth().session!.user.id; const reduce = useReducedMotion();
   const [posts, setPosts] = useState<Post[]>([]);
-  // 首屏骨架只显示一次：搜索换词会重复拉取，那时列表留在原地不闪骨架。
-  const [initialLoading, setInitialLoading] = useState(true);
   const [profiles, setProfiles] = useState<Record<string, Profile>>({});
   const avatarUrls = useSignedUrls('avatars', Object.values(profiles).map(p => p.avatar_path));
   const postImageUrls = useSignedUrls('media', posts.map(p => p.image_url));
@@ -127,7 +125,7 @@ export default function Feed({ searchQuery = '', focusPostId = null }: { searchQ
     const { data: ps } = await postQuery;
     const list = ps ?? [];
     setPosts(list);
-    if (!list.length) { setImpressionPolls({}); setInitialLoading(false); return; }
+    if (!list.length) { setImpressionPolls({}); return; }
     const ids = [...new Set(list.map(p => p.author_id))];
     const pids = list.map(p => p.id);
     await refreshImpressionPolls(pids);
@@ -152,7 +150,6 @@ export default function Feed({ searchQuery = '', focusPostId = null }: { searchQ
     }
     const { data: r } = await supabase.rpc('my_role');
     setIsAdmin(r === 'admin' || r === 'super_admin');
-    setInitialLoading(false);
   }
   useEffect(() => { void load(); }, [searchQuery]);
   useEffect(() => {
@@ -231,6 +228,7 @@ export default function Feed({ searchQuery = '', focusPostId = null }: { searchQ
         setImpressionOptions(DEFAULT_IMPRESSION_OPTIONS);
       }
       await load();
+      showToast('动态已发布','success');
     } catch (e: any) {
       if (uploadedImagePath) await removeOwnedMedia(uploadedImagePath, me);
       setErr('发布失败：' + (e.message || '网络错误'));
@@ -369,7 +367,8 @@ export default function Feed({ searchQuery = '', focusPostId = null }: { searchQ
     const { error } = await supabase.from('reports').insert({
       reporter_id: me, target_type: 'post', target_id: String(p.id), reason: reason.trim().slice(0, 200),
     });
-    alertDialog(error ? '举报失败：' + error.message : '已举报，管理员会处理');
+    if(error) alertDialog('举报失败：' + error.message);
+    else showToast('已举报，管理员会处理','success');
   }
 
   async function delCmt(c: Cmt) {
@@ -586,8 +585,7 @@ export default function Feed({ searchQuery = '', focusPostId = null }: { searchQ
           </motion.article>
         );
       })}
-      {initialLoading && <FeedSkeleton count={3} />}
-      {!initialLoading && visiblePosts.length === 0 && <div className="center" style={{ minHeight: 200 }}><div className="card">{searchQuery.trim() ? '没有找到匹配的动态。' : feedScope === 'friends' ? '暂时没有好友动态。添加好友后，这里会显示他们分享的内容。' : '还没有动态，来发第一条吧'}</div></div>}
+      {visiblePosts.length === 0 && <div className="center" style={{ minHeight: 200 }}><div className="card">{searchQuery.trim() ? '没有找到匹配的动态。' : feedScope === 'friends' ? '暂时没有好友动态。添加好友后，这里会显示他们分享的内容。' : '还没有动态，来发第一条吧'}</div></div>}
     </div>
   );
 }

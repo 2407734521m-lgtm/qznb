@@ -1,4 +1,4 @@
--- Remove TOTP as a mandatory administrator login step.
+-- Remove the mandatory second-factor step from administrator login.
 -- Password authentication plus the server-side profile role remains required.
 -- Other admin controls (rate limits, audit logging, session management) are unchanged.
 

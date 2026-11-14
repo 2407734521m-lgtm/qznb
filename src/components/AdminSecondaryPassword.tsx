@@ -66,7 +66,7 @@ export default function AdminSecondaryPassword() {
       setNewPin('');
       setConfirmPin('');
       setNotice('二级密码已更新。本设备保持后台授权，其他登录设备的后台授权已撤销。');
-      void alog('admin_secondary_password_changed');
+      void alog('admin_secondary_password_changed', { method: 'current_pin' });
       await loadStatus();
     } catch {
       setCurrentPin('');

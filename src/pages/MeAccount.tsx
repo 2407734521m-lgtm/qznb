@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+import { trustedLoginAvailable } from '../lib/trustedLogin';
 import { useAuth } from '../auth';
 import BackButton from '../components/BackButton';
 import { confirmDialog } from '../lib/dialog';
@@ -22,6 +23,17 @@ export default function MeAccount() {
     setBusy(false);
     if (error) setMsg('修改失败：' + error.message);
     else { setMsg('密码已修改'); setPw(''); setPw2(''); }
+  }
+
+  async function revokeDevices() {
+    if (!(await confirmDialog('取消此账号所有已信任设备？不会退出当前会话，下次登录仍需密码。'))) return;
+    setBusy(true); setMsg('');
+    try {
+      const { data, error } = await supabase.functions.invoke('username-login', { body: { action: 'revoke_all_devices' } });
+      if (error || !data?.ok) throw new Error();
+      setMsg('已撤销所有设备信任；现有会话未退出。');
+    } catch { setMsg('撤销失败，请稍后重试。'); }
+    finally { setBusy(false); }
   }
 
   async function logout() {
@@ -56,6 +68,7 @@ export default function MeAccount() {
         <button className="pri" disabled={busy} onClick={changePw}>{busy ? '提交中…' : '确认修改'}</button>
         {msg && <p className="priv-note" style={{ margin: '8px 0 0' }}>{msg}</p>}
       </div>
+      {trustedLoginAvailable && <div className="card"><button disabled={busy} onClick={revokeDevices}>撤销所有已信任设备</button><p className="priv-note">设备信任不代替密码。修改密码后原设备信任自动失效。</p></div>}
       <div className="card">
         <button className="mini danger" style={{ width: '100%', padding: '10px 0' }} disabled={busy} onClick={logout}>退出当前设备</button>
       </div>

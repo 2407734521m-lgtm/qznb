@@ -1,4 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { sendRecovery } from './recovery.ts';
+import { cookieOriginAllowed, deviceSecret, deviceCookie, DEVICE_TTL } from './device-cookie.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -45,12 +47,14 @@ export async function handleRequest(req: Request, fetcher: typeof fetch = fetch)
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
   if (req.method !== 'POST') return response({ ok: false, code: 'invalid_request' }, 405);
 
-  let payload: { username?: unknown; password?: unknown };
+  let payload: { username?: unknown; password?: unknown; action?: unknown; remember_device?: unknown };
   try { payload = await req.json(); if (!payload || typeof payload !== 'object') throw new Error('invalid payload'); } catch { return response({ ok: false, code: 'invalid_request' }, 400); }
 
   const username = typeof payload.username === 'string' ? payload.username.trim() : '';
   const password = typeof payload.password === 'string' ? payload.password : '';
-  if (!username || username.length > 30 || !password || password.length > 256) {
+  const action = payload.action || 'login';
+  if (!['login', 'email_recovery', 'revoke_device', 'revoke_all_devices'].includes(String(action))) return response({ ok: false, code: 'invalid_request' }, 400);
+  if (action === 'login' && (!username || username.length > 30 || !password || password.length > 256)) {
     return response({ ok: false, code: 'invalid_request' }, 400);
   }
 
@@ -70,7 +74,33 @@ export async function handleRequest(req: Request, fetcher: typeof fetch = fetch)
   const admin = createClient(url, serviceKey, options);
   const ipHash = await hashIdentifier(`ip:${ip}`);
   const usernameHash = await hashIdentifier(JSON.stringify(['username', username.toLowerCase()]));
-  const identifierHash = await hashIdentifier(JSON.stringify(['pair', ip, username.toLowerCase()]));
+  const rawDevice = deviceSecret(req);
+  const deviceHash = rawDevice ? await hashIdentifier(rawDevice) : '';
+  const recoveryReply = async () => {
+    await new Promise((resolve) => setTimeout(resolve, Math.max(0, failureDelay - (performance.now() - startedAt))));
+    return response({ ok: true, message: '若账号已完成可用邮箱验证且未超过发送限额，将收到登录链接；未绑定或未启用时请联系管理员核验。' });
+  };
+  if (action === 'email_recovery') {
+    if (!username || username.length > 30) return recoveryReply();
+    try {
+      const { data: canSend, error } = await admin.rpc('consume_username_login_recovery', { p_username_hash: usernameHash, p_ip_hash: ipHash });
+      if (!error && canSend === true && username && username.length <= 30) {
+        const task = sendRecovery(admin, createClient(url, anonKey, options), username).catch(() => {});
+        const runtime = (globalThis as unknown as { EdgeRuntime?: { waitUntil(p: Promise<unknown>): void } }).EdgeRuntime;
+        if (runtime) runtime.waitUntil(task); else await task;
+      }
+    } catch { /* Deliberately identical: no email, quota or provider error oracle. */ }
+    return recoveryReply();
+  }
+  let trusted = false;
+  if (action === 'login' && deviceHash) {
+    const { data, error } = await admin.rpc('is_username_login_device', { p_token_hash: deviceHash, p_username: username });
+    if (error) return response({ ok: false, code: 'unavailable' }, 503);
+    trusted = data === true;
+  }
+  const identifierHash = await hashIdentifier(JSON.stringify(trusted
+    ? ['trusted-pair', ip, username.toLowerCase(), deviceHash]
+    : ['pair', ip, username.toLowerCase()]));
 
   // Charge unknown usernames too, before lookup. The IP-wide quota bounds the
   // number of pair rows created by username spraying and is NOT reset on login.
@@ -81,11 +111,32 @@ export async function handleRequest(req: Request, fetcher: typeof fetch = fetch)
   if (limitError) return response({ ok: false, code: 'unavailable' }, 503);
   if (allowed !== true) return response({ ok: false, code: 'rate_limited' });
 
+  if (action === 'revoke_device' || action === 'revoke_all_devices') {
+    if (!cookieOriginAllowed(req)) return response({ ok: false, code: 'invalid_request' }, 400);
+    if (action === 'revoke_all_devices') {
+      const bearer = req.headers.get('authorization')?.replace(/^Bearer\s+/i, '') || '';
+      const { data, error } = await admin.auth.getUser(bearer);
+      if (error || !data.user) return response({ ok: false, code: 'invalid_credentials' });
+      const { error: revokeError } = await admin.rpc('revoke_all_username_login_devices', { p_user_id: data.user.id });
+      if (revokeError) return response({ ok: false, code: 'unavailable' }, 503);
+    } else {
+      const { error } = await admin.rpc('revoke_username_login_device', { p_token_hash: deviceHash || '0'.repeat(64) });
+      if (error) return response({ ok: false, code: 'unavailable' }, 503);
+    }
+    return response({ ok: true }, 200, { 'Set-Cookie': deviceCookie('', true) });
+  }
+  async function issueDevice(userId: string) {
+    const token = Array.from(crypto.getRandomValues(new Uint8Array(32)), (b) => b.toString(16).padStart(2, '0')).join('');
+    const { error } = await admin.rpc('register_username_login_device', { p_user_id: userId, p_token_hash: await hashIdentifier(token) });
+    return error ? null : token;
+  }
+
   // Account identity never contains an IP. Reserve a single outstanding check
   // atomically; rotated/spoofed headers and parallel requests cannot bypass it.
-  const { data: budget, error: budgetError } = await admin.rpc('begin_username_login_attempt', {
-    p_username_hash: usernameHash,
-  });
+  const { data: budget, error: budgetError } = trusted
+    ? await admin.rpc('begin_trusted_username_login_attempt', { p_token_hash: deviceHash, p_username: username })
+    : await admin.rpc('begin_username_login_attempt', { p_username_hash: usernameHash });
+  if (trusted && budget?.trusted === false) return credentialFailure();
   if (budgetError || typeof budget?.allowed !== 'boolean') {
     return response({ ok: false, code: 'unavailable' }, 503);
   }
@@ -128,7 +179,7 @@ export async function handleRequest(req: Request, fetcher: typeof fetch = fetch)
   });
   const success = Boolean(email && !error && data.session);
   const { data: finished, error: finishError } = await admin.rpc('finish_username_login_attempt', {
-    p_username_hash: usernameHash,
+    p_username_hash: trusted ? deviceHash : usernameHash,
     p_token: budget.token,
     p_success: success,
   });
@@ -144,5 +195,7 @@ export async function handleRequest(req: Request, fetcher: typeof fetch = fetch)
 
   // Only this IP/account pair is reset; success must not reset the spray limit.
   await admin.rpc('clear_username_login_attempts', { p_identifier_hash: identifierHash });
-  return response({ ok: true, session: data.session });
+  let newDevice: string | null = null;
+  if (payload.remember_device === true && cookieOriginAllowed(req) && !trusted && data.user?.id === profileId) newDevice = await issueDevice(profileId);
+  return response({ ok: true, session: data.session, ...(newDevice ? { device_trusted: true, device_expires_in: DEVICE_TTL } : {}) }, 200, newDevice ? { 'Set-Cookie': deviceCookie(newDevice) } : {});
 }

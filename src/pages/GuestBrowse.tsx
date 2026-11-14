@@ -5,6 +5,7 @@ import GuestLoveWall from './GuestLoveWall';
 import VisitCounter from '../components/VisitCounter';
 import GuestPosts from './GuestPosts';
 import './GuestBrowse.css';
+import './Guest.cruip.css';
 
 type Notice = { id?: number | string; title?: string | null; content?: string | null; created_at?: string | null };
 type Props = {
@@ -38,19 +39,21 @@ function GuestHome({ siteConfig, onLoginRequired, showLoveWall, showAnnouncement
 
   return (
     <main className="guest-main">
-      <section className={`guest-hero${bannerUrl ? ' has-image' : ''}`} aria-label={`${title} 社区介绍`}>
-        {bannerUrl ? <img className="guest-hero-image" src={bannerUrl} alt="" /> : null}
-        <div className="guest-hero-shade" />
-        <div className="guest-hero-content">
+      <section className="guest-cruip-hero" aria-label={`${title} 社区介绍`}>
+        <div className="guest-cruip-hero-copy">
           <span className="guest-eyebrow">{BRAND_NAME.toUpperCase()} · OPEN COMMUNITY</span>
           <h1>{banner}</h1>
           <p>{subtitle}。浏览公开内容，发现正在发生的分享与故事。</p>
-          <div className="guest-hero-actions">
+          <div className="guest-cruip-hero-actions">
             <NavLink to="/feed" className="guest-button guest-button-primary">浏览动态 <span aria-hidden="true">↗</span></NavLink>
-            {showAnnouncements && <NavLink to="/board" className="guest-button guest-button-quiet">查看公告</NavLink>}
+            {showAnnouncements && <NavLink to="/board" className="guest-button guest-button-secondary">查看公告</NavLink>}
           </div>
         </div>
-        <span className="guest-hero-index">01 <i /> PUBLIC SPACE</span>
+        {bannerUrl ? (
+          <figure className="guest-cruip-hero-visual">
+            <img src={bannerUrl} alt="" />
+          </figure>
+        ) : null}
       </section>
 
       <section className="guest-quick-section" aria-label="快捷入口">
@@ -129,8 +132,28 @@ function GuestHome({ siteConfig, onLoginRequired, showLoveWall, showAnnouncement
         </div>
       </section>
 
-      <footer className="guest-footer">
-        <strong>{title}</strong><span>{subtitle}</span>
+      <section className="guest-cruip-cta" aria-label="加入社区">
+        <span className="guest-eyebrow">JOIN CLASS MEMORY</span>
+        <h2>准备好加入了吗？</h2>
+        <p>登录后可以点赞、评论、发布内容，认识更多同学。</p>
+        <div className="guest-cruip-hero-actions">
+          <button type="button" className="guest-button guest-button-primary" onClick={onLoginRequired}>登录 / 注册</button>
+          <NavLink to="/feed" className="guest-button guest-button-secondary">继续浏览动态</NavLink>
+        </div>
+      </section>
+
+      <footer className="guest-footer guest-cruip-footer">
+        <div className="guest-cruip-footer-brand">
+          <span className="guest-brand-mark">{BRAND_MARK}</span>
+          <div><strong>{title}</strong><span>{subtitle}</span></div>
+        </div>
+        <nav className="guest-cruip-footer-nav" aria-label="游客页脚导航">
+          <NavLink to="/home">首页</NavLink>
+          <NavLink to="/feed">动态</NavLink>
+          <NavLink to="/daily">日常</NavLink>
+          {showLoveWall && <NavLink to="/love-wall">表白墙</NavLink>}
+          {showAnnouncements && <NavLink to="/board">公告</NavLink>}
+        </nav>
       </footer>
     </main>
   );
@@ -139,20 +162,20 @@ function GuestHome({ siteConfig, onLoginRequired, showLoveWall, showAnnouncement
 function GuestBoard({ siteConfig }: { siteConfig: any }) {
   const notices = (Array.isArray(siteConfig?.notices) ? siteConfig.notices : []) as Notice[];
   return (
-    <main style={{ maxWidth: 820, margin: '0 auto', padding: '10px 0 36px' }}>
-      <div style={{ padding: '8px 2px 14px' }}>
-        <div style={{ fontSize: 11, letterSpacing: 2.4, color: '#737b89' }}>PUBLIC ANNOUNCEMENTS</div>
-        <h1 style={{ fontSize: 27, margin: '8px 0 4px', color: '#202632' }}>公告</h1>
-        <p style={{ color: '#606673', fontSize: 13, lineHeight: 1.7, margin: 0 }}>仅展示网站允许公开浏览的管理员公告。</p>
-      </div>
-      <section style={{ padding: '18px clamp(14px,4vw,22px)', borderRadius: 20, background: '#fff', border: '1px solid #e9ebf0' }}>
+    <main className="guest-cruip-board">
+      <header className="guest-cruip-section-head">
+        <span className="guest-eyebrow">PUBLIC ANNOUNCEMENTS</span>
+        <h1>公告</h1>
+        <p>仅展示网站允许公开浏览的管理员公告。</p>
+      </header>
+      <section className="guest-cruip-board-card">
         {notices.length ? notices.map((notice, index) => (
-          <article key={notice.id ?? index} style={{ padding: '13px 0', borderTop: index ? '1px solid #edf0f4' : 0 }}>
-            {notice.title && <h2 style={{ margin: '0 0 6px', fontSize: 15, color: '#303846' }}>{notice.title}</h2>}
-            <p style={{ margin: 0, whiteSpace: 'pre-wrap', lineHeight: 1.8, color: '#4b5563', fontSize: 14 }}>{notice.content}</p>
-            {notice.created_at && <div style={{ marginTop: 7, color: '#9aa2ae', fontSize: 11 }}>{new Date(notice.created_at).toLocaleString()}</div>}
+          <article key={notice.id ?? index} className="guest-cruip-board-row">
+            {notice.title && <h2>{notice.title}</h2>}
+            <p>{notice.content}</p>
+            {notice.created_at && <time>{new Date(notice.created_at).toLocaleString()}</time>}
           </article>
-        )) : <p style={{ color: '#87909d', fontSize: 13 }}>暂时没有公开公告。</p>}
+        )) : <p className="guest-cruip-board-empty">暂时没有公开公告。</p>}
       </section>
     </main>
   );

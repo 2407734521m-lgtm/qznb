@@ -6,6 +6,7 @@ import { timeAgo } from '../lib/time';
 import { FeedSkeleton } from '../components/fx/Skeleton';
 import BlurImg from '../components/fx/BlurImg';
 import './GuestPosts.css';
+import './Guest.cruip.css';
 
 type GuestPost = {
   id: number;
@@ -129,8 +130,8 @@ export default function GuestPosts({ section, onLoginRequired }: Props) {
   return (
     <section className={`guest-posts${section === 'all' ? ' guest-posts-home' : ''}`}>
       {section !== 'all' && (
-        <header className="guest-posts-heading">
-          <div style={{ color: '#8a93a1', fontSize: 10, letterSpacing: 2 }}>PUBLIC COMMUNITY</div>
+        <header className="guest-posts-heading guest-cruip-section-head">
+          <span className="guest-eyebrow">PUBLIC COMMUNITY</span>
           <h1>{title}</h1>
           <p>
             可以自由浏览，点赞、评论和发布需要登录。
@@ -138,7 +139,8 @@ export default function GuestPosts({ section, onLoginRequired }: Props) {
         </header>
       )}
       {section === 'all' && (
-        <header className="guest-posts-heading">
+        <header className="guest-posts-heading guest-cruip-section-head">
+          <span className="guest-eyebrow">LATEST POSTS</span>
           <h2>最新动态</h2>
           <p>所有公开动态与日常，按发布时间排列</p>
         </header>

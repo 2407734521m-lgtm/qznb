@@ -115,7 +115,9 @@ console.log('PASS anonymous caller is denied');
 // Admins may enter with a password-authenticated aal1 session; members and
 // anonymous callers must still fail the server-side role check.
 const passwordOnlyMigration = 'supabase/migrations/20261115030000_admin_password_only_login.sql';
+await db.exec('reset role');
 await db.exec(readFileSync(new URL(passwordOnlyMigration, root), 'utf8'));
+await db.exec('set role authenticated');
 console.log(`PASS ${passwordOnlyMigration}`);
 
 await claimsFor(adminId, 'aal1');

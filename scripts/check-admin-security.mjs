@@ -8,6 +8,7 @@ const settings = read('src/components/AdminMfaSecurity.tsx');
 const admin = read('src/pages/Admin.tsx');
 const mfaGate = read('supabase/migrations/20261114150000_admin_totp_mfa_gate.sql');
 const mfaSqlTest = read('scripts/test-admin-mfa-sql.mjs');
+const appShell = read('src/main.tsx');
 
 assert.match(supabaseClient, /isDedicatedAdminHost[\s\S]*?experimental:\s*\{\s*recoveryCodes:\s*true\s*\}/,
   'recovery codes experimental API must be enabled only for the dedicated admin host');
@@ -17,6 +18,12 @@ assert.match(login, /recoveryVerified[\s\S]*?beginReplacementTotpEnrollment\(\)/
   'recovery-code sessions must proceed to replacement TOTP enrollment');
 assert.match(login, /methods\.includes\('totp'\)/,
   'the login UI must require a TOTP AMR before finishing admin login');
+assert.match(appShell, /if \(loading\) return <DelayedPageSkeleton \/>;/,
+  'the initial auth loading state may show a skeleton');
+assert.doesNotMatch(appShell, /if \(loading \|\| \(session && \(role === null \|\| verifiedUid !== session\.user\.id\)\)\) return <DelayedPageSkeleton \/>;/,
+  'role lookup must not unmount the admin MFA login flow after password sign-in');
+assert.match(appShell, /if \(!isAdmin\)[\s\S]*?<AdminLogin showBack=\{false\} onAuthenticated=/,
+  'the login component must stay rendered while a non-TOTP session awaits role resolution');
 assert.match(mfaGate, /@> '\[\{"method":"totp"\}\]'::jsonb/,
   'the server role gate must continue to require the signed TOTP AMR');
 assert.doesNotMatch(mfaGate, /mfa\/recovery_code/,

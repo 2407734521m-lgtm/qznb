@@ -113,7 +113,7 @@ grant execute on function public.admin_list_own_sessions() to authenticated;
 -- Record the authenticated actor in the dedicated actor column. Do not persist
 -- malformed raw detail strings, and cap detail size to keep secrets/large payloads
 -- out of the audit stream.
-create or replace function public.log_admin_action(p_action text, p_detail text)
+create or replace function public.log_admin_action(p_action text, p_detail text default null)
 returns void
 language plpgsql
 security definer

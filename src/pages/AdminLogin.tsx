@@ -34,7 +34,7 @@ export default function AdminLogin({
   const startedRef = useRef(false);
 
   // Existing sessions must re-enter the primary password and this session's PIN.
-  // A previous TOTP/AAL2 claim is intentionally not accepted as PIN verification.
+  // A previously authenticated session is not treated as PIN verification.
   useEffect(() => {
     let alive = true;
     try {

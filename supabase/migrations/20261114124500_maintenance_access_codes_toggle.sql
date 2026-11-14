@@ -63,3 +63,35 @@ drop trigger if exists maintenance_access_sessions_enabled_guard on maintenance_
 create trigger maintenance_access_sessions_enabled_guard
   before insert on maintenance_private.access_sessions
   for each row execute function maintenance_private.enforce_access_codes_enabled();
+
+
+-- Turning the feature off immediately invalidates every outstanding code and
+-- session. Re-enabling it later must not silently revive previously issued access.
+create or replace function maintenance_private.revoke_access_codes_when_disabled()
+returns trigger
+language plpgsql
+security definer
+set search_path = pg_catalog, maintenance_private
+as $trigger$
+begin
+  if new.key = 'maintenance_access_codes_enabled'
+     and coalesce(new.value, 'false') <> 'true' then
+    update maintenance_private.access_codes
+      set revoked_at = coalesce(revoked_at, pg_catalog.now())
+      where revoked_at is null;
+    update maintenance_private.access_sessions
+      set revoked_at = coalesce(revoked_at, pg_catalog.now())
+      where revoked_at is null;
+  end if;
+  return new;
+end;
+$trigger$;
+
+revoke all on function maintenance_private.revoke_access_codes_when_disabled() from public, anon, authenticated;
+
+drop trigger if exists maintenance_access_codes_disabled_revoke on public.site_settings;
+create trigger maintenance_access_codes_disabled_revoke
+  after insert or update on public.site_settings
+  for each row
+  when (new.key = 'maintenance_access_codes_enabled')
+  execute function maintenance_private.revoke_access_codes_when_disabled();

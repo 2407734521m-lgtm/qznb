@@ -10,6 +10,11 @@ const loveWall = read('src/pages/LoveWall.tsx');
 const adminLove = read('src/components/AdminLoveWall.tsx');
 const adminReview = read('src/components/AdminReviewCenter.tsx');
 const guestLove = read('src/pages/GuestLoveWall.tsx');
+const adminPage = read('src/pages/Admin.tsx');
+const adminSettings = read('src/pages/admin/Settings.tsx');
+const adminWorkspace = read('src/components/AdminWorkspace.tsx');
+const adminApp = read('src/App.tsx');
+const maintenanceToggle = read('supabase/migrations/20261114124500_maintenance_access_codes_toggle.sql');
 const login = read('src/pages/Login.tsx');
 const packageJson = JSON.parse(read('package.json'));
 
@@ -78,5 +83,20 @@ if (fs.existsSync(path.join(process.cwd(), 'dist/assets'))) {
   const entryBytes = fs.statSync(path.join(process.cwd(), 'dist/assets', entry)).size;
   assert.ok(entryBytes < 700_000, `entry JS is ${entryBytes} bytes; expected route code splitting`);
 }
+
+assert.match(adminPage, /createPortal\([\s\S]*?admin-toast/,
+  'admin operation feedback must be rendered in a viewport-level toast');
+assert.match(adminPage, /请填写\|请先\|请选择/,
+  'validation failures must not be misreported as successful operations');
+assert.match(adminSettings, /role="switch"[\s\S]*?maintenance_access_codes_enabled/,
+  'temporary visitor access codes must have a separate administrator-controlled switch');
+assert.match(adminSettings, /vals\.maintenance_access_codes_enabled === 'true'[\s\S]*?MaintenanceAccessManager/,
+  'code creation tools must remain hidden when visitor code access is disabled');
+assert.match(adminApp, /allowCode\?\s*<>[\s\S]*?临时访问码/,
+  'maintenance page must only show visitor code entry when explicitly enabled');
+assert.match(adminWorkspace, /descriptionFor\(item\.id\)[\s\S]*?toLocaleLowerCase\(\)\.includes\(value\)/,
+  'admin command search must search feature descriptions, not titles only');
+assert.match(maintenanceToggle, /maintenance_access_codes_disabled_revoke[\s\S]*?access_sessions[\s\S]*?revoked_at/,
+  'disabling visitor codes must revoke existing temporary sessions at the database boundary');
 
 console.log('Priority regression checks passed.');

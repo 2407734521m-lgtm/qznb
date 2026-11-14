@@ -136,7 +136,7 @@ export default function Admin({ verifiedRole }: { verifiedRole: 'admin' | 'super
   const [toast, setToast] = useState<{ id: number; text: string; kind: 'success' | 'error' | 'info' } | null>(null);
   const toastTimer = useRef<number | null>(null);
   const toastSequence = useRef(0);
-  const isErrorMessage = (text: string) => /失败|错误|异常|无效|拒绝|中止|无法|请检查|未能/.test(text);
+  const isErrorMessage = (text: string) => /失败|错误|异常|无效|拒绝|中止|无法|请检查|未能|请填写|请先|请选择|必须|暂不能|尚未|权限不足|无权|不存在|不支持|不一致|超过|未登录|不完整/.test(text);
   function setMsg(text: string) {
     if (toastTimer.current !== null) window.clearTimeout(toastTimer.current);
     if (!text.trim()) {

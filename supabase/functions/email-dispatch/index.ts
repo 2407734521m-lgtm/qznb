@@ -1,6 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-const SENDER = '堯 <notice@qianzhi.pw>';
+const SENDER = 'Class Memory <notice@qianzhi.pw>';
 const ALLOWED_CATEGORIES = new Set([
   'admin_broadcast',
   'maintenance_recovery',
@@ -45,12 +45,12 @@ function defaultHtml(text: string) {
   ).join('');
   return `<!doctype html>
 <html lang="zh-CN">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>堯</title></head>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Class Memory</title></head>
 <body style="margin:0;padding:24px 12px;background:#f5f7fb;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">
   <main style="max-width:560px;margin:0 auto;padding:28px 24px;background:#fff;border:1px solid #e8edf4;border-radius:18px">
-    <div style="font-size:18px;font-weight:700;letter-spacing:.08em;color:#172033;margin-bottom:20px">堯</div>
+    <div style="font-size:18px;font-weight:700;letter-spacing:.08em;color:#172033;margin-bottom:20px">Class Memory</div>
     ${paragraphs}
-    <p style="margin:24px 0 0;padding-top:16px;border-top:1px solid #edf0f5;font-size:12px;line-height:1.6;color:#8993a5">这是一封由堯网站发送的通知邮件。</p>
+    <p style="margin:24px 0 0;padding-top:16px;border-top:1px solid #edf0f5;font-size:12px;line-height:1.6;color:#8993a5">这是一封由 Class Memory 网站发送的通知邮件。</p>
   </main>
 </body>
 </html>`;

@@ -1,3 +1,4 @@
+import { BRAND_MARK, BRAND_NAME } from '../lib/brand';
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from 'react';
 
 type AdminTab = [string, string, boolean];
@@ -97,7 +98,7 @@ function descriptionFor(id: string) {
     settings: '配置全站管理设置。',
     test: '执行管理端测试与回归检查。',
   };
-  return descriptions[id] ?? '管理堯站点的相关功能。';
+  return descriptions[id] ?? `管理 ${BRAND_NAME} 站点的相关功能。`;
 }
 
 export default function AdminWorkspace({
@@ -288,9 +289,9 @@ export default function AdminWorkspace({
       {mobileOpen && <button type="button" className="admin-sidebar-scrim" aria-label="关闭导航" onClick={() => setMobileOpen(false)} />}
       <aside className="admin-sidebar" aria-label="管理后台导航">
         <div className="admin-sidebar-brand">
-          <div className="admin-brand-mark">堯</div>
+          <div className="admin-brand-mark">{BRAND_MARK}</div>
           <div className="admin-brand-copy">
-            <strong>堯</strong>
+            <strong>{BRAND_NAME}</strong>
             <span>ADMIN CONSOLE</span>
           </div>
           <button type="button" className="admin-sidebar-close" aria-label="关闭导航" onClick={() => setMobileOpen(false)}>

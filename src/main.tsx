@@ -1,3 +1,4 @@
+import { resolveBrandTitle } from './lib/brand';
 import React, { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { HashRouter } from 'react-router-dom';
@@ -134,7 +135,7 @@ function AdminShell() {
       .then(({ data }) => {
         if (!live) return;
         const t = (data ?? []).find((x: any) => x.key === 'site_title')?.value;
-        document.title = `${String(t || '堯').trim() || '堯'} · 管理后台`;
+        document.title = `${resolveBrandTitle(t)} · 管理后台`;
       });
     return () => { live = false; };
   }, []);

@@ -29,7 +29,7 @@ assert(!main.includes('我们的班级'),'admin title fallback must use current 
 assert(admin.includes('className="admin-shell-v3"'),'admin page must use one isolated root class');
 assert(!admin.includes("supabase.rpc('my_role')"),'admin page must not repeat the host role query');
 assert(admin.includes("import '../styles-admin-tokens.css';"),'admin tokens must load after compatibility styles');
-assert(workspace.includes('<strong>堯</strong>')&&!workspace.includes('青春档案'),'admin workspace must use current brand');
+assert(workspace.includes('<strong>{BRAND_NAME}</strong>')&&!workspace.includes('青春档案'),'admin workspace must use current brand');
 for(const [name,css] of [['cinematic',cinematic],['unified',unified],['scaffold',scaffold],['ops',ops]]){
  assert(!/\.admin-shell(?!-v3)\b/.test(css),`${name} CSS must use isolated admin root`);
 }

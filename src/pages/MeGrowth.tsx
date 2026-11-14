@@ -91,7 +91,7 @@ export default function MeGrowth() {
 
       const created = profile.data?.created_at ? new Date(profile.data.created_at) : null;
       const badgesEarned: BadgeItem[] = [
-        { title: '青春初见', note: '创建了自己的青春档案', earned: !!profile.data?.created_at, date: profile.data?.created_at, mark: '初见' },
+        { title: '青春初见', note: '创建了自己的成员档案', earned: !!profile.data?.created_at, date: profile.data?.created_at, mark: '初见' },
         { title: '第一次分享', note: '发布第一条社区动态', earned: !!summary.first_post_at, date: summary.first_post_at || undefined, mark: '分享' },
         { title: '留下影像', note: '上传第一张相册照片', earned: !!summary.first_photo_at, date: summary.first_photo_at || undefined, mark: '影像' },
         { title: '热心互动', note: '累计发表 10 条评论', earned: exactCounts.comments >= 10, date: summary.tenth_comment_at || undefined, mark: '互动' },
@@ -102,7 +102,7 @@ export default function MeGrowth() {
         const today = new Date();
         const anniversary = new Date(today.getFullYear(), created.getMonth(), created.getDate());
         const earnedThisYear = today.getFullYear() > created.getFullYear() && today >= anniversary;
-        badgesEarned.push({ title: '周年纪念', note: '来到青春档案满一周年', earned: earnedThisYear, date: anniversary.toISOString(), mark: '纪念' });
+        badgesEarned.push({ title: '周年纪念', note: '加入班级满一周年', earned: earnedThisYear, date: anniversary.toISOString(), mark: '纪念' });
       }
       setBadges(badgesEarned);
       setLoading(false);

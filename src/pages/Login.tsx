@@ -1,3 +1,4 @@
+import { resolveBrandTitle, resolveBrandSubtitle } from '../lib/brand';
 import { useEffect, useRef, useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { supabase } from '../lib/supabase';
@@ -38,9 +39,8 @@ function Spin() {
 export default function Login({ siteTitle, siteSubtitle, onGuestLogin }: { siteTitle?: string; siteSubtitle?: string; onGuestLogin?: () => void }) {
   const savedBrandTitle = (siteTitle || '').trim();
   const savedBrandSubtitle = (siteSubtitle || '').trim();
-  const retiredBrandValues = ['我们的班级', '青春档案', 'class', 'class-youth-archive'];
-  const brandTitle = !savedBrandTitle || retiredBrandValues.includes(savedBrandTitle) ? '堯' : savedBrandTitle;
-  const brandSubtitle = retiredBrandValues.includes(savedBrandSubtitle) ? '连接人与内容' : savedBrandSubtitle;
+  const brandTitle = resolveBrandTitle(savedBrandTitle);
+  const brandSubtitle = resolveBrandSubtitle(savedBrandSubtitle);
   const reduce = useReducedMotion();
   const [mode, setMode] = useState<'login' | 'reg' | 'forgot'>('login');
   const [policyAccepted, setPolicyAccepted] = useState(false);

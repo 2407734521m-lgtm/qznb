@@ -1,3 +1,4 @@
+import { BRAND_MARK, BRAND_NAME } from '../lib/brand';
 import { useEffect, useRef, useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 
@@ -6,6 +7,9 @@ type LoginSuccessOverlayProps = {
   durationMs: number;
   onDone: () => void;
 };
+
+// 登录后自动进入的等待时长（毫秒）：让人看一眼欢迎语，不必每次都点一下。
+const AUTO_ENTER_MS = 1600;
 
 /**
  * Post-login welcome screen.
@@ -29,8 +33,21 @@ export default function LoginSuccessOverlay({ realName, durationMs, onDone }: Lo
     if (timeoutRef.current !== null) window.clearTimeout(timeoutRef.current);
   }, []);
 
+  // 登录后自动进入；点按钮可以立即进入。
+  const autoRef = useRef<number | null>(null);
+  useEffect(() => {
+    autoRef.current = window.setTimeout(() => enterArchive(), reduce ? 400 : AUTO_ENTER_MS);
+    return () => {
+      if (autoRef.current !== null) window.clearTimeout(autoRef.current);
+    };
+  }, []);
+
   function enterArchive() {
     if (entering) return;
+    if (autoRef.current !== null) {
+      window.clearTimeout(autoRef.current);
+      autoRef.current = null;
+    }
     setEntering(true);
     timeoutRef.current = window.setTimeout(onDone, reduce ? 0 : 820);
   }
@@ -90,12 +107,12 @@ export default function LoginSuccessOverlay({ realName, durationMs, onDone }: Lo
           transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
           style={{
             width: 76, height: 76, display: 'grid', placeItems: 'center', marginBottom: 22,
-            borderRadius: 24, color: '#f8f6f1', fontSize: 27, fontWeight: 850, letterSpacing: '-.08em',
+            borderRadius: 24, color: '#f8f6f1', fontSize: 27, fontWeight: 850, letterSpacing: '.02em',
             background: 'linear-gradient(145deg, #9f725b 0%, #86634f 100%)',
             border: '1px solid rgba(255,255,255,.78)',
             boxShadow: '0 18px 42px rgba(94, 69, 52, .16), inset 0 1px 0 rgba(255,255,255,.5)',
           }}
-        >堯</motion.div>
+        >{BRAND_MARK}</motion.div>
 
         <div style={{ marginBottom: 9, color: 'rgba(105, 91, 77, .66)', fontSize: 9, fontWeight: 800, letterSpacing: '.28em' }}>
           YOUR SPACE, RECONNECTED
@@ -163,10 +180,10 @@ export default function LoginSuccessOverlay({ realName, durationMs, onDone }: Lo
             cursor: entering ? 'default' : 'pointer',
           }}
         >
-          {entering ? '正在进入…' : '立即登录'}
+          {entering ? '正在进入…' : '立即进入'}
         </motion.button>
         <div style={{ marginTop: 12, color: 'rgba(82, 72, 61, .54)', fontSize: 11 }}>
-          {entering ? '正在为你打开青春档案' : '点击后进入青春档案'}
+          {entering ? `正在为你打开 ${BRAND_NAME}` : '稍后自动进入，也可以直接点击'}
         </div>
       </motion.div>
     </motion.div>

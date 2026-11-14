@@ -1,3 +1,4 @@
+import { BRAND_NAME, BRAND_SUBTITLE, BRAND_MARK, resolveBrandTitle, resolveBrandSubtitle } from '../lib/brand';
 import { NavLink, Navigate, Route, Routes } from 'react-router-dom';
 import Login from './Login';
 import GuestLoveWall from './GuestLoveWall';
@@ -26,8 +27,8 @@ function GuestHome({ siteConfig, onLoginRequired, showLoveWall, showAnnouncement
   showAnnouncements: boolean;
 }) {
   const notices = showAnnouncements && Array.isArray(siteConfig?.notices) ? siteConfig.notices as Notice[] : [];
-  const title = siteConfig?.site_title || '堯';
-  const subtitle = siteConfig?.site_subtitle || '连接人与内容';
+  const title = resolveBrandTitle(siteConfig?.site_title);
+  const subtitle = resolveBrandSubtitle(siteConfig?.site_subtitle);
   const configuredBanner = typeof siteConfig?.home_banner_text === 'string' ? siteConfig.home_banner_text.trim() : '';
   const banner = !configuredBanner || /^(测试|test|demo)$/i.test(configuredBanner)
     ? '让分享与连接，自然发生。'
@@ -37,11 +38,11 @@ function GuestHome({ siteConfig, onLoginRequired, showLoveWall, showAnnouncement
 
   return (
     <main className="guest-main">
-      <section className={`guest-hero${bannerUrl ? ' has-image' : ''}`} aria-label="堯社区介绍">
+      <section className={`guest-hero${bannerUrl ? ' has-image' : ''}`} aria-label={`${title} 社区介绍`}>
         {bannerUrl ? <img className="guest-hero-image" src={bannerUrl} alt="" /> : null}
         <div className="guest-hero-shade" />
         <div className="guest-hero-content">
-          <span className="guest-eyebrow">堯 · OPEN COMMUNITY</span>
+          <span className="guest-eyebrow">{BRAND_NAME.toUpperCase()} · OPEN COMMUNITY</span>
           <h1>{banner}</h1>
           <p>{subtitle}。浏览公开内容，发现正在发生的分享与故事。</p>
           <div className="guest-hero-actions">
@@ -171,9 +172,9 @@ export default function GuestBrowse({
   return (
     <div className="guest-shell">
       <header className="guest-header">
-        <NavLink to="/home" className="guest-brand" aria-label="堯首页">
-          <span className="guest-brand-mark">堯</span>
-          <span className="guest-brand-copy"><strong>堯</strong><small>连接人与内容</small></span>
+        <NavLink to="/home" className="guest-brand" aria-label={`${BRAND_NAME} 首页`}>
+          <span className="guest-brand-mark">{BRAND_MARK}</span>
+          <span className="guest-brand-copy"><strong>{BRAND_NAME}</strong><small>{BRAND_SUBTITLE}</small></span>
         </NavLink>
         <div className="guest-header-status">
           <span className="guest-status-label">访客浏览</span>

@@ -5,6 +5,7 @@ import { motion, useReducedMotion } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import { timeAgo } from '../lib/time';
 import VisitCounter from '../components/VisitCounter';
+import Marquee from '../components/fx/Marquee';
 import { FeedSkeleton } from '../components/fx/Skeleton';
 import { isInApp } from '../lib/installedApp';
 import './Home.vibe.css';
@@ -177,6 +178,20 @@ export default function Home() {
         <span className="vh-search-icon" aria-hidden="true">⌕</span>
         <span>搜索成员、动态、相册或公告</span>
       </button>
+
+      {notices.length > 0 && (
+        <div className="vh-ticker" aria-label="公告快讯">
+          <span className="vh-ticker-label">公告</span>
+          <Marquee pauseOnHover duration={36}>
+            {notices.map(n => (
+              <button type="button" className="vh-ticker-item" key={n.id} onClick={() => setAnnPop(n)}>
+                <span className="vh-ticker-dot" aria-hidden="true">●</span>
+                {n.title || '公告'}
+              </button>
+            ))}
+          </Marquee>
+        </div>
+      )}
 
       <motion.section initial={reduceMotion ? false : { opacity: 0, y: 18 }}
         whileInView={reduceMotion ? undefined : { opacity: 1, y: 0 }}

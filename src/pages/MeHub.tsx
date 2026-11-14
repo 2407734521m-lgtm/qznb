@@ -7,6 +7,7 @@ import './MeHub.css';
 import './MeHub.polish.css';
 import FeedbackModal from '../components/FeedbackModal';
 import SponsorModal from '../components/SponsorModal';
+import NumberTicker from '../components/fx/NumberTicker';
 import { useQuietHoursActive } from '../lib/userPreferences';
 
 type Entry = { mark: string; title: string; note: string; to: string; badge?: string; act?: 'feedback' | 'sponsor' };
@@ -140,16 +141,16 @@ export default function MeHub() {
       <section className="me-hub-stats" aria-label="我的社区数据">
         <div className="me-hub-stat-grid">
           <button onClick={() => nav('/me/posts')}>
-            <strong>{stats.loading ? <span className="fx-skel-wrap" style={{ display: 'inline-block', width: 26, height: 20, verticalAlign: 'middle' }}><span className="fx-skel" style={{ display: 'block', width: '100%', height: '100%' }} /></span> : stats.posts}</strong><span>我的动态</span>
+            <strong>{stats.loading ? <span className="fx-skel-wrap" style={{ display: 'inline-block', width: 26, height: 20, verticalAlign: 'middle' }}><span className="fx-skel" style={{ display: 'block', width: '100%', height: '100%' }} /></span> : <NumberTicker value={stats.posts} />}</strong><span>我的动态</span>
           </button>
           <button onClick={() => nav('/me/content')}>
-            <strong>{stats.loading ? <span className="fx-skel-wrap" style={{ display: 'inline-block', width: 26, height: 20, verticalAlign: 'middle' }}><span className="fx-skel" style={{ display: 'block', width: '100%', height: '100%' }} /></span> : stats.comments}</strong><span>我的评论</span>
+            <strong>{stats.loading ? <span className="fx-skel-wrap" style={{ display: 'inline-block', width: 26, height: 20, verticalAlign: 'middle' }}><span className="fx-skel" style={{ display: 'block', width: '100%', height: '100%' }} /></span> : <NumberTicker value={stats.comments} />}</strong><span>我的评论</span>
           </button>
           <button onClick={() => nav('/me/content')}>
-            <strong>{stats.loading ? <span className="fx-skel-wrap" style={{ display: 'inline-block', width: 26, height: 20, verticalAlign: 'middle' }}><span className="fx-skel" style={{ display: 'block', width: '100%', height: '100%' }} /></span> : stats.likes}</strong><span>收到点赞</span>
+            <strong>{stats.loading ? <span className="fx-skel-wrap" style={{ display: 'inline-block', width: 26, height: 20, verticalAlign: 'middle' }}><span className="fx-skel" style={{ display: 'block', width: '100%', height: '100%' }} /></span> : <NumberTicker value={stats.likes} />}</strong><span>收到点赞</span>
           </button>
         </div>
-        <div className="me-hub-photo-note">已分享 <b>{stats.loading ? <span className="fx-skel-wrap" style={{ display: 'inline-block', width: 20, height: 14, verticalAlign: 'middle' }}><span className="fx-skel" style={{ display: 'block', width: '100%', height: '100%' }} /></span> : stats.photos}</b> 张照片 <span>·</span> <button onClick={() => nav('/albums')}>去相册看看 ›</button></div>
+        <div className="me-hub-photo-note">已分享 <b>{stats.loading ? <span className="fx-skel-wrap" style={{ display: 'inline-block', width: 20, height: 14, verticalAlign: 'middle' }}><span className="fx-skel" style={{ display: 'block', width: '100%', height: '100%' }} /></span> : <NumberTicker value={stats.photos} />}</b> 张照片 <span>·</span> <button onClick={() => nav('/albums')}>去相册看看 ›</button></div>
       </section>
 
       <section className="me-hub-shortcuts">

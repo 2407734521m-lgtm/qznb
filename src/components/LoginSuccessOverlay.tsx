@@ -1,4 +1,5 @@
-import { BRAND_MARK, BRAND_NAME } from '../lib/brand';
+import { BRAND_NAME } from '../lib/brand';
+import BrandMark from './BrandMark';
 import { useEffect, useRef, useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 
@@ -107,12 +108,10 @@ export default function LoginSuccessOverlay({ realName, durationMs, onDone }: Lo
           transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
           style={{
             width: 76, height: 76, display: 'grid', placeItems: 'center', marginBottom: 22,
-            borderRadius: 24, color: '#f8f6f1', fontSize: 27, fontWeight: 850, letterSpacing: '.02em',
-            background: 'linear-gradient(145deg, #9f725b 0%, #86634f 100%)',
-            border: '1px solid rgba(255,255,255,.78)',
-            boxShadow: '0 18px 42px rgba(94, 69, 52, .16), inset 0 1px 0 rgba(255,255,255,.5)',
+            borderRadius: 19,
+            boxShadow: '0 18px 42px rgba(94, 69, 52, .16)',
           }}
-        >{BRAND_MARK}</motion.div>
+        ><BrandMark size={76} title={BRAND_NAME} /></motion.div>
 
         <div style={{ marginBottom: 9, color: 'rgba(105, 91, 77, .66)', fontSize: 9, fontWeight: 800, letterSpacing: '.28em' }}>
           YOUR SPACE, RECONNECTED

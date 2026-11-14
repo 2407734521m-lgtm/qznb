@@ -7,6 +7,7 @@ import { useAuth } from '../auth';
 import { useSignedUrls } from '../lib/media';
 import { GridSkeleton } from '../components/fx/Skeleton';
 import BlurImg from '../components/fx/BlurImg';
+import './Album.afilmory.css'; // Afilmory 式瀑布流版式（只借版式，样式自写）
 
 type A = { id: number; title: string; category: string; cover_url: string | null; created_at: string; n?: number };
 const CATS = ['班级日常', '军训', '运动会', '春游', '聚会', '毕业', '自定义'];
@@ -81,14 +82,14 @@ export default function Album() {
           className={categoryFilter === category ? 'on' : ''}
           onClick={() => setCategoryFilter(category)}>{category}</button>)}
       </div>
-      <div className="agrid">
+      <div className="af-album-masonry">
         {visibleRows.map((a, i) => (
-          <motion.div key={a.id} className="acard"
+          <motion.div key={a.id} className="af-acard"
             initial={reduce ? {} : { opacity: 0, y: 22 }} animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.45, delay: Math.min(i * 0.05, 0.4) }}
             onClick={() => nav(`/albums/${a.id}`)}>
-            <div className="cov"><Cover url={a.cover_url ? signedCovers[a.cover_url] : undefined} /></div>
-            <div className="t"><h4>{a.title}</h4><p>{a.category} · {a.n ?? 0} 张</p></div>
+            <div className="af-cov"><Cover url={a.cover_url ? signedCovers[a.cover_url] : undefined} /></div>
+            <div className="af-t"><h4>{a.title}</h4><p>{a.category} · {a.n ?? 0} 张</p></div>
           </motion.div>
         ))}
       </div>

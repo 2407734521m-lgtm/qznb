@@ -40,6 +40,12 @@ assert.ok(styles.includes('animation: qz-music-eq'), 'The equalizer must animate
 assert.ok(styles.includes('top: max(calc(env(safe-area-inset-top) + 8px), 18px);'));
 assert.ok(parent.includes('className="qz-music-island-collapsed-main"'));
 assert.ok(bridgeSource.includes('event.source !== window.parent'));
+assert.ok(bridgeSource.includes("type: 'SPECTRUM'"), 'The music iframe must publish realtime analyser data.');
+assert.ok(bridgeSource.includes('audioBands.bass.get()') && bridgeSource.includes('audioBands.treble.get()'), 'Spectrum data must come from Folia analyser bands.');
+assert.ok(bridgeSource.includes('window.setInterval(publishSpectrum, 50)'), 'Spectrum updates should be throttled to 20Hz.');
+assert.ok(parent.includes("message.type === 'SPECTRUM'"), 'The main site must consume spectrum data.');
+assert.ok(parent.includes('--qz-music-eq-bass'), 'The island meter must be driven by received frequency bands.');
+assert.ok(styles.includes('var(--qz-music-eq-bass') && styles.includes('var(--qz-music-eq-treble'), 'Equalizer bars must use live band values.');
 assert.ok(bridgeSource.includes('MAIN_SITE_ORIGINS.has(event.origin)'));
 assert.ok(!bridgeSource.includes("postMessage(data, '*')"));
 assert.ok(overlays.includes('<QianzhiEmbedBridge model={model} />'));

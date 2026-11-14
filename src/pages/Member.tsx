@@ -191,17 +191,17 @@ export default function Member() {
     }
   }
   async function reportMember() {
-    if (!uid || isMe) return;
-    const reason = await promptDialog('举报该成员，请填写具体原因（最多 200 字）：');
-    if (!reason || !reason.trim()) return;
-    const normalizedReason = reason.trim().slice(0, 200);
-    if (normalizedReason.length < 3) {
-      await alertDialog('请至少填写 3 个字的举报原因。');
-      return;
-    }
-
+    if (!uid || isMe || fbusy) return;
     setFbusy(true);
     try {
+      const reason = await promptDialog('举报该成员，请填写具体原因（最多 200 字）：');
+      if (!reason || !reason.trim()) return;
+      const normalizedReason = reason.trim().slice(0, 200);
+      if (normalizedReason.length < 3) {
+        await alertDialog('请至少填写 3 个字的举报原因。');
+        return;
+      }
+
       const { data: existing, error: lookupError } = await supabase.from('reports')
         .select('id')
         .eq('reporter_id', uid)

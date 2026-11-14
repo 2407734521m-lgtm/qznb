@@ -42,6 +42,7 @@ assert.ok(parent.includes('className="qz-music-island-collapsed-main"'));
 assert.ok(bridgeSource.includes('event.source !== window.parent'));
 assert.ok(bridgeSource.includes("type: 'SPECTRUM'"), 'The music iframe must publish realtime analyser data.');
 assert.ok(bridgeSource.includes('audioBands.bass.get()') && bridgeSource.includes('audioBands.treble.get()'), 'Spectrum data must come from Folia analyser bands.');
+assert.ok(bridgeSource.includes('audioBands.spectrum.get().length > 0'), 'Do not call synthetic idle breath an audio spectrum.');
 assert.ok(bridgeSource.includes('window.setInterval(publishSpectrum, 50)'), 'Spectrum updates should be throttled to 20Hz.');
 assert.ok(parent.includes("message.type === 'SPECTRUM'"), 'The main site must consume spectrum data.');
 assert.ok(parent.includes('--qz-music-eq-bass'), 'The island meter must be driven by received frequency bands.');

@@ -323,3 +323,173 @@
   .me-hub :where(button) { transition: none !important; }
   .me-hub :where(button):active:not(:disabled) { transform: none !important; }
 }
+
+/* Account identity: show earned titles and game rank beside the display name. */
+.me-hub .me-hub-identity-heading {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 7px 10px;
+}
+.me-hub .me-hub-identity-heading > strong {
+  flex: 0 0 auto;
+  max-width: 100%;
+}
+.me-hub .me-hub-identity-badges {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.me-hub .me-hub-title-chip,
+.me-hub .me-hub-game-chip,
+.me-hub .me-hub-account-pill {
+  display: inline-flex;
+  min-height: 23px;
+  max-width: 100%;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border: 1px solid #dfe5ed;
+  border-radius: 8px;
+  background: #f5f7fa;
+  color: #405a78 !important;
+  font-size: 10px !important;
+  font-weight: 650;
+  line-height: 1.35;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.me-hub .me-hub-title-chip {
+  border-color: #d9e3f0;
+  background: #f2f6fb;
+  color: #385a82 !important;
+}
+.me-hub .me-hub-game-chip {
+  border-color: #dce4ed;
+  background: #f7f9fc;
+  color: #43566e !important;
+}
+.me-hub .me-hub-game-chip b {
+  color: #6b7788;
+  font-size: 9px;
+  font-weight: 750;
+}
+.me-hub .me-hub-game-chip.is-pending {
+  border-color: #ead9a8;
+  background: #fff9e9;
+  color: #805d19 !important;
+}
+.me-hub .me-hub-game-chip.is-rejected {
+  border-color: #edc8c8;
+  background: #fff3f3;
+  color: #963e45 !important;
+}
+.me-hub .me-hub-game-chip.is-empty {
+  border-color: #e7eaee;
+  background: #fafbfc;
+  color: #7b8491 !important;
+  font-weight: 500;
+}
+.me-hub .me-hub-account-pill.is-normal {
+  border-color: #bfe4ce;
+  background: #edf9f1;
+  color: #176b3d !important;
+}
+.me-hub .me-hub-account-pill.is-banned {
+  border-color: #e9a7ad;
+  background: #fff0f1;
+  color: #a32835 !important;
+}
+.me-hub .me-hub-account-pill.is-disabled,
+.me-hub .me-hub-account-pill.is-restricted {
+  border-color: #ead19d;
+  background: #fff8e8;
+  color: #865b12 !important;
+}
+.me-hub .me-hub-status-stack {
+  display: grid;
+  gap: 8px;
+  margin-top: 13px;
+}
+.me-hub .me-hub-status-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 0;
+  padding: 11px 12px;
+  border: 1px solid;
+  border-radius: 10px;
+}
+.me-hub .me-hub-status-alert.is-banned {
+  border-color: #e9a7ad;
+  background: #fff1f2;
+  color: #88232f;
+}
+.me-hub .me-hub-status-alert.is-disabled,
+.me-hub .me-hub-status-alert.is-restricted {
+  border-color: #e7ce9e;
+  background: #fff8ea;
+  color: #79520e;
+}
+.me-hub .me-hub-status-icon {
+  display: grid;
+  width: 22px;
+  height: 22px;
+  flex: 0 0 22px;
+  place-items: center;
+  border-radius: 50%;
+  background: currentColor;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 850;
+  line-height: 1;
+}
+.me-hub .me-hub-status-alert > div {
+  min-width: 0;
+  flex: 1;
+}
+.me-hub .me-hub-status-alert strong {
+  display: block;
+  color: inherit;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.45;
+}
+.me-hub .me-hub-status-alert p {
+  margin: 3px 0 0;
+  color: inherit;
+  font-size: 11px;
+  line-height: 1.55;
+  opacity: .9;
+  overflow-wrap: anywhere;
+}
+.me-hub .me-hub-status-alert small {
+  display: block;
+  margin-top: 4px;
+  color: inherit;
+  font-size: 10px;
+  font-weight: 700;
+  opacity: .86;
+}
+@media (max-width: 520px) {
+  .me-hub .me-hub-identity-heading {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 5px;
+  }
+  .me-hub .me-hub-identity-badges {
+    gap: 5px;
+  }
+  .me-hub .me-hub-title-chip,
+  .me-hub .me-hub-game-chip,
+  .me-hub .me-hub-account-pill {
+    min-height: 22px;
+    font-size: 10px !important;
+  }
+  .me-hub .me-hub-status-alert {
+    padding: 10px;
+  }
+}

@@ -485,19 +485,19 @@ export default function Login({ siteTitle, siteSubtitle, onGuestLogin }: { siteT
             <p className="login-switch"><button onClick={() => { setMode('login'); setErr(''); setForgotSent(false); }}>← 返回登录</button></p>
           </>) : (<>
             <FloatField label="用户名" value={name} hint="班级里显示的名字，可重复" error={terr('name', name.trim().length >= 1 && name.trim().length <= 30 ? null : '用户名要 1～30 个字')}>
-              <input disabled={codeSent} value={name} onChange={e => setName(e.target.value)} onBlur={touch('name')} placeholder="班级里显示的名字，可重复" maxLength={30} aria-label="用户名" />
+              <input disabled={codeSent || busy} value={name} onChange={e => setName(e.target.value)} onBlur={touch('name')} placeholder="班级里显示的名字，可重复" maxLength={30} aria-label="用户名" />
             </FloatField>
             {name.trim() && (<>
               <FloatField label="真实姓名" value={real} error={terr('real', real.trim() ? null : '请填写真实姓名')}>
-                <input disabled={codeSent} value={real} onChange={e => setReal(e.target.value)} onBlur={touch('real')} placeholder="仅管理员可见，不会公开" maxLength={30} aria-label="真实姓名" />
+                <input disabled={codeSent || busy} value={real} onChange={e => setReal(e.target.value)} onBlur={touch('real')} placeholder="仅管理员可见，不会公开" maxLength={30} aria-label="真实姓名" />
               </FloatField>
               <p className="priv-note">真实姓名只用于后台统计，普通成员看不到</p>
             </>)}
             <FloatField label="手机号（选填）" value={phone} hint="11 位手机号，没有可不填" error={terr('phone', phoneErr)}>
-              <input disabled={codeSent} value={phone} onChange={e => setPhone(e.target.value.replace(/\D/g, '').slice(0, 11))} onBlur={touch('phone')} placeholder="11 位手机号，没有可不填" inputMode="tel" aria-label="手机号（选填）" />
+              <input disabled={codeSent || busy} value={phone} onChange={e => setPhone(e.target.value.replace(/\D/g, '').slice(0, 11))} onBlur={touch('phone')} placeholder="11 位手机号，没有可不填" inputMode="tel" aria-label="手机号（选填）" />
             </FloatField>
             <FloatField label="QQ 邮箱" value={email} error={terr('email', emailErr)}>
-              <input value={email} onChange={e => { updateRegistrationEmail(e.target.value); if (codeSent) { setCodeSent(false); setCode(''); } }} onBlur={touch('email')} placeholder="123456@qq.com" inputMode="email" aria-label="QQ 邮箱" />
+              <input disabled={codeSent || busy} value={email} onChange={e => { updateRegistrationEmail(e.target.value); if (codeSent) { setCodeSent(false); setCode(''); } }} onBlur={touch('email')} placeholder="123456@qq.com" inputMode="email" aria-label="QQ 邮箱" />
             </FloatField>
             {qqAvatarPreviewUrl && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 11, margin: '10px 0 4px', padding: '11px 12px', borderRadius: 14, background: 'rgba(255,255,255,.08)', border: '1px solid rgba(255,255,255,.14)' }}>
@@ -515,14 +515,14 @@ export default function Login({ siteTitle, siteSubtitle, onGuestLogin }: { siteT
                   </div>
                 </div>
                 {qqAvatarLoadState === 'ready' && (
-                  <button type="button" className="mini ghost" aria-pressed={useQqAvatar}
+                  <button type="button" className="mini ghost" disabled={busy || codeSent} aria-pressed={useQqAvatar}
                     onClick={() => setUseQqAvatar(value => !value)}
                     style={useQqAvatar ? { borderColor: 'rgba(90,190,135,.65)', background: 'rgba(65,160,110,.18)', color: '#b8f2cf' } : undefined}>
                     {useQqAvatar ? '✓ 已选择' : '使用此头像'}
                   </button>
                 )}
                 {qqAvatarLoadState === 'error' && (
-                  <button type="button" className="mini ghost"
+                  <button type="button" className="mini ghost" disabled={busy || codeSent}
                     onClick={() => { setUseQqAvatar(false); setQqAvatarLoadState('loading'); setQqAvatarPreviewAttempt(value => value + 1); }}>
                     重试
                   </button>
@@ -539,14 +539,14 @@ export default function Login({ siteTitle, siteSubtitle, onGuestLogin }: { siteT
               </button>
             </>)}
             <FloatField label="密码" value={pw} hint="至少 8 位" error={terr('pwReg', pwErr)}>
-              <PasswordField disabled={codeSent} value={pw} onChange={setPw} onBlur={touch('pwReg')} placeholder="至少 8 位" autoComplete="new-password" strength />
+              <PasswordField disabled={codeSent || busy} value={pw} onChange={setPw} onBlur={touch('pwReg')} placeholder="至少 8 位" autoComplete="new-password" strength />
             </FloatField>
             <FloatField label="确认密码" value={pw2} error={terr('pw2', pw2Err)}>
-              <PasswordField disabled={codeSent} value={pw2} onChange={setPw2} onBlur={touch('pw2')} placeholder="再输一次" autoComplete="new-password" ariaLabel="确认密码" />
+              <PasswordField disabled={codeSent || busy} value={pw2} onChange={setPw2} onBlur={touch('pw2')} placeholder="再输一次" autoComplete="new-password" ariaLabel="确认密码" />
             </FloatField>
             <div style={{ margin: '14px 0 10px', padding: '12px 13px', borderRadius: 12, background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.12)' }}>
               <label style={{ display: 'flex', alignItems: 'flex-start', gap: 9, lineHeight: 1.6, cursor: 'pointer' }}>
-                <input type="checkbox" disabled={codeSent} checked={policyAccepted} onChange={e => setPolicyAccepted(e.target.checked)} style={{ width: 18, height: 18, marginTop: 3, flexShrink: 0 }} />
+                <input type="checkbox" disabled={codeSent || busy} checked={policyAccepted} onChange={e => setPolicyAccepted(e.target.checked)} style={{ width: 18, height: 18, marginTop: 3, flexShrink: 0 }} />
                 <span>我已阅读并同意 <button type="button" className="linklike" onClick={() => setShowPrivacyPolicy(true)} style={{ border: 0, padding: 0, background: 'none', color: '#2f5fd0', textDecoration: 'underline', cursor: 'pointer', font: 'inherit' }}>《隐私政策与用户协议》</button></span>
               </label>
               <p className="priv-note" style={{ margin: '7px 0 0', lineHeight: 1.65 }}>政策说明账号、设备信息及 IP 推算地区的处理方式。所在地区分享不会由本协议自动授权。</p>

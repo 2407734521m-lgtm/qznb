@@ -27,6 +27,15 @@ type MusicStateMessage = {
 
 type MusicCommand = 'toggle' | 'previous' | 'next' | 'seek';
 
+type MusicSpectrumMessage = {
+  source: 'qznb-music';
+  type: 'SPECTRUM';
+  version: 1;
+  playing: boolean;
+  available: boolean;
+  bands: { bass: number; lowMid: number; vocal: number; treble: number } | null;
+};
+
 function safeCoverUrl(value: unknown): string | null {
   if (typeof value !== 'string' || !value.trim()) return null;
   try {
@@ -57,6 +66,7 @@ function MusicIsland() {
   const navigate = useNavigate();
   const reduceMotion = useReducedMotion();
   const frameRef = useRef<HTMLIFrameElement | null>(null);
+  const islandWrapRef = useRef<HTMLDivElement | null>(null);
   const isMusicPage = location.pathname === '/music';
   const inQianzhiApp = typeof navigator !== 'undefined' && /QianzhiApp\//i.test(navigator.userAgent);
   const [openedOnce, setOpenedOnce] = useState(false);
@@ -106,18 +116,44 @@ function MusicIsland() {
     if (!shouldMountFrame) return;
     const onMessage = (event: MessageEvent<unknown>) => {
       if (event.origin !== MUSIC_ORIGIN || event.source !== frameRef.current?.contentWindow) return;
+      const message = event.data as Partial<MusicStateMessage> | Partial<MusicSpectrumMessage> | null;
+      if (!message || message.source !== 'qznb-music' || message.version !== 1) return;
+
+      if (message.type === 'SPECTRUM') {
+        const spectrum = message as MusicSpectrumMessage;
+        const style = islandWrapRef.current?.style;
+        if (!style) return;
+        const names = ['bass', 'lowMid', 'vocal', 'treble'] as const;
+        for (const name of names) {
+          const raw = spectrum.available && spectrum.playing ? spectrum.bands?.[name] : 0;
+          const energy = Number.isFinite(raw) ? Math.max(0, Math.min(1, raw as number)) : 0;
+          // A small floor keeps quiet passages visible without inventing a beat.
+          style.setProperty(`--qz-music-eq-${name}`, String(0.12 + energy * 0.88));
+        }
+        return;
+      }
+
+      if (message.type !== 'STATE') return;
       lastStateMessageAtRef.current = Date.now();
-      const message = event.data as Partial<MusicStateMessage> | null;
-      if (!message || message.source !== 'qznb-music' || message.type !== 'STATE' || message.version !== 1) return;
       setConnected(true);
       setShowFallback(false);
       if (!message.track || typeof message.track.title !== 'string') {
+        islandWrapRef.current?.style.setProperty('--qz-music-eq-bass', '.12');
+        islandWrapRef.current?.style.setProperty('--qz-music-eq-lowMid', '.12');
+        islandWrapRef.current?.style.setProperty('--qz-music-eq-vocal', '.12');
+        islandWrapRef.current?.style.setProperty('--qz-music-eq-treble', '.12');
         setTrack(null);
         return;
       }
       const incoming = message.track as MusicTrack;
       const duration = Number(incoming.duration);
       const currentTime = Number(incoming.currentTime);
+      if (!incoming.isPlaying) {
+        islandWrapRef.current?.style.setProperty('--qz-music-eq-bass', '.12');
+        islandWrapRef.current?.style.setProperty('--qz-music-eq-lowMid', '.12');
+        islandWrapRef.current?.style.setProperty('--qz-music-eq-vocal', '.12');
+        islandWrapRef.current?.style.setProperty('--qz-music-eq-treble', '.12');
+      }
       setTrack({
         title: incoming.title.slice(0, 180),
         artist: typeof incoming.artist === 'string' ? incoming.artist.slice(0, 180) : '',
@@ -260,6 +296,7 @@ function MusicIsland() {
       <AnimatePresence>
         {track && !isMusicPage && (
           <motion.div
+            ref={islandWrapRef}
             className={'qz-music-island-wrap' + (inQianzhiApp ? ' is-qianzhi-app' : '')}
             initial={reduceMotion ? false : { opacity: 0, y: -12, scale: 0.96 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}

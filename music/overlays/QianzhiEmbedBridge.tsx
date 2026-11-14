@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import type { AppOverlaysModel } from '../app/overlays/buildAppOverlaysModel';
 import { getSongArtistLabel } from '../../services/onlineMusic/songMetadata';
 import { PlayerState } from '../../types';
+import { audioBands } from '../../stores/motionSignals';
 import {
     selectDisplayCoverUrl,
     selectDisplayPlayerState,
@@ -27,11 +28,12 @@ const QianzhiEmbedBridge = ({ model }: Props) => {
     const currentSong = usePlaybackStore(state => state.currentSong);
     const displayCoverUrl = usePlaybackStore(selectDisplayCoverUrl);
     const displayPlayerState = usePlaybackStore(selectDisplayPlayerState);
+    const playbackRoute = usePlaybackStore(state => state.playbackRoute);
 
     const modelRef = useRef(model);
     modelRef.current = model;
-    const playbackRef = useRef({ currentSong, displayCoverUrl, displayPlayerState });
-    playbackRef.current = { currentSong, displayCoverUrl, displayPlayerState };
+    const playbackRef = useRef({ currentSong, displayCoverUrl, displayPlayerState, playbackRoute });
+    playbackRef.current = { currentSong, displayCoverUrl, displayPlayerState, playbackRoute };
 
     useEffect(() => {
         if (window.parent === window) return;
@@ -73,6 +75,29 @@ const QianzhiEmbedBridge = ({ model }: Props) => {
             }, parentOrigin);
         };
 
+        // Send the real analyser bands separately from track metadata. 20 Hz is enough
+        // for a fluid island meter without pushing frame-rate React updates across origins.
+        const publishSpectrum = () => {
+            if (!parentOrigin) return;
+            const playback = playbackRef.current;
+            const playing = playback.displayPlayerState === PlayerState.PLAYING;
+            const available = playing && playback.playbackRoute === 'web' && audioBands.spectrum.get().length > 0;
+            const normalize = (value: number) => Math.max(0, Math.min(1, Number.isFinite(value) ? value / 255 : 0));
+            window.parent.postMessage({
+                source: 'qznb-music',
+                type: 'SPECTRUM',
+                version: 1,
+                playing,
+                available,
+                bands: available ? {
+                    bass: normalize(audioBands.bass.get()),
+                    lowMid: normalize(audioBands.lowMid.get()),
+                    vocal: normalize(audioBands.vocal.get()),
+                    treble: normalize(audioBands.treble.get()),
+                } : null,
+            }, parentOrigin);
+        };
+
         const onMessage = (event: MessageEvent<unknown>) => {
             if (event.source !== window.parent || !MAIN_SITE_ORIGINS.has(event.origin)) return;
             const message = event.data as Partial<BridgeCommand> | null;
@@ -110,9 +135,11 @@ const QianzhiEmbedBridge = ({ model }: Props) => {
 
         window.addEventListener('message', onMessage);
         const timer = window.setInterval(publish, 700);
+        const spectrumTimer = window.setInterval(publishSpectrum, 50);
         return () => {
             window.removeEventListener('message', onMessage);
             window.clearInterval(timer);
+            window.clearInterval(spectrumTimer);
         };
     }, []);
 

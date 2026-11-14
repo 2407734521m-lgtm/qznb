@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { supabase } from '../lib/supabase';
 import { startSitePresence } from '../lib/sitePresence';
 import { detectInstalledAdminApp } from '../lib/installedApp';
@@ -132,7 +133,28 @@ export default function Admin({ verifiedRole }: { verifiedRole: 'admin' | 'super
     };
   }, [isDedicatedAdminHost, session?.user.id]);
   const [tab, setTab] = useState('overview');
-  const [msg, setMsg] = useState('');
+  const [toast, setToast] = useState<{ id: number; text: string; kind: 'success' | 'error' | 'info' } | null>(null);
+  const toastTimer = useRef<number | null>(null);
+  const toastSequence = useRef(0);
+  const isErrorMessage = (text: string) => /失败|错误|异常|无效|拒绝|中止|无法|请检查|未能/.test(text);
+  function setMsg(text: string) {
+    if (toastTimer.current !== null) window.clearTimeout(toastTimer.current);
+    if (!text.trim()) {
+      setToast(null);
+      toastTimer.current = null;
+      return;
+    }
+    const id = ++toastSequence.current;
+    const kind = isErrorMessage(text) ? 'error' : /正在|处理中|导出中/.test(text) ? 'info' : 'success';
+    setToast({ id, text, kind });
+    toastTimer.current = window.setTimeout(() => {
+      setToast(current => current?.id === id ? null : current);
+      toastTimer.current = null;
+    }, kind === 'error' ? 9000 : kind === 'info' ? 12000 : 5200);
+  }
+  useEffect(() => () => {
+    if (toastTimer.current !== null) window.clearTimeout(toastTimer.current);
+  }, []);
   const [q0, setQ0] = useState('');
   const isSuper = verifiedRole === 'super_admin';
   const tabs = TABS_ALL.filter(([, , sup]) => !sup || isSuper);
@@ -168,7 +190,24 @@ export default function Admin({ verifiedRole }: { verifiedRole: 'admin' | 'super
         onMemberSearchChange={setQ0}
         onMemberSearchSubmit={() => switchTab('accounts')}
       >
-        {msg && <p className="priv-note admin-global-message" role="status">{msg}</p>}
+        {toast && typeof document !== 'undefined' && createPortal(
+          <div key={toast.id} className={`admin-toast admin-toast--${toast.kind}`}
+            role={toast.kind === 'error' ? 'alert' : 'status'} aria-live={toast.kind === 'error' ? 'assertive' : 'polite'}>
+            <span className="admin-toast-icon" aria-hidden="true">
+              {toast.kind === 'error' ? '!' : toast.kind === 'info' ? '…' : '✓'}
+            </span>
+            <div className="admin-toast-copy">
+              <strong>{toast.kind === 'error' ? '操作未完成' : toast.kind === 'info' ? '正在处理' : '操作成功'}</strong>
+              <span>{toast.text}</span>
+            </div>
+            <button type="button" className="admin-toast-close" aria-label="关闭提示" onClick={() => {
+              if (toastTimer.current !== null) window.clearTimeout(toastTimer.current);
+              toastTimer.current = null;
+              setToast(null);
+            }}>×</button>
+          </div>,
+          document.body,
+        )}
         <AnimatePresence mode="wait" initial={false}>
           <motion.div
             className="admin-content"

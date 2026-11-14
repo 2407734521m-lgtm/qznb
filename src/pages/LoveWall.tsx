@@ -89,6 +89,8 @@ export default function LoveWall() {
   const [commentsByPost, setCommentsByPost] = useState<Record<string, CommentItem[]>>({});
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [cBusy, setCBusy] = useState(false);
+  const [editingComment, setEditingComment] = useState<{ id: string; text: string } | null>(null);
+  const [savingComment, setSavingComment] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [estimates, setEstimates] = useState<ReviewEstimates | null>(null);
   const [pick, setPick] = useState<{ file: File; kind: 'image' | 'video'; url: string }[]>([]);
@@ -197,11 +199,47 @@ export default function LoveWall() {
     setDrafts(prev => ({ ...prev, [postId]: '' }));
   }
 
+  function beginEditComment(c: CommentItem) {
+    if (!session || c.author_id !== session.user.id) return;
+    setEditingComment({ id: c.id, text: c.content });
+    setNotice('');
+  }
+
+  async function saveEditComment(c: CommentItem) {
+    if (!session || c.author_id !== session.user.id || savingComment) return;
+    const content = editingComment?.id === c.id ? editingComment.text.trim() : '';
+    if (!content) { setNotice('评论内容不能为空。'); return; }
+    if (content.length > 300) { setNotice('评论最多 300 个字。'); return; }
+
+    setSavingComment(true);
+    try {
+      const { data, error } = await supabase.from('love_wall_comments')
+        .update({ content })
+        .eq('id', c.id)
+        .eq('author_id', session.user.id)
+        .select('id')
+        .maybeSingle();
+      if (error) throw error;
+      if (!data) throw new Error('评论不存在或当前账号没有编辑权限。');
+      setCommentsByPost(prev => ({
+        ...prev,
+        [c.post_id]: (prev[c.post_id] || []).map(item => item.id === c.id ? { ...item, content } : item),
+      }));
+      setEditingComment(null);
+      setNotice('评论已更新。');
+    } catch (error) {
+      setNotice('保存评论失败：' + (error instanceof Error ? error.message : '请稍后重试。'));
+    } finally {
+      setSavingComment(false);
+    }
+  }
+
   async function deleteComment(c: CommentItem) {
     const { error } = await supabase.from('love_wall_comments')
       .update({ deleted_at: new Date().toISOString() }).eq('id', c.id);
     if (error) { setNotice('删除失败，请稍后再试。'); return; }
     setCommentsByPost(prev => ({ ...prev, [c.post_id]: (prev[c.post_id] || []).filter(x => x.id !== c.id) }));
+    setEditingComment(current => current?.id === c.id ? null : current);
     setCounts(prev => ({ ...prev, [c.post_id]: Math.max(0, (prev[c.post_id] || 1) - 1) }));
   }
 
@@ -430,10 +468,46 @@ export default function LoveWall() {
                   {(commentsByPost[p.id] || []).length === 0 && <div style={{ fontSize: 12, color: '#8a93a1' }}>还没有评论，来写第一条吧。</div>}
                   {(commentsByPost[p.id] || []).map(c => (
                     <div key={c.id} style={{ fontSize: 13, lineHeight: 1.6 }}>
-                      <span style={{ fontWeight: 700, color: '#333946' }}>{c.name}</span>
-                      <span style={{ color: '#8a93a1', fontSize: 11, marginLeft: 6 }}>{timeAgo(c.created_at)}</span>
-                      {(session?.user.id === c.author_id || isAdmin) && <button onClick={() => void deleteComment(c)} style={{ border: 0, background: 'transparent', color: '#b3261e', fontSize: 11, cursor: 'pointer', marginLeft: 6, padding: 0 }}>删除</button>}
-                      <div style={{ color: '#202124', whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{c.content}</div>
+                      <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 6 }}>
+                        <span style={{ fontWeight: 700, color: '#333946' }}>{c.name}</span>
+                        <span style={{ color: '#8a93a1', fontSize: 11 }}>{timeAgo(c.created_at)}</span>
+                        {session?.user.id === c.author_id && (
+                          <button type="button" onClick={() => beginEditComment(c)}
+                            style={{ border: 0, background: 'transparent', color: '#526b9a', fontSize: 11, cursor: 'pointer', padding: 0 }}>
+                            编辑
+                          </button>
+                        )}
+                        {(session?.user.id === c.author_id || isAdmin) && (
+                          <button type="button" onClick={() => void deleteComment(c)}
+                            style={{ border: 0, background: 'transparent', color: '#b3261e', fontSize: 11, cursor: 'pointer', padding: 0 }}>
+                            删除
+                          </button>
+                        )}
+                      </div>
+                      {editingComment?.id === c.id ? (
+                        <div style={{ display: 'grid', gap: 7, marginTop: 7 }}>
+                          <textarea
+                            value={editingComment.text}
+                            onChange={event => setEditingComment(current => current?.id === c.id ? { ...current, text: event.target.value } : current)}
+                            maxLength={300}
+                            rows={3}
+                            aria-label="编辑评论"
+                            style={{ width: '100%', minHeight: 72, boxSizing: 'border-box', resize: 'vertical', border: '1px solid #d9dee7', borderRadius: 10, padding: '9px 11px', font: 'inherit', color: '#202124', background: '#fff' }}
+                          />
+                          <div style={{ display: 'flex', gap: 7, justifyContent: 'flex-end' }}>
+                            <button type="button" disabled={savingComment} onClick={() => setEditingComment(null)}
+                              style={{ border: '1px solid #e2e5eb', background: '#fff', color: '#596273', borderRadius: 9, padding: '6px 10px', fontSize: 11 }}>
+                              取消
+                            </button>
+                            <button type="button" disabled={savingComment} onClick={() => void saveEditComment(c)}
+                              style={{ border: 0, background: '#243a5a', color: '#fff', borderRadius: 9, padding: '6px 11px', fontSize: 11 }}>
+                              {savingComment ? '保存中…' : '保存修改'}
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div style={{ color: '#202124', whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{c.content}</div>
+                      )}
                     </div>
                   ))}
                   <div style={{ display: 'flex', gap: 8 }}>

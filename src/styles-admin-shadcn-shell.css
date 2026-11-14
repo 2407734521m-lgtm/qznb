@@ -1,0 +1,318 @@
+/* 管理后台整套壳 · shadcn-admin 版式移植（借版式重写）
+   ---------------------------------------------------------------
+   版式来源：satnaing/shadcn-admin，16,701 星、MIT、2026-09-10 更新，
+   React + Vite + Tailwind + shadcn/ui + 大量 Radix + Clerk 认证。
+   许可：MIT——本文件没有复制对方任何代码，只参考其
+   AuthenticatedLayout / AppSidebar / Header / Main 的排布与尺寸
+   （16rem 侧边栏 + 图标收起轨、h-16 顶栏、分隔线 + 面包屑、
+   内容区 max-w-7xl 居中、页头标题 + 描述），全部样式用站内自研 CSS
+   重新写；不引入 Tailwind、不引入 Radix / shadcn、不引入 Clerk
+   （本站用 Supabase Auth）。
+   配色：冷白纸面——底 #f7f8f8、卡片 #ffffff、墨色 #1f2a3a、
+   灰字 #7a8894、描边 #e5e8ea、印泥红 #b0404f（只用于退出、错误等
+   危险态与激活点缀）。
+   作用域：只在 .admin-shell-v3 的壳层（AdminWorkspace 渲染的侧边栏 /
+   顶栏 / 页头 / 内容画布 / 命令面板 / 移动端快捷栏）与 Admin.tsx 的
+   反馈 Toast 生效，不动 27 个 Tab 的功能与数据逻辑、不动主站、
+   不动登录与权限、不动任何 Supabase 调用、不动 --admin-* 共享变量
+   （Tab 内页继续用旧变量，不被本次改动带偏）。
+   本文件由 Admin.tsx 最后引入，专用于覆盖 styles-admin-scaffold /
+   -tokens / -paper 里壳层相关的旧规则。
+   另修一处旧壳 bug：scaffold 用 !important 把成员搜索与命令面板两个
+   输入框的文字写死成近白 #f2f6ff / #f4f7ff，浅色底上打出的字看不见；
+   本文件以同级 !important 把两处文字色改回墨色。
+*/
+
+/* ===== 1. 画布：冷白底 + 16rem 侧边栏（shadcn-admin Sidebar 宽度） ===== */
+.admin-shell-v3 { background: #f7f8f8; }
+.admin-shell-v3 .admin-workspace {
+  color: #1f2a3a;
+  background: #f7f8f8;
+  grid-template-columns: 256px minmax(0, 1fr);
+  transition: grid-template-columns .2s ease-linear;
+}
+.admin-shell-v3 .admin-workspace.is-collapsed { grid-template-columns: 68px minmax(0, 1fr); }
+.admin-shell-v3 .admin-workspace-main { background: #f7f8f8; }
+
+/* ===== 2. 侧边栏：白底 + 细右描边，去玻璃模糊与渐变 ===== */
+.admin-shell-v3 .admin-sidebar {
+  padding: 12px 8px;
+  background: #ffffff;
+  border-right: 1px solid #e5e8ea;
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+.admin-shell-v3 .admin-sidebar-brand {
+  min-height: 56px;
+  padding: 0 8px 12px;
+  gap: 10px;
+  border-bottom: 0;
+}
+.admin-shell-v3 .admin-brand-mark {
+  flex-basis: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border-color: #b0404f;
+  color: #ffffff;
+  background: #b0404f;
+  font-size: 14px;
+  box-shadow: none;
+}
+.admin-shell-v3 .admin-brand-copy strong { color: #1f2a3a; font-size: 14px; }
+.admin-shell-v3 .admin-brand-copy span { color: #7a8894; font-size: 9px; }
+
+/* 分组标题：shadcn-admin SidebarGroupLabel 式小写灰字（本站分组为中文，字距如常） */
+.admin-shell-v3 .admin-sidebar-nav { padding: 4px 0 14px; scrollbar-color: rgba(31, 42, 58, .18) transparent; }
+.admin-shell-v3 .admin-nav-group + .admin-nav-group { margin-top: 16px; }
+.admin-shell-v3 .admin-nav-group-title {
+  padding: 0 8px 6px;
+  color: #7a8894;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .06em;
+}
+.admin-shell-v3 .admin-nav-group-title > svg { color: #9aa7b4; }
+.admin-shell-v3 .admin-nav-group-title:hover { color: #1f2a3a; }
+.admin-shell-v3 .admin-nav-group-title:hover > svg { color: #5b6b7c; }
+
+/* 导航项：h-8 高、圆角 6px、激活态只用浅灰底（无左侧色条、无圆点） */
+.admin-shell-v3 .admin-nav-item {
+  min-height: 32px;
+  margin: 1px 0;
+  padding: 0 8px;
+  gap: 8px;
+  border-radius: 6px;
+  color: #3d4a5a;
+  font-size: 13px;
+  font-weight: 500;
+}
+.admin-shell-v3 .admin-nav-item:hover { background: #f0f1f2; color: #1f2a3a; }
+.admin-shell-v3 .admin-nav-item:active { transform: none; }
+.admin-shell-v3 .admin-nav-item.is-active {
+  color: #1f2a3a;
+  font-weight: 600;
+  background: #e9ebec;
+  border-color: transparent;
+  box-shadow: none;
+}
+.admin-shell-v3 .admin-nav-item.is-active:before { display: none; }
+.admin-shell-v3 .admin-nav-icon { width: 16px; flex-basis: 16px; color: #7a8894; }
+.admin-shell-v3 .admin-nav-item.is-active .admin-nav-icon { color: #1f2a3a; }
+.admin-shell-v3 .admin-nav-item-row { gap: 2px; }
+.admin-shell-v3 .admin-nav-pin { color: #9aa7b4; border-radius: 6px; }
+.admin-shell-v3 .admin-nav-pin:hover,
+.admin-shell-v3 .admin-nav-pin.is-pinned { color: #b0404f; background: #faf0f1; border-color: #f0d5d8; }
+
+/* 收起轨：68px 宽、图标按钮 36px 方正，与 shadcn-admin 图标模式同宽 */
+.admin-shell-v3 .admin-workspace.is-collapsed .admin-sidebar { padding-inline: 8px; }
+.admin-shell-v3 .admin-workspace.is-collapsed .admin-nav-item { min-height: 36px; border-radius: 8px; }
+
+/* 侧边栏底部：NavUser 式账号卡（头像 + 角色两行）+ 退出按钮 */
+.admin-shell-v3 .admin-sidebar-footer { padding: 12px 0 0; border-top: 1px solid #e5e8ea; }
+.admin-shell-v3 .admin-sidebar-account { padding: 2px 8px 10px; gap: 10px; }
+.admin-shell-v3 .admin-sidebar-avatar {
+  flex-basis: 32px;
+  height: 32px;
+  border-radius: 8px;
+  color: #ffffff;
+  background: #1f2a3a;
+  border-color: #1f2a3a;
+  font-size: 12px;
+}
+.admin-shell-v3 .admin-sidebar-account-copy strong { color: #1f2a3a; font-size: 12.5px; }
+.admin-shell-v3 .admin-sidebar-account-copy small { color: #7a8894; font-size: 11px; }
+.admin-shell-v3 .admin-sidebar-logout {
+  min-height: 36px;
+  padding: 0 10px;
+  border: 1px solid #e5e8ea;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #b0404f;
+  font-size: 12px;
+}
+.admin-shell-v3 .admin-sidebar-logout:hover { background: #fdf2f2; border-color: #eccdd0; color: #93333f; }
+.admin-shell-v3 .admin-sidebar-close { border-color: #e5e8ea; background: #ffffff; color: #5b6b7c; }
+
+/* ===== 3. 顶栏：h-16（64px）、实心白底 + 细底描边（不恢复半透明与模糊） ===== */
+.admin-shell-v3 .admin-console-topbar {
+  min-height: 64px;
+  padding: 0 16px;
+  gap: 12px;
+  background: #ffffff;
+  border-bottom: 1px solid #e5e8ea;
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+.admin-shell-v3 .admin-console-icon-button {
+  width: 32px;
+  height: 32px;
+  flex-basis: 32px;
+  border: 1px solid #e5e8ea;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #1f2a3a;
+  box-shadow: none;
+}
+.admin-shell-v3 .admin-console-icon-button:hover { background: #f0f1f2; border-color: #d4d9de; color: #1f2a3a; }
+.admin-shell-v3 .admin-console-separator { flex: 0 0 1px; width: 1px; height: 24px; background: #e5e8ea; }
+.admin-shell-v3 .admin-console-breadcrumb { gap: 8px; color: #7a8894; font-size: 13px; }
+.admin-shell-v3 .admin-console-breadcrumb > span { color: #7a8894; }
+.admin-shell-v3 .admin-console-breadcrumb > svg { color: #aab4be; }
+.admin-shell-v3 .admin-console-breadcrumb strong { color: #1f2a3a; font-size: 13px; font-weight: 600; }
+.admin-shell-v3 .admin-command-trigger {
+  width: 220px;
+  height: 36px;
+  border: 1px solid #e5e8ea;
+  border-radius: 8px;
+  background: #f7f8f8;
+  color: #7a8894;
+  font-size: 12.5px;
+  box-shadow: none;
+}
+.admin-shell-v3 .admin-command-trigger:hover { background: #f0f1f2; border-color: #d4d9de; color: #1f2a3a; }
+.admin-shell-v3 .admin-command-trigger kbd { background: #ffffff; border-color: #e5e8ea; color: #7a8894; }
+.admin-shell-v3 .admin-console-role { background: #f7f8f8; border-color: #e5e8ea; color: #5b6b7c; font-size: 11px; }
+.admin-shell-v3 .admin-console-logout {
+  min-height: 36px;
+  border: 1px solid #e5e8ea;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #1f2a3a;
+  font-size: 12px;
+  box-shadow: none;
+}
+.admin-shell-v3 .admin-console-logout:hover { color: #b0404f; background: #fdf2f2; border-color: #eccdd0; }
+
+/* ===== 4. 内容区：max-w-7xl 居中（shadcn-admin Main），页头标题 + 描述 ===== */
+.admin-shell-v3 .admin-workspace-content { width: min(100%, 1280px); color: #1f2a3a; }
+.admin-shell-v3 .admin-page-heading { margin: 0 0 20px; padding: 0 0 16px; border-bottom: 0; }
+.admin-shell-v3 .admin-page-heading h1 {
+  color: #1f2a3a;
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -.025em;
+  line-height: 1.25;
+}
+.admin-shell-v3 .admin-page-heading p { color: #7a8894; font-size: 13px; line-height: 1.6; margin-top: 4px; }
+.admin-shell-v3 .admin-member-search { width: min(100%, 340px); }
+.admin-shell-v3 .admin-member-search > label { color: #7a8894; font-size: 11px; }
+.admin-shell-v3 .admin-member-search-control {
+  background: #ffffff;
+  border-color: #e5e8ea;
+  border-radius: 10px;
+  box-shadow: 0 1px 2px rgba(31, 42, 58, .04);
+}
+.admin-shell-v3 .admin-member-search-control > svg { color: #7a8894; }
+.admin-shell-v3 .admin-member-search-control input { color: #1f2a3a !important; }
+.admin-shell-v3 .admin-member-search-control input::placeholder { color: #9aa7b4; }
+.admin-shell-v3 .admin-member-search-control button {
+  background: #b0404f;
+  border-color: #b0404f;
+  border-radius: 8px;
+  color: #ffffff;
+}
+.admin-shell-v3 .admin-member-search-control button:hover { background: #93333f; }
+
+/* ===== 5. 命令面板 / 遮罩 / 移动端快捷栏：冷白 ===== */
+.admin-shell-v3 .admin-sidebar-scrim { background: rgba(31, 42, 58, .32); }
+.admin-shell-v3 .admin-command-overlay { background: rgba(31, 42, 58, .32); }
+.admin-shell-v3 .admin-command-palette {
+  background: #ffffff;
+  border: 1px solid #e5e8ea;
+  border-radius: 12px;
+  color: #1f2a3a;
+  box-shadow: 0 24px 64px rgba(31, 42, 58, .16), 0 2px 8px rgba(31, 42, 58, .06);
+}
+.admin-shell-v3 .admin-command-input-wrap { border-bottom-color: #e5e8ea; color: #7a8894; }
+.admin-shell-v3 .admin-command-input-wrap > svg { color: #7a8894; }
+.admin-shell-v3 .admin-command-input-wrap input { color: #1f2a3a !important; }
+.admin-shell-v3 .admin-command-input-wrap input::placeholder { color: #9aa7b4; }
+.admin-shell-v3 .admin-command-result { color: #43536a; border-radius: 8px; }
+.admin-shell-v3 .admin-command-result:hover,
+.admin-shell-v3 .admin-command-result.is-active { color: #1f2a3a; background: #f0f1f2; border-color: transparent; }
+.admin-shell-v3 .admin-command-result-icon { color: #5b6b7c; background: #f7f8f8; border-color: #e5e8ea; }
+.admin-shell-v3 .admin-command-result-copy strong { color: #1f2a3a; }
+.admin-shell-v3 .admin-command-result-copy small { color: #7a8894; }
+.admin-shell-v3 .admin-command-result > svg:last-child { color: #9aa7b4; }
+.admin-shell-v3 .admin-command-empty { color: #7a8894; }
+.admin-shell-v3 .admin-command-foot { border-top-color: #e5e8ea; color: #7a8894; }
+.admin-shell-v3 .admin-command-palette kbd,
+.admin-shell-v3 .admin-command-input-wrap kbd { background: #f7f8f8; border-color: #e5e8ea; color: #7a8894; }
+.admin-shell-v3 .admin-mobile-quickbar {
+  background: rgba(255, 255, 255, .94);
+  border: 1px solid #e5e8ea;
+  box-shadow: 0 12px 32px rgba(31, 42, 58, .12);
+}
+.admin-shell-v3 .admin-mobile-quick-item { color: #7a8894; }
+.admin-shell-v3 .admin-mobile-quick-item.is-active { color: #1f2a3a; background: #e9ebec; border-color: transparent; }
+.admin-shell-v3 .admin-mobile-quick-icon { color: currentColor; }
+
+/* ===== 6. 反馈 Toast（Admin.tsx 经 Portal 挂到 body，不在壳内，用裸选择器与旧文件同口径） ===== */
+.admin-toast {
+  border-color: #e5e8ea;
+  color: #1f2a3a;
+  background: rgba(255, 255, 255, .97);
+  box-shadow: 0 18px 46px rgba(31, 42, 58, .14), 0 2px 8px rgba(31, 42, 58, .05);
+}
+.admin-toast--error .admin-toast-icon { background: #b0404f; }
+.admin-toast--info .admin-toast-icon { background: #7a8894; }
+.admin-toast-copy strong { color: #1f2a3a; }
+.admin-toast-copy span { color: #5b6b7c; }
+.admin-toast-close { color: #7a8894; }
+.admin-toast-close:hover { color: #1f2a3a; background: #f0f1f2; }
+
+/* 钉死：paper §12/§13 为压掉主包 ios26 玻璃，用 !important 把侧边栏与顶栏
+   底色钉在暖纸 #fffdf9；本站去模糊的决定保留（顶栏仍用实心白，不恢复
+   半透明与模糊），只把底色从暖纸改钉到冷白 #ffffff。 */
+.admin-shell-v3 .admin-workspace .admin-sidebar {
+  background: #ffffff !important;
+  border-right-color: #e5e8ea !important;
+  box-shadow: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+.admin-shell-v3 .admin-console-topbar {
+  background: #ffffff !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+/* ===== 7. 焦点环：去蓝，改墨色 ===== */
+.admin-shell-v3 button:focus-visible,
+.admin-shell-v3 input:focus-visible,
+.admin-shell-v3 textarea:focus-visible,
+.admin-shell-v3 select:focus-visible {
+  outline: 2px solid rgba(31, 42, 58, .6);
+  outline-offset: 2px;
+}
+.admin-shell-v3 .admin-command-palette button:focus-visible,
+.admin-shell-v3 .admin-command-palette input:focus-visible { outline-color: rgba(31, 42, 58, .6); }
+.admin-shell-v3 .admin-nav-pin:focus-visible { outline-color: rgba(31, 42, 58, .6); }
+
+/* ===== 8. 响应式：内容区内边距按 shadcn-admin Main（px-4 py-6）收，移动端留出快捷栏高度 ===== */
+@media (min-width: 900px) {
+  .admin-shell-v3 .admin-workspace-content { padding: 24px 16px 48px; }
+}
+@media (max-width: 899px) {
+  .admin-shell-v3 .admin-workspace-content { padding: 20px 16px calc(104px + env(safe-area-inset-bottom)); }
+  .admin-shell-v3 .admin-sidebar { padding: 16px 12px calc(14px + env(safe-area-inset-bottom)); }
+  .admin-shell-v3 .admin-console-topbar { min-height: 60px; padding: 0 12px; gap: 10px; }
+  .admin-shell-v3 .admin-page-heading { margin-bottom: 16px; padding-bottom: 12px; }
+  .admin-shell-v3 .admin-member-search { width: 100%; }
+}
+@media (max-width: 520px) {
+  .admin-shell-v3 .admin-workspace-content { padding: 16px 12px calc(100px + env(safe-area-inset-bottom)); }
+  .admin-shell-v3 .admin-console-breadcrumb > span,
+  .admin-shell-v3 .admin-console-breadcrumb > svg { display: none; }
+  /* 角色在抽屉底部账号卡里已有，窄屏顶栏不再重复占位，给面包屑让路 */
+  .admin-shell-v3 .admin-console-role { display: none; }
+  .admin-shell-v3 .admin-page-heading h1 { font-size: 22px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .admin-shell-v3 .admin-workspace,
+  .admin-shell-v3 .admin-sidebar,
+  .admin-shell-v3 .admin-nav-item,
+  .admin-shell-v3 .admin-command-palette { transition: none !important; animation: none !important; }
+}

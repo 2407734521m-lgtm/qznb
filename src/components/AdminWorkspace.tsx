@@ -304,7 +304,6 @@ export default function AdminWorkspace({
           </button>
         </div>
 
-        <div className="admin-sidebar-caption">WORKSPACE</div>
         <nav className="admin-sidebar-nav">
           {navigationGroups.map(group => (
             <section className="admin-nav-group" key={group.label}>
@@ -327,9 +326,8 @@ export default function AdminWorkspace({
                       aria-current={activeTab === item.id ? 'page' : undefined}
                       title={collapsed ? item.label : undefined}
                       onClick={() => choose(item.id)}>
-                      <span className="admin-nav-icon"><AdminIcon name={item.id} size={17} /></span>
+                      <span className="admin-nav-icon"><AdminIcon name={item.id} size={16} /></span>
                       <span className="admin-nav-label">{item.label}</span>
-                      {activeTab === item.id && <span className="admin-nav-active-dot" />}
                     </button>
                     <button type="button" className={['admin-nav-pin', favoriteIds.includes(item.id) ? 'is-pinned' : ''].join(' ')}
                       aria-label={`${favoriteIds.includes(item.id) ? '取消常用' : '设为常用'}：${item.label}`}
@@ -364,8 +362,11 @@ export default function AdminWorkspace({
           <button type="button" className="admin-console-icon-button" aria-label="切换导航" onClick={toggleNavigation}>
             <AdminIcon name="panel" size={18} />
           </button>
+          <span className="admin-console-separator" aria-hidden="true" />
           <div className="admin-console-breadcrumb">
-            <span>管理控制中心</span>
+            <span>管理后台</span>
+            <AdminIcon name="chevron" size={13} />
+            <span>{currentGroup}</span>
             <AdminIcon name="chevron" size={13} />
             <strong>{current?.[1] ?? '工作台'}</strong>
           </div>
@@ -385,7 +386,6 @@ export default function AdminWorkspace({
         <main className="admin-workspace-content">
           <div className="admin-page-heading">
             <div className="admin-page-heading-copy">
-              <div className="admin-page-eyebrow">{currentGroup} / WORKSPACE</div>
               <h1>{current?.[1] ?? '工作台'}</h1>
               <p>{descriptionFor(activeTab)}</p>
             </div>
@@ -440,7 +440,7 @@ export default function AdminWorkspace({
                   className={['admin-command-result', index === activeIndex ? 'is-active' : ''].join(' ')}
                   onMouseEnter={() => setActiveIndex(index)}
                   onClick={() => choose(item.id)}>
-                  <span className="admin-command-result-icon"><AdminIcon name={item.id} size={17} /></span>
+                  <span className="admin-command-result-icon"><AdminIcon name={item.id} size={16} /></span>
                   <span className="admin-command-result-copy"><strong>{item.label}</strong><small>{item.group} · {descriptionFor(item.id)}</small></span>
                   <AdminIcon name="chevron" size={15} />
                 </button>

@@ -1,6 +1,6 @@
 .qz-music-island-wrap {
   position: fixed;
-  z-index: 90;
+  z-index: 1200;
   top: calc(env(safe-area-inset-top) + 8px);
   left: 0;
   right: 0;
@@ -9,6 +9,10 @@
   display: flex;
   justify-content: center;
   pointer-events: none;
+}
+.qz-music-island-wrap.is-qianzhi-app {
+  /* Android WebView safe-area insets are often zero even below the system status bar. */
+  top: max(calc(env(safe-area-inset-top) + 8px), 34px);
 }
 .qz-music-island {
   pointer-events: auto;

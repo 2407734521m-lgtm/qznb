@@ -34,7 +34,7 @@ import AdminMusicDownloads from '../components/AdminMusicDownloads';
 import AdminBulkEmail from '../components/AdminBulkEmail';
 import AdminBroadcast from '../components/AdminBroadcast';
 import AdminAccountManagement from '../components/AdminAccountManagement';
-import AdminMfaSecurity from '../components/AdminMfaSecurity';
+import AdminSecondaryPassword from '../components/AdminSecondaryPassword';
 import Logs from './admin/Logs';
 import InviteTab from './admin/InviteTab';
 import FeedbackTab from './admin/FeedbackTab';
@@ -258,7 +258,7 @@ export default function Admin({ verifiedRole }: { verifiedRole: 'admin' | 'super
           {tab === 'board' && <BoardMgr me={me} setMsg={setMsg} />}
           {tab === 'events' && <EventTab me={me} setMsg={setMsg} />}
           {tab === 'logs' && <Logs />}
-          {tab === 'mySecurity' && <AdminMfaSecurity />}
+          {tab === 'mySecurity' && <AdminSecondaryPassword />}
           {tab === 'security' && isSuper && <AdminSecurityCenter session={session} setMsg={setMsg} />}
           {tab === 'approvals' && isSuper && <AdminApprovalCenter setMsg={setMsg} me={me} />}
           {tab === 'system' && isSuper && <AdminSystemCenter setMsg={setMsg} go={switchTab} />}

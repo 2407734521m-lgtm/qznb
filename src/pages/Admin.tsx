@@ -33,6 +33,7 @@ import AdminMusicDownloads from '../components/AdminMusicDownloads';
 import AdminBulkEmail from '../components/AdminBulkEmail';
 import AdminBroadcast from '../components/AdminBroadcast';
 import AdminAccountManagement from '../components/AdminAccountManagement';
+import AdminMfaSecurity from '../components/AdminMfaSecurity';
 import Logs from './admin/Logs';
 import InviteTab from './admin/InviteTab';
 import FeedbackTab from './admin/FeedbackTab';
@@ -70,6 +71,7 @@ const TABS_ALL: [string, string, boolean][] = [
   ['board', '公告', false],
   ['events', '活动', false],
   ['logs', '日志', false],
+  ['mySecurity', '账户安全', false],
   ['security', '安全防护', true],
   ['approvals', '审批中心', true],
   ['system', '安全与监控', true],
@@ -102,9 +104,23 @@ export default function Admin({ verifiedRole }: { verifiedRole: 'admin' | 'super
     let alive = true;
     let lastActivity = Date.now();
     let inFlight = false;
+    let signingOutForIdle = false;
     const markActivity = () => { lastActivity = Date.now(); };
+    const expireIdleSession = async () => {
+      if (!alive || signingOutForIdle) return;
+      signingOutForIdle = true;
+      try { sessionStorage.setItem('qz_admin_idle_logout', '1'); } catch { /* storage may be unavailable */ }
+      try { await supabase.auth.signOut({ scope: 'local' }); }
+      catch { /* reload still clears the local app state and presents the login screen */ }
+      finally { if (alive) window.location.reload(); }
+    };
     const heartbeat = async () => {
-      if (!alive || inFlight || document.visibilityState !== 'visible' || Date.now() - lastActivity > 5 * 60 * 1000) return;
+      if (!alive || signingOutForIdle) return;
+      if (Date.now() - lastActivity >= 20 * 60 * 1000) {
+        await expireIdleSession();
+        return;
+      }
+      if (inFlight || document.visibilityState !== 'visible' || Date.now() - lastActivity > 5 * 60 * 1000) return;
       inFlight = true;
       try {
         await supabase.from('member_presence').upsert(
@@ -115,7 +131,10 @@ export default function Admin({ verifiedRole }: { verifiedRole: 'admin' | 'super
       finally { inFlight = false; }
     };
     const onVisibility = () => {
-      if (document.visibilityState === 'visible') { markActivity(); void heartbeat(); }
+      if (document.visibilityState !== 'visible') return;
+      if (Date.now() - lastActivity >= 20 * 60 * 1000) { void expireIdleSession(); return; }
+      markActivity();
+      void heartbeat();
     };
     void heartbeat();
     const timer = window.setInterval(() => { void heartbeat(); }, 60 * 1000);
@@ -238,6 +257,7 @@ export default function Admin({ verifiedRole }: { verifiedRole: 'admin' | 'super
           {tab === 'board' && <BoardMgr me={me} setMsg={setMsg} />}
           {tab === 'events' && <EventTab me={me} setMsg={setMsg} />}
           {tab === 'logs' && <Logs />}
+          {tab === 'mySecurity' && <AdminMfaSecurity />}
           {tab === 'security' && isSuper && <AdminSecurityCenter session={session} setMsg={setMsg} />}
           {tab === 'approvals' && isSuper && <AdminApprovalCenter setMsg={setMsg} me={me} />}
           {tab === 'system' && isSuper && <AdminSystemCenter setMsg={setMsg} go={switchTab} />}

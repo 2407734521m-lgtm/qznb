@@ -23,7 +23,12 @@ const isDedicatedAdminHost = host === 'admin.qianzhi.pw';
 const authOptions = {
   persistSession: true,
   autoRefreshToken: true,
-  ...(isDedicatedAdminHost ? { storageKey: 'qznb-admin-auth-v1' } : {}),
+  ...(isDedicatedAdminHost
+    ? {
+        storageKey: 'qznb-admin-auth-v1',
+        experimental: { recoveryCodes: true },
+      }
+    : {}),
 };
 
 export const supabase = createClient<Database>(supabaseBaseUrl ?? 'http://localhost', key ?? 'missing', {

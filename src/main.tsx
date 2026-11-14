@@ -74,6 +74,7 @@ function AdminShell() {
   const { session, loading } = useAuth();
   const [role, setRole] = useState<string | null>(null);
   const [verifiedUid, setVerifiedUid] = useState<string | null>(null);
+  const [roleRefresh, setRoleRefresh] = useState(0);
   useEffect(() => {
     setRole(null);
     setVerifiedUid(null);
@@ -99,7 +100,7 @@ function AdminShell() {
       }
     );
     return () => { live = false; clearTimeout(timer); };
-  }, [session?.user.id]);
+  }, [session?.user.id, session?.access_token, roleRefresh]);
   // 管理版应用（青春管理）更新：后台域名走的是本 AdminShell 而非主站 App，
   // 更新检查必须挂在这里主站那套才够不着。逻辑与主站学生版一致：进应用与
   // 切回前台时查 public_admin_app_update()，序号更高就弹更新框。
@@ -179,7 +180,7 @@ function AdminShell() {
   const adminUpdateDialog = showAdminUpdate && adminApp ? (
     <AppUpdateDialog currentName={adminApp.name} info={{ ...adminUpdate, app_force_update: adminForced ? 'true' : 'false' }} onIgnore={ignoreAdminUpdate} />
   ) : null;
-  if (!isAdmin) return (<><div className="glow" />{adminUpdateDialog}<PaperToaster /><AdminLogin showBack={false} /></>);
+  if (!isAdmin) return (<><div className="glow" />{adminUpdateDialog}<PaperToaster /><AdminLogin showBack={false} onAuthenticated={() => setRoleRefresh(value => value + 1)} /></>);
   return (<>
     <div className="glow" />
     {adminUpdateDialog}

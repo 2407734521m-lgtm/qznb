@@ -354,7 +354,11 @@ export default function Chat() {
       // refetch every open chat for unrelated reactions. The existing 12s refresh
       // keeps this conversation's reactions in sync.
       .subscribe();
-    const fallback = setInterval(load, 12000);
+    // 切到后台标签时不轮询：visibilitychange 回来时会立刻重拉一次，
+    // 既省流量省电，又不会漏掉回来后的新消息。
+    const fallback = setInterval(() => {
+      if (document.visibilityState === 'visible') load();
+    }, 12000);
     const onVisibilityChange = () => {
       if (document.visibilityState === 'visible') load();
     };

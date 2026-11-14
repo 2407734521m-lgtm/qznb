@@ -15,16 +15,19 @@ import { startSitePresence } from './lib/sitePresence';
 import { useAuth } from './auth';
 import { getWallpaper } from './lib/wallpaper';
 import { useQuietHoursActive } from './lib/userPreferences';
-import WallpaperOnboarding from './components/WallpaperOnboarding';
+// 只在特定时刻才出现的覆盖层/弹窗：懒加载，不占首屏包体积。
+// （WelcomeOverlay、GuideCarousel、WallpaperOnboarding、LoginSuccessOverlay、
+//  BroadcastPopup、AppAnnouncementDialog 首次打开时才下载对应分包。）
+const WallpaperOnboarding = lazy(() => import('./components/WallpaperOnboarding'));
+const WelcomeOverlay = lazy(() => import('./components/WelcomeOverlay'));
+const GuideCarousel = lazy(() => import('./components/GuideCarousel'));
+const BroadcastPopup = lazy(() => import('./components/BroadcastPopup'));
+const AppAnnouncementDialog = lazy(() => import('./components/AppAnnouncementDialog'));
+const LoginSuccessOverlay = lazy(() => import('./components/LoginSuccessOverlay'));
 import BlurText from './components/fx/BlurText';
 import ShinyText from './components/fx/ShinyText';
 import { PageSkeleton } from './components/fx/Skeleton';
-import WelcomeOverlay from './components/WelcomeOverlay';
-import GuideCarousel from './components/GuideCarousel';
 import AppUpdateDialog from './components/AppUpdateDialog';
-import BroadcastPopup from './components/BroadcastPopup';
-import AppAnnouncementDialog from './components/AppAnnouncementDialog';
-import LoginSuccessOverlay from './components/LoginSuccessOverlay';
 import bgUrl from './assets/bg.jpg';
 const Login = lazy(() => import('./pages/Login'));
 import GuestNicknameDialog from './components/GuestNicknameDialog';
@@ -1002,9 +1005,15 @@ function Shell() {
         <AppUpdateDialog currentName={installedApp.name} info={{ ...appUpdate, app_force_update: appForced ? 'true' : 'false' }} onIgnore={ignoreAppUpdate} />
       )}
       {!showAppUpdate && detectInstalledApp() && appAnnouncements.length > 0 && (
-        <AppAnnouncementDialog announcement={appAnnouncements[0]} onDismiss={id => void dismissAppAnnouncement(id)} />
+        <Suspense fallback={null}>
+          <AppAnnouncementDialog announcement={appAnnouncements[0]} onDismiss={id => void dismissAppAnnouncement(id)} />
+        </Suspense>
       )}
-      {session && !isAdminPage && <BroadcastPopup uid={session.user.id} />}
+      {session && !isAdminPage && (
+        <Suspense fallback={null}>
+          <BroadcastPopup uid={session.user.id} />
+        </Suspense>
+      )}
       {isAdminPage ? (
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', position: 'sticky', top: 0, zIndex: 40, background: 'rgba(255,255,255,.92)', backdropFilter: 'blur(12px)', borderBottom: '1px solid #e8eaf0' }}>
           <b style={{ fontSize: 15 }}>管理后台</b>
@@ -1354,14 +1363,28 @@ function Shell() {
           </section>
         </div>
       )}
-      {showWp && <WallpaperOnboarding onDone={() => setShowWp(false)} />}
-      {loginSuccess && <LoginSuccessOverlay realName={loginSuccess.realName} durationMs={loginSuccess.durationMs} onDone={() => setLoginSuccess(null)} />}
-      {welcome !== null && <WelcomeOverlay nick={welcome} onDone={welcomeDone} />}
+      {showWp && (
+        <Suspense fallback={null}>
+          <WallpaperOnboarding onDone={() => setShowWp(false)} />
+        </Suspense>
+      )}
+      {loginSuccess && (
+        <Suspense fallback={null}>
+          <LoginSuccessOverlay realName={loginSuccess.realName} durationMs={loginSuccess.durationMs} onDone={() => setLoginSuccess(null)} />
+        </Suspense>
+      )}
+      {welcome !== null && (
+        <Suspense fallback={null}>
+          <WelcomeOverlay nick={welcome} onDone={welcomeDone} />
+        </Suspense>
+      )}
       {showGuide && (
         <motion.div role="dialog" aria-modal="true" aria-label="班级网站功能引导"
           initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }}
           style={{ position: 'fixed', inset: 0, zIndex: 500, overflow: 'hidden', background: 'radial-gradient(ellipse at 50% 35%, #202b48 0%, #0a0d15 58%, #05060a 100%)' }}>
-          <GuideCarousel onDone={guideDone} />
+          <Suspense fallback={null}>
+            <GuideCarousel onDone={guideDone} />
+          </Suspense>
         </motion.div>
       )}
       {loginPop && (

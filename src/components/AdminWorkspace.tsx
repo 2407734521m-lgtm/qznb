@@ -407,6 +407,11 @@ export default function AdminWorkspace({
             {children}
           </div>
         </main>
+
+        <footer className="admin-console-footer">
+          <span>Class Memory · 管理后台</span>
+          <span>版式参考 Ant Design Pro（MIT），仅借版式重写，未引入 antd / Umi</span>
+        </footer>
       </div>
 
       <nav ref={quickbarRef} className="admin-mobile-quickbar" aria-label="移动端快捷导航">

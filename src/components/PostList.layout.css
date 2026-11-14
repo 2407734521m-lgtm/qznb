@@ -1,0 +1,163 @@
+/* 动态流三栏版式（PostList.tsx 用）
+ *
+ * 版式来源：Socially（rupak1005/Socially，1 星、MIT）——只借“三栏动态流”的
+ * 排布与层级（左导航 / 中动态流 / 右信息栏；窄屏时侧栏移到内容下方），
+ * 不复制其代码，全部按本站自研 CSS + 冷白纸面重写。
+ * Socially 的做法：居中容器 + 宽屏 grid（动态流 minmax(0,1fr) + 右栏 18rem），
+ * 窄屏单栏、侧栏排在内容之后。本站的改编：
+ *  - 容器沿用本站现有 .wrap（最宽 960px），不另起更宽的容器；
+ *  - 左栏是动态相关快捷导航（动态/日常/表白墙/发现/首页），底部 Dock 不动；
+ *  - 右栏是信息卡片，只展示已加载数据的派生统计，不新增任何请求；
+ *  - 嵌入模式（表白墙内嵌的日常帖子）不套三栏，保持原单栏。
+ * 数据逻辑（发帖/点赞/评论/举报/删除/加载更多）一律不动，只换排布与样式。
+ */
+
+.pl-shell {
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+  width: 100%;
+  min-width: 0;
+  background: #f7f8f8;
+  border: 1px solid #e5e8ea;
+  border-radius: 14px;
+  padding: 12px;
+}
+
+.pl-main {
+  min-width: 0;
+}
+
+/* 窄屏（手机优先）：左栏收起（导航由底部 Dock 承担），右栏移到动态流下方。 */
+.pl-rail {
+  display: none;
+  min-width: 0;
+}
+
+.pl-side {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* 防止窄后的中栏被长串字符/大图撑出横向滚动。 */
+.pl-main img {
+  max-width: 100%;
+}
+
+.pl-main .bd {
+  overflow-wrap: anywhere;
+}
+
+/* 左栏：快捷导航。 */
+.pl-rail__title {
+  margin: 2px 2px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #7a8894;
+}
+
+.pl-rail__link {
+  display: block;
+  padding: 9px 12px;
+  margin-bottom: 4px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  font-size: 13.5px;
+  line-height: 1.4;
+  color: #1f2a3a;
+  text-decoration: none;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.pl-rail__link:hover {
+  background: #ffffff;
+  border-color: #e5e8ea;
+}
+
+.pl-rail__link.is-active {
+  background: #ffffff;
+  border-color: #e5e8ea;
+  color: #b0404f;
+  font-weight: 700;
+  box-shadow: inset 3px 0 0 #b0404f;
+}
+
+.pl-rail__link:focus-visible {
+  outline: 2px solid #b0404f;
+  outline-offset: 2px;
+}
+
+/* 右栏：信息卡片（冷白纸面）。 */
+.pl-panel {
+  background: #ffffff;
+  border: 1px solid #e5e8ea;
+  border-radius: 12px;
+  padding: 14px;
+}
+
+.pl-panel__title {
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #1f2a3a;
+}
+
+.pl-panel__body {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.7;
+  color: #7a8894;
+}
+
+.pl-panel__stat {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  padding: 6px 0;
+  font-size: 12.5px;
+  color: #7a8894;
+}
+
+.pl-panel__stat + .pl-panel__stat {
+  border-top: 1px dashed #e5e8ea;
+}
+
+.pl-panel__stat strong {
+  font-size: 15px;
+  font-weight: 700;
+  color: #1f2a3a;
+}
+
+/* 宽屏：三栏。容器仍受 .wrap（960px）约束，左右栏收窄，保证中栏可读宽度。 */
+@media (min-width: 1024px) {
+  .pl-shell {
+    grid-template-columns: 10rem minmax(0, 1fr) 12.5rem;
+    align-items: start;
+    padding: 14px;
+  }
+
+  .pl-rail {
+    display: block;
+    position: sticky;
+    top: 16px;
+  }
+
+  .pl-side {
+    position: sticky;
+    top: 16px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pl-shell *,
+  .pl-shell *::before,
+  .pl-shell *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}

@@ -1357,6 +1357,7 @@ export type Database = {
           show_avatar: boolean
           show_contact: boolean
           show_social: boolean
+          show_title: boolean
           show_game_id: boolean
           hide_love_wall_name: boolean
         }
@@ -1371,6 +1372,7 @@ export type Database = {
           show_avatar?: boolean
           show_contact?: boolean
           show_social?: boolean
+          show_title?: boolean
           show_game_id?: boolean
           hide_love_wall_name?: boolean
         }
@@ -1385,6 +1387,7 @@ export type Database = {
           show_avatar?: boolean
           show_contact?: boolean
           show_social?: boolean
+          show_title?: boolean
           show_game_id?: boolean
           hide_love_wall_name?: boolean
         }
@@ -1417,6 +1420,7 @@ export type Database = {
           phone: string | null
           intro_video_path: string | null
           intro_video_status: string
+          profile_title: string | null
         }
         Insert: {
           id: string
@@ -1436,6 +1440,7 @@ export type Database = {
           phone?: string | null
           intro_video_path?: string | null
           intro_video_status?: string
+          profile_title?: string | null
         }
         Update: {
           id?: string
@@ -1455,6 +1460,7 @@ export type Database = {
           phone?: string | null
           intro_video_path?: string | null
           intro_video_status?: string
+          profile_title?: string | null
         }
         Relationships: [
         ]
@@ -1946,6 +1952,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: unknown
       }
+      set_my_profile_title: {
+        Args: { p_title: string | null }
+        Returns: undefined
+      }
       create_song_audio_upload: {
         Args: { p_ext: string }
         Returns: string
@@ -2081,7 +2091,7 @@ export type Database = {
       }
       member_detail: {
         Args: { uid: string }
-        Returns: { id: string; username: string; display_name: string | null; age: number | null; personality: string | null; signature: string | null; bio: string | null; hobbies: string | null; avatar_path: string | null; theme: Json; contact: string | null; social: string | null }[]
+        Returns: { id: string; username: string; display_name: string | null; age: number | null; personality: string | null; signature: string | null; bio: string | null; hobbies: string | null; avatar_path: string | null; theme: Json; contact: string | null; social: string | null; profile_title: string | null }[]
       }
       member_directory: {
         Args: { q: string; lim: number; skip: number }

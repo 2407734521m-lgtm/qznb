@@ -19,6 +19,9 @@ export default function MeGrowth() {
   const [counts, setCounts] = useState<GrowthCounts | null>(null);
   const [records, setRecords] = useState<RecordItem[]>([]);
   const [badges, setBadges] = useState<BadgeItem[]>([]);
+  const [selectedTitle, setSelectedTitle] = useState<string | null>(null);
+  const [titleBusy, setTitleBusy] = useState(false);
+  const [titleMessage, setTitleMessage] = useState('');
   const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
@@ -27,7 +30,7 @@ export default function MeGrowth() {
       setLoading(true);
       setError('');
       const [profile, summaryResult, posts, comments, photos, board, regs] = await Promise.all([
-        supabase.from('profiles').select('created_at').eq('id', me).maybeSingle(),
+        supabase.from('profiles').select('created_at,profile_title').eq('id', me).maybeSingle(),
         (supabase as any).rpc('get_my_growth_summary'),
         // 下面这些列表只负责“最近记录”的展示；统计总数和活跃天数由数据库函数完整聚合。
         supabase.from('posts').select('id,content,created_at,section')
@@ -67,6 +70,7 @@ export default function MeGrowth() {
         setError('个人档案信息暂时无法读取。');
       }
       setJoinedAt(profile.data?.created_at || '');
+      setSelectedTitle(profile.data?.profile_title ?? null);
 
       const summary = Array.isArray(summaryResult.data) ? summaryResult.data[0] : summaryResult.data;
       if (summaryResult.error || !summary) {
@@ -117,6 +121,22 @@ export default function MeGrowth() {
     return () => { alive = false; };
   }, [me, refreshKey]);
 
+  async function setHomeTitle(title: string | null) {
+    if (titleBusy) return;
+    setTitleBusy(true);
+    setTitleMessage('正在保存…');
+    const { error } = await supabase.rpc('set_my_profile_title', { p_title: title });
+    setTitleBusy(false);
+    if (error) {
+      setTitleMessage(error.message.includes('title_not_earned')
+        ? '这项荣誉尚未达成，暂时不能设为称号。'
+        : '保存失败，请稍后重试。');
+      return;
+    }
+    setSelectedTitle(title);
+    setTitleMessage(title ? '已更新主页称号。是否公开可在隐私设置中单独控制。' : '已取消主页称号。');
+  }
+
   const earnedCount = badges.filter(item => item.earned).length;
   const eventRecords = records.filter(item => item.id.startsWith('e'));
 
@@ -151,15 +171,31 @@ export default function MeGrowth() {
         </div>
       </section>
       <section className="card" style={{ marginBottom: 12 }}>
-        <h2 style={{ fontSize: 15, margin: '0 0 12px' }}>社区荣誉与纪念徽章 <span style={{ fontSize: 11, color: 'var(--mut)', fontWeight: 400 }}>{earnedCount}/{badges.length}</span></h2>
+        <h2 style={{ fontSize: 15, margin: '0 0 8px' }}>社区荣誉与纪念徽章 <span style={{ fontSize: 11, color: 'var(--mut)', fontWeight: 400 }}>{earnedCount}/{badges.length}</span></h2>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '10px 12px', borderRadius: 12, background: '#f6f8fa', marginBottom: 10 }}>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: 11, color: 'var(--mut)' }}>当前主页称号</div>
+            <div style={{ fontSize: 13, fontWeight: 750, marginTop: 3 }}>{selectedTitle || '尚未设置'}</div>
+          </div>
+          <button type="button" className="mini ghost" disabled={titleBusy || !selectedTitle} onClick={() => void setHomeTitle(null)}>取消称号</button>
+        </div>
+        <p style={{ fontSize: 11, color: 'var(--mut)', lineHeight: 1.6, margin: '0 0 10px' }}>只能选择已经获得的荣誉。公开显示需要在隐私设置中开启“主页称号”。</p>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 9 }}>
           {badges.map(item => <div key={item.title} style={{ padding: 12, borderRadius: 14, border: '1px solid ' + (item.earned ? '#c7e3e2' : '#e9eef0'), background: item.earned ? '#f0f8f7' : '#fafbfc', opacity: item.earned ? 1 : .62 }}>
             <div style={{ fontSize: 11, color: '#176477', fontWeight: 800 }}>{item.mark}</div>
             <div style={{ fontSize: 13, fontWeight: 750, marginTop: 5 }}>{item.title}</div>
             <div style={{ fontSize: 10.5, color: 'var(--mut)', marginTop: 3, lineHeight: 1.5 }}>{item.note}</div>
             {item.earned && <div style={{ fontSize: 10, color: '#63818c', marginTop: 6 }}>获得于 {dateLabel(item.date)}</div>}
+            <button type="button" className="mini ghost" disabled={!item.earned || titleBusy || selectedTitle === item.title}
+              aria-pressed={selectedTitle === item.title}
+              onClick={() => void setHomeTitle(item.title)}
+              style={{ width: '100%', marginTop: 9 }}>
+              {selectedTitle === item.title ? '当前主页称号' : '设为主页称号'}
+            </button>
           </div>)}
         </div>
+        {titleMessage && <p role="status" style={{ fontSize: 11, color: 'var(--mut)', margin: '10px 0 0' }}>{titleMessage}</p>}
+        <button type="button" className="mini ghost" style={{ marginTop: 8 }} onClick={() => nav('/me/settings/privacy')}>称号公开设置 ›</button>
       </section>
       <section className="card" style={{ marginBottom: 12 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>

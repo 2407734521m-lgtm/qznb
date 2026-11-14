@@ -10,6 +10,7 @@ import { confirmDialog, alertDialog, promptDialog } from '../lib/dialog';
 import BlurImg from '../components/fx/BlurImg';
 import SmoothProgress from '../components/fx/SmoothProgress';
 import { showToast } from '../lib/toast';
+import { FeedSkeleton } from '../components/fx/Skeleton';
 
 type ImpressionPollOption = { id: number; label: string; voteCount: number };
 type ImpressionPoll = {
@@ -52,6 +53,8 @@ async function removeOwnedMedia(path: string | null | undefined, ownerId: string
 export default function Feed({ searchQuery = '', focusPostId = null }: { searchQuery?: string; focusPostId?: number | null }) {
   const me = useAuth().session!.user.id; const reduce = useReducedMotion();
   const [posts, setPosts] = useState<Post[]>([]);
+  // 首屏骨架只显示一次：搜索换词会重复拉取，那时列表留在原地不闪骨架。
+  const [initialLoading, setInitialLoading] = useState(true);
   const [profiles, setProfiles] = useState<Record<string, Profile>>({});
   const avatarUrls = useSignedUrls('avatars', Object.values(profiles).map(p => p.avatar_path));
   const postImageUrls = useSignedUrls('media', posts.map(p => p.image_url));
@@ -125,7 +128,7 @@ export default function Feed({ searchQuery = '', focusPostId = null }: { searchQ
     const { data: ps } = await postQuery;
     const list = ps ?? [];
     setPosts(list);
-    if (!list.length) { setImpressionPolls({}); return; }
+    if (!list.length) { setImpressionPolls({}); setInitialLoading(false); return; }
     const ids = [...new Set(list.map(p => p.author_id))];
     const pids = list.map(p => p.id);
     await refreshImpressionPolls(pids);
@@ -150,6 +153,7 @@ export default function Feed({ searchQuery = '', focusPostId = null }: { searchQ
     }
     const { data: r } = await supabase.rpc('my_role');
     setIsAdmin(r === 'admin' || r === 'super_admin');
+    setInitialLoading(false);
   }
   useEffect(() => { void load(); }, [searchQuery]);
   useEffect(() => {
@@ -585,7 +589,8 @@ export default function Feed({ searchQuery = '', focusPostId = null }: { searchQ
           </motion.article>
         );
       })}
-      {visiblePosts.length === 0 && <div className="center" style={{ minHeight: 200 }}><div className="card">{searchQuery.trim() ? '没有找到匹配的动态。' : feedScope === 'friends' ? '暂时没有好友动态。添加好友后，这里会显示他们分享的内容。' : '还没有动态，来发第一条吧'}</div></div>}
+      {initialLoading && <FeedSkeleton count={3} />}
+      {!initialLoading && visiblePosts.length === 0 && <div className="center" style={{ minHeight: 200 }}><div className="card">{searchQuery.trim() ? '没有找到匹配的动态。' : feedScope === 'friends' ? '暂时没有好友动态。添加好友后，这里会显示他们分享的内容。' : '还没有动态，来发第一条吧'}</div></div>}
     </div>
   );
 }

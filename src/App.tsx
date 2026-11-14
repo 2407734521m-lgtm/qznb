@@ -77,6 +77,7 @@ const AirInk = lazyWithRetry(() => import('./pages/AirInk'));
 import { alertDialog } from './lib/dialog';
 import { resolveApproximateRegion, saveSharedRegion } from './lib/location';
 import GlobalSearch from './components/GlobalSearch';
+import MusicIsland from './components/MusicIsland';
 import { BRAND_NAME, BRAND_SUBTITLE, resolveBrandTitle, resolveBrandSubtitle } from './lib/brand';
 
 // Dock 保留四个高频入口：首页、发现、私聊、我的。（2026-11-14 用户定：第二栏改回发现；青春时间线仍在「我的 → 内容管理」里。）
@@ -420,7 +421,8 @@ function Shell() {
   const isChatPage = loc.pathname.startsWith('/chat/');
   const isBloomPage = loc.pathname === '/particle-flower';
   const isAirInkPage = loc.pathname === '/air-ink';
-  const isImmersivePage = isBloomPage || isAirInkPage;
+  const isMusicPage = loc.pathname === '/music';
+  const isImmersivePage = isBloomPage || isAirInkPage || isMusicPage;
   const nav = useNavigate();
   const [dockCollapsed, setDockCollapsed] = useState(() => {
     try { return localStorage.getItem('ca_dock_collapsed') === '1'; } catch { return false; }
@@ -1002,6 +1004,7 @@ function Shell() {
       <div className="app-bg qz-ios26-backdrop" style={wp.kind === 'grad'
         ? { background: wp.src, filter: `blur(${wp.blur}px) brightness(${100 - wp.dark}%)` }
         : { backgroundImage: `url(${wp.src === 'default' ? bgUrl : wp.src})`, filter: `blur(${wp.blur}px) brightness(${100 - wp.dark}%)` }} />
+      <MusicIsland />
       {showAppUpdate && installedApp && appUpdate && (
         <AppUpdateDialog currentName={installedApp.name} info={{ ...appUpdate, app_force_update: appForced ? 'true' : 'false' }} onIgnore={ignoreAppUpdate} />
       )}
@@ -1071,6 +1074,7 @@ function Shell() {
               <Route path="/" element={<Navigate to="/home" replace />} />
               <Route path="/board" element={<Board />} />
               <Route path="/explore" element={<Explore />} />
+              <Route path="/music" element={<div className="qz-music-route-anchor" aria-hidden="true" />} />
               <Route path="/topics" element={<Topics />} />
               <Route path="/fate-notebook" element={<ErrorBoundary><FateNotebook /></ErrorBoundary>} />
               <Route path="/particle-flower" element={<ErrorBoundary><ParticleFlower /></ErrorBoundary>} />

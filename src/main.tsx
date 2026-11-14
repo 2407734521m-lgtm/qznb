@@ -163,9 +163,7 @@ function AdminShell() {
       });
     return () => { live = false; };
   }, []);
-  // Keep AdminLogin mounted while the AAL1 session's role lookup is pending.
-  // The database intentionally reports `member` until TOTP is verified; a
-  // skeleton here would unmount the password-to-MFA flow and discard its state.
+  // Keep AdminLogin mounted while the password session's administrator role lookup is pending.
   if (loading) return <DelayedPageSkeleton />;
   const isAdmin = Boolean(session) && (role === 'admin' || role === 'super_admin');
   const adminApp = detectInstalledAdminApp();

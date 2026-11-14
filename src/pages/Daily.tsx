@@ -9,6 +9,7 @@ import { withRetry } from '../lib/retry';
 import type { ProfileSummary as Profile } from '../types/profile';
 import type { FeedPost as Post, FeedComment as Cmt } from '../types/content';
 import { confirmDialog, alertDialog, promptDialog } from '../lib/dialog';
+import { toast } from 'sonner';
 import BlurImg from '../components/fx/BlurImg';
 import { FeedSkeleton } from '../components/fx/Skeleton';
 
@@ -127,7 +128,7 @@ export default function Daily({ searchQuery = '', embedded = false, focusPostId 
   }, [focusPostId, posts, reduce]);
 
   async function publish() {
-    if (!text.trim() && !img) return setErr('写点什么再发布吧');
+    if (!text.trim() && !img) return toast.error('写点什么再发布吧');
     setBusy(true); setErr('');
     let uploadedPath: string | null = null;
     try {
@@ -143,6 +144,7 @@ export default function Daily({ searchQuery = '', embedded = false, focusPostId 
       setText(''); setImg(null);
       if (fref.current) fref.current.value = '';
       void load();
+      toast.success('发布成功');
     } catch (e: any) {
       const failure = e.message || '网络错误';
       if (!uploadedPath) {

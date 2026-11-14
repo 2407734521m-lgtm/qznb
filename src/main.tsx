@@ -9,6 +9,7 @@ const AdminLogin = lazy(() => import('./pages/AdminLogin'));
 import { AuthProvider, useAuth } from './auth';
 import { supabase } from './lib/supabase';
 import { DialogHost } from './lib/dialog';
+import { Toaster } from 'sonner';
 import ErrorBoundary from './components/ErrorBoundary';
 import TestSwitchFab from './components/TestSwitchFab';
 import { detectInstalledAdminApp } from './lib/installedApp';
@@ -43,10 +44,29 @@ import './styles-quiet-community-detail.css';
 import './styles-archive.css';
 import './styles-motion-premium.css'; // Final motion layer: keep after all visual overrides.
 
+/* Sonner Toast 纸面冷白覆盖（最后加载，确保盖过 Toast 默认样式）。 */
+import './styles-toast.css';
+
 // 只有精确匹配的管理员域名可以挂载后台；其他任何域名都不能加载 AdminShell。
 const isAdminHost = window.location.hostname.toLowerCase() === 'admin.qianzhi.pw';
 
 // 主站不承载后台界面，也不再跳转：后台只在 admin.qianzhi.pw 上打开（用户 2026-11-07 定）。
+
+// Sonner Toast（纸面冷白：白底、墨色字、描边 #e5e8ea，错误态印泥红 #b0404f）。
+// 主站根部与 AdminShell 根部各挂一个；两棵树同一时间只挂载一棵，不会重复弹。
+function PaperToaster() {
+  return (
+    <Toaster
+      theme="light"
+      position="top-center"
+      duration={3000}
+      gap={8}
+      toastOptions={{
+        style: { background: '#ffffff', color: '#1f2a3a', border: '1px solid #e5e8ea' },
+      }}
+    />
+  );
+}
 
 function AdminShell() {
   const { session, loading } = useAuth();
@@ -157,10 +177,11 @@ function AdminShell() {
   const adminUpdateDialog = showAdminUpdate && adminApp ? (
     <AppUpdateDialog currentName={adminApp.name} info={{ ...adminUpdate, app_force_update: adminForced ? 'true' : 'false' }} onIgnore={ignoreAdminUpdate} />
   ) : null;
-  if (!isAdmin) return (<><div className="glow" />{adminUpdateDialog}<AdminLogin showBack={false} /></>);
+  if (!isAdmin) return (<><div className="glow" />{adminUpdateDialog}<PaperToaster /><AdminLogin showBack={false} /></>);
   return (<>
     <div className="glow" />
     {adminUpdateDialog}
+    <PaperToaster />
     <Admin verifiedRole={role === 'super_admin' ? 'super_admin' : 'admin'} />
   </>);
 }
@@ -173,6 +194,7 @@ createRoot(document.getElementById('root')!).render(
       </Suspense>
       <TestSwitchFab />
     </ErrorBoundary>
+    {!isAdminHost ? <PaperToaster /> : null}
     <DialogHost />
   </AuthProvider></HashRouter></React.StrictMode>
 );

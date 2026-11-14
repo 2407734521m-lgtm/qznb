@@ -7,6 +7,7 @@ import { withRetry } from '../lib/retry';
 import type { ProfileSummary as Profile } from '../types/profile';
 import type { FeedPost as Post, FeedComment as Cmt } from '../types/content';
 import { confirmDialog, alertDialog, promptDialog } from '../lib/dialog';
+import { toast } from 'sonner';
 import BlurImg from '../components/fx/BlurImg';
 import SmoothProgress from '../components/fx/SmoothProgress';
 import { FeedSkeleton } from '../components/fx/Skeleton';
@@ -231,9 +232,10 @@ export default function Feed({ searchQuery = '', focusPostId = null }: { searchQ
         setImpressionOptions(DEFAULT_IMPRESSION_OPTIONS);
       }
       await load();
+      toast.success('发布成功');
     } catch (e: any) {
       if (uploadedImagePath) await removeOwnedMedia(uploadedImagePath, me);
-      setErr('发布失败：' + (e.message || '网络错误'));
+      toast.error('发布失败：' + (e.message || '网络错误'));
     }
     finally { setBusy(false); setUpPct(null); }
   }

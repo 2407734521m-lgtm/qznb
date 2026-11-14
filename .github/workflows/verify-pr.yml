@@ -35,4 +35,8 @@ jobs:
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+      - name: Install Playwright Chromium
+        run: npx playwright install chromium --with-deps
+      - name: Run Playwright E2E (local preview only, no writes)
+        run: npx playwright test
       - run: npm run check:priority-fixes

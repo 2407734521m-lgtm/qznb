@@ -7,6 +7,7 @@ import { useSignedUrl, useSignedUrls, uploadMediaWithProgress, downscaleImage } 
 import SmoothProgress from '../components/fx/SmoothProgress';
 import { withRetry } from '../lib/retry';
 import { confirmDialog, alertDialog } from '../lib/dialog';
+import { toast } from 'sonner';
 import { PageSkeleton } from '../components/fx/Skeleton';
 import BlurImg from '../components/fx/BlurImg';
 
@@ -137,7 +138,7 @@ export default function AlbumDetail() {
   const [upPct, setUpPct] = useState<number | null>(null);
   async function upload(files: FileList | null) {
     const list = Array.from(files ?? []).filter(f => f.type.startsWith('image/'));
-    if (!list.length) { if (files?.length) setErr('只能上传图片'); return; }
+    if (!list.length) { if (files?.length) toast.error('只能上传图片'); return; }
     setBusy(true); setErr(''); setUpProg(''); setUpPct(0);
     try {
       let firstPath: string | null = null;
@@ -153,7 +154,8 @@ export default function AlbumDetail() {
       }
       if (!album?.cover_url && firstPath) await withRetry(() => supabase.from('albums').update({ cover_url: firstPath }).eq('id', Number(id)));
       setCap(''); setUpProg(''); load();
-    } catch (e: any) { setErr('上传失败：' + (e.message || '网络错误')); }
+      toast.success(`已上传 ${list.length} 张照片`);
+    } catch (e: any) { toast.error('上传失败：' + (e.message || '网络错误')); }
     finally { setBusy(false); setUpProg(''); setUpPct(null); }
   }
 

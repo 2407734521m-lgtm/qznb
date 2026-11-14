@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import type { ReactNode } from 'react';
+import { NavLink, useNavigate } from 'react-router-dom';
 import { motion, useReducedMotion } from 'framer-motion';
+import './PostList.layout.css';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../auth';
 import { useSignedUrls, uploadMedia, uploadMediaWithProgress, downscaleImage, removeOwnedMedia } from '../lib/media';
@@ -39,6 +41,61 @@ function PostImg({ url }: { url?: string }) {
 
 
 export type PostSection = 'feed' | 'daily';
+
+/**
+ * 三栏动态流外壳（版式借自 Socially 的左导航/中动态流/右信息栏，只借排布不抄代码）。
+ * 嵌入模式（表白墙内嵌的日常）不套三栏，保持原单栏；数据逻辑一律不动。
+ */
+const POST_LIST_RAIL_LINKS = [
+  { to: '/feed', label: '动态' },
+  { to: '/daily', label: '日常' },
+  { to: '/love-wall', label: '表白墙' },
+  { to: '/explore', label: '发现' },
+  { to: '/home', label: '首页' },
+];
+
+function PostListShell({ embedded, side, children }: { embedded: boolean; side: ReactNode; children: ReactNode }) {
+  if (embedded) return <>{children}</>;
+  return (
+    <div className="pl-shell">
+      <nav className="pl-rail" aria-label="动态相关导航">
+        <p className="pl-rail__title">去看看</p>
+        {POST_LIST_RAIL_LINKS.map(link => (
+          <NavLink key={link.to} to={link.to} className={({ isActive }) => isActive ? 'pl-rail__link is-active' : 'pl-rail__link'}>
+            {link.label}
+          </NavLink>
+        ))}
+      </nav>
+      <div className="pl-main">{children}</div>
+      <aside className="pl-side" aria-label="动态信息">{side}</aside>
+    </div>
+  );
+}
+
+/** 右栏信息卡：只展示已加载数据的派生统计，不新增任何请求。 */
+function PostListSidePanels({ section, loadedCount, myCount, totalLikes }: {
+  section: PostSection; loadedCount: number; myCount: number; totalLikes: number;
+}) {
+  const isFeed = section === 'feed';
+  return (
+    <>
+      <section className="pl-panel" aria-label={isFeed ? '关于动态' : '关于日常'}>
+        <h2 className="pl-panel__title">{isFeed ? '关于动态' : '关于日常'}</h2>
+        <p className="pl-panel__body">
+          {isFeed
+            ? '在这里发一条动态，或发起一次匿名印象投票。全部动态可以看到所有同学的内容，切到好友动态只看好友。'
+            : '记录生活里的小片段：今天吃了什么、看到了什么、想到了什么，都可以留在这里。'}
+        </p>
+      </section>
+      <section className="pl-panel" aria-label="本页统计">
+        <h2 className="pl-panel__title">本页</h2>
+        <div className="pl-panel__stat"><span>已加载</span><strong>{loadedCount} 条</strong></div>
+        <div className="pl-panel__stat"><span>其中我的</span><strong>{myCount} 条</strong></div>
+        <div className="pl-panel__stat"><span>共收到赞</span><strong>{totalLikes} 个</strong></div>
+      </section>
+    </>
+  );
+}
 
 export default function PostList({ section, searchQuery = '', embedded = false, focusPostId = null }: { section: PostSection; searchQuery?: string; embedded?: boolean; focusPostId?: number | null }) {
   const nav = useNavigate();
@@ -437,9 +494,16 @@ export default function PostList({ section, searchQuery = '', embedded = false, 
   const visiblePosts = isFeed
     ? posts.filter(post => feedScope === 'all' || post.author_id === me || friendIds.includes(post.author_id))
     : posts;
+  // 右栏“本页”统计：只由已加载的数据派生，不新增请求。
+  const myPostCount = visiblePosts.filter(post => post.author_id === me).length;
+  const totalLikes = visiblePosts.reduce((sum, post) => sum + (likes[post.id] || 0), 0);
 
   return (
     <div className={isFeed ? 'page feed-page' : 'page'}>
+      <PostListShell
+        embedded={embedded}
+        side={<PostListSidePanels section={section} loadedCount={visiblePosts.length} myCount={myPostCount} totalLikes={totalLikes} />}
+      >
       {isFeed ? <>
         <header className="community-page-heading">
           <div>
@@ -641,6 +705,7 @@ export default function PostList({ section, searchQuery = '', embedded = false, 
       {initialLoading && <FeedSkeleton count={3} />}
       {isFeed && !initialLoading && visiblePosts.length === 0 && <div className="center" style={{ minHeight: 200 }}><div className="card">{searchQuery.trim() ? '没有找到匹配的动态。' : feedScope === 'friends' ? '暂时没有好友动态。添加好友后，这里会显示他们分享的内容。' : '还没有动态，来发第一条吧'}</div></div>}
       {!isFeed && !initialLoading && posts.length === 0 && <div className="center" style={{ minHeight: 200 }}><div className="card">{embedded ? '还没有帖子，来发第一条吧' : '还没有日常，来发第一条吧'}</div></div>}
+      </PostListShell>
     </div>
   );
 }

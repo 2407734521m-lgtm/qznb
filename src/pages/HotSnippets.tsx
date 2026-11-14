@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import BackButton from '../components/BackButton';
+import { FeedSkeleton } from '../components/fx/Skeleton';
 
 type Snip = {
   id: number; title: string; language: string; code: string; summary: string;
@@ -11,6 +12,7 @@ type Snip = {
 // 点开即用 iframe 沙箱渲染 code 里的完整 HTML，点开算一次访问（调 bump_hot_snippet_view）。
 export default function HotSnippets() {
   const [list, setList] = useState<Snip[]>([]);
+  const [loading, setLoading] = useState(true);
   const [openId, setOpenId] = useState<number | null>(null);
   const [counted, setCounted] = useState<Record<number, boolean>>({});
   const [err, setErr] = useState('');
@@ -22,6 +24,7 @@ export default function HotSnippets() {
       .then(({ data, error }) => {
         if (error) setErr('加载失败：' + error.message);
         else setList((data ?? []) as Snip[]);
+        setLoading(false);
       });
   }, []);
 
@@ -41,7 +44,8 @@ export default function HotSnippets() {
       <h1 style={{ fontSize: 20 }}>热门特效</h1>
       <p className="sub">点开就能在站内直接预览和使用 · 每小时自动上新 1 个 · 最多保留 10 个 · 每 5 小时删掉最少人看的 1 个</p>
       {err && <p className="err">{err}</p>}
-      {list.length === 0 && !err && (
+      {loading && <FeedSkeleton count={3} />}
+      {!loading && list.length === 0 && !err && (
         <div className="center" style={{ minHeight: 160 }}><div className="card">还没上热门特效，每小时会自动来一个</div></div>
       )}
       {list.map(s => (

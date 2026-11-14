@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase';
 import { isInApp } from '../lib/installedApp';
 import BackButton from '../components/BackButton';
 import './MemoryCalendar.css';
+import { RowSkeleton } from '../components/fx/Skeleton';
 
 type MemoryKind = 'event' | 'timeline' | 'post' | 'notice';
 type MemoryItem = { id: string; date: string; title: string; detail: string; kind: MemoryKind; to: string };
@@ -145,7 +146,7 @@ export default function MemoryCalendar() {
           <div><h2>{selected.replace(/-/g, ' / ')}</h2></div>
           <span>{dayItems.length} 条记忆</span>
         </div>
-        {loading ? <div className="mc-state">正在整理这一天的记忆…</div> : dayItems.length ? (
+        {loading ? <RowSkeleton count={3} /> : dayItems.length ? (
           <div className="mc-items">
             {dayItems.map(item => (
               <button type="button" className="mc-item" key={item.id} onClick={() => navigate(item.to)}>

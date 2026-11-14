@@ -6,6 +6,7 @@ import { confirmDialog } from '../lib/dialog';
 import { getSignedUrls, downscaleImage, uploadWithProgress } from '../lib/media';
 import BlurImg from '../components/fx/BlurImg';
 import SmoothProgress from '../components/fx/SmoothProgress';
+import { FeedSkeleton } from '../components/fx/Skeleton';
 import { fetchReviewEstimates, estimateText, type ReviewEstimates } from '../lib/reviewEstimate';
 import OptionSheet from '../components/OptionSheet';
 import Daily from './Daily';
@@ -70,6 +71,7 @@ export default function LoveWall() {
     });
   };
   const [posts, setPosts] = useState<PublicPost[]>([]);
+  const [loading, setLoading] = useState(true);
   const [myPosts, setMyPosts] = useState<MyPost[]>([]);
   const [content, setContent] = useState('');
   const [recipientId, setRecipientId] = useState('');
@@ -100,7 +102,7 @@ export default function LoveWall() {
 
   async function load() {
     const { data, error } = await supabase.rpc('love_wall_published');
-    if (error) { setNotice('暂时无法加载表白墙，请稍后再试。'); return; }
+    if (error) { setNotice('暂时无法加载表白墙，请稍后再试。'); setLoading(false); return; }
     const pubList = (data || []) as PublicPost[];
     setPosts(pubList);
     let mineList: MyPost[] = [];
@@ -136,6 +138,7 @@ export default function LoveWall() {
       setMediaByPost({});
       setCounts({});
     }
+    setLoading(false);
   }
   useEffect(() => { void load(); }, [session?.user.id]);
 
@@ -431,7 +434,8 @@ export default function LoveWall() {
     {notice && <p role="status" style={{ background: '#f2f5fb', border: '1px solid #dfe6f2', borderRadius: 12, padding: '10px 12px', color: '#333946', fontSize: 12.5, lineHeight: 1.6, margin: '0 2px 12px' }}>{notice}</p>}
 
     {/* 信息流：和班级动态一样的时间流卡片 */}
-    {shown.length === 0 && <div style={{ padding: 24, textAlign: 'center', color: '#606673', border: '1px dashed #dfe3ea', borderRadius: 18 }}>{mine ? '你还没有投稿，点右下角按钮写下第一份心意吧。' : '这里还没有内容，点右下角按钮写下第一份温柔的心意吧。'}</div>}
+    {loading && <FeedSkeleton count={3} />}
+    {!loading && shown.length === 0 && <div style={{ padding: 24, textAlign: 'center', color: '#606673', border: '1px dashed #dfe3ea', borderRadius: 18 }}>{mine ? '你还没有投稿，点右下角按钮写下第一份心意吧。' : '这里还没有内容，点右下角按钮写下第一份温柔的心意吧。'}</div>}
     <div style={{ display: 'grid', gap: 12 }}>
       {shown.map(p => {
         const cc = catColor[p.category] || { bg: '#eef1f6', fg: '#5a6472' };

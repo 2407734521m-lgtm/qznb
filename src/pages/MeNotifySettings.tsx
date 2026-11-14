@@ -40,7 +40,7 @@ export default function MeNotifySettings() {
         </div>
         <p className="qz-settings-row-note">按设备当地时间生效，只隐藏网站未读角标；消息仍会正常接收并保存在通知中心。开始和结束时间相同时，表示全天免打扰。时间按半小时一档选择，如需更精确的时间请告诉开发者。</p>
       </div>
-      <p>{syncState === 'loading' ? '正在读取账号级偏好…' : syncState === 'saved' ? '设置已同步到账号。' : '云端同步暂不可用；当前设备仍保留本地设置。'}</p>
+      {syncState === 'loading' ? <div className="fx-skel-wrap" role="status" aria-label="正在读取账号级偏好" style={{ width: 200, height: 13 }}><div className="fx-skel" style={{ width: '100%', height: '100%' }} /></div> : <p>{syncState === 'saved' ? '设置已同步到账号。' : '云端同步暂不可用；当前设备仍保留本地设置。'}</p>}
     </SettingsShell>
   );
 }

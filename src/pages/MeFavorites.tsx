@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../auth';
 import BackButton from '../components/BackButton';
+import { RowSkeleton } from '../components/fx/Skeleton';
 
 /** 我的收藏：收藏的同学档案 + 动态 / 日常帖子 */
 export default function MeFavorites() {
@@ -12,13 +13,15 @@ export default function MeFavorites() {
   const [postSection, setPostSection] = useState<'feed' | 'daily'>('feed');
   const [items, setItems] = useState<any[]>([]);
   const [msg, setMsg] = useState('');
+  // 首屏骨架只显示一次：切分类会重复拉取，那时列表留在原地不闪骨架。
+  const [initialLoading, setInitialLoading] = useState(true);
 
   async function load(t: 'member' | 'post') {
     const { data } = await supabase.from('favorites')
       .select('target_id, created_at').eq('profile_id', me).eq('target_type', t)
       .order('created_at', { ascending: false });
     const rows = data ?? [];
-    if (!rows.length) { setItems([]); return; }
+    if (!rows.length) { setItems([]); setInitialLoading(false); return; }
     if (t === 'member') {
       const { data: ps } = await supabase.from('profiles').select('id, display_name, username').in('id', rows.map(r => r.target_id));
       const m: Record<string, any> = {};
@@ -30,6 +33,7 @@ export default function MeFavorites() {
       (ps ?? []).forEach((p: any) => { m[String(p.id)] = p; });
       setItems(rows.map(r => ({ ...r, info: m[r.target_id] ?? null })));
     }
+    setInitialLoading(false);
   }
   useEffect(() => { load(tab); }, [tab, postSection]);
 
@@ -53,7 +57,8 @@ export default function MeFavorites() {
         <button className={'mini' + (postSection === 'daily' ? '' : ' ghost')} onClick={() => setPostSection('daily')}>日常</button>
       </div>}
       {msg && <p className="priv-note">{msg}</p>}
-      {items.length === 0 && <div className="card" style={{ textAlign: 'center', color: 'var(--mut)', padding: '36px 14px' }}>还没有收藏</div>}
+      {initialLoading && <RowSkeleton count={3} />}
+      {!initialLoading && items.length === 0 && <div className="card" style={{ textAlign: 'center', color: 'var(--mut)', padding: '36px 14px' }}>还没有收藏</div>}
       {items.map(r => (
         <div key={r.target_id} className="card">
           {tab === 'member' ? (

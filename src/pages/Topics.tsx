@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import BackButton from '../components/BackButton';
+import { RowSkeleton } from '../components/fx/Skeleton';
 
 type TopicPost = {
   id: number;
@@ -159,7 +160,7 @@ export default function Topics() {
           {query && <button type="button" onClick={() => setQuery('')} style={{ border: 0, background: 'transparent', color: '#687589', fontSize: 12 }}>清空</button>}
         </label>
 
-        {loading && <p role="status" style={{ padding: '22px 4px', color: '#788597', fontSize: 13 }}>正在整理最近的话题…</p>}
+        {loading && <div role="status" aria-label="话题加载中" style={{ display: 'flex', flexWrap: 'wrap', gap: 10, padding: '22px 4px' }}>{[120, 90, 140, 100, 80].map(w => <div key={w} className="fx-skel-wrap"><div className="fx-skel" style={{ width: w, height: 40, borderRadius: 12 }} /></div>)}</div>}
         {!loading && error && (
           <div style={{ marginTop: 16, padding: 16, border: '1px solid #eceff3', borderRadius: 16, color: '#667386', fontSize: 13 }}>
             {error}

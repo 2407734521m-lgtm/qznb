@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../auth';
 import BackButton from '../components/BackButton';
+import { FeedSkeleton } from '../components/fx/Skeleton';
 
 type MyFeedbackItem = {
   id: number;
@@ -60,7 +61,7 @@ export default function MeFeedback() {
       </button>
     </section>
 
-    {loading && <section className="card" style={{ textAlign: 'center', padding: 28 }}>正在读取反馈记录…</section>}
+    {loading && <FeedSkeleton count={2} />}
     {!loading && error && <section className="card" role="alert">{error}</section>}
     {!loading && !error && items.length === 0 && <section className="card" style={{ textAlign: 'center', padding: 28 }}>
       <div style={{ fontWeight: 700 }}>还没有反馈记录</div>

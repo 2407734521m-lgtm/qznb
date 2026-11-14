@@ -9,6 +9,7 @@ import GamePicker, { type GameProfile, type Origin } from '../components/GamePic
 import SocialPicker from '../components/SocialPicker';
 import { badgeText } from '../data/games';
 import BackButton from '../components/BackButton';
+import { PageSkeleton } from '../components/fx/Skeleton';
 import { fetchReviewEstimates, estimateText, type ReviewEstimates } from '../lib/reviewEstimate';
 import { confirmDialog } from '../lib/dialog';
 import TagInput from '../components/TagInput';
@@ -89,6 +90,7 @@ export default function MyProfile() {
   const [uname, setUname] = useState('');
   const [theme, setTheme] = useState('aurora'); const [layout, setLayout] = useState('right');
   const [avatar, setAvatar] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
   const [msg, setMsg] = useState('');
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [cropSrc, setCropSrc] = useState<string | null>(null);
@@ -138,7 +140,7 @@ export default function MyProfile() {
       supabase.from('profile_privacy').select('*').eq('profile_id', uid).single(),
       supabase.from('profile_contacts').select('*').eq('profile_id', uid).maybeSingle(),
       supabase.from('game_profiles').select('game_name, game_uid, rank, status').eq('profile_id', uid).maybeSingle()]);
-    if (p.error || pr.error || c.error) return setMsg('资料加载失败，请刷新重试');
+    if (p.error || pr.error || c.error) { setLoading(false); return setMsg('资料加载失败，请刷新重试'); }
     const all: Record<string, any> = { ...p.data, ...(c.data ?? {}) };
     setV(Object.fromEntries(ALL_FIELDS.map(([k]) => [k, all[k] == null ? '' : String(all[k])])));
     setPriv({
@@ -164,6 +166,7 @@ export default function MyProfile() {
     setLayout(typeof themeSettings.layout === 'string' ? themeSettings.layout : 'left');
     if (!g.error) setGprof((g.data as GameProfile) ?? null);
     loadedRef.current = true;
+    setLoading(false);
   })(); }, [uid]);
 
   async function reloadGame() {
@@ -305,6 +308,8 @@ export default function MyProfile() {
         ? <><TagInput value={v[k] ?? ''} onChange={val => setV({ ...v, [k]: val })} placeholder="输入爱好，按回车添加，如：篮球" /><span style={{ display: 'block', fontSize: 12, opacity: .65, marginTop: 5 }}>回车生成一个标签，最多 10 个</span></>
         : <input value={v[k] ?? ''} maxLength={100} placeholder={ph} onChange={e => setV({ ...v, [k]: e.target.value })} />}</label>
   );
+
+  if (loading) return <div className="page me-page"><PageSkeleton /></div>;
 
   return (
     <div className="page me-page">

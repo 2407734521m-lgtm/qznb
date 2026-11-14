@@ -140,16 +140,16 @@ export default function MeHub() {
       <section className="me-hub-stats" aria-label="我的社区数据">
         <div className="me-hub-stat-grid">
           <button onClick={() => nav('/me/posts')}>
-            <strong>{stats.loading ? '—' : stats.posts}</strong><span>我的动态</span>
+            <strong>{stats.loading ? <span className="fx-skel-wrap" style={{ display: 'inline-block', width: 26, height: 20, verticalAlign: 'middle' }}><span className="fx-skel" style={{ display: 'block', width: '100%', height: '100%' }} /></span> : stats.posts}</strong><span>我的动态</span>
           </button>
           <button onClick={() => nav('/me/content')}>
-            <strong>{stats.loading ? '—' : stats.comments}</strong><span>我的评论</span>
+            <strong>{stats.loading ? <span className="fx-skel-wrap" style={{ display: 'inline-block', width: 26, height: 20, verticalAlign: 'middle' }}><span className="fx-skel" style={{ display: 'block', width: '100%', height: '100%' }} /></span> : stats.comments}</strong><span>我的评论</span>
           </button>
           <button onClick={() => nav('/me/content')}>
-            <strong>{stats.loading ? '—' : stats.likes}</strong><span>收到点赞</span>
+            <strong>{stats.loading ? <span className="fx-skel-wrap" style={{ display: 'inline-block', width: 26, height: 20, verticalAlign: 'middle' }}><span className="fx-skel" style={{ display: 'block', width: '100%', height: '100%' }} /></span> : stats.likes}</strong><span>收到点赞</span>
           </button>
         </div>
-        <div className="me-hub-photo-note">已分享 <b>{stats.loading ? '—' : stats.photos}</b> 张照片 <span>·</span> <button onClick={() => nav('/albums')}>去相册看看 ›</button></div>
+        <div className="me-hub-photo-note">已分享 <b>{stats.loading ? <span className="fx-skel-wrap" style={{ display: 'inline-block', width: 20, height: 14, verticalAlign: 'middle' }}><span className="fx-skel" style={{ display: 'block', width: '100%', height: '100%' }} /></span> : stats.photos}</b> 张照片 <span>·</span> <button onClick={() => nav('/albums')}>去相册看看 ›</button></div>
       </section>
 
       <section className="me-hub-shortcuts">
@@ -173,7 +173,7 @@ export default function MeHub() {
           <span className="me-hub-feature-kicker">内容整理</span>
           <strong>我的全部内容</strong>
           <small>动态、照片、评论与投稿，统一整理</small>
-          <span className="me-hub-feature-meta">{stats.loading ? '正在统计…' : stats.posts + ' 条动态 · ' + stats.photos + ' 张照片'}</span>
+          <span className="me-hub-feature-meta">{stats.loading ? <span className="fx-skel-wrap" style={{ display: 'inline-block', width: 130, height: 12, verticalAlign: 'middle' }}><span className="fx-skel" style={{ display: 'block', width: '100%', height: '100%' }} /></span> : stats.posts + ' 条动态 · ' + stats.photos + ' 张照片'}</span>
           <span className="me-hub-feature-arrow">↗</span>
         </button>
         <button className="me-hub-feature me-hub-feature-growth" onClick={() => nav('/me/growth')}>

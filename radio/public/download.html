@@ -41,9 +41,24 @@
   .pill { display:inline-block; font-size:11px; border:1px solid var(--line); border-radius:99px; padding:2px 8px; color:var(--mut); }
   .plist { display:flex; gap:10px; align-items:center; width:100%; text-align:left; border:1px solid var(--line); background:#fff; border-radius:12px; padding:10px 12px; margin-top:8px; cursor:pointer; font-size:14px; color:var(--ink); }
   .plist small { color:var(--mut); font-size:12px; }
+  .gate-modal { position:fixed; inset:0; z-index:50; display:none; align-items:center; justify-content:center; padding:24px 16px; background:rgba(34,49,74,.45); }
+  .gate-modal.open { display:flex; }
+  .gate-card { width:100%; max-width:340px; background:#fffdf9; border:1px solid var(--line); border-radius:16px; padding:22px 18px; text-align:center; }
+  .gate-card h2 { font-size:17px; margin:0 0 8px; }
+  .gate-card p { color:var(--mut); font-size:13px; line-height:1.7; margin:0 0 8px; }
+  .gate-card .btn { width:100%; margin-top:8px; }
 </style>
 </head>
 <body>
+<div class="gate-modal" id="siteGateModal" role="dialog" aria-modal="true" aria-labelledby="siteGateTitle">
+  <div class="gate-card">
+    <h2 id="siteGateTitle">先注册，才能使用</h2>
+    <p>这个软件只给本站注册成员用。请先去网站注册一个账号，注册完回来登录，就能用了。</p>
+    <button class="btn seal" id="gateRegisterBtn" type="button">去网站注册</button>
+    <button class="btn" id="gateLoginBtn" type="button">我有账号，去登录</button>
+    <button class="btn ghost" id="gateCloseBtn" type="button">稍后再说</button>
+  </div>
+</div>
 <div class="wrap">
   <h1>千栀音乐下载</h1>
   <p class="sub">隐藏页，仅供本站注册成员使用。先登录本站账号（须在网站注册过），再扫码登录网易云，登录后只读扫码那个账号自己的歌单与搜索结果，可下载的歌存为 MP3。没登录本站账号时这里什么歌都不会出现。付费、VIP、试听、无版权地址的歌一律显示“下不了”，不绕过。</p>
@@ -145,6 +160,9 @@
     if (!siteTokenExpiredSoon()) return Promise.resolve(true);
     return refreshSiteSession();
   }
+  // 注册提醒弹窗（站内弹窗，不用浏览器原生弹窗）：未登本站就弹，告诉对方必须先注册。
+  function showSiteGatePopup() { $('siteGateModal').classList.add('open'); }
+  function hideSiteGatePopup() { $('siteGateModal').classList.remove('open'); }
   // 本站凭证失效：清会话、锁住音乐、只显示本站登录卡，不再调任何接口。
   function onSiteAuthLost() {
     siteAuthLost = true;
@@ -153,6 +171,7 @@
     setLocked(true); clearMusic();
     renderSiteLoggedOut('本站登录已失效，请重新登录。');
     $('loginBox').innerHTML = '<p class="mut">请先登录本站账号。</p>';
+    showSiteGatePopup();
   }
   // 所有下载相关接口一律走 /api/dl/* 并带本站凭证；Worker 先验本站账号再转 /api/*。
   function apiFetch(path, init) {
@@ -522,6 +541,10 @@
   $('favBtn').addEventListener('click', function () { if (loggedIn) { renderPlaylists(); } });
   $('moreBtn').addEventListener('click', function () { if (mode === 'playlist' && currentPlaylistId) loadPlaylistTracks(currentPlaylistId, '', false); });
 
+  $('gateRegisterBtn').addEventListener('click', function () { window.location.href = 'https://qianzhi.pw/'; });
+  $('gateLoginBtn').addEventListener('click', function () { hideSiteGatePopup(); var el = $('siteIdent'); if (el) el.focus(); });
+  $('gateCloseBtn').addEventListener('click', hideSiteGatePopup);
+
   // 启动：先验本站会话；没登录只显示本站登录，不调任何网易云接口、不显示歌单。
   (function init() {
     var saved = loadSiteSession();
@@ -530,6 +553,7 @@
       clearMusic();
       renderSiteLoggedOut('');
       $('loginBox').innerHTML = '<p class="mut">请先登录本站账号。</p>';
+      showSiteGatePopup();
       return;
     }
     siteSession = saved;

@@ -1648,6 +1648,49 @@
           <button id="account-add-qishui" class="modal-btn" onclick="openProviderLogin('qishui')">登录汽水音乐</button>
         </div>
         <div id="account-hint" class="account-hint">QQ 音乐真实登录暂未接入，当前先预览双平台账号交互。</div>
+        <div id="site-account-section"
+          style="margin-top:16px;padding-top:14px;border-top:1px solid rgba(255,255,255,0.14);text-align:left">
+          <div style="font-size:13px;font-weight:700;margin-bottom:10px;letter-spacing:1px">本站账号</div>
+          <div id="site-login-form">
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <input id="site-ident" type="text" placeholder="QQ 邮箱或用户名" autocomplete="username"
+                autocapitalize="off" spellcheck="false"
+                style="flex:1 1 160px;min-width:140px;border:1px solid rgba(255,255,255,0.22);border-radius:999px;padding:9px 14px;font-size:14px;background:rgba(255,255,255,0.08);color:#fff">
+              <input id="site-password" type="password" placeholder="本站密码" autocomplete="current-password"
+                style="flex:1 1 140px;min-width:120px;border:1px solid rgba(255,255,255,0.22);border-radius:999px;padding:9px 14px;font-size:14px;background:rgba(255,255,255,0.08);color:#fff">
+            </div>
+            <div id="site-login-error" aria-live="polite"
+              style="color:#f4a9b4;font-size:12.5px;line-height:1.6;min-height:16px;margin:8px 0 0"></div>
+            <div style="margin-top:8px">
+              <button id="site-login-btn" class="modal-btn primary" type="button"
+                onclick="submitSiteLoginFromRadio()">登录本站账号</button>
+            </div>
+            <div style="font-size:12px;color:rgba(255,255,255,0.55);line-height:1.7;margin-top:8px">
+              登录本站账号后，网易云登录可以在换设备时自动恢复；不登录也不影响本设备扫码听歌。</div>
+          </div>
+          <div id="site-logged-in" style="display:none">
+            <div style="font-size:13px;line-height:1.8">已登录本站账号：<b id="site-account-label"></b></div>
+            <div id="site-link-status" style="font-size:13px;line-height:1.8;color:rgba(255,255,255,0.65)">网易云绑定：未绑定
+            </div>
+            <div id="site-link-prompt" style="display:none;margin-top:10px;padding:10px 12px;border:1px solid rgba(244,210,138,0.4);border-radius:12px;background:rgba(244,210,138,0.08)">
+              <div id="site-link-prompt-text" style="font-size:12.5px;line-height:1.7;margin-bottom:10px"></div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap">
+                <button id="site-link-confirm-btn" class="modal-btn primary" type="button">同意并绑定</button>
+                <button id="site-link-dismiss-btn" class="modal-btn" type="button">暂不绑定</button>
+              </div>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+              <button id="site-logout-local-btn" class="modal-btn" type="button"
+                onclick="logoutNeteaseOnThisDevice()">退出本设备音乐</button>
+              <button id="site-unlink-btn" class="modal-btn" type="button"
+                onclick="requestUnlinkNetease()">解绑网易云（全部设备）</button>
+            </div>
+            <div style="margin-top:8px">
+              <button id="site-logout-btn" class="modal-btn" type="button"
+                onclick="submitSiteLogoutFromRadio()">退出本站</button>
+            </div>
+          </div>
+        </div>
         <div class="btn-row">
           <button class="modal-btn" onclick="closeUserModal()">关闭</button>
           <button id="account-logout-btn" class="modal-btn primary" onclick="logoutActiveAccount()">退出当前平台</button>

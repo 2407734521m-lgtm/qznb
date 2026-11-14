@@ -9,6 +9,7 @@ function writeProviderVipAuditState(state) {
   try { localStorage.setItem(PROVIDER_VIP_AUDIT_STORE_KEY, JSON.stringify(state || {})); } catch (e) { }
 }
 var QQ_PLAYBACK_VIP_EVIDENCE_TTL_MS = 12 * 60 * 60 * 1000;
+var _siteRestoreAttempted = false; // 本站恢复网易云只试一次（每页加载一次）
 function qqPlaybackVipEvidenceUserKey(status) {
   return String(status && (status.userId || status.uin || status.uid || status.openId || status.id) || '').trim();
 }
@@ -117,6 +118,18 @@ async function refreshLoginStatus(force) {
       loadHomeDiscover(true);
       syncLikeStatusForSongs(playQueue.concat(playlist || []));
     } else {
+      // 未登录网易云：本站已登录且本设备没明确拒绝恢复时，试一次跨设备恢复。
+      // 成功后重查一次登录状态；绑定已过期（EXPIRED）不弹任何东西，用户之后手动扫码。
+      if (!_siteRestoreAttempted && typeof loadSiteSession === 'function' && typeof restoreNeteaseFromSite === 'function' && typeof siteSessionUsable === 'function') {
+        _siteRestoreAttempted = true;
+        var _noRestore = false;
+        try { _noRestore = !!localStorage.getItem('qz_netease_no_restore_v1'); } catch (e) { }
+        if (siteSessionUsable() && !_noRestore) {
+          restoreNeteaseFromSite().then(function (res) {
+            if (res && res.ok) refreshLoginStatus(true);
+          }).catch(function (e) { console.warn('site restore failed:', e); });
+        }
+      }
       neteasePlaylists = [];
       userPlaylists = (builtInPlaylists || []).concat(qqPlaylists || [], kugouPlaylists || [], qishuiPlaylists || [], spotifyPlaylists || []);
       playlistCatalogRevision += 1;

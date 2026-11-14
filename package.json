@@ -8,6 +8,7 @@
     "build": "vite build",
     "typecheck": "tsc --noEmit",
     "preview": "vite preview",
+    "test:unit": "vitest run",
     "test:e2e": "playwright test",
     "types:gen": "bash scripts/gen-types.sh",
     "check:styles": "node scripts/check-style-contracts.mjs",
@@ -34,6 +35,7 @@
     "@vitejs/plugin-react": "^6.2.1",
     "playwright": "1.64.0",
     "typescript": "^7.0.2",
-    "vite": "^8.3.5"
+    "vite": "^8.3.5",
+    "vitest": "^5.1.0"
   }
 }

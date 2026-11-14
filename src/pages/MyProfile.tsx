@@ -11,6 +11,7 @@ import { badgeText } from '../data/games';
 import BackButton from '../components/BackButton';
 import { PageSkeleton } from '../components/fx/Skeleton';
 import { fetchReviewEstimates, estimateText, type ReviewEstimates } from '../lib/reviewEstimate';
+import { isPhoneNumber } from '../lib/validate';
 import { confirmDialog } from '../lib/dialog';
 import TagInput from '../components/TagInput';
 
@@ -197,7 +198,7 @@ export default function MyProfile() {
       savingRef.current = false; setSaveState('idle'); setMsg('年龄需在 5–120 之间'); return;
     }
     const phoneRaw = (snapshot.phone ?? '').trim();
-    if (phoneRaw && !/^1[0-9]{10}$/.test(phoneRaw)) {
+    if (phoneRaw && !isPhoneNumber(phoneRaw)) {
       savingRef.current = false; setSaveState('idle'); setMsg('手机号需为 11 位、以 1 开头，或留空'); return;
     }
     const r = await Promise.all([

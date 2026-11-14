@@ -52,7 +52,7 @@ assert.ok(audioSignals.includes('export const audioLevel = motionValue(0);'), 'F
 assert.ok(visualizerBridge.includes('getByteTimeDomainData(waveformData)'), 'RMS must be sampled from the existing playback analyser waveform.');
 assert.ok(visualizerBridge.includes('audioLevel.set(normalizedRms)') && visualizerBridge.includes('audioLevel.set(0)'), 'Reset RMS when playback analyser data is unavailable.');
 assert.ok(!bridgeSource.includes('getUserMedia'), 'The fallback must not request microphone access.');
-assert.ok(bridgeSource.includes('audioBands.spectrum.get().length > 0'), 'Do not call synthetic idle breath an audio spectrum.');
+assert.ok(bridgeSource.includes('const spectrumData = audioBands.spectrum.get()') && bridgeSource.includes('spectrumData.length > 0'), 'Do not call synthetic idle breath an audio spectrum.');
 assert.ok(bridgeSource.includes('window.setInterval(publishSpectrum, 50)'), 'Spectrum updates should be throttled to 20Hz.');
 assert.ok(parent.includes("message.type === 'SPECTRUM'"), 'The main site must consume spectrum data.');
 assert.ok(parent.includes('--qz-music-eq-bass'), 'The island meter must be driven by received frequency bands.');

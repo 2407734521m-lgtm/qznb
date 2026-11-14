@@ -3,13 +3,15 @@ import { readFile } from 'node:fs/promises';
 
 const read = (path) => readFile(path, 'utf8');
 
-const [parent, styles, bridgeSource, bridgeApplied, overlays, worker] = await Promise.all([
+const [parent, styles, bridgeSource, bridgeApplied, overlays, worker, audioSignals, visualizerBridge] = await Promise.all([
   read('src/components/MusicIsland.tsx'),
   read('src/components/MusicIsland.css'),
   read('music/overlays/QianzhiEmbedBridge.tsx'),
   read('music/folia/src/components/qianzhi/QianzhiEmbedBridge.tsx'),
   read('music/folia/src/components/app/overlays/AppOverlays.tsx'),
   read('music/folia/worker/index.ts'),
+  read('music/folia/src/stores/motionSignals.ts'),
+  read('music/folia/src/components/app/playback/bridges/usePlaybackVisualizerBridge.ts'),
 ]);
 
 assert.equal(bridgeApplied, bridgeSource, 'The checked-out Folia bridge must match the maintained overlay source.');
@@ -44,7 +46,13 @@ assert.ok(parent.includes('className="qz-music-island-collapsed-main"'));
 assert.ok(bridgeSource.includes('event.source !== window.parent'));
 assert.ok(bridgeSource.includes("type: 'SPECTRUM'"), 'The music iframe must publish realtime analyser data.');
 assert.ok(bridgeSource.includes('audioBands.bass.get()') && bridgeSource.includes('audioBands.treble.get()'), 'Spectrum data must come from Folia analyser bands.');
-assert.ok(bridgeSource.includes('audioBands.spectrum.get().length > 0'), 'Do not call synthetic idle breath an audio spectrum.');
+assert.ok(bridgeSource.includes('audioLevel.get()') && bridgeSource.includes("mode = hasSpectrumEnergy ? 'spectrum' : playing && routeSupportsWebAnalyser ? 'level' : 'idle'"), 'Always use the live RMS mode while web playback is active and spectrum energy is unavailable.');
+assert.ok(parent.includes("spectrum.mode === 'level'"), 'Main-site bars must consume RMS fallback messages.');
+assert.ok(audioSignals.includes('export const audioLevel = motionValue(0);'), 'Folia must expose a dedicated actual-audio RMS signal.');
+assert.ok(visualizerBridge.includes('getByteTimeDomainData(waveformData)'), 'RMS must be sampled from the existing playback analyser waveform.');
+assert.ok(visualizerBridge.includes('audioLevel.set(previousLevel + (normalizedRms - previousLevel) * levelSmoothing)') && visualizerBridge.includes('audioLevel.set(0)'), 'Smooth the live RMS envelope and reset when analyser data is unavailable.');
+assert.ok(!bridgeSource.includes('getUserMedia'), 'The fallback must not request microphone access.');
+assert.ok(bridgeSource.includes('const spectrumData = audioBands.spectrum.get()') && bridgeSource.includes('spectrumData.length > 0'), 'Do not call synthetic idle breath an audio spectrum.');
 assert.ok(bridgeSource.includes('window.setInterval(publishSpectrum, 50)'), 'Spectrum updates should be throttled to 20Hz.');
 assert.ok(parent.includes("message.type === 'SPECTRUM'"), 'The main site must consume spectrum data.');
 assert.ok(parent.includes('--qz-music-eq-bass'), 'The island meter must be driven by received frequency bands.');

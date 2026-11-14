@@ -127,12 +127,14 @@ function MusicIsland() {
         if (!style) return;
         const names = ['bass', 'lowMid', 'vocal', 'treble'] as const;
         const levelMultipliers = { bass: 0.68, lowMid: 0.86, vocal: 1, treble: 0.76 } as const;
-        const useSpectrum = spectrum.playing && spectrum.mode === 'spectrum' && spectrum.available && spectrum.bands;
+        const spectrumBands = spectrum.playing && spectrum.mode === 'spectrum' && spectrum.available
+          ? spectrum.bands
+          : null;
         const rmsLevel = spectrum.playing && spectrum.mode === 'level'
           ? Math.max(0, Math.min(1, Number.isFinite(spectrum.level) ? spectrum.level : 0))
           : 0;
         for (const name of names) {
-          const raw = useSpectrum ? spectrum.bands[name] : rmsLevel * levelMultipliers[name];
+          const raw = spectrumBands ? spectrumBands[name] : rmsLevel * levelMultipliers[name];
           const energy = Number.isFinite(raw) ? Math.max(0, Math.min(1, raw ?? 0)) : 0;
           // Frequency mode keeps four independent bands; RMS mode moves all bars with overall loudness.
           style.setProperty(`--qz-music-eq-${name}`, String(0.12 + energy * 0.88));

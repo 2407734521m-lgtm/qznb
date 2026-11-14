@@ -110,4 +110,35 @@ assert.equal(result.rows[0].role, null, 'anonymous caller has no role');
 assert.equal(result.rows[0].is_admin, false, 'anonymous caller is not an admin');
 console.log('PASS anonymous caller is denied');
 
+
+// Apply the new login policy after validating the historical step-up migration.
+// Admins may enter with a password-authenticated aal1 session; members and
+// anonymous callers must still fail the server-side role check.
+const passwordOnlyMigration = 'supabase/migrations/20261115030000_admin_password_only_login.sql';
+await db.exec(readFileSync(new URL(passwordOnlyMigration, root), 'utf8'));
+console.log(`PASS ${passwordOnlyMigration}`);
+
+await claimsFor(adminId, 'aal1');
+result = await db.query('select public.my_role() as role, public.admin_login_is_admin() as is_admin');
+assert.equal(result.rows[0].role, 'super_admin', 'password-authenticated aal1 admin must receive the configured admin role');
+assert.equal(result.rows[0].is_admin, true);
+console.log('PASS password-authenticated aal1 admin is authorized');
+
+await claimsFor(adminId, undefined);
+result = await db.query('select public.my_role() as role');
+assert.equal(result.rows[0].role, 'super_admin', 'admin role must not depend on MFA assurance claims');
+console.log('PASS admin role does not depend on AAL or TOTP claims');
+
+await claimsFor(memberId, 'aal1');
+result = await db.query('select public.my_role() as role, public.admin_login_is_admin() as is_admin');
+assert.equal(result.rows[0].role, 'member', 'ordinary member role remains unchanged');
+assert.equal(result.rows[0].is_admin, false);
+console.log('PASS ordinary member cannot gain admin role after policy change');
+
+await claimsFor(undefined, undefined);
+result = await db.query('select public.my_role() as role, public.admin_login_is_admin() as is_admin');
+assert.equal(result.rows[0].role, null, 'anonymous caller has no role');
+assert.equal(result.rows[0].is_admin, false);
+console.log('PASS anonymous caller remains denied');
+
 await db.close();

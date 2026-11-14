@@ -278,11 +278,13 @@ function MusicIsland() {
                   key="expanded"
                   className="qz-music-island qz-music-island-expanded"
                   layoutId="qz-music-island-shell"
-                  transition={{ layout: { duration: reduceMotion ? 0 : 0.34, ease: [0.16, 1, 0.3, 1] } }}
+                  transition={{
+                    duration: reduceMotion ? 0 : 0.18,
+                    layout: { duration: reduceMotion ? 0 : 0.34, ease: [0.16, 1, 0.3, 1] },
+                  }}
                   initial={reduceMotion ? false : { opacity: 0, y: -5, scale: 0.97 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: -4, scale: 0.98 }}
-                  transition={{ duration: reduceMotion ? 0 : 0.18 }}
                   aria-label="音乐控制面板"
                 >
                   <div className="qz-music-island-top">

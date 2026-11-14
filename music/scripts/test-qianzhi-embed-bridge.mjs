@@ -35,7 +35,7 @@ assert.ok(parent.includes("is-qianzhi-app"), 'The Android app-specific island po
 assert.ok(!parent.includes("filter: isMusicPage"), 'Avoid full-screen blur filters that can stutter on mobile WebViews.');
 assert.ok(parent.includes("pointerEvents: isMusicPage ? 'auto' : 'none'"));
 assert.ok(styles.includes('z-index: 1200;'));
-assert.ok(styles.includes('top: max(calc(env(safe-area-inset-top) + 8px), 34px);'));
+assert.ok(styles.includes('top: max(calc(env(safe-area-inset-top) + 8px), 18px);'));
 assert.ok(parent.includes('className="qz-music-island-collapsed-main"'));
 assert.ok(bridgeSource.includes('event.source !== window.parent'));
 assert.ok(bridgeSource.includes('MAIN_SITE_ORIGINS.has(event.origin)'));

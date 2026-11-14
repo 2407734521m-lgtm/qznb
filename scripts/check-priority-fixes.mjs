@@ -92,7 +92,7 @@ assert.match(adminSettings, /role="switch"[\s\S]*?maintenance_access_codes_enabl
   'temporary visitor access codes must have a separate administrator-controlled switch');
 assert.match(adminSettings, /vals\.maintenance_access_codes_enabled === 'true'[\s\S]*?MaintenanceAccessManager/,
   'code creation tools must remain hidden when visitor code access is disabled');
-assert.match(adminApp, /allowCode\?\s*<>[\s\S]*?临时访问码/,
+assert.match(adminApp, /allowCode\s*\?\s*<>[\s\S]*?临时访问码/,
   'maintenance page must only show visitor code entry when explicitly enabled');
 assert.match(adminWorkspace, /descriptionFor\(item\.id\)[\s\S]*?toLocaleLowerCase\(\)\.includes\(value\)/,
   'admin command search must search feature descriptions, not titles only');

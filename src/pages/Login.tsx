@@ -497,7 +497,7 @@ export default function Login({ siteTitle, siteSubtitle, onGuestLogin }: { siteT
               <input disabled={codeSent || busy} value={phone} onChange={e => setPhone(e.target.value.replace(/\D/g, '').slice(0, 11))} onBlur={touch('phone')} placeholder="11 位手机号，没有可不填" inputMode="tel" aria-label="手机号（选填）" />
             </FloatField>
             <FloatField label="QQ 邮箱" value={email} error={terr('email', emailErr)}>
-              <input disabled={codeSent || busy} value={email} onChange={e => { updateRegistrationEmail(e.target.value); if (codeSent) { setCodeSent(false); setCode(''); } }} onBlur={touch('email')} placeholder="123456@qq.com" inputMode="email" aria-label="QQ 邮箱" />
+              <input disabled={busy} value={email} onChange={e => { updateRegistrationEmail(e.target.value); if (codeSent) { setCodeSent(false); setCode(''); } }} onBlur={touch('email')} placeholder="123456@qq.com" inputMode="email" aria-label="QQ 邮箱" />
             </FloatField>
             {qqAvatarPreviewUrl && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 11, margin: '10px 0 4px', padding: '11px 12px', borderRadius: 14, background: 'rgba(255,255,255,.08)', border: '1px solid rgba(255,255,255,.14)' }}>

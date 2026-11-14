@@ -1,0 +1,282 @@
+/* 管理后台总览页 · Mosaic Lite 版式移植（借版式重写）
+   ---------------------------------------------------------------
+   版式来源：cruip/tailwind-dashboard-template（Mosaic Lite），
+   2,857 星，最后更新 2025-03-02，React 19 + Vite 6 + Tailwind v4。
+   许可：该仓库 README 写明 Released under the GPL，但仓库根目录
+   没有 LICENSE 文件、GitHub API 也查不到许可文件，许可不明——
+   因此本文件没有复制对方任何代码，只参考其 Dashboard 概览的
+   排布与层级（统计卡在上、主图表居左 + 分类面板居右、列表成行、
+   状态面板在下），全部样式用站内自研 CSS 重新写。
+   约束：本站无 Tailwind，不引入 Tailwind / Chart.js / 任何新依赖；
+   图表继续复用 src/pages/admin/charts.tsx 的 Spark / TrendChart；
+   数据逻辑一律不动（见 src/pages/admin/Overview.tsx）。
+   配色：冷白纸面——底 #f7f8f8、卡片 #ffffff、墨色 #1f2a3a、
+   灰字 #7a8894、描边 #e5e8ea、印泥红 #b0404f（只用于待办计数与异常态）。
+   作用域：只在 .admin-shell-v3 .admin-content 内生效，不动其他 26 个
+   Tab、不动主站。本文件由 Admin.tsx 最后引入，专用于覆盖
+   styles-admin-scaffold / -pages / -paper 里总览相关的旧规则。
+*/
+
+/* 画布：冷白底色 + 圆角纸面，与 Mosaic 的浅色仪表盘画布一致。 */
+.admin-shell-v3 .admin-content .admin-overview-dashboard {
+  background: #f7f8f8;
+  border-radius: 18px;
+  padding: 16px;
+}
+
+/* 卡片：纯白、细描边、扁平轻阴影，去掉旧的深色玻璃渐变与暖纸底。 */
+.admin-shell-v3 .admin-content .admin-overview-panel,
+.admin-shell-v3 .admin-content .admin-overview-metric-card,
+.admin-shell-v3 .admin-content .admin-overview-todo > div {
+  color: #1f2a3a !important;
+  background: #ffffff !important;
+  border: 1px solid #e5e8ea !important;
+  border-radius: 14px !important;
+  box-shadow: 0 1px 2px rgba(31, 42, 58, .05), 0 8px 20px rgba(31, 42, 58, .04) !important;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+/* 页头：标题墨色、副文案灰字；刷新按钮做成 Mosaic 式白色操作钮。 */
+.admin-shell-v3 .admin-content .admin-overview-header h2 { color: #1f2a3a !important; }
+.admin-shell-v3 .admin-content .admin-overview-header p { color: #7a8894 !important; }
+.admin-shell-v3 .admin-content .admin-overview-header > button {
+  min-height: 36px;
+  padding: 0 14px;
+  border: 1px solid #e5e8ea;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #1f2a3a;
+  font-size: 12px;
+  font-weight: 700;
+}
+.admin-shell-v3 .admin-content .admin-overview-header > button:hover {
+  background: #f7f8f8;
+  border-color: #d4d9de;
+}
+.admin-shell-v3 .admin-content .admin-overview-dashboard button.ghost {
+  border-color: #e5e8ea;
+  color: #1f2a3a;
+}
+.admin-shell-v3 .admin-content .admin-overview-dashboard button.ghost:hover {
+  background: #f7f8f8;
+  border-color: #d4d9de;
+  color: #1f2a3a;
+}
+
+/* 统计卡：Mosaic 式层级——小灰标签、大墨色数值、变化提示做成浅色徽章、底部迷你线。 */
+.admin-shell-v3 .admin-content .admin-overview-metric-card {
+  padding: 16px 16px 12px !important;
+}
+.admin-shell-v3 .admin-content .admin-overview-metric-card:hover {
+  transform: translateY(-1px);
+  border-color: #d4d9de !important;
+  box-shadow: 0 2px 4px rgba(31, 42, 58, .06), 0 12px 24px rgba(31, 42, 58, .06) !important;
+}
+.admin-shell-v3 .admin-content .admin-overview-metric-label { color: #7a8894 !important; }
+.admin-shell-v3 .admin-content .admin-overview-metric-value { color: #1f2a3a !important; }
+.admin-shell-v3 .admin-content .admin-overview-metric-hint { color: #7a8894 !important; }
+.admin-shell-v3 .admin-content .admin-overview-metric-hint span {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border: 1px solid #e5e8ea;
+  border-radius: 999px;
+  background: #f7f8f8;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+/* 面板标题与次文案。 */
+.admin-shell-v3 .admin-content .admin-overview-panel-heading h3 { color: #1f2a3a !important; }
+.admin-shell-v3 .admin-content .admin-overview-panel-heading p,
+.admin-shell-v3 .admin-content .admin-overview-chart-labels,
+.admin-shell-v3 .admin-content .admin-overview-empty,
+.admin-shell-v3 .admin-content .admin-overview-list-row > time,
+.admin-shell-v3 .admin-content .admin-overview-system-row > span,
+.admin-shell-v3 .admin-content .admin-overview-category-list span,
+.admin-shell-v3 .admin-content .admin-overview-online-metrics span,
+.admin-shell-v3 .admin-content .admin-overview-online-metrics small,
+.admin-shell-v3 .admin-content .admin-overview-privacy-note { color: #7a8894 !important; }
+.admin-shell-v3 .admin-content .admin-overview-list-row > strong,
+.admin-shell-v3 .admin-content .admin-overview-system-row > strong,
+.admin-shell-v3 .admin-content .admin-overview-category-list strong { color: #1f2a3a !important; }
+.admin-shell-v3 .admin-content .admin-overview-range-label,
+.admin-shell-v3 .admin-content .admin-overview-count {
+  color: #7a8894 !important;
+  background: #f7f8f8 !important;
+  border-color: #e5e8ea !important;
+}
+
+/* Mosaic 式 12 栏比例：主图表占 2/3、侧栏占 1/3；在线与系统同理。 */
+.admin-shell-v3 .admin-content .admin-overview-insights-grid {
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) !important;
+}
+.admin-shell-v3 .admin-content .admin-overview-health-grid {
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) !important;
+}
+
+/* 操作区：待办居左（2/3）+ 快捷入口右侧栏（1/3），桌面端纵向排列。 */
+.admin-shell-v3 .admin-content .admin-overview-ops-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(240px, 1fr);
+  gap: 12px;
+  min-width: 0;
+}
+.admin-shell-v3 .admin-content .admin-overview-ops-grid > * { min-width: 0; }
+.admin-shell-v3 .admin-content .admin-overview-todo > div {
+  height: 100%;
+  box-sizing: border-box;
+}
+.admin-shell-v3 .admin-content .admin-overview-ops-grid .admin-overview-shortcuts {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+  align-content: start;
+}
+.admin-shell-v3 .admin-content .admin-overview-ops-grid .admin-overview-shortcuts > button {
+  min-height: 58px;
+  padding: 10px 13px;
+  flex-direction: row;
+  align-items: center;
+}
+
+/* 待办行：描边换冷色；行悬停给浅底（旧的白色半透明悬停在白卡上看不见）。 */
+.admin-shell-v3 .admin-content .admin-overview-todo h3 { color: #1f2a3a !important; }
+.admin-shell-v3 .admin-content .admin-overview-todo button { border-bottom-color: #e5e8ea !important; }
+.admin-shell-v3 .admin-content .admin-overview-todo button:hover { background: #f7f8f8 !important; }
+.admin-shell-v3 .admin-content .admin-overview-todo button span:first-child { color: #1f2a3a !important; }
+
+/* 快捷入口：白卡 + 冷色图标底；第三项用印泥红点缀（与待办计数呼应）。 */
+.admin-shell-v3 .admin-content .admin-overview-shortcuts > button {
+  color: #1f2a3a !important;
+  background: #ffffff !important;
+  border-color: #e5e8ea !important;
+  box-shadow: 0 1px 2px rgba(31, 42, 58, .05) !important;
+}
+.admin-shell-v3 .admin-content .admin-overview-shortcuts > button:hover {
+  color: #1f2a3a !important;
+  background: #f7f8f8 !important;
+  border-color: #d4d9de !important;
+  box-shadow: 0 4px 14px rgba(31, 42, 58, .06) !important;
+}
+.admin-shell-v3 .admin-content .admin-overview-shortcuts strong { color: #1f2a3a !important; }
+.admin-shell-v3 .admin-content .admin-overview-shortcuts small { color: #7a8894 !important; }
+.admin-shell-v3 .admin-content .admin-overview-shortcuts > button > svg {
+  color: #1f2a3a !important;
+  background: #f7f8f8 !important;
+  border-color: #e5e8ea !important;
+}
+.admin-shell-v3 .admin-content .admin-overview-shortcuts > button:nth-child(2) > svg {
+  color: #16835d !important;
+  background: rgba(22, 131, 93, .08) !important;
+  border-color: rgba(22, 131, 93, .16) !important;
+}
+.admin-shell-v3 .admin-content .admin-overview-shortcuts > button:nth-child(3) > svg {
+  color: #b0404f !important;
+  background: rgba(176, 64, 79, .08) !important;
+  border-color: rgba(176, 64, 79, .16) !important;
+}
+
+/* 列表与分类：行分隔线与小块底统一换冷色。 */
+.admin-shell-v3 .admin-content .admin-overview-system-row,
+.admin-shell-v3 .admin-content .admin-overview-list-row { border-bottom-color: #e5e8ea !important; }
+.admin-shell-v3 .admin-content .admin-overview-category-list > div,
+.admin-shell-v3 .admin-content .admin-overview-online-metrics > div {
+  color: #1f2a3a !important;
+  background: #f7f8f8 !important;
+  border-color: #e5e8ea !important;
+}
+.admin-shell-v3 .admin-content .admin-overview-list-marker {
+  background: #5b7a99;
+  box-shadow: 0 0 0 3px rgba(91, 122, 153, .10);
+}
+.admin-shell-v3 .admin-content .admin-overview-member-avatar {
+  color: #1f2a3a;
+  background: #f7f8f8;
+  border-color: #e5e8ea;
+}
+
+/* 在线数字：第一格保持绿色，第二格改墨色（数字不是链接，不用蓝色）。 */
+.admin-shell-v3 .admin-content .admin-overview-online-metrics strong { color: #1f2a3a !important; }
+.admin-shell-v3 .admin-content .admin-overview-online-metrics > div:first-child strong { color: #16835d !important; }
+
+/* 状态语义色：健康绿保留、异常用印泥红、警告保持琥珀。 */
+.admin-shell-v3 .admin-content .admin-overview-panel .is-healthy { color: #16835d !important; }
+.admin-shell-v3 .admin-content .admin-overview-panel .is-unhealthy { color: #b0404f !important; }
+.admin-shell-v3 .admin-content .admin-overview-panel .is-warning { color: #a16207 !important; }
+
+/* 实时状态徽章：等待灰、实时绿、异常红。 */
+.admin-shell-v3 .admin-content .admin-overview-live-status {
+  color: #7a8894 !important;
+  border-color: #e5e8ea !important;
+  background: #f7f8f8 !important;
+}
+.admin-shell-v3 .admin-content .admin-overview-live-status.is-live {
+  color: #16835d !important;
+  border-color: rgba(22, 131, 93, .20) !important;
+  background: rgba(22, 131, 93, .08) !important;
+}
+.admin-shell-v3 .admin-content .admin-overview-live-status.is-error {
+  color: #b0404f !important;
+  border-color: rgba(176, 64, 79, .20) !important;
+  background: rgba(176, 64, 79, .08) !important;
+}
+
+/* 加载与超时态：同样换冷白（超时按钮用墨色，不用蓝色）。 */
+.admin-shell-v3 .admin-content .admin-overview-loading { color: #7a8894 !important; }
+.admin-shell-v3 .admin-content .admin-loading-pulse { background: #1f2a3a !important; }
+.admin-shell-v3 .admin-content .admin-overview-timeout {
+  color: #1f2a3a !important;
+  background: #ffffff !important;
+  border-color: #e5e8ea !important;
+}
+.admin-shell-v3 .admin-content .admin-overview-timeout p { color: #7a8894 !important; }
+.admin-shell-v3 .admin-content .admin-overview-timeout button {
+  color: #ffffff !important;
+  background: #1f2a3a !important;
+  border-color: #1f2a3a !important;
+}
+
+/* 响应式：Mosaic 的宽表在窄屏下全部单列；快捷入口在手机上恢复三列横排。 */
+@media (max-width: 1050px) {
+  .admin-shell-v3 .admin-content .admin-overview-insights-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+}
+@media (max-width: 899px) {
+  .admin-shell-v3 .admin-content .admin-overview-dashboard {
+    padding: 12px;
+    border-radius: 14px;
+  }
+  .admin-shell-v3 .admin-content .admin-overview-ops-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .admin-shell-v3 .admin-content .admin-overview-todo > div { height: auto; }
+  .admin-shell-v3 .admin-content .admin-overview-health-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+  .admin-shell-v3 .admin-content .admin-overview-ops-grid .admin-overview-shortcuts {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 6px !important;
+  }
+  .admin-shell-v3 .admin-content .admin-overview-ops-grid .admin-overview-shortcuts > button {
+    min-height: 70px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    padding: 9px;
+  }
+  .admin-shell-v3 .admin-content .admin-overview-ops-grid .admin-overview-shortcuts small { display: none; }
+}
+@media (max-width: 420px) {
+  .admin-shell-v3 .admin-content .admin-overview-ops-grid .admin-overview-shortcuts > button {
+    min-height: 76px;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 7px;
+    font-size: 10px;
+  }
+  .admin-shell-v3 .admin-content .admin-overview-ops-grid .admin-overview-shortcuts strong { font-size: 11px; }
+}

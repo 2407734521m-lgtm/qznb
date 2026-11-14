@@ -93,6 +93,12 @@
 .qz-music-island-mini-play:active:not(:disabled) { transform: scale(.92); }
 .qz-music-island-mini-play:disabled { opacity: .35; cursor: default; }
 .qz-music-island-expanded {
+  /* Expanded panel gets a more visible glass layer than the compact pill. */
+  background: linear-gradient(145deg, rgba(38, 40, 48, .66), rgba(18, 19, 24, .58));
+  border-color: rgba(255,255,255,.19);
+  box-shadow: 0 18px 52px rgba(0,0,0,.22), inset 0 1px 0 rgba(255,255,255,.16);
+  -webkit-backdrop-filter: blur(32px) saturate(175%);
+  backdrop-filter: blur(32px) saturate(175%);
   width: 100%;
   max-height: calc(100dvh - env(safe-area-inset-top) - 24px);
   overflow-y: auto;

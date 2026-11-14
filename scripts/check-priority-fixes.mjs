@@ -56,8 +56,10 @@ assert.match(login, /PasswordField disabled=\{codeSent \|\| busy\} value=\{pw\}/
   'password must not change while signup is pending or after its verification code has been sent');
 assert.match(login, /type="checkbox" disabled=\{codeSent \|\| busy\} checked=\{policyAccepted\}/,
   'policy acceptance must not change while signup is pending or after account creation');
-assert.match(login, /<input disabled=\{codeSent \|\| busy\} value=\{email\}/,
+assert.match(login, /<input disabled=\{busy\} value=\{email\}/,
   'registration email must not change while signup is in flight');
+assert.match(login, /updateRegistrationEmail\(e\.target\.value\); if \(codeSent\) \{ setCodeSent\(false\); setCode\(''\); \}/,
+  'registration email corrections after sending a code must invalidate the previous OTP state');
 assert.match(loveWall, /async function saveEditComment\(c: CommentItem\)/,
   'Love Wall users must be able to edit their own comments');
 assert.match(loveWall, /\.eq\('author_id', session\.user\.id\)/,

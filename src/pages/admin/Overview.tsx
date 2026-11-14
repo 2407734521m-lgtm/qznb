@@ -49,12 +49,12 @@ function TodoCenter({ go }: { go: (tab: string) => void }) {
     {counts && total === 0 && !err && <p style={{ fontSize: 13.5, color: '#2e7d4f', margin: '6px 0 2px' }}>全部处理完了，没有积压。</p>}
     {counts && items.map(([k, label, tab]) => (
       <button key={k} onClick={() => go(tab)}
-        style={{ display: 'flex', width: '100%', alignItems: 'center', gap: 8, padding: '9px 2px', background: 'transparent', border: 0, borderBottom: '1px solid rgba(34,49,74,.08)', cursor: 'pointer', textAlign: 'left' }}>
-        <span style={{ flex: 1, fontSize: 13.5, color: (counts[k] || 0) === 0 ? '#8a8271' : '#22314a' }}>{label}</span>
+        style={{ display: 'flex', width: '100%', alignItems: 'center', gap: 8, padding: '9px 2px', background: 'transparent', border: 0, borderBottom: '1px solid rgba(31,42,58,.08)', cursor: 'pointer', textAlign: 'left' }}>
+        <span style={{ flex: 1, fontSize: 13.5, color: (counts[k] || 0) === 0 ? '#7a8894' : '#1f2a3a' }}>{label}</span>
         {(counts[k] || 0) > 0
-          ? <span style={{ background: '#f5c26b', color: '#231a04', fontWeight: 800, fontSize: 12, borderRadius: 999, padding: '2px 9px' }}>{counts[k]}</span>
-          : <span style={{ fontSize: 12, color: '#8a8271' }}>无</span>}
-        <span style={{ color: '#a39a83', fontSize: 13 }}>›</span>
+          ? <span style={{ background: '#b0404f', color: '#fff', fontWeight: 800, fontSize: 12, borderRadius: 999, padding: '2px 9px' }}>{counts[k]}</span>
+          : <span style={{ fontSize: 12, color: '#7a8894' }}>无</span>}
+        <span style={{ color: '#7a8894', fontSize: 13 }}>›</span>
       </button>
     ))}
   </div>;
@@ -249,7 +249,7 @@ export default function Overview({ setMsg, go }: { setMsg: (s: string) => void; 
     '班级照片': st.photos === 0 ? <span style={{ color: '#8b93b0' }}>暂无新照片</span> : <span style={{ color: '#5f7350' }}>持续更新中</span>,
   };
   const stats: [string, number, number[], string][] = [
-    ['注册成员', st.members, st.cum, '#22314a'],
+    ['注册成员', st.members, st.cum, '#1f2a3a'],
     ['近7天新增', st.new7, st.dPro.slice(-7), '#54687f'],
     ['班级动态', st.posts, st.dPost, '#5f7350'],
     ['日常帖子', st.dailyPosts, st.dDailyPost, '#a67c3d'],
@@ -269,25 +269,7 @@ export default function Overview({ setMsg, go }: { setMsg: (s: string) => void; 
         }}>刷新数据</button>
       </header>
 
-      <section className="admin-overview-todo" aria-label="待处理任务">
-        <TodoCenter go={go} />
-      </section>
-
-      <nav className="admin-overview-shortcuts" aria-label="常用管理入口">
-        <button type="button" onClick={() => go('board')}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 19V5h14v14H5Z"/><path d="M8 9h8M8 13h5M8 17h8"/></svg>
-          <span><strong>发布公告</strong><small>更新首页与社区公告</small></span>
-        </button>
-        <button type="button" onClick={() => go('notifications')}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9ZM10 21h4"/></svg>
-          <span><strong>发送通知</strong><small>向成员发送站内消息</small></span>
-        </button>
-        <button type="button" onClick={() => go('feedback')}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 5h16v11H8l-4 4V5Z"/><path d="M8 9h8M8 13h5"/></svg>
-          <span><strong>查看反馈</strong><small>跟进建议与问题报告</small></span>
-        </button>
-      </nav>
-
+      {/* Mosaic 层级：统计卡在上、图表居中、待办与快捷入口并列成操作区、列表与状态在下。只调排布，数据逻辑不动。 */}
       <section className="admin-overview-primary-grid" aria-label="核心数据">
         {stats.map(([k, v, d, col]) => (
           <article key={k} className="admin-overview-metric-card" style={card}>
@@ -324,6 +306,27 @@ export default function Overview({ setMsg, go }: { setMsg: (s: string) => void; 
             ))}
           </div>
         </section>
+      </div>
+
+      <div className="admin-overview-ops-grid">
+        <section className="admin-overview-todo" aria-label="待处理任务">
+          <TodoCenter go={go} />
+        </section>
+
+        <nav className="admin-overview-shortcuts" aria-label="常用管理入口">
+          <button type="button" onClick={() => go('board')}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 19V5h14v14H5Z"/><path d="M8 9h8M8 13h5M8 17h8"/></svg>
+            <span><strong>发布公告</strong><small>更新首页与社区公告</small></span>
+          </button>
+          <button type="button" onClick={() => go('notifications')}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9ZM10 21h4"/></svg>
+            <span><strong>发送通知</strong><small>向成员发送站内消息</small></span>
+          </button>
+          <button type="button" onClick={() => go('feedback')}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 5h16v11H8l-4 4V5Z"/><path d="M8 9h8M8 13h5"/></svg>
+            <span><strong>查看反馈</strong><small>跟进建议与问题报告</small></span>
+          </button>
+        </nav>
       </div>
 
       <div className="admin-overview-activity-grid">

@@ -15,7 +15,7 @@
     "check:admin-styles": "node scripts/check-admin-style-contracts.mjs",
     "test:login-sql": "node scripts/test-username-login-sql.mjs",
     "check:priority-fixes": "node scripts/check-priority-fixes.mjs",
-    "test:admin-mfa-sql": "node scripts/test-admin-mfa-sql.mjs",
+    "test:admin-secondary-pin-sql": "node scripts/test-admin-secondary-pin-sql.mjs",
     "check:admin-security": "node scripts/check-admin-security.mjs"
   },
   "dependencies": {

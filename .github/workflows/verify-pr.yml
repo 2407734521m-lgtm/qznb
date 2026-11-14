@@ -41,5 +41,5 @@ jobs:
       - name: Run Playwright E2E (local preview only, no writes)
         run: npx playwright test
       - run: npm run check:priority-fixes
-      - run: npm run test:admin-mfa-sql
+      - run: npm run test:admin-secondary-pin-sql
       - run: npm run check:admin-security

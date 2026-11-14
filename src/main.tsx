@@ -6,6 +6,7 @@ import { HashRouter } from 'react-router-dom';
 const App = lazyWithRetry(() => import('./App'));
 const Admin = lazyWithRetry(() => import('./pages/Admin'));
 const AdminLogin = lazyWithRetry(() => import('./pages/AdminLogin'));
+const IntroAnimation = lazyWithRetry(() => import('./components/IntroAnimation'));
 import { AuthProvider, useAuth } from './auth';
 import { supabase } from './lib/supabase';
 import { DialogHost } from './lib/dialog';
@@ -187,12 +188,32 @@ function AdminShell() {
   </>);
 }
 
+// 开场动画（方向一：品牌浮现）：只在主站播，后台不播；每次冷打开播一次，
+// 同一标签页会话内只播一次，点按跳过。IntroAnimation 自己管淡出，
+// 这里只负责挂载与会话去重。
+function SiteIntro() {
+  const [show, setShow] = useState<boolean>(() => {
+    try { return !sessionStorage.getItem('qz_intro_seen_v1'); } catch { return true; }
+  });
+  function done() {
+    try { sessionStorage.setItem('qz_intro_seen_v1', '1'); } catch {}
+    setShow(false);
+  }
+  if (!show) return null;
+  return (
+    <Suspense fallback={null}>
+      <IntroAnimation onDone={done} />
+    </Suspense>
+  );
+}
+
 createRoot(document.getElementById('root')!).render(
   <React.StrictMode><HashRouter><AuthProvider>
     <ErrorBoundary>
       <Suspense fallback={<RouteLoading />}>
         {isAdminHost ? <AdminShell /> : <App />}
       </Suspense>
+      {!isAdminHost ? <SiteIntro /> : null}
       <TestSwitchFab />
     </ErrorBoundary>
     {!isAdminHost ? <PaperToaster /> : null}

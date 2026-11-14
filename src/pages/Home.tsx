@@ -267,7 +267,7 @@ export default function Home() {
                 </div>
                 <div className="vh-members">
                   {members.map(m => (
-                    <Link className="vh-member" key={m.id} to={`/member/${m.id}`} aria-label={`查看${m.display_name || m.username}的资料`}>
+                    <Link className="vh-member" key={m.id} to={`/members/${m.id}`} aria-label={`查看${m.display_name || m.username}的资料`}>
                       <Av path={m.avatar_path} name={m.display_name || m.username}
                         signedUrl={m.avatar_path ? memberAvatarUrls[m.avatar_path] : undefined} />
                       <span>{m.display_name || m.username}</span>

@@ -281,7 +281,7 @@ export default function Member() {
 
   return (
     <div className="page member-profile-page">
-      <button className="backbtn member-backbtn" onClick={goBack}>← 返回成员墙</button>
+      <button className="backbtn member-backbtn" onClick={goBack}>← 返回</button>
       <section className="mp-hero">
         <div className="mp-profile-top">
         <motion.div ref={photoRef} layout="position" className="mp-avatar"

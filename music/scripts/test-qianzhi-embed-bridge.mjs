@@ -36,7 +36,7 @@ assert.ok(!parent.includes("filter: isMusicPage"), 'Avoid full-screen blur filte
 assert.ok(parent.includes("pointerEvents: isMusicPage ? 'auto' : 'none'"));
 assert.ok(styles.includes('z-index: 1200;'));
 assert.ok(styles.includes('qz-music-equalizer.is-playing i'));
-assert.ok(styles.includes('animation: qz-music-eq'), 'The equalizer must animate while playback is active.');
+assert.ok(styles.includes('var(--qz-music-eq-bass') && styles.includes('var(--qz-music-eq-treble'), 'The equalizer must use live analyser values.');
 assert.ok(styles.includes('top: max(calc(env(safe-area-inset-top) + 8px), 18px);'));
 assert.ok(parent.includes('className="qz-music-island-collapsed-main"'));
 assert.ok(bridgeSource.includes('event.source !== window.parent'));

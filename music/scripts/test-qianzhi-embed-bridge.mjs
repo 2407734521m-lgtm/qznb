@@ -19,7 +19,9 @@ assert.match(parent, /window\.setInterval\(sendHello, 2500\)/, 'The parent must 
 assert.match(parent, /if \(lastSeen > 0 && Date\.now\(\) - lastSeen > 6500\)/, 'A stale bridge must be detected instead of staying connected forever.');
 assert.match(parent, /onClick=\{\(\) => sendCommand\('toggle'\)\}/, 'The compact capsule play button must actually toggle playback.');
 assert.match(parent, /onPointerUp=\{commitSeekDraft\}/, 'Seeking should be committed when the user releases the progress control.');
-assert.match(parent, /left: 0,[\s\S]*opacity: isMusicPage \? 1 : 0,[\s\S]*pointerEvents: isMusicPage \? 'auto' : 'none'/, 'The hidden player must remain in the viewport without intercepting taps.');
+assert.match(parent, /<motion\.div[\s\S]*className="qz-music-frame-host"[\s\S]*opacity: isMusicPage \? 1 : 0,[\s\S]*scale: isMusicPage \? 1 : 0\.985,[\s\S]*filter: isMusicPage \? 'blur\(0px\)' : 'blur\(5px\)'/, 'The music page must smoothly shrink, blur and fade when leaving.');
+assert.match(parent, /pointerEvents: isMusicPage \? 'auto' : 'none'/, 'The hidden player must not intercept taps.');
+assert.match(parent, /stiffness: 520, damping: 38, mass: 0\.72/, 'The island should land with a spring transition after the music page exits.');
 assert.match(parent, /className="qz-music-island-collapsed-main"/, 'The compact island must separate expand and playback actions.');
 assert.match(bridgeSource, /event\.source !== window\.parent/);
 assert.match(bridgeSource, /MAIN_SITE_ORIGINS\.has\(event\.origin\)/);

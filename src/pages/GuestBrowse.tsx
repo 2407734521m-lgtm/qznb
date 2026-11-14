@@ -221,7 +221,7 @@ export default function GuestBrowse({
   return (
     <div className="guest-shell">
       <header className="guest-header">
-        <NavLink to="/home" className="guest-brand" aria-label={`${BRAND_NAME} 首页`}>
+        <NavLink to="/home" className="guest-brand">
           <BrandMark className="guest-brand-mark" size={42} />
           <span className="guest-brand-copy"><strong>{BRAND_NAME}</strong><small>{BRAND_SUBTITLE}</small></span>
         </NavLink>

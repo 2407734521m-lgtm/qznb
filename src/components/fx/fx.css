@@ -119,6 +119,7 @@
   to { transform: translateX(calc(-100% - var(--fx-marquee-gap))); }
 }
 .fx-marquee-pause:hover .fx-marquee-copy { animation-play-state: paused; }
+.fx-marquee-touch-paused .fx-marquee-copy { animation-play-state: paused; }
 
 /* 微光按钮：面沿用站内主按钮 button.pri 的渐变，一道微光沿边框匀速绕行
    （Magic UI ShimmerButton 思路，自研 CSS 重写；只用在主按钮上） */

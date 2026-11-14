@@ -48,11 +48,11 @@ export default function QuestionBox() {
       callQuestionRpc<SentQuestion[]>('my_sent_anonymous_questions'),
       callQuestionRpc<PublicAnswer[]>('public_anonymous_question_answers', { p_profile_id: me }),
     ]);
-    if (received.error) setMessage('收件箱暂时无法加载：' + received.error.message);
+    if (received.error) setMessage('收件箱暂时无法加载，请稍后再试。');
     else setInbox(received.data ?? []);
-    if (outgoing.error) setMessage('已发出的提问暂时无法加载：' + outgoing.error.message);
+    if (outgoing.error) setMessage('已发出的提问暂时无法加载，请稍后再试。');
     else setSent(outgoing.data ?? []);
-    if (published.error) setMessage('公开回答暂时无法加载：' + published.error.message);
+    if (published.error) setMessage('公开回答暂时无法加载，请稍后再试。');
     else setPublicAnswers(published.data ?? []);
     setLoading(false);
   }
@@ -84,7 +84,7 @@ export default function QuestionBox() {
     setBusy(true);
     const { data, error } = await supabase.rpc('member_directory', { q: needle, lim: 12, skip: 0 });
     setBusy(false);
-    if (error) { setMessage('搜索成员失败：' + error.message); return; }
+    if (error) { setMessage('搜索成员失败，请稍后再试。'); return; }
     setMembers((data ?? []) as MemberResult[]);
   }
 
@@ -98,7 +98,7 @@ export default function QuestionBox() {
       p_content: content,
     });
     setBusy(false);
-    if (error) { setMessage('发送失败：' + error.message); return; }
+    if (error) { setMessage('发送失败，请稍后再试。'); return; }
     setQuestionText('');
     setMessage('提问已匿名送达。对方不会看到你的账号信息。');
   }
@@ -113,7 +113,7 @@ export default function QuestionBox() {
       p_publish: publishAnswers[question.id] === true,
     });
     setBusy(false);
-    if (error) { setMessage('回答失败：' + error.message); return; }
+    if (error) { setMessage('回答失败，请稍后再试。'); return; }
     setDraftAnswers(current => ({ ...current, [question.id]: '' }));
     await loadOwn();
     setMessage(publishAnswers[question.id] ? '回答已保存并公开。' : '回答已保存，仅提问者可见。');
@@ -122,7 +122,7 @@ export default function QuestionBox() {
   async function removeQuestion(questionId: string) {
     if (!(await confirmDialog('确定从当前列表移除这条提问吗？'))) return;
     const { error } = await callQuestionRpc<boolean>('delete_anonymous_question', { p_question_id: questionId });
-    if (error) { setMessage('操作失败：' + error.message); return; }
+    if (error) { setMessage('操作失败，请稍后再试。'); return; }
     await loadOwn();
   }
 
@@ -133,7 +133,7 @@ export default function QuestionBox() {
       p_question_id: questionId,
       p_reason: reason.trim().slice(0, 200),
     });
-    await alertDialog(error ? '举报失败：' + error.message : '举报已提交，管理员会进行审核。');
+    await alertDialog(error ? '举报失败，请稍后再试。' : '举报已提交，管理员会进行审核。');
   }
 
   return (

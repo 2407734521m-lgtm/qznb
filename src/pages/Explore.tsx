@@ -162,6 +162,8 @@ export default function Explore() {
                     decoding="async"
                     aria-hidden="true"
                   />
+                  {/* 文字保护罩：盖在照片之上、文字之下，见 Explore.css */}
+                  <span className="discover-card-veil" aria-hidden="true" />
                   {index === 0 && tilt.enabled && (
                     <motion.span aria-hidden="true" className="tilt-glare" style={{ background: tilt.glare }} />
                   )}

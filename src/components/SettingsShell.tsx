@@ -19,7 +19,7 @@ export default function SettingsShell({ title, children }: { title: string; chil
         body:has(.qz-settings-page) .topnav a.on{color:#704632!important;background:#f1e7dc!important;box-shadow:none!important}
         .qz-settings-top{height:64px;display:flex;align-items:center;justify-content:center;position:relative;margin:0 0 18px}
         .qz-settings-top h1{font-size:22px;font-weight:500;letter-spacing:.02em;margin:0;color:#2b2823}
-        .qz-settings-back{position:absolute;left:-7px;top:50%;transform:translateY(-50%);width:42px;height:42px;display:grid;place-items:center;border:0;background:transparent;color:#2b2823;cursor:pointer;padding:0}
+        .qz-settings-back{position:absolute;left:-7px;top:50%;transform:translateY(-50%);width:auto;height:42px;display:flex;align-items:center;gap:1px;border:0;background:transparent;color:#2b2823;cursor:pointer;padding:0 8px 0 0;font:inherit;font-size:14px}
         .qz-sub-card{background:#fff;border:0;border-radius:16px;overflow:hidden;padding:14px 18px 16px}
         .qz-sub-card p{font-size:12px;line-height:1.65;color:#786f63;margin:7px 0}
         .qz-sub-card label.qz-sub-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid #eee7dd;font-size:14px;color:#2b2823}
@@ -43,6 +43,7 @@ export default function SettingsShell({ title, children }: { title: string; chil
       <header className="qz-settings-top">
         <button className="qz-settings-back" aria-label="返回设置" onClick={() => nav('/me/settings')}>
           <svg viewBox="0 0 24 24" width="25" height="25" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
+          <span>返回</span>
         </button>
         <h1>{title}</h1>
       </header>

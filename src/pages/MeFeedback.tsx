@@ -52,7 +52,7 @@ export default function MeFeedback() {
 
   useEffect(() => { void load(); }, [load]);
 
-  return <main className="page" style={{ paddingBottom: 110 }}>
+  return <main className="page" style={{ paddingBottom: 16 }}>
     <BackButton fallback="/me" />
     <section className="card" style={{ padding: 16, marginBottom: 12 }}>
       <h2 style={{ margin: '2px 0 5px', fontSize: 20 }}>我的反馈</h2>

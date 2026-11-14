@@ -86,7 +86,7 @@ export default function MeContent() {
   }
 
   return (
-    <main className="page" style={{ paddingBottom: 110 }}>
+    <main className="page" style={{ paddingBottom: 16 }}>
       <BackButton fallback="/me" />
       <header style={{ margin: '8px 0 16px' }}>
         <div style={{ fontSize: 10, letterSpacing: 2, color: '#63818c' }}>MY CONTENT · PERSONAL ARCHIVE</div>

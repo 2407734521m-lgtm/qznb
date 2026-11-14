@@ -1,4 +1,5 @@
 import './fx.css';
+import { useState } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 
 /**
@@ -30,12 +31,17 @@ export default function Marquee({
   repeat = 4,
   children,
 }: MarqueeProps) {
+  // 手机上没有悬停：手指按住跑马灯时停住，松开继续滚，方便把一行公告读完。
+  const [touchPaused, setTouchPaused] = useState(false);
   const style = { '--fx-marquee-duration': `${duration}s` } as CSSProperties;
   const copies = Math.max(2, Math.min(8, Math.round(repeat)));
   return (
     <div
-      className={['fx-marquee', pauseOnHover ? 'fx-marquee-pause' : '', className].filter(Boolean).join(' ')}
+      className={['fx-marquee', pauseOnHover ? 'fx-marquee-pause' : '', touchPaused ? 'fx-marquee-touch-paused' : '', className].filter(Boolean).join(' ')}
       style={style}
+      onTouchStart={() => setTouchPaused(true)}
+      onTouchEnd={() => setTouchPaused(false)}
+      onTouchCancel={() => setTouchPaused(false)}
     >
       {Array.from({ length: copies }, (_, i) => (
         <div

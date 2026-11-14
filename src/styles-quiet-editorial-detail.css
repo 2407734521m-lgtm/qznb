@@ -546,8 +546,10 @@
     min-height: 176px !important;
   }
   .discover-card-link { padding: 15px !important; }
+  /* 手机上文字区只占卡宽 68%，留给右侧照片和文字保护罩的渐隐区；
+     之前 92% 时简介文字一直伸到照片的实色区，是压图变淡的系统性根因。 */
   .discover-card-copy,
-  .discover-card--bloom .discover-card-copy { max-width: 92% !important; }
+  .discover-card--bloom .discover-card-copy { max-width: 68% !important; }
   .discover-card h2 { margin-top: 12px !important; font-size: 18px !important; }
   .discover-card p { font-size: 11px !important; line-height: 1.55 !important; }
   .discover-card-action { padding-top: 14px !important; font-size: 11px !important; }

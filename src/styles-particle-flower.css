@@ -593,6 +593,17 @@
   font-size:8px;
   line-height:1.6;
 }
+/* 入口按钮贴底：面板内容超出视口、内部滚动时，四个进入按钮始终贴在面板底部可见，
+   不用翻到底才找得到；渐变底把滚过去的文字淡淡遮住，不挡字。 */
+.bloom-control-panel .bloom-entry-sticky{
+  position:sticky;
+  bottom:calc(-1 * clamp(20px,3vw,30px));
+  z-index:5;
+  margin:14px calc(-1 * clamp(20px,3vw,30px)) calc(-1 * clamp(20px,3vw,30px));
+  padding:12px clamp(20px,3vw,30px) clamp(20px,3vw,30px);
+  background:linear-gradient(to bottom,rgba(14,10,20,0),rgba(14,10,20,.88) 26%,rgba(14,10,20,.94));
+  border-radius:0 0 28px 28px;
+}
 .bloom-page:not(.is-active) .bloom-hud,
 .bloom-page:not(.is-active) .bloom-steps,
 .bloom-page:not(.is-active) .bloom-side-note,

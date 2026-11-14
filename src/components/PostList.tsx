@@ -89,7 +89,7 @@ function PostListSidePanels({ section, loadedCount, myCount, totalLikes }: {
         </p>
       </section>
       <section className="pl-panel" aria-label="本页统计">
-        <h2 className="pl-panel__title">本页</h2>
+        <h2 className="pl-panel__title">本页统计</h2>
         <div className="pl-panel__stat"><span>已加载</span><strong>{loadedCount} 条</strong></div>
         <div className="pl-panel__stat"><span>其中我的</span><strong>{myCount} 条</strong></div>
         <div className="pl-panel__stat"><span>共收到赞</span><strong>{totalLikes} 个</strong></div>
@@ -175,6 +175,7 @@ export default function PostList({ section, searchQuery = '', embedded = false, 
   }
 
   async function load(append = false) {
+    try {
     const offset = append ? posts.length : 0;
     let postQuery = supabase.from('posts').select('*').eq('section', section).is('deleted_at', null)
       .order('created_at', { ascending: false }).range(offset, offset + PAGE_SIZE - 1);
@@ -183,7 +184,10 @@ export default function PostList({ section, searchQuery = '', embedded = false, 
     const list = ps ?? [];
     if (append) setPosts(current => [...current, ...list]); else setPosts(list);
     setHasMore(list.length === PAGE_SIZE);
-    if (!list.length) { if (isFeed) setImpressionPolls({}); setInitialLoading(false); return; }
+    // 帖子一上屏就撤掉骨架屏，不等点赞/评论等附属数据慢慢回来；
+    // 附属查询中途出错也不让骨架永远赖在列表底部（finally 兜底）。
+    setInitialLoading(false);
+    if (!list.length) { if (isFeed) setImpressionPolls({}); return; }
     const ids = [...new Set(list.map(p => p.author_id))];
     const pids = list.map(p => p.id);
     if (isFeed) await refreshImpressionPolls(pids);
@@ -209,7 +213,9 @@ export default function PostList({ section, searchQuery = '', embedded = false, 
     }
     const { data: r } = await supabase.rpc('my_role');
     setIsAdmin(r === 'admin' || r === 'super_admin');
-    setInitialLoading(false);
+    } finally {
+      setInitialLoading(false);
+    }
   }
   useEffect(() => { void load(); }, [searchQuery]);
 

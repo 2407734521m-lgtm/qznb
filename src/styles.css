@@ -8,8 +8,11 @@ body{color:var(--fg);font:14px/1.55 system-ui,-apple-system,"Noto Sans SC","Ping
 .app-bg{position:fixed;inset:0;z-index:-1;pointer-events:none;background-size:cover;background-position:center;transform:scale(1.1)}
 a{color:var(--a)}
 .wrap{max-width:960px;margin:0 auto;padding:14px calc(14px + env(safe-area-inset-right)) calc(14px + var(--tab-h)) calc(14px + env(safe-area-inset-left))}
-/* 私聊收件箱独占视口；仅 /friends 路由启用，不改变其他页面布局。 */
-.inbox-shell{position:fixed;inset:50px 0 0;z-index:2;width:100%;max-width:none!important;height:auto;margin:0;padding:0!important;overflow:hidden}
+/* 私聊收件箱独占视口；仅 /friends 路由启用，不改变其他页面布局。
+   顶边 96px：桌面端顶部 LiquidGlass 胶囊实测底边约 104px（top 28 + 高 76），
+   标题顶 = inset + 18（内边距）+ 6（标题 margin）= 120px，留约 16px 空隙；
+   旧值 50px 时标题顶约 83px，被胶囊盖住约 21px。 */
+.inbox-shell{position:fixed;inset:96px 0 0;z-index:2;width:100%;max-width:none!important;height:auto;margin:0;padding:0!important;overflow:hidden}
 .inbox-shell>div{height:100%;min-height:0}
 .inbox-shell .im-inbox{width:100%;height:100%;min-height:0;max-width:none;margin:0}
 @media(min-width:769px){.wrap{padding-bottom:40px}}
@@ -59,7 +62,7 @@ a{color:var(--a)}
 /* ============ 通用 ============ */
 .card{background:#ffffff0f;border:1px solid #ffffff1c;border-radius:var(--r);padding:14px;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:0 8px 30px #0006}
 .center{min-height:60vh;display:grid;place-items:center;text-align:center;color:var(--mut);padding:20px}
-input,textarea,select{width:100%;padding:12px;margin:6px 0 12px;border-radius:12px;border:1px solid #ffffff22;background:#ffffff0d;color:var(--fg);font:inherit}
+input:not([type=checkbox]):not([type=radio]),textarea,select{width:100%;padding:12px;margin:6px 0 12px;border-radius:12px;border:1px solid #ffffff22;background:#ffffff0d;color:var(--fg);font:inherit}
 input:focus,textarea:focus{outline:none;border-color:var(--a);box-shadow:0 0 0 3px color-mix(in srgb,var(--a) 25%,transparent)}
 button.pri{width:100%;padding:13px;border:0;border-radius:14px;background:linear-gradient(135deg,var(--a),var(--b));color:#1c2030;font:inherit;font-weight:700;cursor:pointer;transition:transform .15s,box-shadow .15s}
 button.pri:active{transform:scale(.98)}
@@ -277,8 +280,10 @@ button:disabled{opacity:.5}
 .post .hd .tm{font-size:12px;color:var(--mut)}
 .post .bd{font-size:15px;white-space:pre-wrap;margin:0 0 10px}
 .post .bdimg{width:100%;border-radius:14px;margin-bottom:10px;display:block}
-.post .ft{display:flex;gap:16px;border-top:1px solid #ffffff12;padding-top:10px}
+.post .ft{display:flex;gap:16px;align-items:center;border-top:1px solid #ffffff12;padding-top:10px}
 .post .ft button{background:none;border:0;color:var(--mut);font:inherit;font-size:13.5px;cursor:pointer;display:flex;gap:6px;align-items:center;padding:6px 4px}
+/* 举报/编辑/删除是带框小胶囊：行内居中、不拉伸、不挤压，否则在窄屏上会被拉成竖条。 */
+.post .ft button.mini,.post .ft button.del{flex:none;align-self:center}
 .post .ft button.liked{color:#ff6b81}
 .post .ft button.del{margin-left:auto}
 .cmt{border-top:1px solid #ffffff0e;margin-top:10px;padding-top:6px}
@@ -339,6 +344,7 @@ input[type=file]::file-selector-button{
 /* 我的页面美化 */
 .me-page{display:flex;flex-direction:column;gap:12px}
 .me-page .card{margin:0}
+.me-page>.backbtn{justify-self:start}
 .me-head{display:flex;align-items:center;gap:14px}
 .me-ava{width:66px;height:66px;border-radius:50%;overflow:hidden;position:relative;flex:none;cursor:pointer;
   background:linear-gradient(135deg,var(--a),var(--b));display:flex;align-items:center;justify-content:center;

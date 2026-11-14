@@ -126,7 +126,7 @@ export default function Board() {
   }
 
   return (
-    <div className="page board-page" style={{ paddingBottom: 120 }}>
+    <div className="page board-page" style={{ paddingBottom: 16 }}>
       <div className="hero board-hero">
         <h1 onClick={handleTitleTap} role="button" tabIndex={0} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleTitleTap(); } }} style={{ cursor: 'pointer', userSelect: 'none' }}>公告板</h1>
         <p>班 级 通 知 · 留 言</p>

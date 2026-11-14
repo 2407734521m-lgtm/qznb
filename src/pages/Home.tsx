@@ -56,6 +56,20 @@ type Filter = (typeof FILTERS)[number][0];
 
 const PAGE_SIZE = 10;
 
+// 切回首页不再空白：5 分钟内的旧数据先显示（不转圈），后台静默刷新。
+// 只缓存在内存里，切页回来立刻有内容；刷新页面重新拉取。
+type HomeCache = {
+  at: number;
+  title: string;
+  subtitle: string;
+  notices: any[];
+  lovePosts: LovePost[];
+  feedPosts: FeedPost[];
+  names: Record<string, string>;
+};
+let homeCache: HomeCache | null = null;
+const HOME_CACHE_TTL = 5 * 60 * 1000;
+
 export default function Home() {
   const nav = useNavigate();
   const reduceMotion = useReducedMotion();
@@ -76,16 +90,31 @@ export default function Home() {
 
   useEffect(() => {
     let live = true;
-    setLoading(true);
+    const fresh = reloadKey === 0 && homeCache && Date.now() - homeCache.at < HOME_CACHE_TTL ? homeCache : null;
+    if (fresh) {
+      setTitle(fresh.title);
+      setSubtitle(fresh.subtitle);
+      setNotices(fresh.notices);
+      setLovePosts(fresh.lovePosts);
+      setFeedPosts(fresh.feedPosts);
+      setNames(fresh.names);
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
     setLoadError(null);
     (async () => {
       try {
         const { data: ss, error: settingsError } = await supabase.from('site_settings').select('key, value');
         if (!live) return;
+        let nextTitle = BRAND_NAME;
+        let nextSubtitle = BRAND_SUBTITLE;
         (ss ?? []).forEach((x: any) => {
-          if (x.key === 'site_title') setTitle(resolveBrandTitle(x.value));
-          if (x.key === 'site_subtitle') setSubtitle(resolveBrandSubtitle(x.value));
+          if (x.key === 'site_title') nextTitle = resolveBrandTitle(x.value);
+          if (x.key === 'site_subtitle') nextSubtitle = resolveBrandSubtitle(x.value);
         });
+        setTitle(nextTitle);
+        setSubtitle(nextSubtitle);
         const nowIso = new Date().toISOString();
         const [n, l, p] = await Promise.all([
           supabase.from('board_messages').select('id, title, content, created_at')
@@ -98,18 +127,21 @@ export default function Home() {
             .order('created_at', { ascending: false }).limit(100),
         ]);
         if (!live) return;
-        setNotices(n.data ?? []);
-        setLovePosts(((l.data ?? []) as LovePost[]).filter(x => x.status === 'published'));
-        setFeedPosts((p.data ?? []) as FeedPost[]);
-        setNames({});
+        const nextNotices = n.data ?? [];
+        const nextLove = ((l.data ?? []) as LovePost[]).filter(x => x.status === 'published');
+        const nextFeed = (p.data ?? []) as FeedPost[];
+        setNotices(nextNotices);
+        setLovePosts(nextLove);
+        setFeedPosts(nextFeed);
 
         const hasQueryError = [settingsError, n.error, l.error, p.error].some(Boolean);
         if (hasQueryError) {
           setLoadError('部分首页内容暂时无法加载，请检查网络后重试。');
         }
 
+        let nextNames: Record<string, string> = {};
         const ids = new Set<string>();
-        ((p.data ?? []) as FeedPost[]).forEach((x: FeedPost) => ids.add(x.author_id));
+        nextFeed.forEach((x: FeedPost) => ids.add(x.author_id));
         if (ids.size) {
           const { data: dir, error: directoryError } = await supabase.rpc('member_directory', { q: '', lim: 100, skip: 0 });
           if (!live) return;
@@ -118,8 +150,12 @@ export default function Home() {
           } else {
             const mp: Record<string, string> = {};
             ((dir ?? []) as any[]).forEach((x: any) => { mp[x.id] = x.display_name ?? x.username; });
-            setNames(mp);
+            nextNames = mp;
           }
+        }
+        setNames(nextNames);
+        if (!hasQueryError) {
+          homeCache = { at: Date.now(), title: nextTitle, subtitle: nextSubtitle, notices: nextNotices, lovePosts: nextLove, feedPosts: nextFeed, names: nextNames };
         }
       } catch {
         if (live) setLoadError('首页内容加载失败，请检查网络后重试。');
@@ -207,7 +243,7 @@ export default function Home() {
               <button className={`vh-notice${i === 0 ? ' vh-notice-first' : ''}`} key={n.id} onClick={() => setAnnPop(n)}>
                 <span className="vh-notice-tag">{i === 0 ? '最新公告' : '站内消息'}</span>
                 <strong>{n.title || '公告'}</strong>
-                <p>{(n.content || '').slice(0, 100)}</p>
+                <p>{(n.content || '').slice(0, 160)}</p>
                 <time>{timeAgo(n.created_at)}</time>
               </button>
             ))}

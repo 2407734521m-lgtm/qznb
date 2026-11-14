@@ -134,7 +134,7 @@ export default function Topics() {
   }
 
   return (
-    <main className="page" style={{ paddingBottom: 112, background: '#fff', color: '#263244' }}>
+    <main className="page" style={{ paddingBottom: 16, background: '#fff', color: '#263244' }}>
       <BackButton fallback="/explore" />
       <div style={{ maxWidth: 900, margin: '0 auto', padding: '6px 16px 28px' }}>
         <header style={{ marginBottom: 22 }}>

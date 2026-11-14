@@ -1,7 +1,7 @@
 .fate-page {
   width: min(100%, 760px);
   margin: 0 auto;
-  padding: 8px 0 132px;
+  padding: 8px 0 16px;
   color: var(--qz26-ink, #202b38);
 }
 
@@ -313,7 +313,7 @@
 
 @media (max-width: 600px) {
   .fate-page {
-    padding: 2px 0 118px;
+    padding: 2px 0 16px;
   }
 
   .fate-book {

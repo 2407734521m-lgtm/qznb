@@ -36,12 +36,14 @@
   .dlbtn:disabled { opacity:.45; cursor:default; }
   .notice { background:#fdf3ef; border:1px solid #f0d4cd; color:#7c2d38; border-radius:12px; padding:10px 12px; font-size:12.5px; line-height:1.7; }
   .pill { display:inline-block; font-size:11px; border:1px solid var(--line); border-radius:99px; padding:2px 8px; color:var(--mut); }
+  .plist { display:flex; gap:10px; align-items:center; width:100%; text-align:left; border:1px solid var(--line); background:#fff; border-radius:12px; padding:10px 12px; margin-top:8px; cursor:pointer; font-size:14px; color:var(--ink); }
+  .plist small { color:var(--mut); font-size:12px; }
 </style>
 </head>
 <body>
 <div class="wrap">
   <h1>千栀音乐下载</h1>
-  <p class="sub">隐藏页，仅供本人使用。扫码登录网易云后，读取歌单与搜索结果，可下载的歌存为 MP3。付费、VIP、试听、无版权地址的歌一律显示“下不了”，不绕过。</p>
+  <p class="sub">隐藏页，仅供本人使用。先扫码登录网易云，登录后只读扫码那个账号自己的歌单与搜索结果，可下载的歌存为 MP3。没登录时这里什么歌都不会出现。付费、VIP、试听、无版权地址的歌一律显示“下不了”，不绕过。</p>
 
   <div class="card" id="loginCard">
     <h2>网易云登录</h2>
@@ -49,13 +51,14 @@
   </div>
 
   <div class="card">
-    <h2 id="plTitle">我喜欢的音乐</h2>
+    <h2 id="plTitle">我的歌单</h2>
     <div class="row">
-      <input type="text" id="kw" placeholder="搜歌名 / 歌手" autocomplete="off">
-      <button class="btn" id="searchBtn" type="button">搜索</button>
-      <button class="btn ghost" id="favBtn" type="button">我的歌单</button>
+      <input type="text" id="kw" placeholder="搜歌名 / 歌手" autocomplete="off" disabled>
+      <button class="btn" id="searchBtn" type="button" disabled>搜索</button>
+      <button class="btn ghost" id="favBtn" type="button" disabled>我的歌单</button>
     </div>
-    <p class="mut" id="listMeta" style="margin:10px 0 4px;"></p>
+    <p class="mut" id="listMeta" style="margin:10px 0 4px;">未登录，请先扫码登录。</p>
+    <div id="playlists"></div>
     <div id="tracks"></div>
     <div class="row" style="margin-top:10px;">
       <button class="btn ghost" id="moreBtn" type="button" style="display:none;">加载更多</button>
@@ -71,10 +74,13 @@
   var API = '';
   var SUPABASE_URL = 'https://ldypnxxxgscibopgiaso.supabase.co';
   var SUPABASE_ANON_KEY = 'sb_publishable_BRt1PSH8umGRsfKE-0BDiw_H5IUUWKr';
-  var PLAYLIST_ID = '8288383507';
   var inApp = !!(window.MusicDL && window.MusicDL.download);
+  var loggedIn = false;
+  var myUserId = '';
+  var playlists = [];
+  var currentPlaylistId = '';
   var tracks = [];
-  var mode = 'fav';
+  var mode = 'lists';
   var offset = 0;
   var hasMore = false;
   var currentKw = '';
@@ -143,16 +149,71 @@
     });
   }
 
-  function loadFav(reset) {
-    mode = 'fav';
+  function setLocked(locked) {
+    $('kw').disabled = locked;
+    $('searchBtn').disabled = locked;
+    $('favBtn').disabled = locked;
+    if (locked) { $('moreBtn').style.display = 'none'; }
+  }
+
+  function clearMusic() {
+    tracks = []; playlists = []; currentPlaylistId = ''; mode = 'lists'; offset = 0; hasMore = false;
+    $('tracks').innerHTML = '';
+    $('playlists').innerHTML = '';
+    $('plTitle').textContent = '我的歌单';
+    $('listMeta').textContent = '未登录，请先扫码登录。';
+  }
+
+  function renderPlaylists() {
+    var box = $('playlists');
+    box.innerHTML = '';
+    $('tracks').innerHTML = '';
+    $('plTitle').textContent = '我的歌单';
+    $('listMeta').textContent = '共 ' + playlists.length + ' 个歌单，点一个打开';
+    playlists.forEach(function (p) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'plist';
+      b.innerHTML = '<span style="flex:1;min-width:0;text-align:left;">' + esc(p.name || '未命名歌单') + '<br><small>' + esc(p.creator || '') + ' · ' + (p.trackCount || 0) + ' 首</small></span><span>›</span>';
+      b.addEventListener('click', function () { loadPlaylistTracks(String(p.id), p.name || '歌单', true); });
+      box.appendChild(b);
+    });
+    $('moreBtn').style.display = 'none';
+  }
+
+  // 登录后读当前账号自己的歌单：服务端按登录 Cookie 取该账号的 userId，
+  // 客户端不传、也不写死任何歌单 ID。
+  function loadMyPlaylists() {
+    mode = 'lists';
+    $('listMeta').textContent = '正在读取你的歌单…';
+    fetch(API + '/api/user/playlists', { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (!d || d.loggedIn === false) {
+          loggedIn = false; myUserId = '';
+          setLocked(true); clearMusic();
+          $('loginBox').innerHTML = '<p class="mut">登录已失效，请重新扫码登录。</p><button class="btn" id="qrBtn" type="button">扫码登录</button>';
+          $('qrBtn').addEventListener('click', startQr);
+          return;
+        }
+        playlists = d.playlists || [];
+        renderPlaylists();
+      })
+      .catch(function () { $('listMeta').textContent = '歌单读取失败，检查网络后重试。'; });
+  }
+
+  function loadPlaylistTracks(id, name, reset) {
+    if (!loggedIn) return;
+    mode = 'playlist'; currentPlaylistId = id;
     if (reset) { offset = 0; tracks = []; }
+    $('playlists').innerHTML = '';
     $('listMeta').textContent = '正在读取歌单…';
-    fetch(API + '/api/playlist/tracks?id=' + PLAYLIST_ID + '&limit=200&offset=' + offset, { credentials: 'same-origin' })
+    fetch(API + '/api/playlist/tracks?id=' + encodeURIComponent(id) + '&limit=200&offset=' + offset, { credentials: 'same-origin' })
       .then(function (r) { return r.json(); })
       .then(function (d) {
         var list = d.tracks || [];
         if (reset) tracks = list; else tracks = tracks.concat(list);
-        $('plTitle').textContent = (d.playlist && d.playlist.name) || '我喜欢的音乐';
+        $('plTitle').textContent = (d.playlist && d.playlist.name) || name || '歌单';
         $('listMeta').textContent = '共 ' + (d.total || tracks.length) + ' 首，已加载 ' + tracks.length + ' 首' + (inApp ? '' : '（浏览器里下载只能存默认文件夹）');
         renderTracks(list, !reset);
         hasMore = !!d.hasMore;
@@ -163,9 +224,11 @@
   }
 
   function doSearch() {
+    if (!loggedIn) { $('listMeta').textContent = '请先扫码登录，登录后才能搜索。'; return; }
     var kw = $('kw').value.trim();
-    if (!kw) { loadFav(true); return; }
+    if (!kw) { renderPlaylists(); return; }
     mode = 'search'; currentKw = kw; offset = 0; tracks = [];
+    $('playlists').innerHTML = '';
     $('listMeta').textContent = '正在搜索「' + kw + '」…';
     fetch(API + '/api/search?keywords=' + encodeURIComponent(kw) + '&limit=30', { credentials: 'same-origin' })
       .then(function (r) { return r.json(); })
@@ -180,6 +243,7 @@
   }
 
   function downloadTrack(id, btn) {
+    if (!loggedIn) { setTrackStatus(id, '请先扫码登录。'); return; }
     var t = tracks.find(function (x) { return String(x.id) === String(id); });
     if (!t) return;
     btn.disabled = true;
@@ -252,7 +316,7 @@
             .then(function (c) {
               var st = $('qrStat');
               if (!st) return;
-              if (c.code === 803) { stopQr(); checkLogin(); loadFav(true); }
+              if (c.code === 803) { stopQr(); checkLogin(); }
               else if (c.code === 802) st.textContent = '已扫码，手机上点确认登录…';
               else if (c.code === 801) st.textContent = '等待扫码…';
               else if (c.code === 800) { st.textContent = '二维码过期了，正在换一张…'; stopQr(); startQr(); }
@@ -272,8 +336,17 @@
     fetch(API + '/api/login/status', { credentials: 'same-origin' })
       .then(function (r) { return r.json(); })
       .then(function (info) {
-        if (info && info.loggedIn) { showLoggedIn(info); }
+        if (info && info.loggedIn) {
+          loggedIn = true;
+          myUserId = String(info.userId || '');
+          setLocked(false);
+          showLoggedIn(info);
+          loadMyPlaylists();
+        }
         else {
+          loggedIn = false; myUserId = '';
+          setLocked(true);
+          clearMusic();
           $('loginBox').innerHTML = '<p class="mut">未登录。登录后才能读你的歌单、拿到可下载的歌。</p><button class="btn" id="qrBtn" type="button">扫码登录</button>';
           $('qrBtn').addEventListener('click', startQr);
         }
@@ -285,11 +358,10 @@
 
   $('searchBtn').addEventListener('click', doSearch);
   $('kw').addEventListener('keydown', function (e) { if (e.key === 'Enter') doSearch(); });
-  $('favBtn').addEventListener('click', function () { loadFav(true); });
-  $('moreBtn').addEventListener('click', function () { loadFav(false); });
+  $('favBtn').addEventListener('click', function () { if (loggedIn) { renderPlaylists(); } });
+  $('moreBtn').addEventListener('click', function () { if (mode === 'playlist' && currentPlaylistId) loadPlaylistTracks(currentPlaylistId, '', false); });
 
   checkLogin();
-  loadFav(true);
 })();
 </script>
 </body>

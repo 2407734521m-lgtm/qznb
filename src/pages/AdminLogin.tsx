@@ -104,6 +104,11 @@ export default function AdminLogin({
       const { data: isAdmin, error: identityError } = await supabase.rpc('admin_login_is_admin' as any);
       if (identityError) throw identityError;
       if (isAdmin !== true) {
+        const { error: monitorError } = await supabase.rpc('record_auth_login_failure' as any, {
+          p_method: 'admin',
+          p_failure_class: 'other',
+        } as any);
+        if (monitorError) console.warn('管理员登录失败统计暂不可用：', monitorError.message);
         await supabase.auth.signOut({ scope: 'local' });
         setHasSession(false);
         startedRef.current = false;

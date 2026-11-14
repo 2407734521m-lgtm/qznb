@@ -205,11 +205,15 @@
   background: #f6f6f7;
   transform: scaleY(var(--qz-music-eq-bass, .12));
   transform-origin: center;
-  transition: transform 64ms linear, opacity 120ms ease;
+  transition: transform 118ms cubic-bezier(.2,.72,.24,1), opacity 180ms ease;
   opacity: .72;
   will-change: transform;
 }
 .qz-music-equalizer.is-playing i { opacity: 1; }
+.qz-music-equalizer:not(.is-playing) i {
+  /* A slower release lets the bars settle instead of snapping to idle on pause. */
+  transition-duration: 380ms, 180ms;
+}
 .qz-music-equalizer i:nth-child(2) { transform: scaleY(var(--qz-music-eq-lowMid, .12)); }
 .qz-music-equalizer i:nth-child(3) { transform: scaleY(var(--qz-music-eq-vocal, .12)); }
 .qz-music-equalizer i:nth-child(4) { transform: scaleY(var(--qz-music-eq-treble, .12)); }
@@ -296,7 +300,7 @@
 .qz-music-connect-copy { margin-top: 7px; color: #777b84; font-size: 12px; line-height: 1.6; }
 .qz-music-connect a { display: inline-block; margin-top: 13px; color: #20242b; font-size: 12px; font-weight: 700; }
 @media (prefers-reduced-motion: reduce) {
-  .qz-music-equalizer i { transition: none; transform: scaleY(.5) !important; }
+  .qz-music-equalizer i { transition: none; transform: scaleY(.18) !important; opacity: .72; }
 }
 @media (max-width: 420px) {
   .qz-music-island-expanded { border-radius: 22px; padding: 10px 12px 12px; }

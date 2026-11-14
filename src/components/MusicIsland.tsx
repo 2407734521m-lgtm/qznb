@@ -116,8 +116,7 @@ function MusicIsland() {
     if (!shouldMountFrame) return;
     const onMessage = (event: MessageEvent<unknown>) => {
       if (event.origin !== MUSIC_ORIGIN || event.source !== frameRef.current?.contentWindow) return;
-      lastStateMessageAtRef.current = Date.now();
-      const message = event.data as Partial<MusicStateMessage & MusicSpectrumMessage> | null;
+      const message = event.data as Partial<MusicStateMessage> | Partial<MusicSpectrumMessage> | null;
       if (!message || message.source !== 'qznb-music' || message.version !== 1) return;
 
       if (message.type === 'SPECTRUM') {
@@ -135,6 +134,7 @@ function MusicIsland() {
       }
 
       if (message.type !== 'STATE') return;
+      lastStateMessageAtRef.current = Date.now();
       setConnected(true);
       setShowFallback(false);
       if (!message.track || typeof message.track.title !== 'string') {

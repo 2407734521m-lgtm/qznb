@@ -17,6 +17,12 @@ permissions:
 jobs:
   migrate:
     runs-on: ubuntu-latest
+    # NOTE: SUPABASE_DB_HOST must stay on the Supavisor pooler
+    # (aws-0-<region>.pooler.supabase.com, session mode :5432) with
+    # SUPABASE_DB_USER as postgres.<project-ref>. The direct host
+    # db.<project-ref>.supabase.co is IPv6-only (no A record) and
+    # GitHub-hosted runners have no IPv6 egress, so psql fails with
+    # "Network is unreachable" before authentication.
     env:
       PGHOST: ${{ secrets.SUPABASE_DB_HOST }}
       PGPORT: ${{ secrets.SUPABASE_DB_PORT }}
@@ -42,15 +48,6 @@ jobs:
           esac
           test -f "$MIGRATION_FILE"
           printf 'Target host: %s; database: %s; migration: %s\n' "$PGHOST" "$PGDATABASE" "$MIGRATION_FILE"
-      - name: Resolve database host to IPv4
-        run: |
-          set -euo pipefail
-          # GitHub-hosted runners have no IPv6 egress, but the database host
-          # resolves to IPv6 first; pin psql to the host's IPv4 address.
-          IPV4=$(getent ahosts "$PGHOST" | awk '$1 ~ /^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$/ {print $1; exit}')
-          test -n "$IPV4"
-          echo "PGHOSTADDR=$IPV4" >> "$GITHUB_ENV"
-          printf 'Database host %s resolves to IPv4 %s\n' "$PGHOST" "$IPV4"
       - name: Install postgresql-client
         run: sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client
       - name: Apply only the selected migration

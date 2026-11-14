@@ -142,7 +142,7 @@ function AdminShell() {
       });
     return () => { live = false; };
   }, []);
-  if (loading || (session && (role === null || verifiedUid !== session.user.id))) return <div className="center">加载中…</div>;
+  if (loading || (session && (role === null || verifiedUid !== session.user.id))) return <PageSkeleton />;
   const isAdmin = Boolean(session) && (role === 'admin' || role === 'super_admin');
   const adminApp = detectInstalledAdminApp();
   const latestAdminCode = adminUpdate ? Number(adminUpdate.app_version_code || 0) : 0;

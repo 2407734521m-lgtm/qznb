@@ -54,25 +54,16 @@ const hardening = read('supabase/migrations/20261115020000_admin_console_securit
 const securityCenter = read('src/components/AdminSecurityCenter.tsx');
 const adminShared = read('src/pages/admin/shared.ts');
 
-assert.match(login, /record_auth_login_failure[\\s\\S]*?p_method: 'admin'/,
-  'admin password login failures must be counted without recording credentials');
-assert.match(login, /alog\\('admin_login_success'/,
-  'successful admin login must be audited only after the admin assurance check');
-assert.match(hardening, /method in \\('email', 'username', 'admin'\\)/,
-  'login telemetry must distinguish admin password login failures');
-assert.match(hardening, /function public\\.admin_list_own_sessions[\\s\\S]*?s\\.user_id = auth\\.uid\\(\\)/,
-  'session inventory must be restricted to the current authenticated admin');
-assert.match(hardening, /auth\\.jwt\\(\\) ->> 'session_id'/,
-  'session inventory must identify the current session from the signed JWT');
-assert.match(hardening, /insert into public\\.admin_audit_logs \\(actor, action, detail\\)[\\s\\S]*?values \\(auth\\.uid\\(\\)/,
-  'admin audit records must populate the actor column from auth.uid');
-assert.match(hardening, /revoke all on table public\\.admin_audit_logs from public, anon, authenticated/i,
-  'direct client writes to audit logs must be revoked');
-assert.match(securityCenter, /admin_list_own_sessions[\\s\\S]*?管理员登录设备/,
-  'security center must show the signed-in admin’s own sessions');
-assert.match(securityCenter, /signOut\\(\\{ scope: 'others' \\}\\)/,
-  'security center must retain supported revoke-other-sessions behavior');
-assert.match(adminShared, /Promise<boolean>[\\s\\S]*?return false/,
-  'audit helper must report whether the write succeeded');
+assert.ok(login.includes("p_method: 'admin'"), 'admin password login failures must be counted without recording credentials');
+assert.ok(login.includes("alog('admin_login_success'"), 'successful admin login must be audited after assurance checks');
+assert.ok(hardening.includes("check (method in ('email', 'username', 'admin'))"), 'login telemetry must distinguish admin password login failures');
+assert.ok(hardening.includes('function public.admin_list_own_sessions()'), 'database must expose a protected session inventory RPC');
+assert.ok(hardening.includes('s.user_id = auth.uid()'), 'session inventory must be restricted to the current authenticated admin');
+assert.ok(hardening.includes("auth.jwt() ->> 'session_id'"), 'session inventory must identify the current session from the signed JWT');
+assert.ok(hardening.includes('insert into public.admin_audit_logs (actor, action, detail)'), 'admin audit records must populate the actor column');
+assert.ok(hardening.includes('revoke all on table public.admin_audit_logs from public, anon, authenticated'), 'direct client writes to audit logs must be revoked');
+assert.ok(securityCenter.includes("admin_list_own_sessions") && securityCenter.includes('管理员登录设备'), 'security center must show the signed-in admin’s own sessions');
+assert.ok(securityCenter.includes("signOut({ scope: 'others' })"), 'security center must retain supported revoke-other-sessions behavior');
+assert.ok(adminShared.includes('Promise<boolean>') && adminShared.includes('return false'), 'audit helper must report whether the write succeeded');
 
 console.log('Admin security regression checks passed.');

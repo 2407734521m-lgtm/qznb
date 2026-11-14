@@ -95,8 +95,6 @@
 (function () {
   'use strict';
   var API = '';
-  var SUPABASE_URL = 'https://ldypnxxxgscibopgiaso.supabase.co';
-  var SUPABASE_ANON_KEY = 'sb_publishable_BRt1PSH8umGRsfKE-0BDiw_H5IUUWKr';
   var inApp = !!(window.MusicDL && window.MusicDL.download);
   var loggedIn = false;
   var myUserId = '';
@@ -200,12 +198,19 @@
   }
   function deviceLabel() { return inApp ? 'QianzhiMusicDL/1.0' : 'web'; }
 
+  // 下载日志走同源代理 /api/dl/log-download，不直连 supabase.co（手机网络发不出去）。
+  // site_user_id / site_username 由 Worker 从验证过的本站 token 取，不再由客户端传；
+  // 先续期（快过期时）再记，失败仍静默，不影响下载本身。
   function logDownload(t, status, fileSize, error) {
-    var body = { p_song_id: String(t.id), p_song_name: t.name || '', p_artist: t.artist || '', p_status: status, p_file_size: fileSize == null ? null : fileSize, p_error: error || '', p_device_label: deviceLabel(), p_site_user_id: siteSession ? siteSession.user_id || null : null, p_site_username: siteSession ? siteSession.label || null : null };
-    return fetch(SUPABASE_URL + '/rest/v1/rpc/log_music_download', {
-      method: 'POST',
-      headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + SUPABASE_ANON_KEY, 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
+    var body = { p_song_id: String(t.id), p_song_name: t.name || '', p_artist: t.artist || '', p_status: status, p_file_size: fileSize == null ? null : fileSize, p_error: error || '', p_device_label: deviceLabel() };
+    return ensureSiteToken().then(function () {
+      var headers = { 'Content-Type': 'application/json' };
+      if (siteSession && siteSession.access_token) headers['Authorization'] = 'Bearer ' + siteSession.access_token;
+      return fetch(API + '/api/dl/log-download', {
+        method: 'POST',
+        headers: headers,
+        body: JSON.stringify(body)
+      });
     }).catch(function () { /* 记录失败不影响下载本身 */ });
   }
 
@@ -421,7 +426,13 @@
             .then(function (c) {
               var st = $('qrStat');
               if (!st) return;
-              if (c.code === 803) { stopQr(); checkLogin(); }
+              if (c.code === 803) {
+                // 803 只代表扫码确认成功，不代表拿到了登录凭证：Worker 没种下
+                // mr_session（hasCookie 为 false）时 checkLogin 必然还是未登录，
+                // 别默默回到二维码，给一句明白话，让用户自己点“换一张二维码”再试。
+                if (c.hasCookie === false) { stopQr(); st.textContent = '扫码成功了，但没拿到登录凭证，请点“换一张二维码”再试一次。'; }
+                else { stopQr(); checkLogin(); }
+              }
               else if (c.code === 802) st.textContent = '已扫码，手机上点确认登录…';
               else if (c.code === 801) st.textContent = '等待扫码…';
               else if (c.code === 800) { st.textContent = '二维码过期了，正在换一张…'; stopQr(); startQr(); }

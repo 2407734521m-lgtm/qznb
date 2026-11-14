@@ -185,28 +185,36 @@
   font-size: 11px;
 }
 .qz-music-equalizer {
-  height: 19px;
+  height: 24px;
   display: inline-flex;
   flex: 0 0 auto;
-  align-items: end;
+  align-items: center;
   gap: 3px;
+  overflow: hidden;
 }
 .qz-music-equalizer i {
   display: block;
   width: 3px;
-  height: 35%;
+  height: 100%;
   border-radius: 4px;
   background: #f6f6f7;
+  transform: scaleY(.18);
+  transform-origin: center;
+  opacity: .72;
 }
 .qz-music-equalizer.is-playing i {
-  animation: qz-music-eq .62s ease-in-out infinite alternate;
+  opacity: 1;
+  animation: qz-music-eq .46s cubic-bezier(.35, 0, .2, 1) infinite alternate;
+  will-change: transform;
 }
-.qz-music-equalizer.is-playing i:nth-child(2) { animation-duration: .82s; animation-delay: -.28s; }
-.qz-music-equalizer.is-playing i:nth-child(3) { animation-duration: .54s; animation-delay: -.17s; }
-.qz-music-equalizer.is-playing i:nth-child(4) { animation-duration: .74s; animation-delay: -.42s; }
+.qz-music-equalizer.is-playing i:nth-child(2) { animation-duration: .68s; animation-delay: -.31s; }
+.qz-music-equalizer.is-playing i:nth-child(3) { animation-duration: .38s; animation-delay: -.12s; }
+.qz-music-equalizer.is-playing i:nth-child(4) { animation-duration: .57s; animation-delay: -.39s; }
 @keyframes qz-music-eq {
-  from { height: 24%; }
-  to { height: 100%; }
+  0% { transform: scaleY(.16); }
+  38% { transform: scaleY(.94); }
+  72% { transform: scaleY(.42); }
+  100% { transform: scaleY(.78); }
 }
 .qz-music-island-progress {
   margin: 12px 0 5px;
@@ -291,7 +299,7 @@
 .qz-music-connect-copy { margin-top: 7px; color: #777b84; font-size: 12px; line-height: 1.6; }
 .qz-music-connect a { display: inline-block; margin-top: 13px; color: #20242b; font-size: 12px; font-weight: 700; }
 @media (prefers-reduced-motion: reduce) {
-  .qz-music-equalizer.is-playing i { animation: none; height: 55%; }
+  .qz-music-equalizer.is-playing i { animation: none; transform: scaleY(.55); }
 }
 @media (max-width: 420px) {
   .qz-music-island-expanded { border-radius: 22px; padding: 10px 12px 12px; }

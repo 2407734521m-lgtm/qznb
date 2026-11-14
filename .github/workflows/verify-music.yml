@@ -75,6 +75,9 @@ jobs:
       - name: Apply Qianzhi main-site music embed bridge
         run: node music/scripts/apply-qianzhi-embed-bridge.mjs
 
+      - name: Apply RMS loudness fallback to the existing Folia analyser
+        run: node music/scripts/apply-folia-audio-level.mjs
+
       - name: Verify Qianzhi main-site music embed bridge
         run: node music/scripts/test-qianzhi-embed-bridge.mjs
 

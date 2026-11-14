@@ -15,9 +15,9 @@ assert.match(login, /signInWithPassword/,
   'admin login must authenticate with the account password');
 assert.match(login, /admin_login_is_admin/,
   'admin login must verify the signed-in account role on the server');
-assert.match(login, /rpc\\('my_role'\\)/,
+assert.match(login, /rpc\('my_role'\)/,
   'admin login must confirm the effective server-side role before entering');
-assert.doesNotMatch(login, /supabase\\.auth\\.mfa|totp|恢复码|双重验证/i,
+assert.doesNotMatch(login, /supabase\.auth\.mfa|totp|恢复码|双重验证/i,
   'the administrator login screen must not render or run TOTP/recovery-code steps');
 assert.match(appShell, /if \(loading\) return <DelayedPageSkeleton \/>;/,
   'the initial auth loading state may show a skeleton');
@@ -26,7 +26,7 @@ assert.doesNotMatch(appShell, /if \(loading \|\| \(session && \(role === null \|
 assert.match(appShell, /if \(!isAdmin\)[\s\S]*?<AdminLogin showBack=\{false\} onAuthenticated=/,
   'the login component must stay rendered while a password-authenticated session awaits role resolution');
 const passwordOnlyGate = read('supabase/migrations/20261115030000_admin_password_only_login.sql');
-assert.match(passwordOnlyGate, /select p\\.role[\\s\\S]*?where p\\.id = auth\\.uid\\(\\)/,
+assert.match(passwordOnlyGate, /select p\.role[\s\S]*?where p\.id = auth\.uid\(\)/,
   'the updated server role gate must return only the signed-in user profile role');
 assert.doesNotMatch(passwordOnlyGate, /aal|amr|totp/i,
   'the password-only role gate must not depend on MFA assurance or TOTP claims');

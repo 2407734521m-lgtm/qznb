@@ -53,7 +53,7 @@ export default function AdminLogin({ showBack = true }: { showBack?: boolean }) 
           autoComplete="current-password" onKeyDown={e => e.key === 'Enter' && doLogin()} />
         {err && <p className="err">{err}</p>}
         <button className="pri" disabled={busy} onClick={doLogin}>{busy ? '验证中…' : '进入后台'}</button>
-        {showBack && <p className="login-switch"><Link to="/members">← 返回站点</Link></p>}
+        {showBack && <p className="login-switch"><Link to="/home">← 返回站点</Link></p>}
       </div>
     </div>
   );

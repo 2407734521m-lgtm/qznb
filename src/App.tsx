@@ -76,12 +76,12 @@ import { resolveApproximateRegion, saveSharedRegion } from './lib/location';
 import GlobalSearch from './components/GlobalSearch';
 import { BRAND_NAME, BRAND_SUBTITLE, resolveBrandTitle, resolveBrandSubtitle } from './lib/brand';
 
-// Dock 保留四个高频入口：首页、回忆、私聊、我的。成员列表页已下线（2026-11-14 用户定）。
-// 发现、公告、消息等其余页面通过长按 Dock 打开的玻璃快捷面板访问。
+// Dock 保留四个高频入口：首页、发现、私聊、我的。（2026-11-14 用户定：第二栏改回发现；青春时间线仍在「我的 → 内容管理」里。）
+// 公告、消息等其余页面通过长按 Dock 打开的玻璃快捷面板访问。
 type DockKind = 'home' | 'memories' | 'explore' | 'friends' | 'me';
 const TABS: { to: string; label: string; kind: DockKind }[] = [
   { to: '/home', label: '首页', kind: 'home' },
-  { to: '/timeline', label: '回忆', kind: 'memories' },
+  { to: '/explore', label: '发现', kind: 'explore' },
   { to: '/friends', label: '私聊', kind: 'friends' },
   { to: '/me', label: '我的', kind: 'me' },
 ];
@@ -132,7 +132,6 @@ function DockIcon({ kind, unread = false }: {
 }
 
 const DOCK_MORE_TABS = [
-  { to: '/explore', label: '发现' },
   { to: '/board', label: '公告' },
   { to: '/me/notifications', label: '消息' },
   { to: '/songs', label: '歌声墙' },

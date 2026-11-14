@@ -213,7 +213,7 @@ function ResetPassword({ onDone }: { onDone: () => void }) {
 }
 
 // 维护模式：主站默认显示维护页；管理员可进入 /admin，持有有效临时通行码的访客可临时绕过此页。
-function MaintenanceScreen({ title, msg, hasSession, onLogout, onAccessGranted }: { title: string; msg: string; hasSession: boolean; onLogout: () => void; onAccessGranted: () => void }) {
+function MaintenanceScreen({ title, msg, allowCode, hasSession, onLogout, onAccessGranted }: { title: string; msg: string; allowCode: boolean; hasSession: boolean; onLogout: () => void; onAccessGranted: () => void }) {
   const [code, setCode] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -249,12 +249,16 @@ function MaintenanceScreen({ title, msg, hasSession, onLogout, onAccessGranted }
       <h1 style={{ fontSize: 22 }}>{title || '系统维护中'}</h1>
       <p className="sub">{BRAND_NAME} · {BRAND_SUBTITLE}</p>
       <p style={{ fontSize: 15, lineHeight: 1.8, margin: '18px 0 22px' }}>{msg || '系统维护中，稍后再来'}</p>
-      <label style={{ display: 'block', textAlign: 'left', marginBottom: 7 }}>临时访问验证码</label>
-      <CodeInput value={code} onChange={v => { setCode(v); setError(''); }} onEnter={() => void redeem()} disabled={busy} />
-      {error && <p className="err" role="alert">{error}</p>}
-      <button className="pri" disabled={busy || code.length !== 6} onClick={() => void redeem()}>{busy ? '验证中…' : '验证并进入'}</button>
+      {allowCode ? <>
+        <label style={{ display: 'block', textAlign: 'left', marginBottom: 7 }}>临时访问码</label>
+        <CodeInput value={code} onChange={v => { setCode(v); setError(''); }} onEnter={() => void redeem()} disabled={busy} />
+        {error && <p className="err" role="alert">{error}</p>}
+        <button className="pri" disabled={busy || code.length !== 6} onClick={() => void redeem()}>{busy ? '验证中…' : '验证并进入'}</button>
+      </> : <p style={{ fontSize: 13, lineHeight: 1.7, color: 'var(--mut)', margin: '16px 0' }}>
+        维护期间暂不开放访客临时进入。你可以登记邮箱，网站恢复后会收到通知。
+      </p>}
       <div style={{ marginTop: 18, paddingTop: 16, borderTop: '1px solid #ffffff14' }}>
-        <p style={{ fontSize: 13, color: 'var(--mut)', margin: '0 0 10px', lineHeight: 1.7 }}>没有验证码？留下邮箱，网站恢复后我们会第一时间发邮件通知你。</p>
+        <p style={{ fontSize: 13, color: 'var(--mut)', margin: '0 0 10px', lineHeight: 1.7 }}>{allowCode ? '没有临时访问码？留下邮箱，网站恢复后我们会第一时间发邮件通知你。' : '想知道网站何时恢复？留下邮箱，恢复后我们会第一时间发邮件通知你。'}</p>
         {subDone ? <p style={{ fontSize: 13.5, color: '#7ee2a8', margin: 0 }}>已登记，网站恢复后会发邮件到 {email.trim().toLowerCase()}</p> : (<>
           <input type="email" value={email} onChange={e => { setEmail(e.target.value); setSubNote(''); }} placeholder="填写您的邮箱地址" autoComplete="email" />
           {subNote && <p className="err" role="alert">{subNote}</p>}
@@ -710,7 +714,7 @@ function Shell() {
 
   // 临时通行权保存在当前标签页，并由服务端每 5 秒复核；撤销后会自动退回维护页。
   useEffect(() => {
-    if (siteConfig?.maintenance !== 'true') { setMaintenanceAccess(false); return; }
+    if (siteConfig?.maintenance !== 'true' || siteConfig?.maintenance_access_codes_enabled !== true) { setMaintenanceAccess(false); return; }
     let alive = true;
     let checking = false;
     const validate = async () => {
@@ -735,7 +739,7 @@ function Shell() {
     window.addEventListener('focus', onFocus);
     document.addEventListener('visibilitychange', onFocus);
     return () => { alive = false; window.clearInterval(timer); window.removeEventListener('focus', onFocus); document.removeEventListener('visibilitychange', onFocus); };
-  }, [siteConfig?.maintenance, loc.pathname]);
+  }, [siteConfig?.maintenance, siteConfig?.maintenance_access_codes_enabled, loc.pathname]);
   useEffect(() => {
     let alive = true;
     let inFlight = false;
@@ -921,7 +925,7 @@ function Shell() {
   }} /></>);
   if (!session && guest) {
     if (siteConfigLoading) return <PageSkeleton />;
-    if (siteConfig?.maintenance === 'true' && !maintenanceAccess) return <MaintenanceScreen title={siteConfig.maintenance_title || ''} msg={siteConfig.maintenance_msg || ''} hasSession={false} onLogout={() => { leaveGuest(); }} onAccessGranted={() => setMaintenanceAccess(true)} />;
+    if (siteConfig?.maintenance === 'true' && !maintenanceAccess) return <MaintenanceScreen title={siteConfig.maintenance_title || ''} msg={siteConfig.maintenance_msg || ''} allowCode={siteConfig?.maintenance_access_codes_enabled === true} hasSession={false} onLogout={() => { leaveGuest(); }} onAccessGranted={() => setMaintenanceAccess(true)} />;
     return <GuestBrowse
       nickname={guest.nickname}
       expiresAt={guest.expiresAt}
@@ -937,7 +941,7 @@ function Shell() {
   }
   if (!session) {
     if (siteConfigLoading) return <PageSkeleton />;
-    if (siteConfig?.maintenance === 'true' && !maintenanceAccess) return <MaintenanceScreen title={siteConfig.maintenance_title || ''} msg={siteConfig.maintenance_msg || ''} hasSession={false} onLogout={logout} onAccessGranted={() => setMaintenanceAccess(true)} />;
+    if (siteConfig?.maintenance === 'true' && !maintenanceAccess) return <MaintenanceScreen title={siteConfig.maintenance_title || ''} msg={siteConfig.maintenance_msg || ''} allowCode={siteConfig?.maintenance_access_codes_enabled === true} hasSession={false} onLogout={logout} onAccessGranted={() => setMaintenanceAccess(true)} />;
     if (siteConfig?.guest_browse_available === true && !guestAutoEntryStarted.current) {
       return <PageSkeleton />;
     }
@@ -954,7 +958,7 @@ function Shell() {
   }
   // 维护模式：后台开关开着时，主站所有人只显示维护页（管理后台页本身不受影响）。
   if (siteConfig?.maintenance === 'true' && !isAdminPage && !maintenanceAccess) {
-    return <MaintenanceScreen title={siteConfig.maintenance_title || ''} msg={siteConfig.maintenance_msg || ''} hasSession={!!session} onLogout={logout} onAccessGranted={() => setMaintenanceAccess(true)} />;
+    return <MaintenanceScreen title={siteConfig.maintenance_title || ''} msg={siteConfig.maintenance_msg || ''} allowCode={siteConfig?.maintenance_access_codes_enabled === true} hasSession={!!session} onLogout={logout} onAccessGranted={() => setMaintenanceAccess(true)} />;
   }
 
   // Build the Dock items without a Hook here. This code is below

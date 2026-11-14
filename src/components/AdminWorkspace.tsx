@@ -163,8 +163,13 @@ export default function AdminWorkspace({
   const quickbarRef = useRef<HTMLElement>(null);
 
   const matchingItems = useMemo(() => {
-    const value = query.trim().toLowerCase();
-    return flatItems.filter(item => !value || item.label.toLowerCase().includes(value) || item.group.toLowerCase().includes(value));
+    const value = query.trim().toLocaleLowerCase();
+    if (!value) return flatItems;
+    return flatItems.filter(item => [
+      item.label,
+      item.group,
+      descriptionFor(item.id),
+    ].join(' ').toLocaleLowerCase().includes(value));
   }, [flatItems, query]);
 
   const current = tabs.find(item => item[0] === activeTab);
@@ -436,7 +441,7 @@ export default function AdminWorkspace({
                   onMouseEnter={() => setActiveIndex(index)}
                   onClick={() => choose(item.id)}>
                   <span className="admin-command-result-icon"><AdminIcon name={item.id} size={17} /></span>
-                  <span className="admin-command-result-copy"><strong>{item.label}</strong><small>{item.group}</small></span>
+                  <span className="admin-command-result-copy"><strong>{item.label}</strong><small>{item.group} · {descriptionFor(item.id)}</small></span>
                   <AdminIcon name="chevron" size={15} />
                 </button>
               )) : <div className="admin-command-empty">没有找到匹配的管理功能</div>}

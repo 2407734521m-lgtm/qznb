@@ -37,6 +37,7 @@ export default function Settings({ me, setMsg }: { me: string; setMsg: (s: strin
   const [notifyConfirm, setNotifyConfirm] = useState(false);
   const [featureFlags, setFeatureFlags] = useState<Record<string, boolean>>({});
   const [featureBusy, setFeatureBusy] = useState<string | null>(null);
+  const [savingKeys, setSavingKeys] = useState<Record<string, boolean>>({});
 
   async function loadNotifyCount() {
     const { count } = await supabase.from('maintenance_notify_emails').select('id', { count: 'exact', head: true });
@@ -109,9 +110,24 @@ export default function Settings({ me, setMsg }: { me: string; setMsg: (s: strin
   }
 
   async function save(key: string, value: string) {
-    const { error } = await supabase.from('site_settings').upsert({ key, value }, { onConflict: 'key' });
-    if (!error) { await alog('setting_change', { key, value }); setMsg('已保存'); load(); }
-    else setMsg('保存失败：' + error.message);
+    setSavingKeys(current => ({ ...current, [key]: true }));
+    try {
+      const { error } = await supabase.from('site_settings').upsert({ key, value }, { onConflict: 'key' });
+      if (error) {
+        setMsg('设置保存失败：' + error.message);
+        return;
+      }
+      setVals(current => ({ ...current, [key]: value }));
+      await alog('setting_change', { key, value });
+      setMsg(key === 'maintenance'
+        ? (value === 'true' ? '维护模式已开启，主站访客将看到维护页面。' : '维护模式已关闭，主站已恢复正常访问。')
+        : '设置已保存。');
+      void load();
+    } catch (error: any) {
+      setMsg('设置保存失败：' + (error?.message || '网络异常，请重试。'));
+    } finally {
+      setSavingKeys(current => ({ ...current, [key]: false }));
+    }
   }
 
   async function saveMaintenanceSchedule() {
@@ -334,14 +350,38 @@ export default function Settings({ me, setMsg }: { me: string; setMsg: (s: strin
         </button>
       </div>
       <p style={{ ...mut, margin: '0 0 12px' }}>访客仅能查看公开首页与管理员公告，不会获得成员身份，也不能写入内容。</p>
-      <div className="row" style={{ gap: 8, alignItems: 'center' }}>
-        <span style={{ fontSize: 13.5 }}>维护模式（手动开关）</span>
-        <button className={'mini' + (vals.maintenance === 'true' ? '' : ' ghost')}
+      <div className="admin-setting-row">
+        <div className="admin-setting-copy">
+          <strong>维护模式</strong>
+          <span>开启后，主站访客进入维护页；管理员仍可从独立后台继续管理。</span>
+          <small className={vals.maintenance === 'true' ? 'is-warning' : 'is-success'}>
+            {vals.maintenance === 'true' ? '当前：维护中' : '当前：正常开放'}
+          </small>
+        </div>
+        <button type="button" role="switch" aria-checked={vals.maintenance === 'true'}
+          className={`admin-setting-switch ${vals.maintenance === 'true' ? 'is-on' : ''}`}
+          disabled={!!savingKeys.maintenance}
           onClick={async () => {
-            if (vals.maintenance !== 'true' && !(await confirmDialog('开启维护模式？所有人打开网站都只看到维护页（后台入口除外）。', { confirmText: '确认开启' }))) return;
-            save('maintenance', vals.maintenance === 'true' ? 'false' : 'true');
+            const next = vals.maintenance === 'true' ? 'false' : 'true';
+            if (next === 'true' && !(await confirmDialog('开启维护模式？普通访客将看到维护页面，管理员仍可进入独立后台。', { confirmText: '开启维护' }))) return;
+            void save('maintenance', next);
           }}>
-          {vals.maintenance === 'true' ? '开' : '关'}
+          <span className="admin-setting-switch-track"><i /></span>
+          <span>{savingKeys.maintenance ? '保存中…' : vals.maintenance === 'true' ? '已开启' : '已关闭'}</span>
+        </button>
+      </div>
+      <div className="admin-setting-row admin-setting-row--nested">
+        <div className="admin-setting-copy">
+          <strong>允许访客使用临时通行码</strong>
+          <span>关闭时，维护页不再显示六位数验证码入口；只有管理员能从独立后台进入。需要临时放行访客时再打开。</span>
+          <small>{vals.maintenance_access_codes_enabled === 'true' ? '当前：允许临时访问' : '当前：不开放临时访问'}</small>
+        </div>
+        <button type="button" role="switch" aria-checked={vals.maintenance_access_codes_enabled === 'true'}
+          className={`admin-setting-switch ${vals.maintenance_access_codes_enabled === 'true' ? 'is-on' : ''}`}
+          disabled={!!savingKeys.maintenance_access_codes_enabled}
+          onClick={() => void save('maintenance_access_codes_enabled', vals.maintenance_access_codes_enabled === 'true' ? 'false' : 'true')}>
+          <span className="admin-setting-switch-track"><i /></span>
+          <span>{savingKeys.maintenance_access_codes_enabled ? '保存中…' : vals.maintenance_access_codes_enabled === 'true' ? '已开启' : '已关闭'}</span>
         </button>
       </div>
       <div style={{ marginTop: 14, padding: 12, borderRadius: 12, background: '#f8fafc', border: '1px solid #e5eaf2' }}>
@@ -413,7 +453,14 @@ export default function Settings({ me, setMsg }: { me: string; setMsg: (s: strin
       </p>
     </div>
 
-    <MaintenanceAccessManager setMsg={setMsg} />
+    {vals.maintenance_access_codes_enabled === 'true' ? (
+      <MaintenanceAccessManager setMsg={setMsg} />
+    ) : (
+      <div style={card}>
+        <h3 style={h3}>临时通行码管理</h3>
+        <p style={mut}>当前已关闭访客临时通行码。开启上方开关后，才会显示生成、复制和撤销通行码的管理工具。</p>
+      </div>
+    )}
 
     <div style={card}>
       <h3 style={h3}>健康检查</h3>

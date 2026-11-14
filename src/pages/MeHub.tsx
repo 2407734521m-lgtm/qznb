@@ -44,12 +44,6 @@ const groups: { title: string; note: string; entries: Entry[] }[] = [
   ]},
 ];
 
-const shortcuts = [
-  { mark: '收藏', title: '我的收藏', note: '留住喜欢的内容', to: '/me/favorites', tone: 'slate' },
-  { mark: '通知', title: '我的通知', note: '查看互动消息', to: '/me/notifications', tone: 'slate' },
-  { mark: '设置', title: '设置中心', note: '账号与隐私', to: '/me/settings', tone: 'slate' },
-];
-
 export default function MeHub() {
   const nav = useNavigate();
   const me = useAuth().session!.user.id;
@@ -113,15 +107,6 @@ export default function MeHub() {
           <div>
             <h1>个人中心</h1>
           </div>
-          <div className="me-hub-head-actions">
-            <button className="me-hub-head-icon" aria-label="查看通知" title="查看通知" onClick={() => nav('/me/notifications')}>
-              <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-              {unread > 0 && !quietHoursActive && <i />}
-            </button>
-            <button className="me-hub-head-icon" aria-label="设置中心" title="设置中心" onClick={() => nav('/me/settings')}>
-              <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" aria-hidden="true"><line x1="4" y1="7" x2="20" y2="7"/><circle cx="9" cy="7" r="2.2" fill="#fff"/><line x1="4" y1="17" x2="20" y2="17"/><circle cx="15" cy="17" r="2.2" fill="#fff"/></svg>
-            </button>
-          </div>
         </div>
 
         <div className="me-hub-profile">
@@ -133,9 +118,7 @@ export default function MeHub() {
             <span>{username ? '@' + username : '班级成员'}</span>
             <small>管理你的资料、内容与账号设置</small>
           </div>
-          <button className="me-hub-edit" onClick={() => nav('/me/edit?sec=base')}>编辑资料 <span>›</span></button>
         </div>
-        {unread > 0 && !quietHoursActive && <button className="me-hub-unread" onClick={() => nav('/me/notifications')}>{unread} 条未读通知 <span>查看 ›</span></button>}
       </section>
 
       <section className="me-hub-stats" aria-label="我的社区数据">
@@ -153,38 +136,6 @@ export default function MeHub() {
         <div className="me-hub-photo-note">已分享 <b>{stats.loading ? <span className="fx-skel-wrap" style={{ display: 'inline-block', width: 20, height: 14, verticalAlign: 'middle' }}><span className="fx-skel" style={{ display: 'block', width: '100%', height: '100%' }} /></span> : <NumberTicker value={stats.photos} />}</b> 张照片 <span>·</span> <button onClick={() => nav('/albums')}>去相册看看 ›</button></div>
       </section>
 
-      <section className="me-hub-shortcuts">
-        <div className="me-hub-section-head">
-          <div><h2>常用功能</h2><p>收藏、通知与设置</p></div>
-          <span>快捷操作</span>
-        </div>
-        <div className="me-hub-shortcut-grid">
-          {shortcuts.map(item => (
-            <button className="me-hub-shortcut" key={item.title} onClick={() => nav(item.to)}>
-              <span className={'me-hub-shortcut-icon ' + item.tone}>{item.mark}</span>
-              <strong>{item.title}</strong>
-              <small>{item.note}</small>
-            </button>
-          ))}
-        </div>
-      </section>
-
-      <section className="me-hub-feature-grid">
-        <button className="me-hub-feature me-hub-feature-primary" onClick={() => nav('/me/content')}>
-          <span className="me-hub-feature-kicker">内容整理</span>
-          <strong>我的全部内容</strong>
-          <small>动态、照片、评论与投稿，统一整理</small>
-          <span className="me-hub-feature-meta">{stats.loading ? <span className="fx-skel-wrap" style={{ display: 'inline-block', width: 130, height: 12, verticalAlign: 'middle' }}><span className="fx-skel" style={{ display: 'block', width: '100%', height: '100%' }} /></span> : stats.posts + ' 条动态 · ' + stats.photos + ' 张照片'}</span>
-          <span className="me-hub-feature-arrow">↗</span>
-        </button>
-        <button className="me-hub-feature me-hub-feature-growth" onClick={() => nav('/me/growth')}>
-          <span className="me-hub-feature-kicker">成长记录</span>
-          <strong>成长档案</strong>
-          <small>活跃天数、贡献记录与纪念徽章</small>
-          <span className="me-hub-feature-meta">每一次参与，都值得被记住</span>
-          <span className="me-hub-feature-arrow">↗</span>
-        </button>
-      </section>
 
       <div className="me-hub-groups">
         {groups.map(group => (

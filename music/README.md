@@ -48,6 +48,19 @@ The overlay enables:
 
 The overlay is idempotent, validates its source anchors, and creates a focused unit test inside the checked-out Folia submodule. Both verification and deployment workflows apply it before typecheck/build. The pinned Folia upstream source itself is not modified.
 
+## Main-site persistent player integration
+
+The main Qianzhi site opens this service in a persistent, hidden cross-origin iframe after the user enters the Music page. Route changes only move the iframe off-screen; they do not unmount its browsing context or create a second audio element. A small bridge is applied to Folia's app-level overlay and synchronizes only the current track metadata, playback state, queue availability, progress and transport commands with the exact Qianzhi main-site origins.
+
+- Main-site parent origins allowed by the music Worker: `https://qianzhi.pw` and `https://www.qianzhi.pw` only.
+- Parent-to-child and child-to-parent messages validate both the exact origin and `event.source`; the protocol is versioned and exposes only play/pause, previous/next and seek.
+- The Worker adds a restrictive `frame-ancestors` directive to HTML responses and removes `X-Frame-Options` only for those HTML responses. Other CSP directives are retained.
+- The main-site island is presentation and transport only. Folia remains the single audio engine and queue owner.
+- This is strictly an in-site UI integration. It does not register system media controls, alter other apps, or add Android system-level playback integration.
+- If the bridge cannot connect, the embedded page offers an explicit fallback to open the music service separately.
+
+The maintained overlay source lives at `music/overlays/QianzhiEmbedBridge.tsx`; `music/scripts/apply-qianzhi-embed-bridge.mjs` applies it to the pinned Folia checkout during both verification and deployment. The pinned upstream commit is not changed.
+
 ## Integration status
 
 - Current preview verification: the Workers adapter, 52 allowlisted routes, QR SVG rendering, search, song details and lyrics have returned successful responses. XEAPI now uses Web Crypto X25519 instead of the unsupported Node `diffieHellman()` call. QR polling also relays NetEase's original rejected status/body so Folia can distinguish transient network failures from expired codes and account risk-control responses. The upstream guest-registration route has returned business code `400` in recent tests, and test tracks have returned `url: null` / `code: 404`; therefore actual playable audio URLs and signed-in account playback are **not yet verified**. Availability remains dependent on NetEase's own account, catalog, region and rights responses.

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
-const read = (file) => readFileSync(new URL(\`../\${file}\`, import.meta.url), 'utf8');
+const read = (file) => readFileSync(new URL(`../${file}`, import.meta.url), 'utf8');
 const supabaseClient = read('src/lib/supabase.ts');
 const login = read('src/pages/AdminLogin.tsx');
 const settings = read('src/components/AdminSecondaryPassword.tsx');
@@ -10,12 +10,12 @@ const pinGate = read('supabase/migrations/20261115030500_admin_secondary_pin_gat
 const pinSqlTest = read('scripts/test-admin-secondary-pin-sql.mjs');
 const appShell = read('src/main.tsx');
 
-assert.match(supabaseClient, /storageKey:\\s*'qznb-admin-auth-v1'/,
+assert.match(supabaseClient, /storageKey:\s*'qznb-admin-auth-v1'/,
   'the dedicated admin origin must keep its own auth session');
-assert.doesNotMatch(supabaseClient, /experimental:\\s*\\{\\s*recoveryCodes/,
+assert.doesNotMatch(supabaseClient, /experimental:\s*\{\s*recoveryCodes/,
   'the admin client must not enable the TOTP recovery-code API anymore');
 
-assert.doesNotMatch(login, /\\.mfa\\.|totp|TOTP|recoveryCodes|recovery code/i,
+assert.doesNotMatch(login, /\.mfa\.|totp|TOTP|recoveryCodes|recovery code/i,
   'admin login must not invoke TOTP or recovery-code flows');
 assert.match(login, /admin_secondary_password_status/,
   'admin login must determine whether a secondary PIN needs first-time setup');
@@ -25,18 +25,18 @@ assert.match(login, /admin_verify_secondary_password/,
   'admin login must verify the secondary PIN using the server RPC');
 assert.match(login, /password_and_secondary_pin/,
   'successful login must be audited with the new authentication method');
-assert.match(login, /\\^\\\\d\\{6\\}\\$/,
+assert.match(login, /\^\\d\{6\}\$/,
   'the UI must accept exactly six numeric digits for the secondary PIN');
 
-assert.match(pinGate, /extensions\\.crypt\\(p_pin, extensions\\.gen_salt\\('bf', 12\\)\\)/,
+assert.match(pinGate, /extensions\.crypt\(p_pin, extensions\.gen_salt\('bf', 12\)\)/,
   'the six-digit PIN must be stored with a salted bcrypt hash');
-assert.match(pinGate, /when v_attempts >= 5 then now\\(\\) \\+ interval '15 minutes'/,
+assert.match(pinGate, /when v_attempts >= 5 then now\(\) \+ interval '15 minutes'/,
   'five failed PIN attempts must trigger a temporary lockout');
-assert.match(pinGate, /auth\\.jwt\\(\\) ->> 'session_id'/,
+assert.match(pinGate, /auth\.jwt\(\) ->> 'session_id'/,
   'the verified PIN must be tied to the signed-in Supabase session');
-assert.match(pinGate, /now\\(\\) \\+ interval '8 hours'/,
+assert.match(pinGate, /now\(\) \+ interval '8 hours'/,
   'the verified session must expire automatically');
-assert.match(pinGate, /create or replace function public\\.my_role\\(\\)[\\s\\S]*?admin_secondary_verified_sessions/,
+assert.match(pinGate, /create or replace function public\.my_role\(\)[\s\S]*?admin_secondary_verified_sessions/,
   'the database role gate must authorize admins only after server-side PIN verification');
 assert.doesNotMatch(pinGate, /aal2|amr|totp/i,
   'the replacement role gate must not depend on TOTP or AAL2');
@@ -47,23 +47,23 @@ assert.match(pinSqlTest, /five failed attempts trigger a 15-minute account lock/
 
 assert.match(settings, /admin_change_secondary_password/,
   'the admin account security page must support changing the secondary PIN');
-assert.match(settings, /currentPin[\\s\\S]*?newPin[\\s\\S]*?confirmPin/,
+assert.match(settings, /currentPin[\s\S]*?newPin[\s\S]*?confirmPin/,
   'PIN changes must require the current PIN and confirmation of the new PIN');
-assert.doesNotMatch(settings, /\\.mfa\\.|totp|TOTP|recoveryCodes/i,
+assert.doesNotMatch(settings, /\.mfa\.|totp|TOTP|recoveryCodes/i,
   'the admin account security page must no longer expose TOTP/recovery-code management');
-assert.match(admin, /tab === 'mySecurity'[\\s\\S]*?<AdminSecondaryPassword \\/>/,
+assert.match(admin, /tab === 'mySecurity'[\s\S]*?<AdminSecondaryPassword \/>/,
   'the account security tab must render the secondary PIN manager');
 
-assert.match(appShell, /if \\(loading\\) return <DelayedPageSkeleton \\/>;/,
+assert.match(appShell, /if \(loading\) return <DelayedPageSkeleton \/>;/,
   'the initial auth loading state may show a skeleton');
-assert.doesNotMatch(appShell, /if \\(loading \\|\\| \\(session && \\(role === null \\|\\| verifiedUid !== session\\.user\\.id\\)\\)\\) return <DelayedPageSkeleton \\/>;/,
+assert.doesNotMatch(appShell, /if \(loading \|\| \(session && \(role === null \|\| verifiedUid !== session\.user\.id\)\)\) return <DelayedPageSkeleton \/>;/,
   'role lookup must not unmount the secondary PIN login flow');
-assert.match(appShell, /if \\(!isAdmin\\)[\\s\\S]*?<AdminLogin showBack=\\{false\\} onAuthenticated=/,
+assert.match(appShell, /if \(!isAdmin\)[\s\S]*?<AdminLogin showBack=\{false\} onAuthenticated=/,
   'the login component must stay rendered while the session awaits PIN verification');
 
-assert.match(admin, /Date\\.now\\(\\) - lastActivity >= 20 \\* 60 \\* 1000/,
+assert.match(admin, /Date\.now\(\) - lastActivity >= 20 \* 60 \* 1000/,
   'admin UI must enforce the configured idle sign-out threshold');
-assert.match(admin, /signOut\\(\\{ scope: 'local' \\}\\)/,
+assert.match(admin, /signOut\(\{ scope: 'local' \}\)/,
   'idle sign-out must end the current local admin session');
 assert.match(admin, /qz_admin_idle_logout/,
   'idle sign-out must explain why the next login is required');

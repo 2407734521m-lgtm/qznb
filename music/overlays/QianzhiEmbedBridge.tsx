@@ -94,7 +94,7 @@ const QianzhiEmbedBridge = ({ model }: Props) => {
             const hasSpectrumEnergy = !!bands && (bands.bass + bands.lowMid + bands.vocal + bands.treble) > 0.025;
             const levelValue = playing && routeSupportsWebAnalyser ? audioLevel.get() : 0;
             const level = Math.max(0, Math.min(1, Number.isFinite(levelValue) ? levelValue : 0));
-            const mode = hasSpectrumEnergy ? 'spectrum' : level > 0.008 ? 'level' : 'idle';
+            const mode = hasSpectrumEnergy ? 'spectrum' : playing && routeSupportsWebAnalyser ? 'level' : 'idle';
             window.parent.postMessage({
                 source: 'qznb-music',
                 type: 'SPECTRUM',

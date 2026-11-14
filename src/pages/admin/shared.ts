@@ -17,13 +17,7 @@ export async function alog(action: string, detail: unknown) {
   }
 }
 
-export function timeAgo(s: string) {
-  const d = (Date.now() - new Date(s).getTime()) / 1000;
-  if (d < 60) return '刚刚'; if (d < 3600) return Math.floor(d / 60) + ' 分钟前';
-  if (d < 86400) return Math.floor(d / 3600) + ' 小时前';
-  if (d < 86400 * 30) return Math.floor(d / 86400) + ' 天前';
-  return new Date(s).toLocaleDateString();
-}
+export { timeAgo } from '../../lib/time';
 
 export function bucket14(rows: { created_at: string }[]) {
   const days: number[] = Array(14).fill(0);

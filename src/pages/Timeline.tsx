@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { motion, useReducedMotion } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../auth';
-import { useSignedUrl, uploadMedia, uploadMediaWithProgress, downscaleImage } from '../lib/media';
+import { useSignedUrl, uploadMedia, uploadMediaWithProgress, downscaleImage, removeOwnedMedia } from '../lib/media';
 import SmoothProgress from '../components/fx/SmoothProgress';
 import BlurImg from '../components/fx/BlurImg';
 import { FeedSkeleton } from '../components/fx/Skeleton';
@@ -12,15 +12,6 @@ import DateTimeField from '../components/DateTimeField';
 
 type T = { id: number; profile_id: string; happened_on: string; title: string; content: string | null; media_url: string | null };
 
-async function removeOwnedMedia(path: string | null | undefined, ownerId: string): Promise<string | null> {
-  if (!path || path.startsWith('http://') || path.startsWith('https://') || !path.startsWith(`${ownerId}/`)) return null;
-  try {
-    const { error } = await supabase.storage.from('media').remove([path]);
-    return error?.message ?? null;
-  } catch (error) {
-    return error instanceof Error ? error.message : '存储服务暂时不可用';
-  }
-}
 
 function MediaView({ path }: { path: string }) {
   const url = useSignedUrl('media', path);

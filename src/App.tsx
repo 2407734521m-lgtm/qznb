@@ -36,7 +36,6 @@ const AlbumDetail = lazy(() => import('./pages/AlbumDetail'));
 const Discover = lazy(() => import('./pages/Discover'));
 const Friends = lazy(() => import('./pages/Friends'));
 const Chat = lazy(() => import('./pages/Chat'));
-const Admin = lazy(() => import('./pages/Admin'));
 const Home = lazy(() => import('./pages/Home'));
 const Capsule = lazy(() => import('./pages/Capsule'));
 const MemoryCalendar = lazy(() => import('./pages/MemoryCalendar'));

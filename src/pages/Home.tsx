@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, useReducedMotion } from 'framer-motion';
 import { supabase } from '../lib/supabase';
+import { timeAgo } from '../lib/time';
 import VisitCounter from '../components/VisitCounter';
 import { FeedSkeleton } from '../components/fx/Skeleton';
 import { isInApp } from '../lib/installedApp';
@@ -14,14 +15,6 @@ import './Home.vibe.css';
  * Read-only preview only: likes/comments/composing stay on /love-wall and /feed.
  * Data access reuses the existing queries; presentation only.
  */
-function timeAgo(s: string) {
-  const d = (Date.now() - new Date(s).getTime()) / 1000;
-  if (d < 60) return '刚刚';
-  if (d < 3600) return Math.floor(d / 60) + ' 分钟前';
-  if (d < 86400) return Math.floor(d / 3600) + ' 小时前';
-  if (d < 86400 * 30) return Math.floor(d / 86400) + ' 天前';
-  return new Date(s).toLocaleDateString();
-}
 
 type LovePost = {
   id: string;

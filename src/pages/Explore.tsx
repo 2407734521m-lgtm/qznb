@@ -74,8 +74,7 @@ const cards = [
     action: '打开提问箱',
   },
   {
-    to: 'https://music.qianzhi.pw',
-    external: true,
+    to: '/music',
     className: 'discover-card--music',
     art: 'music',
     photo: musicPhoto,

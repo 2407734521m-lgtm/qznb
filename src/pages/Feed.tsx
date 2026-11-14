@@ -9,6 +9,7 @@ import type { FeedPost as Post, FeedComment as Cmt } from '../types/content';
 import { confirmDialog, alertDialog, promptDialog } from '../lib/dialog';
 import BlurImg from '../components/fx/BlurImg';
 import SmoothProgress from '../components/fx/SmoothProgress';
+import { showToast } from '../lib/toast';
 import { FeedSkeleton } from '../components/fx/Skeleton';
 
 type ImpressionPollOption = { id: number; label: string; voteCount: number };
@@ -231,6 +232,7 @@ export default function Feed({ searchQuery = '', focusPostId = null }: { searchQ
         setImpressionOptions(DEFAULT_IMPRESSION_OPTIONS);
       }
       await load();
+      showToast('动态已发布','success');
     } catch (e: any) {
       if (uploadedImagePath) await removeOwnedMedia(uploadedImagePath, me);
       setErr('发布失败：' + (e.message || '网络错误'));
@@ -369,7 +371,8 @@ export default function Feed({ searchQuery = '', focusPostId = null }: { searchQ
     const { error } = await supabase.from('reports').insert({
       reporter_id: me, target_type: 'post', target_id: String(p.id), reason: reason.trim().slice(0, 200),
     });
-    alertDialog(error ? '举报失败：' + error.message : '已举报，管理员会处理');
+    if(error) alertDialog('举报失败：' + error.message);
+    else showToast('已举报，管理员会处理','success');
   }
 
   async function delCmt(c: Cmt) {

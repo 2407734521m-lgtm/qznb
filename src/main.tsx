@@ -9,6 +9,7 @@ const AdminLogin = lazy(() => import('./pages/AdminLogin'));
 import { AuthProvider, useAuth } from './auth';
 import { supabase } from './lib/supabase';
 import { DialogHost } from './lib/dialog';
+import { ToastHost } from './lib/toast';
 import ErrorBoundary from './components/ErrorBoundary';
 import TestSwitchFab from './components/TestSwitchFab';
 import { detectInstalledAdminApp } from './lib/installedApp';
@@ -42,6 +43,7 @@ import './styles-quiet-editorial-detail.css';
 import './styles-quiet-community-detail.css';
 import './styles-archive.css';
 import './styles-motion-premium.css'; // Final motion layer: keep after all visual overrides.
+import './styles-ui-foundation.css'; // Scoped UI foundation; excludes Dock/navigation.
 
 // 只有精确匹配的管理员域名可以挂载后台；其他任何域名都不能加载 AdminShell。
 const isAdminHost = window.location.hostname.toLowerCase() === 'admin.qianzhi.pw';
@@ -174,5 +176,6 @@ createRoot(document.getElementById('root')!).render(
       <TestSwitchFab />
     </ErrorBoundary>
     <DialogHost />
+    <ToastHost />
   </AuthProvider></HashRouter></React.StrictMode>
 );

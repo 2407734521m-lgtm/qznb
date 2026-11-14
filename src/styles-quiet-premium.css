@@ -2,41 +2,8 @@
    One restrained palette, predictable surfaces and glass reserved for floating chrome.
    Page structure, routing and data behavior remain owned by their React components. */
 
-:root {
-  color-scheme: light;
-  --qz-bg: #ffffff;
-  --qz-surface: #ffffff;
-  --qz-surface-soft: #f6f7f9;
-  --qz-surface-raised: #f0f2f5;
-  --qz-ink: #202733;
-  --qz-muted: #737d8b;
-  --qz-faint: #9aa2ad;
-  --qz-line: #e7eaee;
-  --qz-line-strong: #d9dee5;
-  --qz-accent: #526b8c;
-  --qz-accent-soft: #eef2f7;
-  --qz-danger: #bd5d68;
-  --qz-radius-sm: 9px;
-  --qz-radius-md: 14px;
-  --qz-radius-lg: 18px;
-  --qz-shadow-float: 0 12px 34px rgba(28, 39, 55, .12);
-  --qz-ease: cubic-bezier(.22, 1, .36, 1);
+/* Canonical values are owned by styles-ios26-tokens.css. */
 
-  --visual-bg: var(--qz-bg);
-  --visual-surface: var(--qz-surface);
-  --visual-surface-raised: var(--qz-surface-soft);
-  --visual-border: var(--qz-line);
-  --visual-text: var(--qz-ink);
-  --visual-secondary: #4d5969;
-  --visual-muted: var(--qz-muted);
-  --visual-accent: var(--qz-accent);
-  --visual-on-accent: #ffffff;
-  --bg: var(--qz-bg);
-  --fg: var(--qz-ink);
-  --mut: var(--qz-muted);
-  --a: var(--qz-accent);
-  --b: var(--qz-accent);
-}
 
 html {
   color-scheme: light;

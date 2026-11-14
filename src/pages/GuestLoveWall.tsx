@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase';
 import { getSignedUrls } from '../lib/media';
 import { timeAgo } from '../lib/time';
 import { FeedSkeleton } from '../components/fx/Skeleton';
+import './Guest.cruip.css';
 
 type GuestPost = {
   id: string;
@@ -86,25 +87,18 @@ export default function GuestLoveWall({ onLoginRequired }: { onLoginRequired: ()
   }, []);
 
   return (
-    <main style={{ maxWidth: 760, margin: '0 auto', padding: '10px 0 110px', color: '#202124' }}>
-      <header style={{ padding: '8px 2px 16px' }}>
-        <div style={{ fontSize: 11, letterSpacing: 2.4, color: '#737b89' }}>PUBLIC · LITTLE FEELINGS</div>
-        <h1 style={{ fontSize: 27, margin: '8px 0 4px' }}>表白墙</h1>
-        <p style={{ color: '#606673', lineHeight: 1.7, fontSize: 13, margin: 0 }}>
+    <main style={{ maxWidth: 760, margin: '0 auto', padding: '10px 0 110px', color: '#1f2a3a' }}>
+      <header className="guest-cruip-section-head">
+        <span className="guest-eyebrow">PUBLIC · LITTLE FEELINGS</span>
+        <h1>表白墙</h1>
+        <p>
           这里展示已经审核公开的心意。游客可以浏览，互动需要正式账号。
         </p>
       </header>
 
-      <div style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
-        padding: '12px 14px', marginBottom: 14, borderRadius: 15,
-        background: '#f4f7fb', border: '1px solid #e6ebf2',
-      }}>
-        <span style={{ color: '#586273', fontSize: 12 }}>只展示审核通过的公开投稿</span>
-        <button type="button" onClick={onLoginRequired} style={{
-          border: 0, borderRadius: 999, padding: '8px 13px',
-          background: '#202632', color: '#fff', fontSize: 12, fontWeight: 800,
-        }}>登录后参与</button>
+      <div className="guest-cruip-notice-strip">
+        <span>只展示审核通过的公开投稿</span>
+        <button type="button" className="guest-button guest-button-primary" onClick={onLoginRequired}>登录后参与</button>
       </div>
 
       {loading && <FeedSkeleton count={2} />}
@@ -158,12 +152,7 @@ export default function GuestLoveWall({ onLoginRequired }: { onLoginRequired: ()
         })}
       </div>
 
-      <button type="button" onClick={onLoginRequired} style={{
-        position: 'fixed', right: 18, bottom: 'calc(26px + env(safe-area-inset-bottom))',
-        zIndex: 40, border: 0, borderRadius: 999, padding: '13px 20px',
-        background: 'linear-gradient(135deg,#e0567a,#c22f3d)', color: '#fff',
-        fontWeight: 800, fontSize: 14, boxShadow: '0 12px 28px rgba(194,47,61,.28)',
-      }}>写表白</button>
+      <button type="button" className="guest-cruip-fab" onClick={onLoginRequired}>写表白</button>
     </main>
   );
 }

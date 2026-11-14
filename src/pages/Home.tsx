@@ -36,7 +36,6 @@ function Av({ path, name, signedUrl }: { path: string | null; name: string; sign
 }
 
 const SHORTCUTS = [
-  ['/members', '成员'],
   ['/feed', '动态'],
   ['/timeline', '时间线'],
   ['/capsule', '胶囊'],
@@ -265,7 +264,6 @@ export default function Home() {
               <div className="vh-panel">
                 <div className="vh-section-head" style={{ margin: '0 0 12px' }}>
                   <div><h2>新成员</h2><p>最近加入这里的人</p></div>
-                  <button className="vh-text-link" onClick={() => nav('/members')}>全部 ↗</button>
                 </div>
                 <div className="vh-members">
                   {members.map(m => (

@@ -15,7 +15,7 @@ const secondAdminSession = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
 const memberId = '22222222-2222-4222-8222-222222222222';
 const memberSession = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';
 
-await db.exec(\`
+await db.exec(`
   create role anon;
   create role authenticated;
   create role service_role bypassrls;
@@ -32,12 +32,12 @@ await db.exec(\`
     user_id uuid not null references auth.users(id) on delete cascade
   );
   insert into auth.users values
-    ('\${adminId}'), ('\${secondAdminId}'), ('\${memberId}');
+    ('${adminId}'), ('${secondAdminId}'), ('${memberId}');
   insert into auth.sessions values
-    ('\${adminSessionA}', '\${adminId}'),
-    ('\${adminSessionB}', '\${adminId}'),
-    ('\${secondAdminSession}', '\${secondAdminId}'),
-    ('\${memberSession}', '\${memberId}');
+    ('${adminSessionA}', '${adminId}'),
+    ('${adminSessionB}', '${adminId}'),
+    ('${secondAdminSession}', '${secondAdminId}'),
+    ('${memberSession}', '${memberId}');
 
   create function auth.jwt() returns jsonb language sql stable as $$
     select coalesce(nullif(current_setting('request.jwt.claims', true), '')::jsonb, '{}'::jsonb)
@@ -47,23 +47,23 @@ await db.exec(\`
   $$;
   create table public.profiles(id uuid primary key, role text not null);
   insert into public.profiles values
-    ('\${adminId}', 'super_admin'),
-    ('\${secondAdminId}', 'admin'),
-    ('\${memberId}', 'member');
+    ('${adminId}', 'super_admin'),
+    ('${secondAdminId}', 'admin'),
+    ('${memberId}', 'member');
   grant usage on schema auth to authenticated, service_role;
   grant execute on function auth.jwt(), auth.uid() to authenticated, service_role;
   grant select on public.profiles to authenticated, service_role;
-\`);
+`);
 
 const historicalGate = 'supabase/migrations/20261114150000_admin_totp_mfa_gate.sql';
 await db.exec(readFileSync(new URL(historicalGate, root), 'utf8'));
-console.log(\`PASS historical migration fixture: \${historicalGate}\`);
+console.log(`PASS historical migration fixture: ${historicalGate}`);
 
 const migration = 'supabase/migrations/20261115030500_admin_secondary_pin_gate.sql';
 await db.exec(readFileSync(new URL(migration, root), 'utf8'));
-console.log(\`PASS \${migration}\`);
+console.log(`PASS ${migration}`);
 
-await db.exec(\`
+await db.exec(`
   create function public.test_legacy_super_admin_gate() returns boolean
   language plpgsql security definer set search_path = '' as $function$
   begin
@@ -75,7 +75,7 @@ await db.exec(\`
   $function$;
   grant execute on function public.test_legacy_super_admin_gate() to authenticated;
   set role authenticated;
-\`);
+`);
 
 async function claimsFor(sub, sessionId, aal = 'aal1') {
   const claims = { sub, role: 'authenticated', session_id: sessionId, aal };
@@ -86,11 +86,11 @@ async function claimsFor(sub, sessionId, aal = 'aal1') {
 }
 
 await claimsFor(adminId, adminSessionA);
-let result = await db.query(\`
+let result = await db.query(`
   select public.my_role() as role,
          public.admin_login_is_admin() as is_admin,
          public.admin_secondary_password_status() as configured
-\`);
+`);
 assert.equal(result.rows[0].role, 'member', 'admin without PIN verification must be downgraded');
 assert.equal(result.rows[0].is_admin, true, 'login may identify the caller as an admin');
 assert.equal(result.rows[0].configured, false, 'first login must be prompted to set a PIN');
@@ -140,11 +140,11 @@ assert.equal(result.rows[0].role, 'member', 'locked account must not receive adm
 console.log('PASS five failed attempts trigger a 15-minute account lock');
 
 await claimsFor(memberId, memberSession);
-result = await db.query(\`
+result = await db.query(`
   select public.my_role() as role,
          public.admin_login_is_admin() as is_admin,
          public.admin_secondary_password_status() as configured
-\`);
+`);
 assert.equal(result.rows[0].role, 'member', 'ordinary member role remains unchanged');
 assert.equal(result.rows[0].is_admin, false, 'ordinary member cannot pass the admin identity check');
 assert.equal(result.rows[0].configured, false);
@@ -153,11 +153,11 @@ assert.equal(result.rows[0].created, false, 'ordinary members cannot set an admi
 console.log('PASS ordinary member cannot configure or obtain admin access');
 
 await claimsFor(undefined, undefined);
-result = await db.query(\`
+result = await db.query(`
   select public.my_role() as role,
          public.admin_login_is_admin() as is_admin,
          public.admin_secondary_password_status() as configured
-\`);
+`);
 assert.equal(result.rows[0].role, null, 'anonymous caller has no role');
 assert.equal(result.rows[0].is_admin, false, 'anonymous caller is not an admin');
 assert.equal(result.rows[0].configured, false);

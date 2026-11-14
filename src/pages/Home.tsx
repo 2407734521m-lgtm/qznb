@@ -1,3 +1,4 @@
+import { BRAND_NAME, BRAND_SUBTITLE, resolveBrandTitle, resolveBrandSubtitle } from '../lib/brand';
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, useReducedMotion, useScroll, useTransform } from 'framer-motion';
@@ -49,8 +50,8 @@ export default function Home() {
     offset: ['start end', 'end start'],
   });
   const heroImageY = useTransform(heroScrollProgress, [0, 1], reduceMotion ? [0, 0] : [-16, 16]);
-  const [title, setTitle] = useState('堯');
-  const [subtitle, setSubtitle] = useState('连接人与内容');
+  const [title, setTitle] = useState(BRAND_NAME);
+  const [subtitle, setSubtitle] = useState(BRAND_SUBTITLE);
   const [bannerUrl, setBannerUrl] = useState('');
   const [bannerText, setBannerText] = useState('让分享与连接，自然发生。');
   const [notices, setNotices] = useState<any[]>([]);
@@ -74,8 +75,8 @@ export default function Home() {
         const { data: ss, error: settingsError } = await supabase.from('site_settings').select('key, value');
         if (!live) return;
         (ss ?? []).forEach((x: any) => {
-          if (x.key === 'site_title') setTitle(!x.value || ['我们的班级', 'class', 'class-youth-archive', '青春档案'].includes(x.value) ? '堯' : x.value);
-          if (x.key === 'site_subtitle') setSubtitle(!x.value || x.value === '青春档案' ? '连接人与内容' : x.value);
+          if (x.key === 'site_title') setTitle(resolveBrandTitle(x.value));
+          if (x.key === 'site_subtitle') setSubtitle(resolveBrandSubtitle(x.value));
           if (x.key === 'home_banner_url') setBannerUrl(x.value || '');
           if (x.key === 'home_banner_text') setBannerText(resolveHomeBannerTitle(x.value));
         });

@@ -107,7 +107,7 @@ Deno.serve(async (req: Request) => {
     const text = [
       '你好！',
       '',
-      `${requesterLabel} 在堯网站向你发送了一条好友申请。`,
+      `${requesterLabel} 在 Class Memory 网站向你发送了一条好友申请。`,
       '登录网站后，进入「私信」中的「请求」即可查看，并选择接受或拒绝。',
       '',
       '查看好友申请：https://qianzhi.pw/friends?tab=reqs',
@@ -128,7 +128,7 @@ Deno.serve(async (req: Request) => {
       },
       body: JSON.stringify({
         to: recipientEmail,
-        subject: '你收到了一条来自堯的好友申请',
+        subject: '你收到了一条来自 Class Memory 的好友申请',
         text,
         category: CATEGORY,
         source: SOURCE,

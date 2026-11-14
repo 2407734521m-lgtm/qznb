@@ -51,11 +51,11 @@ jobs:
               "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;"
             })[c]);
             const payload = {
-              from: "堯 <notice@qianzhi.pw>",
+              from: "Class Memory <notice@qianzhi.pw>",
               to: ["2407734521@qq.com"],
-              subject: "【堯】网站部署成功",
+              subject: "【Class Memory】网站部署成功",
               html: `<div style="font-family:Arial,sans-serif;line-height:1.7;color:#222">
-                <h2>堯网站已成功部署</h2>
+                <h2>Class Memory 网站已成功部署</h2>
                 <p>主站部署任务已完成。</p>
                 <p><b>分支：</b>${escapeHtml(process.env.BRANCH)}</p>
                 <p><b>提交：</b>${escapeHtml(process.env.COMMIT_SHA.slice(0,12))}</p>

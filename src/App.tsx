@@ -74,17 +74,21 @@ const AirInk = lazy(() => import('./pages/AirInk'));
 import { alertDialog } from './lib/dialog';
 import { resolveApproximateRegion, saveSharedRegion } from './lib/location';
 import GlobalSearch from './components/GlobalSearch';
+import { BRAND_NAME, BRAND_SUBTITLE, resolveBrandTitle, resolveBrandSubtitle } from './lib/brand';
 
-// Dock 保留四个最高频入口；其余页面通过长按 Dock 打开的玻璃快捷面板访问。
-const TABS = [
-  { to: '/home', label: '首页' },
-  { to: '/explore', label: '发现' },
-  { to: '/friends', label: '私聊' },
-  { to: '/me', label: '我的' },
+// Dock 保留五个高频入口：首页、班级、回忆、私聊、我的。
+// 发现、公告、消息等其余页面通过长按 Dock 打开的玻璃快捷面板访问。
+type DockKind = 'home' | 'members' | 'memories' | 'explore' | 'friends' | 'me';
+const TABS: { to: string; label: string; kind: DockKind }[] = [
+  { to: '/home', label: '首页', kind: 'home' },
+  { to: '/members', label: '班级', kind: 'members' },
+  { to: '/timeline', label: '回忆', kind: 'memories' },
+  { to: '/friends', label: '私聊', kind: 'friends' },
+  { to: '/me', label: '我的', kind: 'me' },
 ];
 
 function DockIcon({ kind, unread = false }: {
-  kind: 'home' | 'explore' | 'friends' | 'me';
+  kind: DockKind;
   unread?: boolean;
 }) {
   return (
@@ -115,6 +119,21 @@ function DockIcon({ kind, unread = false }: {
             <path d="M4.5 20c.8-3.1 3.4-4.9 7.5-4.9s6.7 1.8 7.5 4.9" />
           </>
         )}
+        {kind === 'members' && (
+          <>
+            <circle cx="9" cy="8.5" r="3" />
+            <path d="M3.5 19c.6-2.9 2.8-4.5 5.5-4.5s4.9 1.6 5.5 4.5" />
+            <path d="M15.5 5.8a3 3 0 0 1 0 5.4" />
+            <path d="M17.2 14.6c1.5.5 2.6 2 3 4.2" />
+          </>
+        )}
+        {kind === 'memories' && (
+          <>
+            <rect x="3.5" y="5" width="17" height="14" rx="2.5" />
+            <circle cx="9" cy="10" r="1.6" />
+            <path d="m4.5 17.2 4.6-4.1 3.2 2.9 2.2-2 4.9 4.2" />
+          </>
+        )}
       </svg>
       {unread && <i className="qz26-dock-unread" />}
     </span>
@@ -122,13 +141,12 @@ function DockIcon({ kind, unread = false }: {
 }
 
 const DOCK_MORE_TABS = [
+  { to: '/explore', label: '发现' },
   { to: '/board', label: '公告' },
-  { to: '/members', label: '班级' },
   { to: '/me/notifications', label: '消息' },
   { to: '/songs', label: '歌声墙' },
   { to: '/love-wall', label: '表白墙' },
   { to: '/daily', label: '日常' },
-  { to: '/timeline', label: '回忆' },
 ];
 
 // 从 UA 里提取设备型号（如 Android 的机型标识），供管理员在成员管理里查看
@@ -188,7 +206,7 @@ function ResetPassword({ onDone }: { onDone: () => void }) {
         <p className="sub">设 置 新 密 码</p>
         {ok ? (<>
           <p className="priv-note">✓ 密码已重置，下次用新密码登录</p>
-          <button className="pri" onClick={onDone}>进入青春档案</button>
+          <button className="pri" onClick={onDone}>进入 {BRAND_NAME}</button>
         </>) : (<>
           <label>新密码</label>
           <input type="password" value={pw} onChange={e => setPw(e.target.value)} placeholder="至少 8 位"
@@ -239,7 +257,7 @@ function MaintenanceScreen({ title, msg, hasSession, onLogout, onAccessGranted }
   return (<><div className="glow" /><div style={{ minHeight: '72vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
     <div className="login-card" style={{ textAlign: 'center', width: '100%', maxWidth: 430 }}>
       <h1 style={{ fontSize: 22 }}>{title || '系统维护中'}</h1>
-      <p className="sub">我们的班级 · 青春档案</p>
+      <p className="sub">{BRAND_NAME} · {BRAND_SUBTITLE}</p>
       <p style={{ fontSize: 15, lineHeight: 1.8, margin: '18px 0 22px' }}>{msg || '系统维护中，稍后再来'}</p>
       <label style={{ display: 'block', textAlign: 'left', marginBottom: 7 }}>临时访问验证码</label>
       <CodeInput value={code} onChange={v => { setCode(v); setError(''); }} onEnter={() => void redeem()} disabled={busy} />
@@ -273,8 +291,8 @@ function LoginClosedScreen({ onGuestLogin, showGuestEntry }: { onGuestLogin: () 
 function PublicLanding({ data, onLogin, onGuestLogin, showGuestEntry }: { data: any; onLogin: () => void; onGuestLogin: () => void; showGuestEntry: boolean }) {
   const nav = useNavigate();
   const notices = Array.isArray(data?.notices) ? data.notices : [];
-  const title = data?.site_title || '我们的班级';
-  const subtitle = data?.site_subtitle || '青春档案';
+  const title = resolveBrandTitle(data?.site_title);
+  const subtitle = resolveBrandSubtitle(data?.site_subtitle);
   const bannerText = data?.home_banner_text || '把我们的青春，留在这里';
   const bannerUrl = typeof data?.home_banner_url === 'string' && (data.home_banner_url.startsWith('https://') || data.home_banner_url.startsWith('http://')) ? data.home_banner_url : '';
   const heroImg = bannerUrl;
@@ -800,9 +818,8 @@ function Shell() {
     if (!siteConfig) return;
     const savedTitle = String(siteConfig.site_title || '').trim();
     const savedSubtitle = String(siteConfig.site_subtitle || '').trim();
-    const retiredBrandValues = ['我们的班级', '青春档案', 'class', 'class-youth-archive'];
-    const t = !savedTitle || retiredBrandValues.includes(savedTitle) ? '堯' : savedTitle;
-    const s = !savedSubtitle || retiredBrandValues.includes(savedSubtitle) ? '连接人与内容' : savedSubtitle;
+    const t = resolveBrandTitle(savedTitle);
+    const s = resolveBrandSubtitle(savedSubtitle);
     document.title = s ? `${t} · ${s}` : t;
   }, [siteConfig]);
 
@@ -950,7 +967,7 @@ function Shell() {
     return <MaintenanceScreen title={siteConfig.maintenance_title || ''} msg={siteConfig.maintenance_msg || ''} hasSession={!!session} onLogout={logout} onAccessGranted={() => setMaintenanceAccess(true)} />;
   }
 
-  // Build the four Dock items without a Hook here. This code is below
+  // Build the Dock items without a Hook here. This code is below
   // several intentional early returns (loading, login, maintenance), so using
   // useMemo here would change the Hook order between renders and crash App.
   const dockItems = TABS.map((tab) => ({
@@ -958,7 +975,7 @@ function Shell() {
     label: tab.label,
     icon: (
       <DockIcon
-        kind={tab.to === '/home' ? 'home' : tab.to === '/explore' ? 'explore' : tab.to === '/friends' ? 'friends' : 'me'}
+        kind={tab.kind}
         unread={tab.to === '/home' && boardUnread}
       />
     ),

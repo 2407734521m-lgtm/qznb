@@ -129,7 +129,7 @@ export default function MeHub() {
           </button>
           <div className="me-hub-identity">
             <strong>{name || '我的账号'}</strong>
-            <span>{username ? '@' + username : '堯用户'}</span>
+            <span>{username ? '@' + username : '班级成员'}</span>
             <small>管理你的资料、内容与账号设置</small>
           </div>
           <button className="me-hub-edit" onClick={() => nav('/me/edit?sec=base')}>编辑资料 <span>›</span></button>

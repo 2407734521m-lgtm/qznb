@@ -31,7 +31,7 @@ function getDeviceCoordinates(): Promise<{ latitude: number; longitude: number }
       error => reject(new Error(
         error.code === error.PERMISSION_DENIED
           ? inApp
-            ? '你没有允许应用定位。可以到系统设置里给「青春档案」打开定位权限，或手动填写城市/地区。'
+            ? '你没有允许应用定位。可以到系统设置里给「Class Memory」打开定位权限，或手动填写城市/地区。'
             : '你没有允许浏览器定位。可以重新授权，或手动填写城市/地区。'
           : error.code === error.TIMEOUT
             ? '获取位置超时，请稍后重试，或手动填写城市/地区。'

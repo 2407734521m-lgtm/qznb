@@ -61,7 +61,7 @@ Deno.serve(async (req: Request) => {
   const username = profile?.username || '';
 
   const text = [
-    '收到一条来自「我们的班级 · 青春档案」的用户反馈：',
+    '收到一条来自「Class Memory · 我们的班级」的用户反馈：',
     '',
     `反馈人：${who}${username ? `（@${username}）` : ''}${name ? `，自称：${name}` : ''}`,
     `联系方式：${contact || '（未填写）'}`,
@@ -81,7 +81,7 @@ Deno.serve(async (req: Request) => {
     },
     body: JSON.stringify({
       to: DEVELOPER_EMAIL,
-      subject: `我们的班级 · 青春档案 — 新反馈：${who}`,
+      subject: `Class Memory — 新反馈：${who}`,
       text,
       category: 'support_feedback',
       source: 'dev-feedback',

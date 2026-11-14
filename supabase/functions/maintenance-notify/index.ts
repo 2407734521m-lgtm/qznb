@@ -85,8 +85,8 @@ Deno.serve(async (req: Request) => {
   const list = rows ?? [];
   if (!list.length) return response({ sent: 0, failed: 0, total: 0 });
 
-  const subject = '我们的班级 · 青春档案 — 网站已恢复';
-  const text = '你好！\n\n我们的班级 · 青春档案的维护已经结束，网站恢复正常，现在可以回来啦。\n\n打开网站：https://qianzhi.pw/\n\n（你曾在维护期间留下这个邮箱接收恢复通知，本邮件只发送这一次。）';
+  const subject = 'Class Memory — 网站已恢复';
+  const text = '你好！\n\nClass Memory 的维护已经结束，网站恢复正常，现在可以回来啦。\n\n打开网站：https://qianzhi.pw/\n\n（你曾在维护期间留下这个邮箱接收恢复通知，本邮件只发送这一次。）';
 
   let sent = 0;
   let firstErrorCode = '';

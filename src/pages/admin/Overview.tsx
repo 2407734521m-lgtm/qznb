@@ -80,7 +80,7 @@ function ClientStatsCard() {
   useEffect(() => { void load(); }, []);
 
   const rows: [string, number][] = stats ? [
-    ['软件版（青春档案）', stats.app],
+    ['软件版（Class Memory）', stats.app],
     ['网页版', stats.web],
     ['管理版（青春管理）', stats.admin],
     ['未上报客户端', stats.unknown],

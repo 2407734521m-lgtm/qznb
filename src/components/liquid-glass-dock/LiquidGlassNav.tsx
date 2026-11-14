@@ -18,6 +18,15 @@ const CLICK_DEDUPE_MS = 500;
 // stops following the pointer and the gyroscope
 const STATIC_LIGHT: [number, number] = [0, 0];
 
+// 低内存（≤3GB）或低核数（≤4 核）的机器上，常驻的 WebGL 折射会明显耗电发热，直接退回 CSS 玻璃。
+function isLowEndDevice(): boolean {
+  const nav = navigator as Navigator & { deviceMemory?: number };
+  const memory = nav.deviceMemory;
+  const cores = nav.hardwareConcurrency;
+  return (typeof memory === 'number' && memory > 0 && memory <= 3)
+    || (typeof cores === 'number' && cores > 0 && cores <= 4);
+}
+
 const TAB_CLASS = 'webgl-liquid-glass-tab';
 // :focus-visible can't be written inline, so the ring ships as a <style>
 const TAB_CSS = `
@@ -394,7 +403,7 @@ export function LiquidGlassNav({
     try {
       // schedule() is hoisted; the renderer only ever calls it later, from a
       // context restore or a DPR change.
-      renderer = new LiquidGlassRenderer(canvas, () => schedule());
+      renderer = isLowEndDevice() ? null : new LiquidGlassRenderer(canvas, () => schedule());
     } catch (err) {
       console.warn(
         '[webgl-liquid-glass] WebGL unavailable, falling back to CSS-only glass:',

@@ -4,12 +4,14 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../auth';
 import BackButton from '../components/BackButton';
 import { confirmDialog } from '../lib/dialog';
+import { RowSkeleton } from '../components/fx/Skeleton';
 
 /** 我的留言 */
 export default function MeGreetings() {
   const nav = useNavigate();
   const me = useAuth().session!.user.id;
   const [list, setList] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [names, setNames] = useState<Record<string, string>>({});
   const [msg, setMsg] = useState('');
 
@@ -26,6 +28,7 @@ export default function MeGreetings() {
       (ps ?? []).forEach((p: any) => { m[p.id] = p.display_name || p.username; });
       setNames(m);
     }
+    setLoading(false);
   }
   useEffect(() => { load(); }, []);
 
@@ -38,9 +41,10 @@ export default function MeGreetings() {
   return (
     <div className="page" style={{ paddingBottom: 110 }}>
       <BackButton fallback="/me" />
-      <h2 style={{ margin: '4px 0 12px', fontSize: 20 }}>我的留言（{list.length}）</h2>
+      <h2 style={{ margin: '4px 0 12px', fontSize: 20 }}>我的留言（{loading ? '…' : list.length}）</h2>
       {msg && <p className="priv-note">{msg}</p>}
-      {list.length === 0 && (
+      {loading && <RowSkeleton count={3} />}
+      {!loading && list.length === 0 && (
         <div className="card" style={{ textAlign: 'center', color: 'var(--mut)', padding: '36px 14px' }}>
           <div style={{ marginBottom: 10 }}>还没有留过言</div>
           <button className="pri" style={{ width: 'auto', padding: '9px 26px' }} onClick={() => nav('/greetings')}>去留言墙看看</button>

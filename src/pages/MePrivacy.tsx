@@ -5,6 +5,7 @@ import { withRetry } from '../lib/retry';
 import { confirmDialog } from '../lib/dialog';
 import { resolveApproximateRegion, revokeSharedRegion, saveSharedRegion } from '../lib/location';
 import SettingsShell from '../components/SettingsShell';
+import { RowSkeleton } from '../components/fx/Skeleton';
 
 // 与编辑资料页隐私折叠栏同一批开关、同一张 profile_privacy 表（2026-11-07 从设置页拆成独立子页）。
 const ROWS: [string, string][] = [
@@ -131,7 +132,7 @@ export default function MePrivacy() {
   return (
     <SettingsShell title="隐私设置">
       <p>哪些资料对其他成员公开，点一下开关就行{loaded ? `（${openCount}/${ROWS.length} 项公开）` : ''}</p>
-      {ROWS.map(([flag, label]) => (
+      {!loaded ? <RowSkeleton count={4} /> : ROWS.map(([flag, label]) => (
         <label key={flag} className="qz-sub-row"><span>{label}</span>
           <input type="checkbox" disabled={!loaded} checked={!!priv[flag]} onChange={() => void toggle(flag)} />
         </label>
@@ -151,7 +152,7 @@ export default function MePrivacy() {
         <div style={{ padding: 12, borderRadius: 12, border: '1px solid var(--qz26-border, #e4e8ee)', background: 'var(--qz26-surface, #fff)' }}>
           <div style={{ fontSize: 12, color: 'var(--qz26-muted, #697586)' }}>当前状态</div>
           <div style={{ marginTop: 4, fontSize: 14, fontWeight: 700, color: 'var(--qz26-ink, #243044)' }}>
-            {locationLoading ? '正在读取…' : sharedLocation ? sharedLocation : '未分享所在地区'}
+            {locationLoading ? <span className="fx-skel-wrap" style={{ display: 'inline-block', width: 130, height: 15, verticalAlign: 'middle' }}><span className="fx-skel" style={{ display: 'block', width: '100%', height: '100%' }} /></span> : sharedLocation ? sharedLocation : '未分享所在地区'}
           </div>
         </div>
         {!sharedLocation && (

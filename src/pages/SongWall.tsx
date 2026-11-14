@@ -5,6 +5,7 @@ import { useSignedUrl } from '../lib/media';
 import type { SongWallPost as Song, PublicSongWallPost } from '../types/song';
 import { fetchReviewEstimates, estimateText, type ReviewEstimates } from '../lib/reviewEstimate';
 import { confirmDialog } from '../lib/dialog';
+import { FeedSkeleton } from '../components/fx/Skeleton';
 
 function SongCard({ song, mine, estText, onDelete, deleting }: { song: Song | PublicSongWallPost; mine: boolean; estText?: string; onDelete?: (song: Song) => void; deleting?: boolean }) {
   const url = useSignedUrl('song-audio', song.audio_path);
@@ -19,7 +20,7 @@ function SongCard({ song, mine, estText, onDelete, deleting }: { song: Song | Pu
     </div>
     {estText && <div style={{ color: '#606673', fontSize: 11, marginTop: 6 }}>{estText}</div>}
     {song.description && <p style={{ color: '#333946', fontSize: 12, lineHeight: 1.7, margin: '9px 0' }}>{song.description}</p>}
-    {url ? <audio controls preload="none" src={url} style={{ width: '100%', height: 36, marginTop: 8 }} /> : <div style={{ color: '#606673', fontSize: 11, marginTop: 10 }}>音频链接加载中…</div>}
+    {url ? <audio controls preload="none" src={url} style={{ width: '100%', height: 36, marginTop: 8 }} /> : <div className="fx-skel-wrap" role="status" aria-label="音频链接加载中" style={{ marginTop: 8 }}><div className="fx-skel" style={{ width: '100%', height: 36 }} /></div>}
     {mine && 'author_id' in song && <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 9 }}><button disabled={deleting} onClick={() => onDelete?.(song)} style={{ border: '1px solid #f0caca', borderRadius: 999, padding: '6px 11px', background: '#fff8f8', color: '#a33b3b', fontSize: 11, cursor: deleting ? 'wait' : 'pointer' }}>{deleting ? '删除中…' : '删除我的投稿'}</button></div>}
   </article>;
 }
@@ -27,6 +28,7 @@ function SongCard({ song, mine, estText, onDelete, deleting }: { song: Song | Pu
 export default function SongWall() {
   const { session } = useAuth();
   const [songs, setSongs] = useState<PublicSongWallPost[]>([]);
+  const [loading, setLoading] = useState(true);
   const [mySongs, setMySongs] = useState<Song[]>([]);
   const [mine, setMine] = useState(false);
   const [title, setTitle] = useState('');
@@ -39,7 +41,7 @@ export default function SongWall() {
 
   async function load() {
     const { data, error } = await supabase.rpc('song_wall_published');
-    if (error) { setNotice('歌声墙暂时无法加载，请稍后重试。'); return; }
+    if (error) { setNotice('歌声墙暂时无法加载，请稍后重试。'); setLoading(false); return; }
     setSongs((data || []) as PublicSongWallPost[]);
     if (session) {
       const { data: mineData, error: mineError } = await supabase.from('song_posts')
@@ -53,6 +55,7 @@ export default function SongWall() {
         else setEstimates(null);
       }
     } else { setMySongs([]); setEstimates(null); }
+    setLoading(false);
   }
   useEffect(() => { void load(); }, [session?.user.id]);
 
@@ -140,11 +143,12 @@ export default function SongWall() {
       <button onClick={() => setMine(v => !v)} style={ghost}>{mine ? '返回歌声墙' : '我的投稿'}</button>
     </div>
     <div style={{ display: 'grid', gap: 10 }}>
+      {loading && <FeedSkeleton count={3} />}
       {visible.map(song => {
         const est = mine && 'status' in song && song.status === 'pending' ? estimates?.byId.get(song.id) : undefined;
         return <SongCard key={song.id} song={song} mine={mine} estText={est ? estimateText(est, estimates?.adminActive ?? false) : undefined} onDelete={deleteSong} deleting={deletingId === song.id} />;
       })}
-      {!visible.length && <div style={{ textAlign: 'center', padding: 24, border: '1px dashed #dfe3ea', borderRadius: 14, color: '#606673', fontSize: 12 }}>{mine ? '你还没有投稿。' : '还没有公开作品，来发布第一段歌声吧。'}</div>}
+      {!loading && !visible.length && <div style={{ textAlign: 'center', padding: 24, border: '1px dashed #dfe3ea', borderRadius: 14, color: '#606673', fontSize: 12 }}>{mine ? '你还没有投稿。' : '还没有公开作品，来发布第一段歌声吧。'}</div>}
     </div>
   </main>;
 }

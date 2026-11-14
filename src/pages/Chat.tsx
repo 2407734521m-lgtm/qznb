@@ -102,7 +102,7 @@ function MessageContent({ body }: { body: string }) {
   const fileName = fileParts && fileParts[1] ? fileParts[1] : '文件';
   const fileSize = fileParts && fileParts[2] ? Number(fileParts[2]) : 0;
   const url = useSignedUrl('chat-media', imagePath ?? audioPath ?? filePath);
-  if (imagePath) return url ? <MessageImagePreview url={url} /> : <div className="im-photo-loading">图片加载中…</div>;
+  if (imagePath) return url ? <MessageImagePreview url={url} /> : <div className="fx-skel-wrap" role="status" aria-label="图片加载中"><div className="fx-skel" style={{ width: 220, height: 140, maxWidth: '68vw', borderRadius: 14 }} /></div>;
   if (filePath) return url ? (
     <a className="im-file-card" href={url} target="_blank" rel="noreferrer">
       <span className="im-file-icon" aria-hidden="true">{fileExtLabel(fileName)}</span>
@@ -112,8 +112,8 @@ function MessageContent({ body }: { body: string }) {
       </span>
       <span className="im-file-open" aria-hidden="true">›</span>
     </a>
-  ) : <div className="im-photo-loading">文件加载中…</div>;
-  if (audioPath) return url ? <div className="im-audio-card"><div className="im-audio-symbol">▶</div><div className="im-audio-main"><div className="im-waveform" aria-hidden="true">{Array.from({ length: 34 }, (_, i) => <i key={i} style={{ height: (5 + ((i * 7 + 3) % 17)) + 'px' }} />)}</div><audio controls preload="metadata" src={url} aria-label="语音消息播放" /></div></div> : <div className="im-photo-loading">语音加载中…</div>;
+  ) : <div className="fx-skel-wrap" role="status" aria-label="文件加载中"><div className="fx-skel" style={{ width: 200, height: 44, maxWidth: '68vw', borderRadius: 12 }} /></div>;
+  if (audioPath) return url ? <div className="im-audio-card"><div className="im-audio-symbol">▶</div><div className="im-audio-main"><div className="im-waveform" aria-hidden="true">{Array.from({ length: 34 }, (_, i) => <i key={i} style={{ height: (5 + ((i * 7 + 3) % 17)) + 'px' }} />)}</div><audio controls preload="metadata" src={url} aria-label="语音消息播放" /></div></div> : <div className="fx-skel-wrap" role="status" aria-label="语音加载中"><div className="fx-skel" style={{ width: 240, height: 60, maxWidth: '68vw', borderRadius: 12 }} /></div>;
   return <>{body}</>;
 }
 
@@ -164,6 +164,7 @@ export default function Chat() {
   const [name, setName] = useState(loc.state?.name ?? '聊天');
   const [peer, setPeer] = useState<ChatPeer | null>(null);
   const [msgs, setMsgs] = useState<ChatMessage[]>([]);
+  const [loadingMsgs, setLoadingMsgs] = useState(true);
   const [text, setText] = useState('');
   const [outbox, setOutbox] = useState<OutboxEntry[]>([]);
   const outboxSeqRef = useRef(0);
@@ -254,7 +255,7 @@ export default function Chat() {
 
   async function load() {
     const requestId = ++loadSequenceRef.current;
-    if (!cid || !Number.isFinite(Number(cid))) return;
+    if (!cid || !Number.isFinite(Number(cid))) { setLoadingMsgs(false); return; }
     const conversationId = Number(cid);
     const { data, error: loadError } = await supabase.from('messages').select('*')
       .eq('conversation_id', conversationId).order('created_at');
@@ -275,8 +276,10 @@ export default function Chat() {
       }
     } else if (loadError) {
       setError('消息加载失败，请检查网络后重试。');
+      setLoadingMsgs(false);
       return;
     }
+    setLoadingMsgs(false);
 
     const { data: members } = await supabase.from('conversation_members')
       .select('profile_id,last_receipt_message_id')
@@ -954,7 +957,17 @@ export default function Chat() {
       </div>}
       <main className="im-feed">
         {msgs.length === 0 && outbox.length === 0 ? (
-          <div className="im-empty"><div style={{fontWeight:750,color:'#f5fbff',fontSize:16}}>新的开始</div><p style={{fontSize:13,lineHeight:1.7}}>发出第一条消息，开启你们的对话吧。</p></div>
+          loadingMsgs ? (
+            <div role="status" aria-label="消息加载中" style={{ padding: '18px 14px' }}>
+              {[0, 1, 2].map(i => (
+                <div key={i} className="fx-skel-wrap" style={{ marginBottom: 12, display: 'flex', justifyContent: i % 2 ? 'flex-end' : 'flex-start' }}>
+                  <div className="fx-skel" style={{ width: (58 - i * 8) + '%', height: 40, borderRadius: 18 }} />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="im-empty"><div style={{fontWeight:750,color:'#f5fbff',fontSize:16}}>新的开始</div><p style={{fontSize:13,lineHeight:1.7}}>发出第一条消息，开启你们的对话吧。</p></div>
+          )
         ) : (<AnimatePresence initial={false}>{msgs.map((m, i) => {
           const parent = m.reply_to_id ? msgs.find(item => item.id === m.reply_to_id) : null;
           const groups = reactionGroups(m.id);

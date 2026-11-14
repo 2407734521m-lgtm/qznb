@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../auth';
 import BackButton from '../components/BackButton';
+import { RowSkeleton } from '../components/fx/Skeleton';
 
 type RecordItem = { id: string; title: string; detail: string; at: string; href: string };
 type BadgeItem = { title: string; note: string; earned: boolean; date?: string; mark: string };
@@ -155,7 +156,7 @@ export default function MeGrowth() {
       </header>
       <section className="card" style={{ marginBottom: 12, background: 'linear-gradient(130deg,#164e63,#278b91)', color: '#fff' }}>
         <div style={{ fontSize: 12, opacity: .8 }}>社区活跃天数</div>
-        <div style={{ fontSize: 38, fontWeight: 800, margin: '5px 0' }}>{loading || activeDays === null ? '—' : activeDays}</div>
+        <div style={{ fontSize: 38, fontWeight: 800, margin: '5px 0' }}>{loading || activeDays === null ? <span className="fx-skel-wrap" style={{ display: 'inline-block', width: 60, height: 38, verticalAlign: 'middle' }}><span className="fx-skel" style={{ display: 'block', width: '100%', height: '100%' }} /></span> : activeDays}</div>
         <div style={{ fontSize: 11, opacity: .82 }}>按发布、评论、上传、留言和活动报名的全部历史日期统计，不再受列表分页上限影响</div>
         <div style={{ fontSize: 11, opacity: .75, marginTop: 8 }}>加入日期：{dateLabel(joinedAt)}</div>
       </section>
@@ -164,7 +165,7 @@ export default function MeGrowth() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 10 }}>
           {Object.entries({ '发布动态': counts?.posts, '参与评论': counts?.comments, '上传照片': counts?.photos, '公告留言': counts?.notices, '活动报名': counts?.events }).map(([label, value]) =>
             <div key={label} style={{ padding: 12, borderRadius: 13, background: '#f4f8f9' }}>
-              <div style={{ fontSize: 23, fontWeight: 800, color: '#176477' }}>{loading || value === undefined || value === null ? '—' : value}</div>
+              <div style={{ fontSize: 23, fontWeight: 800, color: '#176477' }}>{loading || value === undefined || value === null ? <span className="fx-skel-wrap" style={{ display: 'inline-block', width: 34, height: 23, verticalAlign: 'middle' }}><span className="fx-skel" style={{ display: 'block', width: '100%', height: '100%' }} /></span> : value}</div>
               <div style={{ fontSize: 11, color: '#71838b' }}>{label}</div>
             </div>
           )}
@@ -202,7 +203,7 @@ export default function MeGrowth() {
           <h2 style={{ fontSize: 15, margin: 0 }}>班级活动参与记录</h2>
           <button className="mini ghost" onClick={() => nav('/events')}>查看活动 ›</button>
         </div>
-        {eventRecords.length === 0 ? <p style={{ color: 'var(--mut)', fontSize: 12 }}>还没有活动报名记录</p> : eventRecords.slice(0, 10).map(item =>
+        {loading ? null : eventRecords.length === 0 ? <p style={{ color: 'var(--mut)', fontSize: 12 }}>还没有活动报名记录</p> : eventRecords.slice(0, 10).map(item =>
           <div key={item.id} style={{ padding: '10px 0', borderBottom: '1px solid #edf1f3' }}>
             <b style={{ fontSize: 12 }}>{item.detail}</b><div style={{ fontSize: 10, color: 'var(--mut)', marginTop: 3 }}>{dateLabel(item.at)} · 已报名</div>
           </div>
@@ -210,7 +211,7 @@ export default function MeGrowth() {
       </section>
       <section className="card">
         <h2 style={{ fontSize: 15, margin: '0 0 8px' }}>最近贡献记录 <span style={{ fontSize: 11, color: 'var(--mut)', fontWeight: 400 }}>最近 40 条</span></h2>
-        {loading && <p style={{ color: 'var(--mut)', fontSize: 12 }}>正在整理你的记录…</p>}
+        {loading && <RowSkeleton count={3} />}
         {error && <p className="err" role="alert">{error}</p>}
         {!loading && records.length === 0 && <p style={{ color: 'var(--mut)', fontSize: 12 }}>还没有可展示的贡献记录</p>}
         {records.map(item => <button key={item.id} onClick={() => nav(item.href)} style={{ width: '100%', display: 'block', textAlign: 'left', padding: '10px 0', border: 0, borderBottom: '1px solid #edf1f3', background: 'transparent', color: 'inherit' }}>

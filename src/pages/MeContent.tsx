@@ -96,12 +96,12 @@ export default function MeContent() {
       {error && <div className="card err" role="alert">{error}<button className="mini ghost" onClick={() => void load()}>重新加载</button></div>}
       <section className="card" style={{ marginBottom: 12 }}>
         <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-          <strong>内容总览</strong><span style={{ fontSize: 11, color: 'var(--mut)' }}>{loading ? '正在统计…' : '实时查询'}</span>
+          <strong>内容总览</strong><span style={{ fontSize: 11, color: 'var(--mut)' }}>{loading ? <span className="fx-skel-wrap" style={{ display: 'inline-block', width: 52, height: 11, verticalAlign: 'middle' }}><span className="fx-skel" style={{ display: 'block', width: '100%', height: '100%' }} /></span> : '实时查询'}</span>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,minmax(0,1fr))', gap: 9, marginTop: 12 }}>
           {SECTIONS.slice(0, 9).map(item => <button key={item.key} onClick={() => nav(item.to)}
             style={{ border: '1px solid #e6edf0', borderRadius: 13, padding: '11px 7px', background: '#f8fbfc', color: '#244351', textAlign: 'center' }}>
-            <strong style={{ display: 'block', fontSize: 22, lineHeight: 1.3 }}>{loading ? '—' : counts?.[item.key] ?? 0}</strong>
+            <strong style={{ display: 'block', fontSize: 22, lineHeight: 1.3 }}>{loading ? <span className="fx-skel-wrap" style={{ display: 'inline-block', width: 30, height: 22, verticalAlign: 'middle' }}><span className="fx-skel" style={{ display: 'block', width: '100%', height: '100%' }} /></span> : counts?.[item.key] ?? 0}</strong>
             <span style={{ display: 'block', fontSize: 11, marginTop: 3 }}>{item.mark}</span>
           </button>)}
         </div>
@@ -111,7 +111,7 @@ export default function MeContent() {
           style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', textAlign: 'left', border: '1px solid #e7eef0', color: 'inherit' }}>
           <span style={{ width: 42, height: 42, flex: '0 0 42px', borderRadius: 13, display: 'grid', placeItems: 'center', background: '#eaf4f5', color: '#176477', fontSize: 12, fontWeight: 800 }}>{item.mark}</span>
           <span style={{ minWidth: 0, flex: 1 }}>
-            <strong style={{ display: 'block', fontSize: 13 }}>{item.title} · {loading ? '—' : counts?.[item.key] ?? 0}</strong>
+            <strong style={{ display: 'block', fontSize: 13 }}>{item.title} · {loading ? <span className="fx-skel-wrap" style={{ display: 'inline-block', width: 20, height: 12, verticalAlign: 'middle' }}><span className="fx-skel" style={{ display: 'block', width: '100%', height: '100%' }} /></span> : counts?.[item.key] ?? 0}</strong>
             <small style={{ display: 'block', color: 'var(--mut)', fontSize: 11, lineHeight: 1.5, marginTop: 3 }}>{item.description}</small>
           </span>
           <span aria-hidden style={{ color: 'var(--mut)', fontSize: 20 }}>›</span>

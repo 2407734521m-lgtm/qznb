@@ -9,6 +9,7 @@ import BlurImg from '../components/fx/BlurImg';
 import { useCall } from '../lib/call';
 import { goBackOr } from '../components/BackButton';
 import { confirmDialog } from '../lib/dialog';
+import { toast } from 'sonner';
 import type { ChatMessage } from '../types/message';
 import { useUserPreferences } from '../lib/userPreferences';
 import { SPRING_SNAPPY } from '../lib/motion';
@@ -755,8 +756,9 @@ export default function Chat() {
     try {
       await navigator.clipboard.writeText(content);
       setActionFor(null);
+      toast.success('已复制');
     } catch {
-      setError('复制失败，请检查浏览器剪贴板权限。');
+      toast.error('复制失败，请检查浏览器剪贴板权限。');
     }
   }
 

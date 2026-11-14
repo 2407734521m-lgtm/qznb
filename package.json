@@ -8,6 +8,7 @@
     "build": "vite build",
     "typecheck": "tsc --noEmit",
     "preview": "vite preview",
+    "test:e2e": "playwright test",
     "types:gen": "bash scripts/gen-types.sh",
     "check:styles": "node scripts/check-style-contracts.mjs",
     "check:admin-styles": "node scripts/check-admin-style-contracts.mjs",
@@ -21,13 +22,16 @@
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "react-router-dom": "^7.18.5",
-    "simple-liquid-glass": "^5.7.0"
+    "simple-liquid-glass": "^5.7.0",
+    "sonner": "^2.0.8"
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.5.16",
+    "@playwright/test": "1.64.0",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.2.1",
+    "playwright": "1.64.0",
     "typescript": "^7.0.2",
     "vite": "^8.3.5"
   }

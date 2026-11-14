@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase';
 import { card, h3, mut } from '../pages/admin/shared';
 import AdminSoftwareOperations from './AdminSoftwareOperations';
 import { confirmDialog } from '../lib/dialog';
+import { toast } from 'sonner';
 
 const KEYS = ['app_version_name', 'app_version_code', 'app_apk_url', 'app_update_notes', 'app_force_update', 'app_min_code',
   'admin_app_version_name', 'admin_app_version_code', 'admin_app_apk_url', 'admin_app_update_notes', 'admin_app_force_update', 'admin_app_min_code'];
@@ -121,9 +122,9 @@ export default function AdminAppCenter({ setMsg }: { setMsg: (s: string) => void
     if (!url) { setMsg('还没填下载地址。'); return; }
     try {
       await navigator.clipboard.writeText(url);
-      setMsg('下载链接已复制，去班群粘贴发送即可。');
+      toast.success('下载链接已复制，去班群粘贴发送即可。');
     } catch {
-      setMsg('自动复制失败，链接在上面，长按就能复制。');
+      toast.error('自动复制失败，链接在上面，长按就能复制。');
     }
   }
 

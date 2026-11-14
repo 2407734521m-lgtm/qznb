@@ -1,0 +1,40 @@
+/* Sonner Toast 纸面冷白：覆盖默认深色外观，只改 Toast 自身样式，不动全局颜色 token。
+   冷白定稿：白底 #ffffff、墨色字 #1f2a3a、描边 #e5e8ea；错误态用印泥红 #b0404f 点缀。
+   成功态图标用墨色，不引入绿色/深海蓝。 */
+[data-sonner-toaster] {
+  --normal-bg: #ffffff;
+  --normal-border: #e5e8ea;
+  --normal-text: #1f2a3a;
+  --success-bg: #ffffff;
+  --success-border: #e5e8ea;
+  --success-text: #1f2a3a;
+  --error-bg: #ffffff;
+  --error-border: #e5e8ea;
+  --error-text: #1f2a3a;
+  --info-bg: #ffffff;
+  --info-border: #e5e8ea;
+  --info-text: #1f2a3a;
+  --warning-bg: #ffffff;
+  --warning-border: #e5e8ea;
+  --warning-text: #1f2a3a;
+}
+
+[data-sonner-toast] {
+  background: #ffffff !important;
+  color: #1f2a3a !important;
+  border: 1px solid #e5e8ea !important;
+  box-shadow: 0 8px 24px rgba(31, 42, 58, 0.12) !important;
+}
+
+/* 错误态：左侧印泥红线 + 红色图标；成功态图标用墨色。 */
+[data-sonner-toast][data-type='error'] {
+  border-left: 3px solid #b0404f !important;
+}
+
+[data-sonner-toast][data-type='error'] [data-icon] {
+  color: #b0404f !important;
+}
+
+[data-sonner-toast][data-type='success'] [data-icon] {
+  color: #1f2a3a !important;
+}

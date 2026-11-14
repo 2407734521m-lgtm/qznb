@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
+import { AnimatePresence, LayoutGroup, motion, useReducedMotion } from 'framer-motion';
 import { useLocation, useNavigate } from 'react-router-dom';
 import './MusicIsland.css';
 
@@ -318,17 +318,24 @@ function MusicIsland() {
                   scale: { duration: 0.42, ease: [0.16, 1, 0.3, 1], delay: 0.04 },
                 } }
           >
-            <AnimatePresence mode="wait" initial={false}>
+            <LayoutGroup id="qz-music-island">
+              <AnimatePresence mode="sync" initial={false}>
               {expanded ? (
                 <motion.section
                   key="expanded"
                   className="qz-music-island qz-music-island-expanded"
+                  layoutId="qz-music-island-shell"
                   initial={reduceMotion ? false : { opacity: 0, y: -7, scale: 0.985 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: -4, scale: 0.99 }}
                   transition={reduceMotion
                     ? { duration: 0 }
-                    : { opacity: { duration: 0.16 }, y: { duration: 0.2, ease: [0.2, 0.8, 0.2, 1] }, scale: { duration: 0.2, ease: [0.2, 0.8, 0.2, 1] } }}
+                    : {
+                        layout: { duration: 0.38, ease: [0.22, 1, 0.36, 1] },
+                        opacity: { duration: 0.18, ease: [0.2, 0.8, 0.2, 1] },
+                        y: { duration: 0.22, ease: [0.2, 0.8, 0.2, 1] },
+                        scale: { duration: 0.22, ease: [0.2, 0.8, 0.2, 1] },
+                      }}
                   style={{ transformOrigin: 'top center' }}
                   aria-label="音乐控制面板"
                 >
@@ -340,9 +347,9 @@ function MusicIsland() {
                   </div>
                   <button type="button" className="qz-music-island-track" onClick={() => navigate('/music')}>
                     {track.coverUrl ? (
-                      <motion.img className="qz-music-island-cover" src={track.coverUrl} alt="" />
+                      <motion.img layoutId="qz-music-island-cover" className="qz-music-island-cover" src={track.coverUrl} alt="" />
                     ) : (
-                      <motion.span className="qz-music-island-cover qz-music-island-cover-fallback" aria-hidden="true">♫</motion.span>
+                      <motion.span layoutId="qz-music-island-cover" className="qz-music-island-cover qz-music-island-cover-fallback" aria-hidden="true">♫</motion.span>
                     )}
                     <span className="qz-music-island-track-copy">
                       <strong>{track.title}</strong>
@@ -392,10 +399,17 @@ function MusicIsland() {
                 <motion.div
                   key="collapsed"
                   className="qz-music-island qz-music-island-collapsed"
+                  layoutId="qz-music-island-shell"
                   initial={false}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.985 }}
-                  transition={reduceMotion ? { duration: 0 } : { opacity: { duration: 0.12 }, scale: { duration: 0.16 } }}
+                  transition={reduceMotion
+                    ? { duration: 0 }
+                    : {
+                        layout: { duration: 0.38, ease: [0.22, 1, 0.36, 1] },
+                        opacity: { duration: 0.16, ease: [0.2, 0.8, 0.2, 1] },
+                        scale: { duration: 0.2, ease: [0.2, 0.8, 0.2, 1] },
+                      }}
                 >
                   <button
                     type="button"
@@ -404,9 +418,9 @@ function MusicIsland() {
                     aria-label={'展开播放器：' + track.title}
                   >
                     {track.coverUrl ? (
-                      <motion.img className="qz-music-island-mini-cover" src={track.coverUrl} alt="" />
+                      <motion.img layoutId="qz-music-island-cover" className="qz-music-island-mini-cover" src={track.coverUrl} alt="" />
                     ) : (
-                      <motion.span className="qz-music-island-mini-cover qz-music-island-cover-fallback" aria-hidden="true">♫</motion.span>
+                      <motion.span layoutId="qz-music-island-cover" className="qz-music-island-mini-cover qz-music-island-cover-fallback" aria-hidden="true">♫</motion.span>
                     )}
                     <span className="qz-music-island-mini-title">{track.title}</span>
                     <span className={'qz-music-equalizer ' + (track.isPlaying ? 'is-playing' : '')} aria-hidden="true"><i /><i /><i /><i /></span>
@@ -423,7 +437,8 @@ function MusicIsland() {
                   </button>
                 </motion.div>
               )}
-            </AnimatePresence>
+              </AnimatePresence>
+            </LayoutGroup>
           </motion.div>
         )}
       </AnimatePresence>

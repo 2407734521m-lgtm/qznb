@@ -739,7 +739,7 @@ function Shell() {
     window.addEventListener('focus', onFocus);
     document.addEventListener('visibilitychange', onFocus);
     return () => { alive = false; window.clearInterval(timer); window.removeEventListener('focus', onFocus); document.removeEventListener('visibilitychange', onFocus); };
-  }, [siteConfig?.maintenance, loc.pathname]);
+  }, [siteConfig?.maintenance, siteConfig?.maintenance_access_codes_enabled, loc.pathname]);
   useEffect(() => {
     let alive = true;
     let inFlight = false;

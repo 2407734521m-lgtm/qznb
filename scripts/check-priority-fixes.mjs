@@ -94,6 +94,8 @@ assert.match(adminSettings, /vals\.maintenance_access_codes_enabled === 'true'[\
   'code creation tools must remain hidden when visitor code access is disabled');
 assert.match(adminApp, /allowCode\s*\?\s*<>[\s\S]*?临时访问码/,
   'maintenance page must only show visitor code entry when explicitly enabled');
+assert.match(adminApp, /siteConfig\?\.maintenance, siteConfig\?\.maintenance_access_codes_enabled, loc\.pathname/,
+  'changing the visitor code switch must immediately revalidate active maintenance access');
 assert.match(adminWorkspace, /descriptionFor\(item\.id\)[\s\S]*?toLocaleLowerCase\(\)\.includes\(value\)/,
   'admin command search must search feature descriptions, not titles only');
 assert.match(maintenanceToggle, /maintenance_access_codes_disabled_revoke[\s\S]*?access_sessions[\s\S]*?revoked_at/,

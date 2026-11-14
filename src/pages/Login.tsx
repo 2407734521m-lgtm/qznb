@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { supabase } from '../lib/supabase';
+import { trustedLoginAvailable } from '../lib/trustedLogin';
 import FeedbackModal from '../components/FeedbackModal';
 import VisitCounter from '../components/VisitCounter';
 import PasswordField from '../components/PasswordField';
@@ -47,6 +48,10 @@ export default function Login({ siteTitle, siteSubtitle, onGuestLogin }: { siteT
   const PRIVACY_POLICY_VERSION = '2026-11-07-v3';
   const [ident, setIdent] = useState(''); // 登录标识
   const [pw, setPw] = useState('');
+  const [rememberDevice, setRememberDevice] = useState(false);
+  const [usernameThrottled, setUsernameThrottled] = useState(false);
+  const [recoveryMessage, setRecoveryMessage] = useState('');
+  const emailRecoveryEnabled = import.meta.env.VITE_USERNAME_EMAIL_RECOVERY_ENABLED === 'true';
   const [name, setName] = useState('');
   const [real, setReal] = useState('');
   const [email, setEmail] = useState('');
@@ -113,11 +118,32 @@ export default function Login({ siteTitle, siteSubtitle, onGuestLogin }: { siteT
     errorRef.current?.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'center' });
   }, [err, mode, reduce]);
 
+  async function requestEmailLogin() {
+    const username = ident.trim();
+    if (!username || username.includes('@') || busy) return;
+    setBusy(true); setRecoveryMessage('');
+    try {
+      const { error } = await supabase.functions.invoke('username-login', { body: { action: 'email_recovery', username } });
+      if (error) throw error;
+      setRecoveryMessage('若账号已验证可用邮箱且未超过限额，将收到登录链接；未绑定或未启用时请联系管理员核验。');
+    } catch { setRecoveryMessage('暂时无法请求登录链接，请稍后再试。'); }
+    finally { setBusy(false); }
+  }
+  async function forgetDevice() {
+    setBusy(true); setRecoveryMessage('');
+    try {
+      const { data, error } = await supabase.functions.invoke('username-login', { body: { action: 'revoke_device' } });
+      if (error || !data?.ok) throw new Error();
+      setRecoveryMessage('已取消本浏览器的设备信任。');
+    } catch { setRecoveryMessage('取消设备信任失败，请稍后重试。'); }
+    finally { setBusy(false); }
+  }
+
   async function doLogin() {
     const id = ident.trim();
     if (!id) return setErr('请输入登录账号');
     if (!pw) return setErr('请输入密码');
-    setErr(''); setBusy(true);
+    setErr(''); setBusy(true); setUsernameThrottled(false); setRecoveryMessage('');
     let em = '';
     try {
       // Persist the start time BEFORE starting authentication. The auth-state
@@ -133,11 +159,11 @@ export default function Login({ siteTitle, siteSubtitle, onGuestLogin }: { siteT
         if (error) throw error;
       } else {
         const { data, error } = await supabase.functions.invoke('username-login', {
-          body: { username: id, password: pw },
+          body: { username: id, password: pw, remember_device: trustedLoginAvailable && rememberDevice },
         });
         if (error) throw error;
         if (data?.code === 'email_not_confirmed') throw new Error('USERNAME_EMAIL_NOT_CONFIRMED');
-        if (data?.code === 'rate_limited') throw new Error('USERNAME_LOGIN_RATE_LIMITED');
+        if (data?.code === 'rate_limited') { setUsernameThrottled(true); throw new Error('USERNAME_LOGIN_RATE_LIMITED'); }
         if (!data?.ok || !data?.session?.access_token || !data?.session?.refresh_token) {
           throw new Error('Invalid login credentials');
         }
@@ -406,13 +432,26 @@ export default function Login({ siteTitle, siteSubtitle, onGuestLogin }: { siteT
             <p className="login-switch"><button onClick={() => { setVerifyEmail(null); setCode(''); setErr(''); }}>← 返回</button></p>
           </>) : mode === 'login' ? (<>
             <FloatField label="账号" value={ident} error={terr('ident', ident.trim() ? null : '请输入登录账号')}>
-              <input value={ident} onChange={e => setIdent(e.target.value)} onBlur={touch('ident')} placeholder="QQ 邮箱 / 用户名" autoComplete="username" aria-label="账号" />
+              <input value={ident} onChange={e => { setIdent(e.target.value); setUsernameThrottled(false); setRecoveryMessage(''); }} onBlur={touch('ident')} placeholder="QQ 邮箱 / 用户名" autoComplete="username" aria-label="账号" />
             </FloatField>
             <FloatField label="密码" value={pw} error={terr('pwLogin', pw ? null : '请输入密码')}>
               <PasswordField disabled={codeSent} value={pw} onChange={setPw} onBlur={touch('pwLogin')} placeholder="密码" autoComplete="current-password"
                 onKeyDown={e => e.key === 'Enter' && doLogin()} />
             </FloatField>
             {err && <p className="err">{err}</p>}
+            {trustedLoginAvailable && !ident.includes('@') && <>
+              <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 13 }}>
+                <input type="checkbox" style={{ width: 'auto' }} checked={rememberDevice} onChange={e => setRememberDevice(e.target.checked)} />
+                信任此私人设备 30 天（仍需密码；公用设备请勿选择）
+              </label>
+              <button type="button" disabled={busy} onClick={forgetDevice}>取消本浏览器的设备信任</button>
+            </>}
+            {usernameThrottled && <div role="status" className="priv-note">
+              用户名登录暂受限。可尝试注册邮箱和密码；若已启用并信任私人设备，该设备有独立额度。
+              {emailRecoveryEnabled && <button type="button" disabled={busy} onClick={requestEmailLogin}>向已验证绑定邮箱请求登录链接</button>}
+              {!emailRecoveryEnabled && <span>邮箱链接兜底尚未启用；未绑定真实邮箱请联系管理员核验。</span>}
+            </div>}
+            {recoveryMessage && <p role="status" className="priv-note">{recoveryMessage}</p>}
             <button className="pri" disabled={busy} onClick={doLogin}>{busy ? <><Spin />登录中…</> : '登录'}</button>
             <p className="login-switch">忘记密码了？<button onClick={() => { setMode('forgot'); setErr(''); setForgotSent(false); }}>点我重置</button></p>
             <p className="login-switch">还没有账号？<button onClick={() => { setMode('reg'); setErr(''); setCode(''); setForgotSent(false); }}>去注册</button></p>

@@ -23,7 +23,7 @@ const logs=read('../src/pages/admin/Logs.tsx');
 const settings=read('../src/pages/admin/Settings.tsx');
 function assert(ok,message){if(!ok){console.error(`Admin style contract failed: ${message}`);process.exitCode=1;}}
 assert(main.includes("supabase.rpc('my_role')"),'dedicated host must verify the role before mounting admin');
-assert(main.includes("setVerifiedUid(uid)")&&main.includes("verifiedUid !== session.user.id"),'role result must be bound to the active session user');
+assert(main.includes("const uid = session.user.id")&&main.includes("setVerifiedUid(uid)")&&main.includes("if (!live) return;"),'role result must be bound to the active session user');
 assert(main.includes("<Admin verifiedRole={role === 'super_admin' ? 'super_admin' : 'admin'} />"),'verified role must be passed to the admin page');
 assert(!main.includes('我们的班级'),'admin title fallback must use current brand');
 assert(admin.includes('className="admin-shell-v3"'),'admin page must use one isolated root class');

@@ -163,7 +163,10 @@ function AdminShell() {
       });
     return () => { live = false; };
   }, []);
-  if (loading || (session && (role === null || verifiedUid !== session.user.id))) return <DelayedPageSkeleton />;
+  // Keep AdminLogin mounted while the AAL1 session's role lookup is pending.
+  // The database intentionally reports `member` until TOTP is verified; a
+  // skeleton here would unmount the password-to-MFA flow and discard its state.
+  if (loading) return <DelayedPageSkeleton />;
   const isAdmin = Boolean(session) && (role === 'admin' || role === 'super_admin');
   const adminApp = detectInstalledAdminApp();
   const latestAdminCode = adminUpdate ? Number(adminUpdate.app_version_code || 0) : 0;

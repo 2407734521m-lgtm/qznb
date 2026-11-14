@@ -22,10 +22,10 @@ type TopicSummary = {
   latestAt: string;
 };
 
-const TOPIC_PATTERN = /#([\\p{L}\\p{N}_-]{1,24})/gu;
+const TOPIC_PATTERN = /#([\p{L}\p{N}_-]{1,24})/gu;
 
 function getTopicNames(content: string) {
-  return [...content.matchAll(TOPIC_PATTERN)].map(match => match[1]);
+const TOPIC_PATTERN = /#([\p{L}\p{N}_-]{1,24})/gu;
 }
 
 function shortDate(value: string) {

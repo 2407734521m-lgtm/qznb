@@ -394,6 +394,48 @@ async function requireSiteAuth(request) {
   }
 }
 
+// 下载页本站登录同源代理：/api/dl/site-login（登录）与 /api/dl/site-refresh（续期）。
+// 手机网络直连 supabase.co 发不出去会报 Failed to fetch，与主站 /api 同源代理的道理一样。
+// 只转发给 Supabase Auth，不做任何凭证落盘；上游状态码与 JSON 原样返回，
+// 页面侧的错误文案映射（siteLoginError）与 session 结构（d.session || d）都不用改。
+async function proxySiteAuth(pn, request) {
+  let body = {};
+  try { body = await request.json(); } catch (_) { body = {}; }
+  let upstreamUrl, upstreamBody;
+  let extraHeaders = {};
+  if (pn === '/api/dl/site-refresh') {
+    if (!body.refresh_token) return json({ error: 'invalid_request', error_description: '缺少 refresh_token。' }, 400);
+    upstreamUrl = SUPABASE_URL + '/auth/v1/token?grant_type=refresh_token';
+    upstreamBody = { refresh_token: body.refresh_token };
+  } else {
+    const ident = String(body.ident || '').trim();
+    const password = String(body.password || '');
+    if (!ident || !password) return json({ error: 'invalid_request', error_description: '请输入账号与密码。' }, 400);
+    if (ident.indexOf('@') !== -1) {
+      upstreamUrl = SUPABASE_URL + '/auth/v1/token?grant_type=password';
+      upstreamBody = { email: ident, password };
+    } else {
+      upstreamUrl = SUPABASE_URL + '/functions/v1/username-login';
+      upstreamBody = { username: ident, password };
+      extraHeaders = { Authorization: 'Bearer ' + SUPABASE_PUBLISHABLE_KEY };
+    }
+  }
+  try {
+    const res = await fetch(upstreamUrl, {
+      method: 'POST',
+      headers: { apikey: SUPABASE_PUBLISHABLE_KEY, 'Content-Type': 'application/json', ...extraHeaders },
+      body: JSON.stringify(upstreamBody),
+      signal: AbortSignal.timeout(15000),
+    });
+    const text = await res.text();
+    let data;
+    try { data = JSON.parse(text); } catch (_) { data = { error: 'bad_upstream_response', message: String(text || '').slice(0, 200) }; }
+    return json(data, res.status);
+  } catch (err) {
+    return json({ error: 'UPSTREAM_UNREACHABLE', error_description: '网络连不上，请检查网络后重试。' }, 502);
+  }
+}
+
 // ---------------------------------------------------------------- search
 
 async function handleSearch(keywords, limit, offset, cookieStr) {
@@ -957,6 +999,13 @@ async function handleApi(request, url) {
   let pn = url.pathname;
   const q = url.searchParams;
   const cookieStr = readSession(request);
+
+  // ---- site login proxy: /api/dl/site-login & /api/dl/site-refresh ----
+  // 下载页本站登录走同源代理（登录前还没有本站 token，必须放在门禁之前）。
+  if (pn === '/api/dl/site-login' || pn === '/api/dl/site-refresh') {
+    if (request.method !== 'POST') return json({ error: 'METHOD_NOT_ALLOWED' }, 405);
+    return await proxySiteAuth(pn, request);
+  }
 
   // ---- music download gate: /api/dl/* 先验本站账号，再把路径改写回 /api/* ----
   // 只拦截 /api/dl 前缀；Mineradio 主站 /api/* 原样走下面各分支，不受影响。

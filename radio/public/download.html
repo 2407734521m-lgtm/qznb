@@ -136,11 +136,12 @@
     return (siteSession.expires_at || 0) - Date.now() < 60000;
   }
   // token 快过期时用 refresh_token 续期；续不上返回 false，调用方回到本站登录。
+  // 走同源代理 /api/dl/site-refresh，不直连 supabase.co（手机网络发不出去）。
   function refreshSiteSession() {
     if (!siteSession || !siteSession.refresh_token) return Promise.resolve(false);
-    return fetch(SUPABASE_URL + '/auth/v1/token?grant_type=refresh_token', {
+    return fetch(API + '/api/dl/site-refresh', {
       method: 'POST',
-      headers: { 'apikey': SUPABASE_ANON_KEY, 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ refresh_token: siteSession.refresh_token })
     }).then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
     .then(function (res) {
@@ -460,6 +461,7 @@
     });
   }
   function siteLoginError(code, fallback) {
+    if (/网络连不上/.test(fallback || '')) return fallback;
     if (code === 'email_not_confirmed' || /email not confirmed/i.test(fallback || '')) return '邮箱还没验证：请先去邮箱里点验证链接，再回来登录。';
     if (code === 'rate_limited') return '登录太频繁了，请稍后再试。';
     if (/invalid/i.test(fallback || '')) return '账号或密码不对，请再试一次。';
@@ -474,18 +476,9 @@
     var btn = $('siteLoginBtn');
     btn.disabled = true;
     errEl.textContent = '正在登录本站账号…';
-    var isEmail = ident.indexOf('@') !== -1;
-    var url, headers, body;
-    if (isEmail) {
-      url = SUPABASE_URL + '/auth/v1/token?grant_type=password';
-      headers = { 'apikey': SUPABASE_ANON_KEY, 'Content-Type': 'application/json' };
-      body = JSON.stringify({ email: ident, password: pw });
-    } else {
-      url = SUPABASE_URL + '/functions/v1/username-login';
-      headers = { 'apikey': SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + SUPABASE_ANON_KEY, 'Content-Type': 'application/json' };
-      body = JSON.stringify({ username: ident, password: pw });
-    }
-    fetch(url, { method: 'POST', headers: headers, body: body })
+    // 本站登录走同源代理 /api/dl/site-login，不直连 supabase.co（手机网络发不出去会报 Failed to fetch）。
+    // Worker 按 ident 含不含 '@' 分流到邮箱登录或用户名登录，上游返回原样透传。
+    fetch(API + '/api/dl/site-login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ident: ident, password: pw }) })
       .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
       .then(function (res) {
         var d = res.d || {};
@@ -506,6 +499,8 @@
         checkLogin();
       })
       .catch(function (e) {
+        // 网络层真的失败时（fetch 本身抛错），不要把浏览器原话 Failed to fetch 显示出来。
+        if (e instanceof TypeError) { errEl.textContent = '网络连不上，请检查网络后重试。'; return; }
         errEl.textContent = (e && e.message) || '本站登录失败，请检查网络后重试。';
       })
       .finally(function () { btn.disabled = false; });

@@ -436,6 +436,41 @@ async function proxySiteAuth(pn, request) {
   }
 }
 
+// 下载日志同源代理：POST /api/dl/log-download。
+// 手机网络直连 supabase.co 记日志发不出去，与本站登录同理。放在门禁之后，
+// 复用门禁已验证的本站用户：site_user_id / site_username 一律取 token 里的值，不信任客户端
+// （site_username 取 /auth/v1/user 返回的已验证邮箱，是账号的唯一标识）。
+// 上游就是 log_music_download()（SECURITY DEFINER，9 参）；失败回 502，页面静默处理。
+async function proxyLogDownload(site, request) {
+  let body = {};
+  try { body = await request.json(); } catch (_) { body = {}; }
+  const rpcBody = {
+    p_song_id: String(body.p_song_id || ''),
+    p_song_name: String(body.p_song_name || ''),
+    p_artist: String(body.p_artist || ''),
+    p_status: String(body.p_status || ''),
+    p_file_size: body.p_file_size == null ? null : Number(body.p_file_size),
+    p_error: String(body.p_error || ''),
+    p_device_label: String(body.p_device_label || ''),
+    p_site_user_id: site.id,
+    p_site_username: site.email || '',
+  };
+  try {
+    const res = await fetch(SUPABASE_URL + '/rest/v1/rpc/log_music_download', {
+      method: 'POST',
+      headers: { apikey: SUPABASE_PUBLISHABLE_KEY, Authorization: 'Bearer ' + SUPABASE_PUBLISHABLE_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify(rpcBody),
+      signal: AbortSignal.timeout(10000),
+    });
+    const text = await res.text();
+    let data;
+    try { data = JSON.parse(text); } catch (_) { data = { ok: res.ok }; }
+    return json(data, res.status);
+  } catch (_) {
+    return json({ error: 'UPSTREAM_UNREACHABLE' }, 502);
+  }
+}
+
 // ---------------------------------------------------------------- search
 
 async function handleSearch(keywords, limit, offset, cookieStr) {
@@ -1013,6 +1048,10 @@ async function handleApi(request, url) {
   if (pn === '/api/dl' || pn.startsWith('/api/dl/')) {
     const site = await requireSiteAuth(request);
     if (!site) return json({ error: 'SITE_LOGIN_REQUIRED', siteLoggedIn: false }, 401);
+    if (pn === '/api/dl/log-download') {
+      if (request.method !== 'POST') return json({ error: 'METHOD_NOT_ALLOWED' }, 405);
+      return await proxyLogDownload(site, request);
+    }
     pn = '/api/' + pn.slice('/api/dl/'.length);
   }
 

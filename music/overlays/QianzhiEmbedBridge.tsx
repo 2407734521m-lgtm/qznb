@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import type { AppOverlaysModel } from '../app/overlays/buildAppOverlaysModel';
 import { getSongArtistLabel } from '../../services/onlineMusic/songMetadata';
 import { PlayerState } from '../../types';
-import { audioBands } from '../../stores/motionSignals';
+import { audioBands, audioLevel } from '../../stores/motionSignals';
 import {
     selectDisplayCoverUrl,
     selectDisplayPlayerState,
@@ -75,26 +75,35 @@ const QianzhiEmbedBridge = ({ model }: Props) => {
             }, parentOrigin);
         };
 
-        // Send the real analyser bands separately from track metadata. 20 Hz is enough
-        // for a fluid island meter without pushing frame-rate React updates across origins.
+        // Prefer frequency bands. When they carry no useful energy, fall back to
+        // the same analyser's time-domain RMS loudness; never create another audio graph.
         const publishSpectrum = () => {
             if (!parentOrigin) return;
             const playback = playbackRef.current;
             const playing = playback.displayPlayerState === PlayerState.PLAYING;
-            const available = playing && playback.playbackRoute === 'web' && audioBands.spectrum.get().length > 0;
-            const normalize = (value: number) => Math.max(0, Math.min(1, Number.isFinite(value) ? value / 255 : 0));
+            const routeSupportsWebAnalyser = playback.playbackRoute === 'web';
+            const spectrumData = audioBands.spectrum.get();
+            const spectrumReady = playing && routeSupportsWebAnalyser && spectrumData.length > 0;
+            const normalizeBand = (value: number) => Math.max(0, Math.min(1, Number.isFinite(value) ? value / 255 : 0));
+            const bands = spectrumReady ? {
+                bass: normalizeBand(audioBands.bass.get()),
+                lowMid: normalizeBand(audioBands.lowMid.get()),
+                vocal: normalizeBand(audioBands.vocal.get()),
+                treble: normalizeBand(audioBands.treble.get()),
+            } : null;
+            const hasSpectrumEnergy = !!bands && (bands.bass + bands.lowMid + bands.vocal + bands.treble) > 0.025;
+            const levelValue = playing && routeSupportsWebAnalyser ? audioLevel.get() : 0;
+            const level = Math.max(0, Math.min(1, Number.isFinite(levelValue) ? levelValue : 0));
+            const mode = hasSpectrumEnergy ? 'spectrum' : level > 0.008 ? 'level' : 'idle';
             window.parent.postMessage({
                 source: 'qznb-music',
                 type: 'SPECTRUM',
                 version: 1,
                 playing,
-                available,
-                bands: available ? {
-                    bass: normalize(audioBands.bass.get()),
-                    lowMid: normalize(audioBands.lowMid.get()),
-                    vocal: normalize(audioBands.vocal.get()),
-                    treble: normalize(audioBands.treble.get()),
-                } : null,
+                available: hasSpectrumEnergy,
+                mode,
+                level,
+                bands: mode === 'spectrum' ? bands : null,
             }, parentOrigin);
         };
 

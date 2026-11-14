@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import { useSignedUrls } from '../lib/media';
+import { FeedSkeleton } from '../components/fx/Skeleton';
+import BlurImg from '../components/fx/BlurImg';
 import './GuestPosts.css';
 
 type GuestPost = {
@@ -59,8 +61,8 @@ function GuestPostCard({ post, imageUrl, onLoginRequired, index }: {
 
       {post.image_url && (
         imageUrl
-          ? <img className="guest-post-image" src={imageUrl} alt="动态配图" loading="lazy" decoding="async" />
-          : <div role="status" className="guest-post-image-loading">图片加载中…</div>
+          ? <BlurImg className="guest-post-image" src={imageUrl} alt="动态配图" />
+          : <div className="fx-skel-wrap" role="status" aria-label="图片加载中"><div className="fx-skel" style={{ width: '100%', height: 180 }} /></div>
       )}
 
       <div className="guest-post-actions">
@@ -149,7 +151,7 @@ export default function GuestPosts({ section, onLoginRequired }: Props) {
         </header>
       )}
 
-      {loading && <div role="status" className="guest-post-state">正在加载公开内容…</div>}
+      {loading && <FeedSkeleton count={2} />}
       {!loading && error && (
         <div role="alert" className="guest-post-state guest-post-error">
           <p style={{ margin: '0 0 12px' }}>{error}</p>

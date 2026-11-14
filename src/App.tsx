@@ -1065,7 +1065,7 @@ function Shell() {
             animate={isImmersivePage ? { opacity: 1 } : { opacity: 1, y: 0, scale: 1 }}
             exit={reduce ? { opacity: 1 } : isImmersivePage ? { opacity: 0 } : { opacity: 0, y: -7, scale: 0.996 }}
             transition={{ duration: reduce ? 0 : DUR.base + 0.06, ease: EASE }}>
-            <Suspense fallback={<div className="center" role="status">加载中…</div>}>
+            <Suspense fallback={<PageSkeleton />}>
             <Routes location={loc}>
               <Route path="/" element={<Navigate to="/home" replace />} />
               <Route path="/board" element={<Board />} />

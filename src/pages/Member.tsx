@@ -8,7 +8,7 @@ import AvatarCropper from '../components/AvatarCropper';
 import Photo from '../components/Photo';
 import { setShot, takeShot, shotFrom, flyTo } from '../lib/transition';
 import { badgeText } from '../data/games';
-import { confirmDialog } from '../lib/dialog';
+import { alertDialog, confirmDialog, promptDialog } from '../lib/dialog';
 import { parseSocial } from '../data/social';
 import type { Dir } from '../lib/transition';
 import './Member.polish.css';
@@ -190,6 +190,50 @@ export default function Member() {
       setFbusy(false);
     }
   }
+  async function reportMember() {
+    if (!uid || isMe || fbusy) return;
+    setFbusy(true);
+    try {
+      const reason = await promptDialog('举报该成员，请填写具体原因（最多 200 字）：');
+      if (!reason || !reason.trim()) return;
+      const normalizedReason = reason.trim().slice(0, 200);
+      if (normalizedReason.length < 3) {
+        await alertDialog('请至少填写 3 个字的举报原因。');
+        return;
+      }
+
+      const { data: existing, error: lookupError } = await supabase.from('reports')
+        .select('id')
+        .eq('reporter_id', uid)
+        .eq('target_type', 'member')
+        .eq('target_id', id)
+        .eq('status', 'pending')
+        .limit(1)
+        .maybeSingle();
+      if (!lookupError && existing) {
+        await alertDialog('你已经提交过针对该成员的待处理举报，请等待管理员审核。');
+        return;
+      }
+
+      const { error } = await supabase.from('reports').insert({
+        reporter_id: uid,
+        target_type: 'member',
+        target_id: id,
+        reason: normalizedReason,
+      });
+      if (error) {
+        await alertDialog('举报提交失败：' + error.message);
+        return;
+      }
+      await alertDialog('举报已提交，管理员会核实处理。请勿重复提交。');
+    } catch (error) {
+      console.error('member report failed', error);
+      await alertDialog('网络暂时不可用，举报未能提交，请稍后重试。');
+    } finally {
+      setFbusy(false);
+    }
+  }
+
   function pickPhoto(f?: File) {
     if (!f || !isMe) return;
     if (!['image/jpeg', 'image/png', 'image/webp'].includes(f.type)) return setUpMsg('仅支持 JPG / PNG / WebP');
@@ -359,12 +403,15 @@ export default function Member() {
           <video src={videoUrl} controls playsInline className="mp-video" />
         </motion.section>
       )}
-      {!isMe && uid && fstat && !fstat.blocked_me && !fstat.blocked_by_me && (
+      {!isMe && uid && m && (
         <div className="mp-danger-row">
-          {fstat.friend_status === 'accepted' && (
+          {fstat && !fstat.blocked_me && !fstat.blocked_by_me && fstat.friend_status === 'accepted' && (
             <button type="button" className="mp-text-btn" disabled={fbusy} onClick={() => void relationshipAction('remove_friend')}>解除好友</button>
           )}
-          <button type="button" className="mp-text-btn danger" disabled={fbusy} onClick={() => void relationshipAction('block_member')}>拉黑</button>
+          {fstat && !fstat.blocked_me && !fstat.blocked_by_me && (
+            <button type="button" className="mp-text-btn danger" disabled={fbusy} onClick={() => void relationshipAction('block_member')}>拉黑</button>
+          )}
+          <button type="button" className="mp-text-btn danger" disabled={fbusy} onClick={() => void reportMember()}>举报此成员</button>
         </div>
       )}
       {cropSrc && <AvatarCropper src={cropSrc} onCancel={closeCrop} onDone={uploadCropped} />}

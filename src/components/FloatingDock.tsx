@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 
 // 悬浮 Dock：版式借 Aceternity Floating Dock（GitHub aceternity/ui，
 // 居中悬浮胶囊、玻璃底、弹簧按压），按用户要求去掉图标放大：
-// 本站四栏图标+文字不变，选中态用滑动底片表示；手机与桌面同一套。
+// 本站五栏图标+文字不变，选中态用滑动底片表示；手机与桌面同一套。
 // 不用 liquid-glass-react：它的行内 transform 自居中会跟悬浮定位打架
 // （2026-11-08 曾因此把栏目推出屏幕），这里用 left/right + margin
 // auto 居中，不写 transform。

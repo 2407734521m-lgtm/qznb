@@ -79,12 +79,16 @@ import GlobalSearch from './components/GlobalSearch';
 import MusicIsland from './components/MusicIsland';
 import { BRAND_NAME, BRAND_SUBTITLE, resolveBrandTitle, resolveBrandSubtitle } from './lib/brand';
 
-// Dock 保留四个高频入口：首页、发现、私聊、我的。（2026-11-14 用户定：第二栏改回发现；青春时间线仍在「我的 → 内容管理」里。）
+// Dock 保留五个高频入口：首页、班级、回忆、私聊、我的。（2026-11-15 用户定：
+// 按 class-memory 补丁改回五栏，取代 2026-11-14「第二栏改回发现」的决定；
+// 发现移入长按面板。注意：/members 列表页已在 PR #462 下线，本分支不恢复它，
+// 所以点「班级」目前会由兜底路由带回首页，见 PR 说明。）
 // 公告、消息等其余页面通过长按 Dock 打开的玻璃快捷面板访问。
-type DockKind = 'home' | 'memories' | 'explore' | 'friends' | 'me';
+type DockKind = 'home' | 'members' | 'memories' | 'explore' | 'friends' | 'me';
 const TABS: { to: string; label: string; kind: DockKind }[] = [
   { to: '/home', label: '首页', kind: 'home' },
-  { to: '/explore', label: '发现', kind: 'explore' },
+  { to: '/members', label: '班级', kind: 'members' },
+  { to: '/timeline', label: '回忆', kind: 'memories' },
   { to: '/friends', label: '私聊', kind: 'friends' },
   { to: '/me', label: '我的', kind: 'me' },
 ];
@@ -121,6 +125,14 @@ function DockIcon({ kind, unread = false }: {
             <path d="M4.5 20c.8-3.1 3.4-4.9 7.5-4.9s6.7 1.8 7.5 4.9" />
           </>
         )}
+        {kind === 'members' && (
+          <>
+            <circle cx="9" cy="8.5" r="3" />
+            <path d="M3.5 19c.6-2.9 2.8-4.5 5.5-4.5s4.9 1.6 5.5 4.5" />
+            <path d="M15.5 5.8a3 3 0 0 1 0 5.4" />
+            <path d="M17.2 14.6c1.5.5 2.6 2 3 4.2" />
+          </>
+        )}
         {kind === 'memories' && (
           <>
             <rect x="3.5" y="5" width="17" height="14" rx="2.5" />
@@ -135,6 +147,7 @@ function DockIcon({ kind, unread = false }: {
 }
 
 const DOCK_MORE_TABS = [
+  { to: '/explore', label: '发现' },
   { to: '/board', label: '公告' },
   { to: '/me/notifications', label: '消息' },
   { to: '/songs', label: '歌声墙' },
@@ -165,6 +178,7 @@ function isTabActive(tab: string, path: string) {
   if (tab === '/love-wall') return path.startsWith('/love-wall');
   if (tab === '/daily') return path.startsWith('/daily');
   if (tab === '/timeline') return path.startsWith('/timeline');
+  if (tab === '/members') return path.startsWith('/members');
   if (tab === '/me/notifications') return path.startsWith('/me/notifications');
   if (tab === '/me') return path.startsWith('/me') && !path.startsWith('/me/notifications');
   return path === tab;
@@ -262,7 +276,7 @@ function MaintenanceScreen({ title, msg, allowCode, hasSession, onLogout, onAcce
   return (<><div className="glow" /><div style={{ minHeight: '72vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
     <div className="login-card" style={{ textAlign: 'center', width: '100%', maxWidth: 430 }}>
       <h1 style={{ fontSize: 22 }}>{title || '系统维护中'}</h1>
-      <p className="sub">{BRAND_NAME} · {BRAND_SUBTITLE}</p>
+      <p className="sub">{BRAND_NAME} — {BRAND_SUBTITLE}</p>
       <p style={{ fontSize: 15, lineHeight: 1.8, margin: '18px 0 22px' }}>{msg || '系统维护中，稍后再来'}</p>
       {allowCode ? <>
         <label style={{ display: 'block', textAlign: 'left', marginBottom: 7 }}>临时访问码</label>
@@ -830,7 +844,7 @@ function Shell() {
     const savedSubtitle = String(siteConfig.site_subtitle || '').trim();
     const t = resolveBrandTitle(savedTitle);
     const s = resolveBrandSubtitle(savedSubtitle);
-    document.title = s ? `${t} · ${s}` : t;
+    document.title = s ? `${t} — ${s}` : t;
   }, [siteConfig]);
 
   // 在线心跳：仅在页面可见且近 5 分钟内有交互时续期；管理员只读取聚合人数。

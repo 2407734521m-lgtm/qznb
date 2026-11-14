@@ -61,7 +61,7 @@ Deno.serve(async (req: Request) => {
   const username = profile?.username || '';
 
   const text = [
-    '收到一条来自「Class Memory · 我们的班级」的用户反馈：',
+    '收到一条来自「Class Memory」的用户反馈：',
     '',
     `反馈人：${who}${username ? `（@${username}）` : ''}${name ? `，自称：${name}` : ''}`,
     `联系方式：${contact || '（未填写）'}`,

@@ -73,7 +73,6 @@ const SongWall = lazyWithRetry(() => import('./pages/SongWall'));
 const Daily = lazyWithRetry(() => import('./pages/Daily'));
 const ParticleFlower = lazyWithRetry(() => import('./pages/ParticleFlower'));
 const AirInk = lazyWithRetry(() => import('./pages/AirInk'));
-const ClassmateJoke = lazyWithRetry(() => import('./pages/ClassmateJoke'));
 import { alertDialog } from './lib/dialog';
 import { resolveApproximateRegion, saveSharedRegion } from './lib/location';
 import GlobalSearch from './components/GlobalSearch';
@@ -1094,7 +1093,6 @@ function Shell() {
               <Route path="/fate-notebook" element={<ErrorBoundary><FateNotebook /></ErrorBoundary>} />
               <Route path="/particle-flower" element={<ErrorBoundary><ParticleFlower /></ErrorBoundary>} />
               <Route path="/air-ink" element={<ErrorBoundary><AirInk /></ErrorBoundary>} />
-              <Route path="/classmate-joke" element={<ClassmateJoke />} />
               <Route path="/love-wall" element={<LoveWall />} />
               <Route path="/questions" element={<QuestionBox />} />
               <Route path="/questions/:id" element={<QuestionBox />} />

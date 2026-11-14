@@ -309,19 +309,18 @@ function MusicIsland() {
                   scale: { duration: 0.42, ease: [0.16, 1, 0.3, 1], delay: 0.04 },
                 } }
           >
-            <AnimatePresence mode="sync" initial={false}>
+            <AnimatePresence mode="wait" initial={false}>
               {expanded ? (
                 <motion.section
                   key="expanded"
                   className="qz-music-island qz-music-island-expanded"
-                  layoutId="qz-music-island-shell"
-                  transition={{
-                    duration: reduceMotion ? 0 : 0.18,
-                    layout: { duration: reduceMotion ? 0 : 0.34, ease: [0.16, 1, 0.3, 1] },
-                  }}
-                  initial={reduceMotion ? false : { opacity: 0, y: -5, scale: 0.97 }}
+                  initial={reduceMotion ? false : { opacity: 0, y: -7, scale: 0.985 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: -4, scale: 0.98 }}
+                  exit={{ opacity: 0, y: -4, scale: 0.99 }}
+                  transition={reduceMotion
+                    ? { duration: 0 }
+                    : { opacity: { duration: 0.16 }, y: { duration: 0.2, ease: [0.2, 0.8, 0.2, 1] }, scale: { duration: 0.2, ease: [0.2, 0.8, 0.2, 1] } }}
+                  style={{ transformOrigin: 'top center' }}
                   aria-label="音乐控制面板"
                 >
                   <div className="qz-music-island-top">
@@ -332,9 +331,9 @@ function MusicIsland() {
                   </div>
                   <button type="button" className="qz-music-island-track" onClick={() => navigate('/music')}>
                     {track.coverUrl ? (
-                      <motion.img layoutId="qz-music-island-cover" className="qz-music-island-cover" src={track.coverUrl} alt="" />
+                      <motion.img className="qz-music-island-cover" src={track.coverUrl} alt="" />
                     ) : (
-                      <motion.span layoutId="qz-music-island-cover" className="qz-music-island-cover qz-music-island-cover-fallback" aria-hidden="true">♫</motion.span>
+                      <motion.span className="qz-music-island-cover qz-music-island-cover-fallback" aria-hidden="true">♫</motion.span>
                     )}
                     <span className="qz-music-island-track-copy">
                       <strong>{track.title}</strong>
@@ -384,11 +383,10 @@ function MusicIsland() {
                 <motion.div
                   key="collapsed"
                   className="qz-music-island qz-music-island-collapsed"
-                  layoutId="qz-music-island-shell"
-                  transition={{ layout: { duration: reduceMotion ? 0 : 0.34, ease: [0.16, 1, 0.3, 1] } }}
                   initial={false}
                   animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.96 }}
+                  exit={{ opacity: 0, scale: 0.985 }}
+                  transition={reduceMotion ? { duration: 0 } : { opacity: { duration: 0.12 }, scale: { duration: 0.16 } }}
                 >
                   <button
                     type="button"
@@ -397,9 +395,9 @@ function MusicIsland() {
                     aria-label={'展开播放器：' + track.title}
                   >
                     {track.coverUrl ? (
-                      <motion.img layoutId="qz-music-island-cover" className="qz-music-island-mini-cover" src={track.coverUrl} alt="" />
+                      <motion.img className="qz-music-island-mini-cover" src={track.coverUrl} alt="" />
                     ) : (
-                      <motion.span layoutId="qz-music-island-cover" className="qz-music-island-mini-cover qz-music-island-cover-fallback" aria-hidden="true">♫</motion.span>
+                      <motion.span className="qz-music-island-mini-cover qz-music-island-cover-fallback" aria-hidden="true">♫</motion.span>
                     )}
                     <span className="qz-music-island-mini-title">{track.title}</span>
                     <span className={'qz-music-equalizer ' + (track.isPlaying ? 'is-playing' : '')} aria-hidden="true"><i /><i /><i /><i /></span>

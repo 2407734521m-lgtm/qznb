@@ -180,9 +180,19 @@ function MusicIsland() {
   return (
     <>
       {shouldMountFrame && (
-        <div
+        <motion.div
           className="qz-music-frame-host"
           data-open={isMusicPage ? 'true' : 'false'}
+          initial={false}
+          animate={{
+            opacity: isMusicPage ? 1 : 0,
+            scale: isMusicPage ? 1 : 0.985,
+            y: isMusicPage ? 0 : 12,
+            filter: isMusicPage ? 'blur(0px)' : 'blur(5px)',
+          }}
+          transition={reduceMotion
+            ? { duration: 0 }
+            : { duration: isMusicPage ? 0.34 : 0.26, ease: [0.22, 1, 0.36, 1] }}
           style={{
             position: 'fixed',
             inset: 0,
@@ -190,9 +200,9 @@ function MusicIsland() {
             width: '100vw',
             height: '100dvh',
             zIndex: isMusicPage ? 1000 : 1,
-            opacity: isMusicPage ? 1 : 0,
             pointerEvents: isMusicPage ? 'auto' : 'none',
             overflow: 'hidden',
+            transformOrigin: '50% 0%',
           }}
           aria-hidden={!isMusicPage}
         >
@@ -234,17 +244,19 @@ function MusicIsland() {
               )}
             </>
           )}
-        </div>
+        </motion.div>
       )}
 
       <AnimatePresence>
         {track && !isMusicPage && (
           <motion.div
             className="qz-music-island-wrap"
-            initial={reduceMotion ? false : { opacity: 0, y: -12, scale: 0.96 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -8, scale: 0.97 }}
-            transition={{ duration: reduceMotion ? 0 : 0.24, ease: [0.22, 1, 0.36, 1] }}
+            initial={reduceMotion ? false : { opacity: 0, y: -20, scale: 0.82, filter: 'blur(8px)' }}
+            animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
+            exit={{ opacity: 0, y: -10, scale: 0.94, filter: 'blur(5px)' }}
+            transition={reduceMotion
+              ? { duration: 0 }
+              : { type: 'spring', stiffness: 520, damping: 38, mass: 0.72, delay: 0.04 }}
           >
             <AnimatePresence mode="wait" initial={false}>
               {expanded ? (

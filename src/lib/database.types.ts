@@ -2091,7 +2091,7 @@ export type Database = {
       }
       member_detail: {
         Args: { uid: string }
-        Returns: { id: string; username: string; display_name: string | null; age: number | null; personality: string | null; signature: string | null; bio: string | null; hobbies: string | null; avatar_path: string | null; theme: Json; contact: string | null; social: string | null; profile_title: string | null }[]
+        Returns: { id: string; username: string; display_name: string | null; age: number | null; personality: string | null; signature: string | null; bio: string | null; hobbies: string | null; avatar_path: string | null; theme: Json; contact: string | null; social: string | null; game_id: string | null; profile_title: string | null }[]
       }
       member_directory: {
         Args: { q: string; lim: number; skip: number }

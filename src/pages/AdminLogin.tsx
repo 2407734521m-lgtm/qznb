@@ -54,7 +54,6 @@ export default function AdminLogin({
       setPw('');
 
       // Verify the account's server-side role after password authentication.
-      // The database role gate no longer requires an AAL2/TOTP step-up.
       const { data: isAdmin, error: identityError } = await supabase.rpc('admin_login_is_admin' as any);
       if (identityError) throw identityError;
       if (isAdmin !== true) {

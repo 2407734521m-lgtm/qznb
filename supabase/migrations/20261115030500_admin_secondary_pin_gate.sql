@@ -198,6 +198,8 @@ language plpgsql
 security definer
 set search_path = ''
 as $function$
+declare
+  v_session_id uuid;
 begin
   if p_new_pin is null
     or p_new_pin !~ '^[0-9]{6}$'
@@ -211,6 +213,7 @@ begin
     return false;
   end if;
 
+  v_session_id := nullif(auth.jwt() ->> 'session_id', '')::uuid;
   update private.admin_secondary_passwords
   set pin_hash = extensions.crypt(p_new_pin, extensions.gen_salt('bf', 12)),
       failed_attempts = 0,
@@ -218,6 +221,11 @@ begin
       locked_until = null,
       updated_at = now()
   where user_id = auth.uid();
+
+  -- Rotate the PIN and revoke every other session's previously granted admin access.
+  delete from private.admin_secondary_verified_sessions
+  where user_id = auth.uid()
+    and session_id <> v_session_id;
 
   return found;
 end;

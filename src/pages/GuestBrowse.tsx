@@ -1,4 +1,5 @@
-import { BRAND_NAME, BRAND_SUBTITLE, BRAND_MARK, resolveBrandTitle, resolveBrandSubtitle } from '../lib/brand';
+import { BRAND_NAME, BRAND_SUBTITLE, resolveBrandTitle, resolveBrandSubtitle } from '../lib/brand';
+import BrandMark from '../components/BrandMark';
 import { NavLink, Navigate, Route, Routes } from 'react-router-dom';
 import Login from './Login';
 import GuestLoveWall from './GuestLoveWall';
@@ -144,7 +145,7 @@ function GuestHome({ siteConfig, onLoginRequired, showLoveWall, showAnnouncement
 
       <footer className="guest-footer guest-cruip-footer">
         <div className="guest-cruip-footer-brand">
-          <span className="guest-brand-mark">{BRAND_MARK}</span>
+          <BrandMark className="guest-brand-mark" size={42} />
           <div><strong>{title}</strong><span>{subtitle}</span></div>
         </div>
         <nav className="guest-cruip-footer-nav" aria-label="游客页脚导航">
@@ -221,7 +222,7 @@ export default function GuestBrowse({
     <div className="guest-shell">
       <header className="guest-header">
         <NavLink to="/home" className="guest-brand" aria-label={`${BRAND_NAME} 首页`}>
-          <span className="guest-brand-mark">{BRAND_MARK}</span>
+          <BrandMark className="guest-brand-mark" size={42} />
           <span className="guest-brand-copy"><strong>{BRAND_NAME}</strong><small>{BRAND_SUBTITLE}</small></span>
         </NavLink>
         <div className="guest-header-status">

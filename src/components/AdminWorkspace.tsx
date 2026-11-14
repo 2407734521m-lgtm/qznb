@@ -1,4 +1,5 @@
-import { BRAND_MARK, BRAND_NAME } from '../lib/brand';
+import { BRAND_NAME } from '../lib/brand';
+import BrandMark from './BrandMark';
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from 'react';
 
 type AdminTab = [string, string, boolean];
@@ -294,7 +295,7 @@ export default function AdminWorkspace({
       {mobileOpen && <button type="button" className="admin-sidebar-scrim" aria-label="关闭导航" onClick={() => setMobileOpen(false)} />}
       <aside className="admin-sidebar" aria-label="管理后台导航">
         <div className="admin-sidebar-brand">
-          <div className="admin-brand-mark">{BRAND_MARK}</div>
+          <BrandMark className="admin-brand-logo" size={38} />
           <div className="admin-brand-copy">
             <strong>{BRAND_NAME}</strong>
             <span>ADMIN CONSOLE</span>

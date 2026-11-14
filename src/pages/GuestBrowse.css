@@ -14,7 +14,7 @@
 .guest-header, .guest-nav, .guest-main { width: min(100%, 1120px); margin-inline: auto; }
 .guest-header { min-height: 66px; display: flex; align-items: center; gap: 18px; }
 .guest-brand { display: inline-flex; align-items: center; gap: 11px; color: inherit; text-decoration: none; flex: 0 0 auto; }
-.guest-brand-mark { width: 42px; height: 42px; display: grid; place-items: center; border-radius: 14px; background: #20242b; color: #fff; font-size: 20px; font-weight: 760; letter-spacing: -.06em; }
+.guest-brand-mark { width: 42px; height: 42px; display: block; flex: 0 0 auto; }
 .guest-brand-copy { display: grid; gap: 2px; }
 .guest-brand-copy strong { font-size: 17px; line-height: 1.15; letter-spacing: .01em; }
 .guest-brand-copy small { color: var(--guest-muted); font-size: 11px; }
@@ -69,7 +69,7 @@
 @media (max-width: 760px) {
   .guest-shell { padding-inline: 16px; }
   .guest-header { min-height: 60px; gap: 10px; }
-  .guest-brand-mark { width: 38px; height: 38px; border-radius: 12px; }
+  .guest-brand-mark { width: 38px; height: 38px; }
   .guest-header-status { display: none; }
   .guest-header-actions { margin-left: auto; }
   .guest-button { min-height: 38px; padding-inline: 14px; }

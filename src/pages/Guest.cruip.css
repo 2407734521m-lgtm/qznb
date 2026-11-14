@@ -19,7 +19,6 @@
 }
 
 /* 页眉与导航：墨色主按钮、印泥红激活下划线 */
-.guest-shell .guest-brand-mark { background: #1f2a3a; }
 .guest-shell .guest-button-primary { background: #1f2a3a; }
 .guest-shell .guest-button-primary:hover { background: #33465e; }
 .guest-shell .guest-nav-link.is-active { color: #1f2a3a; }

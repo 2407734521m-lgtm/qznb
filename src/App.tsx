@@ -3,8 +3,7 @@ import type { MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent }
 import { Routes, Route, NavLink, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { LiquidGlass } from 'simple-liquid-glass';
-import { LiquidGlassNav } from './components/liquid-glass-dock';
-import RdevLiquidGlass from 'liquid-glass-react';
+import FloatingDock from './components/FloatingDock';
 import CodeInput from './components/CodeInput';
 import { LiquidGlassScene } from 'simple-liquid-glass/backdrop';
 import { DUR, EASE } from './lib/motion';
@@ -1143,26 +1142,7 @@ function Shell() {
               onClick={() => setDockCollapsed(false)}
             >＋</button>
           ) : (
-            <RdevLiquidGlass
-              className="qz-rdev-dock"
-              displacementScale={55}
-              blurAmount={0.16}
-              saturation={150}
-              aberrationIntensity={2}
-              elasticity={reduce ? 0 : 0.25}
-              cornerRadius={30}
-              padding="0px"
-              style={{
-                position: 'fixed',
-                left: '50%',
-                top: 'calc(100dvh - 40px - env(safe-area-inset-bottom))',
-                width: 'min(360px, calc(100vw - 24px))',
-                height: '56px',
-                zIndex: 50,
-              }}
-            >
-            <LiquidGlassNav
-              className="qz-ios26-liquid-dock qz-rdev-nav"
+            <FloatingDock
               items={dockItems}
               activeItem={activeDockItem}
               onItemChange={(id) => {
@@ -1170,28 +1150,8 @@ function Shell() {
                 const target = TABS.find((tab) => tab.to === id);
                 if (target && !isTabActive(target.to, loc.pathname)) nav(target.to);
               }}
-              activeColor="#263b4f"
-              inactiveColor="rgba(43, 62, 79, 0.92)"
               reducedMotion={reduce}
-              style={{
-                position: 'relative',
-                left: 'auto',
-                right: 'auto',
-                bottom: 'auto',
-                transform: 'none',
-                zIndex: 'auto',
-                width: '100%',
-                height: '100%',
-                padding: '0 7px',
-                gap: '0px',
-                background: 'transparent',
-                border: 'none',
-                boxShadow: 'none',
-                backdropFilter: 'none',
-                WebkitBackdropFilter: 'none',
-              }}
             />
-            </RdevLiquidGlass>
           )}
         </div>
       )}
@@ -1220,7 +1180,7 @@ function Shell() {
               style={{
                 position: 'fixed',
                 left: '50%',
-                bottom: 'calc(88px + env(safe-area-inset-bottom))',
+                bottom: 'calc(84px + env(safe-area-inset-bottom))',
                 transform: 'translateX(-50%)',
                 zIndex: 61,
                 width: 'min(420px, calc(100vw - 28px))',

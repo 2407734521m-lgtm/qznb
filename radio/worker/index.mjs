@@ -11,6 +11,11 @@ const SESSION_COOKIE = 'mr_session';
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
 const APP_VERSION = '2.2.0';
 
+// 本站账号（Supabase Auth）校验用：publishable key 是公开 key，不存任何密钥。
+// 仅供下载页 /api/dl/* 门禁；Mineradio 主站 /api/* 不走这里。
+const SUPABASE_URL = 'https://ldypnxxxgscibopgiaso.supabase.co';
+const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_BRt1PSH8umGRsfKE-0BDiw_H5IUUWKr';
+
 // ---------------------------------------------------------------- utilities
 
 function json(data, status = 200, extraHeaders = {}) {
@@ -364,6 +369,29 @@ async function requireLogin(request) {
   const info = await getLoginInfo(cookieStr);
   if (!info.loggedIn || !info.userId) return null;
   return { info, cookieStr };
+}
+
+// ---------------------------------------------------------------- site auth (music download gate)
+//
+// 下载页专用：验本站 Supabase 登录凭证（Authorization: Bearer <access_token>）。
+// 只认 /auth/v1/user 返回 200 且带 id 的 token；不验签名以外的任何本站权限，
+// 注册即入班的本站账号都算通过。失败返回 null，由调用方回 401。
+async function requireSiteAuth(request) {
+  const auth = request.headers.get('authorization') || '';
+  const token = auth.startsWith('Bearer ') ? auth.slice(7).trim() : '';
+  if (!token) return null;
+  try {
+    const res = await fetch(SUPABASE_URL + '/auth/v1/user', {
+      headers: { apikey: SUPABASE_PUBLISHABLE_KEY, Authorization: 'Bearer ' + token },
+      signal: AbortSignal.timeout(8000),
+    });
+    if (res.status !== 200) return null;
+    const user = await res.json();
+    if (!user || !user.id) return null;
+    return { id: user.id, email: user.email || '' };
+  } catch (_) {
+    return null;
+  }
 }
 
 // ---------------------------------------------------------------- search
@@ -926,9 +954,18 @@ function providerUnavailable(pn) {
 // ---------------------------------------------------------------- API router
 
 async function handleApi(request, url) {
-  const pn = url.pathname;
+  let pn = url.pathname;
   const q = url.searchParams;
   const cookieStr = readSession(request);
+
+  // ---- music download gate: /api/dl/* 先验本站账号，再把路径改写回 /api/* ----
+  // 只拦截 /api/dl 前缀；Mineradio 主站 /api/* 原样走下面各分支，不受影响。
+  // 网易云 Cookie 逻辑不变：本站通过后仍需第二步网易云扫码登录。
+  if (pn === '/api/dl' || pn.startsWith('/api/dl/')) {
+    const site = await requireSiteAuth(request);
+    if (!site) return json({ error: 'SITE_LOGIN_REQUIRED', siteLoggedIn: false }, 401);
+    pn = '/api/' + pn.slice('/api/dl/'.length);
+  }
 
   if (pn.startsWith('/api/qq/') || pn === '/api/qq' || pn.startsWith('/api/kugou/') || pn.startsWith('/api/qishui/') || pn.startsWith('/api/spotify/') || pn === '/api/spotify') {
     return providerUnavailable(pn);

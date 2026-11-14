@@ -856,6 +856,8 @@ export type Database = {
           file_size: number | null
           error: string | null
           device_label: string
+          site_user_id: string | null
+          site_username: string | null
         }
         Insert: {
           id?: number
@@ -867,6 +869,8 @@ export type Database = {
           file_size?: number | null
           error?: string | null
           device_label?: string
+          site_user_id?: string | null
+          site_username?: string | null
         }
         Update: {
           id?: number
@@ -878,6 +882,8 @@ export type Database = {
           file_size?: number | null
           error?: string | null
           device_label?: string
+          site_user_id?: string | null
+          site_username?: string | null
         }
         Relationships: [
         ]

@@ -12,6 +12,8 @@ type Row = {
   file_size: number | null;
   error: string | null;
   device_label: string;
+  site_user_id: string | null;
+  site_username: string | null;
 };
 
 const STATUS_LABEL: Record<string, string> = {
@@ -44,7 +46,7 @@ export default function AdminMusicDownloads({ setMsg }: { setMsg?: (s: string) =
     let alive = true;
     setLoading(true);
     supabase.from('music_download_logs')
-      .select('id, created_at, song_id, song_name, artist, status, file_size, error, device_label')
+      .select('id, created_at, song_id, song_name, artist, status, file_size, error, device_label, site_user_id, site_username')
       .order('created_at', { ascending: false })
       .limit(100)
       .then(({ data, error }) => {
@@ -106,7 +108,7 @@ export default function AdminMusicDownloads({ setMsg }: { setMsg?: (s: string) =
             </span>
           </div>
           <p style={{ ...mut, margin: '6px 0 0' }}>
-            {new Date(r.created_at).toLocaleString()} · 歌 ID {r.song_id} · {fmtSize(r.file_size)} · {r.device_label || '—'}
+            {new Date(r.created_at).toLocaleString()} · 歌 ID {r.song_id} · {fmtSize(r.file_size)} · {r.device_label || '—'} · 本站账号：{r.site_username || '—'}
           </p>
           {r.error && <p style={{ ...mut, margin: '4px 0 0', color: '#b0404f' }}>原因：{r.error}</p>}
         </div>

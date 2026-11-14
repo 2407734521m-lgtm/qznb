@@ -50,6 +50,7 @@ const MePosts = lazy(() => import('./pages/MePosts'));
 const MeFavorites = lazy(() => import('./pages/MeFavorites'));
 const MeGreetings = lazy(() => import('./pages/MeGreetings'));
 const MeNotifications = lazy(() => import('./pages/MeNotifications'));
+const Topics = lazy(() => import('./pages/Topics'));
 const MeFeedback = lazy(() => import('./pages/MeFeedback'));
 const MeAccount = lazy(() => import('./pages/MeAccount'));
 const MeSettings = lazy(() => import('./pages/MeSettings'));
@@ -1052,6 +1053,7 @@ function Shell() {
               <Route path="/" element={<Navigate to="/home" replace />} />
               <Route path="/board" element={<Board />} />
               <Route path="/explore" element={<Explore />} />
+              <Route path="/topics" element={<Topics />} />
               <Route path="/fate-notebook" element={<ErrorBoundary><FateNotebook /></ErrorBoundary>} />
               <Route path="/particle-flower" element={<ErrorBoundary><ParticleFlower /></ErrorBoundary>} />
               <Route path="/air-ink" element={<ErrorBoundary><AirInk /></ErrorBoundary>} />

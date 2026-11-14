@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { motion, useReducedMotion } from 'framer-motion';
 import { SPRING_GENTLE } from '../lib/motion';
+import { useTiltCard } from '../components/fx/TiltCard';
 import './Explore.css';
 import bloomPhoto from '../assets/discover/card-bloom.jpg';
 import inkPhoto from '../assets/discover/card-ink.jpg';
@@ -108,6 +109,9 @@ const cards = [
 
 export default function Explore() {
   const reduce = useReducedMotion();
+  // Aceternity UI 3D 倾斜卡试点：只挂第一张卡（指尖生花），其余卡片不动。
+  // 触摸设备 / 减弱动效时 tilt.enabled 为 false，卡片与原来完全一致。
+  const tilt = useTiltCard();
 
   return (
     <motion.main
@@ -130,6 +134,9 @@ export default function Explore() {
           <motion.article
             key={card.to}
             className={`discover-card ${card.className}`}
+            style={index === 0 ? tilt.tiltStyle : undefined}
+            onPointerMove={index === 0 && tilt.enabled ? tilt.onPointerMove : undefined}
+            onPointerLeave={index === 0 && tilt.enabled ? tilt.onPointerLeave : undefined}
             initial={reduce ? false : { opacity: 0, y: 20, scale: 0.985 }}
             whileInView={reduce ? undefined : { opacity: 1, y: 0, scale: 1 }}
             viewport={{ once: true, amount: 0.18 }}
@@ -156,6 +163,9 @@ export default function Explore() {
                     decoding="async"
                     aria-hidden="true"
                   />
+                  {index === 0 && tilt.enabled && (
+                    <motion.span aria-hidden="true" className="tilt-glare" style={{ background: tilt.glare }} />
+                  )}
                 </>
               );
               return card.to.startsWith('https://')

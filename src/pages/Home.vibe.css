@@ -653,7 +653,7 @@ body:has(.vibe-home) .qz-ios26-scene,
   background: #fff !important;
   color: #202733 !important;
 }
-body:has(.vibe-home) .glow { display: none !important; }
+
 .vibe-home {
   --vh-ink: #202733;
   --vh-muted: #747d89;
@@ -856,7 +856,7 @@ body:has(.vibe-home), body:has(.vibe-home) #root, body:has(.vibe-home) .qz-ios26
 .vibe-home .vh-feed-row, .vibe-home .vh-event { border-color: #eff0f2; }
 .vibe-home .vh-feed-copy strong, .vibe-home .vh-event strong { color: #303943; font-size: 12px; }
 .vibe-home .vh-feed-copy p, .vibe-home .vh-event p { color: #7e8791; font-size: 12px; }
-.vibe-home .vh-member .av { border-color: var(--vh-line); }
+
 .vibe-home .vh-member span { color: #7e8791; }
 .vibe-home .vh-load-state, .vibe-home .vh-load-error { border-color: var(--vh-line); border-radius: 12px; background: #f8f9fa; color: #78828d; }
 .vibe-home .vh-load-error { background: #fff8f7; color: #8b5550; }

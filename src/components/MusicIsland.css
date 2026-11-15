@@ -2,7 +2,7 @@
 .qz-island-host {
   position: fixed;
   inset: 0;
-  z-index: 1201;
+  z-index: 4001;
   pointer-events: none;
 }
 

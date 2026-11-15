@@ -1,4 +1,4 @@
-import { createContext, useContext } from 'react';
+import { createContext, useContext, type RefObject } from 'react';
 import { Island } from '../lib/island';
 
 type MusicCommand = 'toggle' | 'previous' | 'next' | 'seek';
@@ -162,7 +162,7 @@ export const MusicIslandView = ({
   hostRef,
 }: {
   value: MusicIslandState;
-  hostRef: (element: HTMLDivElement | null) => void;
+  hostRef: RefObject<HTMLDivElement | null>;
 }) => (
   <MusicIslandContext.Provider value={value}>
     <div ref={hostRef} className="qz-island-host">

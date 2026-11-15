@@ -3,8 +3,8 @@ import { useUserPreferences } from '../lib/useUserPreferences';
 import SettingsShell from '../components/SettingsShell';
 import OptionSheet from '../components/OptionSheet';
 
-type NotificationKey = 'comment' | 'like' | 'greeting' | 'notice' | 'feedback' | 'love_wall' | 'admin_message' | 'moderation' | 'friend_request';
-const LABELS: Record<NotificationKey, string> = { comment: '评论与回复', like: '点赞提醒', greeting: '留言提醒', notice: '公告提醒', feedback: '反馈处理进度', love_wall: '表白墙提醒', admin_message: '管理员私信', moderation: '纪律处理通知', friend_request: '好友申请提醒' };
+type NotificationKey = 'comment' | 'like' | 'greeting' | 'notice' | 'feedback' | 'love_wall' | 'admin_message' | 'moderation' | 'friend_request' | 'message';
+const LABELS: Record<NotificationKey, string> = { comment: '评论与回复', like: '点赞提醒', greeting: '留言提醒', notice: '公告提醒', feedback: '反馈处理进度', love_wall: '表白墙提醒', admin_message: '管理员私信', moderation: '纪律处理通知', friend_request: '好友申请提醒', message: '私信提醒' };
 
 // 免打扰时间用站内选择（半小时一档），不用系统时间选择器。
 const TIME_OPTIONS = Array.from({ length: 48 }, (_, i) => {
@@ -19,7 +19,7 @@ export default function MeNotifySettings() {
 
   return (
     <SettingsShell title="通知设置">
-      <p>关闭某类通知后，只会在通知中心隐藏该类别，不会删除历史记录。</p>
+      <p>关闭某类提醒后，通知中心和灵动岛都不会显示该类别；历史记录不会删除。私信提醒只显示对方称呼，不展示私信正文。</p>
       {(Object.keys(LABELS) as NotificationKey[]).map(key => (
         <label key={key} className="qz-sub-row"><span>{LABELS[key]}</span>
           <input type="checkbox" checked={prefs.notifications[key] !== false} onChange={e => setPrefs(old => ({ ...old, notifications: { ...old.notifications, [key]: e.target.checked } }))} />

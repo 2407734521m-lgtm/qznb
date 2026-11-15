@@ -1,0 +1,108 @@
+.qz-island-alert-compact {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  max-width: 74px;
+  overflow: hidden;
+  color: rgba(255,255,255,.96);
+  white-space: nowrap;
+  font-size: 10px;
+  font-weight: 650;
+  line-height: 1.1;
+  pointer-events: none;
+}
+
+.qz-island-alert-icon,
+.qz-island-alert-expanded-icon {
+  display: inline-grid;
+  flex: 0 0 auto;
+  place-items: center;
+}
+
+.qz-island-alert-icon svg {
+  display: block;
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.65;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.qz-island-alert-expanded-label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 22px;
+  padding: 0 7px;
+  border-radius: 999px;
+  color: rgba(255,255,255,.7);
+  background: rgba(255,255,255,.09);
+  font-size: 9px;
+  font-weight: 650;
+  letter-spacing: .02em;
+  white-space: nowrap;
+}
+
+.qz-island-alert-expanded {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  align-items: center;
+  gap: 10px;
+  text-align: left;
+}
+
+.qz-island-alert-expanded-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 11px;
+  color: #fff;
+  background: rgba(255,255,255,.12);
+}
+
+.qz-island-alert-expanded-icon svg {
+  display: block;
+  width: 19px;
+  height: 19px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.65;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.qz-island-alert-copy {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.qz-island-alert-copy strong,
+.qz-island-alert-copy small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.qz-island-alert-copy strong {
+  color: #fff;
+  font-size: 12px;
+  font-weight: 680;
+  line-height: 1.3;
+}
+
+.qz-island-alert-copy small {
+  color: rgba(255,255,255,.56);
+  font-size: 10px;
+  line-height: 1.3;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .qz-island-alert-expanded,
+  .qz-island-alert-compact { transition: none; }
+}

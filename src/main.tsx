@@ -8,6 +8,7 @@ const Admin = lazyWithRetry(() => import('./pages/Admin'));
 const AdminLogin = lazyWithRetry(() => import('./pages/AdminLogin'));
 const IntroAnimation = lazyWithRetry(() => import('./components/IntroAnimation'));
 import { AuthProvider, useAuth } from './auth';
+import { IslandProvider } from './lib/island';
 import { supabase } from './lib/supabase';
 import { DialogHost } from './lib/dialog';
 import { Toaster } from 'sonner';
@@ -215,7 +216,7 @@ createRoot(document.getElementById('root')!).render(
   <React.StrictMode><HashRouter><AuthProvider>
     <ErrorBoundary>
       <Suspense fallback={<RouteLoading />}>
-        {isAdminHost ? <AdminShell /> : <App />}
+        {isAdminHost ? <AdminShell /> : <IslandProvider><App /></IslandProvider>}
       </Suspense>
       {!isAdminHost ? <SiteIntro /> : null}
       <TestSwitchFab />

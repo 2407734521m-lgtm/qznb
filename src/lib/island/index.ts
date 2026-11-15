@@ -1,7 +1,7 @@
 export { IslandProvider, type IslandProviderProps } from "./provider";
 export { Island, type IslandProps } from "./island-root";
 export { IslandView, type IslandViewProps } from "./view";
-export { useIsland, useIslandActions, useIslandReducedMotion } from "./use-island";
+export { useIsland, useIslandActions, useIslandActivityIds, useIslandReducedMotion } from "./use-island";
 export { IslandNumber, IslandProgress, numberMotion, type IslandNumberProps, type IslandProgressProps } from "./primitives";
 export { colourLuma, keylineAlphaFor, type KeylineSetting } from "./context";
 

@@ -310,12 +310,12 @@ function PublicLanding({ data, onLogin, onGuestLogin, showGuestEntry }: { data: 
   const notices = Array.isArray(data?.notices) ? data.notices : [];
   const title = resolveBrandTitle(data?.site_title);
   const subtitle = resolveBrandSubtitle(data?.site_subtitle);
-  const bannerText = data?.home_banner_text || '让分享与连接，自然发生。';
+  const bannerText = data?.home_banner_text || '把我们的青春，留在这里';
   const bannerUrl = typeof data?.home_banner_url === 'string' && (data.home_banner_url.startsWith('https://') || data.home_banner_url.startsWith('http://')) ? data.home_banner_url : '';
   const heroImg = bannerUrl;
   return (<><div className="glow" /><main style={{ width: 'min(100% - 28px, 820px)', margin: '0 auto', padding: '22px 0 48px', color: '#202632' }}>
     <header style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 18 }}>
-      <div style={{ flex: 1 }}><div style={{ fontSize: 11, letterSpacing: 3, color: '#7b8492' }}>{title.toUpperCase()} · OPEN COMMUNITY</div><h1 style={{ margin: '6px 0 0', fontSize: 24 }}>{title}</h1><p style={{ margin: '4px 0 0', color: '#737b89', fontSize: 13 }}><ShinyText text={subtitle} /></p></div>
+      <div style={{ flex: 1 }}><div style={{ fontSize: 11, letterSpacing: 3, color: '#7b8492' }}>OUR CLASS · PUBLIC SPACE</div><h1 style={{ margin: '6px 0 0', fontSize: 24 }}>{title}</h1><p style={{ margin: '4px 0 0', color: '#737b89', fontSize: 13 }}><ShinyText text={subtitle} /></p></div>
       {data?.close_login_entry !== 'true' && <button className="pri" style={{ width: 'auto', padding: '10px 16px', whiteSpace: 'nowrap' }} onClick={onLogin}>登录 / 注册</button>}
     </header>
     <section style={{ aspectRatio: '16 / 9', width: '100%', position: 'relative', overflow: 'hidden', borderRadius: 22, marginBottom: 18, background: '#e9edf3', border: '1px solid #e5e8ee', boxShadow: '0 12px 34px #202a3d0c' }}>
@@ -328,7 +328,7 @@ function PublicLanding({ data, onLogin, onGuestLogin, showGuestEntry }: { data: 
       </div>
     </section>
     <section style={{ background: '#fff', border: '1px solid #e9ebf0', borderRadius: 20, padding: '18px clamp(14px,4vw,22px)', boxShadow: '0 8px 28px #202a3d0a' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 12 }}><h2 style={{ margin: 0, fontSize: 18 }}>网站公告</h2><span style={{ fontSize: 11, color: '#87909d' }}>公开内容</span></div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 12 }}><h2 style={{ margin: 0, fontSize: 18 }}>校园公告</h2><span style={{ fontSize: 11, color: '#87909d' }}>公开内容</span></div>
       {notices.length ? notices.map((n: any, i: number) => <article key={n.id ?? i} style={{ padding: '13px 0', borderTop: '1px solid #edf0f4' }}>
         {n.title && <h3 style={{ margin: '0 0 6px', fontSize: 15 }}>{n.title}</h3>}
         <p style={{ margin: 0, whiteSpace: 'pre-wrap', lineHeight: 1.8, fontSize: 14, color: '#4b5563' }}>{n.content}</p>

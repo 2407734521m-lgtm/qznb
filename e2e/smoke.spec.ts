@@ -34,8 +34,7 @@ async function verifyGuestPublicRoutes(page: Page) {
 
 test('首页可加载：挂载成功、无黑屏、标题正确', async ({ page }) => {
   await page.goto('/#/home');
-  await expect(page).toHaveTitle(/.+/);
-  await expect(page).not.toHaveTitle(/Class Memory|Our Class|青春档案|我们的班级/i);
+  await expect(page).toHaveTitle(/Class Memory/);
   // #root 挂载出真实内容（不是黑屏空壳）
   await expect(page.locator('#root')).not.toBeEmpty();
   const bodyText = (await page.locator('body').innerText()).trim();

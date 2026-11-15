@@ -5,8 +5,9 @@ import { confirmDialog } from '../lib/dialog';
 import FeedbackModal from '../components/FeedbackModal';
 import SponsorModal from '../components/SponsorModal';
 import { useUserPreferences } from '../lib/useUserPreferences';
+import { DEFAULT_ISLAND_PREFERENCE } from '../lib/userPreferences';
 
-type PanelKey = 'font' | 'search' | 'chat';
+type PanelKey = 'font' | 'search' | 'chat' | 'island';
 type IconName = 'account' | 'lock' | 'settings' | 'bell' | 'chat' | 'play' | 'wallpaper' | 'palette' | 'font' | 'device' | 'key' | 'history' | 'content' | 'help';
 
 function readSearchHistory(uid: string): string[] {
@@ -51,6 +52,7 @@ const GROUPS: { title: string; rows: SettingRow[] }[] = [
   ]},
   { title: '通用', rows: [
     { icon: 'settings', label: '通用设置', path: '/me/settings/general', searchTerms: '动画 动效 页面体验' },
+    { icon: 'device', label: '灵动岛', panel: 'island', searchTerms: '动态胶囊 灵动岛 位置 水平 垂直 宽度 高度 尺寸' },
     { icon: 'bell', label: '通知设置', path: '/me/settings/notifications', searchTerms: '评论 点赞 留言 公告 表白墙 管理员私信 纪律处理 提醒 免打扰' },
     { icon: 'chat', label: '私聊与已读回执', panel: 'chat', searchTerms: '聊天 私聊 已读 回执 隐私' },
     { icon: 'wallpaper', label: '主页主题与壁纸', path: '/me/edit?sec=look', searchTerms: '动态壁纸 背景 颜色 布局 主页装扮' },
@@ -155,6 +157,17 @@ export default function MeSettings() {
         .qz-settings-time-input{width:auto;min-width:112px;max-width:100%;margin:0;padding:7px 8px;border:1px solid #e6dccf!important;border-radius:9px;background:#fff!important;color:#302b24!important}
         .qz-settings-history{display:flex;gap:7px;flex-wrap:wrap;margin:10px 0}
         .qz-settings-history span{padding:6px 10px;border-radius:999px;background:#f1ebe2;color:#5f564c;font-size:12px}
+        .qz-island-settings-stage{height:78px;margin:12px 0 14px;position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden;border-radius:14px;background:linear-gradient(135deg,#f3f0eb,#eae6df)}
+        .qz-island-settings-preview{position:absolute;left:50%;top:50%;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:999px;background:#050506;box-shadow:0 5px 14px rgba(0,0,0,.2);transition:width .14s ease,height .14s ease,transform .14s ease}
+        .qz-island-settings-preview:before,.qz-island-settings-preview:after{content:"";display:block;border-radius:999px;background:rgba(255,255,255,.86)}
+        .qz-island-settings-preview:before{width:4px;height:4px;opacity:.7}
+        .qz-island-settings-preview:after{width:18px;height:2px;opacity:.55}
+        .qz-island-range{display:block!important;padding:11px 0!important;border-bottom:1px solid #eee7dd}
+        .qz-island-range>span{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:14px;color:#302b24}
+        .qz-island-range b{font-size:12px;font-weight:600;color:#80513c;font-variant-numeric:tabular-nums}
+        .qz-island-range input[type=range]{display:block;width:100%;height:26px;margin:7px 0 0;padding:0!important;accent-color:#80513c;touch-action:pan-y}
+        .qz-island-settings-actions{display:flex;justify-content:flex-end;margin-top:14px}
+        .qz-island-settings-actions button{border:1px solid #e6dccf;border-radius:999px;background:#fff;color:#80513c;padding:8px 13px;font:inherit;font-size:13px}
         @media(min-width:700px){
           .qz-settings-page{max-width:900px;padding:24px 0 24px!important}
           .qz-settings-top{margin-bottom:22px}
@@ -186,6 +199,39 @@ export default function MeSettings() {
                 </button>
                 {row.panel && expanded === row.panel && (
                   <div className="qz-settings-panel">
+                    {row.panel === 'island' && <>
+                      <p>调整灵动岛在页面中的位置和胶囊尺寸，改动会即时预览，并同步到当前账号。</p>
+                      <div className="qz-island-settings-stage" aria-label="灵动岛尺寸预览">
+                        <span
+                          className="qz-island-settings-preview"
+                          style={{
+                            width: prefs.island.width,
+                            height: prefs.island.height,
+                            transform: `translate(calc(-50% + ${prefs.island.offsetX}px), calc(-50% + ${Math.max(-18, Math.min(18, prefs.island.offsetY / 3))}px))`,
+                          }}
+                        />
+                      </div>
+                      <label className="qz-island-range">
+                        <span><span>水平位置</span><b>{prefs.island.offsetX > 0 ? '+' : ''}{prefs.island.offsetX} px</b></span>
+                        <input type="range" min={-90} max={90} step={1} value={prefs.island.offsetX} onChange={event => setPrefs(old => ({ ...old, island: { ...old.island, offsetX: Number(event.target.value) } }))} aria-label="灵动岛水平位置" />
+                      </label>
+                      <label className="qz-island-range">
+                        <span><span>垂直位置</span><b>{prefs.island.offsetY > 0 ? '+' : ''}{prefs.island.offsetY} px</b></span>
+                        <input type="range" min={-10} max={90} step={1} value={prefs.island.offsetY} onChange={event => setPrefs(old => ({ ...old, island: { ...old.island, offsetY: Number(event.target.value) } }))} aria-label="灵动岛垂直位置" />
+                      </label>
+                      <label className="qz-island-range">
+                        <span><span>胶囊长度</span><b>{prefs.island.width} px</b></span>
+                        <input type="range" min={88} max={144} step={1} value={prefs.island.width} onChange={event => setPrefs(old => ({ ...old, island: { ...old.island, width: Number(event.target.value) } }))} aria-label="灵动岛胶囊长度" />
+                      </label>
+                      <label className="qz-island-range">
+                        <span><span>胶囊高度</span><b>{prefs.island.height} px</b></span>
+                        <input type="range" min={28} max={42} step={0.5} value={prefs.island.height} onChange={event => setPrefs(old => ({ ...old, island: { ...old.island, height: Number(event.target.value) } }))} aria-label="灵动岛胶囊高度" />
+                      </label>
+                      <div className="qz-island-settings-actions">
+                        <button type="button" onClick={() => setPrefs(old => ({ ...old, island: { ...DEFAULT_ISLAND_PREFERENCE } }))}>恢复默认</button>
+                      </div>
+                      <p className="qz-settings-row-note">提示：位置是相对默认居中位置的偏移；尺寸会同步影响收起和展开状态。轻触顶部露出的玻璃边缘即可重新展开。</p>
+                    </>}
                     {row.panel === 'chat' && <>
                       <p>你可以决定是否向好友发送自己的已读状态，以及是否在聊天气泡下显示对方的已读状态。</p>
                       <label><span>发送已读回执</span><input type="checkbox" checked={prefs.chat.sendReadReceipts} onChange={e => setPrefs(old => ({ ...old, chat: { ...old.chat, sendReadReceipts: e.target.checked } }))} /></label>

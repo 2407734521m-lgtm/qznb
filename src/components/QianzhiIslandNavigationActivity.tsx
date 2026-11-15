@@ -1,10 +1,16 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useIslandActions, type ActivityOptions } from '../lib/island';
+import { NavigationActivityScheduler } from '../lib/island/navigation-activity-scheduler';
 import './QianzhiIslandNavigationActivity.css';
 
 const ACTIVITY_ID = 'qz-route-navigation';
-let pendingEndTimer: number | null = null;
+
+const navigationActivityScheduler = new NavigationActivityScheduler<number>({
+  now: () => Date.now(),
+  setTimeout: (callback, delayMs) => window.setTimeout(callback, delayMs),
+  clearTimeout: (handle) => window.clearTimeout(handle),
+});
 
 export function routeActivityLabel(pathname: string): string {
   if (pathname.startsWith('/chat/')) return '私聊';
@@ -46,27 +52,26 @@ export function createNavigationIslandActivity(label: string): ActivityOptions {
 export default function QianzhiIslandNavigationActivity() {
   const island = useIslandActions();
   const location = useLocation();
+  const label = routeActivityLabel(location.pathname);
+  const latestLabel = useRef(label);
+  latestLabel.current = label;
 
+  // The scheduler is shared across fallback mounts so adjacent route loads can merge.
   useEffect(() => {
-    if (pendingEndTimer !== null) {
-      window.clearTimeout(pendingEndTimer);
-      pendingEndTimer = null;
-    }
-
-    const label = routeActivityLabel(location.pathname);
-    const startTimer = window.setTimeout(() => {
-      island.start(createNavigationIslandActivity(label));
-    }, 180);
-
-    return () => {
-      window.clearTimeout(startTimer);
-      if (pendingEndTimer !== null) window.clearTimeout(pendingEndTimer);
-      pendingEndTimer = window.setTimeout(() => {
-        pendingEndTimer = null;
-        island.end(ACTIVITY_ID);
-      }, 140);
+    const sink = {
+      show: (nextLabel: string) => {
+        island.start(createNavigationIslandActivity(nextLabel));
+      },
+      end: () => island.end(ACTIVITY_ID),
     };
-  }, [island, location.pathname]);
+    navigationActivityScheduler.enter(sink, latestLabel.current);
+    return () => navigationActivityScheduler.leave();
+  }, [island]);
+
+  // A new destination updates the existing activity instead of restarting its visibility timer.
+  useEffect(() => {
+    navigationActivityScheduler.update(label);
+  }, [label]);
 
   return null;
 }

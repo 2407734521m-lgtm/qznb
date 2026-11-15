@@ -1,13 +1,5 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { createCallIslandActivity } from './QianzhiCallIslandActivity';
-
-const actions = () => ({
-  onAccept: vi.fn(),
-  onReject: vi.fn(),
-  onCancel: vi.fn(),
-  onHangUp: vi.fn(),
-  onToggleMute: vi.fn(),
-});
 
 describe('Qianzhi call island activity', () => {
   it('prioritizes incoming calls and exposes accept/reject actions', () => {
@@ -16,7 +8,6 @@ describe('Qianzhi call island activity', () => {
       peerName: '同学 A',
       seconds: 0,
       muted: false,
-      ...actions(),
     });
 
     expect(activity.id).toBe('qz-call-session');
@@ -32,7 +23,6 @@ describe('Qianzhi call island activity', () => {
       peerName: '同学 B',
       seconds: 125,
       muted: true,
-      ...actions(),
     });
 
     expect(activity.alert).toBeUndefined();

@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useRef, useState, type CSSProperties, type RefObject } from 'react';
 import { Island } from '../lib/island';
+import QianzhiIslandTaskDrawer from './QianzhiIslandTaskDrawer';
 
 type MusicCommand = 'toggle' | 'previous' | 'next' | 'seek';
 
@@ -363,6 +364,7 @@ export const MusicIslandView = ({
   return (
     <MusicIslandContext.Provider value={value}>
       <>
+        <QianzhiIslandTaskDrawer docked={docked} />
         <div
           ref={hostRef}
           className={'qz-island-host' + (docked ? ' is-docked' : '')}

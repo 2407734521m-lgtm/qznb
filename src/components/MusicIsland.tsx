@@ -342,6 +342,7 @@ function MusicIsland() {
             cancelSeekDraft,
             collapse: () => islandApi.collapse(),
             isExpanded: () => islandApi.presentation === 'expanded',
+            activityIds,
           }}
         />
       )}

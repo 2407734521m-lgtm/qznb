@@ -119,6 +119,18 @@ jobs:
       - name: Apply subtitle clearance for the expanded capsule
         run: node music/scripts/apply-folia-subtitle-clearance-expanded.mjs
 
+      - name: Apply lyric timeline follow (shared resolver, scroll only when out of view)
+        run: node music/scripts/apply-folia-lyrics-modal-follow.mjs
+
+      - name: Apply lyric offset limits (global five seconds, per-song 50ms step, cloud lyrics)
+        run: node music/scripts/apply-folia-lyrics-offsets.mjs
+
+      - name: Apply lyric stage timing (stage offset, two-second recent line retention)
+        run: node music/scripts/apply-folia-lyrics-stage-timing.mjs
+
+      - name: Apply subtitle word-by-word reveal
+        run: node music/scripts/apply-folia-lyrics-subtitle-words.mjs
+
       - name: Apply Qianzhi player polish (softer background dithering)
         run: node music/scripts/apply-folia-player-polish.mjs
 
@@ -163,6 +175,10 @@ jobs:
       - name: Test adaptive Qianzhi performance profile
         working-directory: music/folia
         run: npm run test:unit -- test/unit/utils/qianzhiPerformance.test.ts
+
+      - name: Test Qianzhi lyric follow, offsets and subtitle reveal
+        working-directory: music/folia
+        run: npm run test:unit -- test/unit/lyrics/lyricTimelineModalFollow.test.ts test/unit/lyrics/lyricTimelineOffsetStep.test.ts test/unit/visualizer/subtitleOverlay.test.ts test/unit/stores/globalLyricTimelineOffset.test.ts test/unit/onlineMusic/neteaseCloudLyricLimit.test.ts
 
       - name: Build Folia Web + Worker
         working-directory: music/folia

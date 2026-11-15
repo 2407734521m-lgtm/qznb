@@ -26,6 +26,7 @@ interface MusicIslandState {
   cancelSeekDraft: () => void;
   collapse: () => void;
   isExpanded: () => boolean;
+  activityIds: readonly string[];
 }
 
 const MusicIslandContext = createContext<MusicIslandState | null>(null);
@@ -182,6 +183,12 @@ const MusicExpandedControls = () => {
   );
 };
 
+/** True when a new live activity has appeared since the island was docked. */
+export const hasNewIslandActivity = (
+  previous: readonly string[],
+  current: readonly string[],
+): boolean => current.some(id => !previous.includes(id));
+
 type IslandDockSource = 'island' | 'peek';
 
 type IslandDockGesture = {
@@ -222,6 +229,7 @@ export const MusicIslandView = ({
   const collapseRef = useRef(value.collapse);
   const isExpandedRef = useRef(value.isExpanded);
   const suppressIslandClickUntilRef = useRef(0);
+  const previousActivityIdsRef = useRef(value.activityIds);
   collapseRef.current = value.collapse;
   isExpandedRef.current = value.isExpanded;
 
@@ -328,6 +336,17 @@ export const MusicIslandView = ({
       if (dockTimerRef.current !== null) window.clearTimeout(dockTimerRef.current);
     };
   }, []);
+
+  useEffect(() => {
+    const previous = previousActivityIdsRef.current;
+    previousActivityIdsRef.current = value.activityIds;
+    if (!docked || !hasNewIslandActivity(previous, value.activityIds)) return;
+
+    // A new call, upload or notification must never remain hidden behind the docked state.
+    if (dockTimerRef.current !== null) window.clearTimeout(dockTimerRef.current);
+    dockTimerRef.current = null;
+    setDocked(false);
+  }, [value.activityIds, docked]);
 
   const restoreIsland = () => {
     if (dockTimerRef.current !== null) window.clearTimeout(dockTimerRef.current);

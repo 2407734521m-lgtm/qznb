@@ -100,7 +100,7 @@ test('Android Chrome: docked island keeps a reachable glass restore handle', asy
     hitHeight: element.getBoundingClientRect().height,
     edgeHeight: getComputedStyle(element, '::before').height,
     handleHeight: getComputedStyle(element, '::after').height,
-    hostZIndex: getComputedStyle(element.parentElement!).zIndex,
+    hostZIndex: getComputedStyle(document.querySelector('.qz-island-host')!).zIndex,
   }));
 
   expect(Number(values.zIndex)).toBeGreaterThan(Number(values.hostZIndex));

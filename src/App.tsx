@@ -315,7 +315,7 @@ function PublicLanding({ data, onLogin, onGuestLogin, showGuestEntry }: { data: 
   const heroImg = bannerUrl;
   return (<><div className="glow" /><main style={{ width: 'min(100% - 28px, 820px)', margin: '0 auto', padding: '22px 0 48px', color: '#202632' }}>
     <header style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 18 }}>
-      <div style={{ flex: 1 }}><div style={{ fontSize: 11, letterSpacing: 3, color: '#7b8492' }}>QIANZHI · OPEN COMMUNITY</div><h1 style={{ margin: '6px 0 0', fontSize: 24 }}>{title}</h1><p style={{ margin: '4px 0 0', color: '#737b89', fontSize: 13 }}><ShinyText text={subtitle} /></p></div>
+      <div style={{ flex: 1 }}><div style={{ fontSize: 11, letterSpacing: 3, color: '#7b8492' }}>{title.toUpperCase()} · OPEN COMMUNITY</div><h1 style={{ margin: '6px 0 0', fontSize: 24 }}>{title}</h1><p style={{ margin: '4px 0 0', color: '#737b89', fontSize: 13 }}><ShinyText text={subtitle} /></p></div>
       {data?.close_login_entry !== 'true' && <button className="pri" style={{ width: 'auto', padding: '10px 16px', whiteSpace: 'nowrap' }} onClick={onLogin}>登录 / 注册</button>}
     </header>
     <section style={{ aspectRatio: '16 / 9', width: '100%', position: 'relative', overflow: 'hidden', borderRadius: 22, marginBottom: 18, background: '#e9edf3', border: '1px solid #e5e8ee', boxShadow: '0 12px 34px #202a3d0c' }}>

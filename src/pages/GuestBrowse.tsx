@@ -44,7 +44,7 @@ function GuestHome({ siteConfig, onLoginRequired, showLoveWall, showAnnouncement
         <div className="guest-cruip-hero-copy">
           <span className="guest-eyebrow">{BRAND_NAME.toUpperCase()} · OPEN COMMUNITY</span>
           <h1>{banner}</h1>
-          <p>{subtitle}。浏览公开内容，发现正在发生的分享与故事。</p>
+          <p>浏览公开内容，发现正在发生的分享与话题。</p>
           <div className="guest-cruip-hero-actions">
             <NavLink to="/feed" className="guest-button guest-button-primary">浏览动态 <span aria-hidden="true">↗</span></NavLink>
             {showAnnouncements && <NavLink to="/board" className="guest-button guest-button-secondary">查看公告</NavLink>}
@@ -76,25 +76,6 @@ function GuestHome({ siteConfig, onLoginRequired, showLoveWall, showAnnouncement
         </div>
 
         <aside className="guest-home-aside">
-          <section className="guest-panel guest-explore">
-            <header className="guest-panel-heading">
-              <div><span className="guest-eyebrow">EXPLORE</span><h2>发现更多</h2></div>
-              <span className="guest-panel-note">公开浏览</span>
-            </header>
-            <div className="guest-feature-list">
-              {showLoveWall
-                ? <NavLink to="/love-wall" className="guest-feature-link"><FeatureCard symbol="♡" title="表白墙" description="看看公开的心意与故事。" /></NavLink>
-                : <FeatureCard symbol="♡" title="表白墙" description="管理员暂未开放游客浏览。" locked />}
-              {showAnnouncements
-                ? <NavLink to="/board" className="guest-feature-link"><FeatureCard symbol="↗" title="公告" description="了解网站消息与近期更新。" /></NavLink>
-                : <FeatureCard symbol="↗" title="公告" description="管理员暂未开放游客浏览。" locked />}
-              <button type="button" className="guest-feature-button" onClick={onLoginRequired}>
-                <FeatureCard symbol="♫" title="歌声墙" description="登录后分享声音与作品。" locked />
-              </button>
-              <NavLink to="/daily" className="guest-feature-link"><FeatureCard symbol="☼" title="日常" description="浏览大家记录的日常片段。" /></NavLink>
-            </div>
-          </section>
-
           {showAnnouncements && (
             <section className="guest-panel guest-announcements">
               <header className="guest-panel-heading">
@@ -121,20 +102,8 @@ function GuestHome({ siteConfig, onLoginRequired, showLoveWall, showAnnouncement
         </aside>
       </div>
 
-      <section className="guest-discovery-section">
-        <div className="guest-section-heading">
-          <div><span className="guest-eyebrow">A LITTLE MORE</span><h2>这里不止有动态</h2><p>不同的角落，记录不同的想法与瞬间。</p></div>
-          <span className="guest-section-index">02 / COMMUNITY</span>
-        </div>
-        <div className="guest-discovery-grid">
-          <NavLink to="/feed" className="guest-discovery-card guest-discovery-members"><span>PEOPLE & STORIES</span><strong>从分享认识彼此</strong><p>在公开动态里，发现社区成员的故事。</p><i>浏览动态 ↗</i></NavLink>
-          <NavLink to="/daily" className="guest-discovery-card guest-discovery-daily"><span>MOMENTS</span><strong>收集日常灵感</strong><p>看看大家分享的生活片段。</p><i>浏览日常 ↗</i></NavLink>
-          <NavLink to="/feed" className="guest-discovery-card guest-discovery-feed"><span>DISCOVER</span><strong>让灵感继续发生</strong><p>在公开动态里，遇见新的话题。</p><i>继续发现 ↗</i></NavLink>
-        </div>
-      </section>
-
       <section className="guest-cruip-cta" aria-label="加入社区">
-        <span className="guest-eyebrow">JOIN CLASS MEMORY</span>
+        <span className="guest-eyebrow">JOIN QIANZHI</span>
         <h2>准备好加入了吗？</h2>
         <p>登录后可以点赞、评论、发布内容，认识更多同学。</p>
         <div className="guest-cruip-hero-actions">
@@ -192,24 +161,6 @@ function GuestUnavailable() {
   );
 }
 
-function FeatureCard({ title, description, locked = false, symbol }: {
-  title: string;
-  description: string;
-  locked?: boolean;
-  symbol: string;
-}) {
-  return (
-    <div className={`guest-feature-card${locked ? ' is-locked' : ''}`}>
-      <span className="guest-feature-symbol" aria-hidden="true">{symbol}</span>
-      <div className="guest-feature-copy">
-        <strong>{title}</strong>
-        <p>{description}</p>
-      </div>
-      <span className="guest-feature-arrow" aria-hidden="true">{locked ? '↗' : '→'}</span>
-    </div>
-  );
-}
-
 export default function GuestBrowse({
   nickname, expiresAt, siteConfig, showLoveWall, showAnnouncements,
   loginOpen, loginEnabled, onOpenLogin, onCloseLogin, onExit,
@@ -217,13 +168,15 @@ export default function GuestBrowse({
   function requestLogin() {
     onOpenLogin();
   }
+  const siteTitle = resolveBrandTitle(siteConfig?.site_title);
+  const siteSubtitle = resolveBrandSubtitle(siteConfig?.site_subtitle);
 
   return (
     <div className="guest-shell">
       <header className="guest-header">
         <NavLink to="/home" className="guest-brand">
           <BrandMark className="guest-brand-mark" size={42} />
-          <span className="guest-brand-copy"><strong>{BRAND_NAME}</strong><small>{BRAND_SUBTITLE}</small></span>
+          <span className="guest-brand-copy"><strong>{siteTitle}</strong><small>{siteSubtitle}</small></span>
         </NavLink>
         <div className="guest-header-status">
           <span className="guest-status-label">访客浏览</span>

@@ -52,12 +52,12 @@ assert.ok(activity.includes('type="range"'));
 assert.ok(activity.includes('<Island'));
 assert.ok(activity.includes('placement="viewport"'));
 assert.ok(activity.includes('keyline="off"'));
-assert.ok(activity.includes("top: 'calc(env(safe-area-inset-top, 0px) + 4px)'"));
+assert.ok(activity.includes("top: 'max(env(safe-area-inset-top, 0px), 18px)'"), 'The island must sit at least 18px below the top so it clears the Android status bar.');
 assert.ok(islandRoot.includes('onPointerDown'));
 assert.ok(islandRoot.includes('Escape'));
 assert.ok(islandRoot.includes('addEventListener("pointerdown"'));
 assert.ok(islandRoot.includes('store.api.collapse()'));
-assert.ok(parent.includes('!isMusicPage && ('));
+assert.ok(parent.includes('shouldShowMainIsland(isMusicPage, activityIds)'), 'The main island must hide on the music page unless another activity is live.');
 assert.ok(parent.includes('hostRef={islandWrapRef}'));
 
 assert.ok(parent.includes('opacity: { duration: isMusicPage ? 0.34 : 0.36'));
@@ -67,7 +67,7 @@ assert.ok(parent.includes('frameForeground ? 1000 : 1'), 'The music surface must
 assert.ok(parent.includes('onAnimationComplete={() => {') && parent.includes('setFrameForeground(false)'), 'The music surface must release its stacking layer after the exit animation.');
 assert.ok(parent.includes('setFrameForeground(true)'), 'The music surface must regain its stacking layer when reopened.');
 assert.ok(parent.includes("pointerEvents: isMusicPage ? 'auto' : 'none'"));
-assert.ok(styles.includes('z-index: 1201;'));
+assert.ok(styles.includes('z-index: 4001;'), 'The island host must float above page content and chat wallpapers.');
 assert.ok(styles.includes('.qz-island-wave'));
 assert.ok(styles.includes('var(--qz-music-eq-bass') && styles.includes('var(--qz-music-eq-treble'), 'Equalizer bars must use live analyser band values.');
 assert.ok(styles.includes('qz-island-expanded-bottom'));

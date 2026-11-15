@@ -41,6 +41,16 @@ Workers 网易云 API（`https://music.qianzhi.pw/api/netease`，XEAPI）。
 移动端默认画质：上游 fx 默认即 `eco` 档（DPR 上限 0.95、像素预算 240 万），
 外加竖屏 CSS 补丁；横屏布局未改动。
 
+## 自动化检查
+
+Worker 的本地路由契约测试使用 Node.js 内置测试运行器，无需真实网易云 Cookie、Supabase 会话或 Cloudflare 凭据：
+
+```bash
+node --test tests/*.test.mjs
+```
+
+主仓库 PR 验证与本目录部署工作流都会先运行这组离线测试，再进行后续检查或部署。
+
 ## 部署
 
 推送到 main 且改动 `radio/**` 时由 `.github/workflows/deploy-radio.yml`

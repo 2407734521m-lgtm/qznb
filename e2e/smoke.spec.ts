@@ -131,3 +131,55 @@ test('私信列表未登录时不暴露私信内容', async ({ page }) => {
     page.getByPlaceholder('搜索昵称或 @用户名（真实姓名不公开）'),
   ).toHaveCount(0);
 });
+
+test('灵动岛支持上滑收纳与顶部边缘下滑唤回', async ({ page }) => {
+  await page.goto('/#/home');
+  const islandHost = page.locator('.qz-island-host');
+  const pillHit = page.locator('.qz-island-host [data-islandcn-hit="pill"]');
+  await expect(islandHost).toBeVisible({ timeout: 20000 });
+  await expect(pillHit).toHaveCount(1);
+
+  // Dispatch a realistic pointer sequence so the test does not depend on device-specific swipe APIs.
+  await page.evaluate(() => {
+    const hit = document.querySelector('.qz-island-host [data-islandcn-hit="pill"]');
+    if (!hit) throw new Error('灵动岛触控区域未挂载');
+    const pointer = (type: string, clientY: number) => new PointerEvent(type, {
+      bubbles: true,
+      cancelable: true,
+      pointerId: 913,
+      pointerType: 'touch',
+      isPrimary: true,
+      clientX: window.innerWidth / 2,
+      clientY,
+      button: 0,
+    });
+    hit.dispatchEvent(pointer('pointerdown', 42));
+    window.dispatchEvent(pointer('pointermove', 10));
+    window.dispatchEvent(pointer('pointerup', -12));
+  });
+
+  await expect(islandHost).toHaveAttribute('data-docked', 'true', { timeout: 5000 });
+  const peek = page.locator('.qz-island-peek');
+  await expect(peek).toBeVisible();
+
+  await page.evaluate(() => {
+    const peekButton = document.querySelector('.qz-island-peek');
+    if (!peekButton) throw new Error('顶部恢复触控区域未挂载');
+    const pointer = (type: string, clientY: number) => new PointerEvent(type, {
+      bubbles: true,
+      cancelable: true,
+      pointerId: 914,
+      pointerType: 'touch',
+      isPrimary: true,
+      clientX: window.innerWidth / 2,
+      clientY,
+      button: 0,
+    });
+    peekButton.dispatchEvent(pointer('pointerdown', 4));
+    window.dispatchEvent(pointer('pointermove', 24));
+    window.dispatchEvent(pointer('pointerup', 38));
+  });
+
+  await expect(islandHost).toHaveAttribute('data-docked', 'false', { timeout: 3000 });
+  await expect(peek).toHaveCount(0);
+});

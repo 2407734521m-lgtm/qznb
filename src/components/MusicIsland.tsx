@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
-import { useIsland } from '../lib/island';
+import { useIslandActions, useIslandActivityIds } from '../lib/island';
 import { createMusicIslandActivity, MusicIslandView } from './QianzhiMusicIslandActivity';
 import { useLocation, useNavigate } from 'react-router-dom';
 import './MusicIsland.css';
@@ -73,7 +73,8 @@ function MusicIsland() {
   const location = useLocation();
   const navigate = useNavigate();
   const reduceMotion = useReducedMotion();
-  const islandApi = useIsland();
+  const islandApi = useIslandActions();
+  const activityIds = useIslandActivityIds();
   const frameRef = useRef<HTMLIFrameElement | null>(null);
   const islandWrapRef = useRef<HTMLDivElement | null>(null);
   const isMusicPage = location.pathname === '/music';
@@ -88,7 +89,7 @@ function MusicIsland() {
   const lastStateMessageAtRef = useRef(0);
   const lastTrackRef = useRef<MusicTrack | null>(null);
   const shouldMountFrame = openedOnce || isMusicPage;
-  const showMainIsland = shouldShowMainIsland(isMusicPage, islandApi.activities.map(activity => activity.id));
+  const showMainIsland = shouldShowMainIsland(isMusicPage, activityIds);
 
   useEffect(() => {
     if (isMusicPage) {

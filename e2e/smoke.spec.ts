@@ -53,7 +53,10 @@ test('游客模式可浏览：能进游客壳并看到游客导航', async ({ pa
     const headerBrand = page.locator('.guest-header .guest-brand-copy strong');
     const footerBrand = page.locator('.guest-cruip-footer-brand strong');
     await expect(headerBrand).toBeVisible();
-    await expect(footerBrand).toHaveText(await headerBrand.innerText());
+    const configuredTitle = (await headerBrand.innerText()).trim();
+    await expect(footerBrand).toHaveText(configuredTitle);
+    await expect(page.locator('.guest-cruip-hero .guest-eyebrow')).toContainText(configuredTitle.toUpperCase());
+    await expect(page.locator('.guest-cruip-cta .guest-eyebrow')).toContainText(configuredTitle.toUpperCase());
     await expect(page.locator('.guest-discovery-section')).toHaveCount(0);
     await expect(page.getByText('把我们的青春，留在这里')).toHaveCount(0);
     return;
@@ -73,7 +76,10 @@ test('游客模式可浏览：能进游客壳并看到游客导航', async ({ pa
     const headerBrand = page.locator('.guest-header .guest-brand-copy strong');
     const footerBrand = page.locator('.guest-cruip-footer-brand strong');
     await expect(headerBrand).toBeVisible();
-    await expect(footerBrand).toHaveText(await headerBrand.innerText());
+    const configuredTitle = (await headerBrand.innerText()).trim();
+    await expect(footerBrand).toHaveText(configuredTitle);
+    await expect(page.locator('.guest-cruip-hero .guest-eyebrow')).toContainText(configuredTitle.toUpperCase());
+    await expect(page.locator('.guest-cruip-cta .guest-eyebrow')).toContainText(configuredTitle.toUpperCase());
     await expect(page.locator('.guest-discovery-section')).toHaveCount(0);
     await expect(page.getByText('把我们的青春，留在这里')).toHaveCount(0);
   } else {

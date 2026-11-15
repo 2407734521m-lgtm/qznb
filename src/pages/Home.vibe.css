@@ -281,6 +281,8 @@
   gap: 12px;
 }
 .vh-notice {
+  position: relative;
+  isolation: isolate;
   min-width: 0;
   text-align: left;
   padding: 16px;

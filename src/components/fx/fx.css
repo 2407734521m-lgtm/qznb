@@ -180,3 +180,44 @@
   /* 微光停掉：只留主按钮本身，不留静止光斑 */
   .fx-shimmer-ring { animation: none; opacity: 0; }
 }
+
+
+/* Border Beam：Magic UI BorderBeam 的轻量 CSS 改写。
+   只用于单个重点卡片边缘；不覆盖内容、不捕获指针、不参与布局。 */
+.fx-border-beam {
+  --fx-border-beam-duration: 8s;
+  --fx-border-beam-color: rgba(126, 143, 162, .56);
+  --fx-border-beam-width: 1px;
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  overflow: hidden;
+  border-radius: inherit;
+  pointer-events: none;
+}
+.fx-border-beam::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  padding: var(--fx-border-beam-width);
+  border-radius: inherit;
+  background: conic-gradient(
+    from 0deg,
+    transparent 0deg 310deg,
+    rgba(126, 143, 162, .18) 333deg,
+    rgba(255, 255, 255, .96) 347deg,
+    var(--fx-border-beam-color) 354deg,
+    transparent 360deg
+  );
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  animation: fx-border-beam-spin var(--fx-border-beam-duration) linear infinite;
+}
+@keyframes fx-border-beam-spin {
+  to { transform: rotate(1turn); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fx-border-beam { display: none; }
+}

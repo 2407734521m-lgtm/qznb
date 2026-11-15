@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import type { ActivityOptions } from '../lib/island';
 import type { CallPhase } from '../lib/call';
 import './QianzhiCallIslandActivity.css';
@@ -58,7 +59,7 @@ export function createCallIslandActivity(input: CallIslandActivityInput): Activi
   const duration = formatDuration(seconds);
   const trailing = phase === 'in-call' ? duration : phase === 'connecting' ? '…' : '';
 
-  let actions;
+  let actions: ReactNode;
   if (phase === 'incoming') {
     actions = (
       <div className="qz-call-island-actions">

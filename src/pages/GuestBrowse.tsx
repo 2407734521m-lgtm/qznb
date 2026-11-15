@@ -1,4 +1,4 @@
-import { BRAND_NAME, resolveBrandTitle, resolveBrandSubtitle } from '../lib/brand';
+import { resolveBrandTitle, resolveBrandSubtitle } from '../lib/brand';
 import BrandMark from '../components/BrandMark';
 import { NavLink, Navigate, Route, Routes } from 'react-router-dom';
 import Login from './Login';
@@ -42,7 +42,7 @@ function GuestHome({ siteConfig, onLoginRequired, showLoveWall, showAnnouncement
     <main className="guest-main">
       <section className="guest-cruip-hero" aria-label={`${title} 社区介绍`}>
         <div className="guest-cruip-hero-copy">
-          <span className="guest-eyebrow">{BRAND_NAME.toUpperCase()} · OPEN COMMUNITY</span>
+          <span className="guest-eyebrow">{title.toUpperCase()} · OPEN COMMUNITY</span>
           <h1>{banner}</h1>
           <p>浏览公开内容，发现正在发生的分享与话题。</p>
           <div className="guest-cruip-hero-actions">
@@ -103,7 +103,7 @@ function GuestHome({ siteConfig, onLoginRequired, showLoveWall, showAnnouncement
       </div>
 
       <section className="guest-cruip-cta" aria-label="加入社区">
-        <span className="guest-eyebrow">JOIN QIANZHI</span>
+        <span className="guest-eyebrow">JOIN {title.toUpperCase()}</span>
         <h2>准备好加入了吗？</h2>
         <p>登录后可以点赞、评论、发布内容，认识更多同学。</p>
         <div className="guest-cruip-hero-actions">

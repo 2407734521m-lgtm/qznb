@@ -61,6 +61,24 @@
   line-height: 1;
 }
 
+.qz-island-track-label {
+  animation: qz-island-track-arrive 260ms cubic-bezier(.2,.78,.22,1) both;
+  will-change: opacity, transform, filter;
+}
+
+@keyframes qz-island-track-arrive {
+  from {
+    opacity: 0;
+    transform: translateY(4px) scale(.985);
+    filter: blur(3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+
 .qz-island-compact-title {
   display: block;
   min-width: 0;
@@ -335,5 +353,6 @@
   .qz-island-wave i,
   .qz-island-controls button,
   .qz-island-close,
-  .qz-island-art { transition: none; animation: none !important; }
+  .qz-island-art,
+  .qz-island-track-label { transition: none; animation: none !important; }
 }

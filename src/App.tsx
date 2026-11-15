@@ -779,8 +779,8 @@ function Shell() {
       const values = [...activeUploads.values()];
       if (!values.length) return;
       const measured = values.map(item => item.progress).filter((value): value is number => typeof value === 'number');
-      const progress = measured.length
-        ? Math.round(measured.reduce((total, value) => total + value, 0) / measured.length)
+      const progress = measured.length === values.length && values.length
+        ? Math.round(measured.reduce((total, value) => total + value, 0) / values.length)
         : null;
       const label = values.length > 1 ? '正在上传 ' + values.length + ' 项' : values[0].label;
       islandApi.start(createUploadIslandActivity({ count: values.length, progress, status: 'uploading', label }));
@@ -831,6 +831,7 @@ function Shell() {
   // stays indeterminate rather than inventing a percentage.
   useEffect(() => {
     const activeDownloads = new Map<string, { progress: number | null; label: string }>();
+    let failedDuringDownloadBatch = false;
     let terminalTimer: number | null = null;
 
     const clearTerminalTimer = () => {
@@ -864,6 +865,7 @@ function Shell() {
       clearTerminalTimer();
 
       if (detail.phase === 'start') {
+        if (activeDownloads.size === 0) failedDuringDownloadBatch = false;
         activeDownloads.set(detail.id, { progress: detail.progress, label: detail.label || '正在下载文件' });
         renderActiveDownloads();
         return;
@@ -876,8 +878,12 @@ function Shell() {
       }
 
       activeDownloads.delete(detail.id);
+      if (detail.phase === 'error') failedDuringDownloadBatch = true;
       if (activeDownloads.size) renderActiveDownloads();
-      else showTerminalState(detail.phase === 'complete' ? 'completed' : 'failed');
+      else {
+        showTerminalState(failedDuringDownloadBatch ? 'failed' : 'completed');
+        failedDuringDownloadBatch = false;
+      }
     };
 
     window.addEventListener('qz-island-download', onDownloadEvent);

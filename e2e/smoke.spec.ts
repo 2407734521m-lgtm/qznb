@@ -70,6 +70,12 @@ test('游客模式可浏览：能进游客壳并看到游客导航', async ({ pa
     }
     await expect(guestShell).toBeVisible({ timeout: 20000 });
     await expect(page.getByRole('navigation', { name: '游客浏览导航' })).toBeVisible();
+    const headerBrand = page.locator('.guest-header .guest-brand-copy strong');
+    const footerBrand = page.locator('.guest-cruip-footer-brand strong');
+    await expect(headerBrand).toBeVisible();
+    await expect(footerBrand).toHaveText(await headerBrand.innerText());
+    await expect(page.locator('.guest-discovery-section')).toHaveCount(0);
+    await expect(page.getByText('把我们的青春，留在这里')).toHaveCount(0);
   } else {
     // eslint-disable-next-line no-console
     console.log('[e2e] 游客用例跳过：后端未开放游客入口，无游客登录按钮');

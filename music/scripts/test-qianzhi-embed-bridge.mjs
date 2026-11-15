@@ -83,6 +83,13 @@ assert.ok(!styles.includes('qz-music-island-collapsed'), 'Legacy duplicate Music
 
 assert.ok(parent.includes("spectrum.mode === 'level'"), 'Main-site bars must consume RMS fallback messages.');
 assert.ok(parent.includes("message.type === 'SPECTRUM'"), 'The main site must consume spectrum data.');
+assert.ok(parent.includes('resolveMusicEqualizerMode(spectrum)'), 'Playing bars must select live or visual fallback mode.');
+assert.ok(parent.includes('style.dataset.qzMusicEqMode = equalizerMode'), 'The main site must expose equalizer mode to the island CSS.');
+assert.ok(parent.includes("setAttribute('data-qz-music-eq-mode', 'idle')"), 'Pause and no-track states must stop the fallback bars.');
+assert.ok(bridgeSource.includes("hasAudioLevel ? 'level' : 'fallback'"), 'Routes without useful analyser data must explicitly enable the visual fallback.');
+assert.ok(styles.includes('data-qz-music-eq-mode="fallback"'), 'The CSS must animate the playing bars when analyser data is unavailable.');
+assert.ok(styles.includes('@keyframes qz-island-eq-fallback-bass'), 'The fallback must move bar heights, not only glow.');
+
 assert.ok(parent.includes('style.setProperty(`--qz-music-eq-${name}`'), 'The island meter must be driven by received frequency bands.');
 assert.ok(audioSignals.includes('export const audioLevel = motionValue(0);'), 'Folia must expose a dedicated actual-audio RMS signal.');
 assert.ok(visualizerBridge.includes('getByteTimeDomainData(waveformData)'), 'RMS must be sampled from the existing playback analyser waveform.');

@@ -36,7 +36,7 @@ export function useUserPreferences(uid: string | null | undefined) {
       const { data, error } = await (supabase as any).from('profile_notification_preferences').select('preferences').eq('profile_id', uid).maybeSingle();
       if (!active) return;
       if (error) {
-        setPrefs(localPreferences); setSyncState('error'); setLoadedUid(uid); setPrefsReady(true); return;
+        setPrefs(localPreferences); setSyncState('error'); setLoadedUid(uid ?? null); setPrefsReady(true); return;
       }
       if (data?.preferences && typeof data.preferences === 'object') {
         const remote = data.preferences as Partial<UserPreferences>;
@@ -54,7 +54,7 @@ export function useUserPreferences(uid: string | null | undefined) {
         if (!active) return;
         setPrefs(localPreferences); setSyncState(insertError ? 'error' : 'saved');
       }
-      setLoadedUid(uid);
+      setLoadedUid(uid ?? null);
       setPrefsReady(true);
     }
     void loadCloudPreferences();

@@ -17,8 +17,9 @@ import { readCachedUserPreferences, useQuietHoursActive } from './lib/userPrefer
 import { useIslandActions } from './lib/island';
 import { combineIslandAlertBatch, showIslandAlert } from './components/QianzhiIslandAlert';
 import { createUploadIslandActivity } from './components/QianzhiIslandUploadActivity';
+import { createDownloadIslandActivity } from './components/QianzhiIslandDownloadActivity';
 import QianzhiIslandNavigationActivity from './components/QianzhiIslandNavigationActivity';
-import type { MediaUploadIslandEvent } from './lib/media';
+import type { MediaDownloadIslandEvent, MediaUploadIslandEvent } from './lib/media';
 import { lazyWithRetry } from './lib/lazyWithRetry';
 // 只在特定时刻才出现的覆盖层/弹窗：懒加载，不占首屏包体积。
 // （WelcomeOverlay、GuideCarousel、WallpaperOnboarding、LoginSuccessOverlay、

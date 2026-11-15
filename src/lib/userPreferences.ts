@@ -12,11 +12,26 @@ export type ChatPreference = {
   showReadReceipts: boolean;
 };
 
+export type IslandPreference = {
+  offsetX: number;
+  offsetY: number;
+  width: number;
+  height: number;
+};
+
+export const DEFAULT_ISLAND_PREFERENCE: IslandPreference = {
+  offsetX: 0,
+  offsetY: 0,
+  width: 104,
+  height: 31.5,
+};
+
 export type UserPreferences = {
   motion: 'system' | 'reduce' | 'full';
   notifications: Record<string, boolean>;
   quietHours: QuietHoursPreference;
   chat: ChatPreference;
+  island: IslandPreference;
 };
 
 export const DEFAULT_USER_PREFERENCES: UserPreferences = {
@@ -35,6 +50,7 @@ export const DEFAULT_USER_PREFERENCES: UserPreferences = {
   },
   quietHours: { enabled: false, start: '22:00', end: '07:00' },
   chat: { sendReadReceipts: true, showReadReceipts: true },
+  island: DEFAULT_ISLAND_PREFERENCE,
 };
 
 function isClockValue(value: unknown): value is string {
@@ -45,7 +61,13 @@ export function normalizeUserPreferences(value: unknown): UserPreferences {
   const raw = value && typeof value === 'object' ? value as Record<string, any> : {};
   const quiet = raw.quietHours && typeof raw.quietHours === 'object' ? raw.quietHours : {};
   const chat = raw.chat && typeof raw.chat === 'object' ? raw.chat : {};
+  const island = raw.island && typeof raw.island === 'object' ? raw.island : {};
   const notifications = raw.notifications && typeof raw.notifications === 'object' ? raw.notifications : {};
+  const bounded = (value: unknown, fallback: number, min: number, max: number, step = 1) => {
+    const number = typeof value === 'number' ? value : Number(value);
+    if (!Number.isFinite(number)) return fallback;
+    return Math.round(Math.min(max, Math.max(min, number)) / step) * step;
+  };
   return {
     motion: raw.motion === 'reduce' || raw.motion === 'full' ? raw.motion : 'system',
     notifications: { ...DEFAULT_USER_PREFERENCES.notifications, ...notifications },
@@ -57,6 +79,12 @@ export function normalizeUserPreferences(value: unknown): UserPreferences {
     chat: {
       sendReadReceipts: chat.sendReadReceipts !== false,
       showReadReceipts: chat.showReadReceipts !== false,
+    },
+    island: {
+      offsetX: bounded(island.offsetX, DEFAULT_ISLAND_PREFERENCE.offsetX, -90, 90),
+      offsetY: bounded(island.offsetY, DEFAULT_ISLAND_PREFERENCE.offsetY, -10, 90),
+      width: bounded(island.width, DEFAULT_ISLAND_PREFERENCE.width, 88, 144),
+      height: bounded(island.height, DEFAULT_ISLAND_PREFERENCE.height, 28, 42, 0.5),
     },
   };
 }

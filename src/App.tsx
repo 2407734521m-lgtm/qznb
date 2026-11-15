@@ -654,9 +654,7 @@ function Shell() {
             // prompt because profile names and avatars are private by default.
             const body = isFriendRequest
               ? '有人想添加你为好友'
-              : isInteraction
-                ? '打开消息中心查看详情'
-                : (typeof row.body === 'string' ? row.body.slice(0, 72) : '打开消息中心查看详情');
+              : '打开消息中心查看详情';
             const href = typeof row.link === 'string' && row.link.startsWith('/') && !row.link.startsWith('//')
               ? row.link
               : isFriendRequest ? '/friends?tab=reqs' : '/friends?tab=notifications';

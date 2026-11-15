@@ -810,6 +810,67 @@ function Shell() {
       islandApi.end('qz-upload-progress');
     };
   }, [islandApi]);
+  // Aggregate browser-readable download streams into one activity. Unknown content length
+  // stays indeterminate rather than inventing a percentage.
+  useEffect(() => {
+    const activeDownloads = new Map<string, { progress: number | null; label: string }>();
+    let terminalTimer: number | null = null;
+
+    const clearTerminalTimer = () => {
+      if (terminalTimer !== null) window.clearTimeout(terminalTimer);
+      terminalTimer = null;
+    };
+
+    const renderActiveDownloads = () => {
+      const values = [...activeDownloads.values()];
+      if (!values.length) return;
+      const measured = values.map(item => item.progress).filter((value): value is number => typeof value === 'number');
+      const progress = measured.length
+        ? Math.round(measured.reduce((total, value) => total + value, 0) / measured.length)
+        : null;
+      const label = values.length > 1 ? '正在下载 ' + values.length + ' 项' : values[0].label;
+      islandApi.start(createDownloadIslandActivity({ count: values.length, progress, status: 'downloading', label }));
+    };
+
+    const showTerminalState = (status: 'completed' | 'failed') => {
+      islandApi.start(createDownloadIslandActivity({ count: 0, progress: status === 'completed' ? 100 : null, status }));
+      terminalTimer = window.setTimeout(() => {
+        terminalTimer = null;
+        if (activeDownloads.size) renderActiveDownloads();
+        else islandApi.end('qz-download-progress');
+      }, status === 'failed' ? 2200 : 1100);
+    };
+
+    const onDownloadEvent = (event: Event) => {
+      const detail = (event as CustomEvent<MediaDownloadIslandEvent>).detail;
+      if (!detail || typeof detail.id !== 'string' || !detail.id) return;
+      clearTerminalTimer();
+
+      if (detail.phase === 'start') {
+        activeDownloads.set(detail.id, { progress: detail.progress, label: detail.label || '正在下载文件' });
+        renderActiveDownloads();
+        return;
+      }
+      if (detail.phase === 'progress') {
+        const current = activeDownloads.get(detail.id) ?? { progress: null, label: detail.label || '正在下载文件' };
+        activeDownloads.set(detail.id, { ...current, progress: detail.progress });
+        renderActiveDownloads();
+        return;
+      }
+
+      activeDownloads.delete(detail.id);
+      if (activeDownloads.size) renderActiveDownloads();
+      else showTerminalState(detail.phase === 'complete' ? 'completed' : 'failed');
+    };
+
+    window.addEventListener('qz-island-download', onDownloadEvent);
+    return () => {
+      clearTerminalTimer();
+      window.removeEventListener('qz-island-download', onDownloadEvent);
+      islandApi.end('qz-download-progress');
+    };
+  }, [islandApi]);
+
   // 登录弹窗公告：按后台设置的次数弹出（1/2/3次或每次）
   const [loginPop, setLoginPop] = useState<any>(null);
   useEffect(() => {

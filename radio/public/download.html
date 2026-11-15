@@ -109,6 +109,7 @@
   var currentKw = '';
   var qrTimer = null;
   var qrKey = '';
+  var justQrLoggedIn = false; // 刚扫码成功：第一次查状态若报未登录，先重试一次再认
   // 本站账号会话：存在 localStorage，与网易云扫码登录是两道独立登录。
   var SITE_SESSION_KEY = 'qz_site_session_v1';
   var siteSession = null; // {access_token, refresh_token, expires_at, user_id, label}
@@ -684,7 +685,7 @@
                 // mr_session（hasCookie 为 false）时 checkLogin 必然还是未登录，
                 // 别默默回到二维码，给一句明白话，让用户自己点“换一张二维码”再试。
                 if (c.hasCookie === false) { stopQr(); st.textContent = '扫码成功了，但没拿到登录凭证，请点“换一张二维码”再试一次。'; }
-                else { stopQr(); checkLogin(); }
+                else { stopQr(); justQrLoggedIn = true; checkLogin(); }
               }
               else if (c.code === 802) st.textContent = '已扫码，手机上点确认登录…';
               else if (c.code === 801) st.textContent = '等待扫码…';
@@ -835,6 +836,14 @@
           clearMusic();
           hideBindConfirm();
           renderSyncStatus();
+          // 刚扫码成功就报未登录，多半是上游还没认出新凭证：等 2.5 秒再查一次，
+          // 还不行才走恢复/扫码流程，别一上来就把人弹回二维码。
+          if (justQrLoggedIn) {
+            justQrLoggedIn = false;
+            $('loginBox').innerHTML = '<p class="mut">登录成功，正在确认…</p>';
+            setTimeout(checkLogin, 2500);
+            return;
+          }
           if (!restoreAttempted && getLocal(NO_RESTORE_KEY) !== '1') {
             $('loginBox').innerHTML = '<p class="mut">正在恢复网易云登录…</p>';
             tryRestoreNetEase().then(function (action) {
@@ -850,6 +859,12 @@
       })
       .catch(function () {
         if (siteAuthLost) return;
+        if (justQrLoggedIn) {
+          justQrLoggedIn = false;
+          $('loginBox').innerHTML = '<p class="mut">登录成功，正在确认…</p>';
+          setTimeout(checkLogin, 2500);
+          return;
+        }
         $('loginBox').innerHTML = '<p class="mut">登录状态检查失败，检查网络后刷新页面重试。</p>';
       });
   }

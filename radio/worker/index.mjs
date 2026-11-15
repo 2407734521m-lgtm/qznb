@@ -110,20 +110,32 @@ function parseCookieString(cookieText) {
   return out;
 }
 
+// Set-Cookie 响应头里跟在第一对后面的属性名：不是 cookie，归一化时丢掉。
+const SET_COOKIE_ATTRS = new Set(['expires', 'max-age', 'domain', 'path', 'secure', 'httponly', 'samesite']);
+
 function normalizeCookieHeader(raw) {
   if (!raw) return '';
   const list = Array.isArray(raw) ? raw : [raw];
-  const pairs = [];
-  for (const item of list) {
-    String(item || '').split(/,(?=\s*[^;,=]+?=)/).forEach(piece => {
-      const first = String(piece || '').split(';')[0].trim();
-      if (first && first.includes('=')) pairs.push(first);
-    });
-  }
   const merged = {};
-  for (const pair of pairs) {
-    const idx = pair.indexOf('=');
-    merged[pair.slice(0, idx).trim()] = pair.slice(idx + 1).trim();
+  for (const item of list) {
+    // 先把逗号拼起来的多条 Set-Cookie 拆开（Expires=... 里的逗号后面不跟
+    // name=，不会被误拆），再按 ';' 拆出每一对；只丢已知的 Set-Cookie
+    // 属性，保留全部真正的 cookie 对。
+    // 扫码登录上游 body.cookie 是 "MUSIC_U=..; __csrf=..; MUSIC_A=.." 整串，
+    // 以前这里每段只取第一个键值对，__csrf 等全被丢掉，存进 mr_session 的
+    // 只有 MUSIC_U；网易云 weapi 校验的 csrf_token 为空，/login/status
+    // 随即认不出这次登录，页面刚扫完码就弹回“未登录”。
+    String(item || '').split(/,(?=\s*[^;,=]+?=)/).forEach(line => {
+      String(line || '').split(';').forEach(piece => {
+        const seg = String(piece || '').trim();
+        if (!seg) return;
+        const idx = seg.indexOf('=');
+        if (idx <= 0) return; // HttpOnly / Secure 这类无值标记
+        const name = seg.slice(0, idx).trim();
+        if (SET_COOKIE_ATTRS.has(name.toLowerCase())) return;
+        merged[name] = seg.slice(idx + 1).trim();
+      });
+    });
   }
   return Object.entries(merged).map(([k, v]) => `${k}=${v}`).join('; ');
 }
@@ -363,7 +375,10 @@ async function getLoginInfo(cookieStr, { fresh = false } = {}) {
     } catch (_) {}
   }
   if (!info) info = notLoggedInfo({ hasCookie: true });
-  loginInfoCache.set(key, { at: Date.now(), info });
+  // 只缓存“已登录”的结果：未登录可能是上游一时没认出刚扫码拿到的凭证，
+  // 缓存 25 秒会让紧接着的 /login/status 也跟着报未登录，页面直接把
+  // 人弹回扫码。未登录每次都重新向上游核实一次。
+  if (info.loggedIn) loginInfoCache.set(key, { at: Date.now(), info });
   return info;
 }
 

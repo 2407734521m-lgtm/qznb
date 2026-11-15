@@ -43,7 +43,7 @@
   left: calc(50% + var(--qz-island-config-x, 0px));
   z-index: 4002;
   display: block;
-  width: min(92px, 26vw, calc(var(--qz-island-capsule-width) - 8px));
+  width: min(92px, 26vw, calc(var(--qz-island-config-width, 104px) - 8px));
   height: 34px;
   margin: 0;
   padding: 0;

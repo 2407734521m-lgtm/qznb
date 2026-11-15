@@ -79,9 +79,10 @@ describe('resolveIslandDockGesture', () => {
     expect(resolveIslandDockGesture('peek', 8, 23)).toBe(null);
   });
 
-  it('ignores predominantly horizontal movement', () => {
+  it('ignores predominantly horizontal and diagonal movement', () => {
     expect(resolveIslandDockGesture('island', 82, -50)).toBe(null);
     expect(resolveIslandDockGesture('peek', -90, 40)).toBe(null);
+    expect(resolveIslandDockGesture('peek', 20, 24)).toBe(null);
   });
 });
 

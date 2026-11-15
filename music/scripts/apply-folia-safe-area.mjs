@@ -36,8 +36,8 @@ controls = replaceOnce(controls,
     "import { AnimatePresence, motion, useTransform } from 'framer-motion';",
     'floating controls useTransform import');
 controls = replaceOnce(controls,
-    '    const bottomBarBottomPx = usePlayerBottomBarBottomPx();',
-    `    const bottomBarBottomPx = usePlayerBottomBarBottomPx();
+    '    const bottomBarBottomPx = usePlayerBottomBarBottomPx(capsuleBaseBottomPx);',
+    `    const bottomBarBottomPx = usePlayerBottomBarBottomPx(capsuleBaseBottomPx);
     // The capsule clears the home indicator on notched phones: the shared offset is a plain
     // pixel value, so the safe area is added here, on the capsule only, as a calc string.
     const capsuleBottomPx = useTransform(
@@ -64,6 +64,7 @@ hook = replaceOnce(hook,
         ([presence, offset, expanded]: number[]) => resolvePlayerSubtitleBottomFromPresence(
             isBottomBarHost ? offset : previewOffset,
             presence,
+            isCompact ? COMPACT_SUBTITLE_GEOMETRY : undefined,
             // 预览里没有底栏，展开量与它无关。
             isBottomBarHost ? expanded * PLAYER_BOTTOM_BAR_EXPANDED_SUBTITLE_EXTRA_PX : 0,
         ),
@@ -73,6 +74,7 @@ hook = replaceOnce(hook,
         ([presence, offset, expanded]: number[]) => resolvePlayerSubtitleBottomFromPresence(
             isBottomBarHost ? offset : previewOffset,
             presence,
+            isCompact ? COMPACT_SUBTITLE_GEOMETRY : undefined,
             // 预览里没有底栏，展开量与它无关。
             isBottomBarHost ? expanded * PLAYER_BOTTOM_BAR_EXPANDED_SUBTITLE_EXTRA_PX : 0,
         ),

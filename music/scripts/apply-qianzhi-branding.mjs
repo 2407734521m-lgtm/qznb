@@ -21,8 +21,10 @@ const htmlReplacements = [
   ['<meta name="apple-mobile-web-app-title" content="Folia" />', '<meta name="apple-mobile-web-app-title" content="qianzhi" />'],
   ['<title>Folia</title>', '<title>qianzhi</title>'],
   ['aria-label="Loading Folia"', 'aria-label="Loading qianzhi"'],
-  ['<div class="app-splash-title" aria-label="Folia"><span>F</span><span>o</span><span>l</span><span>i</span><span>a</span></div>', '<div class="app-splash-title" aria-label="qianzhi"><span>q</span><span>i</span><span>a</span><span>n</span><span>z</span><span>h</span><span>i</span></div>'],
-  ['// Folia 五个字母不断跳到不同字形', '// qianzhi 品牌字母不断跳到不同字形'],
+  // v0.7.28 removed the splash wordmark: the old letter-by-letter "Folia" title div is gone,
+  // the splash is now abstract colour blocks that animate into an "F" shape, with no visible
+  // "Folia" text left to rebrand (only the aria-label above, still replaced). The two old
+  // replacements (splash title div, "五个字母" comment) are dropped, not retargeted.
 ];
 for (const [from, to] of htmlReplacements) {
   html = replaceOnce(html, from, to, 'index.html branding');
@@ -56,7 +58,7 @@ const qianzhiIcon = `<svg width="512" height="512" viewBox="0 0 512 512" fill="n
 </svg>`;
 let icon = await read(iconPath);
 if (!icon.includes('id="qianzhi-gradient"')) {
-  if (!icon.includes('<!-- Stylized F Logo -->')) {
+  if (!icon.includes('<!-- Capital "F" stacked from a few rectangular blocks -->')) {
     throw new Error('The pinned upstream app icon changed; refusing to replace an unknown icon.');
   }
   await write(iconPath, qianzhiIcon);

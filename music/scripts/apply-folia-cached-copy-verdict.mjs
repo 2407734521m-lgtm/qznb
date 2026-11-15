@@ -41,8 +41,8 @@ const writeNewFile = async (path, content, label) => {
 const keysPath = resolve(root, 'src/services/onlineMusic/resourceKeys.ts');
 let keys = await read(keysPath);
 keys = replaceOnce(keys,
-    `export type SongResourceKind = 'audio' | 'lyric' | 'cover' | 'theme' | 'replayGain';`,
-    `export type SongResourceKind = 'audio' | 'lyric' | 'cover' | 'theme' | 'replayGain' | 'audioLength';`,
+    `export type SongResourceKind = 'audio' | 'lyric' | 'cover' | 'replayGain';`,
+    `export type SongResourceKind = 'audio' | 'lyric' | 'cover' | 'replayGain' | 'audioLength';`,
     'audioLength resource kind');
 await write(keysPath, keys);
 

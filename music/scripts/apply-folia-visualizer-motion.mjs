@@ -68,7 +68,7 @@ let controls = await read(controlsPath);
 controls = replaceOnce(controls,
     `                        <motion.div
                             layout
-                            transition={{ layout: CONTROL_LAYOUT_SPRING }}
+                            transition={{ layout: isCompact ? INSTANT_LAYOUT : CONTROL_LAYOUT_SPRING }}
                             // 定位模式下 seek 和所有按钮一起失效：这时胶囊是个被拖的物体，不是控件。`,
     `                        <motion.div
                             // Only the capsule shell animates its layout: a second layout spring

@@ -74,12 +74,12 @@ await write(latentPath, latent);
 const progressPath = resolve(root, 'src/components/ProgressBar.tsx');
 let progress = await read(progressPath);
 progress = replaceOnce(progress,
-    'className="text-[10px] font-mono font-medium opacity-60 w-8 text-right text-[var(--folium-progress-text)]"',
-    'className="text-xs sm:text-[10px] font-mono font-medium opacity-60 w-8 text-right text-[var(--folium-progress-text)]"',
+    'className={`text-[10px] font-mono font-medium opacity-60 w-8 text-right text-[var(--folium-progress-text)] ${isLine ? \'hidden\' : \'\'}`}',
+    'className={`text-xs sm:text-[10px] font-mono font-medium opacity-60 w-8 text-right text-[var(--folium-progress-text)] ${isLine ? \'hidden\' : \'\'}`}',
     'progress current time size');
 progress = replaceOnce(progress,
-    'className="text-[10px] font-mono font-medium opacity-60 w-8 text-[var(--folium-progress-text)]"',
-    'className="text-xs sm:text-[10px] font-mono font-medium opacity-60 w-8 text-[var(--folium-progress-text)]"',
+    'className={`text-[10px] font-mono font-medium opacity-60 w-8 text-[var(--folium-progress-text)] ${isLine ? \'hidden\' : \'\'}`}',
+    'className={`text-xs sm:text-[10px] font-mono font-medium opacity-60 w-8 text-[var(--folium-progress-text)] ${isLine ? \'hidden\' : \'\'}`}',
     'progress duration size');
 await write(progressPath, progress);
 

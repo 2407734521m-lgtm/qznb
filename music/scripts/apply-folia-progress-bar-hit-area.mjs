@@ -36,8 +36,8 @@ bar = replaceOnce(bar,
                     ref={inputRef}`,
     'progress hit area comment');
 bar = replaceOnce(bar,
-    "className={`absolute inset-0 w-full h-full opacity-0 ${disabled ? 'cursor-not-allowed' : 'cursor-pointer'}`}",
-    "className={`absolute inset-x-0 top-[-10px] bottom-[-22px] w-full opacity-0 ${disabled ? 'cursor-not-allowed' : 'cursor-pointer'}`}",
+    "className={`absolute w-full opacity-0 ${isLine ? 'inset-x-0 -top-1.5 h-[calc(100%+12px)]' : 'inset-0 h-full'} ${disabled ? 'cursor-not-allowed' : 'cursor-pointer'}`}",
+    "className={`absolute w-full opacity-0 ${isLine ? 'inset-x-0 -top-1.5 h-[calc(100%+12px)]' : 'inset-x-0 top-[-10px] bottom-[-22px]'} ${disabled ? 'cursor-not-allowed' : 'cursor-pointer'}`}",
     'progress input hit area');
 await write(barPath, bar);
 

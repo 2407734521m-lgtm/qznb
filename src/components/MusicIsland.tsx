@@ -231,6 +231,19 @@ function MusicIsland() {
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [isMusicPage]);
 
+  // Keep the expanded island contextual: tapping anywhere outside it returns to the compact pill.
+  useEffect(() => {
+    if (!expanded || isMusicPage) return;
+    const onOutsidePointerDown = (event: PointerEvent) => {
+      const target = event.target;
+      if (target && islandWrapRef.current && !islandWrapRef.current.contains(target as Node)) {
+        setExpanded(false);
+      }
+    };
+    document.addEventListener('pointerdown', onOutsidePointerDown, true);
+    return () => document.removeEventListener('pointerdown', onOutsidePointerDown, true);
+  }, [expanded, isMusicPage]);
+
   const sendCommand = (command: MusicCommand, value?: number) => {
     if (!connected) return;
     frameRef.current?.contentWindow?.postMessage({
@@ -362,7 +375,7 @@ function MusicIsland() {
                   transition={reduceMotion
                     ? { duration: 0 }
                     : {
-                        layout: { duration: 0.38, ease: [0.22, 1, 0.36, 1] },
+                        layout: { type: 'spring', stiffness: 430, damping: 36, mass: 0.82 },
                         opacity: { duration: 0.38, ease: [0.22, 1, 0.36, 1] },
                         y: { duration: 0.38, ease: [0.22, 1, 0.36, 1] },
                         scale: { duration: 0.38, ease: [0.22, 1, 0.36, 1] },
@@ -437,7 +450,7 @@ function MusicIsland() {
                   transition={reduceMotion
                     ? { duration: 0 }
                     : {
-                        layout: { duration: 0.38, ease: [0.22, 1, 0.36, 1] },
+                        layout: { type: 'spring', stiffness: 430, damping: 36, mass: 0.82 },
                         opacity: { duration: 0.38, ease: [0.22, 1, 0.36, 1] },
                         scale: { duration: 0.38, ease: [0.22, 1, 0.36, 1] },
                       }}

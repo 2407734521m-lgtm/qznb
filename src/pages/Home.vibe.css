@@ -885,39 +885,68 @@ body:has(.vibe-home), body:has(.vibe-home) #root, body:has(.vibe-home) .qz-ios26
   padding-left: clamp(20px,3vw,42px);
 }
 
-/* 首页混合墙（2026-11-14）：公告置顶 + 表白墙/动态混排。
-   冷白纸面：页容器 #f7f8f8、卡片 #ffffff、墨 #1f2a3a、灰字 #7a8894、描边 #e5e8ea、印泥红 #b0404f。
-   body 画布保持 #ffffff（check:styles 合同要求），只改 .vibe-home 容器底色。 */
+/* Homepage wall: canonical white surfaces, clear states, and restrained motion. */
 .vibe-home {
-  background: #f7f8f8;
-  color: #1f2a3a;
+  --vh-ink: var(--qz-ink, #202733);
+  --vh-muted: var(--qz-muted, #737d8b);
+  --vh-line: var(--qz-line, #e7eaee);
+  --vh-accent: var(--qz-accent, #526b8c);
+  background: #fff;
+  color: var(--vh-ink);
 }
-.vibe-home .vh-intro h1 { color: #1f2a3a; }
-.vibe-home .vh-intro p { color: #7a8894; }
-.vibe-home .vh-search {
-  border-color: #e5e8ea;
-  background: #ffffff;
-  color: #7a8894;
-}
-.vibe-home .vh-search:hover { border-color: #cfd5dd; background: #ffffff; }
-.vibe-home .vh-section-head h2 { color: #1f2a3a; }
-.vibe-home .vh-section-head p { color: #7a8894; }
-.vibe-home .vh-text-link { color: #b0404f; }
-.vibe-home .vh-notice {
-  border-color: #e5e8ea;
-  background: #ffffff;
-}
-.vibe-home .vh-notice strong { color: #1f2a3a; }
-.vibe-home .vh-notice p { color: #7a8894; }
-.vibe-home .vh-notice time { color: #7a8894; }
-.vibe-home .vh-notice-first { border-color: #e5c9cc; }
-.vibe-home .vh-notice-first .vh-notice-tag { background: #b0404f; color: #ffffff; }
 
-.vh-wall-actions {
-  display: flex;
-  gap: 8px;
-  margin: 0 2px 12px;
+.vibe-home .vh-intro h1,
+.vibe-home .vh-section-head h2,
+.vibe-home .vh-notice strong,
+.vibe-home .vh-wall-to {
+  color: var(--vh-ink);
 }
+
+.vibe-home .vh-intro p,
+.vibe-home .vh-section-head p,
+.vibe-home .vh-notice p,
+.vibe-home .vh-notice time,
+.vibe-home .vh-wall-meta,
+.vibe-home .vh-wall-empty p {
+  color: var(--vh-muted);
+}
+
+.vibe-home .vh-search {
+  border-color: var(--vh-line);
+  background: #fff;
+  color: var(--vh-muted);
+}
+
+.vibe-home .vh-search:hover {
+  border-color: var(--qz-line-strong, #d9dee5);
+  background: var(--qz-surface-soft, #f6f7f9);
+}
+
+.vibe-home .vh-text-link { color: var(--vh-accent); }
+
+.vibe-home .vh-notice {
+  border-color: var(--vh-line);
+  background: #fff;
+}
+
+.vibe-home .vh-notice-first { border-color: #e5c9cc; }
+.vibe-home .vh-notice-first .vh-notice-tag {
+  background: #b0404f;
+  color: #fff;
+}
+
+.vh-wall-actions,
+.vh-wall-filters {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-inline: 2px;
+}
+
+.vh-wall-actions { margin-bottom: 12px; }
+.vh-wall-filters { margin-bottom: 14px; }
+
 .vh-wall-compose-primary,
 .vh-wall-compose {
   min-height: 40px;
@@ -927,60 +956,78 @@ body:has(.vibe-home), body:has(.vibe-home) #root, body:has(.vibe-home) .qz-ios26
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
+  transition:
+    background-color 180ms ease,
+    border-color 180ms ease,
+    color 180ms ease,
+    box-shadow 180ms ease,
+    transform 180ms cubic-bezier(.22, 1, .36, 1);
 }
+
 .vh-wall-compose-primary {
   border: 1px solid #b0404f;
   background: #b0404f;
-  color: #ffffff;
+  color: #fff;
 }
+
 .vh-wall-compose {
-  border: 1px solid #e5e8ea;
-  background: #ffffff;
-  color: #1f2a3a;
+  border: 1px solid var(--vh-line);
+  background: #fff;
+  color: var(--vh-ink);
 }
-.vh-wall-filters {
-  display: flex;
-  gap: 8px;
-  margin: 0 2px 14px;
-}
+
 .vh-wall-filter {
-  min-height: 34px;
-  padding: 0 16px;
-  border: 1px solid #e5e8ea;
+  min-height: 38px;
+  padding: 0 15px;
+  border: 1px solid var(--vh-line);
   border-radius: 999px;
-  background: #ffffff;
-  color: #7a8894;
+  background: #fff;
+  color: var(--vh-muted);
   font: inherit;
   font-size: 13px;
   cursor: pointer;
+  transition:
+    background-color 180ms ease,
+    border-color 180ms ease,
+    color 180ms ease,
+    transform 180ms cubic-bezier(.22, 1, .36, 1);
 }
+
 .vh-wall-filter.is-active {
-  border-color: #1f2a3a;
-  background: #1f2a3a;
-  color: #ffffff;
-  font-weight: 600;
+  border-color: var(--qz-line-strong, #d9dee5);
+  background: var(--qz-accent-soft, #eef2f7);
+  color: var(--vh-ink);
+  font-weight: 650;
 }
+
 .vh-wall-list {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   gap: 12px;
 }
+
 .vh-wall-card {
   display: block;
+  min-width: 0;
   padding: 16px;
-  border: 1px solid #e5e8ea;
+  border: 1px solid var(--vh-line);
   border-radius: 14px;
-  background: #ffffff;
+  background: #fff;
   color: inherit;
   text-decoration: none;
   cursor: pointer;
-  transition: border-color 160ms ease;
+  transition:
+    border-color 180ms ease,
+    box-shadow 180ms ease,
+    transform 180ms cubic-bezier(.22, 1, .36, 1);
 }
-.vh-wall-card:hover { border-color: #cfd5dd; }
-.vh-wall-card:focus-visible {
-  outline: 2px solid rgba(82, 107, 140, .65);
+
+.vh-wall-card:focus-visible,
+.vibe-home :where(button, a):focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--vh-accent) 70%, #fff);
   outline-offset: 3px;
 }
+
 .vh-cat-tag {
   display: inline-block;
   padding: 3px 8px;
@@ -988,17 +1035,21 @@ body:has(.vibe-home), body:has(.vibe-home) #root, body:has(.vibe-home) .qz-ios26
   font-size: 11px;
   font-weight: 600;
 }
-.vh-cat-feed { background: #eef1f3; color: #5b6b7c; }
+
+.vh-cat-feed {
+  background: var(--qz-surface-soft, #f6f7f9);
+  color: var(--vh-muted);
+}
+
 .vh-wall-to {
   display: block;
   margin-top: 10px;
-  color: #1f2a3a;
   font-size: 13px;
   font-weight: 700;
 }
+
 .vh-wall-content {
   display: -webkit-box;
-  /* 8 行：帖子预览本来就要点进详情读全文，但 6 行截得太狠，长帖只剩半句。 */
   -webkit-line-clamp: 8;
   -webkit-box-orient: vertical;
   overflow: hidden;
@@ -1007,46 +1058,101 @@ body:has(.vibe-home), body:has(.vibe-home) #root, body:has(.vibe-home) .qz-ios26
   font-size: 14px;
   line-height: 1.7;
   white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
+
 .vh-wall-meta {
   display: block;
   margin-top: 10px;
-  color: #7a8894;
   font-size: 12px;
 }
+
 .vh-wall-empty {
   padding: 28px 16px;
-  border: 1px dashed #e5e8ea;
+  border: 1px dashed var(--vh-line);
   border-radius: 14px;
-  background: #ffffff;
+  background: #fff;
   text-align: center;
 }
+
 .vh-wall-empty p {
   margin: 0;
-  color: #7a8894;
   font-size: 13px;
   line-height: 1.7;
 }
-.vh-wall-empty-actions { justify-content: center; margin: 14px 0 0; }
-.vh-wall-more { display: flex; justify-content: center; margin-top: 16px; }
+
+.vh-wall-more {
+  display: flex;
+  justify-content: center;
+  margin-top: 16px;
+}
+
 .vh-wall-more-btn {
   min-height: 40px;
   padding: 0 24px;
-  border: 1px solid #e5e8ea;
+  border: 1px solid var(--vh-line);
   border-radius: 999px;
-  background: #ffffff;
-  color: #1f2a3a;
+  background: #fff;
+  color: var(--vh-ink);
   font: inherit;
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
+  transition:
+    border-color 180ms ease,
+    background-color 180ms ease,
+    transform 180ms cubic-bezier(.22, 1, .36, 1);
 }
+
+@media (hover: hover) and (pointer: fine) {
+  .vh-wall-card:hover {
+    transform: translateY(-2px);
+    border-color: var(--qz-line-strong, #d9dee5);
+    box-shadow: 0 8px 22px rgba(32, 39, 51, .055);
+  }
+
+  .vh-wall-compose-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 5px 14px rgba(176, 64, 79, .16);
+  }
+
+  .vh-wall-compose:hover,
+  .vh-wall-more-btn:hover {
+    border-color: var(--qz-line-strong, #d9dee5);
+    background: var(--qz-surface-soft, #f6f7f9);
+  }
+}
+
+.vh-wall-card:active { transform: scale(.995); }
+.vh-wall-compose-primary:active,
+.vh-wall-compose:active,
+.vh-wall-filter:active,
+.vh-wall-more-btn:active { transform: scale(.98); }
+
 @media (min-width: 760px) {
   .vh-wall-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+
 @media (max-width: 680px) {
   .vh-wall-card { padding: 14px; }
+  .vh-wall-filters { gap: 6px; }
 }
+
 @media (prefers-reduced-motion: reduce) {
-  .vh-wall-card { transition: none; }
+  .vh-wall-card,
+  .vh-wall-compose-primary,
+  .vh-wall-compose,
+  .vh-wall-filter,
+  .vh-wall-more-btn {
+    transition: none !important;
+  }
+
+  .vh-wall-card:hover,
+  .vh-wall-card:active,
+  .vh-wall-compose-primary:active,
+  .vh-wall-compose:active,
+  .vh-wall-filter:active,
+  .vh-wall-more-btn:active {
+    transform: none !important;
+  }
 }

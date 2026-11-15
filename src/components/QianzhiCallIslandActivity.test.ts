@@ -63,7 +63,10 @@ describe('Qianzhi call island activity', () => {
       onToggleMute: () => {},
       onRestore: () => {},
     });
-    const actionRow = activity.expanded?.bottom as ReactElement<{ children: ReactElement<{ label: string }>[] }>;
-    expect(actionRow.props.children.map(action => action.props.label)).toEqual(['返回通话', '取消连接']);
+    const actionRow = activity.expanded?.bottom as ReactElement<{ children: ReactElement<{ children: ReactElement<{ label: string }>[] }> }>;
+    const actionFragment = actionRow.props.children;
+    expect(isValidElement(actionFragment)).toBe(true);
+    const actions = (actionFragment as ReactElement<{ children: ReactElement<{ label: string }>[] }>).props.children;
+    expect(actions.map(action => action.props.label)).toEqual(['返回通话', '取消连接']);
   });
 });

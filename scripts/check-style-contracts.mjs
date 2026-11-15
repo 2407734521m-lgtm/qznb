@@ -16,6 +16,9 @@ const home = read('../src/pages/Home.tsx');
 const homeCss = read('../src/pages/Home.vibe.css');
 const baseStyles = read('../src/styles.css');
 const editorialStyles = read('../src/styles-editorial.css');
+const compatibilityStyles = read('../src/styles-archive.css');
+const dockStyles = read('../src/styles-dock-rdev.css');
+const memberProfile = read('../src/pages/Member.tsx');
 
 function assert(condition, message) {
   if (!condition) {
@@ -69,6 +72,10 @@ assert(!/body:has\(\.vibe-home\)\s+\.topnav\s*\{/s.test(homePageStyles), 'the ho
 assert(countLiteral(homeCss, 'body:has(.vibe-home) .glow { display: none !important; }') === 1, 'the homepage glow visibility rule must not be duplicated');
 assert(countLiteral(homeCss, '.vibe-home .vh-member .av { border-color: var(--vh-line); }') === 1, 'the homepage member avatar border rule must not be duplicated');
 assert(countLiteral(meHubStyles, '.me-hub :where(button):active:not(:disabled) { transform: none !important; }') === 1, 'the reduced-motion account button rule must not be duplicated');
+assert(!/button\\.pri\\s*\\{/.test(compatibilityStyles), 'legacy compatibility CSS must not globally repaint primary buttons');
+assert(!/\\.qz-rdev-dock|qz-rdev-nav|qz-ios26-liquid-dock/.test(dockStyles), 'retired rdev Dock selectors must stay removed while FloatingDock owns navigation');
+assert(compatibilityStyles.includes('.gexpand') && compatibilityStyles.includes('var(--qz-ink'), 'game picker compatibility styles must use the neutral token system');
+assert(memberProfile.includes('>NO. {String(locState.no)') && !memberProfile.includes('>档案 No.'), 'member numbering must not use the retired archive label');
 
 
 

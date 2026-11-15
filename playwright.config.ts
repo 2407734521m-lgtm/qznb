@@ -29,6 +29,17 @@ export default defineConfig({
       },
     },
     {
+      // Pixel 7 级别的 Android Chrome 触控视口；这是浏览器模拟，不替代实体设备回归。
+      name: 'android-chrome',
+      use: {
+        viewport: { width: 412, height: 915 },
+        userAgent: 'Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36',
+        hasTouch: true,
+        isMobile: true,
+        deviceScaleFactor: 2.625,
+      },
+    },
+    {
       name: 'desktop',
       use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 900 } },
     },

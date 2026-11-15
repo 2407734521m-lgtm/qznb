@@ -19,6 +19,8 @@ jobs:
       - run: bash scripts/gen-types.test.sh
       - run: npm run check:styles
       - run: npm run check:admin-styles
+      - name: Test radio Worker route contracts
+        run: node --test radio/tests/*.test.mjs
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x

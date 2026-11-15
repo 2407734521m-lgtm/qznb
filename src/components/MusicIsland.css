@@ -1,5 +1,8 @@
 /* Qianzhi Island activity content. The island silhouette and its springs are drawn by islandcn. */
 .qz-island-host {
+  --qz-island-safe-top: max(env(safe-area-inset-top, 0px), 18px);
+  --qz-island-shape-top: 12.5px;
+  --qz-island-shape-height: 31.5px;
   position: fixed;
   inset: 0;
   z-index: 4001;
@@ -16,9 +19,14 @@
 .qz-island-host.is-docked {
   transform: translate3d(
     0,
-    calc(0px - max(env(safe-area-inset-top, 0px), 18px) - 13.91px - 33.5px + 7px),
+    calc(0px - var(--qz-island-safe-top) - var(--qz-island-shape-top) - var(--qz-island-shape-height) + 7px),
     0
   );
+}
+
+/* Interactive content remains swipeable even when it is a call or player control. */
+.qz-island-host :is(button, input, [role="button"]) {
+  touch-action: none;
 }
 
 .qz-island-host [data-islandcn-hit="pill"],
@@ -32,8 +40,8 @@
   left: 50%;
   z-index: 1202;
   display: block;
-  width: min(112px, 32vw);
-  height: 28px;
+  width: min(92px, 26vw);
+  height: 34px;
   margin: 0;
   padding: 0;
   border: 0;
@@ -51,39 +59,37 @@
   left: 0;
   width: 100%;
   height: 8px;
-  border: 1px solid rgba(255,255,255,.13);
+  border: 1px solid rgba(255,255,255,.15);
   border-top: 0;
   border-radius: 0 0 999px 999px;
-  background: rgba(7,8,12,.78);
+  background: rgba(7,8,12,.82);
   box-shadow:
-    0 3px 14px rgba(0,0,0,.2),
-    inset 0 -1px rgba(255,255,255,.1);
-  -webkit-backdrop-filter: blur(18px) saturate(1.35);
-  backdrop-filter: blur(18px) saturate(1.35);
+    0 4px 16px rgba(0,0,0,.22),
+    inset 0 -1px rgba(255,255,255,.12);
+  -webkit-backdrop-filter: blur(20px) saturate(1.4);
+  backdrop-filter: blur(20px) saturate(1.4);
   content: "";
   transition: height 220ms cubic-bezier(.2,.8,.2,1), background 220ms ease;
 }
 
-/* 收起后只剩一条 8px 玻璃边，在正中放一个小音符，不然根本看不出那是音乐岛、不知道能点回来。 */
+/* A universal grab handle works for calls, uploads and music, not just playback. */
 .qz-island-peek::after {
   position: absolute;
-  top: 0;
+  top: 3px;
   left: 50%;
-  display: grid;
-  width: 16px;
-  height: 8px;
-  place-items: center;
+  width: 22px;
+  height: 2px;
+  border-radius: 999px;
   transform: translateX(-50%);
-  color: rgba(255,255,255,.85);
-  font-size: 8px;
-  line-height: 8px;
+  background: rgba(255,255,255,.55);
+  box-shadow: 0 0 5px rgba(255,255,255,.12);
   pointer-events: none;
-  content: "♫";
+  content: "";
 }
 
 .qz-island-peek:active::before {
   height: 10px;
-  background: rgba(7,8,12,.88);
+  background: rgba(7,8,12,.92);
 }
 
 .qz-island-peek:focus-visible {

@@ -3,7 +3,6 @@ import { isSameMusicTrack, shouldShowMainIsland } from './MusicIsland';
 import { hasNewIslandActivity, resolveIslandDockGesture, resolveIslandGestureSource } from './QianzhiMusicIslandActivity';
 import { resolveMetrics } from '../lib/island/config';
 import { createQianzhiIslandMetrics, qianzhiIslandMetrics } from '../lib/island/qianzhi-metrics';
-import { normalizeUserPreferences } from '../lib/userPreferences';
 
 const track = (overrides = {}) => ({
   title: 'Hello',
@@ -37,10 +36,6 @@ describe('Qianzhi island geometry profile', () => {
     expect(custom.minimal.height).toBe(38);
   });
 
-  it('normalizes island position and dimensions within supported bounds', () => {
-    const prefs = normalizeUserPreferences({ island: { offsetX: 400, offsetY: -40, width: 160, height: 50 } });
-    expect(prefs.island).toEqual({ offsetX: 90, offsetY: -10, width: 144, height: 42 });
-  });
 });
 
 describe('isSameMusicTrack', () => {

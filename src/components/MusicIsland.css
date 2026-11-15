@@ -1,7 +1,7 @@
 .qz-music-island-wrap {
   position: fixed;
   z-index: 1200;
-  top: calc(env(safe-area-inset-top) + 8px);
+  top: max(calc(env(safe-area-inset-top) + 4px), 6px);
   left: 0;
   right: 0;
   width: min(430px, calc(100vw - 20px));
@@ -12,36 +12,39 @@
 }
 .qz-music-island-wrap.is-qianzhi-app {
   /* Android WebView safe-area insets are often zero even below the system status bar. */
-  top: max(calc(env(safe-area-inset-top) + 8px), 18px);
+  top: max(calc(env(safe-area-inset-top) + 4px), 6px);
 }
 .qz-music-island {
   pointer-events: auto;
   color: #f8f8fa;
-  background: rgba(22, 23, 28, .74);
-  border: 1px solid rgba(255,255,255,.16);
-  box-shadow: 0 12px 36px rgba(0,0,0,.2), inset 0 1px 0 rgba(255,255,255,.12);
-  -webkit-backdrop-filter: blur(26px) saturate(155%);
-  backdrop-filter: blur(26px) saturate(155%);
+  background: linear-gradient(145deg, rgba(28, 29, 34, .88), rgba(13, 14, 18, .84));
+  border: 1px solid rgba(255,255,255,.13);
+  box-shadow: 0 9px 26px rgba(0,0,0,.17), inset 0 1px 0 rgba(255,255,255,.14);
+  -webkit-backdrop-filter: blur(24px) saturate(165%);
+  backdrop-filter: blur(24px) saturate(165%);
 }
 .qz-music-island-collapsed {
   width: max-content;
   max-width: 100%;
-  min-height: 44px;
-  border: 0;
+  min-height: 38px;
+  max-width: 100%;
+  box-sizing: border-box;
+  border: 1px solid rgba(255,255,255,.10);
   border-radius: 999px;
-  padding: 5px 7px 5px 6px;
+  padding: 4px 6px 4px 5px;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 7px;
 }
 .qz-music-island-collapsed-main {
   min-width: 0;
-  max-width: calc(100% - 38px);
+  max-width: calc(100% - 34px);
   padding: 0;
   border: 0;
   display: flex;
   align-items: center;
-  gap: 9px;
+  gap: 8px;
+  transition: transform .18s cubic-bezier(.2,.72,.24,1);
   color: inherit;
   background: transparent;
   cursor: pointer;
@@ -56,9 +59,9 @@
   outline-offset: 3px;
 }
 .qz-music-island-mini-cover {
-  width: 30px;
-  height: 30px;
-  flex: 0 0 30px;
+  width: 26px;
+  height: 26px;
+  flex: 0 0 26px;
   object-fit: cover;
   border-radius: 50%;
   background: #292b31;
@@ -66,21 +69,21 @@
 .qz-music-island-mini-title {
   display: block;
   min-width: 0;
-  max-width: min(42vw, 190px);
+  max-width: min(36vw, 148px);
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
-  font-size: 12px;
+  font-size: 11.5px;
   line-height: 1.2;
   font-weight: 650;
   letter-spacing: -.01em;
 }
 .qz-music-island-mini-play {
-  flex: 0 0 28px;
+  flex: 0 0 26px;
   display: grid;
   place-items: center;
-  width: 28px;
-  height: 28px;
+  width: 26px;
+  height: 26px;
   padding: 0;
   border: 0;
   border-radius: 50%;
@@ -90,15 +93,16 @@
   transition: background .16s ease, transform .16s ease;
 }
 .qz-music-island-mini-play:hover:not(:disabled) { background: rgba(255,255,255,.2); }
+.qz-music-island-collapsed-main:active { transform: scale(.985); }
 .qz-music-island-mini-play:active:not(:disabled) { transform: scale(.92); }
 .qz-music-island-mini-play:disabled { opacity: .35; cursor: default; }
 .qz-music-island-expanded {
   /* Expanded panel gets a more visible glass layer than the compact pill. */
-  background: linear-gradient(145deg, rgba(38, 40, 48, .66), rgba(18, 19, 24, .58));
-  border-color: rgba(255,255,255,.19);
-  box-shadow: 0 18px 52px rgba(0,0,0,.22), inset 0 1px 0 rgba(255,255,255,.16);
-  -webkit-backdrop-filter: blur(32px) saturate(175%);
-  backdrop-filter: blur(32px) saturate(175%);
+  background: linear-gradient(145deg, rgba(34, 36, 43, .91), rgba(15, 16, 21, .88));
+  border-color: rgba(255,255,255,.16);
+  box-shadow: 0 16px 42px rgba(0,0,0,.20), inset 0 1px 0 rgba(255,255,255,.15);
+  -webkit-backdrop-filter: blur(30px) saturate(170%);
+  backdrop-filter: blur(30px) saturate(170%);
   width: 100%;
   min-width: 0;
   max-width: 100%;
@@ -190,11 +194,11 @@
   font-size: 11px;
 }
 .qz-music-equalizer {
-  height: 24px;
+  height: 18px;
   display: inline-flex;
   flex: 0 0 auto;
   align-items: center;
-  gap: 3px;
+  gap: 2px;
   overflow: hidden;
 }
 .qz-music-equalizer i {

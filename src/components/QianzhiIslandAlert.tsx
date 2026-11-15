@@ -72,7 +72,7 @@ function CompactAlert({ kind }: { kind: IslandAlertKind }) {
   );
 }
 
-function QuickReplyForm({ onSend }: { onSend: (body: string) => Promise<void> }) {
+function QuickReplyForm({ onSend, onEngage }: { onSend: (body: string) => Promise<void>; onEngage: () => void }) {
   const [value, setValue] = useState('');
   const [status, setStatus] = useState('');
   const [sending, setSending] = useState(false);
@@ -112,6 +112,7 @@ function QuickReplyForm({ onSend }: { onSend: (body: string) => Promise<void> })
         placeholder="快速回复…"
         aria-label="快速回复内容"
         disabled={sending || sent}
+        onFocus={onEngage}
       />
       <button type="submit" disabled={!value.trim() || sending || sent}>
         {sending ? '发送中' : sent ? '已发送' : '发送'}
@@ -138,6 +139,11 @@ export function showIslandAlert(api: IslandApi, input: IslandAlertInput): Activi
   const id = 'qz-alert-' + input.kind + '-' + input.id;
   let handle: ActivityHandle | null = null;
   let timer: number | null = null;
+  const duration = Math.max(3500, Math.min(12000, input.durationMs ?? 6500));
+  const scheduleEnd = (delayMs: number) => {
+    if (timer !== null) window.clearTimeout(timer);
+    timer = window.setTimeout(end, delayMs);
+  };
   const end = () => {
     if (timer !== null) window.clearTimeout(timer);
     timer = null;
@@ -157,7 +163,7 @@ export function showIslandAlert(api: IslandApi, input: IslandAlertInput): Activi
       leading: <span className="qz-island-alert-expanded-label">{LABELS[input.kind]}</span>,
       center: <ExpandedAlert kind={input.kind} title={input.title} body={input.body} />,
       ...(input.kind === 'message' && input.onQuickReply
-        ? { bottom: <QuickReplyForm onSend={input.onQuickReply} /> }
+        ? { bottom: <QuickReplyForm onSend={input.onQuickReply} onEngage={() => scheduleEnd(45_000)} /> }
         : {}),
     },
     onPress: () => {
@@ -166,6 +172,6 @@ export function showIslandAlert(api: IslandApi, input: IslandAlertInput): Activi
     },
   });
 
-  timer = window.setTimeout(end, Math.max(3500, Math.min(12000, input.durationMs ?? 6500)));
+  scheduleEnd(duration);
   return handle;
 }

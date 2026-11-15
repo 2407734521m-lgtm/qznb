@@ -15,7 +15,7 @@ import { useAuth } from './auth';
 import { getWallpaper } from './lib/wallpaper';
 import { readCachedUserPreferences, useQuietHoursActive } from './lib/userPreferences';
 import { useIslandActions } from './lib/island';
-import { showIslandAlert } from './components/QianzhiIslandAlert';
+import { combineIslandAlertBatch, showIslandAlert } from './components/QianzhiIslandAlert';
 import { createUploadIslandActivity } from './components/QianzhiIslandUploadActivity';
 import type { MediaUploadIslandEvent } from './lib/media';
 import { lazyWithRetry } from './lib/lazyWithRetry';
@@ -351,6 +351,8 @@ function Shell() {
   const { session, loading, guest, enterGuest, leaveGuest } = useAuth();
   const islandApi = useIslandActions();
   const quietHoursActive = useQuietHoursActive(session?.user.id);
+  const quietHoursActiveRef = useRef(quietHoursActive);
+  quietHoursActiveRef.current = quietHoursActive;
   const [role, setRole] = useState('');
   const loc = useLocation();
   const currentLocationRef = useRef({ pathname: loc.pathname, search: loc.search });
@@ -568,10 +570,48 @@ function Shell() {
     const seenNotificationIds = new Set<string>();
     const seenMessageIds = new Set<string>();
     const activeIslandAlerts = new Set<ReturnType<typeof showIslandAlert>>();
+    const queuedIslandAlerts: Parameters<typeof showIslandAlert>[1][] = [];
+    let islandAlertFlushTimer: number | null = null;
+    let activeIslandAlertPriority = Number.NEGATIVE_INFINITY;
     const presentIslandAlert = (input: Parameters<typeof showIslandAlert>[1]) => {
-      const handle = showIslandAlert(islandApi, input);
+      // There is only one short-lived notification surface. A lower-priority event must not
+      // replace a more important alert that is already visible.
+      if (input.priority < activeIslandAlertPriority) return;
+      activeIslandAlerts.forEach(handle => handle.end());
+      activeIslandAlerts.clear();
+
+      let handle: ReturnType<typeof showIslandAlert>;
+      handle = showIslandAlert(islandApi, {
+        ...input,
+        onPress: () => {
+          activeIslandAlerts.delete(handle);
+          if (activeIslandAlerts.size === 0) activeIslandAlertPriority = Number.NEGATIVE_INFINITY;
+          input.onPress?.();
+        },
+      });
       activeIslandAlerts.add(handle);
-      window.setTimeout(() => activeIslandAlerts.delete(handle), 13000);
+      activeIslandAlertPriority = input.priority;
+      const duration = Math.max(3500, Math.min(12000, input.durationMs ?? 6500));
+      window.setTimeout(() => {
+        const wasActive = activeIslandAlerts.delete(handle);
+        if (wasActive && activeIslandAlerts.size === 0) activeIslandAlertPriority = Number.NEGATIVE_INFINITY;
+      }, duration + 80);
+    };
+    // Merge a burst of realtime inserts into one concise activity. The notification center remains
+    // the source of truth; the island is only a short, low-noise heads-up.
+    const queueIslandAlert = (input: Parameters<typeof showIslandAlert>[1]) => {
+      if (!alive || quietHoursActiveRef.current || document.visibilityState !== 'visible') return;
+      queuedIslandAlerts.push(input);
+      if (islandAlertFlushTimer !== null) return;
+      islandAlertFlushTimer = window.setTimeout(() => {
+        islandAlertFlushTimer = null;
+        if (!alive || quietHoursActiveRef.current || document.visibilityState !== 'visible') {
+          queuedIslandAlerts.length = 0;
+          return;
+        }
+        const combined = combineIslandAlertBatch(queuedIslandAlerts.splice(0));
+        if (combined) presentIslandAlert(combined);
+      }, 420);
     };
 
     const refreshBadge = async () => {
@@ -603,7 +643,7 @@ function Shell() {
           const categoryDisabled = type ? preferences[type] === false : false;
           const alreadyOnTarget = viewingNotifications || (type === 'friend_request' && viewingFriendRequests);
 
-          if (!categoryDisabled && !alreadyOnTarget && document.visibilityState === 'visible') {
+          if (!categoryDisabled && !alreadyOnTarget && !quietHoursActiveRef.current && document.visibilityState === 'visible') {
             const isFriendRequest = type === 'friend_request';
             const isInteraction = ['comment', 'like', 'greeting', 'love_wall', 'anonymous_question', 'anonymous_answer'].includes(type);
             const kind = isFriendRequest ? 'friend' : isInteraction ? 'interaction' : 'system';
@@ -614,17 +654,18 @@ function Shell() {
             // prompt because profile names and avatars are private by default.
             const body = isFriendRequest
               ? '有人想添加你为好友'
-              : (typeof row.body === 'string' ? row.body.slice(0, 96) : '');
+              : '打开消息中心查看详情';
             const href = typeof row.link === 'string' && row.link.startsWith('/') && !row.link.startsWith('//')
               ? row.link
               : isFriendRequest ? '/friends?tab=reqs' : '/friends?tab=notifications';
 
-            presentIslandAlert({
+            queueIslandAlert({
               id: notificationId,
               kind,
               title,
               body,
               priority: isFriendRequest ? 46 : isInteraction ? 28 : 36,
+              alert: !isInteraction,
               onPress: () => nav(href),
             });
           }
@@ -637,7 +678,7 @@ function Shell() {
       if (payload?.eventType !== 'INSERT') return;
       const message = payload?.new as Record<string, any> | undefined;
       if (!message || message.id == null || message.sender_id === uid) return;
-      if (document.visibilityState !== 'visible') return;
+      if (document.visibilityState !== 'visible' || quietHoursActiveRef.current) return;
 
       const messageId = String(message.id);
       if (seenMessageIds.has(messageId)) return;
@@ -661,12 +702,13 @@ function Shell() {
       }
 
       const senderName = String(conversation.display_name || conversation.username || '好友').slice(0, 32);
-      presentIslandAlert({
+      queueIslandAlert({
         id: messageId,
         kind: 'message',
         title: senderName + ' 发来新私信',
         body: '点击打开私聊查看',
         priority: 55,
+        alert: true,
         onPress: () => nav('/chat/' + conversationId),
       });
     };
@@ -682,6 +724,9 @@ function Shell() {
     window.addEventListener('notif-read', refreshBadge);
     return () => {
       alive = false;
+      if (islandAlertFlushTimer !== null) window.clearTimeout(islandAlertFlushTimer);
+      islandAlertFlushTimer = null;
+      queuedIslandAlerts.length = 0;
       activeIslandAlerts.forEach(handle => handle.end());
       activeIslandAlerts.clear();
       window.removeEventListener('notif-read', refreshBadge);

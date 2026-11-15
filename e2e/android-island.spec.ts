@@ -74,6 +74,53 @@ test('Android Chrome: upload percentage stays complete inside the island layout'
 });
 
 
+
+test('Android Chrome: call actions fit the expanded island on a 320px viewport', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'android-chrome', 'Android Chrome viewport regression only');
+
+  const callCss = await readFile(path.join(process.cwd(), 'src/components/QianzhiCallIslandActivity.css'), 'utf8');
+  await page.setViewportSize({ width: 320, height: 720 });
+  await page.setContent(`
+    <head><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"></head>
+    <style>
+      * { box-sizing: border-box; }
+      html, body { margin: 0; background: #f5f7fb; }
+      ${callCss}
+    </style>
+    <div id="expanded-island" style="position:absolute;left:50%;top:20px;transform:translateX(-50%);width:292.34px;padding:18.5px;border-radius:48px;background:#050506">
+      <div class="qz-call-island-actions">
+        <button class="qz-call-island-action">返回通话</button>
+        <button class="qz-call-island-action">取消静音</button>
+        <button class="qz-call-island-action is-danger">挂断</button>
+      </div>
+    </div>
+  `);
+
+  const island = page.locator('#expanded-island');
+  const actions = page.locator('.qz-call-island-actions');
+  const buttons = page.locator('.qz-call-island-action');
+  const bounds = await actions.evaluate(element => {
+    const parent = element.getBoundingClientRect();
+    const children = [...element.children].map(child => {
+      const rect = child.getBoundingClientRect();
+      return { left: rect.left, right: rect.right, width: rect.width };
+    });
+    return {
+      left: parent.left,
+      right: parent.right,
+      width: parent.width,
+      children,
+    };
+  });
+
+  await expect(buttons).toHaveCount(3);
+  expect(bounds.width).toBeLessThanOrEqual(256);
+  expect(bounds.children.every(item => item.width >= 60)).toBe(true);
+  expect(bounds.children[0].left).toBeGreaterThanOrEqual(bounds.left - 1);
+  expect(bounds.children[2].right).toBeLessThanOrEqual(bounds.right + 1);
+  await expect(island).toBeVisible();
+});
+
 test('Android Chrome: docked island keeps a reachable glass restore handle', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'android-chrome', 'Android Chrome viewport regression only');
 

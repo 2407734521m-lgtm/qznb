@@ -1,0 +1,94 @@
+.qz-download-island-compact {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  max-width: 76px;
+  overflow: hidden;
+  color: rgba(255,255,255,.94);
+  font-size: 10px;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.qz-download-island-icon,
+.qz-download-island-minimal {
+  display: inline-grid;
+  place-items: center;
+}
+.qz-download-island-icon svg,
+.qz-download-island-minimal svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.qz-download-island-percent {
+  color: rgba(255,255,255,.88);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.qz-download-island-minimal {
+  width: 22px;
+  height: 22px;
+}
+
+.qz-download-island-label {
+  color: rgba(255,255,255,.7);
+  font-size: 9px;
+  font-weight: 650;
+}
+
+.qz-download-island-copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 3px;
+}
+.qz-download-island-copy strong {
+  overflow: hidden;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 680;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.qz-download-island-copy small {
+  color: rgba(255,255,255,.56);
+  font-size: 10px;
+}
+
+.qz-download-island-track {
+  display: block;
+  width: 100%;
+  height: 4px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255,255,255,.16);
+}
+.qz-download-island-track > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: rgba(255,255,255,.92);
+  transition: width 180ms linear;
+}
+.qz-download-island-track > span.is-indeterminate {
+  width: 34%;
+  animation: qz-download-island-sweep 1s ease-in-out infinite;
+}
+@keyframes qz-download-island-sweep {
+  0% { transform: translateX(-110%); }
+  100% { transform: translateX(310%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .qz-download-island-track > span { transition: none; }
+  .qz-download-island-track > span.is-indeterminate { animation: none; width: 38%; }
+}

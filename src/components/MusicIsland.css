@@ -21,7 +21,7 @@
 
 .qz-island-host.is-docked {
   transform: translate3d(
-    0,
+    var(--qz-island-offset-x),
     calc(var(--qz-island-offset-y) - var(--qz-island-safe-top) - var(--qz-island-shape-top) - var(--qz-island-shape-height) + 7px),
     0
   );

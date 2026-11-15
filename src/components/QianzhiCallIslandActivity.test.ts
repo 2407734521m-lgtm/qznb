@@ -48,4 +48,19 @@ describe('Qianzhi call island activity', () => {
     const actionGroup = actionRow.props.children;
     expect(actionGroup.props.children.map(action => action.props.label)).toEqual(['取消静音', '挂断']);
   });
+  it('offers cancellation while the call is still connecting', () => {
+    const activity = createCallIslandActivity({
+      phase: 'connecting',
+      peerName: '同学 C',
+      seconds: 0,
+      muted: false,
+      onAccept: () => {},
+      onReject: () => {},
+      onCancel: () => {},
+      onHangUp: () => {},
+      onToggleMute: () => {},
+    });
+    const actionRow = activity.expanded?.bottom as ReactElement<{ children: ReactElement<{ label: string }> }>;
+    expect(actionRow.props.children.props.label).toBe('取消连接');
+  });
 });

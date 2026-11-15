@@ -21,8 +21,9 @@ describe('Qianzhi call island activity', () => {
     expect(activity.alert).toBe(true);
     expect(activity.label).toContain('同学 A');
     expect(isValidElement(activity.expanded?.bottom)).toBe(true);
-    const actionRow = activity.expanded?.bottom as ReactElement<{ children: ReactElement<{ label: string }>[] }>;
-    expect(actionRow.props.children.map(action => action.props.label)).toEqual(['拒绝', '接听']);
+    const actionRow = activity.expanded?.bottom as ReactElement<{ children: ReactElement<{ children: ReactElement<{ label: string }>[] }> }>;
+    const actionGroup = actionRow.props.children;
+    expect(actionGroup.props.children.map(action => action.props.label)).toEqual(['拒绝', '接听']);
   });
 
   it('shows elapsed time and mute state for an active call', () => {
@@ -43,7 +44,8 @@ describe('Qianzhi call island activity', () => {
     expect(activity.label).toContain('同学 B');
     expect(activity.compact?.trailing).toBeTruthy();
     expect(isValidElement(activity.expanded?.bottom)).toBe(true);
-    const actionRow = activity.expanded?.bottom as ReactElement<{ children: ReactElement<{ label: string }>[] }>;
-    expect(actionRow.props.children.map(action => action.props.label)).toEqual(['取消静音', '挂断']);
+    const actionRow = activity.expanded?.bottom as ReactElement<{ children: ReactElement<{ children: ReactElement<{ label: string }>[] }> }>;
+    const actionGroup = actionRow.props.children;
+    expect(actionGroup.props.children.map(action => action.props.label)).toEqual(['取消静音', '挂断']);
   });
 });

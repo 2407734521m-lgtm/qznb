@@ -19,3 +19,15 @@ export const qianzhiIslandMetrics = {
     height: 31.5,
   },
 } satisfies IslandMetricsOverrides;
+
+
+/** Build runtime geometry from the user's saved capsule dimensions. */
+export function createQianzhiIslandMetrics(dimensions: { width: number; height: number }) {
+  const { width, height } = dimensions;
+  return {
+    ...qianzhiIslandMetrics,
+    idle: { ...qianzhiIslandMetrics.idle, width, height },
+    compact: { ...qianzhiIslandMetrics.compact, sensorWidth: width, height },
+    minimal: { ...qianzhiIslandMetrics.minimal, height },
+  } satisfies IslandMetricsOverrides;
+}

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth';
 import { confirmDialog } from '../lib/dialog';
 import FeedbackModal from '../components/FeedbackModal';
+import SponsorModal from '../components/SponsorModal';
 import { useUserPreferences } from '../lib/useUserPreferences';
 
 type PanelKey = 'font' | 'search' | 'chat';
@@ -36,12 +37,14 @@ function SettingIcon({ name }: { name: IconName }) {
   );
 }
 
-type SettingRow = { icon: IconName; label: string; panel?: PanelKey; path?: string; action?: 'feedback'; searchTerms?: string };
+type SettingRow = { icon: IconName; label: string; panel?: PanelKey; path?: string; action?: 'feedback' | 'sponsor' | 'profile'; searchTerms?: string };
 const GROUPS: { title: string; rows: SettingRow[] }[] = [
   { title: '账号', rows: [
     { icon: 'account', label: '账号与安全', path: '/me/account', searchTerms: '邮箱 密码 登录' },
     { icon: 'key', label: '通行密钥', path: '/me/settings/passkey', searchTerms: '指纹 面容 ID 生物识别 passkey' },
     { icon: 'device', label: '登录设备管理', path: '/me/settings/devices', searchTerms: '设备 会话 退出登录' },
+    { icon: 'account', label: '我的主页', action: 'profile', searchTerms: '个人主页 名片 别人看到的样子' },
+    { icon: 'settings', label: '编辑资料', path: '/me/edit?sec=base', searchTerms: '昵称 签名 兴趣爱好 修改资料' },
   ]},
   { title: '隐私与安全', rows: [
     { icon: 'lock', label: '隐私设置', path: '/me/settings/privacy', searchTerms: '姓名 年龄 头像 联系方式 社交资料 公开范围 表白墙匿名' },
@@ -56,10 +59,16 @@ const GROUPS: { title: string; rows: SettingRow[] }[] = [
   { title: '内容与记录', rows: [
     { icon: 'content', label: '我的内容管理', path: '/me/content', searchTerms: '动态 照片 评论 投稿 收藏' },
     { icon: 'history', label: '最近搜索记录', panel: 'search', searchTerms: '清除 搜索历史 记录' },
+    { icon: 'content', label: '我的相册', path: '/albums', searchTerms: '照片 影像 分类' },
+    { icon: 'play', label: '活动', path: '/events', searchTerms: '近期活动 安排 报名' },
+    { icon: 'history', label: '内容日历', path: '/calendar', searchTerms: '日期 回看 动态 公告' },
+    { icon: 'palette', label: '热门特效', path: '/hot', searchTerms: '互动效果 特效 好玩' },
+    { icon: 'chat', label: '我的留言', path: '/me/greetings', searchTerms: '留言 收到 问候' },
   ]},
   { title: '帮助与支持', rows: [
     { icon: 'help', label: '问题反馈', action: 'feedback', searchTerms: '联系开发者 帮助 建议 bug' },
     { icon: 'content', label: '我的反馈进度', path: '/me/feedback', searchTerms: '反馈 回复 处理状态' },
+    { icon: 'help', label: '赞助网站', action: 'sponsor', searchTerms: '赞助 支持 维护 捐赠' },
   ]},
 ];
 
@@ -69,6 +78,7 @@ export default function MeSettings() {
   const uid = session!.user.id;
   const { prefs, setPrefs } = useUserPreferences(uid);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const [sponsorOpen, setSponsorOpen] = useState(false);
   const [searchHistory, setSearchHistory] = useState<string[]>(() => readSearchHistory(uid));
   const [query, setQuery] = useState('');
   const [expanded, setExpanded] = useState<PanelKey | null>(null);
@@ -90,6 +100,8 @@ export default function MeSettings() {
 
   function openRow(row: SettingRow) {
     if (row.action === 'feedback') { setFeedbackOpen(true); return; }
+    if (row.action === 'sponsor') { setSponsorOpen(true); return; }
+    if (row.action === 'profile') { nav('/members/' + uid); return; }
     if (row.panel) setExpanded(old => old === row.panel ? null : row.panel!);
     else if (row.path) nav(row.path);
   }
@@ -201,6 +213,7 @@ export default function MeSettings() {
 
       {!visibleGroups.length && <div style={{ padding: 28, textAlign: 'center', color: '#92949a' }}>没有找到相关设置</div>}
       {feedbackOpen && <FeedbackModal kind="general" onClose={() => setFeedbackOpen(false)} />}
+      {sponsorOpen && <SponsorModal onClose={() => setSponsorOpen(false)} />}
 
       <div className="qz-settings-search">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><circle cx="10.8" cy="10.8" r="7.2"/><path d="m16.2 16.2 5 5"/></svg>

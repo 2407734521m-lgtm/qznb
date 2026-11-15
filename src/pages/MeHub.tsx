@@ -5,13 +5,11 @@ import { useAuth } from '../auth';
 import { useSignedUrl, useSignedUrls } from '../lib/media';
 import './MeHub.css';
 import './MeHub.polish.css';
-import FeedbackModal from '../components/FeedbackModal';
-import SponsorModal from '../components/SponsorModal';
 import NumberTicker from '../components/fx/NumberTicker';
 import BlurImg from '../components/fx/BlurImg';
 import { useQuietHoursActive } from '../lib/userPreferences';
 
-type Entry = { mark: string; title: string; note: string; to: string; badge?: string; act?: 'feedback' | 'sponsor' };
+type Entry = { mark: string; title: string; note: string; to: string; badge?: string };
 
 type GameProfile = { game_name: string; rank: string | null; status: string };
 type ModerationRestriction = {
@@ -74,26 +72,8 @@ const restrictionCopy: Record<ModerationRestriction['action_type'], { title: str
   },
 };
 const groups: { title: string; note: string; entries: Entry[] }[] = [
-  { title: '个人资料', note: '让其他人更了解你', entries: [
-    { mark: '名片', title: '我的主页', note: '查看其他人可见的个人主页', to: 'profile' },
-    { mark: '编辑', title: '编辑资料', note: '修改昵称、签名与兴趣爱好', to: 'edit' },
-    { mark: '主题', title: '主页装扮', note: '调整背景、主题与页面布局', to: 'look' },
-  ]},
-  { title: '内容与活动', note: '整理照片、活动和参与记录', entries: [
-    { mark: '相册', title: '我的相册', note: '按分类浏览照片与影像', to: '/albums' },
-    { mark: '活动', title: '活动', note: '查看近期活动与安排', to: '/events' },
-    { mark: '日历', title: '内容日历', note: '按日期回看活动、动态和公告', to: '/calendar' },
-    { mark: '特效', title: '热门特效', note: '探索有趣的互动效果', to: '/hot' },
-  ]},
-  { title: '消息互动', note: '查看收到的留言与站内通知', entries: [
-    { mark: '留言', title: '我的留言', note: '查看收到的留言', to: '/me/greetings' },
-  ]},
-  { title: '账号与支持', note: '管理账号安全、隐私和网站服务', entries: [
-    { mark: '隐私', title: '隐私设置', note: '管理资料可见范围与匿名偏好', to: 'privacy' },
-    { mark: '安全', title: '账号安全', note: '管理密码与登录状态', to: '/me/account' },
-    { mark: '反馈', title: '联系开发者与反馈', note: '提交问题或功能建议', to: '', act: 'feedback' },
-    { mark: '进度', title: '我的反馈', note: '查看处理进度和管理员回复', to: '/me/feedback' },
-    { mark: '支持', title: '赞助网站', note: '自愿支持网站长期维护', to: '', act: 'sponsor' },
+  { title: '设置', note: '管理账号、隐私与偏好', entries: [
+    { mark: '设置', title: '设置', note: '账号安全、隐私、通知、内容与帮助', to: '/me/settings' },
   ]},
 ];
 
@@ -109,8 +89,6 @@ export default function MeHub() {
   const [avatar, setAvatar] = useState<string | null>(null);
   const [unread, setUnread] = useState(0);
   const [stats, setStats] = useState({ posts: 0, comments: 0, photos: 0, likes: 0, loading: true });
-  const [fbOpen, setFbOpen] = useState(false);
-  const [sponsorOpen, setSponsorOpen] = useState(false);
   const [feed, setFeed] = useState<FeedItem[]>([]);
   const [feedLoading, setFeedLoading] = useState(true);
   const [feedError, setFeedError] = useState('');
@@ -266,13 +244,7 @@ export default function MeHub() {
   }
 
   function go(entry: Entry) {
-    if (entry.act === 'feedback') { setFbOpen(true); return; }
-    if (entry.act === 'sponsor') { setSponsorOpen(true); return; }
-    if (entry.to === 'profile') nav('/members/' + me);
-    else if (entry.to === 'edit') nav('/me/edit?sec=base');
-    else if (entry.to === 'look') nav('/me/edit?sec=look');
-    else if (entry.to === 'privacy') nav('/me/edit?sec=priv');
-    else nav(entry.to);
+    nav(entry.to);
   }
 
   return (
@@ -473,8 +445,6 @@ export default function MeHub() {
           </section>
         ))}
       </div>
-      {fbOpen && <FeedbackModal kind="general" onClose={() => setFbOpen(false)} />}
-      {sponsorOpen && <SponsorModal onClose={() => setSponsorOpen(false)} />}
     </main>
   );
 }

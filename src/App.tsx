@@ -601,6 +601,7 @@ function Shell() {
       handle = showIslandAlert(islandApi, {
         ...input,
         onQuickReplyEngage: input.onQuickReply ? () => scheduleActiveIslandAlertExpiry(handle, 45_000) : undefined,
+        onQuickReplySent: input.onQuickReply ? () => scheduleActiveIslandAlertExpiry(handle, 2_200) : undefined,
         onPress: () => {
           clearActiveIslandAlertTimer(handle);
           activeIslandAlerts.delete(handle);

@@ -89,7 +89,6 @@ function MusicIsland() {
     if (isMusicPage) {
       setOpenedOnce(true);
       setFrameForeground(true);
-    } else {
     }
   }, [isMusicPage]);
 

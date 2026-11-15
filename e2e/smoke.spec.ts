@@ -7,7 +7,8 @@ import { expect, test } from '@playwright/test';
 
 test('首页可加载：挂载成功、无黑屏、标题正确', async ({ page }) => {
   await page.goto('/#/home');
-  await expect(page).toHaveTitle(/Class Memory/);
+  await expect(page).toHaveTitle(/.+/);
+  await expect(page).not.toHaveTitle(/Class Memory|Our Class|青春档案|我们的班级/i);
   // #root 挂载出真实内容（不是黑屏空壳）
   await expect(page.locator('#root')).not.toBeEmpty();
   const bodyText = (await page.locator('body').innerText()).trim();
@@ -49,6 +50,12 @@ test('游客模式可浏览：能进游客壳并看到游客导航', async ({ pa
   // 已在游客壳里：直接断言游客导航
   if (await guestShell.isVisible()) {
     await expect(page.getByRole('navigation', { name: '游客浏览导航' })).toBeVisible();
+    const headerBrand = page.locator('.guest-header .guest-brand-copy strong');
+    const footerBrand = page.locator('.guest-cruip-footer-brand strong');
+    await expect(headerBrand).toBeVisible();
+    await expect(footerBrand).toHaveText(await headerBrand.innerText());
+    await expect(page.locator('.guest-discovery-section')).toHaveCount(0);
+    await expect(page.getByText('把我们的青春，留在这里')).toHaveCount(0);
     return;
   }
   // 否则点游客入口进游客壳

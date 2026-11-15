@@ -4,7 +4,8 @@ import { DEFAULT_USER_PREFERENCES, normalizeUserPreferences, type UserPreference
 
 export type PreferencesSyncState = 'loading' | 'saved' | 'error';
 
-export function readUserPreferences(uid: string): UserPreferences {
+export function readUserPreferences(uid: string | null | undefined): UserPreferences {
+  if (!uid) return DEFAULT_USER_PREFERENCES;
   try {
     const raw = JSON.parse(localStorage.getItem('qznb_user_preferences_v1:' + uid) || 'null');
     return normalizeUserPreferences(raw);
@@ -13,12 +14,18 @@ export function readUserPreferences(uid: string): UserPreferences {
 
 // 账号级偏好：本地 localStorage 即时生效 + 云端 profile_notification_preferences 同步。
 // 原本写在设置页里，2026-11-07 设置子页拆分后抽成共用 hook，设置页与各子页共用同一份逻辑。
-export function useUserPreferences(uid: string) {
+export function useUserPreferences(uid: string | null | undefined) {
   const [prefs, setPrefs] = useState<UserPreferences>(() => readUserPreferences(uid));
   const [prefsReady, setPrefsReady] = useState(false);
   const [syncState, setSyncState] = useState<PreferencesSyncState>('loading');
 
   useEffect(() => {
+    if (!uid) {
+      setPrefs(DEFAULT_USER_PREFERENCES);
+      setSyncState('saved');
+      setPrefsReady(true);
+      return;
+    }
     let active = true;
     async function loadCloudPreferences() {
       const localPreferences = readUserPreferences(uid);
@@ -35,6 +42,7 @@ export function useUserPreferences(uid: string) {
           notifications: { ...DEFAULT_USER_PREFERENCES.notifications, ...localPreferences.notifications, ...(remote.notifications || {}) },
           chat: { ...localPreferences.chat, ...(remote.chat || {}) },
           quietHours: { ...localPreferences.quietHours, ...(remote.quietHours || {}) },
+          island: { ...localPreferences.island, ...(remote.island || {}) },
         }));
         setSyncState('saved');
       } else {
@@ -49,7 +57,7 @@ export function useUserPreferences(uid: string) {
   }, [uid]);
 
   useEffect(() => {
-    if (!prefsReady) return;
+    if (!prefsReady || !uid) return;
     try { localStorage.setItem('qznb_user_preferences_v1:' + uid, JSON.stringify(prefs)); } catch {}
     try { localStorage.setItem('qznb_motion_preference_v1', prefs.motion); } catch {}
     window.dispatchEvent(new Event('qznb-settings-changed'));

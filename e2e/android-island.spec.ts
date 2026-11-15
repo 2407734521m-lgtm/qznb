@@ -72,3 +72,43 @@ test('Android Chrome: upload percentage stays complete inside the island layout'
   expect(metrics.whiteSpace).toBe('nowrap');
   expect(metrics.flexShrink).toBe('0');
 });
+
+
+test('Android Chrome: docked island keeps a reachable glass restore handle', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'android-chrome', 'Android Chrome viewport regression only');
+
+  const islandCss = await readFile(path.join(process.cwd(), 'src/components/MusicIsland.css'), 'utf8');
+  await page.setContent(`
+    <head><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"></head>
+    <style>
+      html, body { margin: 0; min-height: 100%; background: #f5f7fb; }
+      ${islandCss}
+    </style>
+    <div class="qz-island-host is-docked" aria-hidden="true">
+      <div style="position:absolute;top:18px;left:50%;width:104px;height:31.5px;transform:translateX(-50%);border-radius:999px;background:#050506"></div>
+    </div>
+    <button class="qz-island-peek" type="button" aria-label="恢复灵动岛"></button>
+  `);
+
+  const host = page.locator('.qz-island-host');
+  const peek = page.locator('.qz-island-peek');
+  await expect(peek).toBeVisible();
+  const values = await peek.evaluate(element => ({
+    zIndex: getComputedStyle(element).zIndex,
+    pointerEvents: getComputedStyle(element).pointerEvents,
+    width: element.getBoundingClientRect().width,
+    hitHeight: element.getBoundingClientRect().height,
+    edgeHeight: getComputedStyle(element, '::before').height,
+    handleHeight: getComputedStyle(element, '::after').height,
+    hostZIndex: getComputedStyle(element.parentElement!).zIndex,
+  }));
+
+  expect(Number(values.zIndex)).toBeGreaterThan(Number(values.hostZIndex));
+  expect(values.pointerEvents).toBe('auto');
+  expect(values.width).toBeGreaterThanOrEqual(82);
+  expect(values.width).toBeLessThanOrEqual(96);
+  expect(values.hitHeight).toBeGreaterThanOrEqual(32);
+  expect(values.edgeHeight).toBe('8px');
+  expect(values.handleHeight).toBe('2px');
+  await expect(host).toHaveAttribute('class', /is-docked/);
+});

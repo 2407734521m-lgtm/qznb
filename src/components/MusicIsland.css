@@ -9,7 +9,7 @@
 /* Swipe the complete capsule above the viewport; retain only a small glass edge. */
 .qz-island-host {
   transform: translate3d(0, 0, 0);
-  transition: transform 520ms cubic-bezier(.2, .86, .22, 1);
+  transition: transform 420ms cubic-bezier(.2, .86, .22, 1);
   will-change: transform;
 }
 
@@ -62,6 +62,23 @@
   backdrop-filter: blur(18px) saturate(1.35);
   content: "";
   transition: height 220ms cubic-bezier(.2,.8,.2,1), background 220ms ease;
+}
+
+/* 收起后只剩一条 8px 玻璃边，在正中放一个小音符，不然根本看不出那是音乐岛、不知道能点回来。 */
+.qz-island-peek::after {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  display: grid;
+  width: 16px;
+  height: 8px;
+  place-items: center;
+  transform: translateX(-50%);
+  color: rgba(255,255,255,.85);
+  font-size: 8px;
+  line-height: 8px;
+  pointer-events: none;
+  content: "♫";
 }
 
 .qz-island-peek:active::before {
@@ -121,6 +138,11 @@
 
 .qz-island-compact {
   transition: opacity 180ms ease, filter 220ms ease;
+}
+
+/* 暂停时整条小岛微微变暗，一眼就能看出是停了，不用点开确认。 */
+.qz-island-compact.is-paused {
+  opacity: .68;
 }
 
 .qz-island-compact:active {

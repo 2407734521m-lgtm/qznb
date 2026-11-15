@@ -7,6 +7,11 @@ export interface CallIslandActivityInput {
   peerName: string;
   seconds: number;
   muted: boolean;
+  onAccept: () => void;
+  onReject: () => void;
+  onCancel: () => void;
+  onHangUp: () => void;
+  onToggleMute: () => void;
 }
 
 function formatDuration(totalSeconds: number) {
@@ -22,6 +27,15 @@ function PhoneIcon() {
   );
 }
 
+function CallAction({ label, tone, onAction }: { label: string; tone?: 'primary' | 'danger'; onAction: () => void }) {
+  return (
+    <button type="button" className={'qz-call-island-action' + (tone ? ' is-' + tone : '')}
+      onPointerDown={event => event.stopPropagation()}
+      onClick={event => { event.preventDefault(); event.stopPropagation(); onAction(); }}>
+      {label}
+    </button>
+  );
+}
 /** Maps the existing WebRTC state machine to one high-priority island activity. */
 export function createCallIslandActivity(input: CallIslandActivityInput): ActivityOptions {
   const { phase, peerName, seconds, muted } = input;
@@ -36,6 +50,11 @@ export function createCallIslandActivity(input: CallIslandActivityInput): Activi
   const duration = formatDuration(seconds);
   const trailing = phase === 'in-call' ? duration : phase === 'connecting' ? '…' : '';
 
+  const actions = phase === 'incoming'
+    ? <div className="qz-call-island-actions"><CallAction label="拒绝" tone="danger" onAction={input.onReject} /><CallAction label="接听" tone="primary" onAction={input.onAccept} /></div>
+    : phase === 'outgoing'
+      ? <div className="qz-call-island-actions"><CallAction label="取消呼叫" tone="danger" onAction={input.onCancel} /></div>
+      : <div className="qz-call-island-actions"><CallAction label={muted ? '取消静音' : '静音'} onAction={input.onToggleMute} /><CallAction label="挂断" tone="danger" onAction={input.onHangUp} /></div>;
   const hint = phase === 'incoming'
     ? '请在通话面板选择接听或拒绝'
     : phase === 'outgoing'
@@ -67,7 +86,7 @@ export function createCallIslandActivity(input: CallIslandActivityInput): Activi
           <small>{phaseLabel}{phase === 'in-call' ? ` · ${duration}` : ''}{muted && phase === 'in-call' ? ' · 已静音' : ''}</small>
         </span>
       ),
-      bottom: <span className="qz-call-island-hint">{hint}</span>,
+      bottom: actions,
     },
   };
 }

@@ -1,9 +1,36 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 
 // 首批只覆盖游客 / 未登录可走的关键路径：
 // 不创建 test 账号、不登录、不发帖、不写库。需要登录的路径一律不写。
 // 后端（Supabase）不可达时，依赖后端的用例优雅跳过并注明原因，
 // 只断言本地可验证的部分（挂载成功、无黑屏、标题正确、落在登录/游客路径）。
+
+async function verifyGuestPublicRoutes(page: Page) {
+  const nav = page.getByRole('navigation', { name: '游客浏览导航' });
+  const routes = [
+    { label: '动态', heading: '动态' },
+    { label: '日常', heading: '日常' },
+    { label: '表白墙', heading: '表白墙', optional: true },
+    { label: '公告', heading: '公告', optional: true },
+  ];
+
+  for (const route of routes) {
+    const link = nav.getByRole('link', { name: route.label, exact: true });
+    if (await link.count() === 0) {
+      if (route.optional) continue;
+      throw new Error(`游客导航缺少公开入口：${route.label}`);
+    }
+    await link.click();
+    const heading = page.getByRole('heading', { level: 1, name: route.heading, exact: true });
+    if (route.optional) {
+      const unavailable = page.getByRole('heading', { level: 2, name: '暂未开放游客浏览', exact: true });
+      await expect(heading.or(unavailable)).toBeVisible({ timeout: 15000 });
+    } else {
+      await expect(heading).toBeVisible({ timeout: 15000 });
+    }
+    await expect(nav).toBeVisible();
+  }
+}
 
 test('首页可加载：挂载成功、无黑屏、标题正确', async ({ page }) => {
   await page.goto('/#/home');
@@ -59,6 +86,7 @@ test('游客模式可浏览：能进游客壳并看到游客导航', async ({ pa
     await expect(page.locator('.guest-cruip-cta .guest-eyebrow')).toContainText(configuredTitle.toUpperCase());
     await expect(page.locator('.guest-discovery-section')).toHaveCount(0);
     await expect(page.getByText('把我们的青春，留在这里')).toHaveCount(0);
+    await verifyGuestPublicRoutes(page);
     return;
   }
   // 否则点游客入口进游客壳
@@ -82,6 +110,7 @@ test('游客模式可浏览：能进游客壳并看到游客导航', async ({ pa
     await expect(page.locator('.guest-cruip-cta .guest-eyebrow')).toContainText(configuredTitle.toUpperCase());
     await expect(page.locator('.guest-discovery-section')).toHaveCount(0);
     await expect(page.getByText('把我们的青春，留在这里')).toHaveCount(0);
+    await verifyGuestPublicRoutes(page);
   } else {
     // eslint-disable-next-line no-console
     console.log('[e2e] 游客用例跳过：后端未开放游客入口，无游客登录按钮');

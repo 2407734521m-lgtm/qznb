@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { useIsland, type Activity } from '../lib/island';
 import './QianzhiIslandTaskDrawer.css';
 
@@ -53,6 +53,8 @@ export default function QianzhiIslandTaskDrawer({ docked }: { docked: boolean })
   const island = useIsland();
   const activities = island.activities;
   const [open, setOpen] = useState(false);
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
+  const reduceMotion = useReducedMotion();
   const rootRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -60,7 +62,27 @@ export default function QianzhiIslandTaskDrawer({ docked }: { docked: boolean })
   }, [docked, activities.length]);
 
   useEffect(() => {
+    const viewport = window.visualViewport;
+    const syncKeyboardState = () => {
+      const visibleHeight = viewport?.height ?? window.innerHeight;
+      const openNow = window.innerHeight - visibleHeight > 140;
+      setKeyboardOpen(openNow);
+      if (openNow) setOpen(false);
+    };
+    syncKeyboardState();
+    viewport?.addEventListener('resize', syncKeyboardState);
+    window.addEventListener('resize', syncKeyboardState);
+    window.addEventListener('orientationchange', syncKeyboardState);
+    return () => {
+      viewport?.removeEventListener('resize', syncKeyboardState);
+      window.removeEventListener('resize', syncKeyboardState);
+      window.removeEventListener('orientationchange', syncKeyboardState);
+    };
+  }, []);
+
+  useEffect(() => {
     if (!open) return;
+    const onVisibilityChange = () => { if (document.visibilityState !== 'visible') setOpen(false); };
     const onPointerDown = (event: PointerEvent) => {
       const target = event.target;
       if (target instanceof Node && rootRef.current?.contains(target)) return;
@@ -70,9 +92,11 @@ export default function QianzhiIslandTaskDrawer({ docked }: { docked: boolean })
       if (event.key === 'Escape') setOpen(false);
     };
     document.addEventListener('pointerdown', onPointerDown, true);
+    document.addEventListener('visibilitychange', onVisibilityChange);
     document.addEventListener('keydown', onKeyDown);
     return () => {
       document.removeEventListener('pointerdown', onPointerDown, true);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
       document.removeEventListener('keydown', onKeyDown);
     };
   }, [open]);
@@ -82,7 +106,7 @@ export default function QianzhiIslandTaskDrawer({ docked }: { docked: boolean })
     setOpen(false);
   };
 
-  if (docked || activities.length === 0) return null;
+  if (docked || keyboardOpen || activities.length === 0) return null;
 
   return (
     <div className="qz-island-task-ui" ref={rootRef}>
@@ -107,10 +131,10 @@ export default function QianzhiIslandTaskDrawer({ docked }: { docked: boolean })
         {open && activities.length > 0 && (
           <motion.div
             className="qz-island-task-layer"
-            initial={{ opacity: 0, y: -8, scale: 0.985 }}
+            initial={reduceMotion ? false : { opacity: 0, y: -8, scale: 0.985 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -6, scale: 0.99 }}
-            transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+            exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: -6, scale: 0.99 }}
+            transition={{ duration: reduceMotion ? 0 : 0.2, ease: [0.22, 1, 0.36, 1] }}
           >
             <section className="qz-island-task-panel" role="dialog" aria-modal="false" aria-label="运行中的活动">
               <header className="qz-island-task-header">

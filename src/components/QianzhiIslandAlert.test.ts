@@ -58,3 +58,21 @@ describe('combineIslandAlertBatch', () => {
     expect(batch?.priority).toBe(28);
   });
 });
+
+
+describe('quick reply metadata', () => {
+  it('preserves a single-message quick reply action', () => {
+    const onQuickReply = vi.fn(async () => {});
+    const message = makeAlert({ kind: 'message', onQuickReply });
+    expect(combineIslandAlertBatch([message])?.onQuickReply).toBe(onQuickReply);
+  });
+
+  it('does not attach a single conversation quick reply to a mixed batch', () => {
+    const onQuickReply = vi.fn(async () => {});
+    const batch = combineIslandAlertBatch([
+      makeAlert({ id: 'message-1', kind: 'message', priority: 55, onQuickReply }),
+      makeAlert({ id: 'notice-2', kind: 'system', priority: 36 }),
+    ]);
+    expect(batch).not.toHaveProperty('onQuickReply');
+  });
+});

@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useState, type FormEvent, type ReactNode } from 'react';
 import type { ActivityHandle, IslandApi } from '../lib/island';
 import './QianzhiIslandAlert.css';
 
@@ -13,6 +13,10 @@ export interface IslandAlertInput {
   /** False keeps low-priority activity in compact mode instead of forcing an expansion. */
   alert?: boolean;
   onPress?: () => void;
+  /** Optional private text reply for a verified in-site conversation. */
+  onQuickReply?: (body: string) => Promise<void>;
+  onQuickReplyEngage?: () => void;
+  onQuickReplySent?: () => void;
   durationMs?: number;
 }
 
@@ -70,6 +74,57 @@ function CompactAlert({ kind }: { kind: IslandAlertKind }) {
   );
 }
 
+function QuickReplyForm({ onSend, onEngage, onSent }: { onSend: (body: string) => Promise<void>; onEngage: () => void; onSent: () => void }) {
+  const [value, setValue] = useState('');
+  const [status, setStatus] = useState('');
+  const [sending, setSending] = useState(false);
+  const [sent, setSent] = useState(false);
+
+  const submit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    const body = value.trim().slice(0, 2000);
+    if (!body || sending || sent) return;
+    setSending(true);
+    setStatus('');
+    try {
+      await onSend(body);
+      setValue('');
+      setSent(true);
+      setStatus('已发送');
+      onSent();
+    } catch {
+      setStatus('发送失败，请打开私聊重试');
+    } finally {
+      setSending(false);
+    }
+  };
+
+  return (
+    <form
+      className="qz-island-quick-reply"
+      onSubmit={submit}
+      onPointerDown={event => event.stopPropagation()}
+      onClick={event => event.stopPropagation()}
+      aria-label="快速回复私信"
+    >
+      <input
+        value={value}
+        maxLength={2000}
+        onChange={event => setValue(event.target.value)}
+        placeholder="快速回复…"
+        aria-label="快速回复内容"
+        disabled={sending || sent}
+        onFocus={onEngage}
+      />
+      <button type="submit" disabled={!value.trim() || sending || sent}>
+        {sending ? '发送中' : sent ? '已发送' : '发送'}
+      </button>
+      {status && <small role="status">{status}</small>}
+    </form>
+  );
+}
+
 function ExpandedAlert({ kind, title, body }: Pick<IslandAlertInput, 'kind' | 'title' | 'body'>) {
   return (
     <span className="qz-island-alert-expanded">
@@ -87,10 +142,15 @@ export function showIslandAlert(api: IslandApi, input: IslandAlertInput): Activi
   const id = 'qz-alert-' + input.kind + '-' + input.id;
   let handle: ActivityHandle | null = null;
   let timer: number | null = null;
+  const duration = Math.max(3500, Math.min(12000, input.durationMs ?? 6500));
   const end = () => {
     if (timer !== null) window.clearTimeout(timer);
     timer = null;
     handle?.end();
+  };
+  const scheduleEnd = (delayMs: number) => {
+    if (timer !== null) window.clearTimeout(timer);
+    timer = window.setTimeout(end, delayMs);
   };
 
   handle = api.start({
@@ -105,6 +165,9 @@ export function showIslandAlert(api: IslandApi, input: IslandAlertInput): Activi
     expanded: {
       leading: <span className="qz-island-alert-expanded-label">{LABELS[input.kind]}</span>,
       center: <ExpandedAlert kind={input.kind} title={input.title} body={input.body} />,
+      ...(input.kind === 'message' && input.onQuickReply
+        ? { bottom: <QuickReplyForm onSend={input.onQuickReply} onEngage={() => { input.onQuickReplyEngage?.(); scheduleEnd(45_000); }} onSent={() => { input.onQuickReplySent?.(); scheduleEnd(2_200); }} /> }
+        : {}),
     },
     onPress: () => {
       end();
@@ -112,6 +175,6 @@ export function showIslandAlert(api: IslandApi, input: IslandAlertInput): Activi
     },
   });
 
-  timer = window.setTimeout(end, Math.max(3500, Math.min(12000, input.durationMs ?? 6500)));
+  scheduleEnd(duration);
   return handle;
 }

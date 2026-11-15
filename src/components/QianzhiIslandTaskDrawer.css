@@ -1,3 +1,5 @@
+:root { --qz-island-anchor-top: max(env(safe-area-inset-top, 0px), 18px); }
+
 .qz-island-task-ui {
   position: relative;
   z-index: 4010;
@@ -6,7 +8,7 @@
 
 .qz-island-task-anchor {
   position: fixed;
-  top: calc(max(env(safe-area-inset-top, 0px), 18px) + 12.5px + var(--qz-island-config-y, 0px));
+  top: calc(var(--qz-island-anchor-top, max(env(safe-area-inset-top, 0px), 18px)) + 12.5px + var(--qz-island-config-y, 0px));
   left: calc(50% + var(--qz-island-config-x, 0px));
   width: var(--qz-island-config-width, 104px);
   height: var(--qz-island-config-height, 31.5px);
@@ -87,7 +89,7 @@
   display: flex;
   align-items: flex-start;
   justify-content: center;
-  padding: calc(max(env(safe-area-inset-top, 0px), 18px) + 12.5px + var(--qz-island-config-y, 0px) + 42px) 12px 18px;
+  padding: calc(var(--qz-island-anchor-top, max(env(safe-area-inset-top, 0px), 18px)) + 12.5px + var(--qz-island-config-y, 0px) + 42px) 12px 18px;
   pointer-events: none;
 }
 
@@ -256,4 +258,8 @@
   .qz-island-task-trigger,
   .qz-island-task-row { transition: none; }
   .qz-island-task-row:active { transform: none; }
+}
+
+@media (orientation: landscape) and (max-height: 560px) {
+  :root { --qz-island-anchor-top: max(env(safe-area-inset-top, 0px), 8px); }
 }

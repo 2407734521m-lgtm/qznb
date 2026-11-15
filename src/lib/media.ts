@@ -186,6 +186,126 @@ export async function uploadMediaWithProgress(bucket: string, file: File, folder
   }, onProgress);
 }
 
+export type MediaDownloadIslandEvent = {
+  id: string;
+  phase: 'start' | 'progress' | 'complete' | 'error';
+  label: string;
+  progress: number | null;
+};
+
+let downloadActivitySequence = 0;
+
+function emitDownloadIslandEvent(detail: MediaDownloadIslandEvent) {
+  if (typeof window === 'undefined') return;
+  window.dispatchEvent(new CustomEvent<MediaDownloadIslandEvent>('qz-island-download', { detail }));
+}
+
+/**
+ * Fetches a browser-readable HTTPS resource, reports real stream progress when
+ * Content-Length is available, and saves it through a temporary object URL.
+ * Browser-managed anchor downloads remain outside this API because the browser
+ * does not expose their byte progress to page JavaScript.
+ */
+export async function downloadMediaWithProgress(
+  resourceUrl: string,
+  fileName: string,
+  onProgress?: (progress: number | null) => void,
+): Promise<void> {
+  if (typeof window === 'undefined') throw new Error('下载只能在浏览器中开始');
+  let parsed: URL;
+  try {
+    parsed = new URL(resourceUrl, window.location.href);
+  } catch {
+    throw new Error('下载链接无效');
+  }
+  if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
+    throw new Error('下载链接协议不受支持');
+  }
+  let storageOrigin = '';
+  try { if (supabaseBaseUrl) storageOrigin = new URL(supabaseBaseUrl).origin; } catch { /* The configured URL is validated during app startup. */ }
+  if (parsed.origin !== window.location.origin && parsed.origin !== storageOrigin) {
+    throw new Error('下载链接不属于本站或聊天存储服务');
+  }
+  if (parsed.protocol === 'http:' && parsed.origin !== window.location.origin) {
+    throw new Error('跨站下载必须使用 HTTPS');
+  }
+
+  const safeName = Array.from(fileName || '下载文件')
+    .filter(char => {
+      const code = char.charCodeAt(0);
+      return code !== 47 && code !== 92 && code >= 32 && code !== 127;
+    })
+    .join('')
+    .replace(/[<>:"|?*]/g, '_')
+    .trim()
+    .slice(0, 120) || '下载文件';
+  const id = 'media-download-' + Date.now() + '-' + (++downloadActivitySequence);
+  const label = '正在下载 ' + safeName.slice(0, 36);
+  emitDownloadIslandEvent({ id, phase: 'start', label, progress: null });
+
+  try {
+    const response = await fetch(parsed.href, {
+      method: 'GET',
+      credentials: parsed.origin === window.location.origin ? 'same-origin' : 'omit',
+      cache: 'no-store',
+    });
+    if (!response.ok) throw new Error('下载请求失败（' + response.status + '）');
+
+    const contentLength = Number(response.headers.get('Content-Length'));
+    const total = Number.isFinite(contentLength) && contentLength > 0 ? contentLength : null;
+    const chunks: BlobPart[] = [];
+    let loaded = 0;
+
+    if (response.body) {
+      const reader = response.body.getReader();
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          if (!value) continue;
+          const chunk = new Uint8Array(value.byteLength);
+          chunk.set(value);
+          chunks.push(chunk.buffer);
+          loaded += value.byteLength;
+          const progress = total === null ? null : Math.min(100, Math.round((loaded / total) * 100));
+          onProgress?.(progress);
+          emitDownloadIslandEvent({ id, phase: 'progress', label, progress });
+        }
+      } finally {
+        reader.releaseLock();
+      }
+    } else {
+      const blob = await response.blob();
+      chunks.push(await blob.arrayBuffer());
+      loaded = blob.size;
+      const progress = total === null ? null : 100;
+      onProgress?.(progress);
+      emitDownloadIslandEvent({ id, phase: 'progress', label, progress });
+    }
+
+    const blob = new Blob(chunks, { type: response.headers.get('Content-Type') || 'application/octet-stream' });
+    const objectUrl = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = objectUrl;
+    anchor.download = safeName;
+    anchor.rel = 'noopener';
+    anchor.style.display = 'none';
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    window.setTimeout(() => URL.revokeObjectURL(objectUrl), 30_000);
+
+    onProgress?.(100);
+    emitDownloadIslandEvent({ id, phase: 'complete', label, progress: 100 });
+  } catch (error) {
+    emitDownloadIslandEvent({ id, phase: 'error', label, progress: null });
+    if (error instanceof TypeError) {
+      throw new Error('浏览器无法读取此下载链接的内容；请使用原始打开链接');
+    }
+    throw error instanceof Error ? error : new Error('下载失败');
+  }
+}
+
 /** 把图片在前端压到合适尺寸再上传（省流量、省空间）。 */
 export function downscaleImage(file: File, maxDim = 1280, quality = 0.82): Promise<File> {
   return new Promise((resolve) => {

@@ -1,6 +1,7 @@
 /* Qianzhi Island activity content. The island silhouette and its springs are drawn by islandcn. */
 .qz-island-host {
   --qz-island-safe-top: max(env(safe-area-inset-top, 0px), 18px);
+  --qz-island-anchor-top: max(env(safe-area-inset-top, 0px), 18px);
   --qz-island-shape-top: 12.5px;
   --qz-island-shape-height: var(--qz-island-config-height, 31.5px);
   --qz-island-capsule-width: var(--qz-island-config-width, 104px);
@@ -461,4 +462,21 @@
   .qz-island-close,
   .qz-island-art,
   .qz-island-track-label { transition: none; animation: none !important; }
+}
+
+
+/* Keep the island aligned with short landscape viewports without overriding user X/Y settings. */
+@media (orientation: landscape) and (max-height: 560px) {
+  .qz-island-host {
+    --qz-island-safe-top: max(env(safe-area-inset-top, 0px), 8px);
+    --qz-island-anchor-top: max(env(safe-area-inset-top, 0px), 8px);
+  }
+  .qz-island-host.is-docked {
+    transition-duration: 360ms;
+  }
+}
+
+.qz-island-host.is-fullscreen-suppressed {
+  visibility: hidden;
+  pointer-events: none;
 }

@@ -1,0 +1,102 @@
+.qz-island-navigation-compact {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: rgba(255,255,255,.92);
+  font-size: 10px;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.qz-island-navigation-compact > i,
+.qz-island-navigation-minimal > i {
+  display: block;
+  width: 9px;
+  height: 9px;
+  border: 1.6px solid rgba(255,255,255,.32);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: qz-island-navigation-spin .72s linear infinite;
+}
+
+.qz-island-navigation-trail {
+  display: inline-flex;
+  height: 16px;
+  align-items: center;
+  gap: 3px;
+}
+
+.qz-island-navigation-trail i {
+  display: block;
+  width: 3px;
+  height: 5px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.78);
+  animation: qz-island-navigation-wave .75s ease-in-out infinite alternate;
+}
+.qz-island-navigation-trail i:nth-child(2) { animation-delay: .16s; }
+.qz-island-navigation-trail i:nth-child(3) { animation-delay: .32s; }
+
+.qz-island-navigation-minimal {
+  display: grid;
+  width: 22px;
+  height: 22px;
+  place-items: center;
+}
+
+.qz-island-navigation-copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 3px;
+}
+.qz-island-navigation-copy strong {
+  overflow: hidden;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 680;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.qz-island-navigation-copy small {
+  color: rgba(255,255,255,.55);
+  font-size: 10px;
+}
+
+.qz-island-navigation-label {
+  color: rgba(255,255,255,.72);
+  font-size: 9px;
+  font-weight: 650;
+}
+
+.qz-island-navigation-progress {
+  display: block;
+  width: 100%;
+  height: 4px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255,255,255,.16);
+}
+.qz-island-navigation-progress i {
+  display: block;
+  width: 36%;
+  height: 100%;
+  border-radius: inherit;
+  background: rgba(255,255,255,.92);
+  animation: qz-island-navigation-sweep 1.05s cubic-bezier(.4,0,.2,1) infinite;
+}
+
+@keyframes qz-island-navigation-spin { to { transform: rotate(360deg); } }
+@keyframes qz-island-navigation-wave { to { height: 13px; opacity: .48; } }
+@keyframes qz-island-navigation-sweep {
+  0% { transform: translateX(-115%); }
+  100% { transform: translateX(290%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .qz-island-navigation-compact > i,
+  .qz-island-navigation-minimal > i,
+  .qz-island-navigation-trail i,
+  .qz-island-navigation-progress i { animation: none; }
+  .qz-island-navigation-progress i { width: 38%; }
+}

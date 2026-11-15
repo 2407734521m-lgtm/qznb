@@ -17,7 +17,9 @@ import { readCachedUserPreferences, useQuietHoursActive } from './lib/userPrefer
 import { useIslandActions } from './lib/island';
 import { combineIslandAlertBatch, showIslandAlert } from './components/QianzhiIslandAlert';
 import { createUploadIslandActivity } from './components/QianzhiIslandUploadActivity';
-import type { MediaUploadIslandEvent } from './lib/media';
+import { createDownloadIslandActivity } from './components/QianzhiIslandDownloadActivity';
+import QianzhiIslandNavigationActivity from './components/QianzhiIslandNavigationActivity';
+import type { MediaDownloadIslandEvent, MediaUploadIslandEvent } from './lib/media';
 import { lazyWithRetry } from './lib/lazyWithRetry';
 // 只在特定时刻才出现的覆盖层/弹窗：懒加载，不占首屏包体积。
 // （WelcomeOverlay、GuideCarousel、WallpaperOnboarding、LoginSuccessOverlay、
@@ -570,20 +572,38 @@ function Shell() {
     const seenNotificationIds = new Set<string>();
     const seenMessageIds = new Set<string>();
     const activeIslandAlerts = new Set<ReturnType<typeof showIslandAlert>>();
+    const activeIslandAlertTimers = new Map<ReturnType<typeof showIslandAlert>, number>();
     const queuedIslandAlerts: Parameters<typeof showIslandAlert>[1][] = [];
     let islandAlertFlushTimer: number | null = null;
     let activeIslandAlertPriority = Number.NEGATIVE_INFINITY;
+    const clearActiveIslandAlertTimer = (handle: ReturnType<typeof showIslandAlert>) => {
+      const timer = activeIslandAlertTimers.get(handle);
+      if (timer !== undefined) window.clearTimeout(timer);
+      activeIslandAlertTimers.delete(handle);
+    };
+    const scheduleActiveIslandAlertExpiry = (handle: ReturnType<typeof showIslandAlert>, delayMs: number) => {
+      clearActiveIslandAlertTimer(handle);
+      const timer = window.setTimeout(() => {
+        activeIslandAlertTimers.delete(handle);
+        const wasActive = activeIslandAlerts.delete(handle);
+        if (wasActive && activeIslandAlerts.size === 0) activeIslandAlertPriority = Number.NEGATIVE_INFINITY;
+      }, delayMs + 80);
+      activeIslandAlertTimers.set(handle, timer);
+    };
     const presentIslandAlert = (input: Parameters<typeof showIslandAlert>[1]) => {
       // There is only one short-lived notification surface. A lower-priority event must not
       // replace a more important alert that is already visible.
       if (input.priority < activeIslandAlertPriority) return;
-      activeIslandAlerts.forEach(handle => handle.end());
+      activeIslandAlerts.forEach(handle => { clearActiveIslandAlertTimer(handle); handle.end(); });
       activeIslandAlerts.clear();
 
       let handle: ReturnType<typeof showIslandAlert>;
       handle = showIslandAlert(islandApi, {
         ...input,
+        onQuickReplyEngage: input.onQuickReply ? () => scheduleActiveIslandAlertExpiry(handle, 45_000) : undefined,
+        onQuickReplySent: input.onQuickReply ? () => scheduleActiveIslandAlertExpiry(handle, 2_200) : undefined,
         onPress: () => {
+          clearActiveIslandAlertTimer(handle);
           activeIslandAlerts.delete(handle);
           if (activeIslandAlerts.size === 0) activeIslandAlertPriority = Number.NEGATIVE_INFINITY;
           input.onPress?.();
@@ -592,10 +612,7 @@ function Shell() {
       activeIslandAlerts.add(handle);
       activeIslandAlertPriority = input.priority;
       const duration = Math.max(3500, Math.min(12000, input.durationMs ?? 6500));
-      window.setTimeout(() => {
-        const wasActive = activeIslandAlerts.delete(handle);
-        if (wasActive && activeIslandAlerts.size === 0) activeIslandAlertPriority = Number.NEGATIVE_INFINITY;
-      }, duration + 80);
+      scheduleActiveIslandAlertExpiry(handle, duration);
     };
     // Merge a burst of realtime inserts into one concise activity. The notification center remains
     // the source of truth; the island is only a short, low-noise heads-up.
@@ -709,7 +726,20 @@ function Shell() {
         body: '点击打开私聊查看',
         priority: 55,
         alert: true,
+        durationMs: 9000,
         onPress: () => nav('/chat/' + conversationId),
+        onQuickReply: async body => {
+          const messageBody = body.trim().slice(0, 2000);
+          if (!messageBody) throw new Error('消息内容不能为空');
+          // Re-check the active account before sending; Supabase RLS remains the authority
+          // for conversation membership and insert permissions.
+          const { data: authData, error: authError } = await supabase.auth.getUser();
+          if (authError || authData.user?.id !== uid) throw new Error('登录状态已变化');
+          const { error: sendError } = await supabase.from('messages')
+            .insert({ conversation_id: conversationId, sender_id: uid, body: messageBody })
+            .select('id').single();
+          if (sendError) throw new Error('消息发送失败');
+        },
       });
     };
 
@@ -727,8 +757,9 @@ function Shell() {
       if (islandAlertFlushTimer !== null) window.clearTimeout(islandAlertFlushTimer);
       islandAlertFlushTimer = null;
       queuedIslandAlerts.length = 0;
-      activeIslandAlerts.forEach(handle => handle.end());
+      activeIslandAlerts.forEach(handle => { clearActiveIslandAlertTimer(handle); handle.end(); });
       activeIslandAlerts.clear();
+      activeIslandAlertTimers.clear();
       window.removeEventListener('notif-read', refreshBadge);
       void supabase.removeChannel(channel);
     };
@@ -737,6 +768,7 @@ function Shell() {
   // Aggregate storage upload events into one activity so concurrent uploads never create a stack of pills.
   useEffect(() => {
     const activeUploads = new Map<string, { progress: number | null; label: string }>();
+    let failedDuringUploadBatch = false;
     let terminalTimer: number | null = null;
 
     const clearTerminalTimer = () => {
@@ -748,8 +780,8 @@ function Shell() {
       const values = [...activeUploads.values()];
       if (!values.length) return;
       const measured = values.map(item => item.progress).filter((value): value is number => typeof value === 'number');
-      const progress = measured.length
-        ? Math.round(measured.reduce((total, value) => total + value, 0) / measured.length)
+      const progress = measured.length === values.length && values.length
+        ? Math.round(measured.reduce((total, value) => total + value, 0) / values.length)
         : null;
       const label = values.length > 1 ? '正在上传 ' + values.length + ' 项' : values[0].label;
       islandApi.start(createUploadIslandActivity({ count: values.length, progress, status: 'uploading', label }));
@@ -770,6 +802,7 @@ function Shell() {
       clearTerminalTimer();
 
       if (detail.phase === 'start') {
+        if (activeUploads.size === 0) failedDuringUploadBatch = false;
         activeUploads.set(detail.id, { progress: detail.progress, label: detail.label || '正在上传文件' });
         renderActiveUploads();
         return;
@@ -782,10 +815,12 @@ function Shell() {
       }
 
       activeUploads.delete(detail.id);
+      if (detail.phase === 'error') failedDuringUploadBatch = true;
       if (activeUploads.size) {
         renderActiveUploads();
       } else {
-        showTerminalState(detail.phase === 'complete' ? 'completed' : 'failed');
+        showTerminalState(failedDuringUploadBatch ? 'failed' : 'completed');
+        failedDuringUploadBatch = false;
       }
     };
 
@@ -796,6 +831,73 @@ function Shell() {
       islandApi.end('qz-upload-progress');
     };
   }, [islandApi]);
+  // Aggregate browser-readable download streams into one activity. Unknown content length
+  // stays indeterminate rather than inventing a percentage.
+  useEffect(() => {
+    const activeDownloads = new Map<string, { progress: number | null; label: string }>();
+    let failedDuringDownloadBatch = false;
+    let terminalTimer: number | null = null;
+
+    const clearTerminalTimer = () => {
+      if (terminalTimer !== null) window.clearTimeout(terminalTimer);
+      terminalTimer = null;
+    };
+
+    const renderActiveDownloads = () => {
+      const values = [...activeDownloads.values()];
+      if (!values.length) return;
+      const measured = values.map(item => item.progress).filter((value): value is number => typeof value === 'number');
+      const progress = measured.length === values.length && values.length
+        ? Math.round(measured.reduce((total, value) => total + value, 0) / values.length)
+        : null;
+      const label = values.length > 1 ? '正在下载 ' + values.length + ' 项' : values[0].label;
+      islandApi.start(createDownloadIslandActivity({ count: values.length, progress, status: 'downloading', label }));
+    };
+
+    const showTerminalState = (status: 'completed' | 'failed') => {
+      islandApi.start(createDownloadIslandActivity({ count: 0, progress: status === 'completed' ? 100 : null, status }));
+      terminalTimer = window.setTimeout(() => {
+        terminalTimer = null;
+        if (activeDownloads.size) renderActiveDownloads();
+        else islandApi.end('qz-download-progress');
+      }, status === 'failed' ? 2200 : 1100);
+    };
+
+    const onDownloadEvent = (event: Event) => {
+      const detail = (event as CustomEvent<MediaDownloadIslandEvent>).detail;
+      if (!detail || typeof detail.id !== 'string' || !detail.id) return;
+      clearTerminalTimer();
+
+      if (detail.phase === 'start') {
+        if (activeDownloads.size === 0) failedDuringDownloadBatch = false;
+        activeDownloads.set(detail.id, { progress: detail.progress, label: detail.label || '正在下载文件' });
+        renderActiveDownloads();
+        return;
+      }
+      if (detail.phase === 'progress') {
+        const current = activeDownloads.get(detail.id) ?? { progress: null, label: detail.label || '正在下载文件' };
+        activeDownloads.set(detail.id, { ...current, progress: detail.progress });
+        renderActiveDownloads();
+        return;
+      }
+
+      activeDownloads.delete(detail.id);
+      if (detail.phase === 'error') failedDuringDownloadBatch = true;
+      if (activeDownloads.size) renderActiveDownloads();
+      else {
+        showTerminalState(failedDuringDownloadBatch ? 'failed' : 'completed');
+        failedDuringDownloadBatch = false;
+      }
+    };
+
+    window.addEventListener('qz-island-download', onDownloadEvent);
+    return () => {
+      clearTerminalTimer();
+      window.removeEventListener('qz-island-download', onDownloadEvent);
+      islandApi.end('qz-download-progress');
+    };
+  }, [islandApi]);
+
   // 登录弹窗公告：按后台设置的次数弹出（1/2/3次或每次）
   const [loginPop, setLoginPop] = useState<any>(null);
   useEffect(() => {
@@ -1309,7 +1411,7 @@ function Shell() {
             animate={isImmersivePage ? { opacity: 1 } : { opacity: 1, y: 0, scale: 1 }}
             exit={reduce ? { opacity: 1 } : isImmersivePage ? { opacity: 0 } : { opacity: 0, y: -7, scale: 0.996 }}
             transition={{ duration: reduce ? 0 : DUR.base + 0.06, ease: EASE }}>
-            <Suspense fallback={<RouteLoading />}>
+            <Suspense fallback={<><RouteLoading /><QianzhiIslandNavigationActivity /></>}>
             <Routes location={loc}>
               <Route path="/" element={<Navigate to="/home" replace />} />
               <Route path="/board" element={<Board />} />

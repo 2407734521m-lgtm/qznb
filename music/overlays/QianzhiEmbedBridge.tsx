@@ -81,6 +81,9 @@ const QianzhiEmbedBridge = ({ model }: Props) => {
             if (!parentOrigin) return;
             const playback = playbackRef.current;
             const playing = playback.displayPlayerState === PlayerState.PLAYING;
+            // Paused: the bars already fall back to idle on the next STATE, so there is
+            // nothing to push until playback resumes.
+            if (!playing) return;
             const routeSupportsWebAnalyser = playback.playbackRoute === 'web';
             const spectrumData = audioBands.spectrum.get();
             const spectrumReady = playing && routeSupportsWebAnalyser && spectrumData.length > 0;
@@ -143,8 +146,17 @@ const QianzhiEmbedBridge = ({ model }: Props) => {
         };
 
         window.addEventListener('message', onMessage);
-        const timer = window.setInterval(publish, 700);
-        const spectrumTimer = window.setInterval(publishSpectrum, 50);
+        // STATE still pushes every 700ms — the main site skips pushes that change nothing —
+        // but nothing is pushed while the tab is in the background: nobody is listening, and
+        // the HELLO handshake re-publishes within 2.5s of coming back.
+        const timer = window.setInterval(() => {
+            if (!document.hidden) publish();
+        }, 700);
+        // The equalizer moves on a 118ms transition, so pushing bands every 50ms only fought
+        // it. 120ms matches the transition, and a paused or backgrounded tab sends nothing.
+        const spectrumTimer = window.setInterval(() => {
+            if (!document.hidden) publishSpectrum();
+        }, 120);
         return () => {
             window.removeEventListener('message', onMessage);
             window.clearInterval(timer);

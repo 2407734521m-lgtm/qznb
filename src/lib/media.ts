@@ -135,7 +135,7 @@ export async function uploadMedia(bucket: string, file: File, folder?: string): 
   const ext = (file.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
   return trackMediaUpload(file, async () => {
     const r = await withRetry(async () => {
-      const prefix = folder ? folder.replace(/^\\/+|\\/+$/g, '') + '/' : user.id + '/';
+      const prefix = folder ? folder.split('/').filter(Boolean).join('/') + '/' : user.id + '/';
       const path = prefix + Date.now() + '.' + ext;
       const { error } = await supabase.storage.from(bucket).upload(path, file, {
         contentType: mime, upsert: false,
@@ -178,7 +178,7 @@ export async function uploadMediaWithProgress(bucket: string, file: File, folder
     throw new Error('文件格式不受支持，请选择常见图片、MP4/WebM 视频或支持的聊天音频格式。');
   }
   const ext = (file.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
-  const prefix = folder ? folder.replace(/^\\/+|\\/+$/g, '') + '/' : user.id + '/';
+      const prefix = folder ? folder.split('/').filter(Boolean).join('/') + '/' : user.id + '/';
   const path = prefix + Date.now() + '.' + ext;
   return trackMediaUpload(file, async reportProgress => {
     await uploadWithProgress(bucket, path, file, reportProgress);

@@ -755,8 +755,9 @@ function Shell() {
       if (islandAlertFlushTimer !== null) window.clearTimeout(islandAlertFlushTimer);
       islandAlertFlushTimer = null;
       queuedIslandAlerts.length = 0;
-      activeIslandAlerts.forEach(handle => handle.end());
+      activeIslandAlerts.forEach(handle => { clearActiveIslandAlertTimer(handle); handle.end(); });
       activeIslandAlerts.clear();
+      activeIslandAlertTimers.clear();
       window.removeEventListener('notif-read', refreshBadge);
       void supabase.removeChannel(channel);
     };

@@ -1,4 +1,4 @@
-import { createContext, useContext, type CSSProperties, type RefObject } from 'react';
+import { createContext, useContext, useEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type RefObject } from 'react';
 import { Island } from '../lib/island';
 
 type MusicCommand = 'toggle' | 'previous' | 'next' | 'seek';
@@ -164,24 +164,137 @@ const MusicExpandedControls = () => {
   );
 };
 
+type IslandDockGesture = {
+  pointerId: number;
+  source: 'island' | 'peek';
+  startX: number;
+  startY: number;
+};
+
 export const MusicIslandView = ({
   value,
   hostRef,
 }: {
   value: MusicIslandState;
   hostRef: RefObject<HTMLDivElement | null>;
-}) => (
-  <MusicIslandContext.Provider value={value}>
-    <div ref={hostRef} className="qz-island-host">
-      <Island
-        placement="viewport"
-        label="堯实时活动"
-        keyline="off"
-        style={{ top: 'max(env(safe-area-inset-top, 0px), 18px)', zIndex: 1201 }}
-      />
-    </div>
-  </MusicIslandContext.Provider>
-);
+}) => {
+  const [docked, setDocked] = useState(false);
+  const gestureRef = useRef<IslandDockGesture | null>(null);
+  const dockTimerRef = useRef<number | null>(null);
+  const collapseRef = useRef(value.collapse);
+  collapseRef.current = value.collapse;
+
+  useEffect(() => {
+    const finishGesture = (event: PointerEvent) => {
+      const gesture = gestureRef.current;
+      if (!gesture || gesture.pointerId !== event.pointerId) return;
+      gestureRef.current = null;
+
+      const deltaX = event.clientX - gesture.startX;
+      const deltaY = event.clientY - gesture.startY;
+      const mostlyVertical = Math.abs(deltaX) < Math.max(72, Math.abs(deltaY) * 0.9);
+      if (!mostlyVertical) return;
+
+      if (gesture.source === 'island' && deltaY <= -44) {
+        if (dockTimerRef.current !== null) window.clearTimeout(dockTimerRef.current);
+        // Collapse the full activity first so an expanded panel never gets clipped at the top.
+        collapseRef.current();
+        dockTimerRef.current = window.setTimeout(() => {
+          setDocked(true);
+          dockTimerRef.current = null;
+        }, 260);
+      } else if (gesture.source === 'peek' && deltaY >= 28) {
+        if (dockTimerRef.current !== null) window.clearTimeout(dockTimerRef.current);
+        dockTimerRef.current = null;
+        setDocked(false);
+      }
+    };
+
+    const onPointerMove = (event: PointerEvent) => {
+      const gesture = gestureRef.current;
+      if (!gesture || gesture.pointerId !== event.pointerId) return;
+      const deltaX = event.clientX - gesture.startX;
+      const deltaY = event.clientY - gesture.startY;
+      if (Math.abs(deltaY) > 10 && Math.abs(deltaY) > Math.abs(deltaX) * 1.1 && event.cancelable) {
+        event.preventDefault();
+      }
+    };
+
+    const onPointerCancel = (event: PointerEvent) => {
+      if (gestureRef.current?.pointerId === event.pointerId) gestureRef.current = null;
+    };
+
+    // Window listeners keep the gesture alive after the finger leaves the small island hit area.
+    window.addEventListener('pointermove', onPointerMove, { passive: false });
+    window.addEventListener('pointerup', finishGesture, true);
+    window.addEventListener('pointercancel', onPointerCancel, true);
+    return () => {
+      window.removeEventListener('pointermove', onPointerMove);
+      window.removeEventListener('pointerup', finishGesture, true);
+      window.removeEventListener('pointercancel', onPointerCancel, true);
+      if (dockTimerRef.current !== null) window.clearTimeout(dockTimerRef.current);
+    };
+  }, []);
+
+  const beginIslandGesture = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (event.pointerType === 'mouse' && event.button !== 0) return;
+    const target = event.target;
+    if (!(target instanceof Element) || !target.closest('[data-islandcn-hit="pill"], [data-islandcn-hit="bubble"]')) return;
+    gestureRef.current = {
+      pointerId: event.pointerId,
+      source: 'island',
+      startX: event.clientX,
+      startY: event.clientY,
+    };
+  };
+
+  const beginPeekGesture = (event: ReactPointerEvent<HTMLButtonElement>) => {
+    if (event.pointerType === 'mouse' && event.button !== 0) return;
+    gestureRef.current = {
+      pointerId: event.pointerId,
+      source: 'peek',
+      startX: event.clientX,
+      startY: event.clientY,
+    };
+  };
+
+  const restoreIsland = () => {
+    if (dockTimerRef.current !== null) window.clearTimeout(dockTimerRef.current);
+    dockTimerRef.current = null;
+    setDocked(false);
+  };
+
+  return (
+    <MusicIslandContext.Provider value={value}>
+      <>
+        <div
+          ref={hostRef}
+          className={'qz-island-host' + (docked ? ' is-docked' : '')}
+          data-docked={docked ? 'true' : 'false'}
+          onPointerDownCapture={beginIslandGesture}
+          aria-hidden={docked || undefined}
+        >
+          <Island
+            placement="viewport"
+            label="堯实时活动"
+            keyline="off"
+            style={{ top: 'max(env(safe-area-inset-top, 0px), 18px)', zIndex: 1201 }}
+          />
+        </div>
+        {docked && (
+          <button
+            type="button"
+            className="qz-island-peek"
+            aria-label="恢复灵动岛"
+            aria-expanded="false"
+            onPointerDown={beginPeekGesture}
+            onClick={restoreIsland}
+          />
+        )}
+      </>
+    </MusicIslandContext.Provider>
+  );
+};
 
 export const createMusicIslandActivity = (onPress: () => void) => ({
   id: 'music-playback',

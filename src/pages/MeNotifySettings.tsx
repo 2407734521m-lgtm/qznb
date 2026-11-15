@@ -19,7 +19,7 @@ export default function MeNotifySettings() {
 
   return (
     <SettingsShell title="通知设置">
-      <p>关闭某类通知后，只会在通知中心隐藏该类别，不会删除历史记录。</p>
+      <p>关闭某类提醒后，通知中心和灵动岛都不会显示该类别；历史记录不会删除。私信提醒只显示对方称呼，不展示私信正文。</p>
       {(Object.keys(LABELS) as NotificationKey[]).map(key => (
         <label key={key} className="qz-sub-row"><span>{LABELS[key]}</span>
           <input type="checkbox" checked={prefs.notifications[key] !== false} onChange={e => setPrefs(old => ({ ...old, notifications: { ...old.notifications, [key]: e.target.checked } }))} />

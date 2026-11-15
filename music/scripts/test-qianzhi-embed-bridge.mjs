@@ -52,7 +52,15 @@ assert.ok(activity.includes('type="range"'));
 assert.ok(activity.includes('<Island'));
 assert.ok(activity.includes('placement="viewport"'));
 assert.ok(activity.includes('keyline="off"'));
-assert.ok(activity.includes("top: 'max(env(safe-area-inset-top, 0px), 18px)'"), 'The island must sit at least 18px below the top so it clears the Android status bar.');
+assert.ok(activity.includes("top: 'var(--qz-island-anchor-top, max(env(safe-area-inset-top, 0px), 18px))'"), 'The island must sit at least 18px below the top so it clears the Android status bar.');
+// The anchor is a token now (task drawer shares it): its default must still be the 18px rule,
+// and the only lower value (8px) must stay scoped to short landscape viewports.
+assert.ok(styles.includes('--qz-island-anchor-top: max(env(safe-area-inset-top, 0px), 18px);'), 'The island anchor must default to at least 18px below the top.');
+assert.ok(
+  styles.indexOf('--qz-island-anchor-top: max(env(safe-area-inset-top, 0px), 8px);') >
+    styles.indexOf('@media (orientation: landscape) and (max-height: 560px)'),
+  'The 8px island anchor is only allowed inside the short-landscape exception.',
+);
 assert.ok(islandRoot.includes('onPointerDown'));
 assert.ok(islandRoot.includes('Escape'));
 assert.ok(islandRoot.includes('addEventListener("pointerdown"'));

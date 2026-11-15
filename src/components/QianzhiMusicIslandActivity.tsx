@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type RefObject } from 'react';
+import { createContext, useContext, useEffect, useRef, useState, type CSSProperties, type RefObject } from 'react';
 import { Island } from '../lib/island';
 
 type MusicCommand = 'toggle' | 'previous' | 'next' | 'seek';
@@ -197,6 +197,27 @@ export const MusicIslandView = ({
   collapseRef.current = value.collapse;
 
   useEffect(() => {
+    // Start in the native capture phase so Android touch pointers are recorded before any
+    // React press handler or browser gesture handling can change the event target.
+    const beginGesture = (event: PointerEvent) => {
+      if (event.pointerType === 'mouse' && event.button !== 0) return;
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+
+      const isPeek = target.closest('.qz-island-peek') !== null;
+      const isIslandHit = target.closest(
+        '.qz-island-host [data-islandcn-hit="pill"], .qz-island-host [data-islandcn-hit="bubble"]',
+      ) !== null;
+      if (!isPeek && !isIslandHit) return;
+
+      gestureRef.current = {
+        pointerId: event.pointerId,
+        source: isPeek ? 'peek' : 'island',
+        startX: event.clientX,
+        startY: event.clientY,
+      };
+    };
+
     const finishGesture = (event: PointerEvent) => {
       const gesture = gestureRef.current;
       if (!gesture || gesture.pointerId !== event.pointerId) return;
@@ -206,8 +227,10 @@ export const MusicIslandView = ({
       const deltaY = event.clientY - gesture.startY;
       const action = resolveIslandDockGesture(gesture.source, deltaX, deltaY);
       if (action === 'dock') {
+        // Tell the island's own press handler to cancel its tap action. Otherwise the same
+        // pointerup can immediately re-expand the activity after we collapse it for docking.
+        if (event.cancelable) event.preventDefault();
         if (dockTimerRef.current !== null) window.clearTimeout(dockTimerRef.current);
-        // Collapse the full activity first so an expanded panel never gets clipped at the top.
         collapseRef.current();
         dockTimerRef.current = window.setTimeout(() => {
           setDocked(true);
@@ -234,39 +257,19 @@ export const MusicIslandView = ({
       if (gestureRef.current?.pointerId === event.pointerId) gestureRef.current = null;
     };
 
-    // Window listeners keep the gesture alive after the finger leaves the small island hit area.
+    // All four events use native listeners: the gesture survives leaving the small hit button.
+    window.addEventListener('pointerdown', beginGesture, true);
     window.addEventListener('pointermove', onPointerMove, { passive: false });
     window.addEventListener('pointerup', finishGesture, true);
     window.addEventListener('pointercancel', onPointerCancel, true);
     return () => {
+      window.removeEventListener('pointerdown', beginGesture, true);
       window.removeEventListener('pointermove', onPointerMove);
       window.removeEventListener('pointerup', finishGesture, true);
       window.removeEventListener('pointercancel', onPointerCancel, true);
       if (dockTimerRef.current !== null) window.clearTimeout(dockTimerRef.current);
     };
   }, []);
-
-  const beginIslandGesture = (event: ReactPointerEvent<HTMLDivElement>) => {
-    if (event.pointerType === 'mouse' && event.button !== 0) return;
-    const target = event.target;
-    if (!(target instanceof Element) || !target.closest('[data-islandcn-hit="pill"], [data-islandcn-hit="bubble"]')) return;
-    gestureRef.current = {
-      pointerId: event.pointerId,
-      source: 'island',
-      startX: event.clientX,
-      startY: event.clientY,
-    };
-  };
-
-  const beginPeekGesture = (event: ReactPointerEvent<HTMLButtonElement>) => {
-    if (event.pointerType === 'mouse' && event.button !== 0) return;
-    gestureRef.current = {
-      pointerId: event.pointerId,
-      source: 'peek',
-      startX: event.clientX,
-      startY: event.clientY,
-    };
-  };
 
   const restoreIsland = () => {
     if (dockTimerRef.current !== null) window.clearTimeout(dockTimerRef.current);
@@ -281,7 +284,6 @@ export const MusicIslandView = ({
           ref={hostRef}
           className={'qz-island-host' + (docked ? ' is-docked' : '')}
           data-docked={docked ? 'true' : 'false'}
-          onPointerDownCapture={beginIslandGesture}
           aria-hidden={docked || undefined}
         >
           <Island
@@ -297,7 +299,6 @@ export const MusicIslandView = ({
             className="qz-island-peek"
             aria-label="恢复灵动岛"
             aria-expanded="false"
-            onPointerDown={beginPeekGesture}
             onClick={restoreIsland}
           />
         )}

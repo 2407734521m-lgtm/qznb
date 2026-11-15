@@ -505,7 +505,8 @@ export default function PostList({ section, searchQuery = '', embedded = false, 
     const { error } = await supabase.from('reports').insert({
       reporter_id: me, target_type: 'post', target_id: String(p.id), reason: reason.trim().slice(0, 200),
     });
-    alertDialog(error ? '举报失败：' + error.message : '已举报，管理员会处理');
+    if (error) alertDialog('举报失败：' + error.message);
+    else toast.success('已举报，管理员会处理');
   }
 
   async function delCmt(c: Cmt) {

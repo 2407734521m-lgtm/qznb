@@ -45,6 +45,7 @@ import './styles-quiet-editorial-detail.css';
 import './styles-quiet-community-detail.css';
 import './styles-archive.css';
 import './styles-motion-premium.css'; // Final motion layer: keep after all visual overrides.
+import './styles-ui-foundation.css'; // Scoped public-page polish; leaves Dock and admin styles untouched.
 
 /* Sonner Toast 纸面冷白覆盖（最后加载，确保盖过 Toast 默认样式）。 */
 import './styles-toast.css';

@@ -2212,7 +2212,7 @@ export const IslandSurface = (props: IslandSurfaceProps) => {
             aria-hidden={interaction.pillLabel === null || undefined}
             tabIndex={interaction.pillLabel === null ? -1 : undefined}
             aria-expanded={interaction.expanded}
-            style={{ pointerEvents: "auto" }}
+            style={{ pointerEvents: "auto", touchAction: "none" }}
             onPointerDown={(event) => interaction.onPressStart("pill", event)}
             onPointerUp={(event) => interaction.onPressEnd(event)}
             onPointerCancel={() => interaction.onPressCancel()}
@@ -2227,7 +2227,7 @@ export const IslandSurface = (props: IslandSurfaceProps) => {
             type="button"
             data-islandcn-hit="bubble"
             aria-label={interaction.bubbleLabel}
-            style={{ pointerEvents: "auto", display: "none" }}
+            style={{ pointerEvents: "auto", touchAction: "none", display: "none" }}
             onPointerDown={(event) => interaction.onPressStart("bubble", event)}
             onPointerUp={(event) => interaction.onPressEnd(event)}
             onPointerCancel={() => interaction.onPressCancel()}

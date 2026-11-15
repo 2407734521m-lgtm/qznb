@@ -66,6 +66,18 @@ jobs:
       - name: Apply Help touch buttons for coarse pointers
         run: node music/scripts/apply-folia-help-touch-buttons.mjs
 
+      - name: Apply playback start before lyrics
+        run: node music/scripts/apply-folia-playback-start-before-lyrics.mjs
+
+      - name: Apply online request timeouts
+        run: node music/scripts/apply-folia-online-request-timeouts.mjs
+
+      - name: Apply progress bar hit area
+        run: node music/scripts/apply-folia-progress-bar-hit-area.mjs
+
+      - name: Apply subtitle clearance for the expanded capsule
+        run: node music/scripts/apply-folia-subtitle-clearance-expanded.mjs
+
       - name: Apply Qianzhi player polish (softer background dithering)
         run: node music/scripts/apply-folia-player-polish.mjs
 

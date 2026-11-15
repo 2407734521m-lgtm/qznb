@@ -209,6 +209,9 @@ export const resolveIslandDockGesture = (
   deltaX: number,
   deltaY: number,
 ): 'dock' | 'restore' | null => {
+  // A tap on the exposed glass edge is a restore action too. Relying only on
+  // click can fail in embedded Android WebViews after pointer gestures.
+  if (source === 'peek' && Math.abs(deltaX) <= 12 && Math.abs(deltaY) <= 12) return 'restore';
   const mostlyVertical = Math.abs(deltaX) <= Math.max(16, Math.abs(deltaY) * 0.8);
   if (!mostlyVertical) return null;
   if (source === 'island' && deltaY <= -38) return 'dock';

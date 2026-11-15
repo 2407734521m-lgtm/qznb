@@ -95,10 +95,10 @@ export default function MeHub() {
   const activeRestrictions = accountStatus?.restrictions ?? [];
   const accountCondition = accountStatus?.banned_until
     ? 'banned'
-    : accountStatus?.joined === false
-      ? 'disabled'
-      : activeRestrictions.length > 0
-        ? 'restricted'
+    : activeRestrictions.length > 0
+      ? 'restricted'
+      : accountStatus?.joined === false
+        ? 'not-member'
         : 'normal';
 
   useEffect(() => {
@@ -207,15 +207,13 @@ export default function MeHub() {
                 {gameProfile?.status === 'rejected' && (
                   <span className="me-hub-game-chip is-rejected">游戏资料未通过</span>
                 )}
-                {accountStatus && (
+                {accountStatus && accountCondition !== 'normal' && (
                   <span className={`me-hub-account-pill is-${accountCondition}`}>
                     {accountCondition === 'banned'
                       ? '账号已封禁'
-                      : accountCondition === 'disabled'
-                        ? '成员权限已停用'
-                        : accountCondition === 'restricted'
-                          ? '账号功能受限'
-                          : '账号正常'}
+                      : accountCondition === 'not-member'
+                        ? '尚未加入成员'
+                        : '账号功能受限'}
                   </span>
                 )}
               </div>
@@ -236,11 +234,11 @@ export default function MeHub() {
               </div>
             )}
             {accountStatus.joined === false && !accountStatus.banned_until && (
-              <div className="me-hub-status-alert is-disabled">
-                <span className="me-hub-status-icon" aria-hidden="true">!</span>
+              <div className="me-hub-status-alert is-not-member">
+                <span className="me-hub-status-icon" aria-hidden="true">i</span>
                 <div>
-                  <strong>成员权限已停用</strong>
-                  <p>当前账号尚未启用成员权限，暂时无法使用成员功能，请联系管理员核实。</p>
+                  <strong>当前账号尚未加入成员</strong>
+                  <p>这表示成员资格尚未启用，不代表账号被封禁。部分成员功能可能无法使用。</p>
                 </div>
               </div>
             )}

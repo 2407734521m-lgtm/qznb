@@ -207,7 +207,7 @@ export default function MeSettings() {
                           style={{
                             width: prefs.island.width,
                             height: prefs.island.height,
-                            transform: `translate(calc(-50% + ${prefs.island.offsetX}px), calc(-50% + ${Math.max(-18, Math.min(18, prefs.island.offsetY / 3))}px))`,
+                            transform: `translate(calc(-50% + ${prefs.island.offsetX}px), calc(-50% + ${Math.max(-18, Math.min(18, (prefs.island.offsetY - 10) / 3))}px))`,
                           }}
                         />
                       </div>
@@ -217,7 +217,7 @@ export default function MeSettings() {
                       </label>
                       <label className="qz-island-range">
                         <span><span>垂直位置</span><b>{prefs.island.offsetY > 0 ? '+' : ''}{prefs.island.offsetY} px</b></span>
-                        <input type="range" min={-10} max={90} step={1} value={prefs.island.offsetY} onChange={event => setPrefs(old => ({ ...old, island: { ...old.island, offsetY: Number(event.target.value) } }))} aria-label="灵动岛垂直位置" />
+                        <input type="range" min={-30} max={90} step={1} value={prefs.island.offsetY} onChange={event => setPrefs(old => ({ ...old, island: { ...old.island, offsetY: Number(event.target.value) } }))} aria-label="灵动岛垂直位置" />
                       </label>
                       <label className="qz-island-range">
                         <span><span>胶囊长度</span><b>{prefs.island.width} px</b></span>

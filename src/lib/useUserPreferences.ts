@@ -17,11 +17,15 @@ export function readUserPreferences(uid: string | null | undefined): UserPrefere
 export function useUserPreferences(uid: string | null | undefined) {
   const [prefs, setPrefs] = useState<UserPreferences>(() => readUserPreferences(uid));
   const [prefsReady, setPrefsReady] = useState(false);
+  const [loadedUid, setLoadedUid] = useState<string | null>(null);
   const [syncState, setSyncState] = useState<PreferencesSyncState>('loading');
 
   useEffect(() => {
+    setPrefsReady(false);
+    setSyncState('loading');
     if (!uid) {
       setPrefs(DEFAULT_USER_PREFERENCES);
+      setLoadedUid(null);
       setSyncState('saved');
       setPrefsReady(true);
       return;
@@ -32,7 +36,7 @@ export function useUserPreferences(uid: string | null | undefined) {
       const { data, error } = await (supabase as any).from('profile_notification_preferences').select('preferences').eq('profile_id', uid).maybeSingle();
       if (!active) return;
       if (error) {
-        setPrefs(localPreferences); setSyncState('error'); setPrefsReady(true); return;
+        setPrefs(localPreferences); setSyncState('error'); setLoadedUid(uid); setPrefsReady(true); return;
       }
       if (data?.preferences && typeof data.preferences === 'object') {
         const remote = data.preferences as Partial<UserPreferences>;
@@ -50,6 +54,7 @@ export function useUserPreferences(uid: string | null | undefined) {
         if (!active) return;
         setPrefs(localPreferences); setSyncState(insertError ? 'error' : 'saved');
       }
+      setLoadedUid(uid);
       setPrefsReady(true);
     }
     void loadCloudPreferences();
@@ -57,7 +62,7 @@ export function useUserPreferences(uid: string | null | undefined) {
   }, [uid]);
 
   useEffect(() => {
-    if (!prefsReady || !uid) return;
+    if (!prefsReady || !uid || loadedUid !== uid) return;
     try { localStorage.setItem('qznb_user_preferences_v1:' + uid, JSON.stringify(prefs)); } catch {}
     try { localStorage.setItem('qznb_motion_preference_v1', prefs.motion); } catch {}
     window.dispatchEvent(new Event('qznb-settings-changed'));
@@ -67,7 +72,7 @@ export function useUserPreferences(uid: string | null | undefined) {
       if (active) setSyncState(error ? 'error' : 'saved');
     }, 300);
     return () => { active = false; window.clearTimeout(timer); };
-  }, [prefs, uid, prefsReady]);
+  }, [prefs, uid, prefsReady, loadedUid]);
 
   return { prefs, setPrefs, prefsReady, syncState };
 }

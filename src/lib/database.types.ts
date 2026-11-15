@@ -1,9 +1,3 @@
-// ---------------------------------------------------------------------------
-// AUTO-GENERATED — Supabase Database Types (schema: public)
-// Generated from the active production project class-youth-archive2 on 2026-11-14.
-// Do not hand-edit. Regenerate from the target Supabase schema after migrations.
-// ---------------------------------------------------------------------------
-
 export type Json =
   | string
   | number
@@ -2497,6 +2491,10 @@ export type Database = {
         Returns: string
       }
       admin_backup_overview: { Args: never; Returns: Json }
+      admin_change_secondary_password: {
+        Args: { p_current_pin: string; p_new_pin: string }
+        Returns: boolean
+      }
       admin_client_platform_members: {
         Args: never
         Returns: {
@@ -2611,6 +2609,19 @@ export type Database = {
           version_name: string
         }[]
       }
+      admin_list_own_sessions: {
+        Args: never
+        Returns: {
+          created_at: string
+          device_label: string
+          is_current: boolean
+          not_after: string
+          refreshed_at: string
+          session_id: string
+          updated_at: string
+        }[]
+      }
+      admin_login_is_admin: { Args: never; Returns: boolean }
       admin_member_accounts: {
         Args: never
         Returns: {
@@ -2697,6 +2708,7 @@ export type Database = {
         Args: { p_key: string; p_value: string }
         Returns: undefined
       }
+      admin_secondary_password_status: { Args: never; Returns: boolean }
       admin_security_overview: { Args: never; Returns: Json }
       admin_send_member_message: {
         Args: {
@@ -2733,6 +2745,10 @@ export type Database = {
         Args: { p_hidden: boolean; p_id: number }
         Returns: undefined
       }
+      admin_set_secondary_password: {
+        Args: { p_pin: string }
+        Returns: boolean
+      }
       admin_update_feedback: {
         Args: { p_admin_note?: string; p_feedback_id: number; p_status: string }
         Returns: undefined
@@ -2751,9 +2767,21 @@ export type Database = {
         }
         Returns: undefined
       }
+      admin_verify_secondary_password: {
+        Args: { p_pin: string }
+        Returns: boolean
+      }
       answer_anonymous_question: {
         Args: { p_answer: string; p_publish?: boolean; p_question_id: string }
         Returns: boolean
+      }
+      begin_trusted_username_login_attempt: {
+        Args: { p_token_hash: string; p_username: string }
+        Returns: Json
+      }
+      begin_username_login_attempt: {
+        Args: { p_username_hash: string }
+        Returns: Json
       }
       block_member: { Args: { target: string }; Returns: undefined }
       bootstrap_super_admin: { Args: { uname: string }; Returns: undefined }
@@ -2774,7 +2802,15 @@ export type Database = {
         Returns: boolean
       }
       consume_username_login_attempt: {
-        Args: { p_identifier_hash: string }
+        Args: { p_identifier_hash: string; p_ip_hash: string }
+        Returns: boolean
+      }
+      consume_username_login_recovery: {
+        Args: { p_ip_hash: string; p_username_hash: string }
+        Returns: boolean
+      }
+      consume_username_login_recovery_recipient: {
+        Args: { p_email_hash: string }
         Returns: boolean
       }
       create_invite_code: {
@@ -2799,6 +2835,10 @@ export type Database = {
       edit_chat_message: {
         Args: { p_body: string; p_message_id: number }
         Returns: undefined
+      }
+      finish_username_login_attempt: {
+        Args: { p_success: boolean; p_token: string; p_username_hash: string }
+        Returns: boolean
       }
       friend_requests: {
         Args: never
@@ -2873,6 +2913,10 @@ export type Database = {
       }
       invite_nickname: { Args: never; Returns: string }
       is_member: { Args: never; Returns: boolean }
+      is_username_login_device: {
+        Args: { p_token_hash: string; p_username: string }
+        Returns: boolean
+      }
       join_class: { Args: { code: string }; Returns: boolean }
       join_with_code: { Args: { code: string }; Returns: string }
       link_love_wall_media_post: {
@@ -2993,6 +3037,7 @@ export type Database = {
         Args: { p_media_id: string; p_new_path: string; p_old_path: string }
         Returns: undefined
       }
+      my_account_status: { Args: never; Returns: Json }
       my_anonymous_question_inbox: {
         Args: never
         Returns: {
@@ -3096,6 +3141,10 @@ export type Database = {
         Args: { p_path: string }
         Returns: undefined
       }
+      register_username_login_device: {
+        Args: { p_token_hash: string; p_user_id: string }
+        Returns: undefined
+      }
       relationship_state: {
         Args: { target: string }
         Returns: {
@@ -3119,7 +3168,15 @@ export type Database = {
         Args: { approve: boolean; pid: string }
         Returns: undefined
       }
+      revoke_all_username_login_devices: {
+        Args: { p_user_id: string }
+        Returns: undefined
+      }
       revoke_my_shared_region: { Args: never; Returns: undefined }
+      revoke_username_login_device: {
+        Args: { p_token_hash: string }
+        Returns: undefined
+      }
       send_friend_request: { Args: { target: string }; Returns: string }
       set_chat_background: {
         Args: { p_background: string; p_conversation_id: number }

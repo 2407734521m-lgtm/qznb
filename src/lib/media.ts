@@ -218,11 +218,16 @@ export async function downloadMediaWithProgress(
   } catch {
     throw new Error('下载链接无效');
   }
-  if (parsed.protocol !== 'https:' && parsed.origin !== window.location.origin) {
-    throw new Error('仅支持安全的 HTTPS 下载链接');
-  }
   if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
     throw new Error('下载链接协议不受支持');
+  }
+  let storageOrigin = '';
+  try { storageOrigin = new URL(supabaseBaseUrl).origin; } catch { /* The configured URL is validated during app startup. */ }
+  if (parsed.origin !== window.location.origin && parsed.origin !== storageOrigin) {
+    throw new Error('下载链接不属于本站或聊天存储服务');
+  }
+  if (parsed.protocol === 'http:' && parsed.origin !== window.location.origin) {
+    throw new Error('跨站下载必须使用 HTTPS');
   }
 
   const safeName = Array.from(fileName || '下载文件')

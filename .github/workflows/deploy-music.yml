@@ -158,6 +158,18 @@ jobs:
       - name: Apply RMS loudness fallback to the existing Folia analyser
         run: node music/scripts/apply-folia-audio-level.mjs
 
+      - name: Apply Qianzhi batch 4 parallel prefetch
+        run: node music/scripts/apply-folia-prefetch-parallel.mjs
+
+      - name: Apply Qianzhi batch 4 NetEase anonymous warmup
+        run: node music/scripts/apply-folia-netease-anon-warmup.mjs
+
+      - name: Apply Qianzhi batch 4 visualizer bridge throttle
+        run: node music/scripts/apply-folia-visualizer-bridge-throttle.mjs
+
+      - name: Apply Qianzhi batch 4 cached copy verdict
+        run: node music/scripts/apply-folia-cached-copy-verdict.mjs
+
       - name: Verify Qianzhi main-site music embed bridge
         run: node music/scripts/test-qianzhi-embed-bridge.mjs
 
@@ -195,6 +207,10 @@ jobs:
       - name: Test Qianzhi batch 3 visualizer motion helpers
         working-directory: music/folia
         run: npm run test:unit -- test/unit/visualizer/latentSettled.test.ts test/unit/visualizer/softFocusOpacityOnly.test.ts
+
+      - name: Test Qianzhi batch 4 playback performance
+        working-directory: music/folia
+        run: npm run test:unit -- test/unit/prefetchParallel.test.ts test/unit/onlineMusic/neteaseAnonWarmup.test.ts test/unit/visualizer/visualizerBandThrottle.test.ts test/unit/cache/audioLengthCategory.test.ts test/unit/onlinePlaybackCachedCopyVerdict.test.ts
 
       - name: Build Folia Web + Worker
         working-directory: music/folia

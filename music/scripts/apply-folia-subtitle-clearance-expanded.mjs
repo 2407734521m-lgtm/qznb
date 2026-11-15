@@ -74,10 +74,15 @@ layout = replaceOnce(layout,
 export const resolvePlayerSubtitleBottomFromPresence = (
     offsetPx: number,
     controlBarPresence: number,
+    /** 胶囊的底距和它上面要留的净空：桌面 32 + 80；紧凑档（progress-bar v3）16 + 72。 */
+    geometry: { baseBottomPx: number; clearancePx: number } = {
+        baseBottomPx: PLAYER_BOTTOM_BAR_BASE_OFFSET_PX,
+        clearancePx: PLAYER_BOTTOM_BAR_SUBTITLE_CLEARANCE_PX,
+    },
 ): number => (
-    PLAYER_BOTTOM_BAR_BASE_OFFSET_PX
+    geometry.baseBottomPx
     + controlBarPresence * (
-        (offsetPx - PLAYER_BOTTOM_BAR_BASE_OFFSET_PX) + PLAYER_BOTTOM_BAR_SUBTITLE_CLEARANCE_PX
+        (offsetPx - PLAYER_BOTTOM_BAR_BASE_OFFSET_PX) + geometry.clearancePx
     )
 );`,
     `/**
@@ -93,11 +98,16 @@ export const resolvePlayerSubtitleBottomFromPresence = (
 export const resolvePlayerSubtitleBottomFromPresence = (
     offsetPx: number,
     controlBarPresence: number,
+    /** 胶囊的底距和它上面要留的净空：桌面 32 + 80；紧凑档（progress-bar v3）16 + 72。 */
+    geometry: { baseBottomPx: number; clearancePx: number } = {
+        baseBottomPx: PLAYER_BOTTOM_BAR_BASE_OFFSET_PX,
+        clearancePx: PLAYER_BOTTOM_BAR_SUBTITLE_CLEARANCE_PX,
+    },
     expandedExtraPx = 0,
 ): number => (
-    PLAYER_BOTTOM_BAR_BASE_OFFSET_PX
+    geometry.baseBottomPx
     + controlBarPresence * (
-        (offsetPx - PLAYER_BOTTOM_BAR_BASE_OFFSET_PX) + PLAYER_BOTTOM_BAR_SUBTITLE_CLEARANCE_PX + expandedExtraPx
+        (offsetPx - PLAYER_BOTTOM_BAR_BASE_OFFSET_PX) + geometry.clearancePx + expandedExtraPx
     )
 );`,
     'resolve subtitle bottom expanded param');
@@ -111,11 +121,15 @@ hook = replaceOnce(hook,
     'hook expanded signal import');
 hook = replaceOnce(hook,
     `import {
+    COMPACT_CAPSULE_BASE_BOTTOM_PX,
+    COMPACT_SUBTITLE_CLEARANCE_PX,
     PLAYER_BOTTOM_BAR_BASE_OFFSET_PX,
     resolvePlayerBottomComponentBottomPx,
     resolvePlayerSubtitleBottomFromPresence,
 } from '../utils/playerBottomBarLayout';`,
     `import {
+    COMPACT_CAPSULE_BASE_BOTTOM_PX,
+    COMPACT_SUBTITLE_CLEARANCE_PX,
     PLAYER_BOTTOM_BAR_BASE_OFFSET_PX,
     PLAYER_BOTTOM_BAR_EXPANDED_SUBTITLE_EXTRA_PX,
     resolvePlayerBottomComponentBottomPx,
@@ -144,6 +158,7 @@ hook = replaceOnce(hook,
         ([presence, offset]: number[]) => resolvePlayerSubtitleBottomFromPresence(
             isBottomBarHost ? offset : previewOffset,
             presence,
+            isCompact ? COMPACT_SUBTITLE_GEOMETRY : undefined,
         ),
     );`,
     `    const controlBarPresence = useSpring(isControlBarAbsent ? 0 : 1, SUBTITLE_PRESENCE_SPRING);
@@ -165,6 +180,7 @@ hook = replaceOnce(hook,
         ([presence, offset, expanded]: number[]) => resolvePlayerSubtitleBottomFromPresence(
             isBottomBarHost ? offset : previewOffset,
             presence,
+            isCompact ? COMPACT_SUBTITLE_GEOMETRY : undefined,
             // 预览里没有底栏，展开量与它无关。
             isBottomBarHost ? expanded * PLAYER_BOTTOM_BAR_EXPANDED_SUBTITLE_EXTRA_PX : 0,
         ),
@@ -224,9 +240,13 @@ const layoutTestPath = resolve(root, 'test/unit/utils/playerBottomBarLayout.test
 let layoutTest = await read(layoutTestPath);
 layoutTest = replaceOnce(layoutTest,
     `import {
+    COMPACT_CAPSULE_BASE_BOTTOM_PX,
+    COMPACT_SUBTITLE_CLEARANCE_PX,
     PLAYER_BOTTOM_BAR_BASE_OFFSET_PX,
     PLAYER_BOTTOM_BAR_SUBTITLE_CLEARANCE_PX,`,
     `import {
+    COMPACT_CAPSULE_BASE_BOTTOM_PX,
+    COMPACT_SUBTITLE_CLEARANCE_PX,
     PLAYER_BOTTOM_BAR_BASE_OFFSET_PX,
     PLAYER_BOTTOM_BAR_EXPANDED_SUBTITLE_EXTRA_PX,
     PLAYER_BOTTOM_BAR_SUBTITLE_CLEARANCE_PX,`,
@@ -242,10 +262,10 @@ layoutTest = replaceOnce(layoutTest,
 
     it('lifts by the expanded extra while the capsule is open, and not when it is shut', () => {
         expect(PLAYER_BOTTOM_BAR_EXPANDED_SUBTITLE_EXTRA_PX).toBe(64);
-        expect(resolvePlayerSubtitleBottomFromPresence(PLAYER_BOTTOM_BAR_BASE_OFFSET_PX, 1, 64)).toBe(176);
-        expect(resolvePlayerSubtitleBottomFromPresence(152, 1, 64)).toBe(296);
-        expect(resolvePlayerSubtitleBottomFromPresence(PLAYER_BOTTOM_BAR_BASE_OFFSET_PX, 0, 64)).toBe(PLAYER_BOTTOM_BAR_BASE_OFFSET_PX);
-        expect(resolvePlayerSubtitleBottomFromPresence(PLAYER_BOTTOM_BAR_BASE_OFFSET_PX, 0.5, 64)).toBe(104);
+        expect(resolvePlayerSubtitleBottomFromPresence(PLAYER_BOTTOM_BAR_BASE_OFFSET_PX, 1, undefined, 64)).toBe(176);
+        expect(resolvePlayerSubtitleBottomFromPresence(152, 1, undefined, 64)).toBe(296);
+        expect(resolvePlayerSubtitleBottomFromPresence(PLAYER_BOTTOM_BAR_BASE_OFFSET_PX, 0, undefined, 64)).toBe(PLAYER_BOTTOM_BAR_BASE_OFFSET_PX);
+        expect(resolvePlayerSubtitleBottomFromPresence(PLAYER_BOTTOM_BAR_BASE_OFFSET_PX, 0.5, undefined, 64)).toBe(104);
     });
 });`,
     'layout test expanded extra case');

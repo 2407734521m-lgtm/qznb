@@ -97,7 +97,10 @@ const QianzhiEmbedBridge = ({ model }: Props) => {
             const hasSpectrumEnergy = !!bands && (bands.bass + bands.lowMid + bands.vocal + bands.treble) > 0.025;
             const levelValue = playing && routeSupportsWebAnalyser ? audioLevel.get() : 0;
             const level = Math.max(0, Math.min(1, Number.isFinite(levelValue) ? levelValue : 0));
-            const mode = hasSpectrumEnergy ? 'spectrum' : playing && routeSupportsWebAnalyser ? 'level' : 'idle';
+            const hasAudioLevel = playing && routeSupportsWebAnalyser && level > 0.012;
+            // Some playback routes do not expose analyser data. Mark them explicitly so the
+            // main-site capsule can use its lightweight visual fallback instead of freezing.
+            const mode = hasSpectrumEnergy ? 'spectrum' : hasAudioLevel ? 'level' : 'fallback';
             window.parent.postMessage({
                 source: 'qznb-music',
                 type: 'SPECTRUM',

@@ -107,6 +107,31 @@
   .qz-island-peek::before { transition: none; }
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .qz-island-wave.is-playing i {
+    animation: none !important;
+    filter: none;
+  }
+  .qz-island-host[data-qz-music-eq-mode="fallback"] .qz-island-wave.is-playing i {
+    animation: qz-island-eq-fallback-bass 1.5s ease-in-out infinite alternate !important;
+  }
+  .qz-island-host[data-qz-music-eq-mode="fallback"] .qz-island-wave.is-playing i:nth-child(2) {
+    animation-name: qz-island-eq-fallback-lowmid !important;
+    animation-duration: 1.7s !important;
+    animation-delay: -500ms !important;
+  }
+  .qz-island-host[data-qz-music-eq-mode="fallback"] .qz-island-wave.is-playing i:nth-child(3) {
+    animation-name: qz-island-eq-fallback-vocal !important;
+    animation-duration: 1.4s !important;
+    animation-delay: -650ms !important;
+  }
+  .qz-island-host[data-qz-music-eq-mode="fallback"] .qz-island-wave.is-playing i:nth-child(4) {
+    animation-name: qz-island-eq-fallback-treble !important;
+    animation-duration: 1.8s !important;
+    animation-delay: -300ms !important;
+  }
+}
+
 
 .qz-island-compact {
   display: inline-flex;
@@ -239,6 +264,53 @@
 @keyframes qz-island-wave-glow {
   from { filter: drop-shadow(0 0 1px rgba(255,255,255,.12)); }
   to { filter: drop-shadow(0 0 5px rgba(255,255,255,.42)); }
+}
+
+/* A route without readable analyser data still gets a real animated EQ silhouette.
+   This is visual feedback only; it never claims to represent measured volume. */
+.qz-island-host[data-qz-music-eq-mode="fallback"] .qz-island-wave.is-playing i {
+  animation: qz-island-eq-fallback-bass 720ms ease-in-out infinite alternate;
+  filter: drop-shadow(0 0 3px rgba(255,255,255,.22));
+}
+.qz-island-host[data-qz-music-eq-mode="fallback"] .qz-island-wave.is-playing i:nth-child(2) {
+  animation-name: qz-island-eq-fallback-lowmid;
+  animation-duration: 860ms;
+  animation-delay: -310ms;
+}
+.qz-island-host[data-qz-music-eq-mode="fallback"] .qz-island-wave.is-playing i:nth-child(3) {
+  animation-name: qz-island-eq-fallback-vocal;
+  animation-duration: 640ms;
+  animation-delay: -470ms;
+}
+.qz-island-host[data-qz-music-eq-mode="fallback"] .qz-island-wave.is-playing i:nth-child(4) {
+  animation-name: qz-island-eq-fallback-treble;
+  animation-duration: 930ms;
+  animation-delay: -180ms;
+}
+
+@keyframes qz-island-eq-fallback-bass {
+  0% { transform: scaleY(.22); }
+  32% { transform: scaleY(.72); }
+  68% { transform: scaleY(.36); }
+  100% { transform: scaleY(.92); }
+}
+@keyframes qz-island-eq-fallback-lowmid {
+  0% { transform: scaleY(.76); }
+  35% { transform: scaleY(.28); }
+  72% { transform: scaleY(.94); }
+  100% { transform: scaleY(.44); }
+}
+@keyframes qz-island-eq-fallback-vocal {
+  0% { transform: scaleY(.34); }
+  30% { transform: scaleY(.88); }
+  66% { transform: scaleY(.24); }
+  100% { transform: scaleY(.7); }
+}
+@keyframes qz-island-eq-fallback-treble {
+  0% { transform: scaleY(.9); }
+  38% { transform: scaleY(.42); }
+  74% { transform: scaleY(.8); }
+  100% { transform: scaleY(.2); }
 }
 
 .qz-island-art-expanded {

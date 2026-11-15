@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isSameMusicTrack, shouldShowMainIsland } from './MusicIsland';
+import { isSameMusicTrack, resolveMusicEqualizerMode, shouldShowMainIsland } from './MusicIsland';
 import { hasNewIslandActivity, resolveIslandDockGesture, resolveIslandGestureSource } from './QianzhiMusicIslandActivity';
 import { resolveMetrics } from '../lib/island/config';
 import { createQianzhiIslandMetrics, qianzhiIslandMetrics } from '../lib/island/qianzhi-metrics';
@@ -112,5 +112,65 @@ describe('shouldShowMainIsland', () => {
   });
   it('always shows the main island on normal routes', () => {
     expect(shouldShowMainIsland(false, [])).toBe(true);
+  });
+});
+
+
+describe('resolveMusicEqualizerMode', () => {
+  it('uses real frequency data when the spectrum contains energy', () => {
+    expect(resolveMusicEqualizerMode({
+      playing: true,
+      available: true,
+      mode: 'spectrum',
+      level: 0,
+      bands: { bass: 0.3, lowMid: 0.2, vocal: 0.1, treble: 0.08 },
+    })).toBe('live');
+  });
+
+  it('uses measured RMS loudness when frequency bins are not useful', () => {
+    expect(resolveMusicEqualizerMode({
+      playing: true,
+      available: false,
+      mode: 'level',
+      level: 0.12,
+      bands: null,
+    })).toBe('live');
+  });
+
+  it('keeps bars moving when a playing route exposes no analyser data', () => {
+    expect(resolveMusicEqualizerMode({
+      playing: true,
+      available: false,
+      mode: 'fallback',
+      level: 0,
+      bands: null,
+    })).toBe('fallback');
+    expect(resolveMusicEqualizerMode({
+      playing: true,
+      available: false,
+      mode: 'idle',
+      level: 0,
+      bands: null,
+    })).toBe('fallback');
+  });
+
+  it('uses visual fallback for near-silent RMS instead of leaving the bars frozen', () => {
+    expect(resolveMusicEqualizerMode({
+      playing: true,
+      available: false,
+      mode: 'level',
+      level: 0.004,
+      bands: null,
+    })).toBe('fallback');
+  });
+
+  it('stops the equalizer when playback is paused', () => {
+    expect(resolveMusicEqualizerMode({
+      playing: false,
+      available: false,
+      mode: 'fallback',
+      level: 0,
+      bands: null,
+    })).toBe('idle');
   });
 });

@@ -10,6 +10,8 @@ export interface IslandAlertInput {
   title: string;
   body?: string;
   priority: number;
+  /** False keeps low-priority activity in compact mode instead of forcing an expansion. */
+  alert?: boolean;
   onPress?: () => void;
   durationMs?: number;
 }
@@ -20,6 +22,37 @@ const LABELS: Record<IslandAlertKind, string> = {
   interaction: '互动',
   system: '通知',
 };
+
+/**
+ * Collapse a burst of realtime notifications into one private, actionable heads-up.
+ * Select the highest-priority destination, but never copy the original message/comment text
+ * into the combined preview.
+ */
+export function combineIslandAlertBatch(items: readonly IslandAlertInput[]): IslandAlertInput | null {
+  if (items.length === 0) return null;
+  if (items.length === 1) return items[0];
+
+  const selected = items.reduce((best, item) => item.priority >= best.priority ? item : best);
+  const labels: Record<IslandAlertKind, string> = {
+    message: '私信',
+    friend: '好友申请',
+    interaction: '互动',
+    system: '系统通知',
+  };
+  const categories = [...new Set(items.map(item => item.kind))];
+  const body = '包含 ' + categories.map(kind => labels[kind]).join('、') + '，点击查看详情';
+
+  return {
+    id: 'batch-' + items[0].id + '-' + items[items.length - 1].id + '-' + items.length,
+    kind: selected.kind,
+    title: '收到 ' + items.length + ' 条新提醒',
+    body,
+    priority: selected.priority,
+    alert: selected.alert !== false,
+    onPress: selected.onPress,
+    durationMs: 7500,
+  };
+}
 
 const ICONS: Record<IslandAlertKind, ReactNode> = {
   message: <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 5.5h15v11h-9l-4.5 3v-14Z" /><path d="M8 10h8M8 13h5" /></svg>,
@@ -64,7 +97,7 @@ export function showIslandAlert(api: IslandApi, input: IslandAlertInput): Activi
     id,
     label: input.title,
     priority: input.priority,
-    alert: true,
+    alert: input.alert !== false,
     compact: {
       leading: <CompactAlert kind={input.kind} />,
     },

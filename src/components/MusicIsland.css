@@ -552,3 +552,23 @@
   visibility: hidden;
   pointer-events: none;
 }
+
+
+/* A single tactile settle when a minimized call lands inside the live-activity capsule. */
+.qz-island-host.is-call-arriving .qz-island-call-anchor > div:first-of-type {
+  transform-origin: 50% 0;
+  animation: qz-call-island-arrive 540ms cubic-bezier(.22, 1, .36, 1) both;
+}
+
+@keyframes qz-call-island-arrive {
+  0%, 100% { transform: scale(1, 1); }
+  30% { transform: scale(1.055, 1.16); }
+  52% { transform: scale(.984, .91); }
+  75% { transform: scale(1.014, 1.045); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .qz-island-host.is-call-arriving .qz-island-call-anchor > div:first-of-type {
+    animation: none;
+  }
+}

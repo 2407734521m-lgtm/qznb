@@ -361,13 +361,8 @@ export function CallProvider({ children }: { children: ReactNode }) {
       peerName,
       seconds,
       muted,
-      onAccept: acceptCall,
-      onReject: rejectCall,
-      onCancel: cancelCall,
-      onHangUp: hangUp,
-      onToggleMute: toggleMute,
     }));
-  }, [phase, peerName, seconds, muted, islandApi, acceptCall, rejectCall, cancelCall, hangUp, toggleMute]);
+  }, [phase, peerName, seconds, muted, islandApi]);
 
   useEffect(() => () => islandApi.end('qz-call-session'), [islandApi]);
 

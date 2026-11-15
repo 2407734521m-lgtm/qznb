@@ -321,7 +321,7 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .me-hub :where(button) { transition: none !important; }
-  .me-hub :where(button):active:not(:disabled) { transform: none !important; }
+  
 }
 
 /* Personal identity badges: compact on mobile, readable, and visually distinct. */

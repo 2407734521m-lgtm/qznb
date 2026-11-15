@@ -25,6 +25,31 @@
   object-fit: cover;
   border-radius: 6px;
   background: #24252a;
+  transform: scale(1);
+  filter: saturate(1);
+  transition:
+    transform 420ms cubic-bezier(.2,.78,.22,1),
+    filter 420ms ease,
+    border-radius 320ms cubic-bezier(.2,.78,.22,1);
+  will-change: transform;
+}
+
+.qz-island-art.is-playing {
+  animation: qz-island-art-breathe 3.2s ease-in-out infinite;
+  filter: saturate(1.08);
+}
+
+@keyframes qz-island-art-breathe {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.045); }
+}
+
+.qz-island-compact {
+  transition: opacity 180ms ease, filter 220ms ease;
+}
+
+.qz-island-compact:active {
+  filter: brightness(1.12);
 }
 
 .qz-island-art-fallback {
@@ -71,7 +96,7 @@
   transform: scaleY(var(--qz-music-eq-bass, .16));
   transform-origin: center;
   will-change: transform;
-  transition: transform 100ms cubic-bezier(.2,.72,.24,1), opacity 180ms ease;
+  transition: transform 150ms cubic-bezier(.2,.8,.2,1), opacity 180ms ease;
 }
 
 .qz-island-wave i:nth-child(2) { transform: scaleY(var(--qz-music-eq-lowMid, .16)); }
@@ -80,6 +105,15 @@
 .qz-island-wave.is-playing i {
   opacity: 1;
   filter: drop-shadow(0 0 4px rgba(255,255,255,.28));
+  animation: qz-island-wave-glow 1.35s ease-in-out infinite alternate;
+}
+.qz-island-wave.is-playing i:nth-child(2) { animation-delay: -0.35s; }
+.qz-island-wave.is-playing i:nth-child(3) { animation-delay: -0.7s; }
+.qz-island-wave.is-playing i:nth-child(4) { animation-delay: -1.05s; }
+
+@keyframes qz-island-wave-glow {
+  from { filter: drop-shadow(0 0 1px rgba(255,255,255,.12)); }
+  to { filter: drop-shadow(0 0 5px rgba(255,255,255,.42)); }
 }
 
 .qz-island-art-expanded {
@@ -300,5 +334,6 @@
 @media (prefers-reduced-motion: reduce) {
   .qz-island-wave i,
   .qz-island-controls button,
-  .qz-island-close { transition: none; }
+  .qz-island-close,
+  .qz-island-art { transition: none; animation: none !important; }
 }

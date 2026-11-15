@@ -44,7 +44,7 @@ function GuestHome({ siteConfig, onLoginRequired, showLoveWall, showAnnouncement
         <div className="guest-cruip-hero-copy">
           <span className="guest-eyebrow">{title.toUpperCase()} · OPEN COMMUNITY</span>
           <h1>{banner}</h1>
-          <p>浏览公开内容，发现正在发生的分享与话题。</p>
+          <p>{subtitle}。浏览公开内容，发现正在发生的分享与故事。</p>
           <div className="guest-cruip-hero-actions">
             <NavLink to="/feed" className="guest-button guest-button-primary">浏览动态 <span aria-hidden="true">↗</span></NavLink>
             {showAnnouncements && <NavLink to="/board" className="guest-button guest-button-secondary">查看公告</NavLink>}

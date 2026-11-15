@@ -204,7 +204,7 @@
   background: conic-gradient(
     from 0deg,
     transparent 0deg 310deg,
-    color-mix(in srgb, var(--fx-border-beam-color) 34%, transparent) 333deg,
+    rgba(126, 143, 162, .18) 333deg,
     rgba(255, 255, 255, .96) 347deg,
     var(--fx-border-beam-color) 354deg,
     transparent 360deg

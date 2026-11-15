@@ -3,6 +3,7 @@ import { motion, useReducedMotion } from 'framer-motion';
 import { useIslandActions, useIslandActivityIds } from '../lib/island';
 import { createMusicIslandActivity, MusicIslandView } from './QianzhiMusicIslandActivity';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { haptic } from '../lib/haptics';
 import './MusicIsland.css';
 
 const MUSIC_URL = 'https://music.qianzhi.pw';
@@ -272,6 +273,7 @@ function MusicIsland() {
       return;
     }
     const toggleExpanded = () => {
+      haptic('tick');
       if (islandApi.presentation === 'expanded') islandApi.collapse();
       else islandApi.expand('music-playback');
     };

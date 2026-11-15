@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth';
 import { confirmDialog } from '../lib/dialog';
 import FeedbackModal from '../components/FeedbackModal';
+import IslandAlignOverlay from '../components/IslandAlignOverlay';
 import SponsorModal from '../components/SponsorModal';
 import { useUserPreferences } from '../lib/useUserPreferences';
 import { DEFAULT_ISLAND_PREFERENCE } from '../lib/userPreferences';
@@ -79,6 +80,7 @@ export default function MeSettings() {
   const { session } = useAuth();
   const uid = session!.user.id;
   const { prefs, setPrefs } = useUserPreferences(uid);
+  const [aligning, setAligning] = useState(false);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [sponsorOpen, setSponsorOpen] = useState(false);
   const [searchHistory, setSearchHistory] = useState<string[]>(() => readSearchHistory(uid));
@@ -166,7 +168,7 @@ export default function MeSettings() {
         .qz-island-range>span{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:14px;color:#302b24}
         .qz-island-range b{font-size:12px;font-weight:600;color:#80513c;font-variant-numeric:tabular-nums}
         .qz-island-range input[type=range]{display:block;width:100%;height:26px;margin:7px 0 0;padding:0!important;accent-color:#80513c;touch-action:pan-y}
-        .qz-island-settings-actions{display:flex;justify-content:flex-end;margin-top:14px}
+        .qz-island-settings-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:14px}
         .qz-island-settings-actions button{border:1px solid #e6dccf;border-radius:999px;background:#fff;color:#80513c;padding:8px 13px;font:inherit;font-size:13px}
         @media(min-width:700px){
           .qz-settings-page{max-width:900px;padding:24px 0 24px!important}
@@ -227,10 +229,20 @@ export default function MeSettings() {
                         <span><span>胶囊高度</span><b>{prefs.island.height} px</b></span>
                         <input type="range" min={28} max={42} step={0.5} value={prefs.island.height} onChange={event => setPrefs(old => ({ ...old, island: { ...old.island, height: Number(event.target.value) } }))} aria-label="灵动岛胶囊高度" />
                       </label>
+                      <label><span>触感反馈</span><input type="checkbox" checked={prefs.island.haptics} onChange={e => setPrefs(old => ({ ...old, island: { ...old.island, haptics: e.target.checked } }))} /></label>
                       <div className="qz-island-settings-actions">
+                        <button type="button" onClick={() => setAligning(true)}>拖动对准</button>
                         <button type="button" onClick={() => setPrefs(old => ({ ...old, island: { ...DEFAULT_ISLAND_PREFERENCE } }))}>恢复默认</button>
                       </div>
-                      <p className="qz-settings-row-note">提示：位置是相对默认居中位置的偏移；尺寸会同步影响收起和展开状态。轻触顶部露出的玻璃边缘即可重新展开。</p>
+                      {aligning && (
+                        <IslandAlignOverlay
+                          offsetX={prefs.island.offsetX}
+                          offsetY={prefs.island.offsetY}
+                          onSave={(x, y) => setPrefs(old => ({ ...old, island: { ...old.island, offsetX: x, offsetY: y } }))}
+                          onClose={() => setAligning(false)}
+                        />
+                      )}
+                      <p className="qz-settings-row-note">提示：位置是相对默认居中位置的偏移；尺寸会同步影响收起和展开状态。轻触顶部露出的玻璃边缘即可重新展开。触感反馈需要手机支持振动。</p>
                     </>}
                     {row.panel === 'chat' && <>
                       <p>你可以决定是否向好友发送自己的已读状态，以及是否在聊天气泡下显示对方的已读状态。</p>

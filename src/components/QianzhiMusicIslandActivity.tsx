@@ -1,3 +1,4 @@
+import { haptic } from '../lib/haptics';
 import { createContext, useContext, useEffect, useRef, useState, type CSSProperties, type RefObject } from 'react';
 import { Island } from '../lib/island';
 import QianzhiIslandTaskDrawer from './QianzhiIslandTaskDrawer';
@@ -209,13 +210,15 @@ export const resolveIslandDockGesture = (
   source: IslandDockSource,
   deltaX: number,
   deltaY: number,
-): 'dock' | 'restore' | null => {
+  alertActive = false,
+): 'dock' | 'restore' | 'dismiss' | null => {
   // A tap on the exposed glass edge is a restore action too. Relying only on
   // click can fail in embedded Android WebViews after pointer gestures.
   if (source === 'peek' && Math.abs(deltaX) <= 12 && Math.abs(deltaY) <= 12) return 'restore';
   const mostlyVertical = Math.abs(deltaX) <= Math.max(16, Math.abs(deltaY) * 0.8);
   if (!mostlyVertical) return null;
-  if (source === 'island' && deltaY <= -38) return 'dock';
+  // While a heads-up is showing, the same swipe closes just that alert instead of hiding the island.
+  if (source === 'island' && deltaY <= -38) return alertActive ? 'dismiss' : 'dock';
   if (source === 'peek' && deltaY >= 24) return 'restore';
   return null;
 };
@@ -236,8 +239,10 @@ export const MusicIslandView = ({
   const isExpandedRef = useRef(value.isExpanded);
   const suppressIslandClickUntilRef = useRef(0);
   const previousActivityIdsRef = useRef(value.activityIds);
+  const activityIdsRef = useRef(value.activityIds);
   collapseRef.current = value.collapse;
   isExpandedRef.current = value.isExpanded;
+  activityIdsRef.current = value.activityIds;
 
   useEffect(() => {
     const syncFullscreen = () => {
@@ -303,8 +308,10 @@ export const MusicIslandView = ({
 
       const deltaX = event.clientX - gesture.startX;
       const deltaY = event.clientY - gesture.startY;
-      const action = resolveIslandDockGesture(gesture.source, deltaX, deltaY);
+      const alertActive = activityIdsRef.current.some(id => id.startsWith('qz-alert-'));
+      const action = resolveIslandDockGesture(gesture.source, deltaX, deltaY, alertActive);
       if (action === 'dock') {
+        haptic('tick');
         // Prevent the same swipe from becoming a button click (e.g. Hang up or Mute).
         if (event.cancelable) event.preventDefault();
         suppressIslandClickUntilRef.current = Date.now() + 550;
@@ -325,7 +332,14 @@ export const MusicIslandView = ({
         } else {
           dock();
         }
+      } else if (action === 'dismiss') {
+        // A swipe up on a heads-up closes just that alert; music and other activities stay put.
+        if (event.cancelable) event.preventDefault();
+        suppressIslandClickUntilRef.current = Date.now() + 550;
+        haptic('tick');
+        window.dispatchEvent(new Event('qznb-island-alert-dismiss'));
       } else if (action === 'restore') {
+        haptic('tick');
         if (event.cancelable) event.preventDefault();
         if (dockTimerRef.current !== null) window.clearTimeout(dockTimerRef.current);
         dockTimerRef.current = null;
@@ -348,6 +362,11 @@ export const MusicIslandView = ({
     };
 
     const onWindowBlur = () => { gestureRef.current = null; };
+    const onRestoreRequest = () => {
+      if (dockTimerRef.current !== null) window.clearTimeout(dockTimerRef.current);
+      dockTimerRef.current = null;
+      setDocked(false);
+    };
     const onVisibilityChange = () => {
       if (document.visibilityState !== 'visible') gestureRef.current = null;
     };
@@ -366,6 +385,7 @@ export const MusicIslandView = ({
     window.addEventListener('pointerup', finishGesture, true);
     window.addEventListener('pointercancel', onPointerCancel, true);
     window.addEventListener('blur', onWindowBlur);
+    window.addEventListener('qznb-island-restore', onRestoreRequest);
     window.addEventListener('click', suppressSwipedButtonClick, true);
     document.addEventListener('visibilitychange', onVisibilityChange);
     return () => {
@@ -374,6 +394,7 @@ export const MusicIslandView = ({
       window.removeEventListener('pointerup', finishGesture, true);
       window.removeEventListener('pointercancel', onPointerCancel, true);
       window.removeEventListener('blur', onWindowBlur);
+      window.removeEventListener('qznb-island-restore', onRestoreRequest);
       window.removeEventListener('click', suppressSwipedButtonClick, true);
       document.removeEventListener('visibilitychange', onVisibilityChange);
       if (dockTimerRef.current !== null) window.clearTimeout(dockTimerRef.current);

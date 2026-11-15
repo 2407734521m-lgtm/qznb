@@ -63,7 +63,7 @@ export function createCallIslandActivity(input: CallIslandActivityInput): Activi
     alert: phase === 'incoming',
     compact: {
       leading: (
-        <span className="qz-call-island-compact">
+        <span className={'qz-call-island-compact' + (phase === 'incoming' ? ' is-ringing' : phase === 'in-call' ? ' is-active' : '')}>
           <span className="qz-call-island-icon"><PhoneIcon /></span>
           <span>{phase === 'incoming' ? '来电' : phase === 'outgoing' ? '呼叫中' : phase === 'connecting' ? '连接中' : '通话'}</span>
         </span>

@@ -25,6 +25,8 @@ interface MusicIslandState {
   commitSeekDraft: () => void;
   cancelSeekDraft: () => void;
   collapse: () => void;
+  isExpanded: () => boolean;
+  activityIds: readonly string[];
 }
 
 const MusicIslandContext = createContext<MusicIslandState | null>(null);
@@ -181,22 +183,36 @@ const MusicExpandedControls = () => {
   );
 };
 
+/** True when a new live activity has appeared since the island was docked. */
+export const hasNewIslandActivity = (
+  previous: readonly string[],
+  current: readonly string[],
+): boolean => current.some(id => !previous.includes(id));
+
+type IslandDockSource = 'island' | 'peek';
+
 type IslandDockGesture = {
   pointerId: number;
-  source: 'island' | 'peek';
+  source: IslandDockSource;
   startX: number;
   startY: number;
 };
 
+/** Prefer the peek handle; otherwise accept any real interactive target inside the island host. */
+export const resolveIslandGestureSource = (
+  isPeek: boolean,
+  isInsideIslandHost: boolean,
+): IslandDockSource | null => isPeek ? 'peek' : isInsideIslandHost ? 'island' : null;
+
 export const resolveIslandDockGesture = (
-  source: IslandDockGesture['source'],
+  source: IslandDockSource,
   deltaX: number,
   deltaY: number,
 ): 'dock' | 'restore' | null => {
-  const mostlyVertical = Math.abs(deltaX) <= Math.max(36, Math.abs(deltaY) * 0.65);
+  const mostlyVertical = Math.abs(deltaX) <= Math.max(16, Math.abs(deltaY) * 0.8);
   if (!mostlyVertical) return null;
-  if (source === 'island' && deltaY <= -44) return 'dock';
-  if (source === 'peek' && deltaY >= 28) return 'restore';
+  if (source === 'island' && deltaY <= -38) return 'dock';
+  if (source === 'peek' && deltaY >= 24) return 'restore';
   return null;
 };
 
@@ -211,7 +227,11 @@ export const MusicIslandView = ({
   const gestureRef = useRef<IslandDockGesture | null>(null);
   const dockTimerRef = useRef<number | null>(null);
   const collapseRef = useRef(value.collapse);
+  const isExpandedRef = useRef(value.isExpanded);
+  const suppressIslandClickUntilRef = useRef(0);
+  const previousActivityIdsRef = useRef(value.activityIds);
   collapseRef.current = value.collapse;
+  isExpandedRef.current = value.isExpanded;
 
   useEffect(() => {
     // Start in the native capture phase so Android touch pointers are recorded before any
@@ -221,15 +241,15 @@ export const MusicIslandView = ({
       const target = event.target;
       if (!(target instanceof Element)) return;
 
-      const isPeek = target.closest('.qz-island-peek') !== null;
-      const isIslandHit = target.closest(
-        '.qz-island-host [data-islandcn-hit="pill"], .qz-island-host [data-islandcn-hit="bubble"]',
-      ) !== null;
-      if (!isPeek && !isIslandHit) return;
+      const source = resolveIslandGestureSource(
+        target.closest('.qz-island-peek') !== null,
+        target.closest('.qz-island-host') !== null,
+      );
+      if (!source) return;
 
       gestureRef.current = {
         pointerId: event.pointerId,
-        source: isPeek ? 'peek' : 'island',
+        source,
         startX: event.clientX,
         startY: event.clientY,
       };
@@ -244,16 +264,28 @@ export const MusicIslandView = ({
       const deltaY = event.clientY - gesture.startY;
       const action = resolveIslandDockGesture(gesture.source, deltaX, deltaY);
       if (action === 'dock') {
-        // Tell the island's own press handler to cancel its tap action. Otherwise the same
-        // pointerup can immediately re-expand the activity after we collapse it for docking.
+        // Prevent the same swipe from becoming a button click (e.g. Hang up or Mute).
         if (event.cancelable) event.preventDefault();
+        suppressIslandClickUntilRef.current = Date.now() + 550;
         if (dockTimerRef.current !== null) window.clearTimeout(dockTimerRef.current);
+
+        // Finish the island's own collapse morph before translating the whole host off-screen.
+        // Compact activities can dock immediately; expanded calls get time to settle first.
+        const waitForCollapse = isExpandedRef.current();
         collapseRef.current();
-        dockTimerRef.current = window.setTimeout(() => {
+        const dock = () => {
           setDocked(true);
           dockTimerRef.current = null;
-        }, 260);
+        };
+        if (waitForCollapse) {
+          // The fitted collapse tail has delayed width/height settle legs at +0.56–0.61s.
+          // Let the critical-damped tail reach sub-pixel error before clipping the host.
+          dockTimerRef.current = window.setTimeout(dock, 900);
+        } else {
+          dock();
+        }
       } else if (action === 'restore') {
+        if (event.cancelable) event.preventDefault();
         if (dockTimerRef.current !== null) window.clearTimeout(dockTimerRef.current);
         dockTimerRef.current = null;
         setDocked(false);
@@ -265,7 +297,7 @@ export const MusicIslandView = ({
       if (!gesture || gesture.pointerId !== event.pointerId) return;
       const deltaX = event.clientX - gesture.startX;
       const deltaY = event.clientY - gesture.startY;
-      if (Math.abs(deltaY) > 10 && Math.abs(deltaY) > Math.abs(deltaX) * 1.1 && event.cancelable) {
+      if (Math.abs(deltaY) > 9 && Math.abs(deltaY) > Math.abs(deltaX) * 1.1 && event.cancelable) {
         event.preventDefault();
       }
     };
@@ -274,19 +306,50 @@ export const MusicIslandView = ({
       if (gestureRef.current?.pointerId === event.pointerId) gestureRef.current = null;
     };
 
-    // All four events use native listeners: the gesture survives leaving the small hit button.
+    const onWindowBlur = () => { gestureRef.current = null; };
+    const onVisibilityChange = () => {
+      if (document.visibilityState !== 'visible') gestureRef.current = null;
+    };
+    const suppressSwipedButtonClick = (event: MouseEvent) => {
+      if (Date.now() > suppressIslandClickUntilRef.current) return;
+      const target = event.target;
+      if (!(target instanceof Element) || !target.closest('.qz-island-host')) return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      suppressIslandClickUntilRef.current = 0;
+    };
+
+    // Capture phase survives nested controls and the pointer leaving the original capsule hit area.
     window.addEventListener('pointerdown', beginGesture, true);
-    window.addEventListener('pointermove', onPointerMove, { passive: false });
+    window.addEventListener('pointermove', onPointerMove, { capture: true, passive: false });
     window.addEventListener('pointerup', finishGesture, true);
     window.addEventListener('pointercancel', onPointerCancel, true);
+    window.addEventListener('blur', onWindowBlur);
+    window.addEventListener('click', suppressSwipedButtonClick, true);
+    document.addEventListener('visibilitychange', onVisibilityChange);
     return () => {
       window.removeEventListener('pointerdown', beginGesture, true);
-      window.removeEventListener('pointermove', onPointerMove);
+      window.removeEventListener('pointermove', onPointerMove, true);
       window.removeEventListener('pointerup', finishGesture, true);
       window.removeEventListener('pointercancel', onPointerCancel, true);
+      window.removeEventListener('blur', onWindowBlur);
+      window.removeEventListener('click', suppressSwipedButtonClick, true);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
       if (dockTimerRef.current !== null) window.clearTimeout(dockTimerRef.current);
     };
   }, []);
+
+  useEffect(() => {
+    const previous = previousActivityIdsRef.current;
+    previousActivityIdsRef.current = value.activityIds;
+    if (!hasNewIslandActivity(previous, value.activityIds)) return;
+
+    // A new call, upload or notification also cancels an in-flight dock animation, not
+    // just an already hidden island, so a fresh alert cannot be covered 460ms later.
+    if (dockTimerRef.current !== null) window.clearTimeout(dockTimerRef.current);
+    dockTimerRef.current = null;
+    setDocked(false);
+  }, [value.activityIds]);
 
   const restoreIsland = () => {
     if (dockTimerRef.current !== null) window.clearTimeout(dockTimerRef.current);

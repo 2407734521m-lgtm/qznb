@@ -358,6 +358,12 @@ export function CallProvider({ children }: { children: ReactNode }) {
     islandApi.collapse();
   }, [islandApi]);
 
+  const minimizeCall = useCallback(() => {
+    setMinimized(true);
+    // Keep the live call activity, but return its island to the compact state.
+    islandApi.collapse();
+  }, [islandApi]);
+
   // Mirror the existing WebRTC lifecycle into the shared Qianzhi Island activity stack.
   // Calls outrank messages and uploads; the underlying call/session implementation is unchanged.
   useEffect(() => {
@@ -404,7 +410,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 8, scale: 0.985 }}
             transition={reduceMotion ? { duration: 0.01 } : { type: 'spring', stiffness: 340, damping: 30, mass: 0.78 }}>
-            <button type="button" className="call-minimize" aria-label="最小化通话窗口到灵动岛" title="最小化到灵动岛" onClick={() => setMinimized(true)}>−</button>
+            <button type="button" className="call-minimize" aria-label="最小化通话窗口到灵动岛" title="最小化到灵动岛" onClick={minimizeCall}>−</button>
             <div className="call-avatar" aria-hidden="true">{initial}</div>
             <div className="call-name">{peerName || '同学'}</div>
             <div className="call-status">

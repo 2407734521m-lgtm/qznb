@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { isSameMusicTrack, shouldShowMainIsland } from './MusicIsland';
-import { resolveIslandDockGesture } from './QianzhiMusicIslandActivity';
+import { hasNewIslandActivity, resolveIslandDockGesture, resolveIslandGestureSource } from './QianzhiMusicIslandActivity';
+import { resolveMetrics } from '../lib/island/config';
+import { qianzhiIslandMetrics } from '../lib/island/qianzhi-metrics';
 
 const track = (overrides = {}) => ({
   title: 'Hello',
@@ -13,6 +15,17 @@ const track = (overrides = {}) => ({
   canNext: true,
   canToggle: true,
   ...overrides,
+});
+
+describe('Qianzhi island geometry profile', () => {
+  it('uses a longer, slimmer capsule than the upstream default', () => {
+    const metrics = resolveMetrics(qianzhiIslandMetrics);
+    expect(metrics.idle.width).toBe(104);
+    expect(metrics.idle.height).toBe(31.5);
+    expect(metrics.compact.sensorWidth).toBe(104);
+    expect(metrics.compact.height).toBe(31.5);
+    expect(metrics.minimal.height).toBe(31.5);
+  });
 });
 
 describe('isSameMusicTrack', () => {
@@ -32,20 +45,44 @@ describe('isSameMusicTrack', () => {
 });
 
 
+describe('hasNewIslandActivity', () => {
+  it('detects a newly arrived call, upload or notification', () => {
+    expect(hasNewIslandActivity(['music-playback'], ['music-playback', 'qz-call-session'])).toBe(true);
+  });
+
+  it('does not restore the island for updates to an existing activity', () => {
+    expect(hasNewIslandActivity(['qz-call-session'], ['qz-call-session'])).toBe(false);
+    expect(hasNewIslandActivity(['qz-call-session', 'qz-upload-progress'], ['qz-call-session'])).toBe(false);
+  });
+});
+
+describe('resolveIslandGestureSource', () => {
+  it('recognizes swipe starts on interactive controls inside the host', () => {
+    expect(resolveIslandGestureSource(false, true)).toBe('island');
+  });
+
+  it('prioritizes the exposed restore handle and ignores outside taps', () => {
+    expect(resolveIslandGestureSource(true, false)).toBe('peek');
+    expect(resolveIslandGestureSource(false, false)).toBe(null);
+  });
+});
+
 describe('resolveIslandDockGesture', () => {
   it('docks on a clear upward swipe from the capsule', () => {
     expect(resolveIslandDockGesture('island', 12, -50)).toBe('dock');
-    expect(resolveIslandDockGesture('island', 8, -43)).toBe(null);
+    expect(resolveIslandDockGesture('island', 8, -38)).toBe('dock');
+    expect(resolveIslandDockGesture('island', 8, -37)).toBe(null);
   });
 
   it('restores on a downward swipe from the exposed edge', () => {
-    expect(resolveIslandDockGesture('peek', 8, 28)).toBe('restore');
-    expect(resolveIslandDockGesture('peek', 8, 27)).toBe(null);
+    expect(resolveIslandDockGesture('peek', 8, 24)).toBe('restore');
+    expect(resolveIslandDockGesture('peek', 8, 23)).toBe(null);
   });
 
-  it('ignores predominantly horizontal movement', () => {
+  it('ignores predominantly horizontal and diagonal movement', () => {
     expect(resolveIslandDockGesture('island', 82, -50)).toBe(null);
     expect(resolveIslandDockGesture('peek', -90, 40)).toBe(null);
+    expect(resolveIslandDockGesture('peek', 20, 24)).toBe(null);
   });
 });
 

@@ -21,6 +21,8 @@ describe('Qianzhi call island activity', () => {
     expect(activity.priority).toBeGreaterThan(100);
     expect(activity.alert).toBe(true);
     expect(activity.label).toContain('同学 A');
+    expect(isValidElement(activity.compact?.leading)).toBe(true);
+    expect((activity.compact?.leading as ReactElement<{ className: string }>).props.className).toContain('is-ringing');
     expect(isValidElement(activity.expanded?.bottom)).toBe(true);
     const actionRow = activity.expanded?.bottom as ReactElement<{ children: ReactElement<{ children: ReactElement<{ label: string }>[] }> }>;
     const actionGroup = actionRow.props.children;

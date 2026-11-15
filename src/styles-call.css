@@ -82,22 +82,25 @@
 /* Keep the active call controls available while letting the island remain visible. */
 .call-minimize {
   position: absolute;
-  top: 12px;
-  right: 12px;
+  top: 13px;
+  right: 13px;
   display: grid;
-  width: 34px;
-  height: 34px;
+  width: 40px;
+  height: 40px;
   place-items: center;
-  border: 1px solid #e5e9ef;
+  border: 1px solid rgba(119,143,176,.2);
   border-radius: 50%;
-  background: rgba(246,248,251,.94);
+  background: rgba(248,250,253,.98);
   color: #53647c;
   font: inherit;
-  font-size: 22px;
+  font-size: 24px;
   line-height: 1;
   cursor: pointer;
+  touch-action: manipulation;
+  user-select: none;
   -webkit-tap-highlight-color: transparent;
-  transition: transform .16s ease, background .16s ease;
+  box-shadow: 0 4px 12px rgba(35,55,85,.08), inset 0 1px 0 #fff;
+  transition: transform .18s cubic-bezier(.22,1,.36,1), background .18s ease, box-shadow .18s ease;
 }
 .call-minimize:active { transform: scale(.92); background: #eaf2ff; }
 .call-minimize:focus-visible { outline: 2px solid #087cff; outline-offset: 3px; }

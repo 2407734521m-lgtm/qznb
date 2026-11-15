@@ -31,6 +31,7 @@ export const DEFAULT_USER_PREFERENCES: UserPreferences = {
     admin_message: true,
     moderation: true,
     friend_request: true,
+    message: true,
   },
   quietHours: { enabled: false, start: '22:00', end: '07:00' },
   chat: { sendReadReceipts: true, showReadReceipts: true },

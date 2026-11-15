@@ -11,6 +11,8 @@ import '../styles-call.css';
 export type CallPeerInfo = { id: string; name: string };
 export type CallPhase = 'idle' | 'outgoing' | 'incoming' | 'connecting' | 'in-call';
 
+type CallIslandFlight = { x: number; y: number; scaleX: number; scaleY: number };
+
 type CallContextValue = {
   phase: CallPhase;
   busy: boolean;
@@ -41,6 +43,8 @@ export function CallProvider({ children }: { children: ReactNode }) {
 
   const [phase, setPhase] = useState<CallPhase>('idle');
   const [minimized, setMinimized] = useState(false);
+  const [minimizing, setMinimizing] = useState(false);
+  const [minimizeFlight, setMinimizeFlight] = useState<CallIslandFlight | null>(null);
   const [peerName, setPeerName] = useState('');
   const [seconds, setSeconds] = useState(0);
   const [muted, setMuted] = useState(false);
@@ -62,6 +66,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
   const noteTimerRef = useRef<number | null>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
   const remoteAudioRef = useRef<HTMLAudioElement>(null);
+  const callCardRef = useRef<HTMLDivElement>(null);
   const connectedRef = useRef(false);
   const secondsRef = useRef(0);
 
@@ -96,6 +101,8 @@ export function CallProvider({ children }: { children: ReactNode }) {
     setMuted(false);
     setPeerName('');
     setMinimized(false);
+    setMinimizing(false);
+    setMinimizeFlight(null);
     setPhaseBoth('idle');
   }, [stopRing, setPhaseBoth]);
 
@@ -354,15 +361,70 @@ export function CallProvider({ children }: { children: ReactNode }) {
   }, [muted]);
 
   const restoreCall = useCallback(() => {
+    setMinimizing(false);
+    setMinimizeFlight(null);
     setMinimized(false);
     islandApi.collapse();
   }, [islandApi]);
 
   const minimizeCall = useCallback(() => {
-    setMinimized(true);
-    // Keep the live call activity, but return its island to the compact state.
+    if (minimized || minimizing) return;
+
+    const cardRect = callCardRef.current?.getBoundingClientRect();
+    const islandRoot = document.querySelector<HTMLElement>('.qz-island-call-anchor');
+    const islandHost = islandRoot?.closest<HTMLElement>('.qz-island-host') ?? null;
+    const pill = islandRoot?.querySelector<HTMLElement>('[data-islandcn-hit="pill"]') ?? null;
+    const pillRect = pill?.getBoundingClientRect();
+
+    let destination: { centerX: number; centerY: number; width: number; height: number } | null = null;
+    if (islandRoot?.dataset.presentation === 'expanded' && islandHost) {
+      // An incoming-call alert can still be expanded when the user minimizes it.
+      // Resolve the compact landing point from the same CSS geometry used by the island,
+      // rather than aiming at the expanded card's temporary bounds.
+      const hostStyle = getComputedStyle(islandHost);
+      const islandStyle = getComputedStyle(islandRoot);
+      const cssNumber = (value: string, fallback: number) => {
+        const parsed = Number.parseFloat(value);
+        return Number.isFinite(parsed) ? parsed : fallback;
+      };
+      const height = cssNumber(hostStyle.getPropertyValue('--qz-island-shape-height'), 31.5);
+      const top = cssNumber(hostStyle.getPropertyValue('--qz-island-shape-top'), 12.5);
+      const offsetX = cssNumber(hostStyle.getPropertyValue('--qz-island-offset-x'), 0);
+      const offsetY = cssNumber(hostStyle.getPropertyValue('--qz-island-offset-y'), 0);
+      const anchorTop = cssNumber(islandStyle.top, 18);
+      const width = cssNumber(hostStyle.getPropertyValue('--qz-island-capsule-width'), 104);
+      destination = {
+        centerX: window.innerWidth / 2 + offsetX,
+        centerY: anchorTop + top + height / 2 + offsetY,
+        width,
+        height,
+      };
+    } else if (pillRect && pillRect.width > 0 && pillRect.height > 0) {
+      destination = {
+        centerX: pillRect.left + pillRect.width / 2,
+        centerY: pillRect.top + pillRect.height / 2,
+        width: pillRect.width,
+        height: pillRect.height,
+      };
+    }
+
+    // Keep the WebRTC session, microphone tracks and elapsed-time clock untouched.
     islandApi.collapse();
-  }, [islandApi]);
+    if (reduceMotion || !cardRect || !destination || cardRect.width <= 0 || cardRect.height <= 0) {
+      setMinimized(true);
+      setMinimizing(false);
+      setMinimizeFlight(null);
+      return;
+    }
+
+    setMinimizeFlight({
+      x: destination.centerX - (cardRect.left + cardRect.width / 2),
+      y: destination.centerY - (cardRect.top + cardRect.height / 2),
+      scaleX: Math.max(0.12, Math.min(0.62, destination.width / cardRect.width)),
+      scaleY: Math.max(0.06, Math.min(0.36, destination.height / cardRect.height)),
+    });
+    setMinimizing(true);
+  }, [islandApi, minimized, minimizing, reduceMotion]);
 
   // Mirror the existing WebRTC lifecycle into the shared Qianzhi Island activity stack.
   // Calls outrank messages and uploads; the underlying call/session implementation is unchanged.
@@ -403,13 +465,32 @@ export function CallProvider({ children }: { children: ReactNode }) {
         {phase !== 'idle' && !minimized && (
           <motion.div key="call-overlay" className="call-overlay" role="dialog" aria-modal="true" aria-label="语音通话"
             initial={reduceMotion ? false : { opacity: 0 }}
-            animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            transition={{ duration: reduceMotion ? 0.01 : 0.2, ease: [0.22, 1, 0.36, 1] }}>
-          <motion.div className="call-card"
+            animate={{ opacity: minimizing ? 0 : 1 }} exit={{ opacity: 0 }}
+            transition={{ duration: reduceMotion ? 0.01 : minimizing ? 0.48 : 0.2, ease: [0.22, 1, 0.36, 1] }}>
+          <motion.div ref={callCardRef} className="call-card"
             initial={reduceMotion ? false : { opacity: 0, y: 14, scale: 0.97 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
+            animate={minimizing && minimizeFlight
+              ? {
+                  opacity: 0.035,
+                  x: minimizeFlight.x,
+                  y: minimizeFlight.y,
+                  scaleX: minimizeFlight.scaleX,
+                  scaleY: minimizeFlight.scaleY,
+                  borderRadius: 999,
+                }
+              : { opacity: 1, x: 0, y: 0, scaleX: 1, scaleY: 1, borderRadius: 28 }}
             exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 8, scale: 0.985 }}
-            transition={reduceMotion ? { duration: 0.01 } : { type: 'spring', stiffness: 340, damping: 30, mass: 0.78 }}>
+            transition={minimizing && minimizeFlight && !reduceMotion
+              ? { type: 'spring', stiffness: 360, damping: 28, mass: 0.72 }
+              : reduceMotion ? { duration: 0.01 } : { type: 'spring', stiffness: 340, damping: 30, mass: 0.78 }}
+            style={{ transformOrigin: '50% 50%' }}
+            onAnimationComplete={() => {
+              if (!minimizing || !minimizeFlight) return;
+              window.dispatchEvent(new Event('qz-call-island-arrived'));
+              setMinimized(true);
+              setMinimizing(false);
+              setMinimizeFlight(null);
+            }}>
             <button type="button" className="call-minimize" aria-label="最小化通话窗口到灵动岛" title="最小化到灵动岛" onClick={minimizeCall}>−</button>
             <div className="call-avatar" aria-hidden="true">{initial}</div>
             <div className="call-name">{peerName || '同学'}</div>

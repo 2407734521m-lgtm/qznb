@@ -16,6 +16,8 @@ import { getWallpaper } from './lib/wallpaper';
 import { readCachedUserPreferences, useQuietHoursActive } from './lib/userPreferences';
 import { useIslandActions } from './lib/island';
 import { showIslandAlert } from './components/QianzhiIslandAlert';
+import { createUploadIslandActivity } from './components/QianzhiIslandUploadActivity';
+import type { MediaUploadIslandEvent } from './lib/media';
 import { lazyWithRetry } from './lib/lazyWithRetry';
 // 只在特定时刻才出现的覆盖层/弹窗：懒加载，不占首屏包体积。
 // （WelcomeOverlay、GuideCarousel、WallpaperOnboarding、LoginSuccessOverlay、
@@ -687,6 +689,68 @@ function Shell() {
     };
   }, [session, islandApi]);
 
+  // Aggregate storage upload events into one activity so concurrent uploads never create a stack of pills.
+  useEffect(() => {
+    const activeUploads = new Map<string, { progress: number | null; label: string }>();
+    let terminalTimer: number | null = null;
+
+    const clearTerminalTimer = () => {
+      if (terminalTimer !== null) window.clearTimeout(terminalTimer);
+      terminalTimer = null;
+    };
+
+    const renderActiveUploads = () => {
+      const values = [...activeUploads.values()];
+      if (!values.length) return;
+      const measured = values.map(item => item.progress).filter((value): value is number => typeof value === 'number');
+      const progress = measured.length
+        ? Math.round(measured.reduce((total, value) => total + value, 0) / measured.length)
+        : null;
+      const label = values.length > 1 ? '正在上传 ' + values.length + ' 项' : values[0].label;
+      islandApi.start(createUploadIslandActivity({ count: values.length, progress, status: 'uploading', label }));
+    };
+
+    const showTerminalState = (status: 'completed' | 'failed') => {
+      islandApi.start(createUploadIslandActivity({ count: 0, progress: status === 'completed' ? 100 : null, status }));
+      terminalTimer = window.setTimeout(() => {
+        terminalTimer = null;
+        if (activeUploads.size) renderActiveUploads();
+        else islandApi.end('qz-upload-progress');
+      }, status === 'failed' ? 2200 : 1100);
+    };
+
+    const onUploadEvent = (event: Event) => {
+      const detail = (event as CustomEvent<MediaUploadIslandEvent>).detail;
+      if (!detail || typeof detail.id !== 'string' || !detail.id) return;
+      clearTerminalTimer();
+
+      if (detail.phase === 'start') {
+        activeUploads.set(detail.id, { progress: detail.progress, label: detail.label || '正在上传文件' });
+        renderActiveUploads();
+        return;
+      }
+      if (detail.phase === 'progress') {
+        const current = activeUploads.get(detail.id) ?? { progress: null, label: detail.label || '正在上传文件' };
+        activeUploads.set(detail.id, { ...current, progress: detail.progress });
+        renderActiveUploads();
+        return;
+      }
+
+      activeUploads.delete(detail.id);
+      if (activeUploads.size) {
+        renderActiveUploads();
+      } else {
+        showTerminalState(detail.phase === 'complete' ? 'completed' : 'failed');
+      }
+    };
+
+    window.addEventListener('qz-island-upload', onUploadEvent);
+    return () => {
+      clearTerminalTimer();
+      window.removeEventListener('qz-island-upload', onUploadEvent);
+      islandApi.end('qz-upload-progress');
+    };
+  }, [islandApi]);
   // 登录弹窗公告：按后台设置的次数弹出（1/2/3次或每次）
   const [loginPop, setLoginPop] = useState<any>(null);
   useEffect(() => {

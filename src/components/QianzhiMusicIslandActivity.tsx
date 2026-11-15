@@ -84,7 +84,7 @@ export const MusicCompactContent = () => {
   return (
     <span className="qz-island-compact">
       <AlbumArt size={22} />
-      <span className="qz-island-compact-title">{track.title}</span>
+      <span className="qz-island-compact-title qz-island-track-label" key={`${track.title}-${track.artist}`}>{track.title}</span>
     </span>
   );
 };
@@ -104,8 +104,8 @@ const MusicExpandedMeta = () => {
   if (!track) return null;
   return (
     <span className="qz-island-expanded-meta">
-      <strong>{track.title}</strong>
-      <span>{track.artist || '未知歌手'}</span>
+      <strong className="qz-island-track-label" key={track.title}>{track.title}</strong>
+      <span className="qz-island-track-label" key={track.artist}>{track.artist || '未知歌手'}</span>
       <small>{track.isPlaying ? '正在播放' : '已暂停'}</small>
     </span>
   );

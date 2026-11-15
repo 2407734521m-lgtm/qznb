@@ -60,9 +60,13 @@ function GuestPostCard({ post, imageUrl, onLoginRequired, index }: {
       )}
 
       <div className="guest-post-actions">
-        <button type="button" onClick={onLoginRequired}>♡ <span>{Number(post.like_count) || 0}</span></button>
+        <button type="button" className="guest-post-login-cta" onClick={onLoginRequired}
+          aria-label={`登录后点赞，当前有 ${Number(post.like_count) || 0} 个赞`}>
+          <span className="guest-post-login-cta__heart" aria-hidden="true">♡</span>
+          <span>{Number(post.like_count) || 0}</span>
+          <span className="guest-post-login-cta__label">登录后点赞</span>
+        </button>
         <button type="button" onClick={onLoginRequired}>评论 <span>{Number(post.comment_count) || 0}</span></button>
-        <span className="guest-post-login-hint">登录后可互动</span>
       </div>
     </motion.article>
   );
@@ -156,7 +160,27 @@ export default function GuestPosts({ section, onLoginRequired }: Props) {
       )}
       {!loading && !error && posts.length === 0 && (
         <div className="guest-post-state guest-post-empty">
-          暂时还没有公开内容。
+          <div className="guest-post-empty__art" aria-hidden="true">
+            <svg viewBox="0 0 136 96" role="presentation">
+              <ellipse cx="68" cy="83" rx="39" ry="5" fill="#edf1f4" />
+              <rect x="34" y="20" width="68" height="53" rx="13" fill="#fff" stroke="#dfe5ea" strokeWidth="1.5" />
+              <path d="M48 38h39M48 47h28" fill="none" stroke="#c8d2dc" strokeWidth="3" strokeLinecap="round" />
+              <path d="M48 59h15" fill="none" stroke="#c8d2dc" strokeWidth="3" strokeLinecap="round" />
+              <path d="m82 56 5 5 11-13" fill="none" stroke="#b0404f" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="m22 26 2 5 5 2-5 2-2 5-2-5-5-2 5-2z" fill="#d9e4ec" />
+              <circle cx="111" cy="35" r="4" fill="#e8edf1" />
+            </svg>
+          </div>
+          <div className="guest-post-empty__copy">
+            <h3>{section === 'daily' ? '这里还没有日常' : '这里还没有动态'}</h3>
+            <p>{section === 'daily'
+              ? '记录今天的小事，给生活留下一点痕迹。'
+              : '先看看大家分享的内容，也可以登录后发布第一条动态。'}</p>
+            <button type="button" className="guest-post-empty__button" onClick={onLoginRequired}>
+              {section === 'daily' ? '登录后记录第一条日常' : '登录后发布第一条动态'}
+              <span aria-hidden="true">→</span>
+            </button>
+          </div>
         </div>
       )}
 

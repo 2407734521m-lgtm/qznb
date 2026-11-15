@@ -1,0 +1,43 @@
+/* Drag-to-align: the real island stays above a dimmed page so it can be lined up with the camera. */
+.qz-island-align-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 3999;
+  background: rgba(10, 12, 18, .58);
+  touch-action: none;
+  cursor: grab;
+}
+
+.qz-island-align-panel {
+  position: fixed;
+  left: 50%;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 28px);
+  z-index: 4600;
+  display: grid;
+  gap: 10px;
+  width: min(340px, calc(100vw - 32px));
+  padding: 16px;
+  border-radius: 20px;
+  background: #fff;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, .28);
+  color: #25272c;
+  text-align: center;
+  transform: translateX(-50%);
+}
+
+.qz-island-align-panel strong { font-size: 15px; }
+.qz-island-align-panel span { color: #777b84; font-size: 12px; font-variant-numeric: tabular-nums; }
+.qz-island-align-actions { display: flex; gap: 8px; }
+
+.qz-island-align-actions button {
+  flex: 1;
+  padding: 10px 0;
+  border: 1px solid #e3e3e6;
+  border-radius: 999px;
+  background: #fff;
+  color: #25272c;
+  font: inherit;
+  font-size: 14px;
+}
+
+.qz-island-align-actions .primary { border-color: transparent; background: #111216; color: #fff; }

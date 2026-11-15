@@ -18,6 +18,12 @@ export interface IslandAlertInput {
   onQuickReplyEngage?: () => void;
   onQuickReplySent?: () => void;
   durationMs?: number;
+  /** How many notifications this alert stands for; set when alerts are combined. */
+  count?: number;
+  /** Categories a combined alert covers; set when alerts are combined. */
+  kinds?: readonly IslandAlertKind[];
+  /** Called once when the alert leaves the island, however it ends (timeout, tap or dismissal). */
+  onEnd?: () => void;
 }
 
 const LABELS: Record<IslandAlertKind, string> = {
@@ -43,18 +49,22 @@ export function combineIslandAlertBatch(items: readonly IslandAlertInput[]): Isl
     interaction: '互动',
     system: '系统通知',
   };
-  const categories = [...new Set(items.map(item => item.kind))];
+  const categories = [...new Set(items.flatMap(item => item.kinds ?? [item.kind]))];
   const body = '包含 ' + categories.map(kind => labels[kind]).join('、') + '，点击查看详情';
+  // An item that is itself a combination counts for everything it stands for.
+  const total = items.reduce((sum, item) => sum + (item.count ?? 1), 0);
 
   return {
-    id: 'batch-' + items[0].id + '-' + items[items.length - 1].id + '-' + items.length,
+    id: 'batch-' + items[0].id + '-' + items[items.length - 1].id + '-' + total,
     kind: selected.kind,
-    title: '收到 ' + items.length + ' 条新提醒',
+    title: '收到 ' + total + ' 条新提醒',
     body,
     priority: selected.priority,
     alert: selected.alert !== false,
     onPress: selected.onPress,
     durationMs: 7500,
+    count: total,
+    kinds: categories,
   };
 }
 
@@ -138,15 +148,19 @@ function ExpandedAlert({ kind, title, body }: Pick<IslandAlertInput, 'kind' | 't
 }
 
 /** Adds a short-lived, tappable activity without replacing music or other ongoing activities. */
-export function showIslandAlert(api: IslandApi, input: IslandAlertInput): ActivityHandle {
+export function showIslandAlert(api: IslandApi, input: IslandAlertInput): { id: string; update: ActivityHandle['update']; end: () => void } {
   const id = 'qz-alert-' + input.kind + '-' + input.id;
   let handle: ActivityHandle | null = null;
   let timer: number | null = null;
+  let ended = false;
   const duration = Math.max(3500, Math.min(12000, input.durationMs ?? 6500));
   const end = () => {
+    if (ended) return;
+    ended = true;
     if (timer !== null) window.clearTimeout(timer);
     timer = null;
     handle?.end();
+    input.onEnd?.();
   };
   const scheduleEnd = (delayMs: number) => {
     if (timer !== null) window.clearTimeout(timer);
@@ -176,5 +190,7 @@ export function showIslandAlert(api: IslandApi, input: IslandAlertInput): Activi
   });
 
   scheduleEnd(duration);
-  return handle;
+  // Ending through this handle also clears the timer and reports the end.
+  const started = handle;
+  return { id: started.id, update: update => started.update(update), end };
 }

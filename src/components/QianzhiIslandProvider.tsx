@@ -3,6 +3,7 @@ import { useAuth } from '../auth';
 import { IslandProvider } from '../lib/island';
 import { createQianzhiIslandMetrics } from '../lib/island/qianzhi-metrics';
 import { qianzhiIslandMotion } from '../lib/island/qianzhi-motion';
+import { setHapticsEnabled } from '../lib/haptics';
 import { readUserPreferences, useUserPreferences } from '../lib/useUserPreferences';
 
 export default function QianzhiIslandProvider({ children }: { children: ReactNode }) {
@@ -31,6 +32,10 @@ export default function QianzhiIslandProvider({ children }: { children: ReactNod
     () => createQianzhiIslandMetrics({ width: island.width, height: island.height }),
     [island.width, island.height],
   );
+
+  useEffect(() => {
+    setHapticsEnabled(island.haptics);
+  }, [island.haptics]);
 
   useEffect(() => {
     const root = document.documentElement;

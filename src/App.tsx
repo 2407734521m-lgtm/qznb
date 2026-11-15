@@ -15,7 +15,9 @@ import { useAuth } from './auth';
 import { getWallpaper } from './lib/wallpaper';
 import { readCachedUserPreferences, useQuietHoursActive } from './lib/userPreferences';
 import { useIslandActions } from './lib/island';
-import { combineIslandAlertBatch, showIslandAlert } from './components/QianzhiIslandAlert';
+import { showIslandAlert } from './components/QianzhiIslandAlert';
+import { createIslandAlertScheduler } from './components/islandAlertScheduler';
+import { haptic } from './lib/haptics';
 import { createUploadIslandActivity } from './components/QianzhiIslandUploadActivity';
 import { createDownloadIslandActivity } from './components/QianzhiIslandDownloadActivity';
 import QianzhiIslandNavigationActivity from './components/QianzhiIslandNavigationActivity';
@@ -571,65 +573,16 @@ function Shell() {
     const uid = session.user.id;
     const seenNotificationIds = new Set<string>();
     const seenMessageIds = new Set<string>();
-    const activeIslandAlerts = new Set<ReturnType<typeof showIslandAlert>>();
-    const activeIslandAlertTimers = new Map<ReturnType<typeof showIslandAlert>, number>();
-    const queuedIslandAlerts: Parameters<typeof showIslandAlert>[1][] = [];
-    let islandAlertFlushTimer: number | null = null;
-    let activeIslandAlertPriority = Number.NEGATIVE_INFINITY;
-    const clearActiveIslandAlertTimer = (handle: ReturnType<typeof showIslandAlert>) => {
-      const timer = activeIslandAlertTimers.get(handle);
-      if (timer !== undefined) window.clearTimeout(timer);
-      activeIslandAlertTimers.delete(handle);
-    };
-    const scheduleActiveIslandAlertExpiry = (handle: ReturnType<typeof showIslandAlert>, delayMs: number) => {
-      clearActiveIslandAlertTimer(handle);
-      const timer = window.setTimeout(() => {
-        activeIslandAlertTimers.delete(handle);
-        const wasActive = activeIslandAlerts.delete(handle);
-        if (wasActive && activeIslandAlerts.size === 0) activeIslandAlertPriority = Number.NEGATIVE_INFINITY;
-      }, delayMs + 80);
-      activeIslandAlertTimers.set(handle, timer);
-    };
-    const presentIslandAlert = (input: Parameters<typeof showIslandAlert>[1]) => {
-      // There is only one short-lived notification surface. A lower-priority event must not
-      // replace a more important alert that is already visible.
-      if (input.priority < activeIslandAlertPriority) return;
-      activeIslandAlerts.forEach(handle => { clearActiveIslandAlertTimer(handle); handle.end(); });
-      activeIslandAlerts.clear();
-
-      let handle: ReturnType<typeof showIslandAlert>;
-      handle = showIslandAlert(islandApi, {
-        ...input,
-        onQuickReplyEngage: input.onQuickReply ? () => scheduleActiveIslandAlertExpiry(handle, 45_000) : undefined,
-        onQuickReplySent: input.onQuickReply ? () => scheduleActiveIslandAlertExpiry(handle, 2_200) : undefined,
-        onPress: () => {
-          clearActiveIslandAlertTimer(handle);
-          activeIslandAlerts.delete(handle);
-          if (activeIslandAlerts.size === 0) activeIslandAlertPriority = Number.NEGATIVE_INFINITY;
-          input.onPress?.();
-        },
-      });
-      activeIslandAlerts.add(handle);
-      activeIslandAlertPriority = input.priority;
-      const duration = Math.max(3500, Math.min(12000, input.durationMs ?? 6500));
-      scheduleActiveIslandAlertExpiry(handle, duration);
-    };
-    // Merge a burst of realtime inserts into one concise activity. The notification center remains
-    // the source of truth; the island is only a short, low-noise heads-up.
-    const queueIslandAlert = (input: Parameters<typeof showIslandAlert>[1]) => {
-      if (!alive || quietHoursActiveRef.current || document.visibilityState !== 'visible') return;
-      queuedIslandAlerts.push(input);
-      if (islandAlertFlushTimer !== null) return;
-      islandAlertFlushTimer = window.setTimeout(() => {
-        islandAlertFlushTimer = null;
-        if (!alive || quietHoursActiveRef.current || document.visibilityState !== 'visible') {
-          queuedIslandAlerts.length = 0;
-          return;
-        }
-        const combined = combineIslandAlertBatch(queuedIslandAlerts.splice(0));
-        if (combined) presentIslandAlert(combined);
-      }, 420);
-    };
+    // One short-lived notification surface: alerts are merged or queued, never silently dropped.
+    const alertScheduler = createIslandAlertScheduler({
+      show: input => {
+        haptic('alert');
+        return showIslandAlert(islandApi, input);
+      },
+      canShow: () => alive && !quietHoursActiveRef.current && document.visibilityState === 'visible',
+    });
+    // Swiping up on a heads-up closes just that alert (see QianzhiMusicIslandActivity).
+    window.addEventListener('qznb-island-alert-dismiss', alertScheduler.dismiss);
 
     const refreshBadge = async () => {
       try {
@@ -676,7 +629,7 @@ function Shell() {
               ? row.link
               : isFriendRequest ? '/friends?tab=reqs' : '/friends?tab=notifications';
 
-            queueIslandAlert({
+            alertScheduler.enqueue({
               id: notificationId,
               kind,
               title,
@@ -719,7 +672,7 @@ function Shell() {
       }
 
       const senderName = String(conversation.display_name || conversation.username || '好友').slice(0, 32);
-      queueIslandAlert({
+      alertScheduler.enqueue({
         id: messageId,
         kind: 'message',
         title: senderName + ' 发来新私信',
@@ -754,12 +707,8 @@ function Shell() {
     window.addEventListener('notif-read', refreshBadge);
     return () => {
       alive = false;
-      if (islandAlertFlushTimer !== null) window.clearTimeout(islandAlertFlushTimer);
-      islandAlertFlushTimer = null;
-      queuedIslandAlerts.length = 0;
-      activeIslandAlerts.forEach(handle => { clearActiveIslandAlertTimer(handle); handle.end(); });
-      activeIslandAlerts.clear();
-      activeIslandAlertTimers.clear();
+      window.removeEventListener('qznb-island-alert-dismiss', alertScheduler.dismiss);
+      alertScheduler.dispose();
       window.removeEventListener('notif-read', refreshBadge);
       void supabase.removeChannel(channel);
     };
@@ -780,8 +729,8 @@ function Shell() {
       const values = [...activeUploads.values()];
       if (!values.length) return;
       const measured = values.map(item => item.progress).filter((value): value is number => typeof value === 'number');
-      const progress = measured.length === values.length && values.length
-        ? Math.round(measured.reduce((total, value) => total + value, 0) / values.length)
+      const progress = measured.length
+        ? Math.round(measured.reduce((total, value) => total + value, 0) / measured.length)
         : null;
       const label = values.length > 1 ? '正在上传 ' + values.length + ' 项' : values[0].label;
       islandApi.start(createUploadIslandActivity({ count: values.length, progress, status: 'uploading', label }));

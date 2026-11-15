@@ -17,6 +17,8 @@ export type IslandPreference = {
   offsetY: number;
   width: number;
   height: number;
+  /** Short vibration cues for island alerts and gestures (phones that support it). */
+  haptics: boolean;
 };
 
 export const DEFAULT_ISLAND_PREFERENCE: IslandPreference = {
@@ -24,6 +26,7 @@ export const DEFAULT_ISLAND_PREFERENCE: IslandPreference = {
   offsetY: 0,
   width: 104,
   height: 31.5,
+  haptics: true,
 };
 
 export type UserPreferences = {
@@ -85,6 +88,7 @@ export function normalizeUserPreferences(value: unknown): UserPreferences {
       offsetY: bounded(island.offsetY, DEFAULT_ISLAND_PREFERENCE.offsetY, -30, 90),
       width: bounded(island.width, DEFAULT_ISLAND_PREFERENCE.width, 88, 144),
       height: bounded(island.height, DEFAULT_ISLAND_PREFERENCE.height, 28, 42, 0.5),
+      haptics: island.haptics !== false,
     },
   };
 }

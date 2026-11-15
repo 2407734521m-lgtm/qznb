@@ -13,6 +13,7 @@ test('Android Chrome: upload percentage stays complete inside the island layout'
   ]);
 
   await page.setContent(`
+    <head><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"></head>
     <style>
       html, body { margin: 0; width: 100%; min-height: 100%; background: #f5f7fb; }
       ${islandCss}

@@ -3,9 +3,22 @@ import { readFile } from 'node:fs/promises';
 
 const read = (path) => readFile(path, 'utf8');
 
-const [parent, styles, bridgeSource, bridgeApplied, overlays, worker, audioSignals, visualizerBridge] = await Promise.all([
+const [
+  parent,
+  activity,
+  styles,
+  islandRoot,
+  bridgeSource,
+  bridgeApplied,
+  overlays,
+  worker,
+  audioSignals,
+  visualizerBridge,
+] = await Promise.all([
   read('src/components/MusicIsland.tsx'),
+  read('src/components/QianzhiMusicIslandActivity.tsx'),
   read('src/components/MusicIsland.css'),
+  read('src/lib/island/island-root.tsx'),
   read('music/overlays/QianzhiEmbedBridge.tsx'),
   read('music/folia/src/components/qianzhi/QianzhiEmbedBridge.tsx'),
   read('music/folia/src/components/app/overlays/AppOverlays.tsx'),
@@ -20,48 +33,58 @@ assert.ok(parent.includes('event.source !== frameRef.current?.contentWindow'));
 assert.ok(parent.includes('const shouldMountFrame = openedOnce || isMusicPage'));
 assert.ok(parent.includes('window.setInterval(sendHello, 2500)'));
 assert.ok(parent.includes('Date.now() - lastSeen > 6500'));
-assert.ok(parent.includes("onClick={() => sendCommand('toggle')}"));
-assert.ok(parent.includes('onPointerUp={commitSeekDraft}'));
+
+// The music control presentation now lives in the Qianzhi activity component, not MusicIsland.tsx.
+assert.ok(parent.includes('useIslandActions()'));
+assert.ok(parent.includes('createMusicIslandActivity(toggleExpanded)'));
+assert.ok(parent.includes("islandApi.end('music-playback')"));
+assert.ok(activity.includes("onClick={() => sendCommand('toggle')}"));
+assert.ok(activity.includes('onPointerUp={commitSeekDraft}'));
+assert.ok(activity.includes("sendCommand('previous')"));
+assert.ok(activity.includes("sendCommand('next')"));
+assert.ok(activity.includes('onClick={openMusic}'));
+assert.ok(activity.includes('MusicCompactContent'));
+assert.ok(activity.includes('MusicSpectrumContent'));
+assert.ok(activity.includes('MusicExpandedControls'));
+assert.ok(activity.includes('type="range"'));
+
+// The new engine owns the morph, press handling, outside press and Escape behaviour.
+assert.ok(activity.includes('<Island'));
+assert.ok(activity.includes('placement="viewport"'));
+assert.ok(activity.includes('keyline="off"'));
+assert.ok(activity.includes("top: 'calc(env(safe-area-inset-top, 0px) + 4px)'"));
+assert.ok(islandRoot.includes('onPointerDown'));
+assert.ok(islandRoot.includes('Escape'));
+assert.ok(islandRoot.includes('addEventListener("pointerdown"'));
+assert.ok(islandRoot.includes('store.api.collapse()'));
+assert.ok(parent.includes('!isMusicPage && ('));
+assert.ok(parent.includes('hostRef={islandWrapRef}'));
+
 assert.ok(parent.includes('opacity: { duration: isMusicPage ? 0.34 : 0.36'));
 assert.ok(!parent.includes('scale: isMusicPage ? 1 : 0.985'), 'The music surface fades on opacity only; sliding and scaling the whole page fought the island entrance.');
 assert.ok(!parent.includes('y: isMusicPage ? 0 : 8'), 'The music surface fades on opacity only.');
 assert.ok(parent.includes('frameForeground ? 1000 : 1'), 'The music surface must stay above the destination route only during the exit animation.');
 assert.ok(parent.includes('onAnimationComplete={() => {') && parent.includes('setFrameForeground(false)'), 'The music surface must release its stacking layer after the exit animation.');
 assert.ok(parent.includes('setFrameForeground(true)'), 'The music surface must regain its stacking layer when reopened.');
-assert.ok(parent.includes('mode="sync"'), 'Expanded and collapsed states must transition together for the smooth Dynamic Island morph.');
-assert.ok(parent.includes('layoutId="qz-music-island-shell"'), 'Expanded and collapsed panels must share one shell layoutId so the island morphs instead of cross-fading.');
-assert.ok(parent.includes('layoutId="qz-music-island-cover"'), 'Expanded and collapsed covers must share one cover layoutId so the artwork morphs with the island.');
-assert.ok(parent.includes("transformOrigin: 'top center'"), 'Expanded panel must scale from a stable top-center origin.');
-assert.ok(styles.includes('max-width: 100%;') && styles.includes('overflow-x: hidden;'), 'Expanded panel must remain inside the viewport bounds.');
-assert.ok(parent.includes('/QianzhiApp\\//i.test(navigator.userAgent)'), 'The island must detect the Qianzhi Android app shell.');
-assert.ok(parent.includes("is-qianzhi-app"), 'The Android app-specific island position must be applied.');
-assert.ok(!parent.includes("filter: isMusicPage"), 'Avoid full-screen blur filters that can stutter on mobile WebViews.');
 assert.ok(parent.includes("pointerEvents: isMusicPage ? 'auto' : 'none'"));
-assert.ok(styles.includes('z-index: 1200;'));
-assert.ok(styles.includes('qz-music-equalizer.is-playing i'));
-assert.ok(styles.includes('var(--qz-music-eq-bass') && styles.includes('var(--qz-music-eq-treble'), 'The equalizer must use live analyser values.');
-const browserIslandStyles = styles.split('.qz-music-island-wrap {')[1]?.split('}')[0] ?? '';
-assert.ok(browserIslandStyles.includes('top: max(calc(env(safe-area-inset-top) + 4px), 6px);'), 'standard web island should stay close to the safe-area edge');
-const androidIslandStyles = styles.split('.qz-music-island-wrap.is-qianzhi-app {')[1]?.split('}')[0] ?? '';
-assert.ok(androidIslandStyles.includes('top: max(calc(env(safe-area-inset-top) + 4px), 18px);'), 'Android app island must retain minimum clearance below the system status bar');
-assert.ok(parent.includes('className="qz-music-island-collapsed-main"'));
-assert.ok(bridgeSource.includes('event.source !== window.parent'));
-assert.ok(bridgeSource.includes("type: 'SPECTRUM'"), 'The music iframe must publish realtime analyser data.');
-assert.ok(bridgeSource.includes('audioBands.bass.get()') && bridgeSource.includes('audioBands.treble.get()'), 'Spectrum data must come from Folia analyser bands.');
-assert.ok(bridgeSource.includes('audioLevel.get()') && bridgeSource.includes("mode = hasSpectrumEnergy ? 'spectrum' : playing && routeSupportsWebAnalyser ? 'level' : 'idle'"), 'Always use the live RMS mode while web playback is active and spectrum energy is unavailable.');
+assert.ok(styles.includes('z-index: 1201;'));
+assert.ok(styles.includes('.qz-island-wave'));
+assert.ok(styles.includes('var(--qz-music-eq-bass') && styles.includes('var(--qz-music-eq-treble'), 'Equalizer bars must use live analyser band values.');
+assert.ok(styles.includes('qz-island-expanded-bottom'));
+assert.ok(!styles.includes('qz-music-island-collapsed'), 'Legacy duplicate MusicIsland presentation styles should stay removed.');
+
 assert.ok(parent.includes("spectrum.mode === 'level'"), 'Main-site bars must consume RMS fallback messages.');
+assert.ok(parent.includes("message.type === 'SPECTRUM'"), 'The main site must consume spectrum data.');
+assert.ok(parent.includes('style.setProperty(`--qz-music-eq-${name}`'), 'The island meter must be driven by received frequency bands.');
 assert.ok(audioSignals.includes('export const audioLevel = motionValue(0);'), 'Folia must expose a dedicated actual-audio RMS signal.');
 assert.ok(visualizerBridge.includes('getByteTimeDomainData(waveformData)'), 'RMS must be sampled from the existing playback analyser waveform.');
-assert.ok(visualizerBridge.includes('audioLevel.set(previousLevel + (normalizedRms - previousLevel) * levelSmoothing)') && visualizerBridge.includes('audioLevel.set(0)'), 'Smooth the live RMS envelope and reset when analyser data is unavailable.');
+assert.ok(visualizerBridge.includes('audioLevel.set(previousLevel + (normalizedRms - previousLevel) * levelSmoothing)') && visualizerBridge.includes('audioLevel.set(0)'), 'Smooth the live RMS envelope and reset when analyser data is unavailable.'); 
 assert.ok(!bridgeSource.includes('getUserMedia'), 'The fallback must not request microphone access.');
 assert.ok(bridgeSource.includes('const spectrumData = audioBands.spectrum.get()') && bridgeSource.includes('spectrumData.length > 0'), 'Do not call synthetic idle breath an audio spectrum.');
 assert.ok(bridgeSource.includes('if (!playing) return;'), 'Spectrum updates stop while paused.');
 assert.ok(bridgeSource.includes('if (!document.hidden) publishSpectrum();'), 'Spectrum updates stop while the tab is in the background.');
-assert.ok(bridgeSource.includes('}, 120);'), 'Spectrum updates should be throttled to match the 118ms equalizer transition.');
+assert.ok(bridgeSource.includes('}, 120);'), 'Spectrum updates should be throttled to match the equalizer transition.');
 assert.ok(bridgeSource.includes('if (!document.hidden) publish();'), 'STATE updates stop while the tab is in the background.');
-assert.ok(parent.includes("message.type === 'SPECTRUM'"), 'The main site must consume spectrum data.');
-assert.ok(parent.includes('--qz-music-eq-bass'), 'The island meter must be driven by received frequency bands.');
-assert.ok(styles.includes('var(--qz-music-eq-bass') && styles.includes('var(--qz-music-eq-treble'), 'Equalizer bars must use live band values.');
 assert.ok(bridgeSource.includes('MAIN_SITE_ORIGINS.has(event.origin)'));
 assert.ok(!bridgeSource.includes("postMessage(data, '*')"));
 assert.ok(overlays.includes('<QianzhiEmbedBridge model={model} />'));

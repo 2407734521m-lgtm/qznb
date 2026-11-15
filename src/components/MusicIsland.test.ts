@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { isSameMusicTrack, shouldShowMainIsland } from './MusicIsland';
 import { hasNewIslandActivity, resolveIslandDockGesture, resolveIslandGestureSource } from './QianzhiMusicIslandActivity';
 import { resolveMetrics } from '../lib/island/config';
-import { qianzhiIslandMetrics } from '../lib/island/qianzhi-metrics';
+import { createQianzhiIslandMetrics, qianzhiIslandMetrics } from '../lib/island/qianzhi-metrics';
 
 const track = (overrides = {}) => ({
   title: 'Hello',
@@ -26,6 +26,16 @@ describe('Qianzhi island geometry profile', () => {
     expect(metrics.compact.height).toBe(31.5);
     expect(metrics.minimal.height).toBe(31.5);
   });
+
+  it('resolves custom capsule dimensions from user settings', () => {
+    const custom = resolveMetrics(createQianzhiIslandMetrics({ width: 132, height: 38 }));
+    expect(custom.idle.width).toBe(132);
+    expect(custom.idle.height).toBe(38);
+    expect(custom.compact.sensorWidth).toBe(132);
+    expect(custom.compact.height).toBe(38);
+    expect(custom.minimal.height).toBe(38);
+  });
+
 });
 
 describe('isSameMusicTrack', () => {
@@ -72,6 +82,11 @@ describe('resolveIslandDockGesture', () => {
     expect(resolveIslandDockGesture('island', 12, -50)).toBe('dock');
     expect(resolveIslandDockGesture('island', 8, -38)).toBe('dock');
     expect(resolveIslandDockGesture('island', 8, -37)).toBe(null);
+  });
+
+  it('restores immediately when the exposed glass edge is tapped', () => {
+    expect(resolveIslandDockGesture('peek', 0, 0)).toBe('restore');
+    expect(resolveIslandDockGesture('peek', 7, -5)).toBe('restore');
   });
 
   it('restores on a downward swipe from the exposed edge', () => {

@@ -140,6 +140,14 @@ test('Android Chrome: docked island keeps a reachable glass restore handle', asy
   const host = page.locator('.qz-island-host');
   const peek = page.locator('.qz-island-peek');
   await expect(peek).toBeVisible();
+  await expect(peek).toHaveCSS('pointer-events', 'auto');
+  await peek.evaluate(element => {
+    const host = document.querySelector('.qz-island-host');
+    element.addEventListener('click', () => host?.classList.remove('is-docked'), { once: true });
+  });
+  await peek.click();
+  await expect(host).not.toHaveAttribute('class', /is-docked/);
+  await host.evaluate(element => element.classList.add('is-docked'));
   const values = await peek.evaluate(element => ({
     zIndex: getComputedStyle(element).zIndex,
     pointerEvents: getComputedStyle(element).pointerEvents,

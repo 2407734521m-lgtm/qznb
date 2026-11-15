@@ -2,7 +2,10 @@
 .qz-island-host {
   --qz-island-safe-top: max(env(safe-area-inset-top, 0px), 18px);
   --qz-island-shape-top: 12.5px;
-  --qz-island-shape-height: 31.5px;
+  --qz-island-shape-height: var(--qz-island-config-height, 31.5px);
+  --qz-island-capsule-width: var(--qz-island-config-width, 104px);
+  --qz-island-offset-x: var(--qz-island-config-x, 0px);
+  --qz-island-offset-y: var(--qz-island-config-y, 0px);
   position: fixed;
   inset: 0;
   z-index: 4001;
@@ -11,14 +14,14 @@
 
 /* Swipe the complete capsule above the viewport; retain only a small glass edge. */
 .qz-island-host {
-  transform: translate3d(0, 0, 0);
+  transform: translate3d(var(--qz-island-offset-x), var(--qz-island-offset-y), 0);
   transition: transform 420ms cubic-bezier(.2, .86, .22, 1);
   will-change: transform;
 }
 
 .qz-island-host.is-docked {
   transform: translate3d(
-    0,
+    var(--qz-island-offset-x),
     calc(0px - var(--qz-island-safe-top) - var(--qz-island-shape-top) - var(--qz-island-shape-height) + 7px),
     0
   );
@@ -37,10 +40,10 @@
 .qz-island-peek {
   position: fixed;
   top: 0;
-  left: 50%;
+  left: calc(50% + var(--qz-island-config-x, 0px));
   z-index: 4002;
   display: block;
-  width: min(92px, 26vw);
+  width: min(92px, 26vw, calc(var(--qz-island-config-width, 104px) - 8px));
   height: 34px;
   margin: 0;
   padding: 0;

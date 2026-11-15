@@ -178,7 +178,7 @@
 .qz-island-progress input::-webkit-slider-runnable-track {
   height: 4px;
   border-radius: 999px;
-  background: rgba(255,255,255,.22);
+  background: linear-gradient(to right, rgba(255,255,255,.96) 0 var(--qz-music-progress, 0%), rgba(255,255,255,.22) var(--qz-music-progress, 0%) 100%);
 }
 .qz-island-progress input::-webkit-slider-thumb {
   width: 12px;

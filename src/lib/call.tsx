@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import type { ReactNode } from 'react';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import { supabase } from './supabase';
@@ -34,6 +35,7 @@ function formatDuration(totalSeconds: number) {
 
 export function CallProvider({ children }: { children: ReactNode }) {
   const { session } = useAuth();
+  const reduceMotion = Boolean(useReducedMotion());
   const myId = session?.user?.id ?? null;
   const islandApi = useIslandActions();
 
@@ -391,12 +393,18 @@ export function CallProvider({ children }: { children: ReactNode }) {
       {children}
       <audio ref={remoteAudioRef} autoPlay playsInline style={{ display: 'none' }} />
       {note && phase === 'idle' && <div className="call-note" role="status" aria-live="polite"><span aria-hidden="true">☎</span><span>{note}</span></div>}
-      {phase !== 'idle' && !minimized && (
-        <div className="call-overlay" role="dialog" aria-modal="true" aria-label="语音通话">
-          <div className="call-card">
-            {(phase === 'connecting' || phase === 'in-call') && (
-              <button type="button" className="call-minimize" aria-label="最小化通话窗口" title="最小化" onClick={() => setMinimized(true)}>−</button>
-            )}
+      <AnimatePresence>
+        {phase !== 'idle' && !minimized && (
+          <motion.div key="call-overlay" className="call-overlay" role="dialog" aria-modal="true" aria-label="语音通话"
+            initial={reduceMotion ? false : { opacity: 0 }}
+            animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            transition={{ duration: reduceMotion ? 0.01 : 0.2, ease: [0.22, 1, 0.36, 1] }}>
+          <motion.div className="call-card"
+            initial={reduceMotion ? false : { opacity: 0, y: 14, scale: 0.97 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 8, scale: 0.985 }}
+            transition={reduceMotion ? { duration: 0.01 } : { type: 'spring', stiffness: 340, damping: 30, mass: 0.78 }}>
+            <button type="button" className="call-minimize" aria-label="最小化通话窗口到灵动岛" title="最小化到灵动岛" onClick={() => setMinimized(true)}>−</button>
             <div className="call-avatar" aria-hidden="true">{initial}</div>
             <div className="call-name">{peerName || '同学'}</div>
             <div className="call-status">
@@ -422,9 +430,10 @@ export function CallProvider({ children }: { children: ReactNode }) {
                 <button type="button" className="call-btn call-btn-hangup" onClick={hangUp}>挂断</button>
               </div>
             )}
-          </div>
-        </div>
-      )}
+          </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </CallContext.Provider>
   );
 }

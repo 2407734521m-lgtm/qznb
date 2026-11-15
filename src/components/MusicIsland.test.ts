@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { isSameMusicTrack, shouldShowMainIsland } from './MusicIsland';
-import { resolveIslandDockGesture } from './QianzhiMusicIslandActivity';
+import { resolveIslandDockGesture, resolveIslandGestureSource } from './QianzhiMusicIslandActivity';
 
 const track = (overrides = {}) => ({
   title: 'Hello',
@@ -32,15 +32,27 @@ describe('isSameMusicTrack', () => {
 });
 
 
+describe('resolveIslandGestureSource', () => {
+  it('recognizes swipe starts on interactive controls inside the host', () => {
+    expect(resolveIslandGestureSource(false, true)).toBe('island');
+  });
+
+  it('prioritizes the exposed restore handle and ignores outside taps', () => {
+    expect(resolveIslandGestureSource(true, false)).toBe('peek');
+    expect(resolveIslandGestureSource(false, false)).toBe(null);
+  });
+});
+
 describe('resolveIslandDockGesture', () => {
   it('docks on a clear upward swipe from the capsule', () => {
     expect(resolveIslandDockGesture('island', 12, -50)).toBe('dock');
-    expect(resolveIslandDockGesture('island', 8, -43)).toBe(null);
+    expect(resolveIslandDockGesture('island', 8, -38)).toBe('dock');
+    expect(resolveIslandDockGesture('island', 8, -37)).toBe(null);
   });
 
   it('restores on a downward swipe from the exposed edge', () => {
-    expect(resolveIslandDockGesture('peek', 8, 28)).toBe('restore');
-    expect(resolveIslandDockGesture('peek', 8, 27)).toBe(null);
+    expect(resolveIslandDockGesture('peek', 8, 24)).toBe('restore');
+    expect(resolveIslandDockGesture('peek', 8, 23)).toBe(null);
   });
 
   it('ignores predominantly horizontal movement', () => {

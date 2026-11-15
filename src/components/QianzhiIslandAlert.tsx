@@ -140,14 +140,14 @@ export function showIslandAlert(api: IslandApi, input: IslandAlertInput): Activi
   let handle: ActivityHandle | null = null;
   let timer: number | null = null;
   const duration = Math.max(3500, Math.min(12000, input.durationMs ?? 6500));
-  const scheduleEnd = (delayMs: number) => {
-    if (timer !== null) window.clearTimeout(timer);
-    timer = window.setTimeout(end, delayMs);
-  };
   const end = () => {
     if (timer !== null) window.clearTimeout(timer);
     timer = null;
     handle?.end();
+  };
+  const scheduleEnd = (delayMs: number) => {
+    if (timer !== null) window.clearTimeout(timer);
+    timer = window.setTimeout(end, delayMs);
   };
 
   handle = api.start({

@@ -572,10 +572,30 @@ function Shell() {
     const activeIslandAlerts = new Set<ReturnType<typeof showIslandAlert>>();
     const queuedIslandAlerts: Parameters<typeof showIslandAlert>[1][] = [];
     let islandAlertFlushTimer: number | null = null;
+    let activeIslandAlertPriority = Number.NEGATIVE_INFINITY;
     const presentIslandAlert = (input: Parameters<typeof showIslandAlert>[1]) => {
-      const handle = showIslandAlert(islandApi, input);
+      // There is only one short-lived notification surface. A lower-priority event must not
+      // replace a more important alert that is already visible.
+      if (input.priority < activeIslandAlertPriority) return;
+      activeIslandAlerts.forEach(handle => handle.end());
+      activeIslandAlerts.clear();
+
+      let handle: ReturnType<typeof showIslandAlert>;
+      handle = showIslandAlert(islandApi, {
+        ...input,
+        onPress: () => {
+          activeIslandAlerts.delete(handle);
+          if (activeIslandAlerts.size === 0) activeIslandAlertPriority = Number.NEGATIVE_INFINITY;
+          input.onPress?.();
+        },
+      });
       activeIslandAlerts.add(handle);
-      window.setTimeout(() => activeIslandAlerts.delete(handle), 13000);
+      activeIslandAlertPriority = input.priority;
+      const duration = Math.max(3500, Math.min(12000, input.durationMs ?? 6500));
+      window.setTimeout(() => {
+        const wasActive = activeIslandAlerts.delete(handle);
+        if (wasActive && activeIslandAlerts.size === 0) activeIslandAlertPriority = Number.NEGATIVE_INFINITY;
+      }, duration + 80);
     };
     // Merge a burst of realtime inserts into one concise activity. The notification center remains
     // the source of truth; the island is only a short, low-noise heads-up.

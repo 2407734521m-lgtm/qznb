@@ -709,7 +709,20 @@ function Shell() {
         body: '点击打开私聊查看',
         priority: 55,
         alert: true,
+        durationMs: 9000,
         onPress: () => nav('/chat/' + conversationId),
+        onQuickReply: async body => {
+          const messageBody = body.trim().slice(0, 2000);
+          if (!messageBody) throw new Error('消息内容不能为空');
+          // Re-check the active account before sending; Supabase RLS remains the authority
+          // for conversation membership and insert permissions.
+          const { data: authData, error: authError } = await supabase.auth.getUser();
+          if (authError || authData.user?.id !== uid) throw new Error('登录状态已变化');
+          const { error: sendError } = await supabase.from('messages')
+            .insert({ conversation_id: conversationId, sender_id: uid, body: messageBody })
+            .select('id').single();
+          if (sendError) throw new Error('消息发送失败');
+        },
       });
     };
 

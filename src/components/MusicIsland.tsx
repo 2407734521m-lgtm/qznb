@@ -152,10 +152,11 @@ function MusicIsland() {
 
       if (message.type === 'SPECTRUM') {
         const spectrum = message as MusicSpectrumMessage;
-        const style = islandWrapRef.current?.style;
-        if (!style) return;
+        const host = islandWrapRef.current;
+        if (!host) return;
+        const style = host.style;
         const equalizerMode = resolveMusicEqualizerMode(spectrum);
-        style.dataset.qzMusicEqMode = equalizerMode;
+        host.dataset.qzMusicEqMode = equalizerMode;
         if (equalizerMode !== 'live') return;
 
         const names = ['bass', 'lowMid', 'vocal', 'treble'] as const;

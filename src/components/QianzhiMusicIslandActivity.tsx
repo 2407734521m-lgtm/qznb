@@ -171,6 +171,18 @@ type IslandDockGesture = {
   startY: number;
 };
 
+export const resolveIslandDockGesture = (
+  source: IslandDockGesture['source'],
+  deltaX: number,
+  deltaY: number,
+): 'dock' | 'restore' | null => {
+  const mostlyVertical = Math.abs(deltaX) <= Math.max(36, Math.abs(deltaY) * 0.65);
+  if (!mostlyVertical) return null;
+  if (source === 'island' && deltaY <= -44) return 'dock';
+  if (source === 'peek' && deltaY >= 28) return 'restore';
+  return null;
+};
+
 export const MusicIslandView = ({
   value,
   hostRef,
@@ -192,10 +204,8 @@ export const MusicIslandView = ({
 
       const deltaX = event.clientX - gesture.startX;
       const deltaY = event.clientY - gesture.startY;
-      const mostlyVertical = Math.abs(deltaX) < Math.max(72, Math.abs(deltaY) * 0.9);
-      if (!mostlyVertical) return;
-
-      if (gesture.source === 'island' && deltaY <= -44) {
+      const action = resolveIslandDockGesture(gesture.source, deltaX, deltaY);
+      if (action === 'dock') {
         if (dockTimerRef.current !== null) window.clearTimeout(dockTimerRef.current);
         // Collapse the full activity first so an expanded panel never gets clipped at the top.
         collapseRef.current();
@@ -203,7 +213,7 @@ export const MusicIslandView = ({
           setDocked(true);
           dockTimerRef.current = null;
         }, 260);
-      } else if (gesture.source === 'peek' && deltaY >= 28) {
+      } else if (action === 'restore') {
         if (dockTimerRef.current !== null) window.clearTimeout(dockTimerRef.current);
         dockTimerRef.current = null;
         setDocked(false);

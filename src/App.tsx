@@ -13,7 +13,9 @@ import { CallProvider } from './lib/call';
 import { startSitePresence } from './lib/sitePresence';
 import { useAuth } from './auth';
 import { getWallpaper } from './lib/wallpaper';
-import { useQuietHoursActive } from './lib/userPreferences';
+import { readCachedUserPreferences, useQuietHoursActive } from './lib/userPreferences';
+import { useIslandActions } from './lib/island';
+import { showIslandAlert } from './components/QianzhiIslandAlert';
 import { lazyWithRetry } from './lib/lazyWithRetry';
 // 只在特定时刻才出现的覆盖层/弹窗：懒加载，不占首屏包体积。
 // （WelcomeOverlay、GuideCarousel、WallpaperOnboarding、LoginSuccessOverlay、
@@ -345,8 +347,12 @@ function PublicLanding({ data, onLogin, onGuestLogin, showGuestEntry }: { data: 
 
 function Shell() {
   const { session, loading, guest, enterGuest, leaveGuest } = useAuth();
-  const quietHoursActive = useQuietHoursActive(session?.user.id);  const [role, setRole] = useState('');
+  const islandApi = useIslandActions();
+  const quietHoursActive = useQuietHoursActive(session?.user.id);
+  const [role, setRole] = useState('');
   const loc = useLocation();
+  const currentLocationRef = useRef({ pathname: loc.pathname, search: loc.search });
+  currentLocationRef.current = { pathname: loc.pathname, search: loc.search };
   // 安卓应用更新：应用壳在 UA 里带 QianzhiApp/版本名 (序号)，与后台最新版本比对后弹更新框。
   // 1.0 旧壳没有这个标识，但系统 WebView 的 UA 带「; wv)」记号，detectInstalledApp 会把它按 1.0 认出来。
   const [appUpdate, setAppUpdate] = useState<any>(null);
@@ -556,27 +562,116 @@ function Shell() {
   useEffect(() => {
     if (!session) { setNotifUnread(false); return; }
     let alive = true;
-    const h = async () => {
+    const uid = session.user.id;
+    const seenNotificationIds = new Set<string>();
+    const seenMessageIds = new Set<string>();
+
+    const refreshBadge = async () => {
       try {
         const { count, error } = await supabase.from('notifications')
           .select('id', { count: 'exact', head: true })
-          .eq('profile_id', session.user.id).eq('is_read', false);
+          .eq('profile_id', uid).eq('is_read', false);
         if (alive && !error) setNotifUnread((count ?? 0) > 0);
       } catch {
         // 请求失败时保留上次红点状态。
       }
     };
-    const channel = supabase.channel('notification-badge-' + session.user.id)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: 'profile_id=eq.' + session.user.id }, h)
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'notifications', filter: 'profile_id=eq.' + session.user.id }, h)
+
+    const onNotificationInsert = (payload: any) => {
+      const row = payload?.new as Record<string, any> | undefined;
+      if (payload?.eventType === 'INSERT' && row && row.id != null && row.is_read !== true) {
+        const notificationId = String(row.id);
+        if (!seenNotificationIds.has(notificationId)) {
+          seenNotificationIds.add(notificationId);
+          if (seenNotificationIds.size > 120) seenNotificationIds.clear();
+          const type = typeof row.type === 'string' ? row.type : '';
+          const preferences = readCachedUserPreferences(uid).notifications;
+          const location = currentLocationRef.current;
+          const viewingNotifications = location.pathname === '/friends' && location.search.includes('tab=notifications');
+          const viewingFriendRequests = location.pathname === '/friends' && location.search.includes('tab=reqs');
+          const categoryDisabled = type ? preferences[type] === false : false;
+          const alreadyOnTarget = viewingNotifications || (type === 'friend_request' && viewingFriendRequests);
+
+          if (!categoryDisabled && !alreadyOnTarget && document.visibilityState === 'visible') {
+            const isFriendRequest = type === 'friend_request';
+            const isInteraction = ['comment', 'like', 'greeting', 'love_wall', 'anonymous_question', 'anonymous_answer'].includes(type);
+            const kind = isFriendRequest ? 'friend' : isInteraction ? 'interaction' : 'system';
+            const title = isFriendRequest
+              ? '收到新的好友申请'
+              : String(row.title || (isInteraction ? '收到新的互动' : '收到新通知')).slice(0, 72);
+            // Friend-request notification bodies include account identifiers; show only a generic
+            // prompt because profile names and avatars are private by default.
+            const body = isFriendRequest
+              ? '有人想添加你为好友'
+              : (typeof row.body === 'string' ? row.body.slice(0, 96) : '');
+            const href = typeof row.link === 'string' && row.link.startsWith('/') && !row.link.startsWith('//')
+              ? row.link
+              : isFriendRequest ? '/friends?tab=reqs' : '/friends?tab=notifications';
+
+            showIslandAlert(islandApi, {
+              id: notificationId,
+              kind,
+              title,
+              body,
+              priority: isFriendRequest ? 46 : isInteraction ? 28 : 36,
+              onPress: () => nav(href),
+            });
+          }
+        }
+      }
+      void refreshBadge();
+    };
+
+    const onIncomingMessage = async (payload: any) => {
+      if (payload?.eventType !== 'INSERT') return;
+      const message = payload?.new as Record<string, any> | undefined;
+      if (!message || message.id == null || message.sender_id === uid) return;
+      if (document.visibilityState !== 'visible') return;
+
+      const messageId = String(message.id);
+      if (seenMessageIds.has(messageId)) return;
+      const conversationId = Number(message.conversation_id);
+      if (!Number.isFinite(conversationId) || conversationId <= 0) return;
+      const location = currentLocationRef.current;
+      if (location.pathname === '/chat/' + conversationId) return;
+      if (readCachedUserPreferences(uid).notifications.message === false) return;
+
+      // Resolve the sender through the existing membership-aware RPC. Never display the message
+      // body in the island, so private text cannot appear over another page or a shared screen.
+      const { data, error } = await supabase.rpc('my_conversations');
+      if (!alive || error) return;
+      const conversations = (data ?? []) as Array<Record<string, any>>;
+      const conversation = conversations.find(item => Number(item.conversation_id) === conversationId);
+      if (!conversation || Number(conversation.unread_count ?? 0) <= 0) return;
+      seenMessageIds.add(messageId);
+      if (seenMessageIds.size > 160) seenMessageIds.clear();
+
+      const senderName = String(conversation.display_name || conversation.username || '好友').slice(0, 32);
+      showIslandAlert(islandApi, {
+        id: messageId,
+        kind: 'message',
+        title: senderName + ' 发来新私信',
+        body: '点击打开私聊查看',
+        priority: 55,
+        onPress: () => nav('/chat/' + conversationId),
+      });
+    };
+
+    const channel = supabase.channel('notification-badge-' + uid)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: 'profile_id=eq.' + uid }, onNotificationInsert)
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'notifications', filter: 'profile_id=eq.' + uid }, () => { void refreshBadge(); })
+      // Messages are visible only to conversation members under the existing RLS policy.
+      // Membership-aware my_conversations() then resolves the permitted peer name and unread state.
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, onIncomingMessage)
       .subscribe();
-    window.addEventListener('notif-read', h);
+
+    window.addEventListener('notif-read', refreshBadge);
     return () => {
       alive = false;
-      window.removeEventListener('notif-read', h);
+      window.removeEventListener('notif-read', refreshBadge);
       void supabase.removeChannel(channel);
     };
-  }, [session]);
+  }, [session, islandApi]);
 
   // 登录弹窗公告：按后台设置的次数弹出（1/2/3次或每次）
   const [loginPop, setLoginPop] = useState<any>(null);

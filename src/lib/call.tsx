@@ -38,6 +38,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
   const islandApi = useIslandActions();
 
   const [phase, setPhase] = useState<CallPhase>('idle');
+  const [minimized, setMinimized] = useState(false);
   const [peerName, setPeerName] = useState('');
   const [seconds, setSeconds] = useState(0);
   const [muted, setMuted] = useState(false);
@@ -92,6 +93,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
     setSeconds(0);
     setMuted(false);
     setPeerName('');
+    setMinimized(false);
     setPhaseBoth('idle');
   }, [stopRing, setPhaseBoth]);
 
@@ -349,6 +351,11 @@ export function CallProvider({ children }: { children: ReactNode }) {
     setMuted(next);
   }, [muted]);
 
+  const restoreCall = useCallback(() => {
+    setMinimized(false);
+    islandApi.collapse();
+  }, [islandApi]);
+
   // Mirror the existing WebRTC lifecycle into the shared Qianzhi Island activity stack.
   // Calls outrank messages and uploads; the underlying call/session implementation is unchanged.
   useEffect(() => {
@@ -366,8 +373,9 @@ export function CallProvider({ children }: { children: ReactNode }) {
       onCancel: cancelCall,
       onHangUp: hangUp,
       onToggleMute: toggleMute,
+      onRestore: restoreCall,
     }));
-  }, [phase, peerName, seconds, muted, islandApi, acceptCall, rejectCall, cancelCall, hangUp, toggleMute]);
+  }, [phase, peerName, seconds, muted, islandApi, acceptCall, rejectCall, cancelCall, hangUp, toggleMute, restoreCall]);
 
   useEffect(() => () => islandApi.end('qz-call-session'), [islandApi]);
 
@@ -383,9 +391,12 @@ export function CallProvider({ children }: { children: ReactNode }) {
       {children}
       <audio ref={remoteAudioRef} autoPlay playsInline style={{ display: 'none' }} />
       {note && phase === 'idle' && <div className="call-note" role="status" aria-live="polite"><span aria-hidden="true">☎</span><span>{note}</span></div>}
-      {phase !== 'idle' && (
+      {phase !== 'idle' && !minimized && (
         <div className="call-overlay" role="dialog" aria-modal="true" aria-label="语音通话">
           <div className="call-card">
+            {(phase === 'connecting' || phase === 'in-call') && (
+              <button type="button" className="call-minimize" aria-label="最小化通话窗口" title="最小化" onClick={() => setMinimized(true)}>−</button>
+            )}
             <div className="call-avatar" aria-hidden="true">{initial}</div>
             <div className="call-name">{peerName || '同学'}</div>
             <div className="call-status">

@@ -6,6 +6,10 @@ Class Memory（我们的班级）是一个独立运行的社区网站项目，�
 - 管理后台：<https://admin.qianzhi.pw>
 - 音乐空间：<https://music.qianzhi.pw>
 
+## 设计规范
+
+改动任何页面或组件前，先读根目录的 `DESIGN.md`（Qianzhi 设计规范 v1.0）：主站白色极简打底，私信、后台、音乐、灵动岛和 Dock 各有独立视觉体系，但共享排版、间距、交互反馈和动效标准。视觉整改不改功能、不动数据库结构和权限、不重做整个网站；具体以 `DESIGN.md` 第 9 节的 AI 与贡献者守则为准。
+
 ## 技术栈
 
 - React、TypeScript、Vite

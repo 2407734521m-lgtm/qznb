@@ -53,6 +53,21 @@ function formatTime(value: number): string {
   return String(Math.floor(seconds / 60)) + ':' + String(seconds % 60).padStart(2, '0');
 }
 
+/** A STATE track that changes nothing the island shows: same song, same state, same second. */
+export function isSameMusicTrack(a: MusicTrack | null, b: MusicTrack | null): boolean {
+  if (a === b) return true;
+  if (!a || !b) return false;
+  return a.title === b.title
+    && a.artist === b.artist
+    && a.coverUrl === b.coverUrl
+    && a.isPlaying === b.isPlaying
+    && a.currentTime === b.currentTime
+    && a.duration === b.duration
+    && a.canPrevious === b.canPrevious
+    && a.canNext === b.canNext
+    && a.canToggle === b.canToggle;
+}
+
 function MusicIcon({ name, size = 18 }: { name: 'play' | 'pause' | 'previous' | 'next' | 'close' | 'list'; size?: number }) {
   const common = { width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const, 'aria-hidden': true as const };
   if (name === 'play') return <svg {...common}><path d="M8 5v14l11-7z" fill="currentColor" stroke="none" /></svg>;
@@ -81,6 +96,8 @@ function MusicIsland() {
   const [seekDraft, setSeekDraft] = useState<number | null>(null);
   const seekDraftRef = useRef<number | null>(null);
   const lastStateMessageAtRef = useRef(0);
+  const lastTrackRef = useRef<MusicTrack | null>(null);
+  const leftMusicPageAtRef = useRef(0);
   const shouldMountFrame = openedOnce || isMusicPage;
 
   useEffect(() => {
@@ -88,6 +105,10 @@ function MusicIsland() {
       setOpenedOnce(true);
       setFrameForeground(true);
       setExpanded(false);
+    } else {
+      // Leaving the music page: the white frame is still fading out for ~0.36s, so the
+      // island waits ~0.3s before coming in instead of animating over the fading sheet.
+      leftMusicPageAtRef.current = Date.now();
     }
   }, [isMusicPage]);
 
@@ -151,6 +172,7 @@ function MusicIsland() {
         islandWrapRef.current?.style.setProperty('--qz-music-eq-lowMid', '.12');
         islandWrapRef.current?.style.setProperty('--qz-music-eq-vocal', '.12');
         islandWrapRef.current?.style.setProperty('--qz-music-eq-treble', '.12');
+        lastTrackRef.current = null;
         setTrack(null);
         return;
       }
@@ -163,17 +185,25 @@ function MusicIsland() {
         islandWrapRef.current?.style.setProperty('--qz-music-eq-vocal', '.12');
         islandWrapRef.current?.style.setProperty('--qz-music-eq-treble', '.12');
       }
-      setTrack({
+      const nextTrack: MusicTrack = {
         title: incoming.title.slice(0, 180),
         artist: typeof incoming.artist === 'string' ? incoming.artist.slice(0, 180) : '',
         coverUrl: safeCoverUrl(incoming.coverUrl),
         isPlaying: incoming.isPlaying === true,
-        currentTime: Number.isFinite(currentTime) ? Math.max(0, currentTime) : 0,
+        // Whole seconds: the bridge pushes every 700ms, but the island only shows whole
+        // seconds, so a STATE that changes nothing visible must not re-render the tree.
+        currentTime: Number.isFinite(currentTime) ? Math.max(0, Math.floor(currentTime)) : 0,
         duration: Number.isFinite(duration) ? Math.max(0, duration) : 0,
         canPrevious: incoming.canPrevious === true,
         canNext: incoming.canNext === true,
         canToggle: incoming.canToggle !== false,
-      });
+      };
+      // The bridge pushes STATE every 700ms; most pushes change nothing the island shows.
+      // Skipping those keeps the whole main-site tree from re-rendering on every push.
+      if (!isSameMusicTrack(lastTrackRef.current, nextTrack)) {
+        lastTrackRef.current = nextTrack;
+        setTrack(nextTrack);
+      }
     };
     window.addEventListener('message', onMessage);
     return () => window.removeEventListener('message', onMessage);
@@ -225,6 +255,10 @@ function MusicIsland() {
     setSeekDraft(null);
   };
 
+  // Right after leaving the music page the island waits for the white frame to fade out
+  // before coming in; any other mount (playback starting while browsing) comes in at once.
+  const islandEnterDelay = Date.now() - leftMusicPageAtRef.current < 1000 ? 0.3 : 0;
+
   return (
     <>
       {shouldMountFrame && (
@@ -232,18 +266,12 @@ function MusicIsland() {
           className="qz-music-frame-host"
           data-open={isMusicPage ? 'true' : 'false'}
           initial={false}
-          animate={{
-            opacity: isMusicPage ? 1 : 0,
-            y: isMusicPage ? 0 : 8,
-            scale: isMusicPage ? 1 : 0.985,
-          }}
+          // Opacity only: sliding and scaling the whole page while it fades made the island
+          // ride over a moving white sheet on the way out of the music page.
+          animate={{ opacity: isMusicPage ? 1 : 0 }}
           transition={reduceMotion
             ? { duration: 0 }
-            : {
-                opacity: { duration: isMusicPage ? 0.34 : 0.36, ease: [0.22, 1, 0.36, 1] },
-                y: { duration: isMusicPage ? 0.38 : 0.4, ease: [0.22, 1, 0.36, 1] },
-                scale: { duration: isMusicPage ? 0.38 : 0.4, ease: [0.22, 1, 0.36, 1] },
-              } }
+            : { opacity: { duration: isMusicPage ? 0.34 : 0.36, ease: [0.22, 1, 0.36, 1] } }}
           style={{
             position: 'fixed',
             inset: 0,
@@ -313,9 +341,9 @@ function MusicIsland() {
             transition={reduceMotion
               ? { duration: 0 }
               : {
-                  opacity: { duration: 0.22, ease: [0.16, 1, 0.3, 1], delay: 0.08 },
-                  y: { duration: 0.42, ease: [0.16, 1, 0.3, 1], delay: 0.04 },
-                  scale: { duration: 0.42, ease: [0.16, 1, 0.3, 1], delay: 0.04 },
+                  opacity: { duration: 0.22, ease: [0.16, 1, 0.3, 1], delay: 0.08 + islandEnterDelay },
+                  y: { duration: 0.42, ease: [0.16, 1, 0.3, 1], delay: 0.04 + islandEnterDelay },
+                  scale: { duration: 0.42, ease: [0.16, 1, 0.3, 1], delay: 0.04 + islandEnterDelay },
                 } }
           >
             <LayoutGroup id="qz-music-island">
@@ -328,13 +356,16 @@ function MusicIsland() {
                   initial={reduceMotion ? false : { opacity: 0, y: -7, scale: 0.985 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: -4, scale: 0.99 }}
+                  // One clock for the whole morph: the layout spring and the content fade ran
+                  // on different durations before, so the shell and its content moved out of
+                  // step while the glass blurred throughout.
                   transition={reduceMotion
                     ? { duration: 0 }
                     : {
                         layout: { duration: 0.38, ease: [0.22, 1, 0.36, 1] },
-                        opacity: { duration: 0.18, ease: [0.2, 0.8, 0.2, 1] },
-                        y: { duration: 0.22, ease: [0.2, 0.8, 0.2, 1] },
-                        scale: { duration: 0.22, ease: [0.2, 0.8, 0.2, 1] },
+                        opacity: { duration: 0.38, ease: [0.22, 1, 0.36, 1] },
+                        y: { duration: 0.38, ease: [0.22, 1, 0.36, 1] },
+                        scale: { duration: 0.38, ease: [0.22, 1, 0.36, 1] },
                       }}
                   style={{ transformOrigin: 'top center' }}
                   aria-label="音乐控制面板"
@@ -347,13 +378,13 @@ function MusicIsland() {
                   </div>
                   <button type="button" className="qz-music-island-track" onClick={() => navigate('/music')}>
                     {track.coverUrl ? (
-                      <motion.img layoutId="qz-music-island-cover" className="qz-music-island-cover" src={track.coverUrl} alt="" />
+                      <motion.img key={track.coverUrl} layoutId="qz-music-island-cover" className="qz-music-island-cover" src={track.coverUrl} alt="" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.2, ease: 'easeOut' }} />
                     ) : (
-                      <motion.span layoutId="qz-music-island-cover" className="qz-music-island-cover qz-music-island-cover-fallback" aria-hidden="true">♫</motion.span>
+                      <motion.span key="fallback" layoutId="qz-music-island-cover" className="qz-music-island-cover qz-music-island-cover-fallback" aria-hidden="true" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.2, ease: 'easeOut' }}>♫</motion.span>
                     )}
                     <span className="qz-music-island-track-copy">
-                      <strong>{track.title}</strong>
-                      <span>{track.artist || '未知歌手'}</span>
+                      <motion.strong key={track.title} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.2, ease: 'easeOut' }}>{track.title}</motion.strong>
+                      <motion.span key={track.artist} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.2, ease: 'easeOut' }}>{track.artist || '未知歌手'}</motion.span>
                     </span>
                     <span className={'qz-music-equalizer ' + (track.isPlaying ? 'is-playing' : '')} aria-hidden="true">
                       <i /><i /><i /><i />
@@ -407,8 +438,8 @@ function MusicIsland() {
                     ? { duration: 0 }
                     : {
                         layout: { duration: 0.38, ease: [0.22, 1, 0.36, 1] },
-                        opacity: { duration: 0.16, ease: [0.2, 0.8, 0.2, 1] },
-                        scale: { duration: 0.2, ease: [0.2, 0.8, 0.2, 1] },
+                        opacity: { duration: 0.38, ease: [0.22, 1, 0.36, 1] },
+                        scale: { duration: 0.38, ease: [0.22, 1, 0.36, 1] },
                       }}
                 >
                   <button
@@ -418,11 +449,11 @@ function MusicIsland() {
                     aria-label={'展开播放器：' + track.title}
                   >
                     {track.coverUrl ? (
-                      <motion.img layoutId="qz-music-island-cover" className="qz-music-island-mini-cover" src={track.coverUrl} alt="" />
+                      <motion.img key={track.coverUrl} layoutId="qz-music-island-cover" className="qz-music-island-mini-cover" src={track.coverUrl} alt="" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.2, ease: 'easeOut' }} />
                     ) : (
-                      <motion.span layoutId="qz-music-island-cover" className="qz-music-island-mini-cover qz-music-island-cover-fallback" aria-hidden="true">♫</motion.span>
+                      <motion.span key="fallback" layoutId="qz-music-island-cover" className="qz-music-island-mini-cover qz-music-island-cover-fallback" aria-hidden="true" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.2, ease: 'easeOut' }}>♫</motion.span>
                     )}
-                    <span className="qz-music-island-mini-title">{track.title}</span>
+                    <motion.span key={track.title} className="qz-music-island-mini-title" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.2, ease: 'easeOut' }}>{track.title}</motion.span>
                     <span className={'qz-music-equalizer ' + (track.isPlaying ? 'is-playing' : '')} aria-hidden="true"><i /><i /><i /><i /></span>
                   </button>
                   <button

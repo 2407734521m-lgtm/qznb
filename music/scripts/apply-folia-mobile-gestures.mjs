@@ -126,6 +126,36 @@ if (!source.includes("onTouchStart={handleMobileSwipeStart}")) {
 }
 
 await fs.writeFile(controlsPath, source, "utf8");
+
+// The two customisable capsule slots were 36px (20px icon + 8px padding) and the 500ms
+// long-press that swaps them was only discoverable from the title tooltip, which a finger
+// never sees. On coarse pointers the hit area grows to 44px, and a small corner mark says
+// the slot can be swapped.
+const slotButtonPath = path.join(foliaDir, "src/components/floating-player/PlayerControlSlotButton.tsx");
+let slotButton = await fs.readFile(slotButtonPath, "utf8");
+slotButton = replaceOnce(slotButton,
+  "className={`relative select-none rounded-full p-2 transition-colors [-webkit-touch-callout:none] ${stateClass} ${className}`}",
+  "className={`relative select-none rounded-full p-2 pointer-coarse:p-3 transition-colors [-webkit-touch-callout:none] ${stateClass} ${className}`}",
+  "slot button touch hit area");
+slotButton = replaceOnce(slotButton,
+  `            <Icon
+                size={20}
+                className="sm:h-[18px] sm:w-[18px]"
+                fill={slot.filled ? 'currentColor' : 'none'}
+            />`,
+  `            <Icon
+                size={20}
+                className="sm:h-[18px] sm:w-[18px]"
+                fill={slot.filled ? 'currentColor' : 'none'}
+            />
+            {/* A small corner mark says this slot can be swapped: on touch the long-press hint
+                otherwise lives only in the title tooltip, which a finger never sees. */}
+            {canCustomize && (
+                <span aria-hidden="true" className="pointer-events-none absolute right-0 top-0 h-1.5 w-1.5 rounded-full bg-current opacity-50" />
+            )}`,
+  "slot button customize marker");
+await fs.writeFile(slotButtonPath, slotButton, "utf8");
+
 await fs.mkdir(path.dirname(testPath), { recursive: true });
 
 const testSource = `import { describe, expect, it } from 'vitest';
@@ -166,4 +196,4 @@ if (existingTest && existingTest !== testSource) {
 }
 if (!existingTest) await fs.writeFile(testPath, testSource, "utf8");
 
-console.log("Applied the Lark-derived mobile swipe overlay to Folia's existing player capsule.");
+console.log("Applied the Lark-derived mobile swipe overlay to Folia's existing player capsule; capsule slot buttons reach 44px on coarse pointers and carry a swap marker.");

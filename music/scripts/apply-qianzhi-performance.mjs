@@ -226,6 +226,90 @@ preloader = replaceOnce(
 );
 await write(preloaderPath, preloader);
 
+// The latent background's frame loop kept feeding both shaders and both DOM layers every
+// frame after a pause, long after every smoothed value had eased to its resting look. Once
+// the pause has fully eased out the shaders keep their resting drift speed and the layers
+// hold their resting styles, so the loop goes idle: it skips the shader and layer writes
+// and only keeps a cheap tick, so playback resuming is picked up with no restart wiring.
+const latentPath = resolve(root, 'src/components/visualizer/backgrounds/latent/LatentBackground.tsx');
+let latent = await read(latentPath);
+if (!latent.includes('isLatentAudioSettled')) {
+    latent = replaceOnce(latent,
+        'export const resolveLatentShaderSpeed = (',
+        `/** Every smoothed audio value below this counts as settled: the pause has eased out. */
+export const LATENT_SETTLED_THRESHOLD = 0.005;
+
+/** True once a pause has fully eased out and the background sits at its resting look. */
+export const isLatentAudioSettled = (
+    playing: number,
+    power: number,
+    bass: number,
+    mid: number,
+    beatSpeed: number,
+    onsetPulse: number,
+): boolean => (
+    playing < LATENT_SETTLED_THRESHOLD
+    && power < LATENT_SETTLED_THRESHOLD
+    && bass < LATENT_SETTLED_THRESHOLD
+    && mid < LATENT_SETTLED_THRESHOLD
+    && beatSpeed < LATENT_SETTLED_THRESHOLD
+    && onsetPulse < LATENT_SETTLED_THRESHOLD
+);
+
+export const resolveLatentShaderSpeed = (`,
+        'latent settled helper');
+    latent = replaceOnce(latent,
+        `            smoothedBeatSpeed = easeTowards(
+                smoothedBeatSpeed,
+                beatSpeedTarget,
+                beatSpeedTarget > smoothedBeatSpeed ? 0.42 : 0.14,
+            );
+`,
+        `            smoothedBeatSpeed = easeTowards(
+                smoothedBeatSpeed,
+                beatSpeedTarget,
+                beatSpeedTarget > smoothedBeatSpeed ? 0.42 : 0.14,
+            );
+
+            // Paused and fully eased out: the shaders keep their resting drift speed and the
+            // layers hold their resting styles, so stop feeding them the same values every
+            // frame. The next frame was already scheduled above, so the loop keeps a cheap
+            // idle tick and work resumes on its own when playback does.
+            if (isLatentAudioSettled(playingRef.current, smoothedPower, smoothedBass, smoothedMid, smoothedBeatSpeed, latentOnsetPulse)) return;
+`,
+        'latent idle branch');
+}
+await write(latentPath, latent);
+
+const latentTestPath = resolve(root, 'test/unit/visualizer/latentSettled.test.ts');
+const latentTestSource = `import { describe, expect, it } from 'vitest';
+import { isLatentAudioSettled, LATENT_SETTLED_THRESHOLD } from '@/components/visualizer/backgrounds/latent/LatentBackground';
+
+describe('isLatentAudioSettled', () => {
+    it('pins the settled threshold', () => {
+        expect(LATENT_SETTLED_THRESHOLD).toBe(0.005);
+    });
+
+    it('settles once every smoothed value is below the threshold', () => {
+        expect(isLatentAudioSettled(0, 0, 0, 0, 0, 0)).toBe(true);
+        expect(isLatentAudioSettled(0.004, 0.004, 0.004, 0.004, 0.004, 0.004)).toBe(true);
+    });
+
+    it('stays live while any value is still easing out', () => {
+        expect(isLatentAudioSettled(0.005, 0, 0, 0, 0, 0)).toBe(false);
+        expect(isLatentAudioSettled(0, 0, 0, 0, 0.01, 0)).toBe(false);
+        expect(isLatentAudioSettled(0.5, 0, 0, 0, 0, 0)).toBe(false);
+    });
+});
+`;
+let existingLatentTest = '';
+try { existingLatentTest = await read(latentTestPath); }
+catch (error) { if (error?.code !== 'ENOENT') throw error; }
+if (existingLatentTest && existingLatentTest !== latentTestSource) {
+    throw new Error('Refusing to overwrite an existing latent settled test.');
+}
+if (!existingLatentTest) await write(latentTestPath, latentTestSource);
+
 const performanceTestPath = resolve(root, 'test/unit/utils/qianzhiPerformance.test.ts');
 const performanceTestSource = "import { describe, expect, it } from 'vitest';\nimport { resolveQianzhiPerformanceProfile, shouldAutoReduceQianzhiMotion } from '@/utils/qianzhiPerformance';\n\ndescribe('Qianzhi adaptive performance profile', () => {\n    it('keeps full-quality rendering and normal preload budget on desktop', () => {\n        expect(resolveQianzhiPerformanceProfile({\n            isMobile: false,\n            deviceMemory: 16,\n            hardwareConcurrency: 12,\n        })).toEqual({\n            coverSize: 1024,\n            freezeAnimatedBackground: false,\n            preloadConcurrency: 2,\n            preloadNeighborRadius: 12,\n            initialPreloadCount: 24,\n            networkConstrained: false,\n            reduceComplexMotion: false,\n        });\n    });\n\n    it('reduces cover size, background work and preload traffic on phones', () => {\n        expect(resolveQianzhiPerformanceProfile({\n            isMobile: true,\n            deviceMemory: 8,\n            hardwareConcurrency: 8,\n        })).toEqual({\n            coverSize: 512,\n            freezeAnimatedBackground: true,\n            preloadConcurrency: 1,\n            preloadNeighborRadius: 6,\n            initialPreloadCount: 8,\n            networkConstrained: false,\n            reduceComplexMotion: true,\n        });\n    });\n\n    it('uses the smallest network budget when data saver or a slow connection is active', () => {\n        expect(resolveQianzhiPerformanceProfile({\n            isMobile: false,\n            hardwareConcurrency: 8,\n            saveData: true,\n            effectiveType: '4g',\n        })).toMatchObject({\n            coverSize: 512,\n            freezeAnimatedBackground: true,\n            preloadConcurrency: 1,\n            preloadNeighborRadius: 3,\n            initialPreloadCount: 4,\n            networkConstrained: true,\n            reduceComplexMotion: true,\n        });\n    });\n\n    it('settles animated backgrounds on low-memory or low-core devices', () => {\n        expect(resolveQianzhiPerformanceProfile({\n            isMobile: false,\n            deviceMemory: 4,\n            hardwareConcurrency: 8,\n        }).freezeAnimatedBackground).toBe(true);\n        expect(resolveQianzhiPerformanceProfile({\n            isMobile: false,\n            deviceMemory: 8,\n            hardwareConcurrency: 4,\n        }).freezeAnimatedBackground).toBe(true);\n    });\n\n    it('auto-reduces only complex motion on mobile and constrained devices', () => {\n        const mobile = { isMobile: true, deviceMemory: 8, hardwareConcurrency: 8 };\n        expect(shouldAutoReduceQianzhiMotion('lattice', mobile)).toBe(true);\n        expect(shouldAutoReduceQianzhiMotion('collectionMorph', mobile)).toBe(true);\n        expect(shouldAutoReduceQianzhiMotion('uiMicroMotion', mobile)).toBe(false);\n        expect(shouldAutoReduceQianzhiMotion('settingsScroll', mobile)).toBe(false);\n        expect(shouldAutoReduceQianzhiMotion('lattice', {\n            isMobile: false, deviceMemory: 16, hardwareConcurrency: 12,\n        })).toBe(false);\n    });\n});\n"
 let existingPerformanceTest = '';
@@ -236,4 +320,4 @@ if (existingPerformanceTest && existingPerformanceTest !== performanceTestSource
 }
 if (!existingPerformanceTest) await writeFile(performanceTestPath, performanceTestSource, 'utf8');
 
-console.log('Applied adaptive Qianzhi mobile performance profile: smaller mobile covers, lighter background rendering and bounded cover preloading.');
+console.log('Applied adaptive Qianzhi mobile performance profile: smaller mobile covers, lighter background rendering and bounded cover preloading; the latent background idles once a pause has eased out.');

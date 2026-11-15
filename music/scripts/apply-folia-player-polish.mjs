@@ -67,4 +67,32 @@ if (!latent.includes(opacityScaleMarker)) {
 }
 await write(latentPath, latent);
 
-console.log('Applied Qianzhi player polish: softer latent dithering (defaults 1.6px / 0.30, render scale 0.6 / 0.5).');
+// 3. Narrow-screen type sizes: the player-page clock and the track-change toast label were
+// 10px / 9px, too small to read at a glance on a phone. Both step up only below the sm
+// breakpoint; the toast label keeps its height equal to its leading so the song title does
+// not jump while the label swaps.
+const progressPath = resolve(root, 'src/components/ProgressBar.tsx');
+let progress = await read(progressPath);
+progress = replaceOnce(progress,
+    'className="text-[10px] font-mono font-medium opacity-60 w-8 text-right text-[var(--folium-progress-text)]"',
+    'className="text-xs sm:text-[10px] font-mono font-medium opacity-60 w-8 text-right text-[var(--folium-progress-text)]"',
+    'progress current time size');
+progress = replaceOnce(progress,
+    'className="text-[10px] font-mono font-medium opacity-60 w-8 text-[var(--folium-progress-text)]"',
+    'className="text-xs sm:text-[10px] font-mono font-medium opacity-60 w-8 text-[var(--folium-progress-text)]"',
+    'progress duration size');
+await write(progressPath, progress);
+
+const toastPath = resolve(root, 'src/components/app/overlays/NowPlayingToast.tsx');
+let toast = await read(toastPath);
+toast = replaceOnce(toast,
+    '高度写死成和 leading 一样的 10px：',
+    '高度写死成和 leading 一样（窄屏 12px，宽屏 10px）：',
+    'toast label height comment');
+toast = replaceOnce(toast,
+    'className={`h-[10px] text-[9px] font-semibold uppercase leading-[10px] tracking-[0.14em] select-none ${',
+    'className={`h-3 text-[11px] font-semibold uppercase leading-3 tracking-[0.14em] select-none sm:h-[10px] sm:text-[9px] sm:leading-[10px] ${',
+    'toast label size');
+await write(toastPath, toast);
+
+console.log('Applied Qianzhi player polish: softer latent dithering (defaults 1.6px / 0.30, render scale 0.6 / 0.5); narrow-screen progress clock 12px and toast label 11px.');

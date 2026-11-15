@@ -301,6 +301,11 @@
 .qz-music-connect a { display: inline-block; margin-top: 13px; color: #20242b; font-size: 12px; font-weight: 700; }
 @media (prefers-reduced-motion: reduce) {
   .qz-music-equalizer i { transition: none; transform: scaleY(.18) !important; opacity: .72; }
+  /* The press shrink on the buttons had its own 0.16s transition outside this block. */
+  .qz-music-island-mini-play,
+  .qz-music-island-controls button { transition: none; }
+  .qz-music-island-mini-play:active:not(:disabled),
+  .qz-music-island-controls button:active:not(:disabled) { transform: none; }
 }
 @media (max-width: 420px) {
   .qz-music-island-expanded { border-radius: 22px; padding: 10px 12px 12px; }

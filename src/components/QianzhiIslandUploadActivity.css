@@ -1,0 +1,99 @@
+.qz-upload-island-compact {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: rgba(255,255,255,.96);
+  white-space: nowrap;
+  font-size: 11px;
+  font-weight: 680;
+}
+.qz-upload-island-icon,
+.qz-upload-island-minimal {
+  display: inline-grid;
+  flex: 0 0 auto;
+  place-items: center;
+}
+.qz-upload-island-icon svg,
+.qz-upload-island-minimal svg {
+  display: block;
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.qz-upload-island-minimal {
+  width: 22px;
+  height: 22px;
+  color: #fff;
+}
+.qz-upload-island-percent {
+  color: rgba(255,255,255,.7);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+.qz-upload-island-label {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 0 8px;
+  border-radius: 999px;
+  color: rgba(255,255,255,.78);
+  background: rgba(255,255,255,.1);
+  font-size: 10px;
+  font-weight: 650;
+  white-space: nowrap;
+}
+.qz-upload-island-copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 3px;
+  text-align: left;
+}
+.qz-upload-island-copy strong,
+.qz-upload-island-copy small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.qz-upload-island-copy strong {
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+}
+.qz-upload-island-copy small {
+  color: rgba(255,255,255,.6);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+.qz-upload-island-track {
+  display: block;
+  width: 100%;
+  height: 4px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255,255,255,.14);
+}
+.qz-upload-island-track > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: rgba(255,255,255,.92);
+  transition: width 180ms linear;
+}
+.qz-upload-island-track > span.is-indeterminate {
+  width: 36%;
+  animation: qz-upload-progress 1.2s ease-in-out infinite alternate;
+}
+@keyframes qz-upload-progress {
+  from { transform: translateX(0); }
+  to { transform: translateX(175%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .qz-upload-island-track > span { transition: none; }
+  .qz-upload-island-track > span.is-indeterminate { animation: none; width: 55%; }
+}

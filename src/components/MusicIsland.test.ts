@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { isSameMusicTrack, shouldShowMainIsland } from './MusicIsland';
 import { resolveIslandDockGesture, resolveIslandGestureSource } from './QianzhiMusicIslandActivity';
+import { resolveMetrics } from '../lib/island/config';
+import { qianzhiIslandMetrics } from '../lib/island/qianzhi-metrics';
 
 const track = (overrides = {}) => ({
   title: 'Hello',
@@ -13,6 +15,17 @@ const track = (overrides = {}) => ({
   canNext: true,
   canToggle: true,
   ...overrides,
+});
+
+describe('Qianzhi island geometry profile', () => {
+  it('uses a longer, slimmer capsule than the upstream default', () => {
+    const metrics = resolveMetrics(qianzhiIslandMetrics);
+    expect(metrics.idle.width).toBe(104);
+    expect(metrics.idle.height).toBe(31.5);
+    expect(metrics.compact.sensorWidth).toBe(104);
+    expect(metrics.compact.height).toBe(31.5);
+    expect(metrics.minimal.height).toBe(31.5);
+  });
 });
 
 describe('isSameMusicTrack', () => {

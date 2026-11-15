@@ -82,7 +82,7 @@ export const MusicCompactContent = () => {
   const { track } = useMusicIslandState();
   if (!track) return null;
   return (
-    <span className="qz-island-compact">
+    <span className={'qz-island-compact' + (track.isPlaying ? '' : ' is-paused')}>
       <AlbumArt size={22} />
       <span className="qz-island-compact-title qz-island-track-label" key={`${track.title}-${track.artist}`}>{track.title}</span>
     </span>
@@ -122,9 +122,26 @@ const MusicExpandedClose = () => {
 
 const MusicExpandedControls = () => {
   const { track, connected, sendCommand, openMusic, seekDraft, setSeekDraft, commitSeekDraft, cancelSeekDraft } = useMusicIslandState();
+  const [smoothTime, setSmoothTime] = useState(track ? track.currentTime : 0);
+  const anchorRef = useRef({ time: track ? track.currentTime : 0, at: Date.now() });
+  // 桥每 700ms 才推一次整秒进度，进度条会一格一格跳；播放时在两次推送之间
+  // 本地按 120ms 一格往前补，滑块和时间走得顺滑。拖动时以手指为准，不补。
+  useEffect(() => {
+    anchorRef.current = { time: track ? track.currentTime : 0, at: Date.now() };
+    setSmoothTime(track ? track.currentTime : 0);
+  }, [track ? track.currentTime : 0, track ? track.title : '']);
+  useEffect(() => {
+    if (!track || !track.isPlaying || seekDraft !== null || track.duration <= 0) return;
+    const timer = window.setInterval(() => {
+      const elapsed = (Date.now() - anchorRef.current.at) / 1000;
+      setSmoothTime(Math.min(track.duration, anchorRef.current.time + elapsed));
+    }, 120);
+    return () => window.clearInterval(timer);
+  }, [track ? track.isPlaying : false, seekDraft, track ? track.duration : 0]);
   if (!track) return null;
   const duration = Math.max(1, track.duration);
-  const progress = Math.min(track.duration || 0, seekDraft ?? track.currentTime);
+  const shownTime = seekDraft ?? smoothTime;
+  const progress = Math.min(track.duration || 0, shownTime);
   const progressPercent = track.duration > 0 ? Math.min(100, Math.max(0, (progress / track.duration) * 100)) : 0;
   return (
     <div className="qz-island-expanded-bottom">
@@ -144,7 +161,7 @@ const MusicExpandedControls = () => {
           aria-label="歌曲播放进度"
           disabled={!connected || track.duration <= 0}
         />
-        <div><span>{formatTime(track.currentTime)}</span><span>{formatTime(track.duration)}</span></div>
+        <div><span>{formatTime(shownTime)}</span><span>{formatTime(track.duration)}</span></div>
       </div>
       <div className="qz-island-controls">
         <button type="button" onClick={() => sendCommand('previous')} disabled={!connected || !track.canPrevious} aria-label="上一首">

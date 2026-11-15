@@ -79,13 +79,13 @@ import GlobalSearch from './components/GlobalSearch';
 import MusicIsland from './components/MusicIsland';
 import { BRAND_NAME, BRAND_SUBTITLE, resolveBrandTitle, resolveBrandSubtitle } from './lib/brand';
 
-// Dock 保留四个高频入口：首页、回忆、私聊、我的。（2026-11-15 用户定：
-// 「班级」取消——成员列表页已在 PR #462 下线，不恢复；「发现」等其余页面
-// 通过长按 Dock 打开的玻璃快捷面板访问。）
+// Dock 保留四个高频入口：首页、发现、私聊、我的。（2026-11-15 用户定：
+// 第二栏改回「发现」，取代 PR #518 的「回忆」；「回忆」退回长按 Dock 打开的
+// 玻璃快捷面板。「班级」取消——成员列表页已在 PR #462 下线，不恢复。）
 type DockKind = 'home' | 'memories' | 'explore' | 'friends' | 'me';
 const TABS: { to: string; label: string; kind: DockKind }[] = [
   { to: '/home', label: '首页', kind: 'home' },
-  { to: '/timeline', label: '回忆', kind: 'memories' },
+  { to: '/explore', label: '发现', kind: 'explore' },
   { to: '/friends', label: '私聊', kind: 'friends' },
   { to: '/me', label: '我的', kind: 'me' },
 ];
@@ -136,7 +136,7 @@ function DockIcon({ kind, unread = false }: {
 }
 
 const DOCK_MORE_TABS = [
-  { to: '/explore', label: '发现' },
+  { to: '/timeline', label: '回忆' },
   { to: '/board', label: '公告' },
   { to: '/me/notifications', label: '消息' },
   { to: '/songs', label: '歌声墙' },

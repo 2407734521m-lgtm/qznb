@@ -7,9 +7,6 @@ import './MeHub.css';
 import './MeHub.polish.css';
 import NumberTicker from '../components/fx/NumberTicker';
 import BlurImg from '../components/fx/BlurImg';
-import { useQuietHoursActive } from '../lib/userPreferences';
-
-type Entry = { mark: string; title: string; note: string; to: string; badge?: string };
 
 type GameProfile = { game_name: string; rank: string | null; status: string };
 type ModerationRestriction = {
@@ -71,23 +68,15 @@ const restrictionCopy: Record<ModerationRestriction['action_type'], { title: str
     detail: '动态、评论、私聊等互动功能暂不可用。',
   },
 };
-const groups: { title: string; note: string; entries: Entry[] }[] = [
-  { title: '设置', note: '管理账号、隐私与偏好', entries: [
-    { mark: '设置', title: '设置', note: '账号安全、隐私、通知、内容与帮助', to: '/me/settings' },
-  ]},
-];
-
 export default function MeHub() {
   const nav = useNavigate();
   const me = useAuth().session!.user.id;
-  const quietHoursActive = useQuietHoursActive(me);
   const [name, setName] = useState('');
   const [username, setUsername] = useState('');
   const [profileTitle, setProfileTitle] = useState<string | null>(null);
   const [gameProfile, setGameProfile] = useState<GameProfile | null>(null);
   const [accountStatus, setAccountStatus] = useState<AccountStatus | null>(null);
   const [avatar, setAvatar] = useState<string | null>(null);
-  const [unread, setUnread] = useState(0);
   const [stats, setStats] = useState({ posts: 0, comments: 0, photos: 0, likes: 0, loading: true });
   const [feed, setFeed] = useState<FeedItem[]>([]);
   const [feedLoading, setFeedLoading] = useState(true);
@@ -146,9 +135,7 @@ export default function MeHub() {
           restrictions: Array.isArray(status.restrictions) ? status.restrictions as ModerationRestriction[] : [],
         });
       }
-      const [{ count }, postRows, commentCount, photoCount] = await Promise.all([
-        supabase.from('notifications').select('id', { count: 'exact', head: true })
-          .eq('profile_id', me).eq('is_read', false),
+      const [postRows, commentCount, photoCount] = await Promise.all([
         supabase.from('posts').select('id').eq('author_id', me).is('deleted_at', null),
         supabase.from('comments').select('id', { count: 'exact', head: true }).eq('author_id', me).is('deleted_at', null),
         supabase.from('album_photos').select('id', { count: 'exact', head: true }).eq('uploaded_by', me),
@@ -160,7 +147,6 @@ export default function MeHub() {
         likes = likeCount ?? 0;
       }
       if (alive) {
-        setUnread(count ?? 0);
         setStats({ posts: ownPostIds.length, comments: commentCount.count ?? 0, photos: photoCount.count ?? 0, likes, loading: false });
       }
     })().catch(() => {
@@ -241,10 +227,6 @@ export default function MeHub() {
     if (item.kind === 'post') nav(item.section === 'daily' ? '/daily' : '/feed', { state: { searchQuery: String(item.content || '').slice(0, 32) } });
     else if (item.kind === 'love') nav('/love-wall?mine=1');
     else nav('/questions');
-  }
-
-  function go(entry: Entry) {
-    nav(entry.to);
   }
 
   return (
@@ -422,29 +404,9 @@ export default function MeHub() {
         )}
       </section>
 
-      <div className="me-hub-groups">
-        {groups.map(group => (
-          <section className="me-hub-group" key={group.title}>
-            <header className="me-hub-group-head">
-              <div><h2>{group.title}</h2><p>{group.note}</p></div>
-            </header>
-            <div className="me-hub-grid">
-              {group.entries.map(entry => (
-                <button className="me-hub-tile" key={entry.title} onClick={() => go(entry)}>
-                  <span className="me-hub-mark">{entry.mark}</span>
-                  <span className="me-hub-tile-copy">
-                    <strong>{entry.title}</strong>
-                    <small>{entry.note}</small>
-                  </span>
-                  {entry.badge === 'unread' && unread > 0 && !quietHoursActive
-                    ? <span className="me-hub-unread"><span className="me-hub-dot" />{unread} 条未读</span>
-                    : <span className="me-hub-arrow">›</span>}
-                </button>
-              ))}
-            </div>
-          </section>
-        ))}
-      </div>
+      <button type="button" className="me-hub-settings-btn" onClick={() => nav('/me/settings')}>
+        <span>设置</span><span aria-hidden="true">›</span>
+      </button>
     </main>
   );
 }

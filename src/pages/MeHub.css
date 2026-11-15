@@ -505,3 +505,10 @@
 @media (prefers-reduced-motion: reduce) {
   .me-hub-feed-card, .me-hub-feed-filters button, .me-hub-feed-more-btn { transition: none !important; }
 }
+
+/* 个人中心底部的设置按钮：通栏按钮，不再是卡片入口。 */
+.me-hub-settings-btn { display: flex; align-items: center; justify-content: space-between; width: 100%; min-height: 52px; margin-top: 14px; padding: 0 18px; border: 1px solid rgba(166, 207, 211, .7); border-radius: 14px; background: #fff; color: #1b6875; font-size: 15px; cursor: pointer; }
+.me-hub-settings-btn span:last-child { font-size: 20px; }
+@media (prefers-reduced-motion: reduce) {
+  .me-hub-settings-btn { transition: none !important; }
+}

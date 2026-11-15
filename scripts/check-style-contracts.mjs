@@ -49,6 +49,11 @@ assert((home.includes('className="vh-load-state"') || home.includes('FeedSkeleto
 assert(home.includes('setReloadKey(value => value + 1)'), 'the homepage error state must offer a retry action');
 assert(home.includes('<Link') && homeCss.includes('.vh-hero:focus-visible') && homeCss.includes('.vh-feed-row:focus-visible'), 'homepage navigation links must have visible keyboard focus');
 assert(/body:has\(\.vibe-home\)\s*\{[^}]*background:\s*#ffffff\s*!important/s.test(homeCss), 'the homepage canvas must stay white');
+assert(/\.vibe-home\s*\{[^}]*background:\s*#fff\s*;/s.test(homeCss), 'the signed-in homepage surface must stay pure white');
+assert(!/\.vibe-home\s*\{[^}]*background:\s*#f7f8f8/s.test(homeCss), 'the homepage must not restore the retired off-white canvas');
+assert(/\.vh-wall-card:hover\s*\{[^}]*transform:\s*translateY\(-2px\)/s.test(homeCss), 'homepage wall cards must have restrained desktop hover feedback');
+assert(homeCss.includes('background: var(--qz-accent-soft, #eef2f7);'), 'selected homepage filters must use the shared soft accent surface rather than a dark block');
+assert(/@media\s*\(prefers-reduced-motion:\s*reduce\)[\s\S]*?\.vh-wall-card[\s\S]*?transition:\s*none\s*!important/s.test(homeCss), 'homepage wall motion must respect reduced-motion preferences');
 assert(!/body:has\(\.vibe-home\)\s+\.app-bg[^}]*display:\s*none\s*!important/s.test(homeCss), 'the homepage must not hide the user wallpaper layer');
 assert(!/\.glow\s*,\s*\.app-bg\s*\{[^}]*display:\s*none\s*!important/s.test(baseStyles), 'the base white theme must not hide the wallpaper layer');
 assert(!/\.glow\s*,\s*\.app-bg\s*\{[^}]*display:\s*none\s*!important/s.test(editorialStyles), 'the editorial theme must not hide the wallpaper layer');

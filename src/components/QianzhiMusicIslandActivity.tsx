@@ -278,7 +278,9 @@ export const MusicIslandView = ({
           dockTimerRef.current = null;
         };
         if (waitForCollapse) {
-          dockTimerRef.current = window.setTimeout(dock, 460);
+          // The fitted collapse tail has delayed width/height settle legs at +0.56–0.61s.
+          // Let the critical-damped tail reach sub-pixel error before clipping the host.
+          dockTimerRef.current = window.setTimeout(dock, 900);
         } else {
           dock();
         }

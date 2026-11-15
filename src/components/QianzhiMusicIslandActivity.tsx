@@ -228,6 +228,7 @@ export const MusicIslandView = ({
   hostRef: RefObject<HTMLDivElement | null>;
 }) => {
   const [docked, setDocked] = useState(false);
+  const [fullscreenSuppressed, setFullscreenSuppressed] = useState(false);
   const gestureRef = useRef<IslandDockGesture | null>(null);
   const dockTimerRef = useRef<number | null>(null);
   const collapseRef = useRef(value.collapse);
@@ -236,6 +237,18 @@ export const MusicIslandView = ({
   const previousActivityIdsRef = useRef(value.activityIds);
   collapseRef.current = value.collapse;
   isExpandedRef.current = value.isExpanded;
+
+  useEffect(() => {
+    const syncFullscreen = () => {
+      const fullscreenElement = document.fullscreenElement;
+      // The browser only paints descendants of the active fullscreen element. Hide the
+      // viewport island when it would otherwise be silently clipped outside that surface.
+      setFullscreenSuppressed(Boolean(fullscreenElement && !fullscreenElement.contains(hostRef.current)));
+    };
+    syncFullscreen();
+    document.addEventListener('fullscreenchange', syncFullscreen);
+    return () => document.removeEventListener('fullscreenchange', syncFullscreen);
+  }, [hostRef]);
 
   useEffect(() => {
     // Start in the native capture phase so Android touch pointers are recorded before any
@@ -364,18 +377,18 @@ export const MusicIslandView = ({
   return (
     <MusicIslandContext.Provider value={value}>
       <>
-        <QianzhiIslandTaskDrawer docked={docked} />
+        <QianzhiIslandTaskDrawer docked={docked || fullscreenSuppressed} />
         <div
           ref={hostRef}
-          className={'qz-island-host' + (docked ? ' is-docked' : '')}
+          className={'qz-island-host' + (docked ? ' is-docked' : '') + (fullscreenSuppressed ? ' is-fullscreen-suppressed' : '')}
           data-docked={docked ? 'true' : 'false'}
-          aria-hidden={docked || undefined}
+          aria-hidden={docked || fullscreenSuppressed || undefined}
         >
           <Island
             placement="viewport"
             label="堯实时活动"
             keyline="off"
-            style={{ top: 'max(env(safe-area-inset-top, 0px), 18px)', zIndex: 4001 }}
+            style={{ top: 'var(--qz-island-anchor-top, max(env(safe-area-inset-top, 0px), 18px))', zIndex: 4001 }}
           />
         </div>
         {docked && (

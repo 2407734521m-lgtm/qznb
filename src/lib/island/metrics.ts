@@ -11,9 +11,9 @@ export const islandMetrics = {
   /** Gap from the top of the screen (or container) to the top of the pill (13.91 in every capsule state). */
   top: 13.91,
   /** Resting pill with no activity: the hardware cutout (153.58 to 248.43, centred on the screen). */
-  idle: { width: 94.85, height: 36.84 },
+  idle: { width: 94.85, height: 33.5 },
   compact: {
-    height: 36.85,
+    height: 33.5,
     /** Width kept clear in the middle for the camera and sensors (the idle pill). */
     sensorWidth: 94.85,
     /**
@@ -28,7 +28,7 @@ export const islandMetrics = {
      */
     innerPadding: { leading: -0.18, trailing: 0.07 },
     /** Widest a leading or trailing slot may grow. */
-    maxSlotWidth: 72,
+    maxSlotWidth: 88,
     /** Each side fits its own content, so the pill sits slightly off centre when they differ. */
     maxWidth: 260,
     /**
@@ -42,7 +42,7 @@ export const islandMetrics = {
     balance: 0.7475,
   },
   minimal: {
-    height: 36.85,
+    height: 33.5,
     /** Attached pill: the content sits left of the sensor with this padding on each side of it. */
     attached: { outerPadding: 7.09, innerPadding: 8.4 },
     /** Detached capsule: padding either side of its content, never narrower than a circle. */

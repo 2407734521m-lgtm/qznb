@@ -11,7 +11,7 @@
   align-items: center;
   gap: 5px;
   min-width: 0;
-  max-width: 72px;
+  max-width: 88px;
   overflow: hidden;
   white-space: nowrap;
   pointer-events: none;
@@ -39,7 +39,7 @@
 .qz-island-compact-title {
   display: block;
   min-width: 0;
-  max-width: 43px;
+  max-width: 58px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

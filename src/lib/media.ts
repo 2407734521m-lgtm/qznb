@@ -222,7 +222,7 @@ export async function downloadMediaWithProgress(
     throw new Error('下载链接协议不受支持');
   }
   let storageOrigin = '';
-  try { storageOrigin = new URL(supabaseBaseUrl).origin; } catch { /* The configured URL is validated during app startup. */ }
+  try { if (supabaseBaseUrl) storageOrigin = new URL(supabaseBaseUrl).origin; } catch { /* The configured URL is validated during app startup. */ }
   if (parsed.origin !== window.location.origin && parsed.origin !== storageOrigin) {
     throw new Error('下载链接不属于本站或聊天存储服务');
   }

@@ -73,6 +73,41 @@ function PostListShell({ embedded, side, children }: { embedded: boolean; side: 
   );
 }
 
+function PostListEmptyState({ title, description, actionLabel, onAction, compact = false }: {
+  title: string;
+  description: string;
+  actionLabel?: string;
+  onAction?: () => void;
+  compact?: boolean;
+}) {
+  return (
+    <section className={`postlist-empty-state${compact ? ' is-compact' : ''}`} aria-live="polite">
+      {!compact && (
+        <div className="postlist-empty-state__art" aria-hidden="true">
+          <svg viewBox="0 0 136 96" role="presentation">
+            <ellipse cx="68" cy="83" rx="39" ry="5" fill="#edf1f4" />
+            <rect x="34" y="20" width="68" height="53" rx="13" fill="#fff" stroke="#dfe5ea" strokeWidth="1.5" />
+            <path d="M48 38h39M48 47h28" fill="none" stroke="#c8d2dc" strokeWidth="3" strokeLinecap="round" />
+            <path d="M48 59h15" fill="none" stroke="#c8d2dc" strokeWidth="3" strokeLinecap="round" />
+            <path d="M82 56l5 5 11-13" fill="none" stroke="#b0404f" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M22 26l2 5 5 2-5 2-2 5-2-5-5-2 5-2z" fill="#d9e4ec" />
+            <circle cx="111" cy="35" r="4" fill="#e8edf1" />
+          </svg>
+        </div>
+      )}
+      <div className="postlist-empty-state__copy">
+        <h2>{title}</h2>
+        <p>{description}</p>
+        {actionLabel && onAction && (
+          <button type="button" onClick={onAction}>
+            {actionLabel}<span aria-hidden="true">→</span>
+          </button>
+        )}
+      </div>
+    </section>
+  );
+}
+
 /** 右栏信息卡：只展示已加载数据的派生统计，不新增任何请求。 */
 function PostListSidePanels({ section, loadedCount, myCount, totalLikes }: {
   section: PostSection; loadedCount: number; myCount: number; totalLikes: number;
@@ -139,6 +174,7 @@ export default function PostList({ section, searchQuery = '', embedded = false, 
   const [feedScope, setFeedScope] = useState<'all' | 'friends'>('all');
   const [friendIds, setFriendIds] = useState<string[]>([]);
   const fref = useRef<HTMLInputElement>(null);
+  const composerRef = useRef<HTMLTextAreaElement>(null);
 
   async function refreshImpressionPolls(postIds: number[]) {
     if (!postIds.length) return;
@@ -505,6 +541,12 @@ export default function PostList({ section, searchQuery = '', embedded = false, 
   // 右栏“本页”统计：只由已加载的数据派生，不新增请求。
   const myPostCount = visiblePosts.filter(post => post.author_id === me).length;
   const totalLikes = visiblePosts.reduce((sum, post) => sum + (likes[post.id] || 0), 0);
+  const focusComposer = () => {
+    const composer = composerRef.current;
+    if (!composer) return;
+    composer.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'center' });
+    composer.focus({ preventScroll: true });
+  };
 
   return (
     <div className={isFeed ? 'page feed-page postlist-longform' : 'page postlist-longform'}>
@@ -531,7 +573,7 @@ export default function PostList({ section, searchQuery = '', embedded = false, 
         {searchQuery.trim() && <div className="feed-search-banner">搜索日常：{searchQuery}<button type="button" onClick={() => nav('/daily', { replace: true })}>清除搜索</button></div>}
       </>}
       <div className="composer">
-        <textarea value={text} onChange={e => setText(e.target.value)} placeholder={isFeed ? '写下此刻的想法，分享给大家…' : (embedded ? '分享点什么…' : '分享今天的小日常…')} rows={3} maxLength={2000} />
+        <textarea ref={composerRef} value={text} onChange={e => setText(e.target.value)} placeholder={isFeed ? '写下此刻的想法，分享给大家…' : (embedded ? '分享点什么…' : '分享今天的小日常…')} rows={3} maxLength={2000} />
         {isFeed && <div className="impression-composer-actions">
           <button type="button" className={impressionEnabled ? 'impression-toggle is-active' : 'impression-toggle'}
             aria-expanded={impressionEnabled} aria-controls="impression-poll-builder"
@@ -711,8 +753,22 @@ export default function PostList({ section, searchQuery = '', embedded = false, 
         </div>
       )}
       {showSkeleton && <FeedSkeleton count={2} />}
-      {isFeed && !initialLoading && visiblePosts.length === 0 && <div className="center" style={{ minHeight: 200 }}><div className="card">{searchQuery.trim() ? '没有找到匹配的动态。' : feedScope === 'friends' ? '暂时没有好友动态。添加好友后，这里会显示他们分享的内容。' : '还没有动态，来发第一条吧'}</div></div>}
-      {!isFeed && !initialLoading && posts.length === 0 && <div className="center" style={{ minHeight: 200 }}><div className="card">{embedded ? '还没有帖子，来发第一条吧' : '还没有日常，来发第一条吧'}</div></div>}
+      {isFeed && !initialLoading && visiblePosts.length === 0 && (
+        searchQuery.trim()
+          ? <PostListEmptyState compact title="没有找到匹配的动态" description="换个关键词，或清除搜索条件再试试。" />
+          : feedScope === 'friends'
+            ? <PostListEmptyState compact title="好友动态暂时安静" description="可以先看看全部动态，或者稍后再来。"
+                actionLabel="查看全部动态" onAction={() => setFeedScope('all')} />
+            : <PostListEmptyState title="这里还没有动态" description="从一句话开始，让这里慢慢有了新鲜的分享。"
+                actionLabel="发布第一条动态" onAction={focusComposer} />
+      )}
+      {!isFeed && !initialLoading && posts.length === 0 && (
+        searchQuery.trim()
+          ? <PostListEmptyState compact title="没有找到匹配的内容" description="换个关键词，或清除搜索条件再试试。" />
+          : <PostListEmptyState title={embedded ? "这里还没有帖子" : "这里还没有日常"}
+              description={embedded ? "分享一个想法，开启下一段对话。" : "记录今天的小事，给生活留下一点痕迹。"}
+              actionLabel={embedded ? "发布第一条帖子" : "记录第一条日常"} onAction={focusComposer} />
+      )}
       </PostListShell>
     </div>
   );

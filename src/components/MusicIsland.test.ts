@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { isSameMusicTrack, shouldShowMainIsland } from './MusicIsland';
+import { resolveIslandDockGesture } from './QianzhiMusicIslandActivity';
 
 const track = (overrides = {}) => ({
   title: 'Hello',
@@ -27,6 +28,24 @@ describe('isSameMusicTrack', () => {
     expect(isSameMusicTrack(track(), track({ coverUrl: null }))).toBe(false);
     expect(isSameMusicTrack(track(), null)).toBe(false);
     expect(isSameMusicTrack(null, track())).toBe(false);
+  });
+});
+
+
+describe('resolveIslandDockGesture', () => {
+  it('docks on a clear upward swipe from the capsule', () => {
+    expect(resolveIslandDockGesture('island', 12, -50)).toBe('dock');
+    expect(resolveIslandDockGesture('island', 8, -43)).toBe(null);
+  });
+
+  it('restores on a downward swipe from the exposed edge', () => {
+    expect(resolveIslandDockGesture('peek', 8, 28)).toBe('restore');
+    expect(resolveIslandDockGesture('peek', 8, 27)).toBe(null);
+  });
+
+  it('ignores predominantly horizontal movement', () => {
+    expect(resolveIslandDockGesture('island', 82, -50)).toBe(null);
+    expect(resolveIslandDockGesture('peek', -90, 40)).toBe(null);
   });
 });
 

@@ -6,6 +6,81 @@
   pointer-events: none;
 }
 
+/* Swipe the complete capsule above the viewport; retain only a small glass edge. */
+.qz-island-host {
+  transform: translate3d(0, 0, 0);
+  transition: transform 520ms cubic-bezier(.2, .86, .22, 1);
+  will-change: transform;
+}
+
+.qz-island-host.is-docked {
+  transform: translate3d(
+    0,
+    calc(0px - max(env(safe-area-inset-top, 0px), 18px) - 13.91px - 33.5px + 7px),
+    0
+  );
+}
+
+.qz-island-host [data-islandcn-hit="pill"],
+.qz-island-host [data-islandcn-hit="bubble"] {
+  touch-action: none;
+}
+
+.qz-island-peek {
+  position: fixed;
+  top: 0;
+  left: 50%;
+  z-index: 1202;
+  display: block;
+  width: min(112px, 32vw);
+  height: 28px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  transform: translateX(-50%);
+  background: transparent;
+  cursor: pointer;
+  pointer-events: auto;
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.qz-island-peek::before {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 8px;
+  border: 1px solid rgba(255,255,255,.13);
+  border-top: 0;
+  border-radius: 0 0 999px 999px;
+  background: rgba(7,8,12,.78);
+  box-shadow:
+    0 3px 14px rgba(0,0,0,.2),
+    inset 0 -1px rgba(255,255,255,.1);
+  -webkit-backdrop-filter: blur(18px) saturate(1.35);
+  backdrop-filter: blur(18px) saturate(1.35);
+  content: "";
+  transition: height 220ms cubic-bezier(.2,.8,.2,1), background 220ms ease;
+}
+
+.qz-island-peek:active::before {
+  height: 10px;
+  background: rgba(7,8,12,.88);
+}
+
+.qz-island-peek:focus-visible {
+  outline: 2px solid rgba(10,132,255,.8);
+  outline-offset: 2px;
+  border-radius: 0 0 999px 999px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .qz-island-host { transition: none; }
+  .qz-island-peek::before { transition: none; }
+}
+
+
 .qz-island-compact {
   display: inline-flex;
   align-items: center;

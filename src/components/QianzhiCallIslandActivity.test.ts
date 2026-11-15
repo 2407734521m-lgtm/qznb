@@ -25,7 +25,7 @@ describe('Qianzhi call island activity', () => {
       muted: true,
     });
 
-    expect(activity.alert).toBeUndefined();
+    expect(activity.alert).toBe(false);
     expect(activity.priority).toBeGreaterThan(100);
     expect(activity.label).toContain('同学 B');
     expect(activity.compact?.trailing).toBeTruthy();

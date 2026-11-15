@@ -6,6 +6,7 @@ import { supabase } from '../lib/supabase';
 import { timeAgo } from '../lib/time';
 import VisitCounter from '../components/VisitCounter';
 import Marquee from '../components/fx/Marquee';
+import BorderBeam from '../components/fx/BorderBeam';
 import { InlineLoading, useDelayedLoading } from '../components/fx/Skeleton';
 import { isInApp } from '../lib/installedApp';
 import './Home.vibe.css';
@@ -241,6 +242,7 @@ export default function Home() {
           <div className="vh-notices">
             {notices.map((n, i) => (
               <button className={`vh-notice${i === 0 ? ' vh-notice-first' : ''}`} key={n.id} onClick={() => setAnnPop(n)}>
+                {i === 0 && <BorderBeam duration={8} />}
                 <span className="vh-notice-tag">{i === 0 ? '最新公告' : '站内消息'}</span>
                 <strong>{n.title || '公告'}</strong>
                 <p>{(n.content || '').slice(0, 160)}</p>

@@ -23,6 +23,7 @@
   padding: 22px;
 }
 .call-card {
+  position: relative;
   width: min(340px,100%);
   padding: 30px 24px 24px;
   border: 1px solid rgba(255,255,255,.92);
@@ -76,3 +77,28 @@
   background:#edf4ff; color:#2874cf; font-size:13px;
 }
 @media(prefers-reduced-motion:reduce) { .call-btn { transition:none; } }
+
+
+/* Keep the active call controls available while letting the island remain visible. */
+.call-minimize {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border: 1px solid #e5e9ef;
+  border-radius: 50%;
+  background: rgba(246,248,251,.94);
+  color: #53647c;
+  font: inherit;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform .16s ease, background .16s ease;
+}
+.call-minimize:active { transform: scale(.92); background: #eaf2ff; }
+.call-minimize:focus-visible { outline: 2px solid #087cff; outline-offset: 3px; }
+@media (prefers-reduced-motion: reduce) { .call-minimize { transition: none; } }

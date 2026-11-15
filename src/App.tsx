@@ -17,6 +17,7 @@ import { readCachedUserPreferences, useQuietHoursActive } from './lib/userPrefer
 import { useIslandActions } from './lib/island';
 import { combineIslandAlertBatch, showIslandAlert } from './components/QianzhiIslandAlert';
 import { createUploadIslandActivity } from './components/QianzhiIslandUploadActivity';
+import QianzhiIslandNavigationActivity from './components/QianzhiIslandNavigationActivity';
 import type { MediaUploadIslandEvent } from './lib/media';
 import { lazyWithRetry } from './lib/lazyWithRetry';
 // 只在特定时刻才出现的覆盖层/弹窗：懒加载，不占首屏包体积。
@@ -1322,7 +1323,7 @@ function Shell() {
             animate={isImmersivePage ? { opacity: 1 } : { opacity: 1, y: 0, scale: 1 }}
             exit={reduce ? { opacity: 1 } : isImmersivePage ? { opacity: 0 } : { opacity: 0, y: -7, scale: 0.996 }}
             transition={{ duration: reduce ? 0 : DUR.base + 0.06, ease: EASE }}>
-            <Suspense fallback={<RouteLoading />}>
+            <Suspense fallback={<><RouteLoading /><QianzhiIslandNavigationActivity /></>}>
             <Routes location={loc}>
               <Route path="/" element={<Navigate to="/home" replace />} />
               <Route path="/board" element={<Board />} />

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
@@ -106,7 +106,7 @@ function MessageContent({ body }: { body: string }) {
   const fileSize = fileParts && fileParts[2] ? Number(fileParts[2]) : 0;
   const url = useSignedUrl('chat-media', imagePath ?? audioPath ?? filePath);
   const [downloading, setDownloading] = useState(false);
-  const handleDownload = async (event: React.MouseEvent<HTMLButtonElement>) => {
+  const handleDownload = async (event: ReactMouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
     event.stopPropagation();
     if (!url || downloading) return;

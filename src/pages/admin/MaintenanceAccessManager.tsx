@@ -35,9 +35,15 @@ export default function MaintenanceAccessManager({ setMsg }: { setMsg: (s: strin
       p_valid_minutes: Number(minutes), p_max_uses: Number(maxUses),
     });
     setBusy(false);
-    if (error || !data?.code) { setMsg('验证码生成失败：' + (error?.message || '请检查数据库迁移是否已执行')); return; }
-    setCode(String(data.code));
-    setExpiresAt(String(data.expires_at || ''));
+    const payload = data && typeof data === 'object' && !Array.isArray(data)
+      ? data as Record<string, unknown>
+      : {};
+    if (error || typeof payload.code !== 'string' || !payload.code) {
+      setMsg('验证码生成失败：' + (error?.message || '请检查数据库迁移是否已执行'));
+      return;
+    }
+    setCode(payload.code);
+    setExpiresAt(typeof payload.expires_at === 'string' ? payload.expires_at : '');
     setMsg('临时通行码已生成。请及时复制并发送给需要进入的人。');
     await alog('maintenance_code_created', { valid_minutes: Number(minutes), max_uses: Number(maxUses) });
   }
@@ -75,7 +81,10 @@ export default function MaintenanceAccessManager({ setMsg }: { setMsg: (s: strin
     setBusy(false);
     if (error) { setMsg('撤销失败：' + error.message); return; }
     setCode(''); setExpiresAt('');
-    setMsg(data?.ok ? '已立即撤销，相关临时访问会话也已失效。' : '当前没有有效通行码。');
+    const payload = data && typeof data === 'object' && !Array.isArray(data)
+      ? data as Record<string, unknown>
+      : {};
+    setMsg(payload.ok === true ? '已立即撤销，相关临时访问会话也已失效。' : '当前没有有效通行码。');
     await alog('maintenance_codes_revoked', {});
   }
 

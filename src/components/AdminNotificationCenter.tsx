@@ -128,7 +128,7 @@ export default function AdminNotificationCenter({ setMsg }: { setMsg: (s: string
       p_title: noticeTitle.trim(),
       p_body: noticeBody.trim(),
       p_link: link,
-      p_recipient_ids: allRecipients ? null : selectedRecipients,
+      p_recipient_ids: allRecipients ? undefined : selectedRecipients,
     });
     setSending(false);
     if (error) {

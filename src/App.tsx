@@ -253,8 +253,14 @@ function MaintenanceScreen({ title, msg, allowCode, hasSession, onLogout, onAcce
     try {
       const { data, error: rpcError } = await supabase.rpc('maintenance_redeem_code', { p_code: code });
       if (rpcError) throw rpcError;
-      if (!data?.ok || !data?.token) { setError(data?.message || '验证码无效、已过期或已撤销'); return; }
-      try { sessionStorage.setItem('ca_maintenance_access', data.token); } catch {}
+      const payload = data && typeof data === 'object' && !Array.isArray(data)
+        ? data as Record<string, unknown>
+        : {};
+      if (payload.ok !== true || typeof payload.token !== 'string' || !payload.token) {
+        setError(typeof payload.message === 'string' ? payload.message : '验证码无效、已过期或已撤销');
+        return;
+      }
+      try { sessionStorage.setItem('ca_maintenance_access', payload.token); } catch {}
       setCode('');
       onAccessGranted();
     } catch (e: any) {

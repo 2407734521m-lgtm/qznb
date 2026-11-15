@@ -59,7 +59,7 @@ export default function FeedbackTab({ me, isSuper, setMsg }: { me: string; isSup
     const { error } = await supabase.rpc('admin_update_feedback', {
       p_feedback_id: fb.id,
       p_status: status,
-      p_admin_note: note || null,
+      p_admin_note: note || undefined,
     });
     setBusyId(null);
     if (error) {

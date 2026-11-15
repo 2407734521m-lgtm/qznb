@@ -192,7 +192,7 @@ export default function AdminReviewCenter({ me, isSuper, setMsg, go }: {
     if (note.length > 500) { setMsg('给用户的处理说明不能超过 500 字。'); return; }
     setBusyKey('fb-' + f.id);
     const { error } = await supabase.rpc('admin_update_feedback', {
-      p_feedback_id: f.id, p_status: status, p_admin_note: note || null,
+      p_feedback_id: f.id, p_status: status, p_admin_note: note || undefined,
     });
     setBusyKey(null);
     if (error) { setMsg('更新反馈失败：' + error.message); return; }

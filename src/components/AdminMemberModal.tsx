@@ -95,12 +95,12 @@ export default function AdminMemberModal({ memberId, onClose, onChanged, isSuper
     const ageNum = form.age.trim() === '' ? null : parseInt(form.age, 10);
     const { error } = await supabase.rpc('admin_update_profile', {
       target: memberId,
-      p_display_name: form.display_name.trim() || null,
-      p_signature: form.signature.trim() || null,
-      p_bio: form.bio.trim() || null,
-      p_personality: form.personality.trim() || null,
-      p_hobbies: form.hobbies.trim() || null,
-      p_age: ageNum,
+      p_display_name: form.display_name.trim() || undefined,
+      p_signature: form.signature.trim() || undefined,
+      p_bio: form.bio.trim() || undefined,
+      p_personality: form.personality.trim() || undefined,
+      p_hobbies: form.hobbies.trim() || undefined,
+      p_age: ageNum ?? undefined,
     });
     setBusy(false);
     if (error) { setMsg('保存失败：' + error.message); return; }

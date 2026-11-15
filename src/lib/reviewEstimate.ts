@@ -22,13 +22,25 @@ export async function fetchReviewEstimates(): Promise<ReviewEstimates | null> {
   try {
     const { data, error } = await supabase.rpc('my_review_estimates');
     if (error || !data) return null;
+    if (typeof data !== 'object' || data === null || Array.isArray(data)) return null;
+    const payload = data as Record<string, unknown>;
     const byId = new Map<string, ReviewEstimateItem>();
     let game: ReviewEstimateItem | null = null;
-    for (const it of data.items || []) {
-      byId.set(it.id, it);
-      if (it.kind === 'game') game = it;
+    const items = Array.isArray(payload.items) ? payload.items : [];
+    for (const value of items) {
+      if (typeof value !== 'object' || value === null || Array.isArray(value)) continue;
+      const item = value as Record<string, unknown>;
+      if (typeof item.kind !== 'string' || typeof item.id !== 'string'
+        || typeof item.created_at !== 'string' || typeof item.ahead !== 'number'
+        || typeof item.total !== 'number') continue;
+      const estimate: ReviewEstimateItem = {
+        kind: item.kind, id: item.id, created_at: item.created_at,
+        ahead: item.ahead, total: item.total,
+      };
+      byId.set(estimate.id, estimate);
+      if (estimate.kind === 'game') game = estimate;
     }
-    return { adminActive: !!data.admin_active, byId, game };
+    return { adminActive: payload.admin_active === true, byId, game };
   } catch {
     return null;
   }

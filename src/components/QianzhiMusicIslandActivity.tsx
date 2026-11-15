@@ -209,7 +209,7 @@ export const resolveIslandDockGesture = (
   deltaX: number,
   deltaY: number,
 ): 'dock' | 'restore' | null => {
-  const mostlyVertical = Math.abs(deltaX) <= Math.max(28, Math.abs(deltaY) * 0.7);
+  const mostlyVertical = Math.abs(deltaX) <= Math.max(16, Math.abs(deltaY) * 0.8);
   if (!mostlyVertical) return null;
   if (source === 'island' && deltaY <= -38) return 'dock';
   if (source === 'peek' && deltaY >= 24) return 'restore';

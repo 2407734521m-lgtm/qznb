@@ -2,12 +2,13 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../auth';
-import { useSignedUrl } from '../lib/media';
+import { useSignedUrl, useSignedUrls } from '../lib/media';
 import './MeHub.css';
 import './MeHub.polish.css';
 import FeedbackModal from '../components/FeedbackModal';
 import SponsorModal from '../components/SponsorModal';
 import NumberTicker from '../components/fx/NumberTicker';
+import BlurImg from '../components/fx/BlurImg';
 import { useQuietHoursActive } from '../lib/userPreferences';
 
 type Entry = { mark: string; title: string; note: string; to: string; badge?: string; act?: 'feedback' | 'sponsor' };
@@ -24,6 +25,29 @@ type AccountStatus = {
   banned_until: string | null;
   restrictions: ModerationRestriction[];
 };
+
+/** 个人中心下方直接展示的“我发过的内容”，不用点进子页。 */
+type FeedPostItem = {
+  kind: 'post'; id: string; content: string; image_url: string | null; section: string;
+  created_at: string; likes: number; comments: number;
+};
+type FeedLoveItem = {
+  kind: 'love'; id: string; content: string; recipient_name: string | null; category: string;
+  is_anonymous: boolean; status: string; created_at: string;
+};
+type FeedAnswerItem = {
+  kind: 'answer'; id: string; question: string; answer: string; is_public: boolean; created_at: string;
+};
+type FeedItem = FeedPostItem | FeedLoveItem | FeedAnswerItem;
+type FeedFilter = 'all' | 'post' | 'love' | 'answer';
+
+function formatFeedTime(value: string) {
+  const date = new Date(value);
+  if (!Number.isFinite(date.getTime())) return '';
+  return date.toLocaleString('zh-CN', {
+    month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit',
+  });
+}
 
 function formatStatusExpiry(value: string | null) {
   if (!value) return '期限：长期，直到管理员解除';
@@ -54,10 +78,6 @@ const groups: { title: string; note: string; entries: Entry[] }[] = [
     { mark: '名片', title: '我的主页', note: '查看其他人可见的个人主页', to: 'profile' },
     { mark: '编辑', title: '编辑资料', note: '修改昵称、签名与兴趣爱好', to: 'edit' },
     { mark: '主题', title: '主页装扮', note: '调整背景、主题与页面布局', to: 'look' },
-  ]},
-  { title: '我的内容', note: '管理你发布、收藏和分享的内容', entries: [
-    { mark: '动态', title: '我的动态', note: '查看和管理已发布的动态', to: '/me/posts' },
-    { mark: '投稿', title: '我的表白投稿', note: '查看投稿状态或删除自己的投稿', to: '/love-wall?mine=1' },
   ]},
   { title: '内容与活动', note: '整理照片、活动和参与记录', entries: [
     { mark: '相册', title: '我的相册', note: '按分类浏览照片与影像', to: '/albums' },
@@ -91,6 +111,12 @@ export default function MeHub() {
   const [stats, setStats] = useState({ posts: 0, comments: 0, photos: 0, likes: 0, loading: true });
   const [fbOpen, setFbOpen] = useState(false);
   const [sponsorOpen, setSponsorOpen] = useState(false);
+  const [feed, setFeed] = useState<FeedItem[]>([]);
+  const [feedLoading, setFeedLoading] = useState(true);
+  const [feedError, setFeedError] = useState('');
+  const [feedFilter, setFeedFilter] = useState<FeedFilter>('all');
+  const [feedVisible, setFeedVisible] = useState(10);
+  const feedImageUrls = useSignedUrls('media', feed.filter((item): item is FeedPostItem => item.kind === 'post').map(item => item.image_url));
   const avUrl = useSignedUrl('avatars', avatar);
   const activeRestrictions = accountStatus?.restrictions ?? [];
   const accountCondition = accountStatus?.banned_until
@@ -164,6 +190,80 @@ export default function MeHub() {
     });
     return () => { alive = false; };
   }, [me]);
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      setFeedLoading(true);
+      try {
+        const [postResult, loveResult, inboxResult] = await Promise.all([
+          supabase.from('posts')
+            .select('id, content, image_url, created_at, section').eq('author_id', me)
+            .is('deleted_at', null).order('created_at', { ascending: false }).limit(50),
+          supabase.from('love_wall_posts')
+            .select('id,author_id,recipient_name,category,content,is_anonymous,status,created_at')
+            .eq('author_id', me).order('created_at', { ascending: false }).limit(50),
+          (supabase as any).rpc('my_anonymous_question_inbox'),
+        ]);
+        if (!alive) return;
+        if (postResult.error || loveResult.error || inboxResult.error) {
+          setFeedError('我的发布暂时无法加载，请稍后再试。');
+          return;
+        }
+        const postRows = (postResult.data ?? []) as any[];
+        const postIds = postRows.map(row => row.id);
+        const likeMap = new Map<string, number>();
+        const commentMap = new Map<string, number>();
+        if (postIds.length) {
+          const [likeRows, commentRows] = await Promise.all([
+            supabase.from('post_likes').select('post_id').in('post_id', postIds),
+            supabase.from('comments').select('post_id').is('deleted_at', null).in('post_id', postIds),
+          ]);
+          for (const row of (likeRows.data ?? []) as any[]) likeMap.set(row.post_id, (likeMap.get(row.post_id) ?? 0) + 1);
+          for (const row of (commentRows.data ?? []) as any[]) commentMap.set(row.post_id, (commentMap.get(row.post_id) ?? 0) + 1);
+        }
+        if (!alive) return;
+        const items: FeedItem[] = [
+          ...postRows.map((row): FeedPostItem => ({
+            kind: 'post', id: row.id, content: row.content ?? '', image_url: row.image_url ?? null,
+            section: row.section ?? 'feed', created_at: row.created_at,
+            likes: likeMap.get(row.id) ?? 0, comments: commentMap.get(row.id) ?? 0,
+          })),
+          ...((loveResult.data ?? []) as any[]).map((row): FeedLoveItem => ({
+            kind: 'love', id: row.id, content: row.content ?? '', recipient_name: row.recipient_name ?? null,
+            category: row.category ?? '', is_anonymous: !!row.is_anonymous, status: row.status ?? '', created_at: row.created_at,
+          })),
+          ...((inboxResult.data ?? []) as any[])
+            .filter(row => row && typeof row.answer === 'string' && row.answer.trim().length > 0)
+            .map((row): FeedAnswerItem => ({
+              kind: 'answer', id: row.id, question: row.question ?? '', answer: row.answer,
+              is_public: !!row.is_public, created_at: row.answered_at ?? row.created_at,
+            })),
+        ];
+        items.sort((a, b) => +new Date(b.created_at) - +new Date(a.created_at));
+        setFeed(items);
+      } catch {
+        if (alive) setFeedError('我的发布暂时无法加载，请稍后再试。');
+      } finally {
+        if (alive) setFeedLoading(false);
+      }
+    })();
+    return () => { alive = false; };
+  }, [me]);
+
+  const feedCounts = {
+    all: feed.length,
+    post: feed.filter(item => item.kind === 'post').length,
+    love: feed.filter(item => item.kind === 'love').length,
+    answer: feed.filter(item => item.kind === 'answer').length,
+  };
+  const shownFeed = feed.filter(item => feedFilter === 'all' || item.kind === feedFilter).slice(0, feedVisible);
+
+  function openFeedItem(item: FeedItem) {
+    if (item.kind === 'post') nav(item.section === 'daily' ? '/daily' : '/feed', { state: { searchQuery: String(item.content || '').slice(0, 32) } });
+    else if (item.kind === 'love') nav('/love-wall?mine=1');
+    else nav('/questions');
+  }
 
   function go(entry: Entry) {
     if (entry.act === 'feedback') { setFbOpen(true); return; }
@@ -276,6 +376,79 @@ export default function MeHub() {
         <div className="me-hub-photo-note">已分享 <b>{stats.loading ? <span className="fx-skel-wrap" style={{ display: 'inline-block', width: 20, height: 14, verticalAlign: 'middle' }}><span className="fx-skel" style={{ display: 'block', width: '100%', height: '100%' }} /></span> : <NumberTicker value={stats.photos} />}</b> 张照片 <span>·</span> <button onClick={() => nav('/albums')}>去相册看看 ›</button></div>
       </section>
 
+      <section className="me-hub-feed" aria-label="我的发布">
+        <header className="me-hub-feed-head">
+          <div><h2>我的发布</h2><p>不用点开，直接往下看</p></div>
+          <span className="me-hub-feed-count">{feedCounts.all} 条</span>
+        </header>
+        <div className="me-hub-feed-filters" role="tablist" aria-label="发布类型">
+          {([
+            ['all', `全部 ${feedCounts.all}`],
+            ['post', `动态 ${feedCounts.post}`],
+            ['love', `表白 ${feedCounts.love}`],
+            ['answer', `回答 ${feedCounts.answer}`],
+          ] as [FeedFilter, string][]).map(([key, label]) => (
+            <button key={key} type="button" role="tab" aria-selected={feedFilter === key}
+              className={feedFilter === key ? 'active' : ''} onClick={() => { setFeedFilter(key); setFeedVisible(10); }}>
+              {label}
+            </button>
+          ))}
+        </div>
+        {feedError && <p className="me-hub-feed-note" role="status">{feedError}</p>}
+        {feedLoading ? (
+          <div className="me-hub-feed-note">正在加载我的发布…</div>
+        ) : shownFeed.length === 0 ? (
+          <div className="me-hub-feed-empty">还没有发布过{feedFilter === 'post' ? '动态' : feedFilter === 'love' ? '表白投稿' : feedFilter === 'answer' ? '匿名回答' : '内容'}</div>
+        ) : (
+          <div className="me-hub-feed-list">
+            {shownFeed.map(item => (
+              <article className="me-hub-feed-card" key={`${item.kind}-${item.id}`}
+                role="button" tabIndex={0} onClick={() => openFeedItem(item)}
+                onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); openFeedItem(item); } }}>
+                {item.kind === 'post' && (
+                  <>
+                    <div className="me-hub-feed-meta">
+                      <span className="me-hub-feed-tag is-post">{item.section === 'daily' ? '日常' : '动态'}</span>
+                      <time>{formatFeedTime(item.created_at)}</time>
+                    </div>
+                    <p className="me-hub-feed-text">{item.content}</p>
+                    {item.image_url && feedImageUrls[item.image_url] && (
+                      <BlurImg src={feedImageUrls[item.image_url]} alt="" style={{ width: '100%', borderRadius: 10, marginTop: 8 }} />
+                    )}
+                    <div className="me-hub-feed-foot"><span>♥ {item.likes}</span><span>💬 {item.comments}</span><span className="me-hub-feed-more">查看 ›</span></div>
+                  </>
+                )}
+                {item.kind === 'love' && (
+                  <>
+                    <div className="me-hub-feed-meta">
+                      <span className="me-hub-feed-tag is-love">表白</span>
+                      <span>{item.is_anonymous ? '匿名投稿' : '署名投稿'}{item.recipient_name ? ` · 写给 ${item.recipient_name}` : ''}</span>
+                      <time>{formatFeedTime(item.created_at)}</time>
+                    </div>
+                    <p className="me-hub-feed-text">{item.content}</p>
+                    <div className="me-hub-feed-foot"><span>{item.status === 'published' ? '已公开展示' : item.status === 'pending' ? '审核通过后公开展示' : '未公开展示'}</span><span className="me-hub-feed-more">查看 ›</span></div>
+                  </>
+                )}
+                {item.kind === 'answer' && (
+                  <>
+                    <div className="me-hub-feed-meta">
+                      <span className="me-hub-feed-tag is-answer">匿名回答</span>
+                      <span>{item.is_public ? '已公开' : '仅提问者可见'}</span>
+                      <time>{formatFeedTime(item.created_at)}</time>
+                    </div>
+                    <p className="me-hub-feed-question">问：{item.question}</p>
+                    <p className="me-hub-feed-text">答：{item.answer}</p>
+                    <div className="me-hub-feed-foot"><span className="me-hub-feed-more">去提问箱 ›</span></div>
+                  </>
+                )}
+              </article>
+            ))}
+          </div>
+        )}
+        {!feedLoading && !feedError && shownFeed.length > 0 && feed.filter(item => feedFilter === 'all' || item.kind === feedFilter).length > feedVisible && (
+          <button type="button" className="me-hub-feed-more-btn" onClick={() => setFeedVisible(current => current + 10)}>加载更多</button>
+        )}
+      </section>
 
       <div className="me-hub-groups">
         {groups.map(group => (

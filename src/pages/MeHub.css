@@ -477,3 +477,31 @@
 @media (prefers-reduced-motion: reduce) {
   .me-hub-head-icon,.me-hub-shortcut,.me-hub-tile,.me-hub-feature { transition: none !important; }
 }
+
+/* 我的发布：个人中心下方直接展示，不用点进子页（QQ 个人主页式列表）。 */
+.me-hub-feed { margin-top: 14px; }
+.me-hub-feed-head { display: flex; align-items: baseline; justify-content: space-between; padding: 0 4px; }
+.me-hub-feed-head h2 { margin: 0; color: #153f50; font-size: 17px; letter-spacing: -.02em; }
+.me-hub-feed-head p { margin: 2px 0 0; color: #62818a; font-size: 12px; }
+.me-hub-feed-count { color: #62818a; font-size: 12px; }
+.me-hub-feed-filters { display: flex; gap: 8px; margin: 12px 0; overflow-x: auto; }
+.me-hub-feed-filters button { flex: 0 0 auto; min-height: 34px; padding: 6px 14px; border: 1px solid rgba(166, 207, 211, .7); border-radius: 999px; background: #fff; color: #1b6875; font-size: 13px; cursor: pointer; }
+.me-hub-feed-filters button.active { border-color: #1d8790; background: #1d8790; color: #fff; }
+.me-hub-feed-list { display: grid; gap: 10px; }
+.me-hub-feed-card { padding: 14px 16px; border: 1px solid rgba(179, 221, 224, .78); border-radius: 18px; background: #fffefb; box-shadow: 0 6px 18px rgba(30, 40, 60, .05); cursor: pointer; }
+.me-hub-feed-card:focus-visible { outline: 2px solid #1d8790; outline-offset: 2px; }
+.me-hub-feed-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; color: #62818a; font-size: 12px; }
+.me-hub-feed-meta time { margin-left: auto; }
+.me-hub-feed-tag { padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; }
+.me-hub-feed-tag.is-post { background: #eef2ff; color: #4c5ec2; }
+.me-hub-feed-tag.is-love { background: #fdeef0; color: #b0404f; }
+.me-hub-feed-tag.is-answer { background: #e9f6f3; color: #1d8790; }
+.me-hub-feed-question { margin: 8px 0 0; color: #62818a; font-size: 13px; line-height: 1.6; }
+.me-hub-feed-text { margin: 8px 0 0; color: #153f50; font-size: 14px; line-height: 1.7; white-space: pre-wrap; word-break: break-word; }
+.me-hub-feed-foot { display: flex; gap: 14px; margin-top: 10px; color: #62818a; font-size: 12px; }
+.me-hub-feed-more { margin-left: auto; color: #1d8790; }
+.me-hub-feed-note, .me-hub-feed-empty { padding: 26px 14px; border: 1px dashed #dfe3ea; border-radius: 18px; color: #62818a; font-size: 13px; text-align: center; }
+.me-hub-feed-more-btn { display: block; width: 100%; min-height: 42px; margin-top: 10px; border: 1px solid rgba(166, 207, 211, .7); border-radius: 12px; background: #fff; color: #1b6875; font-size: 14px; cursor: pointer; }
+@media (prefers-reduced-motion: reduce) {
+  .me-hub-feed-card, .me-hub-feed-filters button, .me-hub-feed-more-btn { transition: none !important; }
+}

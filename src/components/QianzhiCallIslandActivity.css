@@ -1,0 +1,111 @@
+.qz-call-island-compact {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: rgba(255,255,255,.96);
+  white-space: nowrap;
+  font-size: 11px;
+  font-weight: 680;
+}
+.qz-call-island-icon,
+.qz-call-island-minimal {
+  display: inline-grid;
+  flex: 0 0 auto;
+  place-items: center;
+}
+.qz-call-island-icon svg,
+.qz-call-island-minimal svg {
+  display: block;
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.qz-call-island-time {
+  color: rgba(255,255,255,.72);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.qz-call-island-minimal {
+  width: 22px;
+  height: 22px;
+  color: #fff;
+}
+.qz-call-island-label {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 0 8px;
+  border-radius: 999px;
+  color: rgba(255,255,255,.78);
+  background: rgba(255,255,255,.1);
+  font-size: 10px;
+  font-weight: 650;
+  white-space: nowrap;
+}
+.qz-call-island-copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 3px;
+  text-align: left;
+}
+.qz-call-island-copy strong,
+.qz-call-island-copy small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.qz-call-island-copy strong {
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+}
+.qz-call-island-copy small {
+  color: rgba(255,255,255,.6);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+.qz-call-island-actions {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.qz-call-island-action {
+  min-width: 76px;
+  min-height: 32px;
+  padding: 0 13px;
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 999px;
+  color: rgba(255,255,255,.92);
+  background: rgba(255,255,255,.1);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 680;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.qz-call-island-action.is-primary {
+  color: #111;
+  border-color: rgba(255,255,255,.92);
+  background: #fff;
+}
+.qz-call-island-action.is-danger {
+  color: #ffb8b8;
+  border-color: rgba(255,112,112,.25);
+  background: rgba(160,35,35,.22);
+}
+.qz-call-island-action:focus-visible {
+  outline: 2px solid rgba(255,255,255,.85);
+  outline-offset: 2px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .qz-call-island-action { transition: none; }
+}

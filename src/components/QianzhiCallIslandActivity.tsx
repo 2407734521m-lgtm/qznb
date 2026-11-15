@@ -55,14 +55,6 @@ export function createCallIslandActivity(input: CallIslandActivityInput): Activi
     : phase === 'outgoing'
       ? <div className="qz-call-island-actions"><CallAction label="取消呼叫" tone="danger" onAction={input.onCancel} /></div>
       : <div className="qz-call-island-actions"><CallAction label={muted ? '取消静音' : '静音'} onAction={input.onToggleMute} /><CallAction label="挂断" tone="danger" onAction={input.onHangUp} /></div>;
-  const hint = phase === 'incoming'
-    ? '请在通话面板选择接听或拒绝'
-    : phase === 'outgoing'
-      ? '等待对方接听 · 操作请使用通话面板'
-      : phase === 'connecting'
-        ? '正在建立连接'
-        : '静音与挂断操作位于通话面板';
-
   return {
     id: 'qz-call-session',
     label: `${phaseLabel}，${peer}`,

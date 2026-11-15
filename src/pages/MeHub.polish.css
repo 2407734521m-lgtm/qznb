@@ -323,3 +323,192 @@
   .me-hub :where(button) { transition: none !important; }
   .me-hub :where(button):active:not(:disabled) { transform: none !important; }
 }
+
+/* Personal identity badges: compact on mobile, readable, and visually distinct. */
+.me-hub .me-hub-identity-heading {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 9px;
+}
+.me-hub .me-hub-identity-heading > strong {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.me-hub .me-hub-identity-badges {
+  display: flex;
+  min-width: 0;
+  max-width: 100%;
+  flex: 0 1 auto;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.me-hub .me-hub-identity .me-hub-title-chip,
+.me-hub .me-hub-identity .me-hub-game-chip,
+.me-hub .me-hub-identity .me-hub-account-pill {
+  display: inline-flex;
+  min-height: 24px;
+  max-width: 100%;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border: 1px solid #dfe5ed;
+  border-radius: 8px;
+  background: #f5f7fa;
+  color: #405a78 !important;
+  font-size: 11px !important;
+  font-weight: 650;
+  line-height: 1.35;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.me-hub .me-hub-identity .me-hub-title-chip {
+  border-color: #cbd9ea;
+  background: #eef4fc;
+  color: #315681 !important;
+}
+.me-hub .me-hub-identity .me-hub-game-chip {
+  border-color: #d4deea;
+  background: #f3f6fa;
+  color: #344f70 !important;
+}
+.me-hub .me-hub-identity .me-hub-game-chip b {
+  color: #596d86 !important;
+  font-size: 9px;
+  font-weight: 800;
+}
+.me-hub .me-hub-identity .me-hub-game-chip.is-pending {
+  border-color: #e5c77f;
+  background: #fff7df;
+  color: #785311 !important;
+}
+.me-hub .me-hub-identity .me-hub-game-chip.is-rejected {
+  border-color: #e6b4b8;
+  background: #fff0f1;
+  color: #96323d !important;
+}
+.me-hub .me-hub-identity .me-hub-account-pill.is-banned {
+  border-color: #e6a0a7;
+  background: #ffe9eb;
+  color: #a21f2d !important;
+  font-weight: 800;
+}
+.me-hub .me-hub-identity .me-hub-account-pill.is-restricted {
+  border-color: #e4c278;
+  background: #fff5d9;
+  color: #80570d !important;
+  font-weight: 800;
+}
+.me-hub .me-hub-identity .me-hub-account-pill.is-not-member {
+  border-color: #d7dee7;
+  background: #f1f4f7;
+  color: #586779 !important;
+  font-weight: 700;
+}
+.me-hub .me-hub-status-stack {
+  display: grid;
+  gap: 8px;
+  margin-top: 13px;
+}
+.me-hub .me-hub-status-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 0;
+  padding: 11px 12px;
+  border: 1px solid;
+  border-radius: 10px;
+}
+.me-hub .me-hub-status-alert.is-banned {
+  border-color: #e6a0a7;
+  background: #fff0f1;
+  color: #88232f;
+}
+.me-hub .me-hub-status-alert.is-restricted {
+  border-color: #e4c278;
+  background: #fff7e2;
+  color: #76500c;
+}
+.me-hub .me-hub-status-alert.is-not-member {
+  border-color: #d7dee7;
+  background: #f5f7f9;
+  color: #4d5c70;
+}
+.me-hub .me-hub-status-icon {
+  display: grid;
+  width: 23px;
+  height: 23px;
+  flex: 0 0 23px;
+  place-items: center;
+  border-radius: 50%;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 850;
+  line-height: 1;
+}
+.me-hub .me-hub-status-alert.is-banned .me-hub-status-icon {
+  background: #b42332;
+}
+.me-hub .me-hub-status-alert.is-restricted .me-hub-status-icon {
+  background: #98650b;
+}
+.me-hub .me-hub-status-alert.is-not-member .me-hub-status-icon {
+  background: #65758a;
+}
+.me-hub .me-hub-status-alert > div {
+  min-width: 0;
+  flex: 1;
+}
+.me-hub .me-hub-status-alert strong {
+  display: block;
+  color: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.45;
+}
+.me-hub .me-hub-status-alert p {
+  margin: 3px 0 0;
+  color: inherit;
+  font-size: 12px;
+  line-height: 1.55;
+  opacity: .94;
+  overflow-wrap: anywhere;
+}
+.me-hub .me-hub-status-alert small {
+  display: block;
+  margin-top: 5px;
+  color: inherit;
+  font-size: 11px;
+  font-weight: 750;
+  opacity: .9;
+}
+@media (max-width: 520px) {
+  .me-hub .me-hub-identity-heading {
+    align-items: flex-start;
+    flex-direction: row;
+    gap: 5px 7px;
+  }
+  .me-hub .me-hub-identity-heading > strong {
+    flex: 0 1 auto;
+  }
+  .me-hub .me-hub-identity-badges {
+    flex: 0 1 auto;
+    gap: 5px;
+  }
+  .me-hub .me-hub-identity .me-hub-title-chip,
+  .me-hub .me-hub-identity .me-hub-game-chip,
+  .me-hub .me-hub-identity .me-hub-account-pill {
+    min-height: 23px;
+    padding: 3px 7px;
+    font-size: 11px !important;
+  }
+  .me-hub .me-hub-status-alert {
+    padding: 10px;
+  }
+}

@@ -1,4 +1,4 @@
-import { BRAND_NAME, BRAND_SUBTITLE, resolveBrandTitle, resolveBrandSubtitle } from '../lib/brand';
+import { BRAND_NAME, resolveBrandTitle, resolveBrandSubtitle } from '../lib/brand';
 import BrandMark from '../components/BrandMark';
 import { NavLink, Navigate, Route, Routes } from 'react-router-dom';
 import Login from './Login';

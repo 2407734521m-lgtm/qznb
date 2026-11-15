@@ -25,6 +25,7 @@ interface MusicIslandState {
   commitSeekDraft: () => void;
   cancelSeekDraft: () => void;
   collapse: () => void;
+  isExpanded: () => boolean;
 }
 
 const MusicIslandContext = createContext<MusicIslandState | null>(null);
@@ -181,22 +182,30 @@ const MusicExpandedControls = () => {
   );
 };
 
+type IslandDockSource = 'island' | 'peek';
+
 type IslandDockGesture = {
   pointerId: number;
-  source: 'island' | 'peek';
+  source: IslandDockSource;
   startX: number;
   startY: number;
 };
 
+/** Prefer the peek handle; otherwise accept any real interactive target inside the island host. */
+export const resolveIslandGestureSource = (
+  isPeek: boolean,
+  isInsideIslandHost: boolean,
+): IslandDockSource | null => isPeek ? 'peek' : isInsideIslandHost ? 'island' : null;
+
 export const resolveIslandDockGesture = (
-  source: IslandDockGesture['source'],
+  source: IslandDockSource,
   deltaX: number,
   deltaY: number,
 ): 'dock' | 'restore' | null => {
-  const mostlyVertical = Math.abs(deltaX) <= Math.max(36, Math.abs(deltaY) * 0.65);
+  const mostlyVertical = Math.abs(deltaX) <= Math.max(28, Math.abs(deltaY) * 0.7);
   if (!mostlyVertical) return null;
-  if (source === 'island' && deltaY <= -44) return 'dock';
-  if (source === 'peek' && deltaY >= 28) return 'restore';
+  if (source === 'island' && deltaY <= -38) return 'dock';
+  if (source === 'peek' && deltaY >= 24) return 'restore';
   return null;
 };
 
@@ -211,7 +220,10 @@ export const MusicIslandView = ({
   const gestureRef = useRef<IslandDockGesture | null>(null);
   const dockTimerRef = useRef<number | null>(null);
   const collapseRef = useRef(value.collapse);
+  const isExpandedRef = useRef(value.isExpanded);
+  const suppressIslandClickUntilRef = useRef(0);
   collapseRef.current = value.collapse;
+  isExpandedRef.current = value.isExpanded;
 
   useEffect(() => {
     // Start in the native capture phase so Android touch pointers are recorded before any
@@ -221,15 +233,15 @@ export const MusicIslandView = ({
       const target = event.target;
       if (!(target instanceof Element)) return;
 
-      const isPeek = target.closest('.qz-island-peek') !== null;
-      const isIslandHit = target.closest(
-        '.qz-island-host [data-islandcn-hit="pill"], .qz-island-host [data-islandcn-hit="bubble"]',
-      ) !== null;
-      if (!isPeek && !isIslandHit) return;
+      const source = resolveIslandGestureSource(
+        target.closest('.qz-island-peek') !== null,
+        target.closest('.qz-island-host') !== null,
+      );
+      if (!source) return;
 
       gestureRef.current = {
         pointerId: event.pointerId,
-        source: isPeek ? 'peek' : 'island',
+        source,
         startX: event.clientX,
         startY: event.clientY,
       };
@@ -244,16 +256,26 @@ export const MusicIslandView = ({
       const deltaY = event.clientY - gesture.startY;
       const action = resolveIslandDockGesture(gesture.source, deltaX, deltaY);
       if (action === 'dock') {
-        // Tell the island's own press handler to cancel its tap action. Otherwise the same
-        // pointerup can immediately re-expand the activity after we collapse it for docking.
+        // Prevent the same swipe from becoming a button click (e.g. Hang up or Mute).
         if (event.cancelable) event.preventDefault();
+        suppressIslandClickUntilRef.current = Date.now() + 550;
         if (dockTimerRef.current !== null) window.clearTimeout(dockTimerRef.current);
+
+        // Finish the island's own collapse morph before translating the whole host off-screen.
+        // Compact activities can dock immediately; expanded calls get time to settle first.
+        const waitForCollapse = isExpandedRef.current();
         collapseRef.current();
-        dockTimerRef.current = window.setTimeout(() => {
+        const dock = () => {
           setDocked(true);
           dockTimerRef.current = null;
-        }, 260);
+        };
+        if (waitForCollapse) {
+          dockTimerRef.current = window.setTimeout(dock, 460);
+        } else {
+          dock();
+        }
       } else if (action === 'restore') {
+        if (event.cancelable) event.preventDefault();
         if (dockTimerRef.current !== null) window.clearTimeout(dockTimerRef.current);
         dockTimerRef.current = null;
         setDocked(false);
@@ -265,7 +287,7 @@ export const MusicIslandView = ({
       if (!gesture || gesture.pointerId !== event.pointerId) return;
       const deltaX = event.clientX - gesture.startX;
       const deltaY = event.clientY - gesture.startY;
-      if (Math.abs(deltaY) > 10 && Math.abs(deltaY) > Math.abs(deltaX) * 1.1 && event.cancelable) {
+      if (Math.abs(deltaY) > 9 && Math.abs(deltaY) > Math.abs(deltaX) * 1.1 && event.cancelable) {
         event.preventDefault();
       }
     };
@@ -274,16 +296,35 @@ export const MusicIslandView = ({
       if (gestureRef.current?.pointerId === event.pointerId) gestureRef.current = null;
     };
 
-    // All four events use native listeners: the gesture survives leaving the small hit button.
+    const onWindowBlur = () => { gestureRef.current = null; };
+    const onVisibilityChange = () => {
+      if (document.visibilityState !== 'visible') gestureRef.current = null;
+    };
+    const suppressSwipedButtonClick = (event: MouseEvent) => {
+      if (Date.now() > suppressIslandClickUntilRef.current) return;
+      const target = event.target;
+      if (!(target instanceof Element) || !target.closest('.qz-island-host')) return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      suppressIslandClickUntilRef.current = 0;
+    };
+
+    // Capture phase survives nested controls and the pointer leaving the original capsule hit area.
     window.addEventListener('pointerdown', beginGesture, true);
-    window.addEventListener('pointermove', onPointerMove, { passive: false });
+    window.addEventListener('pointermove', onPointerMove, { capture: true, passive: false });
     window.addEventListener('pointerup', finishGesture, true);
     window.addEventListener('pointercancel', onPointerCancel, true);
+    window.addEventListener('blur', onWindowBlur);
+    window.addEventListener('click', suppressSwipedButtonClick, true);
+    document.addEventListener('visibilitychange', onVisibilityChange);
     return () => {
       window.removeEventListener('pointerdown', beginGesture, true);
-      window.removeEventListener('pointermove', onPointerMove);
+      window.removeEventListener('pointermove', onPointerMove, true);
       window.removeEventListener('pointerup', finishGesture, true);
       window.removeEventListener('pointercancel', onPointerCancel, true);
+      window.removeEventListener('blur', onWindowBlur);
+      window.removeEventListener('click', suppressSwipedButtonClick, true);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
       if (dockTimerRef.current !== null) window.clearTimeout(dockTimerRef.current);
     };
   }, []);

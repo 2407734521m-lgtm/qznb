@@ -83,3 +83,10 @@
 }
 @media (prefers-reduced-motion: reduce) {
 }
+
+.qz-call-island-actions { display: flex; width: 100%; align-items: center; justify-content: flex-end; gap: 8px; }
+.qz-call-island-action { min-width: 76px; min-height: 32px; padding: 0 13px; border: 1px solid rgba(255,255,255,.12); border-radius: 999px; color: rgba(255,255,255,.92); background: rgba(255,255,255,.1); font: inherit; font-size: 11px; font-weight: 680; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.qz-call-island-action.is-primary { color: #111; border-color: rgba(255,255,255,.92); background: #fff; }
+.qz-call-island-action.is-danger { color: #ffb8b8; border-color: rgba(255,112,112,.25); background: rgba(160,35,35,.22); }
+.qz-call-island-action:focus-visible { outline: 2px solid rgba(255,255,255,.85); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { .qz-call-island-action { transition: none; } }

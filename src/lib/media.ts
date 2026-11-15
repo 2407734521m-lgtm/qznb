@@ -80,6 +80,49 @@ const uploadMimeTypes: Record<string, readonly string[]> = {
   ],
 };
 
+export type MediaUploadIslandEvent = {
+  id: string;
+  phase: 'start' | 'progress' | 'complete' | 'error';
+  label: string;
+  progress: number | null;
+};
+
+let uploadActivitySequence = 0;
+
+function uploadActivityLabel(file: File) {
+  if (file.type.startsWith('image/')) return '正在上传图片';
+  if (file.type.startsWith('video/')) return '正在上传视频';
+  if (file.type.startsWith('audio/')) return '正在上传音频';
+  return '正在上传文件';
+}
+
+function emitUploadIslandEvent(detail: MediaUploadIslandEvent) {
+  if (typeof window === 'undefined') return;
+  window.dispatchEvent(new CustomEvent<MediaUploadIslandEvent>('qz-island-upload', { detail }));
+}
+
+async function trackMediaUpload<T>(
+  file: File,
+  upload: (reportProgress: (pct: number) => void) => Promise<T>,
+  onProgress?: (pct: number) => void,
+): Promise<T> {
+  const id = 'media-upload-' + Date.now() + '-' + (++uploadActivitySequence);
+  const label = uploadActivityLabel(file);
+  emitUploadIslandEvent({ id, phase: 'start', label, progress: null });
+  const reportProgress = (pct: number) => {
+    const progress = Math.max(0, Math.min(100, Math.round(pct)));
+    onProgress?.(progress);
+    emitUploadIslandEvent({ id, phase: 'progress', label, progress });
+  };
+  try {
+    const result = await upload(reportProgress);
+    emitUploadIslandEvent({ id, phase: 'complete', label, progress: 100 });
+    return result;
+  } catch (error) {
+    emitUploadIslandEvent({ id, phase: 'error', label, progress: null });
+    throw error;
+  }
+}
 /** 上传文件到私有 bucket 的"自己的文件夹"，返回 storage path。 */
 export async function uploadMedia(bucket: string, file: File, folder?: string): Promise<string> {
   const { data: { user } } = await supabase.auth.getUser();
@@ -90,17 +133,19 @@ export async function uploadMedia(bucket: string, file: File, folder?: string): 
     throw new Error('文件格式不受支持，请选择常见图片、MP4/WebM 视频或支持的聊天音频格式。');
   }
   const ext = (file.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
-  const r = await withRetry(async () => {
-    const path = `${folder ? `${folder.replace(/^\/+|\/+$/g, '')}/` : `${user.id}/`}${Date.now()}.${ext}`;
-    const { error } = await supabase.storage.from(bucket).upload(path, file, {
-      contentType: mime, upsert: false,
+  return trackMediaUpload(file, async () => {
+    const r = await withRetry(async () => {
+      const prefix = folder ? folder.replace(/^\\/+|\\/+$/g, '') + '/' : user.id + '/';
+      const path = prefix + Date.now() + '.' + ext;
+      const { error } = await supabase.storage.from(bucket).upload(path, file, {
+        contentType: mime, upsert: false,
+      });
+      return { path, error };
     });
-    return { path, error };
+    if (r.error) throw r.error;
+    return r.path;
   });
-  if (r.error) throw r.error;
-  return r.path;
 }
-
 /** 带真实进度回调的上传：走 XMLHttpRequest 直传 Storage 接口，进度来自浏览器上传事件。 */
 export async function uploadWithProgress(bucket: string, path: string, file: File, onProgress?: (pct: number) => void): Promise<void> {
   const { data: { session } } = await supabase.auth.getSession();
@@ -133,9 +178,12 @@ export async function uploadMediaWithProgress(bucket: string, file: File, folder
     throw new Error('文件格式不受支持，请选择常见图片、MP4/WebM 视频或支持的聊天音频格式。');
   }
   const ext = (file.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
-  const path = `${folder ? `${folder.replace(/^\/+|\/+$/g, '')}/` : `${user.id}/`}${Date.now()}.${ext}`;
-  await uploadWithProgress(bucket, path, file, onProgress);
-  return path;
+  const prefix = folder ? folder.replace(/^\\/+|\\/+$/g, '') + '/' : user.id + '/';
+  const path = prefix + Date.now() + '.' + ext;
+  return trackMediaUpload(file, async reportProgress => {
+    await uploadWithProgress(bucket, path, file, reportProgress);
+    return path;
+  }, onProgress);
 }
 
 /** 把图片在前端压到合适尺寸再上传（省流量、省空间）。 */

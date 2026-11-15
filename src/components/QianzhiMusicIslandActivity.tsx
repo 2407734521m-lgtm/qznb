@@ -172,7 +172,7 @@ export const MusicIslandView = ({
         placement="viewport"
         label="堯实时活动"
         keyline="off"
-        style={{ top: 'calc(env(safe-area-inset-top, 0px) + 4px)', zIndex: 1201 }}
+        style={{ top: 'max(env(safe-area-inset-top, 0px), 18px)', zIndex: 1201 }}
       />
     </div>
   </MusicIslandContext.Provider>

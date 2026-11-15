@@ -768,6 +768,7 @@ function Shell() {
   // Aggregate storage upload events into one activity so concurrent uploads never create a stack of pills.
   useEffect(() => {
     const activeUploads = new Map<string, { progress: number | null; label: string }>();
+    let failedDuringUploadBatch = false;
     let terminalTimer: number | null = null;
 
     const clearTerminalTimer = () => {
@@ -801,6 +802,7 @@ function Shell() {
       clearTerminalTimer();
 
       if (detail.phase === 'start') {
+        if (activeUploads.size === 0) failedDuringUploadBatch = false;
         activeUploads.set(detail.id, { progress: detail.progress, label: detail.label || '正在上传文件' });
         renderActiveUploads();
         return;
@@ -813,10 +815,12 @@ function Shell() {
       }
 
       activeUploads.delete(detail.id);
+      if (detail.phase === 'error') failedDuringUploadBatch = true;
       if (activeUploads.size) {
         renderActiveUploads();
       } else {
-        showTerminalState(detail.phase === 'complete' ? 'completed' : 'failed');
+        showTerminalState(failedDuringUploadBatch ? 'failed' : 'completed');
+        failedDuringUploadBatch = false;
       }
     };
 
@@ -843,8 +847,8 @@ function Shell() {
       const values = [...activeDownloads.values()];
       if (!values.length) return;
       const measured = values.map(item => item.progress).filter((value): value is number => typeof value === 'number');
-      const progress = measured.length
-        ? Math.round(measured.reduce((total, value) => total + value, 0) / measured.length)
+      const progress = measured.length === values.length && values.length
+        ? Math.round(measured.reduce((total, value) => total + value, 0) / values.length)
         : null;
       const label = values.length > 1 ? '正在下载 ' + values.length + ' 项' : values[0].label;
       islandApi.start(createDownloadIslandActivity({ count: values.length, progress, status: 'downloading', label }));

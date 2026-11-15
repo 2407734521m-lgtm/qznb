@@ -88,15 +88,32 @@ export const playerControlStroke = (key: string, withPrimaryModifier?: boolean):
 };
 
 /**
+ * Whether this stroke only lands on the player page. Seek (plain ←/→) and the control panel
+ * (P) are refused anywhere else by the playback bridge, so tapping one from the home or
+ * search page would close settings and do nothing at all. Play/pause and the previous/next
+ * arrows (Ctrl+←/→) work from any view and need no navigation.
+ */
+export const strokeNeedsPlayerView = (stroke: HelpTouchStroke): boolean => {
+    if (stroke.withPrimaryModifier) return false;
+    return stroke.code === 'ArrowLeft' || stroke.code === 'ArrowRight' || stroke.code === 'KeyP';
+};
+
+/**
  * Close the settings window, then send the stroke once its keyboard claim is gone.
  * \`closeSettings\` is passed in so this module stays free of the settings store (and its
  * i18n import), which keeps it usable from a plain unit test.
+ *
+ * \`ensurePlayerView\` runs first when the stroke only lands on the player page: the settings
+ * window is still open over the top, so the navigation happens underneath it, and the key —
+ * sent once the window has unmounted — lands on a bridge that is already listening on that view.
  */
 export const fireHelpTouchStroke = (
     stroke: HelpTouchStroke,
     closeSettings: () => void,
+    ensurePlayerView?: () => void,
 ): void => {
     if (typeof window === 'undefined' || typeof document === 'undefined') return;
+    ensurePlayerView?.();
     closeSettings();
     const startedAt = Date.now();
     const tick = (): void => {
@@ -119,8 +136,9 @@ help = replaceOnce(help,
     "import { PRIMARY_MODIFIER_LABEL } from '../../../../utils/platform';",
     `import { PRIMARY_MODIFIER_LABEL } from '../../../../utils/platform';
 import { useSupportsFinePointer } from '../../../../hooks/useSupportsFinePointer';
+import { useAppNavigation } from '../../../../hooks/useAppNavigation';
 import { closeSettings } from '../../../../stores/useSettingsModalStore';
-import { fireHelpTouchStroke, playerControlStroke, primaryShortcutStroke, type HelpTouchStroke } from './helpTouchShortcuts';`,
+import { fireHelpTouchStroke, playerControlStroke, primaryShortcutStroke, strokeNeedsPlayerView, type HelpTouchStroke } from './helpTouchShortcuts';`,
     'HelpPage imports');
 
 help = replaceOnce(help,
@@ -148,17 +166,25 @@ type TouchRowProps = {
     label: string;
     stroke: HelpTouchStroke;
     testId: string;
+    navigateToPlayer: () => void;
 };
 
 /**
  * A row that runs a shortcut when tapped: the touch stand-in for a key cap. The whole row is
  * the button, with the same chevron the settings rows use for "tap this to do something".
+ *
+ * A stroke that only lands on the player page navigates there first (under the still-open
+ * settings window); the others go straight to sending the key.
  */
-const TouchRow: React.FC<TouchRowProps> = ({ label, stroke, testId }) => (
+const TouchRow: React.FC<TouchRowProps> = ({ label, stroke, testId, navigateToPlayer }) => (
     <button
         type="button"
         data-testid={testId}
-        onClick={() => fireHelpTouchStroke(stroke, closeSettings)}
+        onClick={() => fireHelpTouchStroke(
+            stroke,
+            closeSettings,
+            strokeNeedsPlayerView(stroke) ? navigateToPlayer : undefined,
+        )}
         className="relative flex min-h-11 w-full items-center justify-between gap-4 px-4 py-2 text-left text-sm leading-5 text-[color:var(--st-t1)] transition-colors before:absolute before:left-4 before:right-0 before:top-0 before:h-px before:bg-[var(--st-line)] first:before:hidden hover:bg-[color-mix(in_srgb,var(--st-card)_93%,var(--st-t1))] active:scale-[0.99]"
     >
         <span className="min-w-0">{label}</span>
@@ -170,7 +196,8 @@ const TouchRow: React.FC<TouchRowProps> = ({ label, stroke, testId }) => (
 help = replaceOnce(help,
     '    const { t } = useTranslation();',
     `    const { t } = useTranslation();
-    const supportsFinePointer = useSupportsFinePointer();`,
+    const supportsFinePointer = useSupportsFinePointer();
+    const { navigateToPlayer } = useAppNavigation();`,
     'fine pointer check');
 
 const oldGroups = [
@@ -210,6 +237,7 @@ const newGroups = [
     '                                    label={t(shortcut.titleKey, shortcut.fallback)}',
     '                                    testId={`help-touch-${shortcut.titleKey.split(\'.\').pop()}`}',
     '                                    stroke={primaryShortcutStroke(shortcut.key)}',
+    '                                    navigateToPlayer={navigateToPlayer}',
     '                                />',
     '                            ))}',
     '                    </Group>',
@@ -234,6 +262,7 @@ const newGroups = [
     '                                        label={t(control.titleKeys[index])}',
     '                                        testId={`help-touch-${control.titleKeys[index].split(\'.\').pop() ?? control.id}`}',
     '                                        stroke={playerControlStroke(key, control.withPrimaryModifier)}',
+    '                                        navigateToPlayer={navigateToPlayer}',
     '                                    />',
     '                                )),',
     '                            )}',
@@ -282,6 +311,7 @@ import {
     HELP_TOUCH_STROKE_WAIT_MS,
     playerControlStroke,
     primaryShortcutStroke,
+    strokeNeedsPlayerView,
 } from '../../../src/components/modal/settings/pages/helpTouchShortcuts';
 
 // test/unit/components/helpTouchShortcuts.test.ts
@@ -385,6 +415,34 @@ describe('fireHelpTouchStroke', () => {
             stop();
         }
     });
+
+    it('goes to the player page first when the stroke needs it, before closing settings', () => {
+        const order: string[] = [];
+        const closeSettings = vi.fn(() => { order.push('close'); });
+        const ensurePlayerView = vi.fn(() => { order.push('navigate'); });
+        const { seen, stop } = collectKeys();
+        try {
+            fireHelpTouchStroke({ key: 'ArrowLeft', code: 'ArrowLeft' }, closeSettings, ensurePlayerView);
+            expect(ensurePlayerView).toHaveBeenCalledTimes(1);
+            expect(order).toEqual(['navigate', 'close']);
+            expect(seen).toHaveLength(1);
+            expect(seen[0]?.code).toBe('ArrowLeft');
+        } finally {
+            stop();
+        }
+    });
+});
+
+describe('strokeNeedsPlayerView', () => {
+    it('needs the player page for seek and for the control panel, and nowhere else', () => {
+        expect(strokeNeedsPlayerView({ key: 'ArrowLeft', code: 'ArrowLeft' })).toBe(true);
+        expect(strokeNeedsPlayerView({ key: 'ArrowRight', code: 'ArrowRight' })).toBe(true);
+        expect(strokeNeedsPlayerView({ key: 'p', code: 'KeyP' })).toBe(true);
+        expect(strokeNeedsPlayerView({ key: ' ', code: 'Space' })).toBe(false);
+        // With the primary modifier the arrows change track, which works from any view.
+        expect(strokeNeedsPlayerView({ key: 'ArrowLeft', code: 'ArrowLeft', withPrimaryModifier: true })).toBe(false);
+        expect(strokeNeedsPlayerView({ key: 'k', code: 'KeyK', withPrimaryModifier: true })).toBe(false);
+    });
 });
 `;
 await writeNewFile(testPath, testSource, 'help touch shortcuts unit test');
@@ -425,6 +483,84 @@ const specBlock = `test.describe('粗指针下帮助页的快捷键是可点按�
             () => (window as unknown as { __keys: Array<Record<string, unknown>> }).__keys,
         );
         expect(keys[0]).toEqual({ key: 'k', code: 'KeyK', ctrlKey: true, metaKey: false });
+    });
+
+    // 快退/快进和开控制面板只在播放页上才有人接：从首页点它们，要先切到播放页再发键，
+    // 否则设置关了、什么都没发生。播放/暂停和上下首在任何视图都能用，不切页。
+    test('从首页点快退，先切到播放页再发 ← 键', async ({ page }) => {
+        await page.evaluate(() => {
+            (window as unknown as { __keys: Array<Record<string, unknown>> }).__keys = [];
+            window.addEventListener('keydown', event => {
+                (window as unknown as { __keys: Array<Record<string, unknown>> }).__keys.push({
+                    key: event.key,
+                    code: event.code,
+                });
+            });
+        });
+        await page.getByTestId('help-touch-seekBackward').click();
+        await expect.poll(async () => page.evaluate(async () => {
+            const modulePath = '/src/stores/useAppViewStore.ts';
+            const { useAppViewStore } = await import(modulePath);
+            return useAppViewStore.getState().view;
+        })).toBe('player');
+        await expect.poll(async () => page.evaluate(
+            () => (window as unknown as { __keys: Array<unknown> }).__keys.length,
+        )).toBe(1);
+        const keys = await page.evaluate(
+            () => (window as unknown as { __keys: Array<Record<string, unknown>> }).__keys,
+        );
+        expect(keys[0]).toEqual({ key: 'ArrowLeft', code: 'ArrowLeft' });
+    });
+
+    test('从首页点开控制面板，先切到播放页再发 P 键', async ({ page }) => {
+        await page.evaluate(() => {
+            (window as unknown as { __keys: Array<Record<string, unknown>> }).__keys = [];
+            window.addEventListener('keydown', event => {
+                (window as unknown as { __keys: Array<Record<string, unknown>> }).__keys.push({
+                    key: event.key,
+                    code: event.code,
+                });
+            });
+        });
+        await page.getByTestId('help-touch-openControlPanel').click();
+        await expect.poll(async () => page.evaluate(async () => {
+            const modulePath = '/src/stores/useAppViewStore.ts';
+            const { useAppViewStore } = await import(modulePath);
+            return useAppViewStore.getState().view;
+        })).toBe('player');
+        await expect.poll(async () => page.evaluate(
+            () => (window as unknown as { __keys: Array<unknown> }).__keys.length,
+        )).toBe(1);
+        const keys = await page.evaluate(
+            () => (window as unknown as { __keys: Array<Record<string, unknown>> }).__keys,
+        );
+        expect(keys[0]).toEqual({ key: 'p', code: 'KeyP' });
+    });
+
+    test('播放/暂停不用切页：首页点它，视图不动，空格键照发', async ({ page }) => {
+        await page.evaluate(() => {
+            (window as unknown as { __keys: Array<Record<string, unknown>> }).__keys = [];
+            window.addEventListener('keydown', event => {
+                (window as unknown as { __keys: Array<Record<string, unknown>> }).__keys.push({
+                    key: event.key,
+                    code: event.code,
+                });
+            });
+        });
+        await page.getByTestId('help-touch-playPause').click();
+        await expect.poll(async () => page.evaluate(
+            () => (window as unknown as { __keys: Array<unknown> }).__keys.length,
+        )).toBe(1);
+        const view = await page.evaluate(async () => {
+            const modulePath = '/src/stores/useAppViewStore.ts';
+            const { useAppViewStore } = await import(modulePath);
+            return useAppViewStore.getState().view;
+        });
+        expect(view).toBe('home');
+        const keys = await page.evaluate(
+            () => (window as unknown as { __keys: Array<Record<string, unknown>> }).__keys,
+        );
+        expect(keys[0]).toEqual({ key: ' ', code: 'Space' });
     });
 });
 

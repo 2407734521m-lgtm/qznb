@@ -231,6 +231,7 @@ export const MusicIslandView = ({
   const [fullscreenSuppressed, setFullscreenSuppressed] = useState(false);
   const gestureRef = useRef<IslandDockGesture | null>(null);
   const dockTimerRef = useRef<number | null>(null);
+  const callArrivalTimerRef = useRef<number | null>(null);
   const collapseRef = useRef(value.collapse);
   const isExpandedRef = useRef(value.isExpanded);
   const suppressIslandClickUntilRef = useRef(0);
@@ -248,6 +249,29 @@ export const MusicIslandView = ({
     syncFullscreen();
     document.addEventListener('fullscreenchange', syncFullscreen);
     return () => document.removeEventListener('fullscreenchange', syncFullscreen);
+  }, [hostRef]);
+
+  useEffect(() => {
+    const onCallIslandArrived = () => {
+      const host = hostRef.current;
+      if (!host) return;
+      host.classList.remove('is-call-arriving');
+      // Reflow restarts the one-shot spring-pop when calls are minimized repeatedly.
+      void host.offsetWidth;
+      host.classList.add('is-call-arriving');
+      if (callArrivalTimerRef.current !== null) window.clearTimeout(callArrivalTimerRef.current);
+      callArrivalTimerRef.current = window.setTimeout(() => {
+        host.classList.remove('is-call-arriving');
+        callArrivalTimerRef.current = null;
+      }, 560);
+    };
+    window.addEventListener('qz-call-island-arrived', onCallIslandArrived);
+    return () => {
+      window.removeEventListener('qz-call-island-arrived', onCallIslandArrived);
+      if (callArrivalTimerRef.current !== null) window.clearTimeout(callArrivalTimerRef.current);
+      callArrivalTimerRef.current = null;
+      hostRef.current?.classList.remove('is-call-arriving');
+    };
   }, [hostRef]);
 
   useEffect(() => {
@@ -385,6 +409,7 @@ export const MusicIslandView = ({
           aria-hidden={docked || fullscreenSuppressed || undefined}
         >
           <Island
+            className="qz-island-call-anchor"
             placement="viewport"
             label="堯实时活动"
             keyline="off"

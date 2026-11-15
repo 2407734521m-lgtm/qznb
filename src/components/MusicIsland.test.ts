@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isSameMusicTrack } from './MusicIsland';
+import { isSameMusicTrack, shouldShowMainIsland } from './MusicIsland';
 import { resolveIslandDockGesture } from './QianzhiMusicIslandActivity';
 
 const track = (overrides = {}) => ({
@@ -46,5 +46,19 @@ describe('resolveIslandDockGesture', () => {
   it('ignores predominantly horizontal movement', () => {
     expect(resolveIslandDockGesture('island', 82, -50)).toBe(null);
     expect(resolveIslandDockGesture('peek', -90, 40)).toBe(null);
+  });
+});
+
+
+describe('shouldShowMainIsland', () => {
+  it('hides the main island on the immersive music page when only music playback is active', () => {
+    expect(shouldShowMainIsland(true, ['music-playback'])).toBe(false);
+  });
+  it('shows calls and uploads above the immersive music page', () => {
+    expect(shouldShowMainIsland(true, ['music-playback', 'qz-call-session'])).toBe(true);
+    expect(shouldShowMainIsland(true, ['qz-upload-progress'])).toBe(true);
+  });
+  it('always shows the main island on normal routes', () => {
+    expect(shouldShowMainIsland(false, [])).toBe(true);
   });
 });

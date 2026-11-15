@@ -30,9 +30,15 @@
   color: #fff;
 }
 .qz-upload-island-percent {
-  color: rgba(255,255,255,.7);
+  display: inline-block;
+  flex: 0 0 auto;
+  min-width: 2.8em;
+  color: rgba(255,255,255,.82);
   font-size: 10px;
+  line-height: 1;
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  text-align: right;
 }
 .qz-upload-island-label {
   display: inline-flex;

@@ -4,7 +4,7 @@ import { useVirtualizer } from '@tanstack/react-virtual';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../auth';
-import { downscaleImage, uploadMedia, uploadMediaWithProgress, useSignedUrl } from '../lib/media';
+import { downscaleImage, uploadMediaWithProgress, useSignedUrl } from '../lib/media';
 import SmoothProgress from '../components/fx/SmoothProgress';
 import { useDelayedLoading } from '../components/fx/Skeleton';
 import BlurImg from '../components/fx/BlurImg';
@@ -377,11 +377,12 @@ export default function Chat() {
 
   useEffect(() => {
     let active = true;
-    if (!cid || !Number.isFinite(Number(cid))) return;
+    setChatBackground('default');
+    if (!cid || !Number.isFinite(Number(cid))) return () => { active = false; };
     supabase.from('conversation_members').select('chat_background')
       .eq('conversation_id', Number(cid)).eq('profile_id', me).maybeSingle()
       .then(({ data }) => {
-        if (active && data?.chat_background) setChatBackground(data.chat_background);
+        if (active) setChatBackground(data?.chat_background ?? 'default');
       });
     return () => { active = false; };
   }, [cid, me]);
@@ -554,13 +555,19 @@ export default function Chat() {
     if (!cid || backgroundSaving) return;
     setBackgroundSaving(true);
     setError('');
-    const { error: saveError } = await supabase.rpc('set_chat_background', {
-      p_conversation_id: Number(cid),
-      p_background: value,
-    });
-    if (saveError) setError('聊天背景保存失败，请重试。');
-    else setChatBackground(value);
-    setBackgroundSaving(false);
+    try {
+      const { error: saveError } = await supabase.rpc('set_chat_background', {
+        p_conversation_id: Number(cid),
+        p_background: value,
+      });
+      if (saveError) throw saveError;
+      setChatBackground(value);
+    } catch (saveError) {
+      console.error('chat background save failed', saveError);
+      setError('聊天背景保存失败，请重试。');
+    } finally {
+      setBackgroundSaving(false);
+    }
   }
 
   async function uploadChatBackground(file?: File) {
@@ -572,7 +579,7 @@ export default function Chat() {
     let path: string | null = null;
     try {
       const compact = await downscaleImage(file, 1800, 0.84);
-      path = await uploadMedia('chat-media', compact, Number(cid) + '/' + me);
+      path = await uploadMediaWithProgress('chat-media', compact, Number(cid) + '/' + me);
       const { error: saveError } = await supabase.rpc('set_chat_background', {
         p_conversation_id: Number(cid),
         p_background: 'image:' + path,
@@ -1019,7 +1026,7 @@ export default function Chat() {
                 </div>
               ) : <div className="im-profile-empty">你们发送的照片会显示在这里。</div>}
             </section>
-            <div className="im-profile-footer">聊天背景由你们双方共享：谁设置了新背景，对方打开聊天时也会一起换上。</div>
+            <div className="im-profile-footer">聊天背景仅对你自己生效，不会改变对方的聊天界面。</div>
           </div>
         </section>
       </div>}

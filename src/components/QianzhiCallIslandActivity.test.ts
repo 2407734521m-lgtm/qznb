@@ -14,6 +14,7 @@ describe('Qianzhi call island activity', () => {
       onCancel: () => {},
       onHangUp: () => {},
       onToggleMute: () => {},
+      onRestore: () => {},
     });
 
     expect(activity.id).toBe('qz-call-session');
@@ -37,6 +38,7 @@ describe('Qianzhi call island activity', () => {
       onCancel: () => {},
       onHangUp: () => {},
       onToggleMute: () => {},
+      onRestore: () => {},
     });
 
     expect(activity.alert).toBe(false);
@@ -46,7 +48,7 @@ describe('Qianzhi call island activity', () => {
     expect(isValidElement(activity.expanded?.bottom)).toBe(true);
     const actionRow = activity.expanded?.bottom as ReactElement<{ children: ReactElement<{ children: ReactElement<{ label: string }>[] }> }>;
     const actionGroup = actionRow.props.children;
-    expect(actionGroup.props.children.map(action => action.props.label)).toEqual(['取消静音', '挂断']);
+    expect(actionGroup.props.children.map(action => action.props.label)).toEqual(['返回通话', '取消静音', '挂断']);
   });
   it('offers cancellation while the call is still connecting', () => {
     const activity = createCallIslandActivity({
@@ -59,8 +61,12 @@ describe('Qianzhi call island activity', () => {
       onCancel: () => {},
       onHangUp: () => {},
       onToggleMute: () => {},
+      onRestore: () => {},
     });
-    const actionRow = activity.expanded?.bottom as ReactElement<{ children: ReactElement<{ label: string }> }>;
-    expect(actionRow.props.children.props.label).toBe('取消连接');
+    const actionRow = activity.expanded?.bottom as ReactElement<{ children: ReactElement<{ children: ReactElement<{ label: string }>[] }> }>;
+    const actionFragment = actionRow.props.children;
+    expect(isValidElement(actionFragment)).toBe(true);
+    const actions = (actionFragment as ReactElement<{ children: ReactElement<{ label: string }>[] }>).props.children;
+    expect(actions.map(action => action.props.label)).toEqual(['返回通话', '取消连接']);
   });
 });

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
-import { useIslandActions } from '../lib/island';
+import { useIslandActions, useIslandActivityIds } from '../lib/island';
 import { createMusicIslandActivity, MusicIslandView } from './QianzhiMusicIslandActivity';
 import { useLocation, useNavigate } from 'react-router-dom';
 import './MusicIsland.css';
@@ -51,6 +51,10 @@ function safeCoverUrl(value: unknown): string | null {
 }
 
 /** A STATE track that changes nothing the island shows: same song, same state, same second. */
+export function shouldShowMainIsland(isMusicPage: boolean, activityIds: readonly string[]): boolean {
+  return !isMusicPage || activityIds.some(id => id !== 'music-playback');
+}
+
 export function isSameMusicTrack(a: MusicTrack | null, b: MusicTrack | null): boolean {
   if (a === b) return true;
   if (!a || !b) return false;
@@ -70,6 +74,7 @@ function MusicIsland() {
   const navigate = useNavigate();
   const reduceMotion = useReducedMotion();
   const islandApi = useIslandActions();
+  const activityIds = useIslandActivityIds();
   const frameRef = useRef<HTMLIFrameElement | null>(null);
   const islandWrapRef = useRef<HTMLDivElement | null>(null);
   const isMusicPage = location.pathname === '/music';
@@ -84,6 +89,7 @@ function MusicIsland() {
   const lastStateMessageAtRef = useRef(0);
   const lastTrackRef = useRef<MusicTrack | null>(null);
   const shouldMountFrame = openedOnce || isMusicPage;
+  const showMainIsland = shouldShowMainIsland(isMusicPage, activityIds);
 
   useEffect(() => {
     if (isMusicPage) {
@@ -322,7 +328,7 @@ function MusicIsland() {
         </motion.div>
       )}
 
-      {!isMusicPage && (
+      {showMainIsland && (
         <MusicIslandView
           hostRef={islandWrapRef}
           value={{

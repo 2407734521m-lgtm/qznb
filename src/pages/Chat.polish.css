@@ -7,7 +7,9 @@
   --im-ink: #1d293b;
   --im-muted: #7d899b;
   --im-line: rgba(103, 126, 160, .16);
-  background: #ffffff !important;
+  background: var(--im-wallpaper, #ffffff) !important;
+  background-size: cover !important;
+  background-position: center !important;
   color: var(--im-ink) !important;
   box-shadow: none !important;
 }
@@ -471,9 +473,8 @@
 
 /* Per-conversation iMessage refinements: personal wallpapers, contextual actions and typing. */
 .im-page.im-page::before {
-  background: var(--im-wallpaper, #ffffff) !important;
-  background-size: cover !important;
-  background-position: center !important;
+  content: none !important;
+  display: none !important;
 }
 .im-page .im-details {
   display: block !important;

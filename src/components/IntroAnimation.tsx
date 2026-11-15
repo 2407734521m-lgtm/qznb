@@ -1,13 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { EASE } from '../lib/motion';
+import { BRAND_NAME, BRAND_SUBTITLE } from '../lib/brand';
 
-// 开场动画（方向一：品牌浮现）：C+M 字母标逐笔描出、金点落下、
-// 站名逐字浮现、副标题 OUR CLASS, OUR STORY 淡入，约 3 秒。
+// 开场动画：Q 标记描边、站名逐字浮现、副标题淡入，约 3 秒。
 // 每次冷打开播一次（同一标签页会话内只播一次），点按任意处跳过；
 // 减弱动效时直接跳过不播。手机与桌面同一套，不用 WebGL。
-const TITLE = 'Class Memory';
-const SUBTITLE = 'OUR CLASS, OUR STORY';
+const TITLE = BRAND_NAME;
+const SUBTITLE = BRAND_SUBTITLE.toUpperCase();
 const AUTO_DONE_MS = 2900;
 const EXIT_MS = 450;
 
@@ -69,27 +69,20 @@ export default function IntroAnimation({ onDone }: { onDone: () => void }) {
         style={{ display: 'grid', placeItems: 'center' }}
       >
         <svg width={108} height={108} viewBox="0 0 120 120" aria-hidden="true" focusable="false" style={{ display: 'block' }}>
-          <rect width="120" height="120" rx="30" fill="#94664f" />
-          <motion.path
-            d="M52.9 43.5A21 21 0 1 0 52.9 76.5"
-            fill="none" stroke="#fff7ec" strokeWidth="10" strokeLinecap="round"
-            initial={{ pathLength: 0 }}
-            animate={{ pathLength: 1 }}
-            transition={{ delay: 0.15, duration: 0.9, ease: EASE }}
-          />
+          <rect width="120" height="120" rx="30" fill="#1f2a3a" />
           <motion.circle
-            cx="40" cy="60" r="5" fill="#f0c27b"
-            style={{ transformBox: 'fill-box', transformOrigin: 'center' }}
-            initial={{ scale: 0, y: -8, opacity: 0 }}
-            animate={{ scale: 1, y: 0, opacity: 1 }}
-            transition={{ delay: 1.05, duration: 0.4, ease: EASE }}
-          />
-          <motion.path
-            d="M70 78V42L86 64L102 42V78"
-            fill="none" stroke="#fff7ec" strokeWidth="10" strokeLinecap="round" strokeLinejoin="round"
+            cx="56" cy="54" r="27"
+            fill="none" stroke="#ffffff" strokeWidth="10"
             initial={{ pathLength: 0 }}
             animate={{ pathLength: 1 }}
-            transition={{ delay: 0.55, duration: 0.9, ease: EASE }}
+            transition={{ delay: 0.2, duration: 0.95, ease: EASE }}
+          />
+          <motion.path
+            d="M75 74 94 94"
+            fill="none" stroke="#ffffff" strokeWidth="10" strokeLinecap="round"
+            initial={{ pathLength: 0 }}
+            animate={{ pathLength: 1 }}
+            transition={{ delay: 0.85, duration: 0.45, ease: EASE }}
           />
         </svg>
       </motion.div>
@@ -115,7 +108,7 @@ export default function IntroAnimation({ onDone }: { onDone: () => void }) {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 1.95, duration: 0.6, ease: EASE }}
-        style={{ marginTop: 16, fontSize: 13, fontWeight: 600, letterSpacing: '0.42em', textIndent: '0.42em', whiteSpace: 'nowrap', color: '#94664f' }}
+        style={{ marginTop: 16, fontSize: 13, fontWeight: 600, letterSpacing: '0.42em', textIndent: '0.42em', whiteSpace: 'nowrap', color: '#526b8c' }}
       >
         {SUBTITLE}
       </motion.div>

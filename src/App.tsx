@@ -571,20 +571,37 @@ function Shell() {
     const seenNotificationIds = new Set<string>();
     const seenMessageIds = new Set<string>();
     const activeIslandAlerts = new Set<ReturnType<typeof showIslandAlert>>();
+    const activeIslandAlertTimers = new Map<ReturnType<typeof showIslandAlert>, number>();
     const queuedIslandAlerts: Parameters<typeof showIslandAlert>[1][] = [];
     let islandAlertFlushTimer: number | null = null;
     let activeIslandAlertPriority = Number.NEGATIVE_INFINITY;
+    const clearActiveIslandAlertTimer = (handle: ReturnType<typeof showIslandAlert>) => {
+      const timer = activeIslandAlertTimers.get(handle);
+      if (timer !== undefined) window.clearTimeout(timer);
+      activeIslandAlertTimers.delete(handle);
+    };
+    const scheduleActiveIslandAlertExpiry = (handle: ReturnType<typeof showIslandAlert>, delayMs: number) => {
+      clearActiveIslandAlertTimer(handle);
+      const timer = window.setTimeout(() => {
+        activeIslandAlertTimers.delete(handle);
+        const wasActive = activeIslandAlerts.delete(handle);
+        if (wasActive && activeIslandAlerts.size === 0) activeIslandAlertPriority = Number.NEGATIVE_INFINITY;
+      }, delayMs + 80);
+      activeIslandAlertTimers.set(handle, timer);
+    };
     const presentIslandAlert = (input: Parameters<typeof showIslandAlert>[1]) => {
       // There is only one short-lived notification surface. A lower-priority event must not
       // replace a more important alert that is already visible.
       if (input.priority < activeIslandAlertPriority) return;
-      activeIslandAlerts.forEach(handle => handle.end());
+      activeIslandAlerts.forEach(handle => { clearActiveIslandAlertTimer(handle); handle.end(); });
       activeIslandAlerts.clear();
 
       let handle: ReturnType<typeof showIslandAlert>;
       handle = showIslandAlert(islandApi, {
         ...input,
+        onQuickReplyEngage: input.onQuickReply ? () => scheduleActiveIslandAlertExpiry(handle, 45_000) : undefined,
         onPress: () => {
+          clearActiveIslandAlertTimer(handle);
           activeIslandAlerts.delete(handle);
           if (activeIslandAlerts.size === 0) activeIslandAlertPriority = Number.NEGATIVE_INFINITY;
           input.onPress?.();
@@ -593,10 +610,7 @@ function Shell() {
       activeIslandAlerts.add(handle);
       activeIslandAlertPriority = input.priority;
       const duration = Math.max(3500, Math.min(12000, input.durationMs ?? 6500));
-      window.setTimeout(() => {
-        const wasActive = activeIslandAlerts.delete(handle);
-        if (wasActive && activeIslandAlerts.size === 0) activeIslandAlertPriority = Number.NEGATIVE_INFINITY;
-      }, duration + 80);
+      scheduleActiveIslandAlertExpiry(handle, duration);
     };
     // Merge a burst of realtime inserts into one concise activity. The notification center remains
     // the source of truth; the island is only a short, low-noise heads-up.

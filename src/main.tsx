@@ -9,6 +9,7 @@ const AdminLogin = lazyWithRetry(() => import('./pages/AdminLogin'));
 const IntroAnimation = lazyWithRetry(() => import('./components/IntroAnimation'));
 import { AuthProvider, useAuth } from './auth';
 import { IslandProvider } from './lib/island';
+import { qianzhiIslandMotion } from './lib/island/qianzhi-motion';
 import { supabase } from './lib/supabase';
 import { DialogHost } from './lib/dialog';
 import { Toaster } from 'sonner';
@@ -216,7 +217,7 @@ createRoot(document.getElementById('root')!).render(
   <React.StrictMode><HashRouter><AuthProvider>
     <ErrorBoundary>
       <Suspense fallback={<RouteLoading />}>
-        {isAdminHost ? <AdminShell /> : <IslandProvider><App /></IslandProvider>}
+        {isAdminHost ? <AdminShell /> : <IslandProvider motion={qianzhiIslandMotion}><App /></IslandProvider>}
       </Suspense>
       {!isAdminHost ? <SiteIntro /> : null}
       <TestSwitchFab />

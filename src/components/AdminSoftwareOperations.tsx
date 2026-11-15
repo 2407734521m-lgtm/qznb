@@ -113,7 +113,7 @@ export default function AdminSoftwareOperations({ setMsg }: { setMsg: (message: 
       p_title: cleanTitle,
       p_body: cleanBody,
       p_show_popup: popup,
-      p_expires_at: null,
+      p_expires_at: undefined,
     });
     setBusy(false);
     if (error) return setMsg('发布失败：' + error.message);

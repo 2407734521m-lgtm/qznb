@@ -151,15 +151,17 @@ export default function Overview({ setMsg, go }: { setMsg: (s: string) => void; 
           }
           return;
         }
+        const summary = data && typeof data === 'object' && !Array.isArray(data)
+          ? data as Record<string, unknown>
+          : {};
+        const onlineCount = typeof summary.online_count === 'number' ? summary.online_count : 0;
+        const activeCount = typeof summary.active_count === 'number' ? summary.active_count : 0;
+        const sampledAt = typeof summary.sampled_at === 'string' ? summary.sampled_at : new Date().toISOString();
         const live = realtimeRef.current;
         setPresence(prev => ({
-          online: live.status === 'connected' && live.online !== null
-            ? live.online
-            : Number(data.online_count ?? 0),
-          active: Number(data.active_count ?? 0),
-          sampledAt: live.status === 'connected'
-            ? (live.updatedAt ?? prev?.sampledAt ?? data.sampled_at ?? new Date().toISOString())
-            : (data.sampled_at ?? new Date().toISOString()),
+          online: live.status === 'connected' && live.online !== null ? live.online : onlineCount,
+          active: activeCount,
+          sampledAt: live.status === 'connected' ? (live.updatedAt ?? prev?.sampledAt ?? sampledAt) : sampledAt,
           error: false,
         }));
       } finally {

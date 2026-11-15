@@ -35,7 +35,7 @@ export default function GamePicker({ initial, origin, onClose, onDone }:
     if (!game) return setErr('请先选择一个游戏');
     setBusy(true); setErr('');
     const { error } = await supabase.rpc('submit_game_profile', {
-      gname: game.name, guid: uid.trim() || null, rnk: rank || null,
+      gname: game.name, guid: uid.trim(), rnk: rank,
     });
     setBusy(false);
     if (error) return setErr('提交失败：' + error.message);

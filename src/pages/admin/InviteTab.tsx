@@ -31,7 +31,7 @@ export default function InviteTab({ isSuper, setMsg }: { isSuper: boolean; setMs
     for (let i = 0; i < n; i++) {
       let code = '';
       for (let j = 0; j < 6; j++) code += chars[Math.floor(Math.random() * chars.length)];
-      const { error } = await supabase.rpc('create_invite_code', { new_code: code, nick: null });
+      const { error } = await supabase.rpc('create_invite_code', { new_code: code, nick: '' });
       if (!error) ok++;
     }
     setBatchBusy(false); setMsg(`已生成 ${ok} 个邀请码`); load();
@@ -39,7 +39,7 @@ export default function InviteTab({ isSuper, setMsg }: { isSuper: boolean; setMs
   }
   async function addIc() {
     const c = newCode.trim(); if (!c) return setMsg('请填写邀请码');
-    const { error } = await supabase.rpc('create_invite_code', { new_code: c, nick: newNick.trim() || null });
+    const { error } = await supabase.rpc('create_invite_code', { new_code: c, nick: newNick.trim() });
     if (error) { setMsg('添加失败：' + error.message); return; }
     const days = parseInt(newExp, 10);
     if (days > 0) await supabase.from('invite_codes').update({ expires_at: new Date(Date.now() + days * 864e5).toISOString() }).eq('code', c);

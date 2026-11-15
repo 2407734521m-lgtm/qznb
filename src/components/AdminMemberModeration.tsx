@@ -140,7 +140,7 @@ export default function AdminMemberModeration({
       p_target_user_id: memberId,
       p_action_type: actionType,
       p_reason: reason.trim(),
-      p_duration_hours: durationHours,
+      p_duration_hours: durationHours ?? undefined,
     });
     setBusy(null);
     if (error) {

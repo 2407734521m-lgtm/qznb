@@ -127,7 +127,7 @@ export default function MeGrowth() {
     if (titleBusy) return;
     setTitleBusy(true);
     setTitleMessage('正在保存…');
-    const { error } = await supabase.rpc('set_my_profile_title', { p_title: title });
+    const { error } = await supabase.rpc('set_my_profile_title', { p_title: title ?? '' });
     setTitleBusy(false);
     if (error) {
       setTitleMessage(error.message.includes('title_not_earned')

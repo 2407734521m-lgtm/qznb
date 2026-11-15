@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
-import { AnimatePresence, LayoutGroup, motion, useReducedMotion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
+import { useIslandActions } from '../lib/island';
+import { createMusicIslandActivity, MusicIslandView } from './QianzhiMusicIslandActivity';
 import { useLocation, useNavigate } from 'react-router-dom';
 import './MusicIsland.css';
 
@@ -48,11 +50,6 @@ function safeCoverUrl(value: unknown): string | null {
   }
 }
 
-function formatTime(value: number): string {
-  const seconds = Math.max(0, Math.floor(Number.isFinite(value) ? value : 0));
-  return String(Math.floor(seconds / 60)) + ':' + String(seconds % 60).padStart(2, '0');
-}
-
 /** A STATE track that changes nothing the island shows: same song, same state, same second. */
 export function isSameMusicTrack(a: MusicTrack | null, b: MusicTrack | null): boolean {
   if (a === b) return true;
@@ -68,47 +65,30 @@ export function isSameMusicTrack(a: MusicTrack | null, b: MusicTrack | null): bo
     && a.canToggle === b.canToggle;
 }
 
-function MusicIcon({ name, size = 18 }: { name: 'play' | 'pause' | 'previous' | 'next' | 'close' | 'list'; size?: number }) {
-  const common = { width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const, 'aria-hidden': true as const };
-  if (name === 'play') return <svg {...common}><path d="M8 5v14l11-7z" fill="currentColor" stroke="none" /></svg>;
-  if (name === 'pause') return <svg {...common}><path d="M8 5v14M16 5v14" /></svg>;
-  if (name === 'previous') return <svg {...common}><path d="M6 5v14M19 5l-11 7 11 7z" /></svg>;
-  if (name === 'next') return <svg {...common}><path d="M18 5v14M5 5l11 7-11 7z" /></svg>;
-  if (name === 'close') return <svg {...common}><path d="m6 6 12 12M18 6 6 18" /></svg>;
-  return <svg {...common}><path d="M4 6h16M4 12h16M4 18h16" /></svg>;
-}
-
 function MusicIsland() {
   const location = useLocation();
   const navigate = useNavigate();
   const reduceMotion = useReducedMotion();
+  const islandApi = useIslandActions();
   const frameRef = useRef<HTMLIFrameElement | null>(null);
   const islandWrapRef = useRef<HTMLDivElement | null>(null);
   const isMusicPage = location.pathname === '/music';
-  const inQianzhiApp = typeof navigator !== 'undefined' && /QianzhiApp\//i.test(navigator.userAgent);
   const [openedOnce, setOpenedOnce] = useState(false);
   const [frameForeground, setFrameForeground] = useState(isMusicPage);
   const [frameLoaded, setFrameLoaded] = useState(false);
   const [connected, setConnected] = useState(false);
   const [showFallback, setShowFallback] = useState(false);
   const [track, setTrack] = useState<MusicTrack | null>(null);
-  const [expanded, setExpanded] = useState(false);
   const [seekDraft, setSeekDraft] = useState<number | null>(null);
   const seekDraftRef = useRef<number | null>(null);
   const lastStateMessageAtRef = useRef(0);
   const lastTrackRef = useRef<MusicTrack | null>(null);
-  const leftMusicPageAtRef = useRef(0);
   const shouldMountFrame = openedOnce || isMusicPage;
 
   useEffect(() => {
     if (isMusicPage) {
       setOpenedOnce(true);
       setFrameForeground(true);
-      setExpanded(false);
-    } else {
-      // Leaving the music page: the white frame is still fading out for ~0.36s, so the
-      // island waits ~0.3s before coming in instead of animating over the fading sheet.
-      leftMusicPageAtRef.current = Date.now();
     }
   }, [isMusicPage]);
 
@@ -218,32 +198,6 @@ function MusicIsland() {
     return () => window.clearTimeout(timer);
   }, [shouldMountFrame, connected, frameLoaded]);
 
-  useEffect(() => {
-    if (!track) setExpanded(false);
-  }, [track]);
-
-  useEffect(() => {
-    if (isMusicPage) return;
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setExpanded(false);
-    };
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, [isMusicPage]);
-
-  // Keep the expanded island contextual: tapping anywhere outside it returns to the compact pill.
-  useEffect(() => {
-    if (!expanded || isMusicPage) return;
-    const onOutsidePointerDown = (event: PointerEvent) => {
-      const target = event.target;
-      if (target && islandWrapRef.current && !islandWrapRef.current.contains(target as Node)) {
-        setExpanded(false);
-      }
-    };
-    document.addEventListener('pointerdown', onOutsidePointerDown, true);
-    return () => document.removeEventListener('pointerdown', onOutsidePointerDown, true);
-  }, [expanded, isMusicPage]);
-
   const sendCommand = (command: MusicCommand, value?: number) => {
     if (!connected) return;
     frameRef.current?.contentWindow?.postMessage({
@@ -268,9 +222,34 @@ function MusicIsland() {
     setSeekDraft(null);
   };
 
-  // Right after leaving the music page the island waits for the white frame to fade out
-  // before coming in; any other mount (playback starting while browsing) comes in at once.
-  const islandEnterDelay = Date.now() - leftMusicPageAtRef.current < 1000 ? 0.3 : 0;
+  const updateSeekDraft = (value: number) => {
+    seekDraftRef.current = value;
+    setSeekDraft(value);
+  };
+
+  const hasTrack = track !== null;
+
+  // Keep the music activity mounted once per track session. Its content reads current track state
+  // through context, avoiding a full activity-stack update on every playback clock tick.
+  useEffect(() => {
+    if (!hasTrack || isMusicPage) {
+      islandApi.end('music-playback');
+      return;
+    }
+    const toggleExpanded = () => {
+      if (islandApi.presentation === 'expanded') islandApi.collapse();
+      else islandApi.expand('music-playback');
+    };
+    islandApi.start(createMusicIslandActivity(toggleExpanded));
+    return () => islandApi.end('music-playback');
+  }, [hasTrack, isMusicPage, islandApi]);
+
+  useEffect(() => {
+    if (!hasTrack || isMusicPage || !track) return;
+    islandApi.update('music-playback', {
+      label: (track.isPlaying ? '正在播放：' : '已暂停：') + track.title,
+    });
+  }, [hasTrack, isMusicPage, track?.title, track?.isPlaying, islandApi]);
 
   return (
     <>
@@ -343,149 +322,22 @@ function MusicIsland() {
         </motion.div>
       )}
 
-      <AnimatePresence>
-        {track && !isMusicPage && (
-          <motion.div
-            ref={islandWrapRef}
-            className={'qz-music-island-wrap' + (inQianzhiApp ? ' is-qianzhi-app' : '')}
-            initial={reduceMotion ? false : { opacity: 0, y: -12, scale: 0.96 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -6, scale: 0.985 }}
-            transition={reduceMotion
-              ? { duration: 0 }
-              : {
-                  opacity: { duration: 0.22, ease: [0.16, 1, 0.3, 1], delay: 0.08 + islandEnterDelay },
-                  y: { duration: 0.42, ease: [0.16, 1, 0.3, 1], delay: 0.04 + islandEnterDelay },
-                  scale: { duration: 0.42, ease: [0.16, 1, 0.3, 1], delay: 0.04 + islandEnterDelay },
-                } }
-          >
-            <LayoutGroup id="qz-music-island">
-              <AnimatePresence mode="sync" initial={false}>
-              {expanded ? (
-                <motion.section
-                  key="expanded"
-                  className="qz-music-island qz-music-island-expanded"
-                  layoutId="qz-music-island-shell"
-                  initial={reduceMotion ? false : { opacity: 0, y: -7, scale: 0.985 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: -4, scale: 0.99 }}
-                  // One clock for the whole morph: the layout spring and the content fade ran
-                  // on different durations before, so the shell and its content moved out of
-                  // step while the glass blurred throughout.
-                  transition={reduceMotion
-                    ? { duration: 0 }
-                    : {
-                        layout: { type: 'spring', stiffness: 430, damping: 36, mass: 0.82 },
-                        opacity: { duration: 0.38, ease: [0.22, 1, 0.36, 1] },
-                        y: { duration: 0.38, ease: [0.22, 1, 0.36, 1] },
-                        scale: { duration: 0.38, ease: [0.22, 1, 0.36, 1] },
-                      }}
-                  style={{ transformOrigin: 'top center' }}
-                  aria-label="音乐控制面板"
-                >
-                  <div className="qz-music-island-top">
-                    <span className="qz-music-island-status">{track.isPlaying ? '正在播放' : '已暂停'}</span>
-                    <button type="button" className="qz-music-island-icon-button" onClick={() => setExpanded(false)} aria-label="收起播放器">
-                      <MusicIcon name="close" size={16} />
-                    </button>
-                  </div>
-                  <button type="button" className="qz-music-island-track" onClick={() => navigate('/music')}>
-                    {track.coverUrl ? (
-                      <motion.img key={track.coverUrl} layoutId="qz-music-island-cover" className="qz-music-island-cover" src={track.coverUrl} alt="" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.2, ease: 'easeOut' }} />
-                    ) : (
-                      <motion.span key="fallback" layoutId="qz-music-island-cover" className="qz-music-island-cover qz-music-island-cover-fallback" aria-hidden="true" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.2, ease: 'easeOut' }}>♫</motion.span>
-                    )}
-                    <span className="qz-music-island-track-copy">
-                      <motion.strong key={track.title} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.2, ease: 'easeOut' }}>{track.title}</motion.strong>
-                      <motion.span key={track.artist} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.2, ease: 'easeOut' }}>{track.artist || '未知歌手'}</motion.span>
-                    </span>
-                    <span className={'qz-music-equalizer ' + (track.isPlaying ? 'is-playing' : '')} aria-hidden="true">
-                      <i /><i /><i /><i />
-                    </span>
-                  </button>
-                  <div className="qz-music-island-progress">
-                    <input
-                      type="range"
-                      min={0}
-                      max={Math.max(1, track.duration)}
-                      step={1}
-                      value={Math.min(track.duration || 0, seekDraft ?? track.currentTime)}
-                      onChange={event => {
-                        const value = Number(event.target.value);
-                        seekDraftRef.current = value;
-                        setSeekDraft(value);
-                      }}
-                      onPointerUp={commitSeekDraft}
-                      onPointerCancel={cancelSeekDraft}
-                      onKeyUp={commitSeekDraft}
-                      onBlur={commitSeekDraft}
-                      aria-label="歌曲播放进度"
-                      disabled={!connected || track.duration <= 0}
-                    />
-                    <div><span>{formatTime(track.currentTime)}</span><span>{formatTime(track.duration)}</span></div>
-                  </div>
-                  <div className="qz-music-island-controls">
-                    <button type="button" onClick={() => sendCommand('previous')} disabled={!connected || !track.canPrevious} aria-label="上一首">
-                      <MusicIcon name="previous" size={20} />
-                    </button>
-                    <button type="button" className="qz-music-play-button" onClick={() => sendCommand('toggle')} disabled={!connected || !track.canToggle} aria-label={track.isPlaying ? '暂停' : '播放'}>
-                      <MusicIcon name={track.isPlaying ? 'pause' : 'play'} size={19} />
-                    </button>
-                    <button type="button" onClick={() => sendCommand('next')} disabled={!connected || !track.canNext} aria-label="下一首">
-                      <MusicIcon name="next" size={20} />
-                    </button>
-                    <button type="button" onClick={() => navigate('/music')} aria-label="打开音乐空间">
-                      <MusicIcon name="list" size={18} />
-                    </button>
-                  </div>
-                </motion.section>
-              ) : (
-                <motion.div
-                  key="collapsed"
-                  className="qz-music-island qz-music-island-collapsed"
-                  layoutId="qz-music-island-shell"
-                  initial={false}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.985 }}
-                  transition={reduceMotion
-                    ? { duration: 0 }
-                    : {
-                        layout: { type: 'spring', stiffness: 430, damping: 36, mass: 0.82 },
-                        opacity: { duration: 0.38, ease: [0.22, 1, 0.36, 1] },
-                        scale: { duration: 0.38, ease: [0.22, 1, 0.36, 1] },
-                      }}
-                >
-                  <button
-                    type="button"
-                    className="qz-music-island-collapsed-main"
-                    onClick={() => setExpanded(true)}
-                    aria-label={'展开播放器：' + track.title}
-                  >
-                    {track.coverUrl ? (
-                      <motion.img key={track.coverUrl} layoutId="qz-music-island-cover" className="qz-music-island-mini-cover" src={track.coverUrl} alt="" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.2, ease: 'easeOut' }} />
-                    ) : (
-                      <motion.span key="fallback" layoutId="qz-music-island-cover" className="qz-music-island-mini-cover qz-music-island-cover-fallback" aria-hidden="true" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.2, ease: 'easeOut' }}>♫</motion.span>
-                    )}
-                    <motion.span key={track.title} className="qz-music-island-mini-title" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.2, ease: 'easeOut' }}>{track.title}</motion.span>
-                    <span className={'qz-music-equalizer ' + (track.isPlaying ? 'is-playing' : '')} aria-hidden="true"><i /><i /><i /><i /></span>
-                  </button>
-                  <button
-                    type="button"
-                    className="qz-music-island-mini-play"
-                    onClick={() => sendCommand('toggle')}
-                    disabled={!connected || !track.canToggle}
-                    aria-label={track.isPlaying ? '暂停音乐' : '继续播放音乐'}
-                    title={track.isPlaying ? '暂停' : '播放'}
-                  >
-                    <MusicIcon name={track.isPlaying ? 'pause' : 'play'} size={15} />
-                  </button>
-                </motion.div>
-              )}
-              </AnimatePresence>
-            </LayoutGroup>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {!isMusicPage && (
+        <MusicIslandView
+          hostRef={islandWrapRef}
+          value={{
+            track,
+            connected,
+            sendCommand,
+            openMusic: () => navigate('/music'),
+            seekDraft,
+            setSeekDraft: updateSeekDraft,
+            commitSeekDraft,
+            cancelSeekDraft,
+            collapse: () => islandApi.collapse(),
+          }}
+        />
+      )}
     </>
   );
 }

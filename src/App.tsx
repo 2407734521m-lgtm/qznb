@@ -565,6 +565,12 @@ function Shell() {
     const uid = session.user.id;
     const seenNotificationIds = new Set<string>();
     const seenMessageIds = new Set<string>();
+    const activeIslandAlerts = new Set<ReturnType<typeof showIslandAlert>>();
+    const presentIslandAlert = (input: Parameters<typeof showIslandAlert>[1]) => {
+      const handle = showIslandAlert(islandApi, input);
+      activeIslandAlerts.add(handle);
+      window.setTimeout(() => activeIslandAlerts.delete(handle), 13000);
+    };
 
     const refreshBadge = async () => {
       try {
@@ -583,7 +589,10 @@ function Shell() {
         const notificationId = String(row.id);
         if (!seenNotificationIds.has(notificationId)) {
           seenNotificationIds.add(notificationId);
-          if (seenNotificationIds.size > 120) seenNotificationIds.clear();
+          if (seenNotificationIds.size > 120) {
+            const oldest = seenNotificationIds.values().next().value;
+            if (oldest) seenNotificationIds.delete(oldest);
+          }
           const type = typeof row.type === 'string' ? row.type : '';
           const preferences = readCachedUserPreferences(uid).notifications;
           const location = currentLocationRef.current;
@@ -608,7 +617,7 @@ function Shell() {
               ? row.link
               : isFriendRequest ? '/friends?tab=reqs' : '/friends?tab=notifications';
 
-            showIslandAlert(islandApi, {
+            presentIslandAlert({
               id: notificationId,
               kind,
               title,
@@ -644,10 +653,13 @@ function Shell() {
       const conversation = conversations.find(item => Number(item.conversation_id) === conversationId);
       if (!conversation || Number(conversation.unread_count ?? 0) <= 0) return;
       seenMessageIds.add(messageId);
-      if (seenMessageIds.size > 160) seenMessageIds.clear();
+      if (seenMessageIds.size > 160) {
+        const oldest = seenMessageIds.values().next().value;
+        if (oldest) seenMessageIds.delete(oldest);
+      }
 
       const senderName = String(conversation.display_name || conversation.username || '好友').slice(0, 32);
-      showIslandAlert(islandApi, {
+      presentIslandAlert({
         id: messageId,
         kind: 'message',
         title: senderName + ' 发来新私信',
@@ -668,6 +680,8 @@ function Shell() {
     window.addEventListener('notif-read', refreshBadge);
     return () => {
       alive = false;
+      activeIslandAlerts.forEach(handle => handle.end());
+      activeIslandAlerts.clear();
       window.removeEventListener('notif-read', refreshBadge);
       void supabase.removeChannel(channel);
     };

@@ -1482,3 +1482,39 @@
   .im-page .im-message-column .im-bubble { padding: 8px 12px; }
   .im-page .im-message-footer { margin-top: 4px; }
 }
+
+
+/* Explicit in-site download action; the original file link still opens the file. */
+.im-file-download-row {
+  display: flex;
+  width: min(100%, 340px);
+  min-width: 0;
+  align-items: stretch;
+  gap: 6px;
+}
+.im-file-download-row .im-file-card {
+  min-width: 0;
+  max-width: none;
+  flex: 1 1 auto;
+}
+.im-file-download-action {
+  display: grid;
+  min-width: 48px;
+  min-height: 58px;
+  flex: 0 0 48px;
+  place-items: center;
+  padding: 0 7px;
+  border: 1px solid rgba(122,100,66,.25);
+  border-radius: 13px;
+  color: #43536b;
+  background: rgba(255,253,249,.96);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.im-file-download-action:active { background: #f7f2e4; }
+.im-file-download-action:disabled { opacity: .55; cursor: default; }
+@media (max-width: 350px) {
+  .im-file-download-row { gap: 4px; }
+  .im-file-download-action { min-width: 42px; flex-basis: 42px; }
+}

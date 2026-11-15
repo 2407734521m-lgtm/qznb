@@ -35,7 +35,7 @@ type MusicSpectrumMessage = {
   version: 1;
   playing: boolean;
   available: boolean;
-  mode: 'spectrum' | 'level' | 'idle';
+  mode: 'spectrum' | 'level' | 'fallback' | 'idle';
   level: number;
   bands: { bass: number; lowMid: number; vocal: number; treble: number } | null;
 };
@@ -53,6 +53,28 @@ function safeCoverUrl(value: unknown): string | null {
 /** A STATE track that changes nothing the island shows: same song, same state, same second. */
 export function shouldShowMainIsland(isMusicPage: boolean, activityIds: readonly string[]): boolean {
   return !isMusicPage || activityIds.some(id => id !== 'music-playback');
+}
+
+export type MusicEqualizerMode = 'live' | 'fallback' | 'idle';
+
+/** Use real spectrum/RMS data when it carries energy; otherwise keep the playing bars animated. */
+export function resolveMusicEqualizerMode(
+  spectrum: Pick<MusicSpectrumMessage, 'playing' | 'available' | 'mode' | 'level' | 'bands'>,
+): MusicEqualizerMode {
+  if (!spectrum.playing) return 'idle';
+
+  const bands = spectrum.bands;
+  const bandEnergy = bands ? bands.bass + bands.lowMid + bands.vocal + bands.treble : 0;
+  const hasSpectrum = spectrum.mode === 'spectrum'
+    && spectrum.available
+    && Number.isFinite(bandEnergy)
+    && bandEnergy > 0.025;
+  if (hasSpectrum) return 'live';
+
+  const level = Number.isFinite(spectrum.level) ? Math.max(0, Math.min(1, spectrum.level)) : 0;
+  if (spectrum.mode === 'level' && level > 0.012) return 'live';
+
+  return 'fallback';
 }
 
 export function isSameMusicTrack(a: MusicTrack | null, b: MusicTrack | null): boolean {
@@ -132,12 +154,16 @@ function MusicIsland() {
         const spectrum = message as MusicSpectrumMessage;
         const style = islandWrapRef.current?.style;
         if (!style) return;
+        const equalizerMode = resolveMusicEqualizerMode(spectrum);
+        style.dataset.qzMusicEqMode = equalizerMode;
+        if (equalizerMode !== 'live') return;
+
         const names = ['bass', 'lowMid', 'vocal', 'treble'] as const;
         const levelMultipliers = { bass: 0.68, lowMid: 0.86, vocal: 1, treble: 0.76 } as const;
-        const spectrumBands = spectrum.playing && spectrum.mode === 'spectrum' && spectrum.available
+        const spectrumBands = spectrum.mode === 'spectrum' && spectrum.available
           ? spectrum.bands
           : null;
-        const rmsLevel = spectrum.playing && spectrum.mode === 'level'
+        const rmsLevel = spectrum.mode === 'level'
           ? Math.max(0, Math.min(1, Number.isFinite(spectrum.level) ? spectrum.level : 0))
           : 0;
         for (const name of names) {
@@ -154,6 +180,7 @@ function MusicIsland() {
       setConnected(true);
       setShowFallback(false);
       if (!message.track || typeof message.track.title !== 'string') {
+        islandWrapRef.current?.setAttribute('data-qz-music-eq-mode', 'idle');
         islandWrapRef.current?.style.setProperty('--qz-music-eq-bass', '.12');
         islandWrapRef.current?.style.setProperty('--qz-music-eq-lowMid', '.12');
         islandWrapRef.current?.style.setProperty('--qz-music-eq-vocal', '.12');
@@ -166,6 +193,7 @@ function MusicIsland() {
       const duration = Number(incoming.duration);
       const currentTime = Number(incoming.currentTime);
       if (!incoming.isPlaying) {
+        islandWrapRef.current?.setAttribute('data-qz-music-eq-mode', 'idle');
         islandWrapRef.current?.style.setProperty('--qz-music-eq-bass', '.12');
         islandWrapRef.current?.style.setProperty('--qz-music-eq-lowMid', '.12');
         islandWrapRef.current?.style.setProperty('--qz-music-eq-vocal', '.12');

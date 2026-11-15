@@ -4,7 +4,7 @@ import { useVirtualizer } from '@tanstack/react-virtual';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../auth';
-import { downscaleImage, uploadMediaWithProgress, useSignedUrl } from '../lib/media';
+import { downscaleImage, downloadMediaWithProgress, uploadMediaWithProgress, useSignedUrl } from '../lib/media';
 import SmoothProgress from '../components/fx/SmoothProgress';
 import { useDelayedLoading } from '../components/fx/Skeleton';
 import BlurImg from '../components/fx/BlurImg';
@@ -105,16 +105,37 @@ function MessageContent({ body }: { body: string }) {
   const fileName = fileParts && fileParts[1] ? fileParts[1] : '文件';
   const fileSize = fileParts && fileParts[2] ? Number(fileParts[2]) : 0;
   const url = useSignedUrl('chat-media', imagePath ?? audioPath ?? filePath);
+  const [downloading, setDownloading] = useState(false);
+  const handleDownload = async (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    if (!url || downloading) return;
+    setDownloading(true);
+    try {
+      await downloadMediaWithProgress(url, fileName);
+      toast.success('文件下载已完成');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : '下载失败，请重试');
+    } finally {
+      setDownloading(false);
+    }
+  };
   if (imagePath) return url ? <MessageImagePreview url={url} /> : <div className="fx-skel-wrap" role="status" aria-label="图片加载中"><div className="fx-skel" style={{ width: 220, height: 140, maxWidth: '68vw', borderRadius: 14 }} /></div>;
   if (filePath) return url ? (
-    <a className="im-file-card" href={url} target="_blank" rel="noreferrer">
-      <span className="im-file-icon" aria-hidden="true">{fileExtLabel(fileName)}</span>
-      <span className="im-file-main">
-        <span className="im-file-name">{fileName}</span>
-        <span className="im-file-meta">{[formatFileSize(fileSize), '点按打开'].filter(Boolean).join(' · ')}</span>
-      </span>
-      <span className="im-file-open" aria-hidden="true">›</span>
-    </a>
+    <div className="im-file-download-row">
+      <a className="im-file-card" href={url} target="_blank" rel="noreferrer">
+        <span className="im-file-icon" aria-hidden="true">{fileExtLabel(fileName)}</span>
+        <span className="im-file-main">
+          <span className="im-file-name">{fileName}</span>
+          <span className="im-file-meta">{[formatFileSize(fileSize), '点按打开'].filter(Boolean).join(' · ')}</span>
+        </span>
+        <span className="im-file-open" aria-hidden="true">›</span>
+      </a>
+      <button type="button" className="im-file-download-action" onClick={handleDownload}
+        disabled={downloading} aria-label={downloading ? '正在下载文件' : '下载文件'}>
+        {downloading ? '…' : '下载'}
+      </button>
+    </div>
   ) : <div className="fx-skel-wrap" role="status" aria-label="文件加载中"><div className="fx-skel" style={{ width: 200, height: 44, maxWidth: '68vw', borderRadius: 12 }} /></div>;
   if (audioPath) return url ? <div className="im-audio-card"><div className="im-audio-symbol">▶</div><div className="im-audio-main"><div className="im-waveform" aria-hidden="true">{Array.from({ length: 34 }, (_, i) => <i key={i} style={{ height: (5 + ((i * 7 + 3) % 17)) + 'px' }} />)}</div><audio controls preload="metadata" src={url} aria-label="语音消息播放" /></div></div> : <div className="fx-skel-wrap" role="status" aria-label="语音加载中"><div className="fx-skel" style={{ width: 240, height: 60, maxWidth: '68vw', borderRadius: 12 }} /></div>;
   return <>{body}</>;

@@ -126,3 +126,14 @@
 @media (prefers-reduced-motion: reduce) {
   .qz-call-island-action { transition: none; }
 }
+
+/* Keep all three call actions inside the expanded island on compact Android viewports. */
+@media (max-width: 360px) {
+  .qz-call-island-actions { gap: 6px; }
+  .qz-call-island-action {
+    min-width: 64px;
+    min-height: 36px;
+    padding: 0 9px;
+    font-size: 11px;
+  }
+}

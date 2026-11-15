@@ -77,7 +77,7 @@ export const Island = ({ placement = "container", label = "Live activities", cla
         if (event.button !== 0) return;
         store.press(target);
       },
-      onPressEnd: () => store.release(),
+      onPressEnd: (event) => store.release({ cancel: event.defaultPrevented }),
       onPressCancel: () => store.release({ cancel: true }),
       onActivate: (target: PressTarget) => {
         if (expanded) {

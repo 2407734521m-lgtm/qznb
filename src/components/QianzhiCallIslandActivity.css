@@ -71,15 +71,58 @@
   font-size: 10px;
   font-variant-numeric: tabular-nums;
 }
-.qz-call-island-hint {
-  display: block;
+.qz-call-island-actions {
+  position: relative;
+  z-index: 2;
+  display: flex;
   width: 100%;
-  overflow: hidden;
-  color: rgba(255,255,255,.56);
-  font-size: 10px;
-  line-height: 1.3;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  pointer-events: auto;
+}
+.qz-call-island-action {
+  display: inline-flex;
+  min-width: 82px;
+  min-height: 38px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 14px;
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 999px;
+  color: rgba(255,255,255,.92);
+  background: rgba(255,255,255,.1);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 680;
+  cursor: pointer;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 160ms cubic-bezier(.2,.72,.24,1), background-color 160ms ease, border-color 160ms ease;
+}
+.qz-call-island-action.is-primary {
+  color: #111;
+  border-color: rgba(255,255,255,.92);
+  background: #fff;
+}
+.qz-call-island-action.is-danger {
+  color: #ffb8b8;
+  border-color: rgba(255,112,112,.25);
+  background: rgba(160,35,35,.22);
+}
+.qz-call-island-action:active { transform: scale(.96); }
+.qz-call-island-action:focus-visible {
+  outline: 2px solid rgba(255,255,255,.85);
+  outline-offset: 2px;
+}
+@media (hover: hover) {
+  .qz-call-island-action:hover {
+    background-color: rgba(255,255,255,.17);
+    border-color: rgba(255,255,255,.3);
+  }
+  .qz-call-island-action.is-primary:hover { background-color: #e9e9e9; }
 }
 @media (prefers-reduced-motion: reduce) {
+  .qz-call-island-action { transition: none; }
 }

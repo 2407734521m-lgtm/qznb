@@ -1,4 +1,4 @@
-import { createContext, useContext, type RefObject } from 'react';
+import { createContext, useContext, type CSSProperties, type RefObject } from 'react';
 import { Island } from '../lib/island';
 
 type MusicCommand = 'toggle' | 'previous' | 'next' | 'seek';
@@ -120,6 +120,7 @@ const MusicExpandedControls = () => {
   if (!track) return null;
   const duration = Math.max(1, track.duration);
   const progress = Math.min(track.duration || 0, seekDraft ?? track.currentTime);
+  const progressPercent = track.duration > 0 ? Math.min(100, Math.max(0, (progress / track.duration) * 100)) : 0;
   return (
     <div className="qz-island-expanded-bottom">
       <div className="qz-island-progress">
@@ -129,6 +130,7 @@ const MusicExpandedControls = () => {
           max={duration}
           step={1}
           value={progress}
+          style={{ '--qz-music-progress': progressPercent + '%' } as CSSProperties}
           onChange={event => setSeekDraft(Number(event.target.value))}
           onPointerUp={commitSeekDraft}
           onPointerCancel={cancelSeekDraft}

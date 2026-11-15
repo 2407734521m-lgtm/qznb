@@ -16,6 +16,7 @@ export interface IslandAlertInput {
   /** Optional private text reply for a verified in-site conversation. */
   onQuickReply?: (body: string) => Promise<void>;
   onQuickReplyEngage?: () => void;
+  onQuickReplySent?: () => void;
   durationMs?: number;
 }
 
@@ -73,7 +74,7 @@ function CompactAlert({ kind }: { kind: IslandAlertKind }) {
   );
 }
 
-function QuickReplyForm({ onSend, onEngage }: { onSend: (body: string) => Promise<void>; onEngage: () => void }) {
+function QuickReplyForm({ onSend, onEngage, onSent }: { onSend: (body: string) => Promise<void>; onEngage: () => void; onSent: () => void }) {
   const [value, setValue] = useState('');
   const [status, setStatus] = useState('');
   const [sending, setSending] = useState(false);
@@ -91,6 +92,7 @@ function QuickReplyForm({ onSend, onEngage }: { onSend: (body: string) => Promis
       setValue('');
       setSent(true);
       setStatus('已发送');
+      onSent();
     } catch {
       setStatus('发送失败，请打开私聊重试');
     } finally {
@@ -164,7 +166,7 @@ export function showIslandAlert(api: IslandApi, input: IslandAlertInput): Activi
       leading: <span className="qz-island-alert-expanded-label">{LABELS[input.kind]}</span>,
       center: <ExpandedAlert kind={input.kind} title={input.title} body={input.body} />,
       ...(input.kind === 'message' && input.onQuickReply
-        ? { bottom: <QuickReplyForm onSend={input.onQuickReply} onEngage={() => { input.onQuickReplyEngage?.(); scheduleEnd(45_000); }} /> }
+        ? { bottom: <QuickReplyForm onSend={input.onQuickReply} onEngage={() => { input.onQuickReplyEngage?.(); scheduleEnd(45_000); }} onSent={() => { input.onQuickReplySent?.(); scheduleEnd(2_200); }} /> }
         : {}),
     },
     onPress: () => {

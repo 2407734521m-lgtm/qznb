@@ -24,15 +24,8 @@ function assert(condition, message) {
   }
 }
 
-function countExactRule(source, selector, declaration) {
-  const escape = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\function assert(condition, message) {
-  if (!condition) {
-    console.error(`Style contract failed: ${message}`);
-    process.exitCode = 1;
-  }
-}');
-  const rule = new RegExp(escape(selector) + '\\s*\\{\\s*' + escape(declaration) + '\\s*\\}', 'g');
-  return (source.match(rule) || []).length;
+function countLiteral(source, literal) {
+  return source.split(literal).length - 1;
 }
 
 assert(/--visual-bg:\s*#ffffff/.test(tokens), 'the site canvas default must stay white');
@@ -73,9 +66,9 @@ assert((baseStyles.match(/\.priv-note\s*\{/g) || []).length === 1, 'duplicate pr
 assert(!/body:has\(\.me-hub\)[^{]*\{[^}]*background\s*:/s.test(meHubStyles), 'the personal hub must not restore a retired page background');
 assert(!/body:has\(\.me-hub\)\s+\.app-bg[^}]*display\s*:\s*none/s.test(meHubStyles), 'the personal hub must not hide the shared wallpaper layer');
 assert(!/body:has\(\.vibe-home\)\s+\.topnav\s*\{/s.test(homePageStyles), 'the homepage must not replace the shared glass navigation with an old theme surface');
-assert(countExactRule(homeCss, 'body:has(.vibe-home) .glow', 'display: none !important;') === 1, 'the homepage glow visibility rule must not be duplicated');
-assert(countExactRule(homeCss, '.vibe-home .vh-member .av', 'border-color: var(--vh-line);') === 1, 'the homepage member avatar border rule must not be duplicated');
-assert(countExactRule(meHubStyles, '.me-hub :where(button):active:not(:disabled)', 'transform: none !important;') === 1, 'the reduced-motion account button rule must not be duplicated');
+assert(countLiteral(homeCss, 'body:has(.vibe-home) .glow { display: none !important; }') === 1, 'the homepage glow visibility rule must not be duplicated');
+assert(countLiteral(homeCss, '.vibe-home .vh-member .av { border-color: var(--vh-line); }') === 1, 'the homepage member avatar border rule must not be duplicated');
+assert(countLiteral(meHubStyles, '.me-hub :where(button):active:not(:disabled) { transform: none !important; }') === 1, 'the reduced-motion account button rule must not be duplicated');
 
 
 

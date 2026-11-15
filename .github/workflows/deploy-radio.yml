@@ -36,6 +36,10 @@ jobs:
         with:
           node-version: 24
 
+      - name: Test radio Worker route contracts
+        working-directory: radio
+        run: node --test tests/*.test.mjs
+
       - name: Deploy Mineradio web Worker
         working-directory: radio
         env:

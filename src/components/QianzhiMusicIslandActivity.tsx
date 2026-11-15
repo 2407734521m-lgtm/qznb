@@ -63,11 +63,16 @@ const MusicIcon = ({ name, size = 17 }: { name: 'play' | 'pause' | 'previous' | 
 const AlbumArt = ({ size, expanded = false }: { size: number; expanded?: boolean }) => {
   const { track } = useMusicIslandState();
   if (!track) return null;
+  const artClass = [
+    'qz-island-art',
+    expanded && 'qz-island-art-expanded',
+    track.isPlaying && 'is-playing',
+  ].filter(Boolean).join(' ');
   if (track.coverUrl) {
-    return <img className={expanded ? 'qz-island-art qz-island-art-expanded' : 'qz-island-art'} src={track.coverUrl} alt="" width={size} height={size} />;
+    return <img className={artClass} src={track.coverUrl} alt="" width={size} height={size} />;
   }
   return (
-    <span className={expanded ? 'qz-island-art qz-island-art-expanded qz-island-art-fallback' : 'qz-island-art qz-island-art-fallback'} aria-hidden="true">
+    <span className={artClass + ' qz-island-art-fallback'} aria-hidden="true">
       ♫
     </span>
   );

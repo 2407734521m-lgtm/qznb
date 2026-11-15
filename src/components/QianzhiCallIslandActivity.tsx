@@ -12,6 +12,7 @@ export interface CallIslandActivityInput {
   onCancel: () => void;
   onHangUp: () => void;
   onToggleMute: () => void;
+  onRestore: () => void;
 }
 
 function formatDuration(totalSeconds: number) {
@@ -56,6 +57,7 @@ export function createCallIslandActivity(input: CallIslandActivityInput): Activi
 
   return {
     id: 'qz-call-session',
+    onPress: input.onRestore,
     label: `${phaseLabel}，${peer}`,
     priority: 120,
     alert: phase === 'incoming',
@@ -87,9 +89,13 @@ export function createCallIslandActivity(input: CallIslandActivityInput): Activi
           ) : phase === 'outgoing' ? (
             <CallAction label="取消呼叫" tone="danger" onAction={input.onCancel} />
           ) : phase === 'connecting' ? (
-            <CallAction label="取消连接" tone="danger" onAction={input.onHangUp} />
+            <>
+              <CallAction label="返回通话" onAction={input.onRestore} />
+              <CallAction label="取消连接" tone="danger" onAction={input.onHangUp} />
+            </>
           ) : (
             <>
+              <CallAction label="返回通话" onAction={input.onRestore} />
               <CallAction label={muted ? '取消静音' : '静音'} onAction={input.onToggleMute} />
               <CallAction label="挂断" tone="danger" onAction={input.onHangUp} />
             </>

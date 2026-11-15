@@ -1,8 +1,9 @@
--- Expose only the signed-in member's own current account status and active moderation restrictions.
--- The moderation ledger remains private; the client cannot query other members' records.
+-- Expose only the signed-in member's current account status.
+-- The privileged lookup lives in the non-exposed admin_private schema; the
+-- public RPC is SECURITY INVOKER and only forwards the caller's own result.
 begin;
 
-create or replace function public.my_account_status()
+create or replace function admin_private.my_account_status()
 returns jsonb
 language sql
 stable
@@ -35,7 +36,22 @@ as $$
   )
   from public.profiles p
   left join auth.users u on u.id = p.id
-  where p.id = auth.uid();
+  where auth.uid() is not null
+    and p.id = auth.uid();
+$$;
+
+revoke all on function admin_private.my_account_status() from public, anon;
+grant usage on schema admin_private to authenticated;
+grant execute on function admin_private.my_account_status() to authenticated;
+
+create or replace function public.my_account_status()
+returns jsonb
+language sql
+stable
+security invoker
+set search_path = ''
+as $$
+  select admin_private.my_account_status();
 $$;
 
 revoke all on function public.my_account_status() from public, anon;

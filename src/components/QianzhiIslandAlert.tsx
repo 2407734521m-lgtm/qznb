@@ -15,6 +15,7 @@ export interface IslandAlertInput {
   onPress?: () => void;
   /** Optional private text reply for a verified in-site conversation. */
   onQuickReply?: (body: string) => Promise<void>;
+  onQuickReplyEngage?: () => void;
   durationMs?: number;
 }
 
@@ -163,7 +164,7 @@ export function showIslandAlert(api: IslandApi, input: IslandAlertInput): Activi
       leading: <span className="qz-island-alert-expanded-label">{LABELS[input.kind]}</span>,
       center: <ExpandedAlert kind={input.kind} title={input.title} body={input.body} />,
       ...(input.kind === 'message' && input.onQuickReply
-        ? { bottom: <QuickReplyForm onSend={input.onQuickReply} onEngage={() => scheduleEnd(45_000)} /> }
+        ? { bottom: <QuickReplyForm onSend={input.onQuickReply} onEngage={() => { input.onQuickReplyEngage?.(); scheduleEnd(45_000); }} /> }
         : {}),
     },
     onPress: () => {

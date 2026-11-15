@@ -340,13 +340,14 @@ export const MusicIslandView = ({
   useEffect(() => {
     const previous = previousActivityIdsRef.current;
     previousActivityIdsRef.current = value.activityIds;
-    if (!docked || !hasNewIslandActivity(previous, value.activityIds)) return;
+    if (!hasNewIslandActivity(previous, value.activityIds)) return;
 
-    // A new call, upload or notification must never remain hidden behind the docked state.
+    // A new call, upload or notification also cancels an in-flight dock animation, not
+    // just an already hidden island, so a fresh alert cannot be covered 460ms later.
     if (dockTimerRef.current !== null) window.clearTimeout(dockTimerRef.current);
     dockTimerRef.current = null;
     setDocked(false);
-  }, [value.activityIds, docked]);
+  }, [value.activityIds]);
 
   const restoreIsland = () => {
     if (dockTimerRef.current !== null) window.clearTimeout(dockTimerRef.current);

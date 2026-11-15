@@ -55,8 +55,9 @@ export class NavigationActivityScheduler<Handle> {
   }
 
   update(label: string): void {
+    const changed = label !== this.latestLabel;
     this.latestLabel = label;
-    if (this.visibleSince !== null) this.sink?.show(label);
+    if (changed && this.visibleSince !== null) this.sink?.show(label);
   }
 
   leave(): void {

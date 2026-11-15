@@ -61,6 +61,7 @@ export default function QianzhiIslandTaskDrawer({ docked }: { docked: boolean })
 
   useEffect(() => {
     if (!open) return;
+    const onVisibilityChange = () => { if (document.visibilityState !== 'visible') setOpen(false); };
     const onPointerDown = (event: PointerEvent) => {
       const target = event.target;
       if (target instanceof Node && rootRef.current?.contains(target)) return;
@@ -70,9 +71,11 @@ export default function QianzhiIslandTaskDrawer({ docked }: { docked: boolean })
       if (event.key === 'Escape') setOpen(false);
     };
     document.addEventListener('pointerdown', onPointerDown, true);
+    document.addEventListener('visibilitychange', onVisibilityChange);
     document.addEventListener('keydown', onKeyDown);
     return () => {
       document.removeEventListener('pointerdown', onPointerDown, true);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
       document.removeEventListener('keydown', onKeyDown);
     };
   }, [open]);

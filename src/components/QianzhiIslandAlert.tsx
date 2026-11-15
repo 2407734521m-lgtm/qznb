@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useState, type FormEvent, type ReactNode } from 'react';
 import type { ActivityHandle, IslandApi } from '../lib/island';
 import './QianzhiIslandAlert.css';
 
@@ -13,6 +13,8 @@ export interface IslandAlertInput {
   /** False keeps low-priority activity in compact mode instead of forcing an expansion. */
   alert?: boolean;
   onPress?: () => void;
+  /** Optional private text reply for a verified in-site conversation. */
+  onQuickReply?: (body: string) => Promise<void>;
   durationMs?: number;
 }
 
@@ -70,6 +72,55 @@ function CompactAlert({ kind }: { kind: IslandAlertKind }) {
   );
 }
 
+function QuickReplyForm({ onSend }: { onSend: (body: string) => Promise<void> }) {
+  const [value, setValue] = useState('');
+  const [status, setStatus] = useState('');
+  const [sending, setSending] = useState(false);
+  const [sent, setSent] = useState(false);
+
+  const submit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    const body = value.trim().slice(0, 2000);
+    if (!body || sending || sent) return;
+    setSending(true);
+    setStatus('');
+    try {
+      await onSend(body);
+      setValue('');
+      setSent(true);
+      setStatus('已发送');
+    } catch {
+      setStatus('发送失败，请打开私聊重试');
+    } finally {
+      setSending(false);
+    }
+  };
+
+  return (
+    <form
+      className="qz-island-quick-reply"
+      onSubmit={submit}
+      onPointerDown={event => event.stopPropagation()}
+      onClick={event => event.stopPropagation()}
+      aria-label="快速回复私信"
+    >
+      <input
+        value={value}
+        maxLength={2000}
+        onChange={event => setValue(event.target.value)}
+        placeholder="快速回复…"
+        aria-label="快速回复内容"
+        disabled={sending || sent}
+      />
+      <button type="submit" disabled={!value.trim() || sending || sent}>
+        {sending ? '发送中' : sent ? '已发送' : '发送'}
+      </button>
+      {status && <small role="status">{status}</small>}
+    </form>
+  );
+}
+
 function ExpandedAlert({ kind, title, body }: Pick<IslandAlertInput, 'kind' | 'title' | 'body'>) {
   return (
     <span className="qz-island-alert-expanded">
@@ -105,6 +156,9 @@ export function showIslandAlert(api: IslandApi, input: IslandAlertInput): Activi
     expanded: {
       leading: <span className="qz-island-alert-expanded-label">{LABELS[input.kind]}</span>,
       center: <ExpandedAlert kind={input.kind} title={input.title} body={input.body} />,
+      ...(input.kind === 'message' && input.onQuickReply
+        ? { bottom: <QuickReplyForm onSend={input.onQuickReply} /> }
+        : {}),
     },
     onPress: () => {
       end();

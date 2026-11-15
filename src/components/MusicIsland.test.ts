@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { isSameMusicTrack, shouldShowMainIsland } from './MusicIsland';
-import { resolveIslandDockGesture, resolveIslandGestureSource } from './QianzhiMusicIslandActivity';
+import { hasNewIslandActivity, resolveIslandDockGesture, resolveIslandGestureSource } from './QianzhiMusicIslandActivity';
 import { resolveMetrics } from '../lib/island/config';
 import { qianzhiIslandMetrics } from '../lib/island/qianzhi-metrics';
 
@@ -44,6 +44,17 @@ describe('isSameMusicTrack', () => {
   });
 });
 
+
+describe('hasNewIslandActivity', () => {
+  it('detects a newly arrived call, upload or notification', () => {
+    expect(hasNewIslandActivity(['music-playback'], ['music-playback', 'qz-call-session'])).toBe(true);
+  });
+
+  it('does not restore the island for updates to an existing activity', () => {
+    expect(hasNewIslandActivity(['qz-call-session'], ['qz-call-session'])).toBe(false);
+    expect(hasNewIslandActivity(['qz-call-session', 'qz-upload-progress'], ['qz-call-session'])).toBe(false);
+  });
+});
 
 describe('resolveIslandGestureSource', () => {
   it('recognizes swipe starts on interactive controls inside the host', () => {

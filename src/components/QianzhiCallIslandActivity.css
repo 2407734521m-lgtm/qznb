@@ -137,3 +137,30 @@
     font-size: 11px;
   }
 }
+
+/* Compact call identity: bounded peer text and a restrained incoming-call cue. */
+.qz-call-island-time {
+  display: inline-block;
+  max-width: 88px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.qz-call-island-compact .qz-call-island-icon {
+  transition: color 180ms ease;
+}
+.qz-call-island-compact.is-ringing .qz-call-island-icon {
+  color: #ff737d;
+  animation: qz-call-island-ring 1.15s ease-in-out infinite;
+}
+.qz-call-island-compact.is-active .qz-call-island-icon {
+  color: #56dfa0;
+}
+@keyframes qz-call-island-ring {
+  0%, 100% { opacity: .88; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.12); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .qz-call-island-compact .qz-call-island-icon { transition: none; }
+  .qz-call-island-compact.is-ringing .qz-call-island-icon { animation: none; }
+}

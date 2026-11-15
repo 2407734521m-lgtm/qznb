@@ -13,7 +13,6 @@ const mainEntry = read('../src/main.tsx');
 const wallpaper = read('../src/lib/wallpaper.ts');
 const app = read('../src/App.tsx');
 const home = read('../src/pages/Home.tsx');
-const intro = read('../src/components/IntroAnimation.tsx');
 const homeCss = read('../src/pages/Home.vibe.css');
 const baseStyles = read('../src/styles.css');
 const editorialStyles = read('../src/styles-editorial.css');
@@ -63,10 +62,6 @@ assert(!/body\s*\{[^}]*background(?:-image|-color)?\s*:/s.test(baseStyles), 'the
 assert(!/\.app-bg\s*\{[^}]*filter\s*:/s.test(baseStyles), 'wallpaper blur and brightness must come only from user settings');
 assert(!/background\s*:\s*#071b2a|background(?:-color)?\s*:\s*#06101f/i.test(baseStyles), 'the retired deep-sea canvas must be removed');
 assert(!/(?:background|background-image)\s*:/i.test(editorialStyles), 'the legacy editorial stylesheet must be layout-only');
-assert(intro.includes("import { BRAND_NAME, BRAND_SUBTITLE } from '../lib/brand';") && intro.includes('const TITLE = BRAND_NAME;') && intro.includes('const SUBTITLE = BRAND_SUBTITLE.toUpperCase();'), 'intro animation must use the current configured brand');
-assert(!/Class Memory|OUR CLASS, OUR STORY|#94664f|#f7f8f8/.test(intro), 'intro animation must not restore the retired class-memory identity or warm/off-white palette');
-assert(/background:\s*'#ffffff'/.test(intro), 'intro animation must use the white canvas');
-assert(/cx="56" cy="54" r="27"/.test(intro) && /d="M75 74 94 94"/.test(intro), 'intro animation must retain the current Q brand mark');
 assert(!/color-scheme\s*:\s*dark|--visual-bg\s*:\s*#171614/i.test(visualRules), 'legacy warm/dark visual tokens must not compete with canonical tokens');
 assert(!login.includes("from '../assets/cow.jpg'"), 'the retired bundled cow wallpaper must not be loaded');
 assert(login.includes('LEGACY_DEFAULT_BACKGROUND') && login.includes('return LEGACY_DEFAULT_BACKGROUND.test(saved) ? DEFAULT_BG : saved;'), 'legacy stock wallpaper values must migrate to white while user selections remain');

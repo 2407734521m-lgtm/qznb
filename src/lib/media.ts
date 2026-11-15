@@ -225,8 +225,13 @@ export async function downloadMediaWithProgress(
     throw new Error('下载链接协议不受支持');
   }
 
-  const safeName = (fileName || '下载文件')
-    .replace(/[\\/\\u0000-\\u001f\\u007f]/g, '_')
+  const safeName = Array.from(fileName || '下载文件')
+    .filter(char => {
+      const code = char.charCodeAt(0);
+      return code !== 47 && code !== 92 && code >= 32 && code !== 127;
+    })
+    .join('')
+    .replace(/[<>:"|?*]/g, '_')
     .trim()
     .slice(0, 120) || '下载文件';
   const id = 'media-download-' + Date.now() + '-' + (++downloadActivitySequence);
@@ -243,7 +248,7 @@ export async function downloadMediaWithProgress(
 
     const contentLength = Number(response.headers.get('Content-Length'));
     const total = Number.isFinite(contentLength) && contentLength > 0 ? contentLength : null;
-    const chunks: Uint8Array[] = [];
+    const chunks: BlobPart[] = [];
     let loaded = 0;
 
     if (response.body) {
@@ -253,7 +258,9 @@ export async function downloadMediaWithProgress(
           const { done, value } = await reader.read();
           if (done) break;
           if (!value) continue;
-          chunks.push(value);
+          const chunk = new Uint8Array(value.byteLength);
+          chunk.set(value);
+          chunks.push(chunk.buffer);
           loaded += value.byteLength;
           const progress = total === null ? null : Math.min(100, Math.round((loaded / total) * 100));
           onProgress?.(progress);
@@ -264,7 +271,7 @@ export async function downloadMediaWithProgress(
       }
     } else {
       const blob = await response.blob();
-      chunks.push(new Uint8Array(await blob.arrayBuffer()));
+      chunks.push(await blob.arrayBuffer());
       loaded = blob.size;
       const progress = total === null ? null : 100;
       onProgress?.(progress);

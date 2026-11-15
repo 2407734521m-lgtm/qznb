@@ -296,7 +296,7 @@ export default function Member() {
         {sig && <p className="mp-sig">{sig}</p>}
         {m?.profile_title && <div className="mp-title-chip"><span aria-hidden="true">✦</span><span>{m.profile_title}</span></div>}
         {gbadge && <div className="mp-badge-row"><span className="gbadge">{badgeText(gbadge.game_name, gbadge.rank)}</span></div>}
-        {typeof locState?.no === 'number' && <div className="mp-stamp" aria-hidden="true">档案 No.{String(locState.no).padStart(2, '0')}</div>}
+        {typeof locState?.no === 'number' && <div className="mp-stamp" aria-hidden="true">NO. {String(locState.no).padStart(2, '0')}</div>}
           </div>
         </div>
         {!isMe && fstat?.blocked_me && <p className="mp-note">对方已限制联系，无法互相申请好友或私聊。</p>}

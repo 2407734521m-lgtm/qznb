@@ -82,7 +82,7 @@ export function normalizeUserPreferences(value: unknown): UserPreferences {
     },
     island: {
       offsetX: bounded(island.offsetX, DEFAULT_ISLAND_PREFERENCE.offsetX, -90, 90),
-      offsetY: bounded(island.offsetY, DEFAULT_ISLAND_PREFERENCE.offsetY, -10, 90),
+      offsetY: bounded(island.offsetY, DEFAULT_ISLAND_PREFERENCE.offsetY, -30, 90),
       width: bounded(island.width, DEFAULT_ISLAND_PREFERENCE.width, 88, 144),
       height: bounded(island.height, DEFAULT_ISLAND_PREFERENCE.height, 28, 42, 0.5),
     },

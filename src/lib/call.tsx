@@ -2,11 +2,13 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState } f
 import type { ReactNode } from 'react';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import { supabase } from './supabase';
+import { useIslandActions } from './island';
+import { createCallIslandActivity } from '../components/QianzhiCallIslandActivity';
 import { useAuth } from '../auth';
 import '../styles-call.css';
 
 export type CallPeerInfo = { id: string; name: string };
-type CallPhase = 'idle' | 'outgoing' | 'incoming' | 'connecting' | 'in-call';
+export type CallPhase = 'idle' | 'outgoing' | 'incoming' | 'connecting' | 'in-call';
 
 type CallContextValue = {
   phase: CallPhase;
@@ -33,6 +35,7 @@ function formatDuration(totalSeconds: number) {
 export function CallProvider({ children }: { children: ReactNode }) {
   const { session } = useAuth();
   const myId = session?.user?.id ?? null;
+  const islandApi = useIslandActions();
 
   const [phase, setPhase] = useState<CallPhase>('idle');
   const [peerName, setPeerName] = useState('');
@@ -345,6 +348,28 @@ export function CallProvider({ children }: { children: ReactNode }) {
     stream.getAudioTracks().forEach(t => { t.enabled = !next; });
     setMuted(next);
   }, [muted]);
+
+  // Mirror the existing WebRTC lifecycle into the shared Qianzhi Island activity stack.
+  // Calls outrank messages and uploads; the underlying call/session implementation is unchanged.
+  useEffect(() => {
+    if (phase === 'idle') {
+      islandApi.end('qz-call-session');
+      return;
+    }
+    islandApi.start(createCallIslandActivity({
+      phase,
+      peerName,
+      seconds,
+      muted,
+    }));
+  }, [phase, peerName, seconds, muted, islandApi]);
+
+  useEffect(() => () => islandApi.end('qz-call-session'), [islandApi]);
+
+  // Signing out during a call must release the microphone and remove its live activity.
+  useEffect(() => {
+    if (!myId && phaseRef.current !== 'idle') cleanup();
+  }, [myId, cleanup]);
 
   const initial = (peerName.trim().charAt(0) || '友').toUpperCase();
 

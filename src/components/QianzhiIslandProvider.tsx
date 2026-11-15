@@ -35,7 +35,8 @@ export default function QianzhiIslandProvider({ children }: { children: ReactNod
   useEffect(() => {
     const root = document.documentElement;
     root.style.setProperty('--qz-island-config-x', island.offsetX + 'px');
-    root.style.setProperty('--qz-island-config-y', island.offsetY + 'px');
+    // Raise the default capsule position by 10px; the setting remains a relative adjustment.
+    root.style.setProperty('--qz-island-config-y', (island.offsetY - 10) + 'px');
     root.style.setProperty('--qz-island-config-width', island.width + 'px');
     root.style.setProperty('--qz-island-config-height', island.height + 'px');
     return () => {

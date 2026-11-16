@@ -46,7 +46,15 @@ type ConversationPreview = {
   last_message_deleted: boolean;
   unread_count: number;
   other_last_read_message_id: number | null;
+  is_group?: boolean;
+  group_name?: string | null;
+  group_avatar_path?: string | null;
+  member_count?: number;
 };
+
+function GroupConversationAvatar({ size = 58 }: { size?: number }) {
+  return <span className="chatcn-group-avatar" style={{ width: size, height: size }} aria-hidden="true"><svg viewBox="0 0 24 24" width="58%" height="58%" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="8" r="3" /><path d="M2.5 20v-1.3a6.5 6.5 0 0 1 11.2-4.4" /><circle cx="18" cy="9" r="2.3" /><path d="M16.2 14.3a5.4 5.4 0 0 1 5.3 5.4V20h-4.2" /></svg></span>;
+}
 
 function FriendAvatar({ person, size = 48 }: { person: Friend; size?: number }) {
   const url = useSignedUrl('avatars', person.avatar_path);
@@ -151,6 +159,10 @@ export default function Friends() {
   const [conversationFilter, setConversationFilter] = useState<ConversationFilter>('all');
   const [filterMenuOpen, setFilterMenuOpen] = useState(false);
   const [markingAllRead, setMarkingAllRead] = useState(false);
+  const [showCreateGroup, setShowCreateGroup] = useState(false);
+  const [groupName, setGroupName] = useState('');
+  const [groupSelectedIds, setGroupSelectedIds] = useState<string[]>([]);
+  const [creatingGroup, setCreatingGroup] = useState(false);
   const filterMenuRef = useRef<HTMLDivElement>(null);
   const [section, setSection] = useState<'private' | 'notifications'>(() =>
     searchParams.get('tab') === 'notifications' ? 'notifications' : 'private',
@@ -239,10 +251,11 @@ export default function Friends() {
 
   async function load() {
     const requestId = ++loadSequenceRef.current;
-    const [friendResult, requestResult, conversationResult, sentRequestResult, blockedResult] = await Promise.all([
+    const [friendResult, requestResult, conversationResult, groupResult, sentRequestResult, blockedResult] = await Promise.all([
       supabase.rpc('my_friends'),
       supabase.rpc('friend_requests'),
       supabase.rpc('my_conversations'),
+      supabase.rpc('my_group_conversations'),
       supabase.from('friendships').select('addressee').eq('requester', me).eq('status', 'pending'),
       supabase.rpc('my_blocked_members'),
     ]);
@@ -254,7 +267,16 @@ export default function Friends() {
     } else {
       setFriends((friendResult.data ?? []) as Friend[]);
       setReqs((requestResult.data ?? []) as Friend[]);
-      setConversations((conversationResult.data ?? []) as ConversationPreview[]);
+      const directConversations = (conversationResult.data ?? []) as ConversationPreview[];
+      const groupConversations = ((groupResult.data ?? []) as Array<{ conversation_id: number; conversation_created_at: string; group_name: string | null; group_avatar_path: string | null; member_count: number; last_message_id: number | null; last_message_body: string | null; last_message_at: string | null; last_message_sender_id: string | null; last_message_deleted: boolean; unread_count: number }>).map(group => ({
+        conversation_id: group.conversation_id, conversation_created_at: group.conversation_created_at,
+        other_profile_id: '', username: group.group_name ?? '群聊', display_name: group.group_name ?? '群聊', avatar_path: null,
+        last_message_id: group.last_message_id, last_message_body: group.last_message_body, last_message_at: group.last_message_at,
+        last_message_sender_id: group.last_message_sender_id, last_message_deleted: group.last_message_deleted,
+        unread_count: Number(group.unread_count) || 0, other_last_read_message_id: null,
+        is_group: true, group_name: group.group_name, group_avatar_path: group.group_avatar_path, member_count: Number(group.member_count) || 0,
+      }));
+      setConversations([...directConversations, ...groupConversations].sort((a, b) => new Date(b.last_message_at ?? b.conversation_created_at).getTime() - new Date(a.last_message_at ?? a.conversation_created_at).getTime()));
       setBlockedMembers((blockedResult.data ?? []) as Friend[]);
       setSentRequestIds((sentRequestResult.data ?? []).map(row => row.addressee as string));
       if (sentRequestResult.error) {
@@ -439,7 +461,8 @@ export default function Friends() {
   // Keep the group filter visible, but do not misrepresent direct conversations as groups.
   const visibleConversations = useMemo(() => {
     if (conversationFilter === 'unread') return filteredConversations.filter(c => Number(c.unread_count) > 0);
-    if (conversationFilter === 'groups') return [];
+    if (conversationFilter === 'groups') return filteredConversations.filter(c => c.is_group);
+    if (conversationFilter === 'direct') return filteredConversations.filter(c => !c.is_group);
     return filteredConversations;
   }, [filteredConversations, conversationFilter]);
   const filteredRequests = useMemo(
@@ -509,8 +532,25 @@ export default function Friends() {
 
   async function openConversation(conversation: ConversationPreview) {
     nav('/chat/' + conversation.conversation_id, {
-      state: { name: conversation.display_name ?? conversation.username },
+      state: { name: conversation.group_name ?? conversation.display_name ?? conversation.username, isGroup: Boolean(conversation.is_group) },
     });
+  }
+
+  async function createGroupConversation() {
+    const cleanName = groupName.trim();
+    if (!cleanName || groupSelectedIds.length < 1 || creatingGroup) return;
+    setCreatingGroup(true);
+    setMsg('');
+    const { data, error } = await supabase.rpc('create_group_conversation', { p_group_name: cleanName, p_member_ids: groupSelectedIds });
+    const conversationId = Number(data);
+    if (error || !Number.isSafeInteger(conversationId) || conversationId < 1) {
+      setMsg('创建群聊失败：' + (error?.message ?? '暂时无法创建群聊'));
+      setCreatingGroup(false);
+      return;
+    }
+    setShowCreateGroup(false); setGroupName(''); setGroupSelectedIds([]); setCreatingGroup(false);
+    await load();
+    nav('/chat/' + conversationId, { state: { name: cleanName, isGroup: true } });
   }
 
   async function markAllConversationsRead() {
@@ -958,6 +998,10 @@ export default function Friends() {
                   <span className="chatcn-filter-icon"><ChatInboxIcon name="requests" /></span><span>请求</span>
                 </button>
                 <button type="button" className="chatcn-filter-option" role="menuitem"
+                  onClick={() => { setShowCreateGroup(true); setFilterMenuOpen(false); }}>
+                  <span className="chatcn-filter-icon"><ChatInboxIcon name="groups" /></span><span>新建群聊</span>
+                </button>
+                <button type="button" className="chatcn-filter-option" role="menuitem"
                   onClick={() => { setFilterMenuOpen(false); nav('/me/notifications'); }}>
                   <span className="chatcn-filter-icon"><ChatInboxIcon name="notifications" /></span><span>通知</span>
                 </button>
@@ -1089,16 +1133,10 @@ export default function Friends() {
             <div className="im-inbox-list im-conversation-list">
               {showInboxSkeleton ? <RowSkeleton count={4} /> : loading ? null : visibleConversations.length === 0 ? (
                 <div className="im-inbox-empty chatcn-empty-groups">
-                  <strong>{conversationFilter === 'groups' ? '群聊暂未开放' : conversationFilter === 'unread' ? '没有未读消息' : '还没有聊天记录'}</strong>
-                  <span>
-                    {conversationFilter === 'groups'
-                      ? '当前私信接口只提供一对一会话，群聊功能开放后会显示在这里。'
-                      : conversationFilter === 'unread'
-                        ? '新的未读私信会自动出现在这里。'
-                        : '和好友开启一次对话，最近消息会自动显示在这里。'}
-                  </span>
+                  <strong>{conversationFilter === 'groups' ? '还没有群聊' : conversationFilter === 'unread' ? '没有未读消息' : '还没有聊天记录'}</strong>
+                  <span>{conversationFilter === 'groups' ? '创建群聊并邀请好友，就可以在这里开始多人交流。' : conversationFilter === 'unread' ? '新的未读消息会自动出现在这里。' : '和好友开启一次对话，最近消息会自动显示在这里。'}</span>
                   {conversationFilter === 'groups'
-                    ? null
+                    ? <button type="button" className="im-inbox-primary" onClick={() => setShowCreateGroup(true)}>创建群聊</button>
                     : <button type="button" className="im-inbox-primary" onClick={() => { setTab('friends'); setConversationFilter('all'); }}>选择好友开始聊天</button>}
                 </div>
               ) : visibleConversations.map(conversation => (
@@ -1111,9 +1149,9 @@ export default function Friends() {
                   )}
                 >
                   <ChatConversationItem
-                    title={conversation.display_name ?? conversation.username}
-                    avatar={<ProfileAvatar asSpan size={58} person={{ id: conversation.other_profile_id, username: conversation.username, display_name: conversation.display_name, avatar_path: conversation.avatar_path }} />}
-                    preview={(conversation.last_message_sender_id === me && conversation.last_message_id ? '我：' : '') + previewText(conversation, me)}
+                    title={conversation.group_name ?? conversation.display_name ?? conversation.username}
+                    avatar={conversation.is_group ? <GroupConversationAvatar size={58} /> : <ProfileAvatar asSpan size={58} person={{ id: conversation.other_profile_id, username: conversation.username, display_name: conversation.display_name, avatar_path: conversation.avatar_path }} />}
+                    preview={(conversation.last_message_sender_id === me && conversation.last_message_id ? '我：' : '') + (conversation.is_group && conversation.last_message_sender_id !== me ? '成员：' : '') + previewText(conversation, me)}
                     time={formatInboxTime(conversation.last_message_at, conversation.conversation_created_at)}
                     unreadCount={Number(conversation.unread_count) || 0}
                     onPointerDown={() => preloadRoute('/chat')}
@@ -1259,6 +1297,34 @@ export default function Friends() {
             </div>
           )}
         </>
+      )}
+      {showCreateGroup && (
+        <div className="chatcn-group-modal-backdrop" role="presentation" onClick={() => !creatingGroup && setShowCreateGroup(false)}>
+          <section className="chatcn-group-modal" role="dialog" aria-modal="true" aria-labelledby="chatcn-group-modal-title" onClick={event => event.stopPropagation()}>
+            <header className="chatcn-group-modal-head">
+              <div><strong id="chatcn-group-modal-title">创建群聊</strong><span>选择好友加入群聊</span></div>
+              <button type="button" aria-label="关闭" disabled={creatingGroup} onClick={() => setShowCreateGroup(false)}>×</button>
+            </header>
+            <label className="chatcn-group-name-label">群聊名称
+              <input value={groupName} maxLength={40} placeholder="给群聊起个名字" onChange={event => setGroupName(event.target.value)} />
+            </label>
+            <div className="chatcn-group-select-heading">选择成员 <span>已选 {groupSelectedIds.length} 人 · 最多 49 人</span></div>
+            <div className="chatcn-group-friend-list">
+              {friends.length === 0 ? <p>你还没有好友，请先添加好友。</p> : friends.map(friend => (
+                <label key={friend.id} className="chatcn-group-friend">
+                  <FriendAvatar person={friend} size={42} />
+                  <span><strong>{friend.display_name ?? friend.username}</strong><small>@{friend.username}</small></span>
+                  <input type="checkbox" checked={groupSelectedIds.includes(friend.id)} disabled={creatingGroup || (!groupSelectedIds.includes(friend.id) && groupSelectedIds.length >= 49)}
+                    onChange={event => setGroupSelectedIds(current => event.target.checked ? [...current, friend.id] : current.filter(id => id !== friend.id))} />
+                </label>
+              ))}
+            </div>
+            <footer className="chatcn-group-modal-actions">
+              <button type="button" className="chatcn-group-cancel" disabled={creatingGroup} onClick={() => setShowCreateGroup(false)}>取消</button>
+              <button type="button" className="chatcn-group-create" disabled={creatingGroup || !groupName.trim() || groupSelectedIds.length < 1} onClick={() => void createGroupConversation()}>{creatingGroup ? '正在创建…' : '创建群聊'}</button>
+            </footer>
+          </section>
+        </div>
       )}
     </div>
   );

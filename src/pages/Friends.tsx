@@ -658,6 +658,44 @@ export default function Friends() {
         .im-search:focus-within{border-color:rgba(34,49,74,.3);box-shadow:0 0 0 3px rgba(34,49,74,.06)}
         @media(max-width:768px){.im-inbox{padding:calc(18px + env(safe-area-inset-top)) calc(16px + env(safe-area-inset-right)) calc(118px + env(safe-area-inset-bottom)) calc(16px + env(safe-area-inset-left))!important}}
         @media(prefers-reduced-motion:reduce){.im-inbox-row{transition:none}}
+
+        /* iMessage-inspired conversation inbox; adapted to the existing Supabase-backed rows. */
+        .im-inbox{color:#1d293b!important;background:#fff!important}
+        .im-inbox:before{background:radial-gradient(ellipse at 15% 0%,rgba(190,214,248,.16),transparent 38%),linear-gradient(180deg,#fff 0%,#fff 100%)}
+        .im-inbox-head{margin:4px 2px 18px;padding:2px 2px 0}
+        .im-inbox-title{color:#1d293b;font-size:29px;font-weight:760;letter-spacing:-.035em}
+        .im-inbox-subtitle{color:#8793a4;font-size:12px}
+        .im-primary-tabs{border:1px solid rgba(120,145,180,.17);border-radius:18px;background:rgba(241,246,252,.78);box-shadow:inset 0 1px 0 rgba(255,255,255,.95);-webkit-backdrop-filter:blur(22px) saturate(1.25);backdrop-filter:blur(22px) saturate(1.25)}
+        .im-primary-thumb{border:1px solid rgba(255,255,255,.96);border-radius:14px;background:rgba(255,255,255,.94);box-shadow:0 4px 12px rgba(42,65,101,.08),inset 0 1px 0 #fff}
+        .im-primary-thumb::after{display:none}
+        .im-primary-tabs button{min-height:42px;color:#7e8ba0;font-size:13px;font-weight:650;letter-spacing:0}
+        .im-primary-tabs button.on{color:#245fa6}
+        .im-primary-unread{background:#3478d4;box-shadow:0 0 0 3px rgba(52,120,212,.12)}
+        .im-search{height:46px;border:1px solid rgba(119,143,176,.17);border-radius:17px;background:rgba(248,250,253,.86);box-shadow:inset 0 1px 0 #fff,0 5px 16px rgba(48,68,103,.035);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px)}
+        .im-search:focus-within{border-color:rgba(86,139,207,.48);box-shadow:0 0 0 3px rgba(86,139,207,.10),inset 0 1px 0 #fff}
+        .im-search input{color:#26364d!important}
+        .im-inbox-tabs{gap:7px}
+        .im-inbox-tabs button{border-color:rgba(119,143,176,.18);border-radius:13px;background:rgba(255,255,255,.88);color:#6d7c91}
+        .im-inbox-tabs button.on{background:#3478d4;border-color:#3478d4;color:#fff;box-shadow:0 5px 14px rgba(52,120,212,.16)}
+        .im-inbox-list{gap:0;padding:3px 0;overflow:hidden;border:1px solid rgba(119,143,176,.15);border-radius:21px;background:rgba(255,255,255,.88);box-shadow:0 9px 25px rgba(42,62,96,.045);-webkit-backdrop-filter:blur(18px) saturate(1.14);backdrop-filter:blur(18px) saturate(1.14)}
+        .im-inbox-row{position:relative;gap:13px;min-height:76px;padding:13px 15px;border:0;border-bottom:1px solid rgba(118,140,171,.12);border-radius:0;background:transparent;color:#1d293b;transition:background .18s ease}
+        .im-inbox-row:last-child{border-bottom:0}
+        .im-inbox-row.unread{background:linear-gradient(90deg,rgba(236,245,255,.82),rgba(255,255,255,.72))}
+        .im-inbox-row.unread .im-inbox-name{font-weight:760;color:#1c2e47}
+        .im-inbox-row:active,button.im-inbox-row:active{transform:none;background:rgba(235,243,253,.8);border-color:rgba(118,140,171,.12)}
+        .im-list-avatar{border:1px solid rgba(255,255,255,.98);box-shadow:0 3px 10px rgba(39,58,90,.09);background:#eef2f8;color:#60718a}
+        .im-inbox-name{color:#26364d;font-size:14px;font-weight:680;letter-spacing:-.01em}
+        .im-inbox-preview{color:#8390a2;font-size:12px;line-height:1.45}
+        .im-inbox-time{color:#8b97a8;font-size:10px;font-variant-numeric:tabular-nums}
+        .im-unread{min-width:19px;height:19px;padding:0 6px;background:#3478d4;color:#fff;box-shadow:0 3px 8px rgba(52,120,212,.16)}
+        .im-inbox-empty{border:1px solid rgba(119,143,176,.15);border-radius:18px;background:rgba(255,255,255,.88);box-shadow:0 7px 20px rgba(42,62,96,.04)}
+        .im-inbox-empty-title{color:#26364d}
+        .im-inbox-primary{border:1px solid #3478d4;border-radius:13px;background:#3478d4;color:#fff;box-shadow:0 5px 14px rgba(52,120,212,.15)}
+        .im-inbox-message{border-color:rgba(119,143,176,.16);border-radius:14px;background:rgba(245,248,252,.9);color:#5b6d84}
+        .im-inbox-row:focus-visible,.im-primary-tabs button:focus-visible,.im-inbox-tabs button:focus-visible{outline:2px solid rgba(86,139,207,.85);outline-offset:2px}
+        @media(max-width:520px){.im-inbox-row:where(button){flex-wrap:nowrap}.im-inbox-row{padding:12px 13px}.im-inbox-list{border-radius:18px}}
+        @media(prefers-reduced-transparency:reduce){.im-primary-tabs,.im-search,.im-inbox-list{backdrop-filter:none;-webkit-backdrop-filter:none;background:#fff}}
+        @media(prefers-reduced-motion:reduce){.im-inbox-row,.im-primary-thumb{transition:none}}
       `}</style>
 
       <header className="im-inbox-head">
@@ -781,7 +819,7 @@ export default function Friends() {
                   <button type="button" className="im-inbox-primary" onClick={() => setTab('friends')}>选择好友开始聊天</button>
                 </div>
               ) : filteredConversations.map(conversation => (
-                <button key={conversation.conversation_id} type="button" className="im-inbox-row" onClick={() => openConversation(conversation)}>
+                <button key={conversation.conversation_id} type="button" className={'im-inbox-row' + (conversation.unread_count > 0 ? ' unread' : '')} onClick={() => openConversation(conversation)}>
                   <ProfileAvatar asSpan person={{ id: conversation.other_profile_id, username: conversation.username, display_name: conversation.display_name, avatar_path: conversation.avatar_path }} />
                   <span className="im-inbox-person">
                     <span className="im-inbox-name" style={{ display: 'block' }}>{conversation.display_name ?? conversation.username}</span>

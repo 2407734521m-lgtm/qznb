@@ -9,11 +9,13 @@ describe('Qianzhi call island activity', () => {
       peerName: '同学 A',
       startedAt: null,
       muted: false,
+      speakerEnabled: false,
       onAccept: () => {},
       onReject: () => {},
       onCancel: () => {},
       onHangUp: () => {},
       onToggleMute: () => {},
+      onToggleSpeaker: () => {},
       onRestore: () => {},
     });
 
@@ -35,6 +37,7 @@ describe('Qianzhi call island activity', () => {
       peerName: '同学 B',
       startedAt: Date.now() - 125_000,
       muted: true,
+      speakerEnabled: false,
       onAccept: () => {},
       onReject: () => {},
       onCancel: () => {},
@@ -50,7 +53,7 @@ describe('Qianzhi call island activity', () => {
     expect(isValidElement(activity.expanded?.bottom)).toBe(true);
     const actionRow = activity.expanded?.bottom as ReactElement<{ children: ReactElement<{ children: ReactElement<{ label: string }>[] }> }>;
     const actionGroup = actionRow.props.children;
-    expect(actionGroup.props.children.map(action => action.props.label)).toEqual(['返回通话', '取消静音', '挂断']);
+    expect(actionGroup.props.children.map(action => action.props.label)).toEqual(['返回通话', '取消静音', '扬声器', '挂断']);
   });
   it('offers cancellation while the call is still connecting', () => {
     const activity = createCallIslandActivity({
@@ -58,6 +61,7 @@ describe('Qianzhi call island activity', () => {
       peerName: '同学 C',
       startedAt: 0,
       muted: false,
+      speakerEnabled: false,
       onAccept: () => {},
       onReject: () => {},
       onCancel: () => {},

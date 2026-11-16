@@ -1,6 +1,7 @@
 import { haptic } from '../lib/haptics';
 import { createContext, useContext, useEffect, useRef, useState, type CSSProperties, type RefObject } from 'react';
-import { Island } from '../lib/island';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
+import { Island, useIsland } from '../lib/island';
 import QianzhiIslandTaskDrawer from './QianzhiIslandTaskDrawer';
 
 type MusicCommand = 'toggle' | 'previous' | 'next' | 'seek';
@@ -226,6 +227,38 @@ export const resolveIslandDockGesture = (
   return null;
 };
 
+function NavigationActivityIndicator({ docked, fullscreenSuppressed }: { docked: boolean; fullscreenSuppressed: boolean }) {
+  const { activities } = useIsland();
+  const reduceMotion = useReducedMotion();
+  const activity = activities.find(item => item.id === 'qz-route-navigation');
+  const success = activity?.label.startsWith('已打开') ?? false;
+
+  return (
+    <AnimatePresence initial={false}>
+      {activity && !docked && !fullscreenSuppressed && (
+        <motion.span
+          key="qz-route-navigation-indicator"
+          className="qz-island-navigation-indicator"
+          data-state={success ? 'success' : 'loading'}
+          role="status"
+          aria-label={success ? '页面已打开' : '页面正在打开'}
+          initial={reduceMotion ? false : { opacity: 0, scale: .68, x: -5 }}
+          animate={{ opacity: 1, scale: 1, x: 0 }}
+          exit={reduceMotion ? { opacity: 0 } : { opacity: 0, scale: .78, x: 4 }}
+          transition={reduceMotion
+            ? { duration: 0 }
+            : { type: 'spring', stiffness: 520, damping: 30, mass: .48 }}
+        >
+          <i className="qz-island-navigation-dot" aria-hidden="true" />
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="m5 12.5 4.4 4.4L19 7.3" />
+          </svg>
+        </motion.span>
+      )}
+    </AnimatePresence>
+  );
+}
+
 export const MusicIslandView = ({
   value,
   hostRef,
@@ -432,6 +465,7 @@ export const MusicIslandView = ({
   return (
     <MusicIslandContext.Provider value={value}>
       <>
+        <NavigationActivityIndicator docked={docked} fullscreenSuppressed={fullscreenSuppressed} />
         <QianzhiIslandTaskDrawer docked={docked || fullscreenSuppressed} />
         <div
           ref={hostRef}

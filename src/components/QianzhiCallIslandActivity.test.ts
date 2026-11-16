@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { isValidElement, type ReactElement } from 'react';
+import type { CallPhase } from '../lib/call';
+import type { CallIslandActivityInput } from './QianzhiCallIslandActivity';
 import { createCallIslandActivity, resolveCallIslandTargetRect } from './QianzhiCallIslandActivity';
 
 describe('Qianzhi call island activity', () => {
@@ -119,5 +121,45 @@ describe('resolveCallIslandTargetRect', () => {
       width: 104,
       height: 31.5,
     });
+  });
+});
+
+
+describe('call island phase transitions', () => {
+  const noop = () => {};
+  const makeInput = (phase: CallPhase): CallIslandActivityInput => ({
+    phase,
+    peerName: '测试好友',
+    startedAt: phase === 'in-call' ? 1_000 : null,
+    muted: false,
+    speakerEnabled: false,
+    onAccept: noop,
+    onReject: noop,
+    onCancel: noop,
+    onHangUp: noop,
+    onToggleMute: noop,
+    onToggleSpeaker: noop,
+    onRestore: noop,
+  });
+
+  it('keeps one activity while keying visible regions to the active phase', () => {
+    const incoming = createCallIslandActivity(makeInput('incoming'));
+    const active = createCallIslandActivity(makeInput('in-call'));
+
+    expect(active.id).toBe(incoming.id);
+    expect((incoming.compact?.leading as ReactElement).key).toBe('incoming');
+    expect((active.compact?.leading as ReactElement).key).toBe('in-call');
+    expect((incoming.compact?.trailing as ReactElement).key).toBe('incoming');
+    expect((active.minimal as ReactElement).key).toBe('in-call');
+    expect((incoming.expanded?.center as ReactElement).key).toBe('incoming');
+    expect((active.expanded?.bottom as ReactElement).key).toBe('in-call:false:false');
+  });
+
+  it('re-enters the call action row when mute or speaker state changes', () => {
+    const muted = createCallIslandActivity({ ...makeInput('in-call'), muted: true });
+    const speaker = createCallIslandActivity({ ...makeInput('in-call'), speakerEnabled: true });
+
+    expect((muted.expanded?.bottom as ReactElement).key).toBe('in-call:true:false');
+    expect((speaker.expanded?.bottom as ReactElement).key).toBe('in-call:false:true');
   });
 });

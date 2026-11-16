@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { EQUALIZER_BANDS, EQUALIZER_REST_LEVEL, isEndedTrackPush, isMusicTrackFinished, isSameMusicTrack, musicTrackIdentity, resolveMusicEqualizerMode, resolveMusicIslandLabel, shouldCrossfadeMusicTrack, shouldMirrorEqualizerToRoot, shouldShowMainIsland } from './MusicIsland';
-import { hasNewIslandActivity, resolveIslandDockGesture, resolveIslandGestureSource, resolveMusicIslandTapAction, shouldCancelPendingIslandDock, shouldEndTracklessMusicActivity, shouldShowIslandIdleRecall, shouldShowMusicEmptyState } from './QianzhiMusicIslandActivity';
+import { hasNewIslandActivity, resolveIslandDockGesture, resolveIslandGestureSource, resolveMusicIslandTapAction, shouldCancelPendingIslandDock, shouldShowIslandIdleRecall } from './QianzhiMusicIslandActivity';
 import { resolveMetrics } from '../lib/island/config';
 import { createQianzhiIslandMetrics, qianzhiIslandMetrics } from '../lib/island/qianzhi-metrics';
 
@@ -285,32 +285,9 @@ describe('shouldCancelPendingIslandDock', () => {
 });
 
 describe('resolveMusicIslandTapAction', () => {
-  it('expands in place when the island itself is tapped, with or without a track', () => {
-    expect(resolveMusicIslandTapAction('idle-recall')).toBe('expand');
-  });
-
-  it('opens the music space only from the button inside the expanded empty card', () => {
-    expect(resolveMusicIslandTapAction('empty-state-button')).toBe('openMusic');
-  });
-});
-
-describe('shouldShowMusicEmptyState', () => {
-  it('shows the empty card exactly when no track is live', () => {
-    expect(shouldShowMusicEmptyState(null)).toBe(true);
-    expect(shouldShowMusicEmptyState(track())).toBe(false);
-  });
-});
-
-describe('shouldEndTracklessMusicActivity', () => {
-  it('ends a trackless music activity once the island leaves the expanded view', () => {
-    expect(shouldEndTracklessMusicActivity(false, false, ['music-playback'])).toBe(true);
-    expect(shouldEndTracklessMusicActivity(false, false, [])).toBe(false);
-  });
-
-  it('keeps the empty card while it is expanded, and keeps a playing song untouched', () => {
-    expect(shouldEndTracklessMusicActivity(false, true, ['music-playback'])).toBe(false);
-    expect(shouldEndTracklessMusicActivity(true, false, ['music-playback'])).toBe(false);
-    expect(shouldEndTracklessMusicActivity(true, true, ['music-playback'])).toBe(false);
+  it('expands an active song and opens the music space when no song is active', () => {
+    expect(resolveMusicIslandTapAction(true)).toBe('expand');
+    expect(resolveMusicIslandTapAction(false)).toBe('openMusic');
   });
 });
 

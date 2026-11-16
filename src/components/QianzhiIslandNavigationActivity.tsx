@@ -25,25 +25,33 @@ export function routeActivityLabel(pathname: string): string {
   return '页面';
 }
 
-export function createNavigationIslandActivity(label: string): ActivityOptions {
+type NavigationStatus = 'loading' | 'success';
+
+export function createNavigationIslandActivity(label: string, status: NavigationStatus = 'loading'): ActivityOptions {
+  const completed = status === 'success';
+  const actionText = completed ? '已打开' : '正在打开';
+
   return {
     id: ACTIVITY_ID,
-    label: '正在打开' + label,
+    label: actionText + label,
     priority: 14,
+    // Keep the capsule's own content text-only. The small state marker is rendered
+    // by MusicIslandView in a detached sidecar, so it never consumes capsule width.
     compact: {
-      leading: <span className="qz-island-navigation-compact"><i aria-hidden="true" />正在打开</span>,
-      trailing: <span className="qz-island-navigation-trail" aria-hidden="true"><i /><i /><i /></span>,
+      leading: <span className="qz-island-navigation-compact">{actionText}</span>,
     },
-    minimal: <span className="qz-island-navigation-minimal" aria-label="正在打开页面"><i /></span>,
+    minimal: <span className="qz-island-navigation-minimal">{actionText}</span>,
     expanded: {
       leading: <span className="qz-island-navigation-label">页面切换</span>,
       center: (
         <span className="qz-island-navigation-copy">
-          <strong>正在打开{label}</strong>
-          <small>正在加载页面内容</small>
+          <strong>{actionText}{label}</strong>
+          <small>{completed ? '页面已就绪' : '正在加载页面内容'}</small>
         </span>
       ),
-      bottom: <span className="qz-island-navigation-progress" role="progressbar" aria-label="页面加载中"><i /></span>,
+      bottom: completed ? null : (
+        <span className="qz-island-navigation-progress" role="progressbar" aria-label="页面加载中"><i /></span>
+      ),
     },
   };
 }
@@ -60,7 +68,11 @@ export default function QianzhiIslandNavigationActivity() {
   useEffect(() => {
     const sink = {
       show: (nextLabel: string) => {
-        island.start(createNavigationIslandActivity(nextLabel));
+        island.start(createNavigationIslandActivity(nextLabel, 'loading'));
+      },
+      complete: () => {
+        // Swap to success in place; the detached indicator draws the checkmark.
+        island.start(createNavigationIslandActivity(latestLabel.current, 'success'));
       },
       end: () => island.end(ACTIVITY_ID),
     };

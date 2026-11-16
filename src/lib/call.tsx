@@ -468,14 +468,16 @@ export function CallProvider({ children }: { children: ReactNode }) {
       peerName,
       startedAt: callStartedAt,
       muted,
+      speakerEnabled,
       onAccept: acceptCall,
       onReject: rejectCall,
       onCancel: cancelCall,
       onHangUp: hangUp,
       onToggleMute: toggleMute,
+      onToggleSpeaker: toggleSpeaker,
       onRestore: restoreCall,
     }));
-  }, [phase, peerName, callStartedAt, muted, islandApi, acceptCall, rejectCall, cancelCall, hangUp, toggleMute, restoreCall]);
+  }, [phase, peerName, callStartedAt, muted, speakerEnabled, islandApi, acceptCall, rejectCall, cancelCall, hangUp, toggleMute, toggleSpeaker, restoreCall]);
 
   useEffect(() => () => islandApi.end('qz-call-session'), [islandApi]);
 

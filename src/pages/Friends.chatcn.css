@@ -82,10 +82,12 @@
 .chatcn-filter-trigger svg { width: 17px; height: 17px; }
 
 .chatcn-filter-menu {
-  position: absolute;
-  z-index: 120;
-  top: calc(100% + 9px);
-  right: 0;
+  /* Body portal avoids clipping by the inbox scroller; coordinates come from the trigger. */
+  position: fixed;
+  z-index: 1800;
+  top: 0;
+  left: 0;
+  right: auto;
   /* Use a viewport-relative width on narrow/high-density phones, capped on larger screens. */
   box-sizing: border-box;
   width: min(300px, 44vw);

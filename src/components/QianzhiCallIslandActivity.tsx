@@ -18,6 +18,50 @@ export interface CallIslandActivityInput {
   onRestore: () => void;
 }
 
+export interface CallIslandTargetRectInput {
+  presentation: string | undefined;
+  docked: boolean;
+  pillRect: { left: number; top: number; width: number; height: number } | null;
+  viewportWidth: number;
+  anchorTop: number;
+  shapeTop: number;
+  shapeHeight: number;
+  configuredWidth: number;
+  offsetX: number;
+  offsetY: number;
+}
+
+/**
+ * Resolve the call-flight landing point even when the island is currently translated
+ * off-screen. A docked pill keeps its measured horizontal size, but its vertical
+ * destination comes from the saved capsule geometry rather than its hidden DOM rect.
+ */
+export function resolveCallIslandTargetRect(input: CallIslandTargetRectInput) {
+  const pill = input.pillRect;
+  if (
+    input.presentation !== 'expanded'
+    && pill
+    && pill.width > 0
+    && pill.height > 0
+  ) {
+    return {
+      left: pill.left,
+      top: input.docked ? input.anchorTop + input.shapeTop + input.offsetY : pill.top,
+      width: pill.width,
+      height: pill.height,
+    };
+  }
+
+  const width = Math.max(1, input.configuredWidth);
+  const height = Math.max(1, input.shapeHeight);
+  return {
+    left: input.viewportWidth / 2 + input.offsetX - width / 2,
+    top: input.anchorTop + input.shapeTop + input.offsetY,
+    width,
+    height,
+  };
+}
+
 function formatDuration(totalSeconds: number) {
   const value = Math.max(0, Math.floor(totalSeconds));
   return String(Math.floor(value / 60)).padStart(2, '0') + ':' + String(value % 60).padStart(2, '0');

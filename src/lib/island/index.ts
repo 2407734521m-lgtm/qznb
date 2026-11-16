@@ -11,6 +11,8 @@ export type {
   ActivityHandle,
   ActivityOptions,
   ActivityUpdate,
+  ActivityTaskState,
+  ActivityTaskStatus,
   CompactContent,
   ExpandedContent,
   ExpandReason,

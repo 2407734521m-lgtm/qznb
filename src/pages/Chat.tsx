@@ -258,6 +258,15 @@ export default function Chat() {
   const [disappearingSeconds, setDisappearingSeconds] = useState<number | null>(null);
   const [showCustomDuration, setShowCustomDuration] = useState(false);
   const [modeSaving, setModeSaving] = useState(false);
+  // 消失动画（Telegram 式）：消息到期先淡出缩小，再把整行高度收到 0，
+  // 下面的消息顺着 ResizeObserver 的测量更新滑上来；减动效时直接移除。
+  // 两个时长要和下面 <style> 里的 .im-row-vanishing 过渡（.26s）保持一致。
+  const VANISH_FADE_MS = 260;
+  const VANISH_COLLAPSE_MS = 220;
+  const [vanishingIds, setVanishingIds] = useState<ReadonlySet<number>>(new Set());
+  const vanishingIdsRef = useRef<ReadonlySet<number>>(new Set());
+  const rowElsRef = useRef(new Map<number, HTMLElement>());
+  const disappearingModeRef = useRef<DisappearingMode>('off');
   const [showProfileMore, setShowProfileMore] = useState(false);
   const sharedMediaRef = useRef<HTMLElement | null>(null);
   const [showStickers, setShowStickers] = useState(false);
@@ -315,6 +324,10 @@ export default function Chat() {
     getScrollElement: () => feedRef.current,
     estimateSize: () => 76,
     overscan: 8,
+    // 行必须按消息 id 取 key，不能用默认的下标：消失动画直接写在行节点上
+    // （height:0 / overflow:hidden），下标 key 会让下一条消息复用这条
+    // 已收起的节点、被裁成看不见；id key 让消失行直接卸载、样式跟着走。
+    getItemKey: (index) => msgs[index].id,
   });
   // 新消息只保留一个透明度淡入（不做位移/缩放，避免影响行高测量与滚动锚点）。
   const prevMsgsLenRef = useRef(0);
@@ -335,6 +348,91 @@ export default function Chat() {
     for (const [id, groups] of map) map.set(id, groups.filter(group => group.items.length > 0));
     return map;
   }, [reactions]);
+
+  // 消失动画的两个收尾步骤。finishVanish 只在消息仍过期时移除；用户在
+  // 动画中途关掉消失模式时，把行高还回去、取消淡出，消息留着。
+  function finishVanish(ids: number[]) {
+    const rowEls = rowElsRef.current;
+    if (disappearingModeRef.current === 'off') {
+      ids.forEach(id => {
+        const el = rowEls.get(id);
+        if (el) { el.style.height = ''; el.style.overflow = ''; }
+      });
+    } else {
+      setMsgs(prev => prev.filter(m => !ids.includes(m.id)));
+      if (cid) {
+        void supabase.rpc('cleanup_expired_messages', { p_conversation_id: Number(cid) })
+          .then(({ error: cleanupError }) => {
+            if (cleanupError) console.error('cleanup expired messages failed', cleanupError);
+          });
+      }
+    }
+    const next = new Set(vanishingIdsRef.current);
+    ids.forEach(id => next.delete(id));
+    vanishingIdsRef.current = next;
+    setVanishingIds(next);
+  }
+
+  function startVanish(ids: number[]) {
+    const next = new Set([...vanishingIdsRef.current, ...ids]);
+    vanishingIdsRef.current = next;
+    setVanishingIds(next);
+    const fadeMs = reduceMotion ? 0 : VANISH_FADE_MS;
+    const collapseMs = reduceMotion ? 0 : VANISH_COLLAPSE_MS;
+    window.setTimeout(() => {
+      const els = ids
+        .map(id => rowElsRef.current.get(id))
+        .filter((el): el is HTMLElement => Boolean(el));
+      if (collapseMs === 0) {
+        finishVanish(ids);
+        return;
+      }
+      // 收起高度：直接写行高，虚拟列表靠 ResizeObserver 跟着更新位置，
+      // 下面的消息顺滑上滑；内容已淡出，收起时只剩空白高度在缩。
+      const startHeights = new Map(els.map(el => [el, el.offsetHeight]));
+      els.forEach(el => { el.style.overflow = 'hidden'; });
+      const start = performance.now();
+      const tick = (now: number) => {
+        const progress = Math.min(1, (now - start) / collapseMs);
+        const eased = 1 - Math.pow(1 - progress, 3);
+        els.forEach(el => {
+          el.style.height = Math.max(0, (startHeights.get(el) ?? 0) * (1 - eased)) + 'px';
+        });
+        if (progress < 1) {
+          requestAnimationFrame(tick);
+        } else {
+          // 最后一帧把高度写死到 0，避免收尾帧的残值留一条细缝。
+          els.forEach(el => { el.style.height = '0px'; });
+          finishVanish(ids);
+        }
+      };
+      requestAnimationFrame(tick);
+    }, fadeMs);
+  }
+
+  useEffect(() => {
+    disappearingModeRef.current = disappearingMode;
+  }, [disappearingMode]);
+
+  // 消失动画的定时器：找到最近一个到期时间，到点把那一批消息淡出收起。
+  // 已过期但还没动画的消息由 load() 直接过滤（用户不在本页时不播动画）。
+  useEffect(() => {
+    if (disappearingMode === 'off') return;
+    const now = Date.now();
+    const upcoming = msgs.filter(m => m.expires_at
+      && new Date(m.expires_at as string).getTime() > now
+      && !vanishingIds.has(m.id));
+    if (!upcoming.length) return;
+    const nextAt = Math.min(...upcoming.map(m => new Date(m.expires_at as string).getTime()));
+    const timer = window.setTimeout(() => {
+      const expiredIds = msgs
+        .filter(m => m.expires_at && new Date(m.expires_at as string).getTime() <= Date.now())
+        .map(m => m.id)
+        .filter(id => !vanishingIdsRef.current.has(id));
+      if (expiredIds.length) startVanish(expiredIds);
+    }, Math.max(0, nextAt - now));
+    return () => window.clearTimeout(timer);
+  }, [msgs, disappearingMode, vanishingIds]);
 
   // Android 虚拟键盘打开时，可视视口会缩小；用它同步聊天容器高度。
   useEffect(() => {
@@ -388,7 +486,8 @@ export default function Chat() {
     // Realtime、轮询和手动刷新可能同时完成；只应用最后发起的请求结果。
     if (requestId !== loadSequenceRef.current) return;
     if (data) {
-      const visible = data.filter(message => !isExpiredMessage(message));
+      // 正在播消失动画的消息先留着，等动画跑完再由定时器移除，避免中途被抽掉。
+      const visible = data.filter(message => !isExpiredMessage(message) || vanishingIdsRef.current.has(message.id));
       setMsgs(visible);
       setError('');
       // 已到期的消息还没被清理时，在这里触发一次软删；删完经 Realtime 再刷新。
@@ -1149,6 +1248,8 @@ export default function Chat() {
         .im-row-out{animation:im-send-in .26s cubic-bezier(.34,1.45,.64,1) both}
         @keyframes im-send-in{0%{opacity:0;transform:translateY(20px) scale(.94)}70%{opacity:1;transform:translateY(-2px) scale(1.005)}100%{opacity:1;transform:translateY(0) scale(1)}}
         .im-row-static{animation:none}
+        .im-row{transition:opacity .26s ease,transform .26s ease}
+        .im-row-vanishing{opacity:0;transform:scale(.92) translateY(2px);pointer-events:none}
         .im-vrow{box-sizing:border-box}
         .im-page .im-vrow .im-row{margin:0 !important;animation:none !important}
         .im-vrow-fresh{animation:im-vrow-fade .25s ease-out both}
@@ -1160,7 +1261,7 @@ export default function Chat() {
         .im-retry{display:inline-flex;align-items:center;gap:6px;margin-top:6px;border:0;background:transparent;color:#ff8f9b;font-size:11px;cursor:pointer;padding:2px 0}
         .im-retry-dot{width:18px;height:18px;border-radius:50%;background:#e5484d;color:#fff;display:grid;place-items:center;font-size:12px;line-height:1;flex:none}
         @media(min-width:700px){.im-page{height:var(--im-viewport-height,100dvh);min-height:0}.im-feed{padding:24px 28px}.im-composer{padding:14px 20px}}
-        @media(max-width:600px){.im-head{gap:10px}.im-avatar{width:40px;height:40px}.im-back,.im-icon{min-width:40px;height:40px}.im-feed{padding:14px 12px 18px}.im-bubble{max-width:84%;font-size:15px}.im-composer{gap:8px}.im-plus{width:40px;height:40px}}\n        @media(prefers-reduced-motion:reduce){.im-row{animation:none}.im-row-out{animation:none}.im-vrow-fresh{animation:none}}
+        @media(max-width:600px){.im-head{gap:10px}.im-avatar{width:40px;height:40px}.im-back,.im-icon{min-width:40px;height:40px}.im-feed{padding:14px 12px 18px}.im-bubble{max-width:84%;font-size:15px}.im-composer{gap:8px}.im-plus{width:40px;height:40px}}\n        @media(prefers-reduced-motion:reduce){.im-row{animation:none}.im-row-out{animation:none}.im-vrow-fresh{animation:none}.im-row-vanishing{transition:none}}
       `}</style>
       <header className="im-head">
         <button className="im-back" aria-label="返回会话列表" onClick={() => goBackOr(nav, '/friends')}>
@@ -1499,18 +1600,19 @@ export default function Chat() {
             && new Date(nextMessage.created_at).getTime() - new Date(m.created_at).getTime() <= 300000);
           const deleted = Boolean(m.deleted_at);
           const canEdit = mine && !deleted && !m.body.startsWith('[[im-image:') && !m.body.startsWith('[[im-audio:');
-          const displayBody = deleted ? (mine ? '你撤回了一条消息' : '对方撤回了一条消息') : m.body;
+          // 正在消失的消息即使已被清理打上 deleted_at，也继续显示原文，不中途变成“撤回”。
+          const displayBody = deleted && !vanishingIds.has(m.id) ? (mine ? '你撤回了一条消息' : '对方撤回了一条消息') : m.body;
           const inlineMeta = editingId !== m.id && canShowInlineMeta(displayBody, Boolean(m.reply_to_id));
           const receiptLabel = !isGroup && mine && m.id === latestOutgoingMessageId && userPreferences.chat.showReadReceipts
             ? (otherLastReadMessageId !== null && otherLastReadMessageId >= m.id ? '已读' : '已送达')
             : '';
           return (
-            <div key={virtualRow.key} data-index={virtualRow.index} ref={virtualizer.measureElement}
+            <div key={virtualRow.key} data-index={virtualRow.index} ref={el => { virtualizer.measureElement(el); if (el) rowElsRef.current.set(m.id, el); else rowElsRef.current.delete(m.id); }}
               className={'im-vrow' + (freshId === m.id ? ' im-vrow-fresh' : '')}
               onAnimationEnd={() => { if (freshId === m.id) setFreshId(null); }}
               style={{ position: 'absolute', top: 0, left: 0, width: '100%', transform: `translateY(${virtualRow.start}px)`, padding: `${samePrevious ? 1 : 3}px 0 ${sameNext ? 1 : 3}px 0`, boxSizing: 'border-box' }}>
               {dateLabel(m.created_at, msgs[i - 1]?.created_at) && <div className="im-day">{dateLabel(m.created_at, msgs[i - 1]?.created_at)}</div>}
-              <div className={'im-row ' + (mine ? 'mine ' : '') + (mine && m.id === latestOutgoingMessageId && userPreferences.chat.showReadReceipts ? 'im-row-has-receipt ' : '') + (samePrevious ? 'im-row-grouped-prev ' : '') + (sameNext ? 'im-row-grouped-next ' : '') + (swappedIdsRef.current.has(m.id) ? 'im-row-static' : '')}>
+              <div className={'im-row ' + (mine ? 'mine ' : '') + (mine && m.id === latestOutgoingMessageId && userPreferences.chat.showReadReceipts ? 'im-row-has-receipt ' : '') + (samePrevious ? 'im-row-grouped-prev ' : '') + (sameNext ? 'im-row-grouped-next ' : '') + (swappedIdsRef.current.has(m.id) ? 'im-row-static' : '') + (vanishingIds.has(m.id) ? 'im-row-vanishing ' : '')}>
                 <div className={'im-message-column ' + (mine ? 'mine' : 'theirs')}>
                   {isGroup && !mine && !samePrevious && <span className="chatcn-group-sender-name">{groupMembers.find(member => member.id === m.sender_id)?.display_name ?? groupMembers.find(member => member.id === m.sender_id)?.username ?? '群成员'}</span>}
                   <div className={'im-bubble ' + (mine ? 'mine' : 'theirs') + (samePrevious ? ' im-bubble-grouped-prev' : '') + (sameNext ? ' im-bubble-grouped-next' : '')}

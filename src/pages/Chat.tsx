@@ -249,6 +249,10 @@ export default function Chat() {
   // 但选区还在，回来照样能往选区里贴。
   const [composerSel, setComposerSel] = useState<{ start: number; end: number } | null>(null);
   const composerSelRef = useRef<{ start: number; end: number } | null>(null);
+  // 格式栏钉住：点输入框里的 B 按钮打开后一直开着，不用选中文字也能按；
+  // 没钉住时只有选中文字才出栏。发完消息收起来，录音时不显示（在栏的渲染处判断）。
+  const [formatPanelPinned, setFormatPanelPinned] = useState(false);
+  const showFormatPanel = !!composerSel || formatPanelPinned;
   // 贴完格式后要恢复的选区（setText 是异步的，靠这个 effect 在渲染完再拨回去）。
   const pendingSelRef = useRef<{ start: number; end: number } | null>(null);
   const [linkDialogOpen, setLinkDialogOpen] = useState(false);
@@ -1128,6 +1132,13 @@ export default function Chat() {
     return start !== end ? { start, end } : null;
   }
 
+  // 读输入框当前范围（没选中时 start===end，就是光标位置）。
+  function readComposerRange() {
+    const el = inputRef.current;
+    if (!el) return null;
+    return { start: el.selectionStart ?? 0, end: el.selectionEnd ?? 0 };
+  }
+
   // 把选区 [start, end) 换成 replacement，并把选区拨到 selectAfter（默认选中整段换好的文字，
   // 这样可以连着再套一层格式；传收起来的选区就是把光标挪过去）。
   function replaceComposerRange(start: number, end: number, replacement: string, selectAfter?: { start: number; end: number }) {
@@ -1144,9 +1155,17 @@ export default function Chat() {
 
   // 包一层标记（加粗/斜体/等宽/删除线/下划线/剧透都走这里）：再点一次拆掉，
   // 选区正好在一对标记里面时也把外面的标记拆掉。
+  // 没选中文字时把一对标记插在光标处、光标夹在中间，直接打字就是带格式的。
   function applyWrap(open: string, close: string) {
     const sel = readComposerSelection() ?? composerSelRef.current;
-    if (!sel) return;
+    if (!sel) {
+      const cursor = readComposerRange();
+      if (!cursor) return;
+      const pair = open + close;
+      replaceComposerRange(cursor.start, cursor.end, pair,
+        { start: cursor.start + open.length, end: cursor.start + open.length });
+      return;
+    }
     const selected = text.slice(sel.start, sel.end);
     if (selected.length > open.length + close.length && selected.startsWith(open) && selected.endsWith(close)) {
       const inner = selected.slice(open.length, selected.length - close.length);
@@ -1162,17 +1181,25 @@ export default function Chat() {
     replaceComposerRange(sel.start, sel.end, wrapped, { start: sel.start, end: sel.start + wrapped.length });
   }
 
-  // 引用：给选区所在行加/去行首 "> "（输入框是单行，粘贴的多行也能按行处理）。
+  // 引用：给选区/光标所在行加/去行首 "> "（输入框是单行，粘贴的多行也能按行处理）。
+  // 没选中时光标挪到 "> " 后面，接着打字就是引用。
   function applyQuote() {
-    const sel = readComposerSelection() ?? composerSelRef.current;
-    if (!sel) return;
-    const lineStart = text.lastIndexOf('\n', sel.start - 1) + 1;
-    const nextBreak = text.indexOf('\n', sel.end);
+    const range = readComposerSelection() ?? composerSelRef.current ?? readComposerRange();
+    if (!range) return;
+    const collapsed = range.start === range.end;
+    const lineStart = text.lastIndexOf('\n', range.start - 1) + 1;
+    const nextBreak = text.indexOf('\n', range.end);
     const lineEnd = nextBreak === -1 ? text.length : nextBreak;
     if (text.slice(lineStart, lineEnd).startsWith('> ')) {
-      replaceComposerRange(lineStart, lineStart + 2, '', { start: lineStart, end: lineEnd - 2 });
+      replaceComposerRange(lineStart, lineStart + 2, '',
+        collapsed
+          ? { start: Math.max(lineStart, range.start - 2), end: Math.max(lineStart, range.start - 2) }
+          : { start: lineStart, end: lineEnd - 2 });
     } else {
-      replaceComposerRange(lineStart, lineStart, '> ', { start: lineStart, end: lineEnd + 2 });
+      replaceComposerRange(lineStart, lineStart, '> ',
+        collapsed
+          ? { start: range.start + 2, end: range.start + 2 }
+          : { start: lineStart, end: lineEnd + 2 });
     }
   }
 
@@ -1187,30 +1214,33 @@ export default function Chat() {
   }
 
   // 日期：在选区处插今天（2026年11月17日），光标挪到日期后面。
+  // 没选中时直接插在光标处。
   function applyDate() {
-    const sel = readComposerSelection() ?? composerSelRef.current;
-    if (!sel) return;
+    const range = readComposerSelection() ?? composerSelRef.current ?? readComposerRange();
+    if (!range) return;
     const date = formatTodayZh();
-    replaceComposerRange(sel.start, sel.end, date, { start: sel.start + date.length, end: sel.start + date.length });
+    replaceComposerRange(range.start, range.end, date, { start: range.start + date.length, end: range.start + date.length });
   }
 
   // 链接：把选中的文字变成 [文字](网址)，选中整段方便再套格式。
-  function applyLink(url: string) {
+  // 没选中时把 [文字](网址) 插在光标处、选中整段。
+  function applyLink(label: string, url: string) {
     setLinkDialogOpen(false);
-    const sel = composerSelRef.current ?? readComposerSelection();
-    if (!sel) return;
-    const selected = text.slice(sel.start, sel.end);
-    const linked = `[${selected}](${url})`;
-    replaceComposerRange(sel.start, sel.end, linked, { start: sel.start, end: sel.start + linked.length });
+    const range = composerSelRef.current ?? readComposerSelection() ?? readComposerRange();
+    if (!range) return;
+    const linked = `[${label}](${url})`;
+    replaceComposerRange(range.start, range.end, linked, { start: range.start, end: range.start + linked.length });
   }
 
   // 创建@：选中的文字变成 @[文字](成员id)，点开进对方主页。
+  // 没选中时用成员名字做文字、插在光标处。
   function applyMention(memberId: string) {
-    const sel = composerSelRef.current ?? readComposerSelection();
-    if (!sel) return;
-    const selected = text.slice(sel.start, sel.end);
-    const mention = `@[${selected}](${memberId})`;
-    replaceComposerRange(sel.start, sel.end, mention, { start: sel.start, end: sel.start + mention.length });
+    const range = composerSelRef.current ?? readComposerSelection() ?? readComposerRange();
+    if (!range) return;
+    const selected = range.start !== range.end ? text.slice(range.start, range.end) : null;
+    const label = selected ?? mentionOptions.find(option => option.value === memberId)?.label ?? '成员';
+    const mention = `@[${label}](${memberId})`;
+    replaceComposerRange(range.start, range.end, mention, { start: range.start, end: range.start + mention.length });
   }
 
   function send() {
@@ -1221,6 +1251,7 @@ export default function Chat() {
     setText('');
     setComposerSel(null);
     composerSelRef.current = null;
+    setFormatPanelPinned(false);
     inputRef.current?.focus();
   }
 
@@ -1383,7 +1414,7 @@ export default function Chat() {
         .im-row-static{animation:none}
         .im-row{transition:opacity .26s ease,transform .26s ease}
         .im-row-vanishing{opacity:0;transform:scale(.92) translateY(2px);pointer-events:none}.im-ink{position:relative;display:inline-block;max-width:100%;vertical-align:top;touch-action:pan-y;cursor:pointer;outline:none}.im-ink:focus-visible{outline:2px solid rgba(255,255,255,.65);outline-offset:2px;border-radius:6px}.im-ink-char{opacity:0;transition:opacity .18s ease-out}.im-ink-canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;display:block}
-        .im-format-bar{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding:8px 12px 4px;animation:im-arrive .2s ease-out both}.im-format-bar::-webkit-scrollbar{display:none}.im-format-chip{flex:none;padding:6px 11px;border-radius:999px;border:1px solid rgba(255,255,255,.22);background:rgba(6,24,34,.42);color:#eaf6ff;font-size:13px;line-height:1.2;cursor:pointer;white-space:nowrap}.im-format-chip:active{background:rgba(158,215,255,.28)}.im-format-chip--bold{font-weight:700}.im-format-chip--italic{font-style:italic}.im-format-chip--code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}.im-format-chip--strike{text-decoration:line-through}.im-format-chip--underline{text-decoration:underline}
+        .im-format-bar{display:flex;flex-wrap:wrap;gap:6px;padding:8px 12px 4px;animation:im-arrive .2s ease-out both}.im-format-chip{flex:none;padding:6px 11px;border-radius:999px;border:1px solid rgba(255,255,255,.22);background:rgba(6,24,34,.42);color:#eaf6ff;font-size:13px;line-height:1.2;cursor:pointer;white-space:nowrap}.im-format-chip:active{background:rgba(158,215,255,.28)}.im-format-chip:disabled{opacity:.45;cursor:default}.im-format-chip--bold{font-weight:700}.im-format-chip--italic{font-style:italic}.im-format-chip--code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}.im-format-chip--strike{text-decoration:line-through}.im-format-chip--underline{text-decoration:underline}.im-format-btn{flex:none;width:32px;height:32px;margin-right:2px;border:0;border-radius:50%;background:rgba(255,255,255,.08);color:#eaf6ff;font-size:16px;font-weight:800;line-height:1;display:grid;place-items:center;cursor:pointer}.im-format-btn--on{background:rgba(158,215,255,.28);color:#bfe6ff}.im-format-btn:disabled{opacity:.45;cursor:default}
         .im-quote{display:block;margin:2px 0;padding:7px 9px;border-left:3px solid rgba(216,238,255,.65);background:rgba(0,15,35,.16);border-radius:7px;font-size:13px;line-height:1.5}.im-code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;background:rgba(0,15,35,.28);border-radius:6px;padding:1px 5px}.im-mention{display:inline-block;padding:1px 7px;border-radius:999px;border:0;background:rgba(158,215,255,.2);color:#bfe6ff;font-size:14px;cursor:pointer}.im-link{color:#bfe6ff;text-decoration:underline;overflow-wrap:anywhere}
         .im-vrow{box-sizing:border-box}
         .im-page .im-vrow .im-row{margin:0 !important;animation:none !important}
@@ -1927,7 +1958,7 @@ export default function Chat() {
         <button type="button" onClick={() => setReplyTarget(null)} aria-label="取消回复">取消</button>
       </div>}
       {uploading && upPct !== null && <div style={{ padding: '8px 14px 0' }}><SmoothProgress value={upPct} label={`正在发送媒体 ${upPct}%`} /></div>}
-      {composerSel && !recording && (
+      {showFormatPanel && !recording && (
         <div className="im-format-bar" role="toolbar" aria-label="文字格式">
           <button type="button" className="im-format-chip im-format-chip--bold" aria-label="加粗"
             onPointerDown={e => e.preventDefault()} onClick={() => applyWrap('**', '**')}>加粗</button>
@@ -1946,8 +1977,7 @@ export default function Chat() {
           <button type="button" className="im-format-chip" aria-label="创建链接"
             onPointerDown={e => e.preventDefault()} onClick={() => {
               const sel = readComposerSelection() ?? composerSelRef.current;
-              if (!sel) return;
-              setLinkText(text.slice(sel.start, sel.end));
+              setLinkText(sel ? text.slice(sel.start, sel.end) : '');
               setLinkDialogOpen(true);
             }}>链接</button>
           {mentionOptions.length > 0 && (
@@ -1964,6 +1994,7 @@ export default function Chat() {
           <button type="button" className="im-format-chip" aria-label="插入今天的日期"
             onPointerDown={e => e.preventDefault()} onClick={applyDate}>日期</button>
           <button type="button" className="im-format-chip" aria-label="清除格式，只留纯文本"
+            disabled={!composerSel}
             onPointerDown={e => e.preventDefault()} onClick={applyPlain}>纯文本</button>
         </div>
       )}
@@ -2000,6 +2031,25 @@ export default function Chat() {
           />
         )}
         <div className="im-input-wrap">
+          <button type="button" className={'im-format-btn' + (showFormatPanel ? ' im-format-btn--on' : '')}
+            aria-label={showFormatPanel ? '收起格式栏' : '打开格式栏'} aria-expanded={showFormatPanel}
+            title="文字格式" disabled={uploading || recording}
+            onPointerDown={e => e.preventDefault()}
+            onClick={() => {
+              if (showFormatPanel) {
+                // 关栏：取消钉住；栏是靠选中文字撑开的，也把选区收掉（光标留在选区末尾、接着打字），栏就收起来了。
+                setFormatPanelPinned(false);
+                const sel = readComposerSelection() ?? composerSelRef.current;
+                if (sel) {
+                  setComposerSel(null);
+                  composerSelRef.current = null;
+                  inputRef.current?.setSelectionRange(sel.end, sel.end);
+                }
+              } else {
+                setFormatPanelPinned(true);
+              }
+              inputRef.current?.focus({ preventScroll: true });
+            }}>B</button>
           <input ref={inputRef} className="im-input" value={text} onChange={e => { setText(e.target.value); notifyTyping(e.target.value); }}
             onSelect={() => {
               const sel = readComposerSelection();

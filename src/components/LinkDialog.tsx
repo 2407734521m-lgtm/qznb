@@ -2,22 +2,24 @@ import { useEffect, useState } from 'react';
 import { normalizeLinkUrl } from '../lib/richText';
 
 // 创建链接：给选中的文字贴一个网址（站内弹窗，不用原生 prompt）。
-// 打开时显示选中的文字、让用户填网址；没写协议自动补 https://，
-// javascript:/data: 等不接受。
+// 没选中文字也能用：显示文字现填，贴到光标处；没写协议自动补 https://，
+// javascript:/data: 等不接受；不填显示文字就直接显示网址。
 export default function LinkDialog({ open, linkText, onClose, onConfirm }: {
   open: boolean;
   linkText: string;
   onClose: () => void;
-  onConfirm: (url: string) => void;
+  onConfirm: (label: string, url: string) => void;
 }) {
+  const [label, setLabel] = useState('');
   const [url, setUrl] = useState('');
   const [error, setError] = useState('');
 
   useEffect(() => {
     if (!open) return;
+    setLabel(linkText);
     setUrl('');
     setError('');
-  }, [open ]);
+  }, [open, linkText]);
 
   if (!open) return null;
 
@@ -27,7 +29,7 @@ export default function LinkDialog({ open, linkText, onClose, onConfirm }: {
       setError(url.trim() ? '这个网址打不开，换一个 http(s) 链接。' : '先填一个网址。');
       return;
     }
-    onConfirm(normalized);
+    onConfirm(label.trim() || normalized, normalized);
   }
 
   return (
@@ -55,8 +57,19 @@ export default function LinkDialog({ open, linkText, onClose, onConfirm }: {
         <div style={{ fontSize: 11, letterSpacing: 2, color: '#7b8492', fontWeight: 800 }}>CREATE LINK</div>
         <h2 id="link-dialog-title" style={{ margin: '8px 0', fontSize: 23 }}>创建链接</h2>
         <p style={{ margin: '0 0 18px', color: '#737b89', fontSize: 13, lineHeight: 1.7 }}>
-          给「{linkText.length > 24 ? `${linkText.slice(0, 24)}…` : linkText}」贴一个网址，点开就跳过去。
+          填要显示的文字和网址，点开就跳过去；不填显示文字就直接显示网址。
         </p>
+        <input
+          aria-label="链接显示文字"
+          value={label}
+          onChange={event => setLabel(event.target.value)}
+          placeholder="要显示的文字"
+          style={{
+            width: '100%', boxSizing: 'border-box', padding: '13px 14px', marginBottom: 9,
+            border: '1px solid #dfe4ec', borderRadius: 13, outline: 'none',
+            background: '#f9fafc', color: '#202632', font: 'inherit', fontSize: 16,
+          }}
+        />
         <input
           aria-label="链接网址"
           autoFocus

@@ -6,6 +6,19 @@ import MusicFullscreenPlayer from './MusicFullscreenPlayer';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { haptic } from '../lib/haptics';
 import { saveIslandLastTrack } from '../lib/islandLastTrack';
+import {
+  MUSIC_RESUME_MAX_ATTEMPTS,
+  MUSIC_RESUME_MIN_SEEK_POSITION,
+  clearMusicResumeSession,
+  readMusicResumeSession,
+  resumeSessionToTrack,
+  saveMusicResumeSession,
+  sessionFromTrack,
+  shouldMountMusicFrameForResume,
+  shouldResumeSession,
+  shouldSaveResumeSession,
+  type MusicResumeSession,
+} from '../lib/musicResumeSession';
 import './MusicIsland.css';
 
 const MUSIC_URL = 'https://music.qianzhi.pw';
@@ -198,14 +211,22 @@ function MusicIsland() {
   const [frameLoaded, setFrameLoaded] = useState(false);
   const [connected, setConnected] = useState(false);
   const [showFallback, setShowFallback] = useState(false);
-  const [track, setTrack] = useState<MusicTrack | null>(null);
+  // A playback session saved before a reload or an iframe reset: the pill
+  // shows it (paused, at the saved position) until live STATE arrives, and
+  // the hidden frame mounts so the bridge can reconnect and resume it.
+  const [initialResumeSession] = useState<MusicResumeSession | null>(() => readMusicResumeSession());
+  const [track, setTrack] = useState<MusicTrack | null>(() => {
+    if (!initialResumeSession) return null;
+    const resumed = resumeSessionToTrack(initialResumeSession);
+    return { ...resumed, canPrevious: true, canNext: true, canToggle: true, volume: null, isMuted: false };
+  });
   const [seekDraft, setSeekDraft] = useState<number | null>(null);
   const [fullPlayerOpen, setFullPlayerOpen] = useState(false);
   const fullscreenPlayerVisible = shouldMirrorEqualizerToRoot(fullPlayerOpen, track !== null, isMusicPage);
   const equalizerRootRef = useRef(false);
   const seekDraftRef = useRef<number | null>(null);
   const lastStateMessageAtRef = useRef(0);
-  const lastTrackRef = useRef<MusicTrack | null>(null);
+  const lastTrackRef = useRef<MusicTrack | null>(track);
   // A song ending sends track:null — or, when the queue runs out, the bridge
   // keeps pushing the finished song as paused at its full length (the station
   // never clears currentSong). Either way the next song, if any, arrives on
@@ -219,7 +240,17 @@ function MusicIsland() {
   // pushing that finished song every 700ms; without remembering it, the next
   // push after the window would bring the pill straight back.
   const endedTrackIdentityRef = useRef<string | null>(null);
-  const shouldMountFrame = openedOnce || isMusicPage;
+  // Resume after the bridge drops and comes back (tab switch, refresh, a
+  // discarded background iframe): the station restores the queue but reports
+  // the song paused at 0:00. Armed on every (re)connect; fires at most a few
+  // times while the track still looks reset, then disarms so it can never
+  // fight a pause the user made themselves.
+  const resumeArmedRef = useRef(false);
+  const resumeAttemptsRef = useRef(0);
+  // Last snapshot written to storage, so STATE pushes (every 700ms) don't rewrite it constantly.
+  const lastSavedResumeRef = useRef<MusicResumeSession | null>(initialResumeSession);
+  const mountForResume = shouldMountMusicFrameForResume(initialResumeSession);
+  const shouldMountFrame = openedOnce || isMusicPage || mountForResume;
   const showMainIsland = shouldShowMainIsland(isMusicPage, activityIds);
 
   useEffect(() => {
@@ -353,6 +384,9 @@ function MusicIsland() {
           endedTrackIdentityRef.current = musicTrackIdentity(lastTrackRef.current);
           lastTrackRef.current = null;
           setTrack(null);
+          // The queue ran out: nothing is left to resume later.
+          clearMusicResumeSession();
+          lastSavedResumeRef.current = null;
         }, 25000);
       };
       if (!message.track || typeof message.track.title !== 'string') {
@@ -402,12 +436,42 @@ function MusicIsland() {
       if (!incoming.isPlaying) {
         restEqualizer();
       }
+      // The station restores the queue after a reload but reports the song
+      // paused at 0:00, and it never resumes on its own. If this STATE is
+      // one of the first after a (re)connect and the song still looks reset,
+      // seek back to where it was and play again — but only while armed:
+      // once the track is live, the arm drops so a pause the user makes
+      // later in this connection is never overridden.
+      if (resumeArmedRef.current) {
+        const session = readMusicResumeSession();
+        const resumable = session !== null && shouldResumeSession(session, nextTrack);
+        if (resumable && !nextTrack.isPlaying && nextTrack.currentTime <= MUSIC_RESUME_MIN_SEEK_POSITION && resumeAttemptsRef.current < MUSIC_RESUME_MAX_ATTEMPTS) {
+          postMusicCommand('seek', session.position);
+          if (session.isPlaying) postMusicCommand('toggle');
+          resumeAttemptsRef.current += 1;
+          if (resumeAttemptsRef.current >= MUSIC_RESUME_MAX_ATTEMPTS) resumeArmedRef.current = false;
+        } else {
+          // Live again, a different song, or nothing worth resuming: disarm.
+          resumeArmedRef.current = false;
+        }
+      }
       // The bridge pushes STATE every 700ms; most pushes change nothing the island shows.
       // Skipping those keeps the whole main-site tree from re-rendering on every push.
       if (!isSameMusicTrack(lastTrackRef.current, nextTrack)) {
         lastTrackRef.current = nextTrack;
         setTrack(nextTrack);
         saveIslandLastTrack({ title: nextTrack.title, artist: nextTrack.artist });
+        // Persist the session for the next reload — but never let the reset
+        // STATE that follows a reload overwrite the position it is about to
+        // restore. While armed, only a live position may be saved.
+        if (!resumeArmedRef.current || nextTrack.currentTime > MUSIC_RESUME_MIN_SEEK_POSITION) {
+          const previous = lastSavedResumeRef.current;
+          if (shouldSaveResumeSession(previous, nextTrack)) {
+            const saved = sessionFromTrack(nextTrack);
+            saveMusicResumeSession(saved);
+            lastSavedResumeRef.current = saved;
+          }
+        }
       }
     };
     window.addEventListener('message', onMessage);
@@ -429,8 +493,49 @@ function MusicIsland() {
     return () => window.clearTimeout(timer);
   }, [shouldMountFrame, connected, frameLoaded]);
 
-  const sendCommand = (command: MusicCommand, value?: number) => {
-    if (!connected) return;
+  // Arm the resume on every (re)connect: the first STATEs after the bridge
+  // comes back are where a reset song is spotted. The watchdog drops
+  // `connected` while the tab is hidden, so a plain tab switch re-arms too —
+  // but the arm only fires on the paused-at-0 signature, never on live audio.
+  useEffect(() => {
+    if (connected) {
+      resumeArmedRef.current = true;
+      resumeAttemptsRef.current = 0;
+    }
+  }, [connected]);
+
+  // The bridge stops pushing STATE while the tab is hidden, so the last save
+  // can lag the real position by a few seconds. Flush the latest known
+  // track when the page goes away — playing tracks only: a paused track was
+  // already saved when it was paused, and a reset position must never
+  // overwrite the session it is about to restore.
+  useEffect(() => {
+    if (!shouldMountFrame) return;
+    const flush = () => {
+      const latest = lastTrackRef.current;
+      if (!latest || !latest.isPlaying) return;
+      const previous = lastSavedResumeRef.current;
+      if (shouldSaveResumeSession(previous, latest)) {
+        const saved = sessionFromTrack(latest);
+        saveMusicResumeSession(saved);
+        lastSavedResumeRef.current = saved;
+      }
+    };
+    const onVisibility = () => {
+      if (document.hidden) flush();
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+    window.addEventListener('pagehide', flush);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('pagehide', flush);
+    };
+  }, [shouldMountFrame]);
+
+  // Post to the station without depending on the connected state: the STATE
+  // handler that resumes playback runs from an effect closure, and the
+  // arrival of STATE is itself proof the bridge is live.
+  const postMusicCommand = (command: MusicCommand, value?: number) => {
     frameRef.current?.contentWindow?.postMessage({
       source: 'qznb-main',
       type: 'COMMAND',
@@ -438,6 +543,11 @@ function MusicIsland() {
       command,
       value,
     }, MUSIC_ORIGIN);
+  };
+
+  const sendCommand = (command: MusicCommand, value?: number) => {
+    if (!connected) return;
+    postMusicCommand(command, value);
   };
 
   const commitSeekDraft = () => {

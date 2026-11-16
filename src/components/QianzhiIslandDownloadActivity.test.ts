@@ -7,6 +7,7 @@ describe('createDownloadIslandActivity', () => {
     expect(activity.id).toBe('qz-download-progress');
     expect(activity.priority).toBe(22);
     expect(activity.label).toBe('正在下载文件');
+    expect(activity.task).toEqual({ status: 'running', detail: '已下载 42%', progress: 42 });
     expect(activity.expanded?.bottom).toBeTruthy();
   });
 
@@ -21,5 +22,7 @@ describe('createDownloadIslandActivity', () => {
     const low = createDownloadIslandActivity({ count: 1, progress: -10, status: 'downloading' });
     expect(high.expanded?.bottom).toBeTruthy();
     expect(low.expanded?.bottom).toBeTruthy();
+    expect(high.task?.progress).toBe(100);
+    expect(low.task?.progress).toBe(0);
   });
 });

@@ -1,47 +1,19 @@
 .qz-island-navigation-compact {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
   color: rgba(255,255,255,.92);
   font-size: 10px;
   font-weight: 650;
   white-space: nowrap;
 }
 
-.qz-island-navigation-compact > i,
-.qz-island-navigation-minimal > i {
-  display: block;
-  width: 9px;
-  height: 9px;
-  border: 1.6px solid rgba(255,255,255,.32);
-  border-top-color: #fff;
-  border-radius: 50%;
-  animation: qz-island-navigation-spin .72s linear infinite;
-}
-
-.qz-island-navigation-trail {
-  display: inline-flex;
-  height: 16px;
-  align-items: center;
-  gap: 3px;
-}
-
-.qz-island-navigation-trail i {
-  display: block;
-  width: 3px;
-  height: 5px;
-  border-radius: 999px;
-  background: rgba(255,255,255,.78);
-  animation: qz-island-navigation-wave .75s ease-in-out infinite alternate;
-}
-.qz-island-navigation-trail i:nth-child(2) { animation-delay: .16s; }
-.qz-island-navigation-trail i:nth-child(3) { animation-delay: .32s; }
-
 .qz-island-navigation-minimal {
-  display: grid;
-  width: 22px;
-  height: 22px;
-  place-items: center;
+  display: inline-flex;
+  align-items: center;
+  color: rgba(255,255,255,.92);
+  font-size: 10px;
+  font-weight: 650;
+  white-space: nowrap;
 }
 
 .qz-island-navigation-copy {
@@ -50,6 +22,7 @@
   flex-direction: column;
   gap: 3px;
 }
+
 .qz-island-navigation-copy strong {
   overflow: hidden;
   color: #fff;
@@ -58,6 +31,7 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
 .qz-island-navigation-copy small {
   color: rgba(255,255,255,.55);
   font-size: 10px;
@@ -77,6 +51,7 @@
   border-radius: 999px;
   background: rgba(255,255,255,.16);
 }
+
 .qz-island-navigation-progress i {
   display: block;
   width: 36%;
@@ -86,17 +61,120 @@
   animation: qz-island-navigation-sweep 1.05s cubic-bezier(.4,0,.2,1) infinite;
 }
 
-@keyframes qz-island-navigation-spin { to { transform: rotate(360deg); } }
-@keyframes qz-island-navigation-wave { to { height: 13px; opacity: .48; } }
+/* A separate glass bead, aligned to the island's right edge without entering its hit area. */
+.qz-island-navigation-indicator {
+  position: fixed;
+  top: calc(var(--qz-island-anchor-top, max(env(safe-area-inset-top, 0px), 18px)) + 12.5px + var(--qz-island-config-y, 0px));
+  left: calc(50% + var(--qz-island-config-x, 0px) + var(--qz-island-config-width, 104px) / 2 + 8px);
+  z-index: 4004;
+  display: grid;
+  width: 20px;
+  height: var(--qz-island-config-height, 31.5px);
+  place-items: center;
+  pointer-events: none;
+}
+
+.qz-island-navigation-indicator::before {
+  position: absolute;
+  inset: 50% auto auto 50%;
+  width: 20px;
+  height: 20px;
+  border: 1px solid rgba(255,255,255,.17);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(8,10,14,.94);
+  box-shadow: 0 3px 12px rgba(0,0,0,.24), inset 0 1px rgba(255,255,255,.08);
+  -webkit-backdrop-filter: blur(18px) saturate(1.35);
+  backdrop-filter: blur(18px) saturate(1.35);
+  content: "";
+}
+
+.qz-island-navigation-dot,
+.qz-island-navigation-indicator > svg {
+  position: relative;
+  grid-area: 1 / 1;
+  transition: opacity 190ms ease, transform 240ms cubic-bezier(.22,1,.36,1);
+}
+
+.qz-island-navigation-dot {
+  display: block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #ffb84d;
+  box-shadow: 0 0 0 3px rgba(255,184,77,.12), 0 0 8px rgba(255,184,77,.55);
+  animation: qz-island-navigation-dot-pulse 1.45s ease-in-out infinite;
+}
+
+.qz-island-navigation-indicator > svg {
+  display: block;
+  width: 14px;
+  height: 14px;
+  overflow: visible;
+  fill: none;
+  stroke: rgba(255,255,255,.98);
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0;
+  transform: scale(.58);
+}
+
+.qz-island-navigation-indicator > svg path {
+  stroke-dasharray: 24;
+  stroke-dashoffset: 24;
+  transition: stroke-dashoffset 250ms ease 35ms;
+}
+
+.qz-island-navigation-indicator[data-state="success"] .qz-island-navigation-dot {
+  animation: none;
+  opacity: 0;
+  transform: scale(.35);
+}
+
+.qz-island-navigation-indicator[data-state="success"] > svg {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.qz-island-navigation-indicator[data-state="success"] > svg path {
+  stroke-dashoffset: 0;
+}
+
+@keyframes qz-island-navigation-dot-pulse {
+  0%, 100% { opacity: .78; transform: scale(.88); }
+  50% { opacity: 1; transform: scale(1.08); }
+}
+
 @keyframes qz-island-navigation-sweep {
   0% { transform: translateX(-115%); }
   100% { transform: translateX(290%); }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .qz-island-navigation-compact > i,
-  .qz-island-navigation-minimal > i,
-  .qz-island-navigation-trail i,
-  .qz-island-navigation-progress i { animation: none; }
+  .qz-island-navigation-progress i,
+  .qz-island-navigation-dot,
+  .qz-island-navigation-indicator > svg,
+  .qz-island-navigation-indicator > svg path {
+    animation: none;
+    transition: none;
+  }
+
   .qz-island-navigation-progress i { width: 38%; }
+  .qz-island-navigation-indicator .qz-island-navigation-dot {
+    opacity: 1;
+    transform: none;
+  }
+
+  .qz-island-navigation-indicator[data-state="success"] .qz-island-navigation-dot { opacity: 0; }
+  .qz-island-navigation-indicator[data-state="success"] > svg { opacity: 1; transform: none; }
+  .qz-island-navigation-indicator[data-state="success"] > svg path { stroke-dashoffset: 0; }
+}
+
+@media (max-width: 360px) {
+  .qz-island-navigation-indicator {
+    left: calc(50% + var(--qz-island-config-x, 0px) + var(--qz-island-config-width, 104px) / 2 + 5px);
+    width: 18px;
+  }
+  .qz-island-navigation-indicator::before { width: 18px; height: 18px; }
 }

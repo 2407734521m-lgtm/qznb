@@ -10,6 +10,7 @@ import lovePhoto from '../assets/discover/card-love.jpg';
 import questionsPhoto from '../assets/discover/card-questions.jpg';
 import musicPhoto from '../assets/discover/card-music.jpg';
 import radioPhoto from '../assets/discover/card-radio.jpg';
+import signaturePhoto from '../assets/discover/card-signature.jpg';
 import fatePhoto from '../assets/discover/card-fate.jpg';
 
 const cards = [
@@ -32,6 +33,17 @@ const cards = [
     title: '空中书写',
     description: '不需要触屏，在空中写下简单的笔画。',
     action: '开始创作',
+  },
+  {
+    to: 'https://qianzhi.pw/signature/',
+    external: true,
+    className: 'discover-card--signature',
+    art: 'signature',
+    photo: signaturePhoto,
+    eyebrow: '创作工具',
+    title: '动态签名',
+    description: '写下两个名字，看它们一笔一笔为彼此写出来，还能导出视频。',
+    action: '开始写名',
   },
   {
     to: '/hot',

@@ -44,6 +44,9 @@
 }
 
 .chatcn-inbox-title {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
   justify-self: center;
   color: #171b20;
   font-size: 19px;
@@ -84,7 +87,9 @@
   top: calc(100% + 9px);
   right: 0;
   width: min(300px, calc(100vw - 28px));
-  overflow: hidden;
+  max-height: min(72vh, 560px);
+  overflow: auto;
+  overscroll-behavior: contain;
   padding: 10px 0;
   border: 1px solid rgba(255,255,255,.88);
   border-radius: 34px;
@@ -104,7 +109,7 @@
 .chatcn-filter-option {
   position: relative;
   width: 100%;
-  min-height: 58px;
+  min-height: 52px;
   display: flex;
   align-items: center;
   gap: 16px;

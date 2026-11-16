@@ -12,6 +12,29 @@ export default function QianzhiIslandProvider({ children }: { children: ReactNod
   const { prefs, setPrefs } = useUserPreferences(session?.user.id ?? null);
   const island = prefs.island;
 
+
+  // Opt-in development-only frame diagnostics. Open the local site with
+  // ?islandProfiler=1 to inspect all patched RAF callbacks; production is unaffected.
+  useEffect(() => {
+    if (!import.meta.env.DEV || typeof window === 'undefined') return;
+    if (!new URLSearchParams(window.location.search).has('islandProfiler')) return;
+
+    let mounted = true;
+    let release: (() => void) | undefined;
+    void import('../lib/island/dev-frame-profiler')
+      .then(({ acquireIslandFrameProfiler }) => acquireIslandFrameProfiler())
+      .then((dispose) => {
+        if (mounted) release = dispose;
+        else dispose();
+      })
+      .catch((error) => console.warn('[QianzhiIsland] frame profiler could not start', error));
+
+    return () => {
+      mounted = false;
+      release?.();
+    };
+  }, []);
+
   // Mirror local-first account preference updates from the settings screen so the
   // capsule geometry and position change immediately without a page reload.
   useEffect(() => {

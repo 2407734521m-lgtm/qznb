@@ -1,531 +1,301 @@
 .discover-page {
-  width: min(100%, 980px);
+  width: min(100%, 1040px);
   margin: 0 auto;
-  /* 底部留白：.wrap 已留 14px + 悬浮 Dock 高度（56px + 16px 间隙）的空间，
-     本页只补 16px 呼吸感；之前 132px 是旧底栏时代的残留，滚到底空出近三分之一屏。 */
-  padding: 8px 0 16px;
+  padding: 10px 0 28px;
   color: var(--qz26-ink, #202b38);
 }
 
 .discover-heading {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 18px;
-  padding: 8px 4px 22px;
-}
-
-.discover-eyebrow,
-.discover-card-eyebrow {
-  display: inline-flex;
-  align-items: center;
-  font-size: 10px;
-  line-height: 1;
-  letter-spacing: .18em;
-  font-weight: 750;
+  padding: 8px 4px 24px;
 }
 
 .discover-eyebrow {
-  color: #89929e;
+  display: inline-block;
+  color: #8c96a4;
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: .2em;
 }
 
 .discover-heading h1 {
-  margin: 9px 0 5px;
-  font-size: clamp(28px, 5vw, 35px);
+  margin: 8px 0 5px;
+  color: #263342;
+  font-size: clamp(29px, 5vw, 36px);
+  font-weight: 760;
   line-height: 1.08;
   letter-spacing: -.055em;
-  font-weight: 760;
 }
 
 .discover-heading p {
   margin: 0;
-  color: #89929e;
+  color: #8792a0;
   font-size: 13px;
-  line-height: 1.6;
+  line-height: 1.65;
 }
 
-.discover-heading-mark {
+.discover-section {
+  margin-top: 25px;
+}
+
+.discover-section:first-of-type {
+  margin-top: 0;
+}
+
+.discover-section-heading {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  margin: 0 4px 13px;
+}
+
+.discover-section-index {
   display: grid;
   place-items: center;
-  width: 38px;
-  height: 38px;
-  margin-bottom: 5px;
-  border: 1px solid rgba(124, 137, 151, .17);
-  border-radius: 13px;
-  color: #8c9aab;
-  background: rgba(255, 255, 255, .58);
-  font-size: 19px;
+  width: 30px;
+  height: 30px;
+  flex: 0 0 auto;
+  border: 1px solid #e7ebf0;
+  border-radius: 10px;
+  color: #8994a2;
+  background: rgba(255, 255, 255, .74);
+  font-size: 10px;
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
 }
 
-.discover-bento {
+.discover-section-heading h2 {
+  margin: 0;
+  color: #344253;
+  font-size: 16px;
+  font-weight: 730;
+  line-height: 1.3;
+  letter-spacing: -.025em;
+}
+
+.discover-section-heading p {
+  margin: 3px 0 0;
+  color: #929ca8;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.discover-grid {
   display: grid;
-  grid-template-columns: repeat(12, minmax(0, 1fr));
-  grid-template-rows: repeat(2, minmax(156px, 1fr));
-  gap: 14px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-auto-rows: 1fr;
+  gap: 13px;
 }
 
 .discover-card {
+  --discover-accent: #718198;
   position: relative;
   min-width: 0;
+  min-height: 250px;
   overflow: hidden;
-  border: 1px solid rgba(104, 119, 137, .13);
-  border-radius: 24px;
-  box-shadow: 0 12px 30px rgba(39, 53, 72, .055), inset 0 1px 0 rgba(255,255,255,.72);
+  border: 1px solid #e9edf2;
+  border-radius: 19px;
+  background: #fff;
+  box-shadow: 0 7px 22px rgba(35, 49, 67, .045);
+  transition: border-color .2s ease, box-shadow .2s ease;
   isolation: isolate;
-  transition: box-shadow .24s ease, border-color .24s ease;
 }
 
 .discover-card:hover {
-  border-color: rgba(104, 119, 137, .22);
-  box-shadow: 0 18px 36px rgba(39, 53, 72, .09), inset 0 1px 0 rgba(255,255,255,.8);
+  border-color: #dce3eb;
+  box-shadow: 0 13px 28px rgba(35, 49, 67, .075);
 }
-
-.discover-card--bloom {
-  grid-column: span 7;
-  grid-row: span 2;
-  min-height: 326px;
-  background:
-    radial-gradient(ellipse at 86% 16%, rgba(255, 255, 255, .88), transparent 42%),
-    linear-gradient(135deg, #fff5ed 0%, #f8e9e5 48%, #f4e8ee 100%);
-  color: #745c59;
-}
-
-.discover-card--ink {
-  grid-column: span 5;
-  min-height: 156px;
-  background:
-    radial-gradient(ellipse at 92% 5%, rgba(255,255,255,.85), transparent 45%),
-    linear-gradient(135deg, #f1f3ff, #e9edf8);
-  color: #626a8b;
-}
-
-.discover-card--hot {
-  grid-column: span 5;
-  min-height: 156px;
-  background:
-    radial-gradient(ellipse at 92% 2%, rgba(255,255,255,.84), transparent 46%),
-    linear-gradient(135deg, #eff7f4, #e9f1ed);
-  color: #5f7d70;
-}
-
-/* 文字保护罩：铺在照片之上、文字之下，左侧 68% 实色、向右渐隐，
-   简介文字始终坐在不透明的卡面底色上，而不是坐在照片上。
-   位置：必须在卡片链接内部（照片 z-1 < 保护罩 z-2 < 文字 z-3），
-   因为 .discover-card-link 本身是 z-index:1 的层叠上下文，罩子放在链接外面会被整块盖住文字。
-   底色：用 --card-bg 变量，值要跟 styles-quiet-editorial-detail.css 里实际生效的扁平底色一致
-   （bloom #f4f6f8、ink/hot #fafbfc、其余 #f8f9fb；那张表把 Explore.css 的渐变底色全盖掉了）。 */
-.discover-card-veil {
-  position: absolute;
-  inset: 0;
-  z-index: 2;
-  background: var(--card-bg, #f8f9fb);
-  -webkit-mask-image: linear-gradient(90deg, #000 0, #000 68%, transparent 88%);
-  mask-image: linear-gradient(90deg, #000 0, #000 68%, transparent 88%);
-  pointer-events: none;
-}
-
-.discover-card--bloom { --card-bg: #f4f6f8; }
-.discover-card--ink,
-.discover-card--hot { --card-bg: #fafbfc; }
-.discover-card--signature { --card-bg: #f8f9fb; }
 
 .discover-card-link {
-  position: relative;
   display: flex;
   width: 100%;
   height: 100%;
-  min-height: inherit;
-  padding: 22px 23px;
+  min-height: 250px;
+  flex-direction: column;
   color: inherit;
   text-decoration: none;
   outline-offset: -4px;
 }
 
-.discover-card-copy {
-  position: relative;
-  /* 文字层：必须高于保护罩（z-2），否则会被罩子盖住。 */
-  z-index: 3;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  /* 文字区收在照片不透明区之前：照片从右侧起 60% 宽、左缘 45% 渐隐，
-     不透明部分约从卡片 67% 处开始，文字最多到 58% 就收住。 */
-  max-width: 58%;
+.discover-card-link:focus-visible {
+  outline: 2px solid #8b9db2;
+  border-radius: 18px;
 }
 
-.discover-card--bloom .discover-card-copy {
-  max-width: 56%;
-  padding-top: 6px;
+.discover-photo {
+  display: block;
+  width: 100%;
+  height: 116px;
+  flex: 0 0 auto;
+  object-fit: cover;
+  background: #f1f3f6;
+  pointer-events: none;
+  user-select: none;
+  transition: transform .55s cubic-bezier(.22, 1, .36, 1);
+}
+
+.discover-photo--bloom { object-position: 50% 28%; }
+.discover-photo--ink { object-position: 80% 50%; }
+.discover-photo--hot { object-position: 50% 32%; }
+.discover-photo--topics { object-position: 76% 50%; }
+.discover-photo--love { object-position: 74% 50%; }
+.discover-photo--questions { object-position: 76% 50%; }
+.discover-photo--music { object-position: 50% 50%; }
+.discover-photo--signature { object-position: 50% 50%; }
+.discover-photo--fate { object-position: 50% 50%; }
+
+.discover-card-copy {
+  display: flex;
+  min-width: 0;
+  min-height: 134px;
+  flex: 1;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 13px 15px 14px;
 }
 
 .discover-card-eyebrow {
-  color: currentColor;
-  opacity: .66;
-  letter-spacing: .14em;
+  color: var(--discover-accent);
+  font-size: 10px;
+  font-weight: 720;
+  line-height: 1.35;
+  letter-spacing: .08em;
 }
 
-.discover-card h2 {
-  margin: 15px 0 7px;
-  color: #293341;
-  font-size: clamp(19px, 2.4vw, 25px);
-  letter-spacing: -.045em;
-  line-height: 1.15;
+.discover-card h3 {
+  margin: 8px 0 5px;
+  color: #2c3948;
+  font-size: 18px;
+  font-weight: 740;
+  line-height: 1.2;
+  letter-spacing: -.035em;
 }
 
 .discover-card p {
+  display: -webkit-box;
+  min-height: 3.2em;
   margin: 0;
-  /* 简介字色加深：之前 .68 透明度压在照片上淡到看不清。 */
-  color: rgba(48, 59, 72, .8);
-  font-size: 12px;
-  line-height: 1.75;
+  overflow: hidden;
+  color: #778392;
+  font-size: 11.5px;
+  line-height: 1.6;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
 }
 
 .discover-card-action {
   display: inline-flex;
   align-items: center;
-  gap: 9px;
+  gap: 8px;
   margin-top: auto;
-  padding-top: 17px;
-  color: #3f4b5a;
-  font-size: 12px;
-  font-weight: 700;
+  padding-top: 12px;
+  color: var(--discover-accent);
+  font-size: 11px;
+  font-weight: 720;
+  line-height: 1.3;
+  white-space: nowrap;
 }
 
 .discover-card-action span {
   display: inline-grid;
+  width: 21px;
+  height: 21px;
+  flex: 0 0 auto;
   place-items: center;
-  width: 23px;
-  height: 23px;
-  border: 1px solid rgba(70, 83, 98, .16);
+  border: 1px solid color-mix(in srgb, var(--discover-accent) 25%, white);
   border-radius: 50%;
+  font-size: 12px;
   transition: transform .2s ease, background .2s ease;
 }
 
 .discover-card:hover .discover-card-action span {
   transform: translate(2px, -2px);
-  background: rgba(255,255,255,.55);
+  background: #f7f9fb;
 }
 
-/* 卡片照片：贴卡片右侧满高，左缘渐隐融进卡面，文字区不受影响。
-   渐隐带加宽到 45%，照片不透明部分只留在卡片右三分之一内，
-   文字再也不会压在看得见的照片上。 */
-.discover-photo {
-  position: absolute;
-  z-index: 1;
-  top: 0;
-  right: 0;
-  height: 100%;
-  object-fit: cover;
-  pointer-events: none;
-  user-select: none;
-  -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 45%);
-  mask-image: linear-gradient(90deg, transparent 0, #000 45%);
-}
+.discover-card--bloom { --discover-accent: #9a756d; }
+.discover-card--ink { --discover-accent: #747da1; }
+.discover-card--hot { --discover-accent: #648778; }
+.discover-card--topics { --discover-accent: #73869d; }
+.discover-card--love { --discover-accent: #bd7b91; }
+.discover-card--questions { --discover-accent: #647d9d; }
+.discover-card--signature { --discover-accent: #8875a5; }
+.discover-card--music { --discover-accent: #63877f; }
+.discover-card--fate { --discover-accent: #7b8294; }
 
-.discover-photo--bloom { width: 60%; object-position: 50% 28%; }
-.discover-photo--ink { width: 64%; object-position: 80% 50%; }
-.discover-photo--hot { width: 64%; object-position: 50% 32%; }
-.discover-photo--love { width: 47%; object-position: 74% 50%; }
-.discover-photo--questions { width: 47%; object-position: 76% 50%; }
-.discover-photo--music { width: 47%; object-position: 50% 50%; }
-.discover-photo--radio { width: 47%; object-position: 50% 50%; }
-.discover-photo--signature { width: 47%; object-position: 50% 50%; }
-.discover-photo--fate { width: 47%; object-position: 50% 50%; }
-
-@media (min-width: 760px) {
-  .discover-page {
-    padding-top: 10px;
-  }
-
-  .discover-heading {
-    padding-bottom: 24px;
-  }
-
-  .discover-card--bloom .discover-card-link {
-    padding: 28px 30px;
-  }
-}
-
-@media (max-width: 600px) {
-  .discover-page {
-    padding: 2px 0 16px;
-  }
-
-  .discover-heading {
-    padding: 8px 3px 17px;
-  }
-
-  .discover-bento {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    grid-template-rows: 218px 176px;
-    gap: 10px;
-  }
-
-  .discover-card {
-    border-radius: 20px;
-  }
-
-  .discover-card--bloom {
-    grid-column: 1 / -1;
-    grid-row: auto;
-    min-height: 218px;
-  }
-
-  .discover-card--ink,
-  .discover-card--hot {
-    grid-column: span 1;
-    min-height: 176px;
-  }
-
-  .discover-card-link {
-    padding: 15px;
-  }
-
-  /* 手机窄屏：照片渐隐带加宽到 55%，不透明部分只剩卡片右四分之一；
-     文字区同步收窄，收在不透明区之前，不再压图。 */
-  .discover-photo {
-    -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 55%);
-    mask-image: linear-gradient(90deg, transparent 0, #000 55%);
-  }
-
-  .discover-card-copy,
-  .discover-card--bloom .discover-card-copy {
-    max-width: 68%;
-    padding-top: 2px;
-  }
-
-  .discover-card--ink .discover-card-copy,
-  .discover-card--hot .discover-card-copy {
-    max-width: 72%;
-  }
-
-  .discover-card h2 {
-    margin-top: 12px;
-    font-size: 19px;
-  }
-
-  .discover-card p {
-    font-size: 11px;
-    line-height: 1.6;
-  }
-
-  .discover-card--ink p,
-  .discover-card--hot p {
-    max-width: 96%;
-  }
-
-  .discover-card-action {
-    padding-top: 12px;
-    gap: 6px;
-    font-size: 11px;
-  }
-
-  .discover-card-action span {
-    width: 20px;
-    height: 20px;
-  }
-
-  .discover-photo--bloom {
-    width: 56%;
-  }
-
-  .discover-photo--ink,
-  .discover-photo--hot {
-    width: 58%;
-    opacity: .38;
-    -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 60%);
-    mask-image: linear-gradient(90deg, transparent 0, #000 60%);
-  }
-
-  .discover-photo--love,
-  .discover-photo--questions,
-  .discover-photo--music,
-  .discover-photo--radio,
-  .discover-photo--signature,
-  .discover-photo--fate {
-    width: 48%;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .discover-card,
-  .discover-card-action span {
-    transition: none;
-  }
-}
-
-
-/* 命运笔记：单独的暗色趣味卡片，不改变发现页其余卡片的配色。 */
-.discover-card--fate {
-  grid-column: 1 / -1;
-  min-height: 166px;
-  background:
-    radial-gradient(ellipse at 86% 8%, rgba(255,255,255,.12), transparent 42%),
-    linear-gradient(132deg, #17191f 0%, #282d38 58%, #343440 100%);
-  color: #d7dbe4;
-  border-color: rgba(31, 35, 45, .12);
-}
-
-.discover-card--fate h2 {
-  color: #f3f5f9;
-}
-
-.discover-card--fate p {
-  color: rgba(233, 237, 245, .82);
-}
-
-.discover-card--fate .discover-card-action {
-  color: #f1f3f7;
-}
-
-.discover-card--fate .discover-card-action span {
-  border-color: rgba(255,255,255,.25);
-}
-
-
-@media (max-width: 600px) {
-  .discover-card--fate {
-    grid-column: 1 / -1;
-    min-height: 148px;
-  }
-
-  .discover-card--fate .discover-card-copy {
-    max-width: 60%;
-  }
-
-}
-
-/* 表白墙入口：克制的暖粉色卡片，与命运笔记并列，不改变其他发现卡片。 */
-.discover-card--love {
-  grid-column: 1 / -1;
-  min-height: 166px;
-  background:
-    radial-gradient(ellipse at 86% 8%, rgba(255,255,255,.84), transparent 42%),
-    linear-gradient(132deg, #fff3f4 0%, #f9e7eb 58%, #f5edf3 100%);
-  color: #9a6472;
-  border-color: rgba(190, 123, 143, .16);
-}
-
-.discover-card--love h2 {
-  color: #44333a;
-}
-
-.discover-card--love p {
-  color: rgba(68, 51, 58, .8);
-}
-
-.discover-card--love .discover-card-action {
-  color: #754653;
-}
-
-.discover-card--love .discover-card-action span {
-  border-color: rgba(117, 70, 83, .2);
-}
-
-
-@media (max-width: 600px) {
-  .discover-card--love {
-    grid-column: 1 / -1;
-    min-height: 148px;
-  }
-
-  .discover-card--love .discover-card-copy {
-    max-width: 60%;
-  }
-
-}
-
-/* Editorial motion accents inspired by React Bits / Hover.dev:
-   artwork follows the card without animating layout or expensive filters. */
-.discover-card .discover-photo {
-  transform-origin: 50% 50%;
-  transition: transform 620ms cubic-bezier(.22, 1, .36, 1);
-}
 @media (hover: hover) and (pointer: fine) {
   .discover-card:hover .discover-photo,
   .discover-card:focus-within .discover-photo {
     transform: scale(1.045);
   }
 }
-@media (prefers-reduced-motion: reduce) {
-  .discover-card .discover-photo {
-    transition: none !important;
-    transform: none !important;
+
+@media (max-width: 760px) {
+  .discover-page {
+    padding-top: 4px;
+  }
+
+  .discover-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .discover-card,
+  .discover-card-link {
+    min-height: 238px;
+  }
+
+  .discover-photo {
+    height: 98px;
+  }
+
+  .discover-card-copy {
+    min-height: 140px;
+    padding: 12px 12px 13px;
+  }
+
+  .discover-card h3 {
+    margin-top: 7px;
+    font-size: 16px;
+  }
+
+  .discover-card p {
+    font-size: 10.5px;
+    line-height: 1.55;
+  }
+
+  .discover-card-action {
+    gap: 6px;
+    padding-top: 10px;
+    font-size: 10.5px;
   }
 }
 
+@media (max-width: 360px) {
+  .discover-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
 
-/* 匿名提问入口：白底轻卡片，沿用发现页的克制层次。 */
-.discover-card--questions {
-  grid-column: 1 / -1;
-  min-height: 150px;
-  background: linear-gradient(132deg, #f7f9fc 0%, #eef2f7 58%, #f7f8fa 100%);
-  color: #34465d;
-  border-color: rgba(91, 112, 139, .12);
-}
-.discover-card--questions h2 { color: #26384d; }
-.discover-card--questions p { color: rgba(38, 56, 77, .8); }
-.discover-card--questions .discover-card-action { color: #38536f; }
-.discover-card--questions .discover-card-action span { border-color: rgba(56, 83, 111, .22); }
-@media (max-width: 600px) {
-  .discover-card--questions { min-height: 142px; }
-  .discover-card--questions .discover-card-copy { max-width: 60%; }
-}
+  .discover-card,
+  .discover-card-link {
+    min-height: 220px;
+  }
 
+  .discover-photo {
+    height: 106px;
+  }
 
-/* Folia 独立音乐空间入口 */
-.discover-card--music {
-  grid-column: 1 / -1;
-  min-height: 158px;
-  background:
-    radial-gradient(ellipse at 84% 12%, rgba(255,255,255,.9), transparent 42%),
-    linear-gradient(128deg, #f0f2f7 0%, #e8edf3 52%, #e9f1ed 100%);
-  color: #586b70;
-  border-color: rgba(106, 130, 137, .14);
-}
-.discover-card--music h2 { color: #263b40; }
-.discover-card--music p { color: rgba(38, 59, 64, .82); }
-.discover-card--music .discover-card-action { color: #31565a; }
-.discover-card--music .discover-card-action span { border-color: rgba(49, 86, 90, .2); }
-@media (max-width: 600px) {
-  .discover-card--music { min-height: 148px; }
-  .discover-card--music .discover-card-copy { max-width: 60%; }
+  .discover-card-copy {
+    min-height: 114px;
+    padding: 12px 14px 13px;
+  }
 }
 
-/* Mineradio 3D 电台入口：深色沉浸卡，金与青的粒子光呼应照片，区别于命运笔记的灰调。 */
-.discover-card--radio {
-  grid-column: 1 / -1;
-  min-height: 158px;
-  background:
-    radial-gradient(ellipse at 84% 12%, rgba(217, 179, 108, .15), transparent 42%),
-    linear-gradient(132deg, #10151d 0%, #18222d 55%, #1b2a30 100%);
-  color: #c8b490;
-  border-color: rgba(24, 30, 40, .14);
-}
-.discover-card--radio h2 { color: #f6efdf; }
-.discover-card--radio p { color: rgba(240, 234, 220, .82); }
-.discover-card--radio .discover-card-action { color: #e7c88a; }
-.discover-card--radio .discover-card-action span { border-color: rgba(231, 200, 138, .3); }
-@media (max-width: 600px) {
-  .discover-card--radio { min-height: 148px; }
-  .discover-card--radio .discover-card-copy { max-width: 60%; }
-}
-
-/* 动态签名入口：深紫夜空卡，粉金手写字呼应照片。 */
-.discover-card--signature {
-  grid-column: 1 / -1;
-  min-height: 158px;
-  background:
-    radial-gradient(ellipse at 84% 12%, rgba(255, 126, 182, .16), transparent 42%),
-    linear-gradient(132deg, #160a2e 0%, #1e1038 55%, #241640 100%);
-  color: #d9c8f5;
-  border-color: rgba(38, 22, 64, .14);
-}
-.discover-card--signature h2 { color: #f6eefc; }
-.discover-card--signature p { color: rgba(240, 232, 250, .82); }
-.discover-card--signature .discover-card-action { color: #f5c86b; }
-.discover-card--signature .discover-card-action span { border-color: rgba(245, 200, 107, .3); }
-@media (max-width: 600px) {
-  .discover-card--signature { min-height: 148px; }
-  .discover-card--signature .discover-card-copy { max-width: 60%; }
+@media (prefers-reduced-motion: reduce) {
+  .discover-card,
+  .discover-photo,
+  .discover-card-action span {
+    transition: none !important;
+    transform: none !important;
+  }
 }

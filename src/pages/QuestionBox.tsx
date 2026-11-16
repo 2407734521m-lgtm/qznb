@@ -8,13 +8,23 @@ import { alertDialog, confirmDialog, promptDialog } from '../lib/dialog';
 import { RowSkeleton, useDelayedLoading } from '../components/fx/Skeleton';
 import './QuestionBox.css';
 
-type MemberResult = { id: string; username: string; display_name: string | null; signature?: string | null; avatar_path?: string | null };
+type MemberResult = { id: string; username: string; display_name: string | null };
+type QuestionRpcError = { message: string; code?: string };
 type InboxQuestion = { id: string; question: string; answer: string | null; status: string; is_public: boolean; created_at: string; answered_at: string | null };
 type SentQuestion = { id: string; question: string; answer: string | null; status: string; created_at: string; answered_at: string | null; recipient_name: string };
 type PublicAnswer = { id: string; question: string; answer: string; answered_at: string };
 
 async function callQuestionRpc<T>(name: string, args?: Record<string, unknown>) {
-  return (supabase as any).rpc(name, args) as Promise<{ data: T | null; error: { message: string } | null }>;
+  return (supabase as any).rpc(name, args) as Promise<{ data: T | null; error: QuestionRpcError | null }>;
+}
+function questionErrorMessage(error: QuestionRpcError, fallback: string) {
+  const detail = error.message.toLowerCase();
+  if (detail.includes("rate limit")) return "发送太频繁，请稍后再试（10 分钟最多 3 条，24 小时最多 20 条）。";
+  if (detail.includes("unavailable") || detail.includes("blocked")) return "该成员当前无法接收你的匿名提问。";
+  if (detail.includes("authentication required") || detail.includes("joined member")) return "请登录已加入的成员账号后再使用匿名提问。";
+  if (detail.includes("already answered") || detail.includes("question not found")) return "这条提问已被处理或不存在，请刷新页面。";
+  if (detail.includes("invalid recipient") || detail.includes("invalid question")) return "提问内容或目标成员无效，请检查后重试。";
+  return `${fallback}（错误码：${error.code ?? "UNKNOWN"}）`;
 }
 function formatDate(value: string) {
   return new Date(value).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
@@ -60,13 +70,16 @@ export default function QuestionBox() {
   async function loadTarget() {
     setLoading(true);
     setTarget(null);
+    setMessage('');
     const [memberResult, answers] = await Promise.all([
-      supabase.from('profiles').select('id, username, display_name').eq('id', targetId).maybeSingle(),
+      callQuestionRpc<MemberResult[]>('anonymous_question_profile', { p_profile_id: targetId }),
       callQuestionRpc<PublicAnswer[]>('public_anonymous_question_answers', { p_profile_id: targetId }),
     ]);
-    if (memberResult.error || !memberResult.data) setMessage('暂时无法打开这个成员的提问主页。');
-    else setTarget(memberResult.data as MemberResult);
-    if (answers.error) setMessage('公开回答暂时无法加载。');
+    const member = memberResult.data?.[0] ?? null;
+    if (memberResult.error) setMessage(questionErrorMessage(memberResult.error, '成员资料暂时无法加载'));
+    else if (!member) setMessage('暂时无法打开这个成员的提问主页，可能是成员不存在或尚未加入。');
+    else setTarget(member);
+    if (answers.error) setMessage(questionErrorMessage(answers.error, '公开回答暂时无法加载'));
     else setPublicAnswers(answers.data ?? []);
     setLoading(false);
   }
@@ -98,7 +111,7 @@ export default function QuestionBox() {
       p_content: content,
     });
     setBusy(false);
-    if (error) { setMessage('发送失败，请稍后再试。'); return; }
+    if (error) { setMessage(questionErrorMessage(error, '匿名发送失败')); return; }
     setQuestionText('');
     setMessage('提问已匿名送达。对方不会看到你的账号信息。');
   }
@@ -113,7 +126,7 @@ export default function QuestionBox() {
       p_publish: publishAnswers[question.id] === true,
     });
     setBusy(false);
-    if (error) { setMessage('回答失败，请稍后再试。'); return; }
+    if (error) { setMessage(questionErrorMessage(error, '回答失败')); return; }
     setDraftAnswers(current => ({ ...current, [question.id]: '' }));
     await loadOwn();
     setMessage(publishAnswers[question.id] ? '回答已保存并公开。' : '回答已保存，仅提问者可见。');
@@ -122,7 +135,7 @@ export default function QuestionBox() {
   async function removeQuestion(questionId: string) {
     if (!(await confirmDialog('确定从当前列表移除这条提问吗？'))) return;
     const { error } = await callQuestionRpc<boolean>('delete_anonymous_question', { p_question_id: questionId });
-    if (error) { setMessage('操作失败，请稍后再试。'); return; }
+    if (error) { setMessage(questionErrorMessage(error, '操作失败')); return; }
     await loadOwn();
   }
 

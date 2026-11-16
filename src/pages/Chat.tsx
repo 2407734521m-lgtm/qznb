@@ -9,7 +9,6 @@ import SmoothProgress from '../components/fx/SmoothProgress';
 import { useDelayedLoading } from '../components/fx/Skeleton';
 import BlurImg from '../components/fx/BlurImg';
 import { useCall } from '../lib/call';
-import { useGroupCall } from '../lib/groupCall';
 import { goBackOr } from '../components/BackButton';
 import { confirmDialog } from '../lib/dialog';
 import { toast } from 'sonner';
@@ -213,27 +212,16 @@ export default function Chat() {
   const chunksRef = useRef<Blob[]>([]);
   const recordTimerRef = useRef<number | null>(null);
   const imageRef = useRef<HTMLInputElement>(null);
+  const cameraRef = useRef<HTMLInputElement>(null);
+  const gifRef = useRef<HTMLInputElement>(null);
   const { startCall, busy: callBusy } = useCall();
-  const {
-    joinGroupCall,
-    watchConversation: watchGroupCallConversation,
-    activeConversationId: activeGroupVoiceConversationId,
-    currentConversationId: currentGroupVoiceConversationId,
-    activeParticipantCount: groupVoiceParticipantCount,
-    busy: groupCallBusy,
-  } = useGroupCall();
-
-  useEffect(() => {
-    const conversationId = isGroup && cid && Number.isSafeInteger(Number(cid)) ? Number(cid) : null;
-    watchGroupCallConversation(conversationId);
-    return () => watchGroupCallConversation(null);
-  }, [cid, isGroup, watchGroupCallConversation]);
   const fileRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState('');
   const [showDetails, setShowDetails] = useState(false);
   const [showProfileMore, setShowProfileMore] = useState(false);
   const sharedMediaRef = useRef<HTMLElement | null>(null);
   const [showStickers, setShowStickers] = useState(false);
+  const [showStickerEmojis, setShowStickerEmojis] = useState(false);
   const [chatBackground, setChatBackground] = useState('default');
   const [backgroundSaving, setBackgroundSaving] = useState(false);
   const [otherTyping, setOtherTyping] = useState(false);
@@ -685,6 +673,7 @@ export default function Chat() {
     } finally {
       setUploading(false); setUpPct(null);
       if (imageRef.current) imageRef.current.value = '';
+      if (cameraRef.current) cameraRef.current.value = '';
     }
   }
 
@@ -1012,38 +1001,18 @@ export default function Chat() {
           <span aria-hidden="true">‹</span>
         </button>
         <button type="button" className="im-contact-stack" aria-label="查看会话资料" onClick={() => setShowDetails(true)}>
-          <span className="im-avatar im-avatar-open" role="button" aria-label={isGroup ? '群聊资料' : '查看' + name + '的主页'}
-            onClick={event => { event.stopPropagation(); if (peer && !isGroup) nav('/members/' + peer.id); }}>
+          <span className="im-avatar">
             {!isGroup && peerAvatarUrl ? <img src={peerAvatarUrl} alt="" /> : (isGroup ? '群' : (name.trim().charAt(0).toUpperCase() || '友'))}
           </span>
           <span className="im-contact-name-pill">
             <span className="im-title">{name}</span>
-            <span className="im-contact-chevron" aria-hidden="true">›</span>
           </span>
           {otherTyping && <span className="im-sub">{isGroup ? '有人正在输入…' : '正在输入…'}</span>}
         </button>
-        {!isGroup && <button type="button" className="im-icon im-call-button" aria-label="语音通话" title="语音通话" disabled={!peer || callBusy}
-          onClick={() => { if (peer && cid) startCall({ id: peer.id, name }, Number(cid)); }}>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6.62 10.79a15.05 15.05 0 0 0 6.59 6.59l2.2-2.2a1 1 0 0 1 1.02-.24 11.4 11.4 0 0 0 3.57.57 1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A17 17 0 0 1 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1 11.4 11.4 0 0 0 .57 3.57 1 1 0 0 1-.25 1.02z"/></svg>
-        </button>}
-        {isGroup && cid && <button
-          type="button"
-          className="im-icon im-call-button qz-group-call-trigger"
-          aria-label={currentGroupVoiceConversationId === Number(cid) ? '返回群语音' : activeGroupVoiceConversationId === Number(cid) ? '加入群语音' : '发起群语音'}
-          title={currentGroupVoiceConversationId === Number(cid) ? '返回群语音' : activeGroupVoiceConversationId === Number(cid) ? '加入群语音' : '发起群语音'}
-          disabled={callBusy || (groupCallBusy && currentGroupVoiceConversationId !== Number(cid))}
-          onClick={() => { void joinGroupCall(Number(cid), name); }}
-        >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">
-            <path d="M4 10v4M8 6v12M12 3v18M16 7v10M20 10v4" />
+        <button type="button" className="im-icon im-info-button" aria-label="更多聊天选项" title="更多聊天选项" onClick={() => setShowDetails(true)}>
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor" aria-hidden="true">
+            <circle cx="5" cy="12" r="1.8" /><circle cx="12" cy="12" r="1.8" /><circle cx="19" cy="12" r="1.8" />
           </svg>
-          {activeGroupVoiceConversationId === Number(cid) && <>
-            <i className="qz-group-call-live-dot" aria-hidden="true" />
-            <span className="qz-group-call-count" aria-hidden="true">{groupVoiceParticipantCount}</span>
-          </>}
-        </button>}
-        <button className="im-icon im-info-button" aria-label="聊天详情" onClick={() => setShowDetails(true)}>
-          <span aria-hidden="true">ⓘ</span>
         </button>
       </header>
       {showDetails && <div className="im-profile-overlay" role="presentation" onClick={() => setShowDetails(false)}>
@@ -1479,19 +1448,45 @@ export default function Chat() {
           key="chat-attachment-tray"
           className="im-sticker-tray"
           role="group"
-          aria-label="附件与贴纸"
+          aria-label="附件菜单"
           initial={reduceMotion ? false : { opacity: 0, y: 10, scale: 0.985 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 7, scale: 0.99 }}
           transition={reduceMotion ? { duration: 0.01 } : SPRING_SNAPPY}
         >
-          <button type="button" className="im-attach-choice" onClick={() => imageRef.current?.click()}>
-            <span aria-hidden="true">▧</span><span>照片</span>
-          </button>
-          <button type="button" className="im-attach-choice" onClick={() => fileRef.current?.click()}>
-            <span aria-hidden="true">▤</span><span>文件</span>
-          </button>
-          {['🥹','😂','❤️','😍','🐱','🐻','✨','🎉','👍','😭','🫶','🌸','💖','😎'].map(sticker => <button key={sticker} type="button" className="im-sticker-choice" aria-label={'发送贴纸 ' + sticker} onClick={() => sendSticker(sticker)}>{sticker}</button>)}
+          <div className="im-tray-tabs" role="tablist" aria-label="选择附件类型">
+            <button type="button" role="tab" aria-selected={!showStickerEmojis} className={!showStickerEmojis ? 'on' : ''} onClick={() => setShowStickerEmojis(false)}>附件</button>
+            <button type="button" role="tab" aria-selected={showStickerEmojis} className={showStickerEmojis ? 'on' : ''} onClick={() => setShowStickerEmojis(true)}>贴纸</button>
+          </div>
+          {!showStickerEmojis ? (
+            <div className="im-attach-list">
+              <button type="button" className="im-attach-choice" onClick={() => { setShowStickers(false); imageRef.current?.click(); }}>
+                <span className="im-attach-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="2"/><path d="m4 17 5-4 3 2 3-4 5 5"/></svg>
+                </span><span>照片</span>
+              </button>
+              <button type="button" className="im-attach-choice" onClick={() => { setShowStickers(false); cameraRef.current?.click(); }}>
+                <span className="im-attach-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M4 7h3l2-2h6l2 2h3a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2Z"/><circle cx="12" cy="13" r="4"/></svg>
+                </span><span>相机</span>
+              </button>
+              <button type="button" className="im-attach-choice" onClick={() => { setShowStickers(false); fileRef.current?.click(); }}>
+                <span className="im-attach-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M6 3h8l5 5v12a1 1 0 0 1-1 1H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z"/><path d="M14 3v6h6"/></svg>
+                </span><span>文件</span>
+              </button>
+              <button type="button" className="im-attach-choice" onClick={() => { setShowStickers(false); gifRef.current?.click(); }}>
+                <span className="im-attach-icon im-gif-icon" aria-hidden="true">GIF</span><span>GIF</span>
+              </button>
+            </div>
+          ) : (
+            <div className="im-sticker-grid">
+              {['🥹','😂','❤️','😍','🐱','🐻','✨','🎉','👍','😭','🫶','🌸','💖','😎'].map(sticker => (
+                <button key={sticker} type="button" className="im-sticker-choice" aria-label={'发送贴纸 ' + sticker}
+                  onClick={() => { setShowStickers(false); setShowStickerEmojis(false); void sendSticker(sticker); }}>{sticker}</button>
+              ))}
+            </div>
+          )}
         </motion.div>}
       </AnimatePresence>
       {replyTarget && <div className="im-reply-banner">
@@ -1501,12 +1496,14 @@ export default function Chat() {
       </div>}
       {uploading && upPct !== null && <div style={{ padding: '8px 14px 0' }}><SmoothProgress value={upPct} label={`正在发送媒体 ${upPct}%`} /></div>}
       <form className="im-composer" onSubmit={e => { e.preventDefault(); send(); }}>
-        <input ref={imageRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif,image/heic" hidden onChange={e => sendImage(e.target.files?.[0])} />
+        <input ref={imageRef} type="file" accept="image/jpeg,image/png,image/webp,image/heic" hidden onChange={e => sendImage(e.target.files?.[0])} />
+        <input ref={cameraRef} type="file" accept="image/*" capture="environment" hidden onChange={e => sendImage(e.target.files?.[0])} />
         <input ref={fileRef} type="file" hidden onChange={e => sendFile(e.target.files?.[0])} />
-        <button type="button" className="im-plus" aria-label="打开附件菜单" title="打开附件菜单" disabled={uploading || recording} onClick={() => setShowStickers(v => !v)}>{showStickers ? '×' : '＋'}</button>
+        <input ref={gifRef} type="file" accept="image/gif" hidden onChange={e => sendFile(e.target.files?.[0])} />
+        <button type="button" className="im-plus" aria-label="打开附件菜单" title="打开附件菜单" disabled={uploading || recording} onClick={() => { setShowStickers(v => !v); setShowStickerEmojis(false); }}>{showStickers ? '×' : '＋'}</button>
         <div className="im-input-wrap">
           <input ref={inputRef} className="im-input" value={text} onChange={e => { setText(e.target.value); notifyTyping(e.target.value); }}
-            placeholder={recording ? '录音中 ' + String(Math.floor(recordSeconds / 60)).padStart(2, '0') + ':' + String(recordSeconds % 60).padStart(2, '0') + ' · 点红色按钮结束' : uploading ? '正在发送媒体…' : 'iMessage'} maxLength={2000} autoComplete="off" aria-label="输入消息" />
+            placeholder={recording ? '录音中 ' + String(Math.floor(recordSeconds / 60)).padStart(2, '0') + ':' + String(recordSeconds % 60).padStart(2, '0') + ' · 点红色按钮结束' : uploading ? '正在发送媒体…' : '私信'} maxLength={2000} autoComplete="off" aria-label="输入消息" />
           {!text.trim() && <button type="button" className={'im-mic' + (recording ? ' recording' : '')} aria-label={recording ? '结束录音并发送' : '录制语音'} title={recording ? '结束录音并发送' : '录制语音'} disabled={uploading} onClick={recording ? stopRecording : startRecording}>{recording ? '■' : <svg width="15" height="18" viewBox="0 0 18 22" fill="none" aria-hidden="true"><rect x="6" y="1" width="6" height="13" rx="3" stroke="currentColor" strokeWidth="1.7" /><path d="M3 10.5v1a6 6 0 0 0 12 0v-1M9 17.5V21M6 21h6" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" /></svg>}</button>}
           {text.trim() && <button type="submit" className="im-send" aria-label="发送消息" disabled={uploading || recording}>↑</button>}
         </div>

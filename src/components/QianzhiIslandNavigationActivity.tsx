@@ -61,9 +61,10 @@ export function createNavigationIslandActivity(label: string, status: Navigation
           <small>{completed ? '页面已就绪' : '正在加载页面内容'}</small>
         </span>
       ),
-      ...(completed ? {} : {
-        bottom: <span className="qz-island-navigation-progress" role="progressbar" aria-label="页面加载中"><i /></span>,
-      }),
+      // Island updates merge expanded slots; explicitly clear the old progress bar on success.
+      bottom: completed ? null : (
+        <span className="qz-island-navigation-progress" role="progressbar" aria-label="页面加载中"><i /></span>
+      ),
     },
   };
 }

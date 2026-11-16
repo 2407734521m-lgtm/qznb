@@ -1,0 +1,57 @@
+/* 左滑删除（微交互线 D）：只给 SwipeToDelete 用，不改全局 token。
+   纸面冷白底色 + 印泥红 #b0404f 删除底色，与全站定稿一致。
+   表面 touch-action: pan-y：纵向滑动仍归页面滚动，只有横向才接管。 */
+.swipe-delete {
+  position: relative;
+}
+
+.swipe-delete-underlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 20px;
+  background: #b0404f;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 700;
+  border-radius: 0 var(--r, 20px) var(--r, 20px) 0;
+  opacity: 0;
+  transition: opacity 120ms ease;
+  pointer-events: none;
+}
+
+.swipe-delete-underlay.is-visible {
+  opacity: 1;
+}
+
+.swipe-delete-surface {
+  position: relative;
+  z-index: 1;
+  touch-action: pan-y;
+  will-change: transform;
+  cursor: grab;
+  transition:
+    transform 180ms ease-out,
+    opacity 180ms ease-out;
+}
+
+.swipe-delete-surface.is-dragging {
+  transition: none;
+  cursor: grabbing;
+}
+
+.swipe-delete-surface.is-exiting {
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .swipe-delete-surface {
+    transition: none;
+  }
+
+  .swipe-delete-underlay {
+    transition: none;
+  }
+}

@@ -1,0 +1,56 @@
+/* 下拉刷新（PullToRefresh）：指示条 + 内容跟随位移。 */
+.ptr {
+  position: relative;
+}
+
+.ptr-indicator {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.ptr-icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 34px;
+  height: 34px;
+  margin-top: 10px;
+  border-radius: 50%;
+  border: 1px solid #e5e8ea;
+  background: #fff;
+  color: #1f2a3a;
+  font-size: 19px;
+  line-height: 1;
+  box-shadow: 0 4px 14px rgba(31, 42, 58, 0.1);
+  will-change: transform;
+}
+
+.ptr-icon.is-spinning {
+  animation: ptr-spin 0.9s linear infinite;
+}
+
+@keyframes ptr-spin {
+  to { transform: rotate(360deg); }
+}
+
+.ptr-content {
+  will-change: transform;
+}
+
+/* 仅供读屏：下拉/刷新状态播报，视觉上隐藏。 */
+.ptr-live {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ptr-icon.is-spinning {
+    animation: none;
+  }
+}

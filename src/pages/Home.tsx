@@ -1,10 +1,12 @@
 import { BRAND_NAME, BRAND_SUBTITLE, resolveBrandTitle, resolveBrandSubtitle } from '../lib/brand';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, useReducedMotion } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import { timeAgo } from '../lib/time';
 import VisitCounter from '../components/VisitCounter';
+import LargeTitleBar from '../components/LargeTitleBar';
+import PullToRefresh from '../components/PullToRefresh';
 import Marquee from '../components/fx/Marquee';
 import BorderBeam from '../components/fx/BorderBeam';
 import { InlineLoading, useDelayedLoading } from '../components/fx/Skeleton';
@@ -85,6 +87,22 @@ export default function Home() {
   const showWallLoading = useDelayedLoading(loading);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
+  // 下拉刷新要等到本次重拉真正结束才回弹：loading 翻 true 再翻 false 视为完成；
+  // 迟迟没开始（1.5 秒）或 10 秒未完都放行，避免指示条卡住。
+  const loadingRef = useRef(loading);
+  useEffect(() => { loadingRef.current = loading; }, [loading]);
+  const handleHomeRefresh = useCallback(async () => {
+    homeCache = null;
+    setReloadKey(value => value + 1);
+    const startedAt = Date.now();
+    let sawLoading = false;
+    while (Date.now() - startedAt < 10000) {
+      if (loadingRef.current) sawLoading = true;
+      else if (sawLoading) return;
+      else if (Date.now() - startedAt > 1500) return;
+      await new Promise(resolve => setTimeout(resolve, 120));
+    }
+  }, []);
   const [filter, setFilter] = useState<Filter>('all');
   const [loveVisible, setLoveVisible] = useState(PAGE_SIZE);
   const [feedVisible, setFeedVisible] = useState(PAGE_SIZE);
@@ -194,6 +212,7 @@ export default function Home() {
   }
 
   return (
+    <PullToRefresh onRefresh={handleHomeRefresh}>
     <div className="page vibe-home">
       {loadError && (
         <div className="vh-load-error" role="alert">
@@ -203,12 +222,7 @@ export default function Home() {
           </button>
         </div>
       )}
-      <header className="vh-intro">
-        <div className="vh-brand-lockup">
-          <h1>{title}</h1>
-          <p>{subtitle}</p>
-        </div>
-      </header>
+      <LargeTitleBar title={title} subtitle={subtitle} headerClassName="vh-intro" />
 
       <button type="button" className="vh-search" aria-label="搜索全站内容"
         onClick={() => window.dispatchEvent(new CustomEvent('qznb:open-search'))}>
@@ -331,5 +345,6 @@ export default function Home() {
       )}
       <VisitCounter />
     </div>
+    </PullToRefresh>
   );
 }

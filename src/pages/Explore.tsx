@@ -2,6 +2,8 @@ import { Link } from 'react-router-dom';
 import { motion, useReducedMotion } from 'framer-motion';
 import { SPRING_GENTLE } from '../lib/motion';
 import { useTiltCard } from '../components/fx/TiltCard';
+import LargeTitleBar from '../components/LargeTitleBar';
+import PullToRefresh from '../components/PullToRefresh';
 import './Explore.css';
 import bloomPhoto from '../assets/discover/card-bloom.jpg';
 import inkPhoto from '../assets/discover/card-ink.jpg';
@@ -144,19 +146,27 @@ export default function Explore() {
   const reduce = useReducedMotion();
   // 只给第一张卡保留轻量倾斜反馈；触摸设备和减少动态效果时自动关闭。
   const tilt = useTiltCard();
+  // 发现页是静态卡片、无服务端数据可拉：下拉刷新只做弹性回馈与短暂停留，
+  // 不伪造一次数据请求。
+  const handleRefresh = async () => {
+    await new Promise(resolve => setTimeout(resolve, 600));
+  };
 
   return (
+    <PullToRefresh onRefresh={handleRefresh}>
     <motion.main
       className="discover-page"
       initial={reduce ? false : { opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: reduce ? 0 : 0.36, ease: [0.22, 1, 0.36, 1] }}
     >
-      <header className="discover-heading">
-        <span className="discover-eyebrow">EXPLORE</span>
-        <h1>发现</h1>
-        <p>一些可以体验、参与和分享的内容。</p>
-      </header>
+      <LargeTitleBar
+        title="发现"
+        subtitle="一些可以体验、参与和分享的内容。"
+        eyebrow="EXPLORE"
+        eyebrowClassName="discover-eyebrow"
+        headerClassName="discover-heading"
+      />
 
       {sections.map((section, sectionIndex) => (
         <section className="discover-section" key={section.title} aria-label={section.title}>
@@ -219,5 +229,6 @@ export default function Explore() {
         </section>
       ))}
     </motion.main>
+    </PullToRefresh>
   );
 }

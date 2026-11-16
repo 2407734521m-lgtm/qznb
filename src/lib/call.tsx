@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
+import { createPortal } from 'react-dom';
 import type { ReactNode } from 'react';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import { supabase } from './supabase';
@@ -11,7 +12,10 @@ import '../styles-call.css';
 export type CallPeerInfo = { id: string; name: string };
 export type CallPhase = 'idle' | 'outgoing' | 'incoming' | 'connecting' | 'in-call';
 
-type CallIslandFlight = { x: number; y: number; scaleX: number; scaleY: number };
+type CallIslandFlight = {
+  from: { left: number; top: number; width: number; height: number };
+  to: { left: number; top: number; width: number; height: number };
+};
 
 type CallContextValue = {
   phase: CallPhase;
@@ -376,11 +380,10 @@ export function CallProvider({ children }: { children: ReactNode }) {
     const pill = islandRoot?.querySelector<HTMLElement>('[data-islandcn-hit="pill"]') ?? null;
     const pillRect = pill?.getBoundingClientRect();
 
-    let destination: { centerX: number; centerY: number; width: number; height: number } | null = null;
+    let destination: { left: number; top: number; width: number; height: number } | null = null;
     if (islandRoot?.dataset.presentation === 'expanded' && islandHost) {
       // An incoming-call alert can still be expanded when the user minimizes it.
-      // Resolve the compact landing point from the same CSS geometry used by the island,
-      // rather than aiming at the expanded card's temporary bounds.
+      // Resolve the compact landing point from the island's configured capsule geometry.
       const hostStyle = getComputedStyle(islandHost);
       const islandStyle = getComputedStyle(islandRoot);
       const cssNumber = (value: string, fallback: number) => {
@@ -393,16 +396,13 @@ export function CallProvider({ children }: { children: ReactNode }) {
       const offsetY = cssNumber(hostStyle.getPropertyValue('--qz-island-offset-y'), 0);
       const anchorTop = cssNumber(islandStyle.top, 18);
       const width = cssNumber(hostStyle.getPropertyValue('--qz-island-capsule-width'), 104);
-      destination = {
-        centerX: window.innerWidth / 2 + offsetX,
-        centerY: anchorTop + top + height / 2 + offsetY,
-        width,
-        height,
-      };
+      const centerX = window.innerWidth / 2 + offsetX;
+      const centerY = anchorTop + top + height / 2 + offsetY;
+      destination = { left: centerX - width / 2, top: centerY - height / 2, width, height };
     } else if (pillRect && pillRect.width > 0 && pillRect.height > 0) {
       destination = {
-        centerX: pillRect.left + pillRect.width / 2,
-        centerY: pillRect.top + pillRect.height / 2,
+        left: pillRect.left,
+        top: pillRect.top,
         width: pillRect.width,
         height: pillRect.height,
       };
@@ -418,10 +418,8 @@ export function CallProvider({ children }: { children: ReactNode }) {
     }
 
     setMinimizeFlight({
-      x: destination.centerX - (cardRect.left + cardRect.width / 2),
-      y: destination.centerY - (cardRect.top + cardRect.height / 2),
-      scaleX: Math.max(0.12, Math.min(0.62, destination.width / cardRect.width)),
-      scaleY: Math.max(0.06, Math.min(0.36, destination.height / cardRect.height)),
+      from: { left: cardRect.left, top: cardRect.top, width: cardRect.width, height: cardRect.height },
+      to: destination,
     });
     setMinimizing(true);
   }, [islandApi, minimized, minimizing, reduceMotion]);
@@ -455,6 +453,36 @@ export function CallProvider({ children }: { children: ReactNode }) {
   }, [myId, cleanup]);
 
   const initial = (peerName.trim().charAt(0) || '友').toUpperCase();
+  const callCardContent = (
+    <>
+      <button type="button" className="call-minimize" aria-label="最小化通话窗口到灵动岛" title="最小化到灵动岛" onClick={minimizeCall}>−</button>
+      <div className="call-avatar" aria-hidden="true">{initial}</div>
+      <div className="call-name">{peerName || '同学'}</div>
+      <div className="call-status">
+        {phase === 'incoming' && '邀请你语音通话'}
+        {phase === 'outgoing' && '正在等待对方接听…'}
+        {phase === 'connecting' && '连接中…'}
+        {phase === 'in-call' && <span className="call-timer">{formatDuration(seconds)}</span>}
+      </div>
+      {phase === 'incoming' && (
+        <div className="call-actions">
+          <button type="button" className="call-btn call-btn-reject" onClick={rejectCall}>拒绝</button>
+          <button type="button" className="call-btn call-btn-accept" onClick={acceptCall}>接听</button>
+        </div>
+      )}
+      {phase === 'outgoing' && (
+        <div className="call-actions">
+          <button type="button" className="call-btn call-btn-hangup" onClick={cancelCall}>取消</button>
+        </div>
+      )}
+      {(phase === 'connecting' || phase === 'in-call') && (
+        <div className="call-actions">
+          <button type="button" className={'call-btn call-btn-mute' + (muted ? ' is-muted' : '')} onClick={toggleMute}>{muted ? '取消静音' : '静音'}</button>
+          <button type="button" className="call-btn call-btn-hangup" onClick={hangUp}>挂断</button>
+        </div>
+      )}
+    </>
+  );
 
   return (
     <CallContext.Provider value={{ phase, busy: phase !== 'idle', startCall }}>
@@ -463,62 +491,68 @@ export function CallProvider({ children }: { children: ReactNode }) {
       {note && phase === 'idle' && <div className="call-note" role="status" aria-live="polite"><span aria-hidden="true">☎</span><span>{note}</span></div>}
       <AnimatePresence>
         {phase !== 'idle' && !minimized && (
-          <motion.div key="call-overlay" className="call-overlay" role="dialog" aria-modal="true" aria-label="语音通话"
-            initial={reduceMotion ? false : { opacity: 0 }}
-            animate={{ opacity: minimizing ? 0 : 1 }} exit={{ opacity: 0 }}
-            transition={{ duration: reduceMotion ? 0.01 : minimizing ? 0.48 : 0.2, ease: [0.22, 1, 0.36, 1] }}>
-          <motion.div ref={callCardRef} className="call-card"
-            initial={reduceMotion ? false : { opacity: 0, y: 14, scale: 0.97 }}
-            animate={minimizing && minimizeFlight
-              ? {
-                  opacity: 0.035,
-                  x: minimizeFlight.x,
-                  y: minimizeFlight.y,
-                  scaleX: minimizeFlight.scaleX,
-                  scaleY: minimizeFlight.scaleY,
+          <>
+            <motion.div key="call-overlay" className="call-overlay" role="dialog" aria-modal="true" aria-label="语音通话"
+              initial={reduceMotion ? false : { opacity: 0 }}
+              animate={{ opacity: minimizing ? 0 : 1 }} exit={{ opacity: 0 }}
+              transition={{ duration: reduceMotion ? 0.01 : minimizing ? 0.48 : 0.2, ease: [0.22, 1, 0.36, 1] }}>
+              {!minimizing && (
+                <motion.div ref={callCardRef} className="call-card"
+                  initial={reduceMotion ? false : { opacity: 0, y: 14, scale: 0.97 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 8, scale: 0.985 }}
+                  transition={reduceMotion ? { duration: 0.01 } : { type: 'spring', stiffness: 340, damping: 30, mass: 0.78 }}>
+                  {callCardContent}
+                </motion.div>
+              )}
+            </motion.div>
+            {minimizing && minimizeFlight && typeof document !== 'undefined' && createPortal(
+              <motion.div
+                key="call-card-flight"
+                className="call-card qz-call-card-flight"
+                aria-hidden="true"
+                initial={false}
+                animate={{
+                  left: minimizeFlight.to.left,
+                  top: minimizeFlight.to.top,
+                  width: minimizeFlight.to.width,
+                  height: minimizeFlight.to.height,
                   borderRadius: 999,
-                }
-              : { opacity: 1, x: 0, y: 0, scaleX: 1, scaleY: 1, borderRadius: 28 }}
-            exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 8, scale: 0.985 }}
-            transition={minimizing && minimizeFlight && !reduceMotion
-              ? { type: 'spring', stiffness: 360, damping: 28, mass: 0.72 }
-              : reduceMotion ? { duration: 0.01 } : { type: 'spring', stiffness: 340, damping: 30, mass: 0.78 }}
-            style={{ transformOrigin: '50% 50%' }}
-            onAnimationComplete={() => {
-              if (!minimizing || !minimizeFlight) return;
-              window.dispatchEvent(new Event('qz-call-island-arrived'));
-              setMinimized(true);
-              setMinimizing(false);
-              setMinimizeFlight(null);
-            }}>
-            <button type="button" className="call-minimize" aria-label="最小化通话窗口到灵动岛" title="最小化到灵动岛" onClick={minimizeCall}>−</button>
-            <div className="call-avatar" aria-hidden="true">{initial}</div>
-            <div className="call-name">{peerName || '同学'}</div>
-            <div className="call-status">
-              {phase === 'incoming' && '邀请你语音通话'}
-              {phase === 'outgoing' && '正在等待对方接听…'}
-              {phase === 'connecting' && '连接中…'}
-              {phase === 'in-call' && <span className="call-timer">{formatDuration(seconds)}</span>}
-            </div>
-            {phase === 'incoming' && (
-              <div className="call-actions">
-                <button type="button" className="call-btn call-btn-reject" onClick={rejectCall}>拒绝</button>
-                <button type="button" className="call-btn call-btn-accept" onClick={acceptCall}>接听</button>
-              </div>
+                  opacity: 0.08,
+                }}
+                transition={{
+                  left: { type: 'spring', stiffness: 360, damping: 30, mass: 0.78 },
+                  top: { type: 'spring', stiffness: 360, damping: 30, mass: 0.78 },
+                  width: { type: 'spring', stiffness: 360, damping: 30, mass: 0.78 },
+                  height: { type: 'spring', stiffness: 360, damping: 30, mass: 0.78 },
+                  borderRadius: { duration: 0.42, ease: [0.22, 1, 0.36, 1] },
+                  opacity: { duration: 0.42, ease: [0.22, 1, 0.36, 1] },
+                }}
+                style={{
+                  position: 'fixed',
+                  left: minimizeFlight.from.left,
+                  top: minimizeFlight.from.top,
+                  width: minimizeFlight.from.width,
+                  height: minimizeFlight.from.height,
+                  margin: 0,
+                  boxSizing: 'border-box',
+                  overflow: 'hidden',
+                  zIndex: 4000,
+                  transformOrigin: '50% 50%',
+                  willChange: 'left, top, width, height, border-radius, opacity',
+                  pointerEvents: 'none',
+                }}
+                onAnimationComplete={() => {
+                  window.dispatchEvent(new Event('qz-call-island-arrived'));
+                  setMinimized(true);
+                  setMinimizing(false);
+                  setMinimizeFlight(null);
+                }}>
+                {callCardContent}
+              </motion.div>,
+              document.body,
             )}
-            {phase === 'outgoing' && (
-              <div className="call-actions">
-                <button type="button" className="call-btn call-btn-hangup" onClick={cancelCall}>取消</button>
-              </div>
-            )}
-            {(phase === 'connecting' || phase === 'in-call') && (
-              <div className="call-actions">
-                <button type="button" className={'call-btn call-btn-mute' + (muted ? ' is-muted' : '')} onClick={toggleMute}>{muted ? '取消静音' : '静音'}</button>
-                <button type="button" className="call-btn call-btn-hangup" onClick={hangUp}>挂断</button>
-              </div>
-            )}
-          </motion.div>
-          </motion.div>
+          </>
         )}
       </AnimatePresence>
     </CallContext.Provider>

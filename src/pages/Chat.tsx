@@ -1128,7 +1128,7 @@ export default function Chat() {
           const canEdit = mine && !deleted && !m.body.startsWith('[[im-image:') && !m.body.startsWith('[[im-audio:');
           const displayBody = deleted ? (mine ? '你撤回了一条消息' : '对方撤回了一条消息') : m.body;
           const inlineMeta = editingId !== m.id && canShowInlineMeta(displayBody, Boolean(m.reply_to_id));
-          const receiptLabel = mine && m.id === latestOutgoingMessageId && userPreferences.chat.showReadReceipts
+          const receiptLabel = !isGroup && mine && m.id === latestOutgoingMessageId && userPreferences.chat.showReadReceipts
             ? (otherLastReadMessageId !== null && otherLastReadMessageId >= m.id ? '已读' : '已送达')
             : '';
           return (
@@ -1139,6 +1139,7 @@ export default function Chat() {
               {dateLabel(m.created_at, msgs[i - 1]?.created_at) && <div className="im-day">{dateLabel(m.created_at, msgs[i - 1]?.created_at)}</div>}
               <div className={'im-row ' + (mine ? 'mine ' : '') + (mine && m.id === latestOutgoingMessageId && userPreferences.chat.showReadReceipts ? 'im-row-has-receipt ' : '') + (samePrevious ? 'im-row-grouped-prev ' : '') + (sameNext ? 'im-row-grouped-next ' : '') + (swappedIdsRef.current.has(m.id) ? 'im-row-static' : '')}>
                 <div className={'im-message-column ' + (mine ? 'mine' : 'theirs')}>
+                  {isGroup && !mine && !samePrevious && <span className="chatcn-group-sender-name">{groupMembers.find(member => member.id === m.sender_id)?.display_name ?? groupMembers.find(member => member.id === m.sender_id)?.username ?? '群成员'}</span>}
                   <div className={'im-bubble ' + (mine ? 'mine' : 'theirs') + (samePrevious ? ' im-bubble-grouped-prev' : '') + (sameNext ? ' im-bubble-grouped-next' : '')}
                     onTouchStart={event => startMessagePress(m.id, event.currentTarget)}
                     onTouchMove={clearMessagePress}

@@ -22,10 +22,10 @@ export default function BlurText({ text, style, className }: {
         <motion.span
           key={i}
           aria-hidden
-          style={{ display: 'inline-block', willChange: 'transform, filter, opacity' }}
-          initial={{ opacity: 0, y: 14, filter: 'blur(8px)' }}
-          animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-          transition={{ duration: 0.55, delay: 0.05 + i * 0.04, ease: EASE }}
+          style={{ display: 'inline-block' }}
+          initial={{ opacity: 0, y: 8, scale: 0.985 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ duration: 0.42, delay: 0.02 + i * 0.025, ease: EASE }}
         >
           {ch === ' ' ? ' ' : ch}
         </motion.span>

@@ -13,7 +13,7 @@ import { useCall } from '../lib/call';
 import { goBackOr } from '../components/BackButton';
 import { confirmDialog } from '../lib/dialog';
 import { toast } from 'sonner';
-import { Spoiler } from 'spoiled';
+import InvisibleInk from '../components/InvisibleInk';
 import OptionSheet from '../components/OptionSheet';
 import DisappearingCustomDialog, { formatDisappearingDuration } from '../components/DisappearingCustomDialog';
 import type { ChatMessage } from '../types/message';
@@ -101,20 +101,17 @@ function fileExtLabel(name: string) {
   return ext && ext.length <= 5 ? ext : '文件';
 }
 
-// 隐形消息：||藏起来的字|| 用 spoiled（GitHub 项目，照 Telegram 剧透做的粒子遮罩）
-// 盖住，点一下显现、再点一下盖回去；未配对的 || 原样显示；预览里不泄露原文。
-// 注意：spoiled 的 noiseFadeDuration 单位是秒（0.3 = 300ms，贴合 DESIGN.md 动效 200–320ms），
-// 写成 300 会被当成 300 秒淡入、粒子几分钟都看不见。
+// 隐形消息：||藏起来的字|| 用自写组件 InvisibleInk（iMessage 式隐形墨水）。
+// 之前用 GitHub 的 spoiled（点按显现），用户 2026-11-17 01:16 令改滑动版；
+// spoiled 的粒子是 paint worklet 画的、没法按区域擦掉，所以换成自写：
+// 粒子盖住、手指滑过擦掉、停 5 秒自动盖回，点一下直接全显。
+// 未配对的 || 原样显示；预览里不泄露原文。
 const SPOILER_SEGMENT_PATTERN = /(\|\|[\s\S]+?\|\|)/g;
 
 function renderSpoilerText(text: string) {
   return text.split(SPOILER_SEGMENT_PATTERN).map((segment, index) => {
     if (segment.length > 4 && segment.startsWith('||') && segment.endsWith('||')) {
-      return (
-        <Spoiler key={index} className="im-spoiler" revealOn="click" accentColor="#eaf6ff" mimicWords density={0.15} noiseFadeDuration={0.3}>
-          {segment.slice(2, -2)}
-        </Spoiler>
-      );
+      return <InvisibleInk key={index} text={segment.slice(2, -2)} />;
     }
     return <Fragment key={index}>{segment}</Fragment>;
   });
@@ -1276,7 +1273,7 @@ export default function Chat() {
         @keyframes im-send-in{0%{opacity:0;transform:translateY(20px) scale(.94)}70%{opacity:1;transform:translateY(-2px) scale(1.005)}100%{opacity:1;transform:translateY(0) scale(1)}}
         .im-row-static{animation:none}
         .im-row{transition:opacity .26s ease,transform .26s ease}
-        .im-row-vanishing{opacity:0;transform:scale(.92) translateY(2px);pointer-events:none}.im-spoiler{cursor:pointer}
+        .im-row-vanishing{opacity:0;transform:scale(.92) translateY(2px);pointer-events:none}.im-ink{position:relative;display:inline-block;max-width:100%;vertical-align:top;touch-action:pan-y;cursor:pointer;outline:none}.im-ink:focus-visible{outline:2px solid rgba(255,255,255,.65);outline-offset:2px;border-radius:6px}.im-ink-char{opacity:0;transition:opacity .18s ease-out}.im-ink-canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;display:block}
         .im-vrow{box-sizing:border-box}
         .im-page .im-vrow .im-row{margin:0 !important;animation:none !important}
         .im-vrow-fresh{animation:im-vrow-fade .25s ease-out both}

@@ -1,0 +1,47 @@
+/* 大标题收起 + 毛玻璃吸顶条（LargeTitleBar）。
+   毛玻璃数值沿用相册详情页吸顶条：rgba(252,253,255,.86) + blur(14px) saturate(1.4)。 */
+.ltb-sticky {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  height: 44px;
+  margin-bottom: -44px;
+  display: flex;
+  align-items: center;
+  padding: 0 6px;
+  pointer-events: none;
+}
+
+.ltb-sticky-bg {
+  position: absolute;
+  inset: 0;
+  background: rgba(252, 253, 255, 0.86);
+  -webkit-backdrop-filter: blur(14px) saturate(1.4);
+  backdrop-filter: blur(14px) saturate(1.4);
+  border-bottom: 1px solid rgba(24, 32, 48, 0.07);
+  opacity: 0;
+}
+
+.ltb-sticky-title {
+  position: relative;
+  font-size: 15px;
+  font-weight: 700;
+  color: #202632;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  opacity: 0;
+}
+
+.ltb-large {
+  transform-origin: left bottom;
+  will-change: transform;
+}
+
+.ltb-eyebrow {
+  display: inline-block;
+  color: #8c96a4;
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: 0.2em;
+}

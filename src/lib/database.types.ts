@@ -840,6 +840,39 @@ export type Database = {
           },
         ]
       }
+      conversation_hides: {
+        Row: {
+          conversation_id: number
+          hidden_at: string
+          profile_id: string
+        }
+        Insert: {
+          conversation_id: number
+          hidden_at?: string
+          profile_id: string
+        }
+        Update: {
+          conversation_id?: number
+          hidden_at?: string
+          profile_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversation_hides_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_hides_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       conversation_members: {
         Row: {
           chat_background: string
@@ -2914,6 +2947,7 @@ export type Database = {
           section: string
         }[]
       }
+      hide_conversation: { Args: { p_conversation_id: number }; Returns: undefined }
       invite_nickname: { Args: never; Returns: string }
       is_member: { Args: never; Returns: boolean }
       is_username_login_device: {
@@ -3232,6 +3266,7 @@ export type Database = {
       }
       submit_intro_video: { Args: { p_path: string }; Returns: undefined }
       unblock_member: { Args: { target: string }; Returns: undefined }
+      unhide_conversation: { Args: { p_conversation_id: number }; Returns: undefined }
       username_available: { Args: { u: string }; Returns: boolean }
       withdraw_friend_request: { Args: { target: string }; Returns: string }
     }

@@ -118,6 +118,7 @@
   font-size: 12px;
   line-height: 1.5;
   color: #c0392b;
+  animation: float-error-in 220ms ease-out;
 }
 
 .login-card .float-field.has-error input:not([type="checkbox"]):not([type="range"]):not([type="file"]) {
@@ -126,6 +127,32 @@
 
 .login-card .float-field.has-error .float-tag {
   color: #c0392b;
+}
+
+/* 校验失败：整格水平轻晃两到三次（最大 5px，像“摇头”不是乱晃），
+   由 FloatField 的 is-shaking 轮换触发，每次校验失败都重新播一次。
+   抖整格而不是只抖 input：浮动标签与密码“显示”按钮跟着框一起动，不脱节。
+   红框层叠已核对：同文件 :focus 规则与本段 has-error 规则同为 (0,6,1) 且都
+   !important，has-error 在文件里更靠后，聚焦时红框仍赢；styles.css 的通用
+   input / input:focus 规则只有 (0,0,1)/(0,1,1)，争不过。 */
+@keyframes float-field-shake {
+  0%, 100% { transform: translateX(0); }
+  15% { transform: translateX(-5px); }
+  35% { transform: translateX(5px); }
+  55% { transform: translateX(-3px); }
+  75% { transform: translateX(3px); }
+  90% { transform: translateX(-1px); }
+}
+
+.login-card .float-field.is-shaking {
+  animation: float-field-shake 420ms ease-in-out;
+}
+
+/* 报错文案进场：从下方 4px 处淡入滑出 220ms；每次抖动时文案随 shakeTick
+   重新挂载，进场动画跟着再播一次。 */
+@keyframes float-error-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 /* 密码强度条 */
@@ -213,6 +240,9 @@
 
 @media (prefers-reduced-motion: reduce) {
   .login-card .float-tag { transition: none; }
+  /* 减弱动效：不抖，报错文案直接出现（动画关掉即为最终态）。 */
+  .login-card .float-field.is-shaking { animation: none; }
+  .login-card .float-error { animation: none; }
 }
 
 /* 登录/注册页滑不动修复：外层原先只有 min-height、没有确定高度，

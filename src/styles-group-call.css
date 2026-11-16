@@ -106,7 +106,11 @@
   height: 12px;
   border-radius: 999px;
   background: rgba(220, 232, 246, .76);
+  transform: scaleY(.35);
   transform-origin: center;
+  opacity: .58;
+}
+.qz-group-call-wave.is-active i {
   animation: qz-group-wave 920ms ease-in-out infinite alternate;
 }
 .qz-group-call-wave i:nth-child(2) { animation-delay: -260ms; }
@@ -145,6 +149,8 @@
   text-align: center;
 }
 .qz-group-call-avatar {
+  position: relative;
+  isolation: isolate;
   display: grid;
   width: 62px;
   height: 62px;
@@ -162,6 +168,20 @@
   border-color: rgba(165, 223, 197, .92);
   box-shadow: 0 0 0 5px rgba(102, 190, 151, .14), 0 8px 26px rgba(0,0,0,.12);
   transform: scale(1.035);
+}
+.qz-group-call-avatar::after {
+  content: "";
+  position: absolute;
+  inset: -7px;
+  border: 1px solid rgba(165, 223, 197, .82);
+  border-radius: inherit;
+  opacity: 0;
+  transform: scale(.88);
+  pointer-events: none;
+}
+.qz-group-call-person.is-speaking .qz-group-call-avatar::after {
+  opacity: 1;
+  animation: qz-group-voice-ring 1.45s ease-out infinite;
 }
 .qz-group-call-person-name {
   max-width: 100%;
@@ -342,6 +362,10 @@
   to { transform: scaleY(1.35); opacity: 1; }
 }
 @keyframes qz-group-spin { to { transform: rotate(360deg); } }
+@keyframes qz-group-voice-ring {
+  0% { opacity: .62; transform: scale(.88); }
+  100% { opacity: 0; transform: scale(1.27); }
+}
 @media (max-width: 480px) {
   .qz-group-call-screen { padding-right: 20px; padding-left: 20px; }
   .qz-group-call-participants { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px 7px; }
@@ -360,7 +384,9 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .qz-group-call-wave i,
-  .qz-group-call-spinner { animation: none; }
+  .qz-group-call-spinner,
+  .qz-group-call-person.is-speaking .qz-group-call-avatar::after { animation: none; }
+  .qz-group-call-wave.is-active i { opacity: 1; transform: scaleY(1); }
   .qz-group-call-minimize,
   .qz-group-call-control-icon,
   .qz-group-call-avatar { transition: none; }

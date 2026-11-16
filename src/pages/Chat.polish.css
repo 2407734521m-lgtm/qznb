@@ -2131,3 +2131,24 @@
 @media (prefers-reduced-transparency: reduce) {
   .im-page .im-sticker-tray { background: #eef0f2 !important; -webkit-backdrop-filter: none; backdrop-filter: none; }
 }
+
+
+.im-page .im-profile-shared-audio {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+}
+.im-page .im-profile-shared-audio-item {
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid rgba(45,58,72,.05);
+  border-radius: 14px;
+  background: #eef0f2;
+}
+.im-page .im-profile-shared-audio-item .im-audio-card {
+  min-width: 0;
+}
+.im-page .im-profile-shared-audio-item audio {
+  max-width: 100%;
+}

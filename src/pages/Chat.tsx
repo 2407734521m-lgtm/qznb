@@ -258,12 +258,16 @@ export default function Chat() {
     () => msgs.filter(message => !message.deleted_at && message.body.startsWith('[[im-file:')),
     [msgs],
   );
+  const sharedAudioMessages = useMemo(
+    () => msgs.filter(message => !message.deleted_at && message.body.startsWith('[[im-audio:')),
+    [msgs],
+  );
   const sharedLinkItems = useMemo(() => msgs.flatMap(message => {
     if (message.deleted_at || message.body.startsWith('[[')) return [];
     const urls = message.body.match(/https?:\/\/[^\s<>"']+/g) ?? [];
     return urls.map((url, index) => ({ key: message.id + '-' + index, url }));
   }), [msgs]);
-  const sharedMediaCount = sharedImageMessages.length + sharedFileMessages.length + sharedLinkItems.length;
+  const sharedMediaCount = sharedImageMessages.length + sharedFileMessages.length + sharedAudioMessages.length + sharedLinkItems.length;
 
   // 第 2 阶段虚拟化：只渲染可视区的消息行（变高行用 measureElement 动态测量）。
   // 滚动容器就是 .im-feed；outbox（秒发本地条目）数量极小，仍直接渲染在列表之后。
@@ -693,8 +697,15 @@ export default function Chat() {
     setError('');
     try {
       setUpPct(0);
-      // Keep the original GIF bytes: image compression would flatten animation frames.
-      const path = await uploadMediaWithProgress('chat-media', file, Number(cid) + '/' + me, pct => setUpPct(pct));
+      // Some Android document providers report a generic/empty MIME type for .gif files.
+      // Normalize only the MIME metadata; keep the original bytes so animation frames survive.
+      const uploadFile = file.type === 'image/gif'
+        ? file
+        : new File([file], /\.gif$/i.test(file.name) ? file.name : 'animation.gif', {
+            type: 'image/gif',
+            lastModified: file.lastModified,
+          });
+      const path = await uploadMediaWithProgress('chat-media', uploadFile, Number(cid) + '/' + me, pct => setUpPct(pct));
       const { error: sendError } = await supabase.from('messages').insert({
         conversation_id: Number(cid),
         sender_id: me,
@@ -1318,6 +1329,15 @@ export default function Chat() {
                   ))}
                 </div>
               )}
+              {sharedAudioMessages.length > 0 && (
+                <div className="im-profile-shared-audio">
+                  {sharedAudioMessages.slice(-8).reverse().map(audio => (
+                    <div className="im-profile-shared-audio-item" key={audio.id}>
+                      <MessageContent body={audio.body} />
+                    </div>
+                  ))}
+                </div>
+              )}
               {sharedFileMessages.length > 0 && (
                 <div className="im-profile-shared-files">
                   {sharedFileMessages.slice(-8).reverse().map(file => (
@@ -1332,7 +1352,7 @@ export default function Chat() {
                   ))}
                 </div>
               )}
-              {sharedMediaCount === 0 && <div className="im-profile-empty">你们分享的照片、链接和文件会显示在这里。</div>}
+              {sharedMediaCount === 0 && <div className="im-profile-empty">你们分享的照片、语音、链接和文件会显示在这里。</div>}
             </section>
             <div className="im-profile-footer">聊天背景仅对你自己生效，不会改变对方的聊天界面。</div>
           </div>

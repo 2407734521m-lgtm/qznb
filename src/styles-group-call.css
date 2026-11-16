@@ -1,0 +1,395 @@
+/* LiveKit group voice UI. All selectors are namespaced to keep 1:1 calls untouched. */
+.qz-group-audio-host {
+  position: fixed;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+  pointer-events: none;
+  opacity: 0;
+}
+.qz-group-call-overlay {
+  position: fixed;
+  z-index: 320;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  background: rgba(8, 13, 22, .72);
+  -webkit-backdrop-filter: blur(18px);
+  backdrop-filter: blur(18px);
+}
+.qz-group-call-screen {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  box-sizing: border-box;
+  flex-direction: column;
+  overflow: hidden;
+  padding: calc(env(safe-area-inset-top, 0px) + 18px) 24px calc(env(safe-area-inset-bottom, 0px) + 22px);
+  color: #f6f8fb;
+  background:
+    radial-gradient(ellipse at 50% 35%, rgba(125, 145, 172, .16), transparent 46%),
+    linear-gradient(155deg, #202a38 0%, #151e2b 55%, #101722 100%);
+}
+.qz-group-call-header {
+  display: flex;
+  min-height: 68px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.qz-group-call-header h1 {
+  margin: 5px 0 3px;
+  color: #fff;
+  font-size: clamp(19px, 4vw, 24px);
+  font-weight: 680;
+  letter-spacing: -.025em;
+}
+.qz-group-call-header p {
+  margin: 0;
+  color: rgba(232, 238, 247, .62);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.qz-group-call-eyebrow {
+  color: rgba(220, 229, 240, .46);
+  font-size: 9px;
+  font-weight: 760;
+  letter-spacing: .18em;
+}
+.qz-group-call-minimize {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  flex: 0 0 42px;
+  place-items: center;
+  border: 1px solid rgba(255,255,255,.13);
+  border-radius: 50%;
+  background: rgba(255,255,255,.08);
+  color: #f7f9fc;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 160ms ease, background-color 160ms ease;
+}
+.qz-group-call-minimize:active { transform: scale(.93); background: rgba(255,255,255,.16); }
+.qz-group-call-minimize svg {
+  width: 19px;
+  height: 19px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.9;
+  stroke-linecap: round;
+}
+.qz-group-call-main {
+  display: flex;
+  width: min(100%, 680px);
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  align-self: center;
+  padding: 20px 0;
+}
+.qz-group-call-wave {
+  display: flex;
+  height: 46px;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  margin-bottom: 16px;
+}
+.qz-group-call-wave i {
+  display: block;
+  width: 4px;
+  height: 12px;
+  border-radius: 999px;
+  background: rgba(220, 232, 246, .76);
+  transform-origin: center;
+  animation: qz-group-wave 920ms ease-in-out infinite alternate;
+}
+.qz-group-call-wave i:nth-child(2) { animation-delay: -260ms; }
+.qz-group-call-wave i:nth-child(3) { animation-delay: -520ms; }
+.qz-group-call-wave i:nth-child(4) { animation-delay: -360ms; }
+.qz-group-call-wave i:nth-child(5) { animation-delay: -140ms; }
+.qz-group-call-summary {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  margin-bottom: 26px;
+  color: rgba(232, 238, 247, .62);
+  font-size: 13px;
+}
+.qz-group-call-summary strong {
+  color: #fff;
+  font-size: 24px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 650;
+}
+.qz-group-call-participants {
+  display: grid;
+  width: 100%;
+  max-height: min(48vh, 430px);
+  grid-template-columns: repeat(auto-fit, minmax(112px, 1fr));
+  align-content: center;
+  gap: 18px 12px;
+  overflow: auto;
+  padding: 8px 2px;
+}
+.qz-group-call-person {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+.qz-group-call-avatar {
+  display: grid;
+  width: 62px;
+  height: 62px;
+  place-items: center;
+  border: 1px solid rgba(255,255,255,.13);
+  border-radius: 50%;
+  background: linear-gradient(145deg, rgba(255,255,255,.18), rgba(255,255,255,.055));
+  color: #fff;
+  font-size: 23px;
+  font-weight: 650;
+  box-shadow: 0 8px 26px rgba(0,0,0,.12);
+  transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+}
+.qz-group-call-person.is-speaking .qz-group-call-avatar {
+  border-color: rgba(165, 223, 197, .92);
+  box-shadow: 0 0 0 5px rgba(102, 190, 151, .14), 0 8px 26px rgba(0,0,0,.12);
+  transform: scale(1.035);
+}
+.qz-group-call-person-name {
+  max-width: 100%;
+  overflow: hidden;
+  margin-top: 9px;
+  color: rgba(249,251,253,.94);
+  font-size: 12px;
+  font-weight: 580;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.qz-group-call-person small {
+  margin-top: 3px;
+  color: rgba(220,229,240,.52);
+  font-size: 10px;
+}
+.qz-group-call-waiting {
+  display: flex;
+  grid-column: 1 / -1;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  padding: 26px 0;
+  color: rgba(230,237,246,.62);
+  font-size: 13px;
+}
+.qz-group-call-spinner {
+  width: 15px;
+  height: 15px;
+  border: 2px solid rgba(255,255,255,.2);
+  border-top-color: rgba(255,255,255,.88);
+  border-radius: 50%;
+  animation: qz-group-spin 750ms linear infinite;
+}
+.qz-group-call-controls {
+  display: flex;
+  width: min(100%, 340px);
+  align-items: center;
+  justify-content: center;
+  align-self: center;
+  gap: clamp(38px, 15vw, 76px);
+  padding-top: 15px;
+}
+.qz-group-call-control {
+  display: flex;
+  min-width: 88px;
+  flex-direction: column;
+  align-items: center;
+  gap: 9px;
+  border: 0;
+  background: transparent;
+  color: rgba(247,249,252,.88);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 560;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+.qz-group-call-control:disabled { opacity: .45; cursor: default; }
+.qz-group-call-control-icon {
+  display: grid;
+  width: 62px;
+  height: 62px;
+  place-items: center;
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 50%;
+  background: rgba(255,255,255,.105);
+  color: #f7f8fa;
+  transition: transform 160ms ease, background-color 160ms ease, border-color 160ms ease;
+}
+.qz-group-call-control:active .qz-group-call-control-icon { transform: scale(.94); }
+.qz-group-call-control.is-active .qz-group-call-control-icon {
+  border-color: rgba(255,255,255,.5);
+  background: #eef2f6;
+  color: #273140;
+}
+.qz-group-call-control-icon svg {
+  width: 25px;
+  height: 25px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.qz-group-call-hangup .qz-group-call-control-icon {
+  border-color: rgba(255,91,99,.35);
+  background: #d84c55;
+  color: #fff;
+  box-shadow: 0 8px 24px rgba(216,76,85,.2);
+}
+.qz-group-call-minimize:focus-visible,
+.qz-group-call-control:focus-visible {
+  outline: 2px solid rgba(255,255,255,.92);
+  outline-offset: 4px;
+}
+
+/* Dynamic Island group-call activity content. */
+.qz-group-island-compact {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: currentColor;
+  font-size: 11px;
+  font-weight: 650;
+}
+.qz-group-island-compact svg,
+.qz-group-island-minimal svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+}
+.qz-group-island-time {
+  color: currentColor;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+.qz-group-island-minimal {
+  display: grid;
+  width: 100%;
+  height: 100%;
+  place-items: center;
+}
+.qz-group-island-heading {
+  color: inherit;
+  font-size: 11px;
+  font-weight: 650;
+}
+.qz-group-island-copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 3px;
+}
+.qz-group-island-copy strong {
+  overflow: hidden;
+  color: inherit;
+  font-size: 13px;
+  font-weight: 680;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.qz-group-island-copy small {
+  color: currentColor;
+  font-size: 10px;
+  opacity: .66;
+}
+.qz-group-island-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 7px;
+}
+.qz-group-island-action {
+  min-height: 30px;
+  padding: 0 11px;
+  border: 1px solid rgba(255,255,255,.16);
+  border-radius: 999px;
+  background: rgba(255,255,255,.1);
+  color: inherit;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.qz-group-island-action.is-danger {
+  border-color: rgba(237,112,121,.3);
+  background: rgba(216,76,85,.18);
+  color: #ffb6bb;
+}
+@keyframes qz-group-wave {
+  from { transform: scaleY(.35); opacity: .58; }
+  to { transform: scaleY(1.35); opacity: 1; }
+}
+@keyframes qz-group-spin { to { transform: rotate(360deg); } }
+@media (max-width: 480px) {
+  .qz-group-call-screen { padding-right: 20px; padding-left: 20px; }
+  .qz-group-call-participants { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px 7px; }
+  .qz-group-call-avatar { width: 56px; height: 56px; font-size: 21px; }
+}
+@media (max-height: 600px) {
+  .qz-group-call-screen { padding-top: calc(env(safe-area-inset-top, 0px) + 8px); padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 10px); }
+  .qz-group-call-header { min-height: 52px; }
+  .qz-group-call-main { padding: 6px 0; }
+  .qz-group-call-wave { height: 28px; margin-bottom: 7px; }
+  .qz-group-call-summary { margin-bottom: 12px; }
+  .qz-group-call-participants { max-height: 38vh; gap: 9px 6px; }
+  .qz-group-call-avatar { width: 46px; height: 46px; font-size: 18px; }
+  .qz-group-call-controls { padding-top: 8px; }
+  .qz-group-call-control-icon { width: 52px; height: 52px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .qz-group-call-wave i,
+  .qz-group-call-spinner { animation: none; }
+  .qz-group-call-minimize,
+  .qz-group-call-control-icon,
+  .qz-group-call-avatar { transition: none; }
+}
+
+.qz-group-call-trigger { position: relative; }
+.qz-group-call-live-dot {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 7px;
+  height: 7px;
+  border: 1.5px solid var(--im-head-bg, #fff);
+  border-radius: 50%;
+  background: #48b989;
+  box-shadow: 0 0 0 2px rgba(72,185,137,.14);
+}
+.qz-group-call-count {
+  position: absolute;
+  right: -2px;
+  bottom: -3px;
+  min-width: 13px;
+  height: 13px;
+  padding: 0 2px;
+  border-radius: 999px;
+  background: #263548;
+  color: #fff;
+  font-size: 8px;
+  font-variant-numeric: tabular-nums;
+  line-height: 13px;
+  text-align: center;
+}

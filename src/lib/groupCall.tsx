@@ -469,7 +469,7 @@ export function GroupCallProvider({ children }: { children: ReactNode }) {
     activeParticipantCount,
     joinGroupCall,
     watchConversation,
-  }), [phase, activeConversationId, activeParticipantCount, joinGroupCall, watchConversation]);
+  }), [phase, activeConversationId, conversationId, activeParticipantCount, joinGroupCall, watchConversation]);
 
   const statusLabel = phase === 'connecting'
     ? '正在连接语音房间…'

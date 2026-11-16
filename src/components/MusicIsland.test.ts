@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { isSameMusicTrack, resolveMusicEqualizerMode, shouldShowMainIsland } from './MusicIsland';
-import { hasNewIslandActivity, resolveIslandDockGesture, resolveIslandGestureSource, shouldCancelPendingIslandDock } from './QianzhiMusicIslandActivity';
+import { hasNewIslandActivity, resolveIslandDockGesture, resolveIslandGestureSource, shouldCancelPendingIslandDock, shouldShowIslandIdleRecall } from './QianzhiMusicIslandActivity';
 import { resolveMetrics } from '../lib/island/config';
 import { createQianzhiIslandMetrics, qianzhiIslandMetrics } from '../lib/island/qianzhi-metrics';
 
@@ -14,6 +14,8 @@ const track = (overrides = {}) => ({
   canPrevious: true,
   canNext: true,
   canToggle: true,
+  volume: 0.8,
+  isMuted: false,
   ...overrides,
 });
 
@@ -51,6 +53,13 @@ describe('isSameMusicTrack', () => {
     expect(isSameMusicTrack(track(), track({ coverUrl: null }))).toBe(false);
     expect(isSameMusicTrack(track(), null)).toBe(false);
     expect(isSameMusicTrack(null, track())).toBe(false);
+  });
+
+  it('notices a volume or mute change, and treats an unreported volume as unknown', () => {
+    expect(isSameMusicTrack(track(), track({ volume: 0.5 }))).toBe(false);
+    expect(isSameMusicTrack(track(), track({ isMuted: true }))).toBe(false);
+    expect(isSameMusicTrack(track({ volume: null }), track({ volume: null }))).toBe(true);
+    expect(isSameMusicTrack(track({ volume: null }), track())).toBe(false);
   });
 });
 
@@ -197,5 +206,17 @@ describe('shouldCancelPendingIslandDock', () => {
   it('cancels a delayed dock when the visible island receives a new gesture', () => {
     expect(shouldCancelPendingIslandDock('island')).toBe(true);
     expect(shouldCancelPendingIslandDock('peek')).toBe(false);
+  });
+});
+
+describe('shouldShowIslandIdleRecall', () => {
+  it('shows the thin recall edge only when nothing is live', () => {
+    expect(shouldShowIslandIdleRecall([], false, false)).toBe(true);
+  });
+
+  it('keeps the capsule when an activity, a dock or fullscreen suppression is in play', () => {
+    expect(shouldShowIslandIdleRecall(['music-playback'], false, false)).toBe(false);
+    expect(shouldShowIslandIdleRecall([], true, false)).toBe(false);
+    expect(shouldShowIslandIdleRecall([], false, true)).toBe(false);
   });
 });

@@ -875,10 +875,15 @@ export const IslandSurface = (props: IslandSurfaceProps) => {
 
     const hit = pillHit.current;
     if (hit) {
-      hit.style.transform = `translate(${pill.x}px, ${pill.y}px)`;
+      // The collapsed capsule is only ~31px tall; give its hit area at least 44px
+      // of height, centred on the pill, so a fingertip can land on it. Expanded
+      // capsules are already taller than that and keep their exact shape.
+      const hitHeight = Math.max(44, pill.height);
+      const hitY = pill.y - (hitHeight - pill.height) / 2;
+      hit.style.transform = `translate(${pill.x}px, ${hitY}px)`;
       hit.style.width = `${pill.width}px`;
-      hit.style.height = `${pill.height}px`;
-      hit.style.borderRadius = `${pill.radius}px`;
+      hit.style.height = `${hitHeight}px`;
+      hit.style.borderRadius = hitHeight === pill.height ? `${pill.radius}px` : `${hitHeight / 2}px`;
     }
     const bHit = bubbleHit.current;
     if (bHit) {

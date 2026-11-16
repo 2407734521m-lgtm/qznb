@@ -96,6 +96,17 @@ export default function MeSettings() {
     window.dispatchEvent(new Event('qznb-font-size-changed'));
   }, [fontSize]);
 
+  // While the island panel is open, the live island chrome at the top of the
+  // viewport would sit on top of the in-panel preview and read as a second,
+  // misaligned capsule. Hide it; the preview is the thing being adjusted.
+  // The drag-align overlay needs the real island visible, so it is excluded.
+  useEffect(() => {
+    const open = expanded === 'island' && !aligning;
+    if (!open) return;
+    document.documentElement.dataset.qzIslandSettingsOpen = 'true';
+    return () => { delete document.documentElement.dataset.qzIslandSettingsOpen; };
+  }, [expanded, aligning]);
+
   const normalizedQuery = query.trim().toLocaleLowerCase();
   const visibleGroups = GROUPS.map(group => ({
     ...group,
@@ -159,8 +170,9 @@ export default function MeSettings() {
         .qz-settings-time-input{width:auto;min-width:112px;max-width:100%;margin:0;padding:7px 8px;border:1px solid #e6dccf!important;border-radius:9px;background:#fff!important;color:#302b24!important}
         .qz-settings-history{display:flex;gap:7px;flex-wrap:wrap;margin:10px 0}
         .qz-settings-history span{padding:6px 10px;border-radius:999px;background:#f1ebe2;color:#5f564c;font-size:12px}
-        .qz-island-settings-stage{height:78px;margin:12px 0 14px;position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden;border-radius:14px;background:linear-gradient(135deg,#f3f0eb,#eae6df)}
-        .qz-island-settings-preview{position:absolute;left:50%;top:50%;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:999px;background:#050506;box-shadow:0 5px 14px rgba(0,0,0,.2);transition:width .14s ease,height .14s ease,transform .14s ease}
+        .qz-island-settings-stage{height:160px;margin:12px 0 14px;position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden;border-radius:14px;background:linear-gradient(135deg,#f3f0eb,#eae6df)}
+        .qz-island-settings-stage:before{content:"";position:absolute;top:0;left:0;right:0;height:3px;background:rgba(5,5,6,.35)}
+        .qz-island-settings-preview{position:absolute;left:50%;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:999px;background:#050506;box-shadow:0 5px 14px rgba(0,0,0,.2);transition:width .14s ease,height .14s ease,top .14s ease,transform .14s ease}
         .qz-island-settings-preview:before,.qz-island-settings-preview:after{content:"";display:block;border-radius:999px;background:rgba(255,255,255,.86)}
         .qz-island-settings-preview:before{width:4px;height:4px;opacity:.7}
         .qz-island-settings-preview:after{width:18px;height:2px;opacity:.55}
@@ -202,14 +214,16 @@ export default function MeSettings() {
                 {row.panel && expanded === row.panel && (
                   <div className="qz-settings-panel">
                     {row.panel === 'island' && <>
-                      <p>调整灵动岛在页面中的位置和胶囊尺寸，改动会即时预览，并同步到当前账号。</p>
-                      <div className="qz-island-settings-stage" aria-label="灵动岛尺寸预览">
+                      <p>调整灵动岛在页面中的位置和胶囊尺寸。下面的框就是屏幕顶部，药丸的位置和大小跟真机上看到的一样；改动会即时预览，并同步到当前账号。</p>
+                      <div className="qz-island-settings-stage" aria-label="灵动岛位置预览（屏幕顶部，等比）">
                         <span
                           className="qz-island-settings-preview"
                           style={{
                             width: prefs.island.width,
                             height: prefs.island.height,
-                            transform: `translate(calc(-50% + ${prefs.island.offsetX}px), calc(-50% + ${Math.max(-18, Math.min(18, (prefs.island.offsetY - 10) / 3))}px))`,
+                            // 与真机上同一个公式：锚点 18px + 引擎 shape-top 12.5px +（垂直偏移 - 10px 提供方上抬）。
+                            top: 20.5 + prefs.island.offsetY,
+                            transform: `translateX(calc(-50% + ${prefs.island.offsetX}px))`,
                           }}
                         />
                       </div>

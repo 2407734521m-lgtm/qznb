@@ -8,6 +8,7 @@ const [
   activity,
   styles,
   islandRoot,
+  islandSurface,
   bridgeSource,
   bridgeApplied,
   overlays,
@@ -19,6 +20,7 @@ const [
   read('src/components/QianzhiMusicIslandActivity.tsx'),
   read('src/components/MusicIsland.css'),
   read('src/lib/island/island-root.tsx'),
+  read('src/lib/island/surface.tsx'),
   read('music/overlays/QianzhiEmbedBridge.tsx'),
   read('music/folia/src/components/qianzhi/QianzhiEmbedBridge.tsx'),
   read('music/folia/src/components/app/overlays/AppOverlays.tsx'),
@@ -47,6 +49,41 @@ assert.ok(activity.includes('MusicCompactContent'));
 assert.ok(activity.includes('MusicSpectrumContent'));
 assert.ok(activity.includes('MusicExpandedControls'));
 assert.ok(activity.includes('type="range"'));
+
+// Volume travels both ways across the bridge: the island shows the live level
+// and drives it, and the Folia side applies it to the real audio settings.
+assert.ok(activity.includes("sendCommand('volume'"), 'The expanded island must send volume changes across the bridge.');
+assert.ok(activity.includes("sendCommand('mute'"), 'The expanded island must send mute changes across the bridge.');
+assert.ok(activity.includes('aria-label="音量"'), 'The volume slider must be labelled.');
+assert.ok(activity.includes('qz-island-volume'), 'The expanded island must render a volume row.');
+assert.ok(parent.includes('volume: number | null'), 'The main-site track must carry the reported volume, or null when unreported.');
+assert.ok(parent.includes('isMuted: boolean'), 'The main-site track must carry the mute state.');
+assert.ok(parent.includes("'volume' | 'mute'"), 'The main-site command set must include volume and mute.');
+assert.ok(bridgeSource.includes("command?: 'toggle' | 'previous' | 'next' | 'seek' | 'volume' | 'mute'"), 'The bridge must accept volume and mute commands.');
+assert.ok(bridgeSource.includes('handleSetVolume'), 'The bridge must apply volume commands to the Folia audio settings.');
+assert.ok(bridgeSource.includes('handleSetMuted'), 'The bridge must apply mute commands to the Folia audio settings.');
+assert.ok(bridgeSource.includes('volume: Number.isFinite(playback.volume)'), 'The bridge must report the live volume in STATE.');
+assert.ok(bridgeSource.includes('isMuted: playback.isMuted === true'), 'The bridge must report the mute state in STATE.');
+assert.ok(bridgeSource.includes("case 'volume':"), 'The bridge must handle the volume command.');
+assert.ok(bridgeSource.includes("case 'mute':"), 'The bridge must handle the mute command.');
+
+// The open-music button must not wear a queue-looking list icon.
+assert.ok(!activity.includes('name="list"'), 'The queue-looking list icon must not stay on the open-music button.');
+assert.ok(activity.includes('name="open"'), 'The open-music button must use an open icon.');
+
+// With no live activity the island must not hang an empty black capsule: only
+// a thin glass edge with a note, which opens the music space.
+assert.ok(activity.includes('shouldShowIslandIdleRecall'), 'The idle recall decision must be an explicit, tested helper.');
+assert.ok(activity.includes('className="qz-island-idle"'), 'The idle state must render the recall edge.');
+assert.ok(styles.includes('.qz-island-idle'), 'The recall edge must be styled.');
+assert.ok(styles.includes('[data-qz-island-settings-open="true"]'), 'Opening the island settings must hide the live island chrome so it cannot double the preview.');
+
+// Collapse/restore must stay inside the 220–360ms band, and the collapsed
+// recall targets must be at least 44px tall.
+assert.ok(!styles.includes('420ms'), 'No 420ms island transition may remain.');
+assert.ok(styles.includes('transform 360ms'), 'The dock/restore slide must run at 360ms.');
+assert.ok(islandSurface.includes('Math.max(44, pill.height)'), 'The collapsed pill hit area must be at least 44px tall.');
+assert.ok(styles.includes('height: 44px;'), 'The peek and idle recall buttons must be at least 44px tall.');
 
 // The new engine owns the morph, press handling, outside press and Escape behaviour.
 assert.ok(activity.includes('<Island'));

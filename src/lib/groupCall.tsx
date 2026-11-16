@@ -473,6 +473,8 @@ export function GroupCallProvider({ children }: { children: ReactNode }) {
     watchConversation,
   }), [phase, activeConversationId, conversationId, activeParticipantCount, joinGroupCall, watchConversation]);
 
+  const hasActiveSpeaker = participants.some(person => person.speaking && !person.muted);
+
   const statusLabel = phase === 'connecting'
     ? '正在连接语音房间…'
     : phase === 'reconnecting'
@@ -514,17 +516,17 @@ export function GroupCallProvider({ children }: { children: ReactNode }) {
               </header>
 
               <main className="qz-group-call-main">
-                <div className="qz-group-call-wave" aria-hidden="true"><i /><i /><i /><i /><i /></div>
+                <div className={"qz-group-call-wave" + (hasActiveSpeaker ? " is-active" : "")} aria-hidden="true"><i /><i /><i /><i /><i /></div>
                 <div className="qz-group-call-summary">
                   <strong>{participants.length || 1}</strong>
                   <span>位成员在语音中</span>
                 </div>
                 <div className="qz-group-call-participants" aria-live="polite">
                   {participants.map(person => (
-                    <div className={'qz-group-call-person' + (person.speaking ? ' is-speaking' : '')} key={person.id}>
+                    <div className={'qz-group-call-person' + (person.speaking && !person.muted ? ' is-speaking' : '')} key={person.id}>
                       <span className="qz-group-call-avatar">{shortInitial(person.name)}</span>
                       <span className="qz-group-call-person-name">{person.name}</span>
-                      <small>{person.muted ? '已静音' : person.speaking ? '正在说话' : '已加入'}</small>
+                      <small>{person.muted ? '已静音' : person.speaking && !person.muted ? '正在说话' : '已加入'}</small>
                     </div>
                   ))}
                   {!participants.length && (

@@ -132,7 +132,10 @@ export default function MyProfile() {
         setNotifUnread(list.filter(n => !n.is_read).length);
       });
   }, [uid]);
-  async function logout() { await supabase.auth.signOut(); }
+  async function logout() {
+    if (!(await confirmDialog('确定退出登录吗？退出后需要重新登录才能进入。', { danger: true, confirmText: '退出登录' }))) return;
+    await supabase.auth.signOut();
+  }
 
   useEffect(() => { (async () => {
     const [p, pr, c, g] = await Promise.all([

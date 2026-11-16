@@ -43,6 +43,7 @@ describe('Qianzhi call island activity', () => {
       onCancel: () => {},
       onHangUp: () => {},
       onToggleMute: () => {},
+      onToggleSpeaker: () => {},
       onRestore: () => {},
     });
 
@@ -67,6 +68,7 @@ describe('Qianzhi call island activity', () => {
       onCancel: () => {},
       onHangUp: () => {},
       onToggleMute: () => {},
+      onToggleSpeaker: () => {},
       onRestore: () => {},
     });
     const actionRow = activity.expanded?.bottom as ReactElement<{ children: ReactElement<{ children: ReactElement<{ label: string }>[] }> }>;

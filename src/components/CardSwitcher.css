@@ -1,0 +1,55 @@
+/* 卡片切换（Bencho 形态）：纸面冷白 token，一次一张，左右滑换卡。 */
+.qz-card-switcher {
+  --qz-cs-paper: #f7f8f8;
+  --qz-cs-card: #ffffff;
+  --qz-cs-ink: #1f2a3a;
+  --qz-cs-muted: #7a8894;
+  --qz-cs-line: #e5e8ea;
+  --qz-cs-red: #b0404f;
+}
+
+.qz-card-switcher-viewport {
+  overflow: hidden;
+  touch-action: pan-y;
+  border-radius: 14px;
+}
+
+.qz-card-switcher-card {
+  will-change: transform, opacity;
+}
+
+.qz-card-switcher-card > * {
+  width: 100%;
+}
+
+.qz-card-switcher-dots {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  padding-top: 10px;
+}
+
+.qz-card-switcher-dot {
+  width: 22px;
+  height: 6px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: var(--qz-cs-line);
+  cursor: pointer;
+}
+
+.qz-card-switcher-dot.is-active {
+  background: var(--qz-cs-red);
+}
+
+.qz-card-switcher-dot:focus-visible {
+  outline: 2px solid var(--qz-cs-ink);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .qz-card-switcher-card {
+    transition: none;
+  }
+}

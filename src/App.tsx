@@ -83,7 +83,7 @@ const SongWall = lazyWithRetry(() => import('./pages/SongWall'));
 const Daily = lazyWithRetry(() => import('./pages/Daily'));
 const ParticleFlower = lazyWithRetry(() => import('./pages/ParticleFlower'));
 const AirInk = lazyWithRetry(() => import('./pages/AirInk'));
-import { alertDialog, confirmDialog } from './lib/dialog';
+import { alertDialog, slideConfirmDialog } from './lib/dialog';
 import { resolveApproximateRegion, saveSharedRegion } from './lib/location';
 import GlobalSearch from './components/GlobalSearch';
 import MusicIsland from './components/MusicIsland';
@@ -1285,11 +1285,12 @@ function Shell() {
 
   async function logout() { await supabase.auth.signOut({ scope: 'local' }); }
 
-  // Dock 快捷面板里的“退出登录”：先关面板，再走站内确认框，确认后才退出。
+  // Dock 快捷面板里的“退出登录”：先关面板，再走滑动确认，滑到底才退出。
   // 顶栏已撤，快捷面板是全站任何页面都能打开退出入口的地方。
+  // 文案沿用原来的站内确认框，确认方式从点按钮改成滑到底。
   async function handleDockLogout() {
     setDockMoreOpen(false);
-    if (!(await confirmDialog('确定退出登录吗？退出后需要重新登录才能进入。', { danger: true, confirmText: '退出登录' }))) return;
+    if (!(await slideConfirmDialog('确定退出登录吗？退出后需要重新登录才能进入。', { danger: true, confirmText: '退出登录' }))) return;
     await logout();
   }
 

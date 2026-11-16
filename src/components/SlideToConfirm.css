@@ -1,0 +1,96 @@
+/* 滑动确认（Bencho 形态）：纸面冷白 token，滑到底才执行，滑一半回弹。 */
+.qz-slide-confirm {
+  --qz-sc-paper: #f7f8f8;
+  --qz-sc-card: #ffffff;
+  --qz-sc-ink: #1f2a3a;
+  --qz-sc-muted: #7a8894;
+  --qz-sc-line: #e5e8ea;
+  --qz-sc-red: #b0404f;
+}
+
+.qz-slide-confirm-track {
+  position: relative;
+  height: 52px;
+  border-radius: 999px;
+  background: var(--qz-sc-paper);
+  border: 1px solid var(--qz-sc-line);
+  overflow: hidden;
+  touch-action: pan-y;
+}
+
+.qz-slide-confirm-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 0;
+  background: color-mix(in srgb, var(--qz-sc-red) 14%, transparent);
+  transition-property: width;
+  transition-timing-function: ease-out;
+}
+
+.qz-slide-confirm.is-danger .qz-slide-confirm-fill {
+  background: color-mix(in srgb, var(--qz-sc-red) 22%, transparent);
+}
+
+.qz-slide-confirm-hint {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--qz-sc-muted);
+  font-size: 13.5px;
+  pointer-events: none;
+  user-select: none;
+}
+
+.qz-slide-confirm-thumb {
+  position: absolute;
+  left: 2px;
+  top: 50%;
+  margin-top: -23px;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  border: 1px solid var(--qz-sc-line);
+  background: var(--qz-sc-card);
+  color: var(--qz-sc-ink);
+  font-size: 20px;
+  line-height: 1;
+  cursor: grab;
+  box-shadow: 0 2px 8px rgba(31, 42, 58, 0.14);
+  touch-action: none;
+  transition-property: transform;
+  transition-timing-function: ease-out;
+  will-change: transform;
+}
+
+.qz-slide-confirm-thumb:active {
+  cursor: grabbing;
+}
+
+.qz-slide-confirm-thumb:focus-visible {
+  outline: 2px solid var(--qz-sc-red);
+  outline-offset: 2px;
+}
+
+.qz-slide-confirm-thumb:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.qz-slide-confirm-label {
+  display: block;
+  margin-top: 8px;
+  text-align: center;
+  color: var(--qz-sc-muted);
+  font-size: 12px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .qz-slide-confirm-fill,
+  .qz-slide-confirm-thumb {
+    transition: none;
+  }
+}

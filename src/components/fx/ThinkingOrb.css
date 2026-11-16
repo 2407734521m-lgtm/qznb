@@ -1,0 +1,38 @@
+/* 思考小球（Libraries.dev thinking-orbs 形态）：纸面冷白 token。 */
+.fx-thinking-orb {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 4px;
+  color: #7a8894;
+  font-size: 13px;
+}
+
+.fx-thinking-orb-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.fx-thinking-orb-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #1f2a3a;
+  opacity: 0.6;
+  display: inline-block;
+}
+
+.fx-thinking-orb-dot:nth-child(3) {
+  background: #b0404f;
+}
+
+.fx-thinking-orb-label {
+  line-height: 1.4;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fx-thinking-orb-dot {
+    animation: none;
+  }
+}

@@ -6,6 +6,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../auth';
 import { downscaleImage, downloadMediaWithProgress, uploadMediaWithProgress, useSignedUrl } from '../lib/media';
 import SmoothProgress from '../components/fx/SmoothProgress';
+import VoiceGlow, { resolveVoiceGlow } from '../components/fx/VoiceGlow';
 import { useDelayedLoading } from '../components/fx/Skeleton';
 import BlurImg from '../components/fx/BlurImg';
 import { useCall } from '../lib/call';
@@ -234,6 +235,8 @@ export default function Chat() {
   const [loadingMsgs, setLoadingMsgs] = useState(true);
   const showMsgsSkeleton = useDelayedLoading(loadingMsgs);
   const [text, setText] = useState('');
+  // 输入框是否聚焦：只决定底部语音光晕亮不亮，不改任何发送逻辑。
+  const [inputFocused, setInputFocused] = useState(false);
   const [outbox, setOutbox] = useState<OutboxEntry[]>([]);
   const outboxSeqRef = useRef(0);
   const swappedIdsRef = useRef<Set<number>>(new Set());
@@ -1826,10 +1829,12 @@ export default function Chat() {
         )}
         <div className="im-input-wrap">
           <input ref={inputRef} className="im-input" value={text} onChange={e => { setText(e.target.value); notifyTyping(e.target.value); }}
+            onFocus={() => setInputFocused(true)} onBlur={() => setInputFocused(false)}
             placeholder={recording ? '录音中 ' + String(Math.floor(recordSeconds / 60)).padStart(2, '0') + ':' + String(recordSeconds % 60).padStart(2, '0') + ' · 点红色按钮结束' : uploading ? '正在发送媒体…' : '私信'} maxLength={2000} autoComplete="off" aria-label="输入消息" />
           {!text.trim() && <button type="button" className={'im-mic' + (recording ? ' recording' : '')} aria-label={recording ? '结束录音并发送' : '录制语音'} title={recording ? '结束录音并发送' : '录制语音'} disabled={uploading} onClick={recording ? stopRecording : startRecording}>{recording ? '■' : <svg width="15" height="18" viewBox="0 0 18 22" fill="none" aria-hidden="true"><rect x="6" y="1" width="6" height="13" rx="3" stroke="currentColor" strokeWidth="1.7" /><path d="M3 10.5v1a6 6 0 0 0 12 0v-1M9 17.5V21M6 21h6" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" /></svg>}</button>}
           {text.trim() && <button type="submit" className="im-send" aria-label="发送消息" disabled={uploading || recording}>↑</button>}
         </div>
+        <VoiceGlow state={resolveVoiceGlow({ recording, focused: inputFocused })} />
       </form>
       <DisappearingCustomDialog
         open={showCustomDuration}

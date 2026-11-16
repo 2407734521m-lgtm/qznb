@@ -6,6 +6,8 @@ import { useSignedUrl, useSignedUrls } from '../lib/media';
 import './MeHub.css';
 import './MeHub.polish.css';
 import LargeTitleBar from '../components/LargeTitleBar';
+import SettingIcon from '../components/SettingIcon';
+import { ME_QUICK_ENTRIES } from '../lib/meQuickEntries';
 import NumberTicker from '../components/fx/NumberTicker';
 import BlurImg from '../components/fx/BlurImg';
 
@@ -330,6 +332,18 @@ export default function MeHub() {
           </button>
         </div>
         <div className="me-hub-photo-note">已分享 <b>{stats.loading ? <span className="fx-skel-wrap" style={{ display: 'inline-block', width: 20, height: 14, verticalAlign: 'middle' }}><span className="fx-skel" style={{ display: 'block', width: '100%', height: '100%' }} /></span> : <NumberTicker value={stats.photos} />}</b> 张照片 <span>·</span> <button onClick={() => nav('/albums')}>去相册看看 ›</button></div>
+      </section>
+
+      <section className="me-hub-quick" aria-label="快捷入口">
+        <header className="me-hub-quick-head"><h2>快捷入口</h2></header>
+        <div className="me-hub-quick-grid">
+          {ME_QUICK_ENTRIES.map((entry) => (
+            <button key={entry.label} type="button" className="me-hub-quick-item" onClick={() => nav(entry.href(me))}>
+              <span className="me-hub-quick-icon"><SettingIcon name={entry.icon} size={22} /></span>
+              <strong>{entry.label}</strong>
+            </button>
+          ))}
+        </div>
       </section>
 
       <section className="me-hub-feed" aria-label="我的发布">

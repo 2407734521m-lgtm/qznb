@@ -65,7 +65,7 @@
 .qz-island-navigation-indicator {
   position: fixed;
   top: calc(var(--qz-island-anchor-top, max(env(safe-area-inset-top, 0px), 18px)) + 12.5px + var(--qz-island-config-y, 0px));
-  left: calc(50% + var(--qz-island-config-x, 0px) + var(--qz-island-config-width, 104px) / 2 + 8px);
+  left: calc(50% + var(--qz-island-config-x, 0px) + var(--qz-island-config-half-width, 52px) + 8px);
   z-index: 4004;
   display: grid;
   width: 20px;
@@ -173,7 +173,7 @@
 
 @media (max-width: 360px) {
   .qz-island-navigation-indicator {
-    left: calc(50% + var(--qz-island-config-x, 0px) + var(--qz-island-config-width, 104px) / 2 + 5px);
+    left: calc(50% + var(--qz-island-config-x, 0px) + var(--qz-island-config-half-width, 52px) + 5px);
     width: 18px;
   }
   .qz-island-navigation-indicator::before { width: 18px; height: 18px; }

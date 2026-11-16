@@ -3304,7 +3304,7 @@ export type Database = {
       leave_group_conversation: { Args: { p_conversation_id: number }; Returns: undefined }
       transfer_group_ownership: { Args: { p_conversation_id: number; p_new_owner: string }; Returns: undefined }
     }
-    Enums:
+    Enums: {
       [_ in never]: never
     }
     CompositeTypes: {

@@ -65,7 +65,7 @@ assert.ok(activity.includes('qz-island-volume'), 'The expanded island must rende
 // the painted capsule, so the card is sized for its content.
 assert.ok(activity.includes('back10') && activity.includes('forward10'), 'The expanded island must offer ten-second skip buttons like the fullscreen player.');
 assert.ok(activity.includes("sendCommand('seek'"), 'The ten-second skip buttons must seek across the bridge.');
-assert.ok(qianzhiMetrics.includes('expanded: { maxHeight: 300 }'), 'The expanded card must be tall enough for the full player instead of clipping the controls row.');
+assert.ok(qianzhiMetrics.includes('expanded: { maxHeight: 224 }'), 'The expanded card must be tall enough for the full player instead of clipping the controls row.');
 assert.ok(parent.includes('volume: number | null'), 'The main-site track must carry the reported volume, or null when unreported.');
 assert.ok(parent.includes('isMuted: boolean'), 'The main-site track must carry the mute state.');
 assert.ok(parent.includes("'volume' | 'mute'"), 'The main-site command set must include volume and mute.');

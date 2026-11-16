@@ -25,25 +25,45 @@ export function routeActivityLabel(pathname: string): string {
   return '页面';
 }
 
-export function createNavigationIslandActivity(label: string): ActivityOptions {
+type NavigationStatus = 'loading' | 'success';
+
+function NavigationStatusIcon({ status, className }: { status: NavigationStatus; className: string }) {
+  const label = status === 'success' ? '打开成功' : '正在加载';
+  return (
+    <span className={className} data-state={status} role="img" aria-label={label}>
+      <i aria-hidden="true" />
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="m5 12.5 4.4 4.4L19 7.3" />
+      </svg>
+    </span>
+  );
+}
+
+export function createNavigationIslandActivity(label: string, status: NavigationStatus = 'loading'): ActivityOptions {
+  const completed = status === 'success';
+  const actionText = completed ? '已打开' : '正在打开';
+
   return {
     id: ACTIVITY_ID,
-    label: '正在打开' + label,
+    label: actionText + label,
     priority: 14,
     compact: {
-      leading: <span className="qz-island-navigation-compact"><i aria-hidden="true" />正在打开</span>,
-      trailing: <span className="qz-island-navigation-trail" aria-hidden="true"><i /><i /><i /></span>,
+      leading: <span className="qz-island-navigation-compact">{actionText}</span>,
+      trailing: <NavigationStatusIcon status={status} className="qz-island-navigation-trail" />,
     },
-    minimal: <span className="qz-island-navigation-minimal" aria-label="正在打开页面"><i /></span>,
+    minimal: <NavigationStatusIcon status={status} className="qz-island-navigation-minimal" />,
     expanded: {
       leading: <span className="qz-island-navigation-label">页面切换</span>,
+      trailing: <NavigationStatusIcon status={status} className="qz-island-navigation-expanded-status" />,
       center: (
         <span className="qz-island-navigation-copy">
-          <strong>正在打开{label}</strong>
-          <small>正在加载页面内容</small>
+          <strong>{actionText}{label}</strong>
+          <small>{completed ? '页面已就绪' : '正在加载页面内容'}</small>
         </span>
       ),
-      bottom: <span className="qz-island-navigation-progress" role="progressbar" aria-label="页面加载中"><i /></span>,
+      ...(completed ? {} : {
+        bottom: <span className="qz-island-navigation-progress" role="progressbar" aria-label="页面加载中"><i /></span>,
+      }),
     },
   };
 }
@@ -60,7 +80,11 @@ export default function QianzhiIslandNavigationActivity() {
   useEffect(() => {
     const sink = {
       show: (nextLabel: string) => {
-        island.start(createNavigationIslandActivity(nextLabel));
+        island.start(createNavigationIslandActivity(nextLabel, 'loading'));
+      },
+      complete: () => {
+        // The route is ready: replace the spinner with a check without restarting the activity.
+        island.start(createNavigationIslandActivity(latestLabel.current, 'success'));
       },
       end: () => island.end(ACTIVITY_ID),
     };

@@ -1,6 +1,6 @@
 /* ChatCN conversation-list adaptation for qznb's existing inbox. */
 .im-inbox.chatcn-inbox {
-  padding: 10px 16px calc(112px + env(safe-area-inset-bottom)) !important;
+  padding: max(18px, env(safe-area-inset-top)) 16px calc(112px + env(safe-area-inset-bottom)) !important;
   background: #fff !important;
   color: #171b20 !important;
 }

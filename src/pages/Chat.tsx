@@ -184,9 +184,18 @@ export default function Chat() {
   const me = useAuth().session!.user.id;
   const userPreferences = useUserPreferences(me);
   const nav = useNavigate();
-  const loc = useLocation() as { state?: { name?: string } };
+  const loc = useLocation() as { state?: { name?: string; isGroup?: boolean } };
   const [name, setName] = useState(loc.state?.name ?? '聊天');
   const [peer, setPeer] = useState<ChatPeer | null>(null);
+  const [isGroup, setIsGroup] = useState(Boolean(loc.state?.isGroup));
+  const [groupMembers, setGroupMembers] = useState<Array<{ id: string; username: string; display_name: string | null; avatar_path: string | null; role: string; joined_at: string }>>([]);
+  const [myGroupRole, setMyGroupRole] = useState('member');
+  const [groupActionBusy, setGroupActionBusy] = useState(false);
+  const [groupRenameValue, setGroupRenameValue] = useState('');
+  const [showGroupInvitePicker, setShowGroupInvitePicker] = useState(false);
+  const [groupInviteFriends, setGroupInviteFriends] = useState<ChatPeer[]>([]);
+  const [groupInviteSelectedIds, setGroupInviteSelectedIds] = useState<string[]>([]);
+  const [groupInviteBusy, setGroupInviteBusy] = useState(false);
   const [msgs, setMsgs] = useState<ChatMessage[]>([]);
   const [loadingMsgs, setLoadingMsgs] = useState(true);
   const showMsgsSkeleton = useDelayedLoading(loadingMsgs);
@@ -339,7 +348,7 @@ export default function Chat() {
       .select('profile_id,last_receipt_message_id')
       .eq('conversation_id', conversationId);
     if (requestId !== loadSequenceRef.current) return;
-    const otherMember = (members ?? []).find(member => member.profile_id !== me);
+    const otherMember = isGroup ? null : (members ?? []).find(member => member.profile_id !== me);
     setOtherLastReadMessageId(otherMember?.last_receipt_message_id ?? null);
 
     if (document.visibilityState === 'visible') {
@@ -355,16 +364,25 @@ export default function Chat() {
     load();
     let peerLookupActive = true;
     void (async () => {
-      const { data: members } = await supabase.from('conversation_members').select('profile_id')
-        .eq('conversation_id', Number(cid));
+      const { data: groupRows, error: groupError } = await supabase.rpc('get_group_conversation_details', { p_conversation_id: Number(cid) });
+      const group = !groupError && Array.isArray(groupRows) ? groupRows[0] : null;
+      if (group) {
+        if (!peerLookupActive) return;
+        setIsGroup(true);
+        setName(group.group_name ?? loc.state?.name ?? '群聊');
+        setGroupRenameValue(group.group_name ?? '');
+        setMyGroupRole(group.my_role ?? 'member');
+        setGroupMembers(Array.isArray(group.members) ? group.members as unknown as Array<{ id: string; username: string; display_name: string | null; avatar_path: string | null; role: string; joined_at: string }> : []);
+        setPeer(null);
+        return;
+      }
+      setIsGroup(false);
+      const { data: members } = await supabase.from('conversation_members').select('profile_id').eq('conversation_id', Number(cid));
       const other = ((members ?? []) as Array<{ profile_id: string }>).map(x => x.profile_id).find(x => x !== me);
       if (!other) return;
       const { data: friends } = await supabase.rpc('my_friends');
       const found = ((friends ?? []) as ChatPeer[]).find(item => item.id === other);
-      if (peerLookupActive && found) {
-        setPeer(found);
-        setName(found.display_name ?? found.username ?? loc.state?.name ?? '聊天');
-      }
+      if (peerLookupActive && found) { setPeer(found); setName(found.display_name ?? found.username ?? loc.state?.name ?? '聊天'); }
     })();
     const channel = supabase.channel('chat-' + cid)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'messages', filter: 'conversation_id=eq.' + cid }, () => { load(); })
@@ -394,7 +412,7 @@ export default function Chat() {
       supabase.removeChannel(channel);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cid]);
+  }, [cid, isGroup]);
 
   useEffect(() => {
     let active = true;
@@ -963,20 +981,20 @@ export default function Chat() {
           <span aria-hidden="true">‹</span>
         </button>
         <button type="button" className="im-contact-stack" aria-label="查看会话资料" onClick={() => setShowDetails(true)}>
-          <span className="im-avatar im-avatar-open" role="button" aria-label={'查看' + name + '的主页'}
-            onClick={event => { event.stopPropagation(); if (peer) nav('/members/' + peer.id); }}>
-            {peerAvatarUrl ? <img src={peerAvatarUrl} alt="" /> : (name.trim().charAt(0).toUpperCase() || '友')}
+          <span className="im-avatar im-avatar-open" role="button" aria-label={isGroup ? '群聊资料' : '查看' + name + '的主页'}
+            onClick={event => { event.stopPropagation(); if (peer && !isGroup) nav('/members/' + peer.id); }}>
+            {!isGroup && peerAvatarUrl ? <img src={peerAvatarUrl} alt="" /> : (isGroup ? '群' : (name.trim().charAt(0).toUpperCase() || '友'))}
           </span>
           <span className="im-contact-name-pill">
             <span className="im-title">{name}</span>
             <span className="im-contact-chevron" aria-hidden="true">›</span>
           </span>
-          {otherTyping && <span className="im-sub">正在输入…</span>}
+          {otherTyping && <span className="im-sub">{isGroup ? '有人正在输入…' : '正在输入…'}</span>}
         </button>
-        <button type="button" className="im-icon im-call-button" aria-label="语音通话" title="语音通话" disabled={!peer || callBusy}
+        {!isGroup && <button type="button" className="im-icon im-call-button" aria-label="语音通话" title="语音通话" disabled={!peer || callBusy}
           onClick={() => { if (peer && cid) startCall({ id: peer.id, name }, Number(cid)); }}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6.62 10.79a15.05 15.05 0 0 0 6.59 6.59l2.2-2.2a1 1 0 0 1 1.02-.24 11.4 11.4 0 0 0 3.57.57 1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A17 17 0 0 1 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1 11.4 11.4 0 0 0 .57 3.57 1 1 0 0 1-.25 1.02z"/></svg>
-        </button>
+        </button>}
         <button className="im-icon im-info-button" aria-label="聊天详情" onClick={() => setShowDetails(true)}>
           <span aria-hidden="true">ⓘ</span>
         </button>
@@ -991,13 +1009,90 @@ export default function Chat() {
           </header>
           <div className="im-profile-scroll">
             <div className="im-profile-hero">
-              <button type="button" className="im-profile-avatar im-profile-avatar-btn" aria-label={'查看' + name + '的主页'}
-                onClick={() => { setShowDetails(false); if (peer) nav('/members/' + peer.id); }}>
-                {peerAvatarUrl ? <img src={peerAvatarUrl} alt="" /> : <span>{name.trim().charAt(0).toUpperCase() || '友'}</span>}
+              <button type="button" className="im-profile-avatar im-profile-avatar-btn" aria-label={isGroup ? '群聊资料' : '查看' + name + '的主页'}
+                onClick={() => { setShowDetails(false); if (peer && !isGroup) nav('/members/' + peer.id); }}>
+                {!isGroup && peerAvatarUrl ? <img src={peerAvatarUrl} alt="" /> : <span>{isGroup ? '群' : (name.trim().charAt(0).toUpperCase() || '友')}</span>}
               </button>
               <div className="im-profile-name">{peer?.display_name ?? name}</div>
-              <div className="im-profile-username">{peer?.username ? '@' + peer.username : '一对一私密会话'}</div>
+              <div className="im-profile-username">{isGroup ? groupMembers.length + ' 位成员 · 群聊' : peer?.username ? '@' + peer.username : '一对一私密会话'}</div>
               <span className="im-private-label">仅对话成员可见</span>
+              {isGroup && <section className="im-profile-section">
+                <div className="im-profile-section-heading">群成员（{groupMembers.length}）
+                  {(myGroupRole === 'owner' || myGroupRole === 'admin') && <button type="button" className="chatcn-group-add-trigger" disabled={groupInviteBusy} onClick={async () => {
+                    setGroupInviteBusy(true);
+                    const { data, error } = await supabase.rpc('my_friends');
+                    if (error) setError('加载好友列表失败：' + error.message);
+                    else {
+                      const currentIds = new Set(groupMembers.map(member => member.id));
+                      setGroupInviteFriends(((data ?? []) as ChatPeer[]).filter(friend => !currentIds.has(friend.id)));
+                      setGroupInviteSelectedIds([]);
+                      setShowGroupInvitePicker(true);
+                    }
+                    setGroupInviteBusy(false);
+                  }}>{groupInviteBusy ? '加载中…' : '添加成员'}</button>}
+                </div>
+                <div className="chatcn-chat-group-members">
+                  {groupMembers.map(member => <div className="chatcn-chat-group-member" key={member.id}>
+                    <span className="chatcn-chat-group-member-avatar">{member.display_name?.slice(0, 1) ?? member.username.slice(0, 1)}</span>
+                    <span><strong>{member.display_name ?? member.username}</strong><small>@{member.username}</small></span>
+                    <em>{member.role === 'owner' ? '群主' : member.role === 'admin' ? '管理员' : '成员'}</em>
+                    {myGroupRole === 'owner' && member.id !== me && <button type="button" className="chatcn-group-member-action" disabled={groupActionBusy} onClick={async () => {
+                      setGroupActionBusy(true);
+                      const { error } = await supabase.rpc('transfer_group_ownership', { p_conversation_id: Number(cid), p_new_owner: member.id });
+                      if (error) setError('转让群主失败：' + error.message);
+                      else { setMyGroupRole('member'); setGroupMembers(current => current.map(item => ({ ...item, role: item.id === member.id ? 'owner' : item.id === me ? 'member' : item.role }))); }
+                      setGroupActionBusy(false);
+                    }}>转让</button>}
+                    {(myGroupRole === 'owner' || (myGroupRole === 'admin' && member.role === 'member')) && member.id !== me && member.role !== 'owner' && <button type="button" className="chatcn-group-member-action danger" disabled={groupActionBusy} onClick={async () => {
+                      setGroupActionBusy(true);
+                      const { error } = await supabase.rpc('remove_group_member', { p_conversation_id: Number(cid), p_target_profile_id: member.id });
+                      if (error) setError('移除成员失败：' + error.message);
+                      else setGroupMembers(current => current.filter(item => item.id !== member.id));
+                      setGroupActionBusy(false);
+                    }}>移除</button>}
+                  </div>)}
+                </div>
+                {showGroupInvitePicker && <div className="chatcn-group-invite">
+                  {groupInviteFriends.length === 0 ? <p>没有可邀请的新好友。</p> : groupInviteFriends.map(friend => <label key={friend.id}>
+                    <span className="chatcn-group-invite-avatar">{friend.display_name?.slice(0,1) ?? friend.username.slice(0,1)}</span>
+                    <span>{friend.display_name ?? friend.username}<small>@{friend.username}</small></span>
+                    <input type="checkbox" checked={groupInviteSelectedIds.includes(friend.id)} onChange={event => setGroupInviteSelectedIds(current => event.target.checked ? [...current, friend.id] : current.filter(id => id !== friend.id))} />
+                  </label>)}
+                  <div className="chatcn-group-invite-actions">
+                    <button type="button" onClick={() => setShowGroupInvitePicker(false)}>取消</button>
+                    <button type="button" disabled={groupInviteBusy || groupInviteSelectedIds.length === 0} onClick={async () => {
+                      setGroupInviteBusy(true);
+                      const { error } = await supabase.rpc('add_group_members', { p_conversation_id: Number(cid), p_member_ids: groupInviteSelectedIds });
+                      if (error) setError('邀请成员失败：' + error.message);
+                      else {
+                        const { data: refreshed } = await supabase.rpc('get_group_conversation_details', { p_conversation_id: Number(cid) });
+                        if (refreshed?.[0]) setGroupMembers(Array.isArray(refreshed[0].members) ? refreshed[0].members as unknown as Array<{ id: string; username: string; display_name: string | null; avatar_path: string | null; role: string; joined_at: string }> : []);
+                        setShowGroupInvitePicker(false);
+                        setGroupInviteSelectedIds([]);
+                      }
+                      setGroupInviteBusy(false);
+                    }}>{groupInviteBusy ? '处理中…' : '邀请所选成员'}</button>
+                  </div>
+                </div>}
+                {(myGroupRole === 'owner' || myGroupRole === 'admin') && <div className="chatcn-chat-group-rename">
+                  <input aria-label="群聊名称" maxLength={40} value={groupRenameValue} onChange={event => setGroupRenameValue(event.target.value)} />
+                  <button type="button" disabled={groupActionBusy || !groupRenameValue.trim() || groupRenameValue.trim() === name} onClick={async () => {
+                    setGroupActionBusy(true);
+                    const { error } = await supabase.rpc('rename_group_conversation', { p_conversation_id: Number(cid), p_group_name: groupRenameValue.trim() });
+                    if (error) setError('修改群名称失败：' + error.message);
+                    else { setName(groupRenameValue.trim()); setShowDetails(false); }
+                    setGroupActionBusy(false);
+                  }}>{groupActionBusy ? '保存中…' : '保存群名'}</button>
+                </div>}
+                <button type="button" className="chatcn-chat-group-leave" disabled={groupActionBusy || myGroupRole === 'owner'} onClick={async () => {
+                  if (myGroupRole === 'owner') return;
+                  setGroupActionBusy(true);
+                  const { error } = await supabase.rpc('leave_group_conversation', { p_conversation_id: Number(cid) });
+                  if (error) setError('退出群聊失败：' + error.message);
+                  else nav('/friends');
+                  setGroupActionBusy(false);
+                }}>{myGroupRole === 'owner' ? '群主需先转让群主身份才能退出' : '退出群聊'}</button>
+              </section>}
             </div>
             <div className="im-profile-stats">
               <div><strong>{msgs.length}</strong><span>条消息</span></div>
@@ -1086,7 +1181,7 @@ export default function Chat() {
           const canEdit = mine && !deleted && !m.body.startsWith('[[im-image:') && !m.body.startsWith('[[im-audio:');
           const displayBody = deleted ? (mine ? '你撤回了一条消息' : '对方撤回了一条消息') : m.body;
           const inlineMeta = editingId !== m.id && canShowInlineMeta(displayBody, Boolean(m.reply_to_id));
-          const receiptLabel = mine && m.id === latestOutgoingMessageId && userPreferences.chat.showReadReceipts
+          const receiptLabel = !isGroup && mine && m.id === latestOutgoingMessageId && userPreferences.chat.showReadReceipts
             ? (otherLastReadMessageId !== null && otherLastReadMessageId >= m.id ? '已读' : '已送达')
             : '';
           return (
@@ -1097,6 +1192,7 @@ export default function Chat() {
               {dateLabel(m.created_at, msgs[i - 1]?.created_at) && <div className="im-day">{dateLabel(m.created_at, msgs[i - 1]?.created_at)}</div>}
               <div className={'im-row ' + (mine ? 'mine ' : '') + (mine && m.id === latestOutgoingMessageId && userPreferences.chat.showReadReceipts ? 'im-row-has-receipt ' : '') + (samePrevious ? 'im-row-grouped-prev ' : '') + (sameNext ? 'im-row-grouped-next ' : '') + (swappedIdsRef.current.has(m.id) ? 'im-row-static' : '')}>
                 <div className={'im-message-column ' + (mine ? 'mine' : 'theirs')}>
+                  {isGroup && !mine && !samePrevious && <span className="chatcn-group-sender-name">{groupMembers.find(member => member.id === m.sender_id)?.display_name ?? groupMembers.find(member => member.id === m.sender_id)?.username ?? '群成员'}</span>}
                   <div className={'im-bubble ' + (mine ? 'mine' : 'theirs') + (samePrevious ? ' im-bubble-grouped-prev' : '') + (sameNext ? ' im-bubble-grouped-next' : '')}
                     onTouchStart={event => startMessagePress(m.id, event.currentTarget)}
                     onTouchMove={clearMessagePress}

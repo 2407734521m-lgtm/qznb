@@ -270,3 +270,41 @@
   .chatcn-filter-menu { animation: none; }
   .chatcn-filter-trigger { transition: none; }
 }
+
+
+/* Group inbox and create dialog */
+.chatcn-group-avatar {
+  flex: none; display: grid; place-items: center; border-radius: 50%;
+  color: #47515c; background: linear-gradient(145deg,#f4f5f6,#e6e8eb);
+  border: 1px solid rgba(25,35,45,.1);
+}
+.chatcn-group-modal-backdrop {
+  position: fixed; inset: 0; z-index: 1600; display: grid; place-items: center;
+  padding: 18px; background: rgba(20,25,31,.28); backdrop-filter: blur(8px);
+}
+.chatcn-group-modal {
+  width: min(100%, 440px); max-height: min(82dvh, 720px); display: flex; flex-direction: column;
+  overflow: hidden; border: 1px solid rgba(20,30,40,.1); border-radius: 24px;
+  background: #fff; color: #20262d; box-shadow: 0 22px 70px rgba(0,0,0,.2);
+}
+.chatcn-group-modal-head { display:flex; align-items:center; justify-content:space-between; padding:20px 20px 14px; }
+.chatcn-group-modal-head div { display:flex; flex-direction:column; gap:4px; }
+.chatcn-group-modal-head strong { font-size:18px; font-weight:700; }
+.chatcn-group-modal-head span,.chatcn-group-select-heading span { color:#87909a; font-size:12px; }
+.chatcn-group-modal-head button { width:34px;height:34px;border:0;border-radius:50%;background:#f1f2f3;color:#4d5660;font-size:23px; }
+.chatcn-group-name-label { display:flex; flex-direction:column; gap:8px; padding:0 20px 16px; font-size:13px; font-weight:600; }
+.chatcn-group-name-label input { height:46px; padding:0 13px; border:1px solid #e3e6e9; border-radius:13px; background:#fafbfc; color:#20262d; font:inherit; font-weight:400; }
+.chatcn-group-select-heading { display:flex; justify-content:space-between; align-items:center; padding:8px 20px 10px; font-size:13px; font-weight:650; border-top:1px solid #f0f1f2; }
+.chatcn-group-friend-list { overflow:auto; min-height:100px; padding:0 12px 12px; }
+.chatcn-group-friend-list > p { padding:24px 8px; color:#8a929b; text-align:center; font-size:13px; }
+.chatcn-group-friend { min-height:60px; display:flex; align-items:center; gap:11px; padding:7px 8px; border-radius:13px; cursor:pointer; }
+.chatcn-group-friend:active { background:#f5f6f7; }
+.chatcn-group-friend > span:nth-child(2) { display:flex; flex:1; min-width:0; flex-direction:column; gap:3px; }
+.chatcn-group-friend strong { overflow:hidden; color:#272d34; font-size:13px; text-overflow:ellipsis; white-space:nowrap; }
+.chatcn-group-friend small { color:#9299a1; font-size:11px; }
+.chatcn-group-friend input { width:19px;height:19px;accent-color:#3e4852; }
+.chatcn-group-modal-actions { display:flex; gap:10px; padding:14px 20px max(16px,env(safe-area-inset-bottom)); border-top:1px solid #f0f1f2; }
+.chatcn-group-modal-actions button { flex:1; min-height:44px; border-radius:13px; font-size:14px; font-weight:650; }
+.chatcn-group-cancel { border:1px solid #e3e6e9; background:#fff; color:#5b636c; }
+.chatcn-group-create { border:1px solid #252c33; background:#252c33; color:#fff; }
+.chatcn-group-create:disabled { opacity:.42; }

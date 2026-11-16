@@ -64,16 +64,19 @@ export function resolveMusicEqualizerMode(
 ): MusicEqualizerMode {
   if (!spectrum.playing) return 'idle';
 
+  // A valid analyser reading of zero is still real data: it means the audio is quiet,
+  // not that the analyser disappeared. Keep the bars at their measured floor instead
+  // of switching to a decorative animation that moves independently of the music.
   const bands = spectrum.bands;
-  const bandEnergy = bands ? bands.bass + bands.lowMid + bands.vocal + bands.treble : 0;
   const hasSpectrum = spectrum.mode === 'spectrum'
     && spectrum.available
-    && Number.isFinite(bandEnergy)
-    && bandEnergy > 0.025;
+    && bands !== null
+    && [bands.bass, bands.lowMid, bands.vocal, bands.treble].every(Number.isFinite);
   if (hasSpectrum) return 'live';
 
-  const level = Number.isFinite(spectrum.level) ? Math.max(0, Math.min(1, spectrum.level)) : 0;
-  if (spectrum.mode === 'level' && level > 0.012) return 'live';
+  // RMS level remains useful even when FFT bins are unavailable. Zero and near-zero
+  // values are meaningful and must not be replaced by a fake equalizer animation.
+  if (spectrum.mode === 'level' && Number.isFinite(spectrum.level)) return 'live';
 
   return 'fallback';
 }

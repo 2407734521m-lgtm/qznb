@@ -1593,3 +1593,17 @@
     background: #fff !important;
   }
 }
+
+
+.chatcn-chat-group-members { display:flex; flex-direction:column; gap:2px; margin-top:8px; }
+.chatcn-chat-group-member { display:flex; align-items:center; gap:10px; min-height:54px; padding:6px 2px; border-bottom:1px solid rgba(35,45,55,.07); }
+.chatcn-chat-group-member-avatar { width:36px;height:36px;display:grid;place-items:center;flex:none;border-radius:50%;background:#edf0f2;color:#48525c;font-size:13px;font-weight:650; }
+.chatcn-chat-group-member > span:nth-child(2) { display:flex;flex:1;min-width:0;flex-direction:column;gap:3px; }
+.chatcn-chat-group-member strong { color:#252c33;font-size:13px;font-weight:600; }
+.chatcn-chat-group-member small { color:#929aa2;font-size:11px; }
+.chatcn-chat-group-member em { color:#838c95;font-size:11px;font-style:normal; }
+.chatcn-chat-group-rename { display:flex;gap:8px;margin-top:14px; }
+.chatcn-chat-group-rename input { min-width:0;flex:1;height:40px;padding:0 10px;border:1px solid #e3e6e9;border-radius:11px;background:#fff;color:#252c33; }
+.chatcn-chat-group-rename button,.chatcn-chat-group-leave { min-height:40px;padding:0 12px;border:1px solid #e3e6e9;border-radius:11px;background:#fff;color:#39434d;font-size:12px; }
+.chatcn-chat-group-rename button:disabled,.chatcn-chat-group-leave:disabled { opacity:.5; }
+.chatcn-chat-group-leave { width:100%;margin-top:10px;color:#a34b50;border-color:rgba(163,75,80,.2); }

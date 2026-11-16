@@ -1518,3 +1518,78 @@
   .im-file-download-row { gap: 4px; }
   .im-file-download-action { min-width: 42px; flex-basis: 42px; }
 }
+/* iMessage + restrained Liquid Glass refinements.
+   ChatScope's MIT component patterns informed the message surface structure;
+   existing Supabase message actions and virtualized rows remain the source of truth. */
+.im-page .im-head {
+  position: relative;
+  z-index: 5;
+  background: rgba(255,255,255,.86) !important;
+  border-bottom: 1px solid rgba(113,135,170,.14) !important;
+  box-shadow: 0 8px 24px rgba(48,67,100,.045);
+  -webkit-backdrop-filter: blur(22px) saturate(1.32) !important;
+  backdrop-filter: blur(22px) saturate(1.32) !important;
+}
+.im-page .im-contact-name-pill { background: transparent; }
+.im-page .im-title { color: #1d293b !important; }
+.im-page .im-day {
+  color: #718096 !important;
+  border-color: rgba(255,255,255,.98) !important;
+  background: rgba(255,255,255,.88) !important;
+  box-shadow: 0 5px 16px rgba(48,67,100,.055), inset 0 1px 0 #fff;
+  -webkit-backdrop-filter: blur(20px) saturate(1.25);
+  backdrop-filter: blur(20px) saturate(1.25);
+}
+.im-page .im-bubble {
+  box-shadow: 0 5px 16px rgba(42,61,94,.065), inset 0 1px 0 rgba(255,255,255,.16);
+}
+.im-page .im-bubble.mine {
+  background: #3478d4 !important;
+  border-color: rgba(255,255,255,.42) !important;
+  box-shadow: 0 7px 19px rgba(52,120,212,.17), inset 0 1px 0 rgba(255,255,255,.24);
+}
+.im-page .im-bubble.theirs {
+  background: #f2f5f8 !important;
+  border-color: rgba(255,255,255,.98) !important;
+}
+.im-page .im-details {
+  background: rgba(255,255,255,.84) !important;
+  -webkit-backdrop-filter: blur(22px) saturate(1.24);
+  backdrop-filter: blur(22px) saturate(1.24);
+}
+.im-page .im-composer {
+  border-color: rgba(255,255,255,.98) !important;
+  box-shadow: 0 12px 30px rgba(45,65,100,.085), inset 0 1px 0 #fff, inset 0 -1px 0 rgba(120,145,180,.06);
+}
+.im-page .im-message-tools,
+.im-page .im-reaction-picker {
+  border: 1px solid rgba(255,255,255,.96) !important;
+  border-radius: 16px !important;
+  background: rgba(245,248,253,.9) !important;
+  box-shadow: 0 8px 22px rgba(45,65,100,.09), inset 0 1px 0 #fff;
+  -webkit-backdrop-filter: blur(22px) saturate(1.25);
+  backdrop-filter: blur(22px) saturate(1.25);
+}
+.im-page .im-action-btn {
+  border-radius: 11px;
+  background: rgba(255,255,255,.92) !important;
+  border-color: rgba(119,143,176,.14) !important;
+}
+.im-page .im-reply-banner {
+  background: rgba(248,250,253,.88) !important;
+  border-color: rgba(255,255,255,.98) !important;
+}
+.im-page .im-feed {
+  scroll-padding-block: 18px;
+}
+@media(prefers-reduced-transparency:reduce) {
+  .im-page .im-head,
+  .im-page .im-details,
+  .im-page .im-composer,
+  .im-page .im-message-tools,
+  .im-page .im-reaction-picker {
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+    background: #fff !important;
+  }
+}

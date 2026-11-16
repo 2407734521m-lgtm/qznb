@@ -145,6 +145,8 @@ jobs:
 
       - name: Apply Qianzhi player polish (softer background dithering)
         run: node music/scripts/apply-folia-player-polish.mjs
+      - name: Apply cover-following album-art background default
+        run: node music/scripts/apply-folia-cover-following-background.mjs
 
       - name: Apply Qianzhi music brand label
         run: node music/scripts/apply-folia-qianzhi-label.mjs
@@ -179,6 +181,10 @@ jobs:
       - name: Typecheck Folia
         working-directory: music/folia
         run: npm run typecheck
+
+      - name: Test Qianzhi album-art background default
+        working-directory: music/folia
+        run: npm run test:unit -- test/unit/visualizer/qianzhiDefaultCoverBackground.test.ts
 
       - name: Test Folia mobile camera and empty-wall recovery
         working-directory: music/folia

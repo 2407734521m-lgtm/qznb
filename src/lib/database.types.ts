@@ -929,14 +929,20 @@ export type Database = {
       conversations: {
         Row: {
           created_at: string
+          disappearing_mode: string
+          disappearing_seconds: number | null
           id: number
         }
         Insert: {
           created_at?: string
+          disappearing_mode?: string
+          disappearing_seconds?: number | null
           id?: number
         }
         Update: {
           created_at?: string
+          disappearing_mode?: string
+          disappearing_seconds?: number | null
           id?: number
         }
         Relationships: []
@@ -1625,6 +1631,7 @@ export type Database = {
           created_at: string
           deleted_at: string | null
           edited_at: string | null
+          expires_at: string | null
           id: number
           reply_to_id: number | null
           sender_id: string
@@ -1635,6 +1642,7 @@ export type Database = {
           created_at?: string
           deleted_at?: string | null
           edited_at?: string | null
+          expires_at?: string | null
           id?: number
           reply_to_id?: number | null
           sender_id: string
@@ -1645,6 +1653,7 @@ export type Database = {
           created_at?: string
           deleted_at?: string | null
           edited_at?: string | null
+          expires_at?: string | null
           id?: number
           reply_to_id?: number | null
           sender_id?: string
@@ -3030,6 +3039,14 @@ export type Database = {
       }
       mark_conversation_read: {
         Args: { p_conversation_id: number }
+        Returns: number
+      }
+      set_disappearing_mode: {
+        Args: { p_conversation_id: number; p_mode: string; p_seconds?: number }
+        Returns: string
+      }
+      cleanup_expired_messages: {
+        Args: { p_conversation_id?: number }
         Returns: number
       }
       member_detail: {

@@ -5,7 +5,7 @@ export type Profile = ProfileSummary;
 
 export type ChatMessage = Pick<
   Database['public']['Tables']['messages']['Row'],
-  'id' | 'sender_id' | 'body' | 'created_at' | 'reply_to_id' | 'edited_at' | 'deleted_at'
+  'id' | 'sender_id' | 'body' | 'created_at' | 'reply_to_id' | 'edited_at' | 'deleted_at' | 'expires_at'
 >;
 
 export interface Message {
@@ -17,6 +17,7 @@ export interface Message {
   reply_to_id?: number | null;
   edited_at?: string | null;
   deleted_at?: string | null;
+  expires_at?: string | null;
   sender?: Profile;
 }
 

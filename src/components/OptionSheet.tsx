@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { AnimatePresence, motion, useDragControls, useReducedMotion } from 'framer-motion';
 import './OptionSheet.css';
@@ -22,15 +22,20 @@ type FlatEntry = { key: string; group: string | null; option: SheetOption; index
 
 const SEARCH_THRESHOLD = 8;
 
-export default function OptionSheet({ value, options, onChange, buttonText, title, buttonStyle, groups, searchable }: {
+export default function OptionSheet({ value, options, onChange, buttonText, title, buttonStyle, groups, searchable, buttonContent, buttonAriaLabel, buttonClassName }: {
   value: string;
   options: SheetOption[];
   onChange: (v: string) => void;
-  buttonText: string;
+  buttonText?: string;
   title: string;
   buttonStyle?: CSSProperties;
   groups?: SheetOptionGroup[];
   searchable?: boolean;
+  // 传了 buttonContent 就用它做触发器（比如输入框旁边的钟表图标），不再画文字 + ▾；
+  // buttonClassName / buttonAriaLabel 只在这种自定义触发器时用。
+  buttonContent?: ReactNode;
+  buttonAriaLabel?: string;
+  buttonClassName?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
@@ -132,9 +137,12 @@ export default function OptionSheet({ value, options, onChange, buttonText, titl
   return (
     <>
       <button type="button" onClick={() => setOpen(true)} aria-haspopup="dialog" aria-expanded={open}
+        aria-label={buttonAriaLabel} className={buttonClassName}
         style={{ display: 'inline-flex', alignItems: 'center', gap: 6, ...buttonStyle }}>
-        <span>{buttonText}</span>
-        <span aria-hidden="true" style={{ fontSize: 10, color: '#8a93a1' }}>▾</span>
+        {buttonContent ?? (<>
+          <span>{buttonText}</span>
+          <span aria-hidden="true" style={{ fontSize: 10, color: '#8a93a1' }}>▾</span>
+        </>)}
       </button>
       {createPortal(
         <AnimatePresence>

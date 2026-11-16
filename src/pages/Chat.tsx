@@ -12,6 +12,8 @@ import { useCall } from '../lib/call';
 import { goBackOr } from '../components/BackButton';
 import { confirmDialog } from '../lib/dialog';
 import { toast } from 'sonner';
+import OptionSheet from '../components/OptionSheet';
+import DisappearingCustomDialog, { formatDisappearingDuration } from '../components/DisappearingCustomDialog';
 import type { ChatMessage } from '../types/message';
 import { useUserPreferences } from '../lib/userPreferences';
 import { SPRING_SNAPPY } from '../lib/motion';
@@ -178,6 +180,38 @@ type OutboxEntry = {
   realId: number | null;
 };
 
+// 消失的私信：关闭 / 看完 30 秒后消失 / 按发送时间消失（时长自己填，30 秒～30 天）。
+// 定时模式的过期时间由后端触发器在发送时写，看完模式由 mark_conversation_read 在全部收件人
+// 看完时写。过期消息前端直接过滤、不再上屏。
+type DisappearingMode = 'off' | 'after_read' | 'timed';
+const DISAPPEARING_OPTIONS = [
+  { value: 'off', label: '关闭' },
+  { value: 'after_read', label: '对方看完 30 秒后消失' },
+  { value: 'timed:3600', label: '发送 1 小时后消失' },
+  { value: 'timed:86400', label: '发送 24 小时后消失' },
+  { value: 'timed:604800', label: '发送 7 天后消失' },
+  { value: 'custom', label: '自定义时间…' },
+];
+// 当前模式在选项里的值：定时模式只有 1 小时 / 24 小时 / 7 天三个预设才对应选项，
+// 自己填的时长落在“自定义时间…”上。
+function disappearingOptionValue(mode: DisappearingMode, seconds: number | null): string {
+  if (mode === 'timed') {
+    return seconds === 3600 || seconds === 86400 || seconds === 604800 ? `timed:${seconds}` : 'custom';
+  }
+  return mode;
+}
+function disappearingButtonLabel(mode: DisappearingMode, seconds: number | null): string {
+  if (mode === 'after_read') return '看完后消失';
+  if (mode === 'timed') return `${formatDisappearingDuration(seconds ?? 0)}后消失`;
+  return '关闭';
+}
+function isDisappearingMode(value: string): value is DisappearingMode {
+  return value === 'off' || value === 'after_read' || value === 'timed';
+}
+function isExpiredMessage(message: ChatMessage): boolean {
+  return Boolean(message.expires_at) && new Date(message.expires_at as string).getTime() <= Date.now();
+}
+
 export default function Chat() {
   const reduceMotion = Boolean(useReducedMotion());
   const { cid } = useParams();
@@ -220,6 +254,10 @@ export default function Chat() {
   const fileRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState('');
   const [showDetails, setShowDetails] = useState(false);
+  const [disappearingMode, setDisappearingMode] = useState<DisappearingMode>('off');
+  const [disappearingSeconds, setDisappearingSeconds] = useState<number | null>(null);
+  const [showCustomDuration, setShowCustomDuration] = useState(false);
+  const [modeSaving, setModeSaving] = useState(false);
   const [showProfileMore, setShowProfileMore] = useState(false);
   const sharedMediaRef = useRef<HTMLElement | null>(null);
   const [showStickers, setShowStickers] = useState(false);
@@ -350,9 +388,18 @@ export default function Chat() {
     // Realtime、轮询和手动刷新可能同时完成；只应用最后发起的请求结果。
     if (requestId !== loadSequenceRef.current) return;
     if (data) {
-      setMsgs(data);
+      const visible = data.filter(message => !isExpiredMessage(message));
+      setMsgs(visible);
       setError('');
-      const messageIds = data.map(message => message.id);
+      // 已到期的消息还没被清理时，在这里触发一次软删；删完经 Realtime 再刷新。
+      // 清理函数在迁移上线前还不存在，失败时静默跳过、不影响消息加载。
+      if (data.some(message => !message.deleted_at && isExpiredMessage(message))) {
+        void supabase.rpc('cleanup_expired_messages', { p_conversation_id: conversationId })
+          .then(({ error: cleanupError }) => {
+            if (cleanupError) console.error('cleanup expired messages failed', cleanupError);
+          });
+      }
+      const messageIds = visible.map(message => message.id);
       if (messageIds.length) {
         const { data: reactionRows, error: reactionError } = await supabase
           .from('message_reactions').select('message_id,profile_id,reaction,created_at')
@@ -375,6 +422,15 @@ export default function Chat() {
     if (requestId !== loadSequenceRef.current) return;
     const otherMember = isGroup ? null : (members ?? []).find(member => member.profile_id !== me);
     setOtherLastReadMessageId(otherMember?.last_receipt_message_id ?? null);
+
+    const { data: conversationRow } = await supabase.from('conversations').select('disappearing_mode,disappearing_seconds')
+      .eq('id', conversationId).maybeSingle();
+    if (requestId !== loadSequenceRef.current) return;
+    // 迁移上线前还没有 disappearing_mode 列，查不到时保持关闭，不报错。
+    if (conversationRow && isDisappearingMode(conversationRow.disappearing_mode)) {
+      setDisappearingMode(conversationRow.disappearing_mode);
+      setDisappearingSeconds(typeof conversationRow.disappearing_seconds === 'number' ? conversationRow.disappearing_seconds : null);
+    }
 
     if (document.visibilityState === 'visible') {
       const { error: readError } = await supabase.rpc('mark_conversation_read', {
@@ -631,6 +687,43 @@ export default function Chat() {
       setError('聊天背景保存失败，请重试。');
     } finally {
       setBackgroundSaving(false);
+    }
+  }
+
+  async function saveDisappearing(mode: DisappearingMode, seconds: number | null) {
+    if (!cid || modeSaving || (mode === disappearingMode && seconds === disappearingSeconds)) return;
+    setModeSaving(true);
+    const { error: saveError } = await supabase.rpc('set_disappearing_mode', {
+      p_conversation_id: Number(cid),
+      p_mode: mode,
+      p_seconds: seconds === null ? undefined : seconds,
+    });
+    if (saveError) {
+      toast.error('设置失败：' + saveError.message);
+    } else {
+      setDisappearingMode(mode);
+      setDisappearingSeconds(seconds);
+      toast.success(mode === 'off' ? '已关闭消失的私信，消息会一直保留。' : '已开启消失的私信，之后的消息会按这个规则消失。');
+      await load();
+    }
+    setModeSaving(false);
+  }
+
+  async function saveDisappearingOption(value: string) {
+    // 自定义时间不在选项里直接保存，打开输入框让用户填。
+    if (value === 'custom') {
+      setShowCustomDuration(true);
+      return;
+    }
+    if (value.startsWith('timed:')) {
+      const seconds = Number(value.slice('timed:'.length));
+      if (Number.isInteger(seconds) && seconds > 0) {
+        await saveDisappearing('timed', seconds);
+        return;
+      }
+    }
+    if (value === 'after_read' || value === 'off') {
+      await saveDisappearing(value, null);
     }
   }
 
@@ -1271,16 +1364,25 @@ export default function Chat() {
                 <span className="im-profile-setting-meta">{sharedMediaCount} 项</span>
                 <span className="im-profile-setting-chevron" aria-hidden="true">›</span>
               </button>
-              <button type="button" className="im-profile-setting-row" onClick={() => toast.info('当前会话尚未接入消息自动过期功能，此设置保持关闭。')}>
+              <div className="im-profile-setting-row im-profile-setting-row-static" role="group" aria-label="消失的私信"
+                style={{ gridTemplateColumns: '30px minmax(0,1fr) auto' }}>
                 <span className="im-profile-setting-icon">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                     <circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /><path d="M17.5 3.5 20 6" />
                   </svg>
                 </span>
                 <span className="im-profile-setting-label">消失的私信</span>
-                <span className="im-profile-setting-meta">关闭</span>
-                <span className="im-profile-setting-chevron" aria-hidden="true">›</span>
-              </button>
+                <span className="im-profile-setting-meta">
+                  <OptionSheet
+                    value={disappearingOptionValue(disappearingMode, disappearingSeconds)}
+                    title="消失的私信"
+                    buttonText={disappearingButtonLabel(disappearingMode, disappearingSeconds)}
+                    buttonStyle={{ color: '#83909c', fontSize: 11, padding: 0 }}
+                    options={DISAPPEARING_OPTIONS}
+                    onChange={value => void saveDisappearingOption(value)}
+                  />
+                </span>
+              </div>
               <button type="button" className="im-profile-setting-row" onClick={() => toast.info('网页端无法可靠阻止系统级截屏，因此暂不提供此开关。')}>
                 <span className="im-profile-setting-icon">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -1292,6 +1394,7 @@ export default function Chat() {
                 <span className="im-profile-setting-chevron" aria-hidden="true">›</span>
               </button>
             </div>}
+            {!isGroup && <div className="im-profile-settings-note">开启后，对方在消息消失前截屏或复制走的内容无法收回。</div>}
             <section className="im-profile-section">
               <div className="im-profile-section-heading">聊天背景</div>
               <div className="im-wallpaper-grid">
@@ -1358,6 +1461,11 @@ export default function Chat() {
           </div>
         </section>
       </div>}
+      {disappearingMode !== 'off' && (
+        <div className="im-disappearing-banner" role="status">
+          消失的私信已开启：{disappearingMode === 'after_read' ? '对方看完 30 秒后消息消失' : `消息在发送 ${formatDisappearingDuration(disappearingSeconds ?? 0)} 后消失`}
+        </div>
+      )}
       <main ref={feedRef} className="im-feed">
         {msgs.length === 0 && outbox.length === 0 ? (
           showMsgsSkeleton ? (
@@ -1598,6 +1706,22 @@ export default function Chat() {
           disabled={uploading || recording}
           onClick={() => { setShowStickers(v => !v); setShowStickerEmojis(false); }}
         >{showStickers ? '×' : '＋'}</button>
+        {!isGroup && (
+          <OptionSheet
+            value={disappearingOptionValue(disappearingMode, disappearingSeconds)}
+            title="消失的私信"
+            buttonContent={
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /><path d="M17.5 3.5 20 6" />
+              </svg>
+            }
+            buttonAriaLabel={disappearingMode === 'off' ? '设置消失的私信' : `消失的私信：${disappearingButtonLabel(disappearingMode, disappearingSeconds)}`}
+            buttonClassName={'im-timer' + (disappearingMode !== 'off' ? ' im-timer--on' : '')}
+            buttonStyle={{ justifyContent: 'center', padding: 0 }}
+            options={DISAPPEARING_OPTIONS}
+            onChange={value => void saveDisappearingOption(value)}
+          />
+        )}
         <div className="im-input-wrap">
           <input ref={inputRef} className="im-input" value={text} onChange={e => { setText(e.target.value); notifyTyping(e.target.value); }}
             placeholder={recording ? '录音中 ' + String(Math.floor(recordSeconds / 60)).padStart(2, '0') + ':' + String(recordSeconds % 60).padStart(2, '0') + ' · 点红色按钮结束' : uploading ? '正在发送媒体…' : '私信'} maxLength={2000} autoComplete="off" aria-label="输入消息" />
@@ -1605,6 +1729,12 @@ export default function Chat() {
           {text.trim() && <button type="submit" className="im-send" aria-label="发送消息" disabled={uploading || recording}>↑</button>}
         </div>
       </form>
+      <DisappearingCustomDialog
+        open={showCustomDuration}
+        initialSeconds={disappearingMode === 'timed' ? disappearingSeconds : null}
+        onClose={() => setShowCustomDuration(false)}
+        onConfirm={seconds => { setShowCustomDuration(false); void saveDisappearing('timed', seconds); }}
+      />
     </div>
   );
 }

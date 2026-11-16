@@ -580,10 +580,21 @@ export default function PostList({ section, searchQuery = '', embedded = false, 
     setHighlightedPostId(focusPostId);
     setOpenCmt(current => ({ ...current, [focusPostId]: true }));
     postVirtualizer.scrollToIndex(focusIndex, { align: 'center', behavior: reduce ? 'auto' : 'smooth' });
-    const frame = window.requestAnimationFrame(() => {
+    let frame = 0;
+    let attempts = 0;
+    const focusWhenMounted = () => {
       const target = document.getElementById(`${section}-post-${focusPostId}`);
-      target?.focus({ preventScroll: true });
-    });
+      if (target) {
+        target.focus({ preventScroll: true });
+        return;
+      }
+      // Smooth window scrolling may not mount a distant virtual row immediately.
+      if (attempts < 180) {
+        attempts += 1;
+        frame = window.requestAnimationFrame(focusWhenMounted);
+      }
+    };
+    frame = window.requestAnimationFrame(focusWhenMounted);
     const timer = window.setTimeout(() => {
       setHighlightedPostId(current => current === focusPostId ? null : current);
     }, 2400);

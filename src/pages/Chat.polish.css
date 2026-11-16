@@ -167,7 +167,8 @@
 
 .im-page .im-plus,
 .im-page .im-icon,
-.im-page .im-mic {
+.im-page .im-mic,
+.im-page .im-timer {
   width: 43px !important;
   min-width: 43px !important;
   height: 43px !important;
@@ -179,8 +180,16 @@
 }
 
 .im-page .im-plus,
-.im-page .im-icon {
+.im-page .im-icon,
+.im-page .im-timer {
   border-radius: 15px !important;
+}
+
+/* 消失的私信已开启：钟表按钮变青色，一眼能看出这个会话在倒计时。 */
+.im-page .im-timer--on {
+  color: #2a9d9f !important;
+  border-color: rgba(42,157,159,.45) !important;
+  background: linear-gradient(145deg, rgba(233,245,245,.98), rgba(214,238,238,.78)) !important;
 }
 
 .im-page .im-mic {
@@ -375,6 +384,7 @@
   .im-page .im-back:hover,
   .im-page .im-icon:hover,
   .im-page .im-plus:hover,
+  .im-page .im-timer:hover,
   .im-page .im-mic:not(:disabled):hover {
     border-color: rgba(255,255,255,1) !important;
     background: linear-gradient(145deg, #ffffff, #e8eff9) !important;
@@ -1868,6 +1878,9 @@
   cursor: pointer;
 }
 .im-page .im-profile-setting-row:last-child { border-bottom: 0; }
+.im-page .im-profile-setting-row-static { cursor: default; }
+.im-page .im-profile-settings-note { margin: 0 2px 14px; color: #83909c; font-size: 11px; line-height: 1.6; }
+.im-page .im-disappearing-banner { padding: 8px 16px; background: rgba(42,157,159,.09); color: #247a7c; font-size: 12px; line-height: 1.5; text-align: center; }
 .im-page .im-profile-setting-icon {
   display: grid;
   width: 28px;

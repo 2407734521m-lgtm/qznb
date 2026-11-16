@@ -295,6 +295,10 @@ export default function Friends() {
 
   async function load() {
     const requestId = ++loadSequenceRef.current;
+    // 先清理已过期的消失消息，再拉会话列表，否则收件箱预览会短暂露出已过期的最后一条消息。
+    // 清理函数在迁移上线前还不存在，失败时静默跳过、不影响列表加载。
+    const { error: cleanupError } = await supabase.rpc('cleanup_expired_messages', {});
+    if (cleanupError) console.error('cleanup expired messages failed', cleanupError);
     const [friendResult, requestResult, conversationResult, groupResult, sentRequestResult, blockedResult] = await Promise.all([
       supabase.rpc('my_friends'),
       supabase.rpc('friend_requests'),

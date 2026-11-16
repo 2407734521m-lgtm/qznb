@@ -540,6 +540,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
                   zIndex: 4000,
                   transformOrigin: '50% 50%',
                   willChange: 'left, top, width, height, border-radius, opacity',
+                  pointerEvents: 'none',
                 }}
                 onAnimationComplete={() => {
                   window.dispatchEvent(new Event('qz-call-island-arrived'));

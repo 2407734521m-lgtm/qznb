@@ -967,7 +967,7 @@ export default function Friends() {
         .im-conversation-list .swipe-delete-surface{background:#fff}
       `}</style>
 
-      {/* ChatCN 功能条：独立的新建群聊快捷入口 + 筛选菜单。 */}
+      {/* 参考图布局：左头像、居中标题、右侧筛选。 */}
       <header className="im-inbox-head chatcn-inbox-head">
         <button type="button" className="chatcn-profile-button" aria-label="打开个人主页" onClick={() => nav('/me')}>
           {myAvatarUrl ? <img src={myAvatarUrl} alt="" /> : <span className="chatcn-profile-fallback">{myUsername.slice(0, 1) || '我'}</span>}
@@ -975,17 +975,6 @@ export default function Friends() {
         <div className="chatcn-inbox-title">{section === 'private' ? '聊天' : '通知'}</div>
         {section === 'private' && (
           <div className="chatcn-filter-root" ref={filterMenuRef}>
-            <button
-              type="button"
-              className="chatcn-create-group-trigger"
-              aria-label="新建群聊"
-              title="新建群聊"
-              onClick={() => { setShowCreateGroup(true); setFilterMenuOpen(false); }}
-            >
-              <svg viewBox="0 0 20 20" width="19" height="19" fill="none" aria-hidden="true">
-                <path d="M10 3.5v13M3.5 10h13" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-              </svg>
-            </button>
             <button
               ref={filterTriggerRef}
               type="button"
@@ -1195,6 +1184,13 @@ export default function Friends() {
         <>
           {tab === 'messages' && (
             <div className="im-inbox-list im-conversation-list">
+              {!showInboxSkeleton && !loading && visibleConversations.length > 0 && conversationFilter === 'groups' && (
+                <div className="chatcn-group-create-row">
+                  <button type="button" onClick={() => setShowCreateGroup(true)}>
+                    <span aria-hidden="true">＋</span> 新建群聊
+                  </button>
+                </div>
+              )}
               {showInboxSkeleton ? <RowSkeleton count={4} /> : loading ? null : visibleConversations.length === 0 ? (
                 <div className="im-inbox-empty chatcn-empty-groups">
                   <strong>{conversationFilter === 'groups' ? '还没有群聊' : conversationFilter === 'unread' ? '没有未读消息' : '还没有聊天记录'}</strong>

@@ -403,6 +403,13 @@ export function CallProvider({ children }: { children: ReactNode }) {
     islandApi.collapse();
   }, [islandApi]);
 
+  // Tapping the minimized call pill expands the island in place so the
+  // hang-up action is visible right there — it never jumps back to the
+  // fullscreen call UI. "返回通话" in the expanded island still restores it.
+  const expandCallIsland = useCallback(() => {
+    islandApi.expand('qz-call-session');
+  }, [islandApi]);
+
   const minimizeCall = useCallback(() => {
     if (minimized || minimizing) return;
 
@@ -481,8 +488,9 @@ export function CallProvider({ children }: { children: ReactNode }) {
       onToggleMute: toggleMute,
       onToggleSpeaker: toggleSpeaker,
       onRestore: restoreCall,
+      onExpand: expandCallIsland,
     }));
-  }, [phase, peerName, callStartedAt, muted, speakerEnabled, islandApi, acceptCall, rejectCall, cancelCall, hangUp, toggleMute, toggleSpeaker, restoreCall]);
+  }, [phase, peerName, callStartedAt, muted, speakerEnabled, islandApi, acceptCall, rejectCall, cancelCall, hangUp, toggleMute, toggleSpeaker, restoreCall, expandCallIsland]);
 
   useEffect(() => () => islandApi.end('qz-call-session'), [islandApi]);
 

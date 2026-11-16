@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isEndedTrackPush, isMusicTrackFinished, isSameMusicTrack, musicTrackIdentity, resolveMusicEqualizerMode, resolveMusicIslandLabel, shouldCrossfadeMusicTrack, shouldShowMainIsland } from './MusicIsland';
+import { EQUALIZER_BANDS, EQUALIZER_REST_LEVEL, isEndedTrackPush, isMusicTrackFinished, isSameMusicTrack, musicTrackIdentity, resolveMusicEqualizerMode, resolveMusicIslandLabel, shouldCrossfadeMusicTrack, shouldMirrorEqualizerToRoot, shouldShowMainIsland } from './MusicIsland';
 import { hasNewIslandActivity, resolveIslandDockGesture, resolveIslandGestureSource, resolveMusicIslandTapAction, shouldCancelPendingIslandDock, shouldEndTracklessMusicActivity, shouldShowIslandIdleRecall, shouldShowMusicEmptyState } from './QianzhiMusicIslandActivity';
 import { resolveMetrics } from '../lib/island/config';
 import { createQianzhiIslandMetrics, qianzhiIslandMetrics } from '../lib/island/qianzhi-metrics';
@@ -323,5 +323,20 @@ describe('shouldShowIslandIdleRecall', () => {
     expect(shouldShowIslandIdleRecall(['music-playback'], false, false)).toBe(false);
     expect(shouldShowIslandIdleRecall([], true, false)).toBe(false);
     expect(shouldShowIslandIdleRecall([], false, true)).toBe(false);
+  });
+});
+
+describe('equalizer mirror on <html>', () => {
+  it('mirrors only while the fullscreen player is actually on screen', () => {
+    expect(shouldMirrorEqualizerToRoot(true, true, false)).toBe(true);
+    // Any one missing condition keeps the whole page's styles out of the spectrum loop.
+    expect(shouldMirrorEqualizerToRoot(false, true, false)).toBe(false);
+    expect(shouldMirrorEqualizerToRoot(true, false, false)).toBe(false);
+    expect(shouldMirrorEqualizerToRoot(true, true, true)).toBe(false);
+  });
+
+  it('keeps the four band names and the rest level the stylesheets read', () => {
+    expect([...EQUALIZER_BANDS]).toEqual(['bass', 'lowMid', 'vocal', 'treble']);
+    expect(EQUALIZER_REST_LEVEL).toBe('.12');
   });
 });

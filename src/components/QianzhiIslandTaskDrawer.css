@@ -116,8 +116,8 @@
   background:
     linear-gradient(145deg, rgba(42,44,50,.98), rgba(15,16,20,.97));
   box-shadow: 0 18px 54px rgba(0,0,0,.3), inset 0 1px rgba(255,255,255,.1);
-  -webkit-backdrop-filter: blur(34px) saturate(1.35);
-  backdrop-filter: blur(34px) saturate(1.35);
+  /* No backdrop-filter: the gradient above is 97-98% opaque, so a 34px blur of the page
+     behind it is invisible but costs a large offscreen blur pass every frame it moves. */
   pointer-events: auto;
 }
 

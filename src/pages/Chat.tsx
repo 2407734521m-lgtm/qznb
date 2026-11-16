@@ -13,7 +13,8 @@ import { useCall } from '../lib/call';
 import { goBackOr } from '../components/BackButton';
 import { confirmDialog } from '../lib/dialog';
 import { toast } from 'sonner';
-import InvisibleInk from '../components/InvisibleInk';
+import LinkDialog from '../components/LinkDialog';
+import { formatTodayZh, renderRichText, stripRichText, unwrapRichText } from '../lib/richText';
 import OptionSheet from '../components/OptionSheet';
 import DisappearingCustomDialog, { formatDisappearingDuration } from '../components/DisappearingCustomDialog';
 import type { ChatMessage } from '../types/message';
@@ -101,27 +102,10 @@ function fileExtLabel(name: string) {
   return ext && ext.length <= 5 ? ext : '文件';
 }
 
-// 隐形消息：||藏起来的字|| 用自写组件 InvisibleInk（iMessage 式隐形墨水）。
-// 之前用 GitHub 的 spoiled（点按显现），用户 2026-11-17 01:16 令改滑动版；
-// spoiled 的粒子是 paint worklet 画的、没法按区域擦掉，所以换成自写：
-// 粒子盖住、手指滑过擦掉、停 5 秒自动盖回，点一下直接全显。
-// 未配对的 || 原样显示；预览里不泄露原文。
-const SPOILER_SEGMENT_PATTERN = /(\|\|[\s\S]+?\|\|)/g;
-
-function renderSpoilerText(text: string) {
-  return text.split(SPOILER_SEGMENT_PATTERN).map((segment, index) => {
-    if (segment.length > 4 && segment.startsWith('||') && segment.endsWith('||')) {
-      return <InvisibleInk key={index} text={segment.slice(2, -2)} />;
-    }
-    return <Fragment key={index}>{segment}</Fragment>;
-  });
-}
-
-function maskSpoilerText(text: string) {
-  return text.replace(/\|\|[\s\S]+?\|\|/g, '•••');
-}
-
-function MessageContent({ body }: { body: string }) {
+// 隐形消息与富文本：||...|| 仍走自写 InvisibleInk（iMessage 式滑动擦除），
+// 其余格式（**加粗** __斜体__ `等宽` ~~删除线~~ ++下划线++ [链接](url) @[提及](id)
+// 行首 "> " 引用）都在 src/lib/richText.tsx 里解析与剥离；未配对的标记原样显示。
+function MessageContent({ body, onMentionClick }: { body: string; onMentionClick?: (profileId: string) => void }) {
   const imagePath = body.startsWith('[[im-image:') && body.endsWith(']]') ? body.slice(11, -2) : null;
   const audioPath = body.startsWith('[[im-audio:') && body.endsWith(']]') ? body.slice(11, -2) : null;
   const fileParts = body.startsWith('[[im-file:') && body.endsWith(']]') ? body.slice(10, -2).split('|') : null;
@@ -162,7 +146,7 @@ function MessageContent({ body }: { body: string }) {
     </div>
   ) : <div className="fx-skel-wrap" role="status" aria-label="文件加载中"><div className="fx-skel" style={{ width: 200, height: 44, maxWidth: '68vw', borderRadius: 12 }} /></div>;
   if (audioPath) return url ? <div className="im-audio-card"><div className="im-audio-symbol">▶</div><div className="im-audio-main"><div className="im-waveform" aria-hidden="true">{Array.from({ length: 34 }, (_, i) => <i key={i} style={{ height: (5 + ((i * 7 + 3) % 17)) + 'px' }} />)}</div><audio controls preload="metadata" src={url} aria-label="语音消息播放" /></div></div> : <div className="fx-skel-wrap" role="status" aria-label="语音加载中"><div className="fx-skel" style={{ width: 240, height: 60, maxWidth: '68vw', borderRadius: 12 }} /></div>;
-  return <>{renderSpoilerText(body)}</>;
+  return <>{renderRichText(body, { onMentionClick })}</>;
 }
 
 function messageTimeLabel(value: string | number) {
@@ -240,6 +224,8 @@ export default function Chat() {
   const me = useAuth().session!.user.id;
   const userPreferences = useUserPreferences(me);
   const nav = useNavigate();
+  // @提及点开进对方主页（群聊点成员、1:1 点对方都一样）。
+  const openMemberPage = (profileId: string) => nav('/members/' + profileId);
   const loc = useLocation() as { state?: { name?: string; isGroup?: boolean } };
   const [name, setName] = useState(loc.state?.name ?? '聊天');
   const [peer, setPeer] = useState<ChatPeer | null>(null);
@@ -258,6 +244,15 @@ export default function Chat() {
   const [text, setText] = useState('');
   // 输入框是否聚焦：只决定底部语音光晕亮不亮，不改任何发送逻辑。
   const [inputFocused, setInputFocused] = useState(false);
+  // 格式栏：输入框里有选中的文字才出现（长按选中、拖蓝柄都算）。
+  // composerSelRef 随时记着最新选区——点「链接」「创建@」会弹站内框、输入框失焦，
+  // 但选区还在，回来照样能往选区里贴。
+  const [composerSel, setComposerSel] = useState<{ start: number; end: number } | null>(null);
+  const composerSelRef = useRef<{ start: number; end: number } | null>(null);
+  // 贴完格式后要恢复的选区（setText 是异步的，靠这个 effect 在渲染完再拨回去）。
+  const pendingSelRef = useRef<{ start: number; end: number } | null>(null);
+  const [linkDialogOpen, setLinkDialogOpen] = useState(false);
+  const [linkText, setLinkText] = useState('');
   const [outbox, setOutbox] = useState<OutboxEntry[]>([]);
   const outboxSeqRef = useRef(0);
   const swappedIdsRef = useRef<Set<number>>(new Set());
@@ -325,6 +320,13 @@ export default function Chat() {
     () => msgs.filter(message => !message.deleted_at && message.body.startsWith('[[im-image:')),
     [msgs],
   );
+  // 「创建@」的候选人：群聊是全体成员（除掉自己），1:1 只有对方。
+  const mentionOptions = useMemo(() => {
+    const members = isGroup
+      ? groupMembers.filter(member => member.id !== me)
+      : peer ? [{ id: peer.id, username: peer.username, display_name: peer.display_name }] : [];
+    return members.map(member => ({ value: member.id, label: member.display_name ?? member.username }));
+  }, [isGroup, groupMembers, peer, me]);
   const sharedFileMessages = useMemo(
     () => msgs.filter(message => !message.deleted_at && message.body.startsWith('[[im-file:')),
     [msgs],
@@ -1106,12 +1108,119 @@ export default function Chat() {
     setShowStickers(false);
   }
 
+  // 贴完格式后把光标/选区拨回去（setText 渲染完才生效，所以放 effect 里）。
+  useEffect(() => {
+    const sel = pendingSelRef.current;
+    if (!sel) return;
+    pendingSelRef.current = null;
+    const el = inputRef.current;
+    if (!el) return;
+    el.focus({ preventScroll: true });
+    try { el.setSelectionRange(sel.start, sel.end); } catch {}
+  }, [text]);
+
+  // 读输入框当前选区（没有选中文字返回 null）。
+  function readComposerSelection() {
+    const el = inputRef.current;
+    if (!el) return null;
+    const start = el.selectionStart ?? 0;
+    const end = el.selectionEnd ?? 0;
+    return start !== end ? { start, end } : null;
+  }
+
+  // 把选区 [start, end) 换成 replacement，并把选区拨到 selectAfter（默认选中整段换好的文字，
+  // 这样可以连着再套一层格式；传收起来的选区就是把光标挪过去）。
+  function replaceComposerRange(start: number, end: number, replacement: string, selectAfter?: { start: number; end: number }) {
+    const next = (text.slice(0, start) + replacement + text.slice(end)).slice(0, 2000);
+    setText(next);
+    notifyTyping(next);
+    const sel = selectAfter ?? { start, end: start + replacement.length };
+    const clamped = { start: Math.min(sel.start, 2000), end: Math.min(sel.end, 2000) };
+    pendingSelRef.current = clamped;
+    const visible = clamped.start !== clamped.end ? clamped : null;
+    setComposerSel(visible);
+    composerSelRef.current = visible;
+  }
+
+  // 包一层标记（加粗/斜体/等宽/删除线/下划线/剧透都走这里）：再点一次拆掉，
+  // 选区正好在一对标记里面时也把外面的标记拆掉。
+  function applyWrap(open: string, close: string) {
+    const sel = readComposerSelection() ?? composerSelRef.current;
+    if (!sel) return;
+    const selected = text.slice(sel.start, sel.end);
+    if (selected.length > open.length + close.length && selected.startsWith(open) && selected.endsWith(close)) {
+      const inner = selected.slice(open.length, selected.length - close.length);
+      replaceComposerRange(sel.start, sel.end, inner, { start: sel.start, end: sel.start + inner.length });
+      return;
+    }
+    if (text.slice(0, sel.start).endsWith(open) && text.slice(sel.end).startsWith(close)) {
+      replaceComposerRange(sel.start - open.length, sel.end + close.length, selected,
+        { start: sel.start - open.length, end: sel.end - open.length });
+      return;
+    }
+    const wrapped = open + selected + close;
+    replaceComposerRange(sel.start, sel.end, wrapped, { start: sel.start, end: sel.start + wrapped.length });
+  }
+
+  // 引用：给选区所在行加/去行首 "> "（输入框是单行，粘贴的多行也能按行处理）。
+  function applyQuote() {
+    const sel = readComposerSelection() ?? composerSelRef.current;
+    if (!sel) return;
+    const lineStart = text.lastIndexOf('\n', sel.start - 1) + 1;
+    const nextBreak = text.indexOf('\n', sel.end);
+    const lineEnd = nextBreak === -1 ? text.length : nextBreak;
+    if (text.slice(lineStart, lineEnd).startsWith('> ')) {
+      replaceComposerRange(lineStart, lineStart + 2, '', { start: lineStart, end: lineEnd - 2 });
+    } else {
+      replaceComposerRange(lineStart, lineStart, '> ', { start: lineStart, end: lineEnd + 2 });
+    }
+  }
+
+  // 纯文本：把选区里的标记全拆掉、字留下来（剧透的字也留下来，不变 •••）。
+  function applyPlain() {
+    const sel = readComposerSelection() ?? composerSelRef.current;
+    if (!sel) return;
+    const selected = text.slice(sel.start, sel.end);
+    const plain = unwrapRichText(selected);
+    if (plain === selected) return;
+    replaceComposerRange(sel.start, sel.end, plain, { start: sel.start, end: sel.start + plain.length });
+  }
+
+  // 日期：在选区处插今天（2026年11月17日），光标挪到日期后面。
+  function applyDate() {
+    const sel = readComposerSelection() ?? composerSelRef.current;
+    if (!sel) return;
+    const date = formatTodayZh();
+    replaceComposerRange(sel.start, sel.end, date, { start: sel.start + date.length, end: sel.start + date.length });
+  }
+
+  // 链接：把选中的文字变成 [文字](网址)，选中整段方便再套格式。
+  function applyLink(url: string) {
+    setLinkDialogOpen(false);
+    const sel = composerSelRef.current ?? readComposerSelection();
+    if (!sel) return;
+    const selected = text.slice(sel.start, sel.end);
+    const linked = `[${selected}](${url})`;
+    replaceComposerRange(sel.start, sel.end, linked, { start: sel.start, end: sel.start + linked.length });
+  }
+
+  // 创建@：选中的文字变成 @[文字](成员id)，点开进对方主页。
+  function applyMention(memberId: string) {
+    const sel = composerSelRef.current ?? readComposerSelection();
+    if (!sel) return;
+    const selected = text.slice(sel.start, sel.end);
+    const mention = `@[${selected}](${memberId})`;
+    replaceComposerRange(sel.start, sel.end, mention, { start: sel.start, end: sel.start + mention.length });
+  }
+
   function send() {
     const b = text.trim();
     if (!b || !cid) return;
     notifyTyping('');
     queueOutgoing(b.slice(0, 2000));
     setText('');
+    setComposerSel(null);
+    composerSelRef.current = null;
     inputRef.current?.focus();
   }
 
@@ -1173,7 +1282,7 @@ export default function Chat() {
     if (message.body.startsWith('[[im-image:')) return '图片';
     if (message.body.startsWith('[[im-audio:')) return '语音';
     if (message.body.startsWith('[[im-file:')) return '文件';
-    return maskSpoilerText(message.body);
+    return stripRichText(message.body);
   }
 
   const dateLabel = (value: string, previous?: string) => {
@@ -1274,6 +1383,8 @@ export default function Chat() {
         .im-row-static{animation:none}
         .im-row{transition:opacity .26s ease,transform .26s ease}
         .im-row-vanishing{opacity:0;transform:scale(.92) translateY(2px);pointer-events:none}.im-ink{position:relative;display:inline-block;max-width:100%;vertical-align:top;touch-action:pan-y;cursor:pointer;outline:none}.im-ink:focus-visible{outline:2px solid rgba(255,255,255,.65);outline-offset:2px;border-radius:6px}.im-ink-char{opacity:0;transition:opacity .18s ease-out}.im-ink-canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;display:block}
+        .im-format-bar{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding:8px 12px 4px;animation:im-arrive .2s ease-out both}.im-format-bar::-webkit-scrollbar{display:none}.im-format-chip{flex:none;padding:6px 11px;border-radius:999px;border:1px solid rgba(255,255,255,.22);background:rgba(6,24,34,.42);color:#eaf6ff;font-size:13px;line-height:1.2;cursor:pointer;white-space:nowrap}.im-format-chip:active{background:rgba(158,215,255,.28)}.im-format-chip--bold{font-weight:700}.im-format-chip--italic{font-style:italic}.im-format-chip--code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}.im-format-chip--strike{text-decoration:line-through}.im-format-chip--underline{text-decoration:underline}
+        .im-quote{display:block;margin:2px 0;padding:7px 9px;border-left:3px solid rgba(216,238,255,.65);background:rgba(0,15,35,.16);border-radius:7px;font-size:13px;line-height:1.5}.im-code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;background:rgba(0,15,35,.28);border-radius:6px;padding:1px 5px}.im-mention{display:inline-block;padding:1px 7px;border-radius:999px;border:0;background:rgba(158,215,255,.2);color:#bfe6ff;font-size:14px;cursor:pointer}.im-link{color:#bfe6ff;text-decoration:underline;overflow-wrap:anywhere}
         .im-vrow{box-sizing:border-box}
         .im-page .im-vrow .im-row{margin:0 !important;animation:none !important}
         .im-vrow-fresh{animation:im-vrow-fade .25s ease-out both}
@@ -1553,7 +1664,7 @@ export default function Chat() {
               {sharedImageMessages.length > 0 && (
                 <div className="im-shared-grid">
                   {sharedImageMessages.slice(-9).reverse().map(photo => (
-                    <div className="im-shared-photo" key={photo.id}><MessageContent body={photo.body} /></div>
+                    <div className="im-shared-photo" key={photo.id}><MessageContent onMentionClick={openMemberPage} body={photo.body} /></div>
                   ))}
                 </div>
               )}
@@ -1561,7 +1672,7 @@ export default function Chat() {
                 <div className="im-profile-shared-audio">
                   {sharedAudioMessages.slice(-8).reverse().map(audio => (
                     <div className="im-profile-shared-audio-item" key={audio.id}>
-                      <MessageContent body={audio.body} />
+                      <MessageContent onMentionClick={openMemberPage} body={audio.body} />
                     </div>
                   ))}
                 </div>
@@ -1569,7 +1680,7 @@ export default function Chat() {
               {sharedFileMessages.length > 0 && (
                 <div className="im-profile-shared-files">
                   {sharedFileMessages.slice(-8).reverse().map(file => (
-                    <div className="im-profile-shared-file" key={file.id}><MessageContent body={file.body} /></div>
+                    <div className="im-profile-shared-file" key={file.id}><MessageContent onMentionClick={openMemberPage} body={file.body} /></div>
                   ))}
                 </div>
               )}
@@ -1655,7 +1766,7 @@ export default function Chat() {
                         </div>
                       </>
                     ) : (
-                      <MessageContent body={displayBody} />
+                      <MessageContent onMentionClick={openMemberPage} body={displayBody} />
                     )}
                     {inlineMeta && <span className={'im-inline-meta ' + (mine ? 'mine' : 'theirs')}>{messageTimeLabel(m.created_at)}{receiptLabel ? ' · ' + receiptLabel : ''}</span>}
                     {m.edited_at && !deleted && <div className="im-edited-mark">已编辑</div>}
@@ -1690,7 +1801,7 @@ export default function Chat() {
               <div className="im-out-col im-message-column mine">
                 <div className={'im-bubble mine' + (e.phase === 'failed' ? ' im-bubble-failed' : '')}>
                   {e.replyToId !== null && <div className="im-reply-quote">回复：{e.replySummary ?? ''}</div>}
-                  <MessageContent body={e.body} />
+                  <MessageContent onMentionClick={openMemberPage} body={e.body} />
                   {inlineMeta && <span className="im-inline-meta mine">{messageTimeLabel(e.createdAtMs)} · {phaseLabel}</span>}
                 </div>
                 {!inlineMeta && <div className="im-message-footer mine">
@@ -1727,7 +1838,7 @@ export default function Chat() {
             style={{ left: tapbackAnchor.left, top: tapbackAnchor.top, width: tapbackAnchor.width }}
             aria-hidden="true">
             {message.reply_to_id && <div className="im-reply-quote">回复：{messageSummary(msgsById.get(message.reply_to_id))}</div>}
-            <MessageContent body={deleted ? (mine ? '你撤回了一条消息' : '对方撤回了一条消息') : message.body} />
+            <MessageContent onMentionClick={openMemberPage} body={deleted ? (mine ? '你撤回了一条消息' : '对方撤回了一条消息') : message.body} />
             <div className="im-tapback-preview-time">{new Date(message.created_at).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}</div>
           </div>}
           {!deleted && tapbackAnchor && <div className="im-tapback-dock"
@@ -1816,6 +1927,46 @@ export default function Chat() {
         <button type="button" onClick={() => setReplyTarget(null)} aria-label="取消回复">取消</button>
       </div>}
       {uploading && upPct !== null && <div style={{ padding: '8px 14px 0' }}><SmoothProgress value={upPct} label={`正在发送媒体 ${upPct}%`} /></div>}
+      {composerSel && !recording && (
+        <div className="im-format-bar" role="toolbar" aria-label="文字格式">
+          <button type="button" className="im-format-chip im-format-chip--bold" aria-label="加粗"
+            onPointerDown={e => e.preventDefault()} onClick={() => applyWrap('**', '**')}>加粗</button>
+          <button type="button" className="im-format-chip im-format-chip--italic" aria-label="斜体"
+            onPointerDown={e => e.preventDefault()} onClick={() => applyWrap('__', '__')}>斜体</button>
+          <button type="button" className="im-format-chip im-format-chip--code" aria-label="等宽"
+            onPointerDown={e => e.preventDefault()} onClick={() => applyWrap('`', '`')}>等宽</button>
+          <button type="button" className="im-format-chip im-format-chip--strike" aria-label="删除线"
+            onPointerDown={e => e.preventDefault()} onClick={() => applyWrap('~~', '~~')}>删除线</button>
+          <button type="button" className="im-format-chip im-format-chip--underline" aria-label="下划线"
+            onPointerDown={e => e.preventDefault()} onClick={() => applyWrap('++', '++')}>下划线</button>
+          <button type="button" className="im-format-chip" aria-label="引用"
+            onPointerDown={e => e.preventDefault()} onClick={applyQuote}>引用</button>
+          <button type="button" className="im-format-chip" aria-label="剧透"
+            onPointerDown={e => e.preventDefault()} onClick={() => applyWrap('||', '||')}>剧透</button>
+          <button type="button" className="im-format-chip" aria-label="创建链接"
+            onPointerDown={e => e.preventDefault()} onClick={() => {
+              const sel = readComposerSelection() ?? composerSelRef.current;
+              if (!sel) return;
+              setLinkText(text.slice(sel.start, sel.end));
+              setLinkDialogOpen(true);
+            }}>链接</button>
+          {mentionOptions.length > 0 && (
+            <OptionSheet
+              value=""
+              title="提到谁"
+              buttonContent="创建@"
+              buttonAriaLabel="创建提及"
+              buttonClassName="im-format-chip"
+              options={mentionOptions}
+              onChange={applyMention}
+            />
+          )}
+          <button type="button" className="im-format-chip" aria-label="插入今天的日期"
+            onPointerDown={e => e.preventDefault()} onClick={applyDate}>日期</button>
+          <button type="button" className="im-format-chip" aria-label="清除格式，只留纯文本"
+            onPointerDown={e => e.preventDefault()} onClick={applyPlain}>纯文本</button>
+        </div>
+      )}
       <form className="im-composer" onSubmit={e => { e.preventDefault(); send(); }}>
         <input ref={imageRef} type="file" accept="image/jpeg,image/png,image/webp,image/heic" hidden onChange={e => sendImage(e.target.files?.[0])} />
         <input ref={cameraRef} type="file" accept="image/*" capture="environment" hidden onChange={e => sendImage(e.target.files?.[0])} />
@@ -1850,6 +2001,11 @@ export default function Chat() {
         )}
         <div className="im-input-wrap">
           <input ref={inputRef} className="im-input" value={text} onChange={e => { setText(e.target.value); notifyTyping(e.target.value); }}
+            onSelect={() => {
+              const sel = readComposerSelection();
+              setComposerSel(sel);
+              composerSelRef.current = sel;
+            }}
             onFocus={() => setInputFocused(true)} onBlur={() => setInputFocused(false)}
             placeholder={recording ? '录音中 ' + String(Math.floor(recordSeconds / 60)).padStart(2, '0') + ':' + String(recordSeconds % 60).padStart(2, '0') + ' · 点红色按钮结束' : uploading ? '正在发送媒体…' : '私信'} maxLength={2000} autoComplete="off" aria-label="输入消息" />
           {!text.trim() && <button type="button" className={'im-mic' + (recording ? ' recording' : '')} aria-label={recording ? '结束录音并发送' : '录制语音'} title={recording ? '结束录音并发送' : '录制语音'} disabled={uploading} onClick={recording ? stopRecording : startRecording}>{recording ? '■' : <svg width="15" height="18" viewBox="0 0 18 22" fill="none" aria-hidden="true"><rect x="6" y="1" width="6" height="13" rx="3" stroke="currentColor" strokeWidth="1.7" /><path d="M3 10.5v1a6 6 0 0 0 12 0v-1M9 17.5V21M6 21h6" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" /></svg>}</button>}
@@ -1862,6 +2018,12 @@ export default function Chat() {
         initialSeconds={disappearingMode === 'timed' ? disappearingSeconds : null}
         onClose={() => setShowCustomDuration(false)}
         onConfirm={seconds => { setShowCustomDuration(false); void saveDisappearing('timed', seconds); }}
+      />
+      <LinkDialog
+        open={linkDialogOpen}
+        linkText={linkText}
+        onClose={() => setLinkDialogOpen(false)}
+        onConfirm={applyLink}
       />
     </div>
   );

@@ -67,11 +67,13 @@ export default function QianzhiIslandProvider({ children }: { children: ReactNod
     // Raise the default capsule position by 10px; the setting remains a relative adjustment.
     root.style.setProperty('--qz-island-config-y', (island.offsetY - 10) + 'px');
     root.style.setProperty('--qz-island-config-width', island.width + 'px');
+    root.style.setProperty('--qz-island-config-half-width', (island.width / 2) + 'px');
     root.style.setProperty('--qz-island-config-height', island.height + 'px');
     return () => {
       root.style.removeProperty('--qz-island-config-x');
       root.style.removeProperty('--qz-island-config-y');
       root.style.removeProperty('--qz-island-config-width');
+      root.style.removeProperty('--qz-island-config-half-width');
       root.style.removeProperty('--qz-island-config-height');
     };
   }, [island.offsetX, island.offsetY, island.width, island.height]);

@@ -1019,6 +1019,20 @@ export default function Chat() {
                     <span className="chatcn-chat-group-member-avatar">{member.display_name?.slice(0, 1) ?? member.username.slice(0, 1)}</span>
                     <span><strong>{member.display_name ?? member.username}</strong><small>@{member.username}</small></span>
                     <em>{member.role === 'owner' ? '群主' : member.role === 'admin' ? '管理员' : '成员'}</em>
+                    {myGroupRole === 'owner' && member.id !== me && <button type="button" className="chatcn-group-member-action" disabled={groupActionBusy} onClick={async () => {
+                      setGroupActionBusy(true);
+                      const { error } = await supabase.rpc('transfer_group_ownership', { p_conversation_id: Number(cid), p_new_owner: member.id });
+                      if (error) setError('转让群主失败：' + error.message);
+                      else { setMyGroupRole('member'); setGroupMembers(current => current.map(item => ({ ...item, role: item.id === member.id ? 'owner' : item.id === me ? 'member' : item.role }))); }
+                      setGroupActionBusy(false);
+                    }}>转让</button>}
+                    {(myGroupRole === 'owner' || (myGroupRole === 'admin' && member.role === 'member')) && member.id !== me && member.role !== 'owner' && <button type="button" className="chatcn-group-member-action danger" disabled={groupActionBusy} onClick={async () => {
+                      setGroupActionBusy(true);
+                      const { error } = await supabase.rpc('remove_group_member', { p_conversation_id: Number(cid), p_target_profile_id: member.id });
+                      if (error) setError('移除成员失败：' + error.message);
+                      else setGroupMembers(current => current.filter(item => item.id !== member.id));
+                      setGroupActionBusy(false);
+                    }}>移除</button>}
                   </div>)}
                 </div>
                 {(myGroupRole === 'owner' || myGroupRole === 'admin') && <div className="chatcn-chat-group-rename">

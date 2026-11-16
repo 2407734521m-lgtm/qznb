@@ -42,7 +42,7 @@ const cards = [
     photo: signaturePhoto,
     eyebrow: '创作工具',
     title: '动态签名',
-    description: '写下一个或两个名字，看它们一笔一笔写出来，还能导出视频。',
+    description: '写下一个或两个名字，中文、英文都能一笔一笔写出来，还能换字体、导出视频。',
     action: '开始写名',
   },
   {

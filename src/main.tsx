@@ -22,7 +22,6 @@ import './styles.css';
 import './styles-editorial.css';
 import './styles-desktop.css';
 import './styles-motion-polish.css';
-import './styles-particle-flower.css';
 import './styles-visual-rules.css';
 import './styles-liquid-backdrop.css';
 

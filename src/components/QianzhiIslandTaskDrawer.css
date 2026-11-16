@@ -41,6 +41,10 @@
   transition: background .18s ease, border-color .18s ease, transform .18s cubic-bezier(.2,.8,.2,1);
 }
 
+.qz-island-task-ui.has-route-indicator .qz-island-task-trigger {
+  right: -70px;
+}
+
 .qz-island-task-trigger svg {
   width: 14px;
   height: 14px;
@@ -250,6 +254,7 @@
 
 @media (max-width: 360px) {
   .qz-island-task-trigger { right: -33px; width: 27px; height: 27px; }
+  .qz-island-task-ui.has-route-indicator .qz-island-task-trigger { right: -64px; }
   .qz-island-task-panel { border-radius: 19px; }
   .qz-island-task-row { min-height: 50px; gap: 8px; padding-inline: 8px; }
 }

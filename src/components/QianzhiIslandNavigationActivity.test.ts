@@ -16,12 +16,22 @@ describe('routeActivityLabel', () => {
 });
 
 describe('createNavigationIslandActivity', () => {
-  it('uses an indeterminate loading indicator rather than fabricated percentages', () => {
+  it('keeps the capsule text-only while showing an indeterminate loading state', () => {
     const activity = createNavigationIslandActivity('私聊');
     expect(activity.id).toBe('qz-route-navigation');
     expect(activity.priority).toBe(14);
     expect(activity.label).toBe('正在打开私聊');
+    expect(activity.compact?.leading).toBeTruthy();
+    expect(activity.compact?.trailing).toBeUndefined();
     expect(activity.expanded?.bottom).toBeTruthy();
     expect(activity.expanded?.center).toBeTruthy();
+  });
+
+  it('retains the success state until the detached check has been shown', () => {
+    const activity = createNavigationIslandActivity('私聊', 'success');
+    expect(activity.label).toBe('已打开私聊');
+    expect(activity.compact?.trailing).toBeUndefined();
+    expect(activity.minimal).toBeTruthy();
+    expect(activity.expanded?.bottom).toBeNull();
   });
 });

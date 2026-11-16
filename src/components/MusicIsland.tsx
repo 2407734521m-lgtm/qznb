@@ -469,17 +469,6 @@ function MusicIsland() {
     if (islandApi.presentation === 'expanded') islandApi.collapse();
   };
 
-  // Tapping the idle recall edge expands the player in place, with or without
-  // a song. Without a track the music activity isn't running, so start it
-  // first and then expand it; the expansion shows the empty card, and only
-  // the button inside that card navigates to the music space.
-  const expandMusicPlayer = () => {
-    if (!islandApi.activities.some(a => a.id === 'music-playback')) {
-      islandApi.start(createMusicIslandActivity(() => islandApi.expand('music-playback')));
-    }
-    islandApi.expand('music-playback');
-  };
-
   // Keep the music activity mounted once per track session. Its content reads current track state
   // through context, avoiding a full activity-stack update on every playback clock tick.
   useEffect(() => {
@@ -494,14 +483,7 @@ function MusicIsland() {
   const previousTrackIdentityRef = useRef<string | null>(null);
   useEffect(() => {
     if (isMusicPage) return;
-    if (!hasTrack || !track) {
-      // The empty card's activity has no track: give the pill a neutral name
-      // instead of the '音乐正在播放' it was created with.
-      if (activityIds.includes('music-playback')) {
-        islandApi.update('music-playback', { label: resolveMusicIslandLabel(null) });
-      }
-      return;
-    }
+    if (!hasTrack || !track) return;
     const nextIdentity = musicTrackIdentity(track);
     // A new song crossfades the whole compact layer instead of hard-swapping the title
     // and cover; a pause/resume or a progress tick keeps the in-place update.
@@ -617,7 +599,6 @@ function MusicIsland() {
             sendCommand,
             openMusic: () => navigate('/music'),
             openFullscreenPlayer,
-            expandMusicPlayer,
             seekDraft,
             setSeekDraft: updateSeekDraft,
             commitSeekDraft,

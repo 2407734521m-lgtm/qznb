@@ -986,7 +986,7 @@ export default function Friends() {
         scrollContainerRef={inboxRef}
       />
 
-      {/* ChatCN 功能条保留在下面：头像与筛选菜单（请求/通知/设置/全部标已读）都在这里，大标题只负责收起。 */}
+      {/* ChatCN 功能条：独立的新建群聊快捷入口 + 筛选菜单。 */}
       <header className="im-inbox-head chatcn-inbox-head">
         <button type="button" className="chatcn-profile-button" aria-label="打开个人主页" onClick={() => nav('/me')}>
           {myAvatarUrl ? <img src={myAvatarUrl} alt="" /> : <span className="chatcn-profile-fallback">{myUsername.slice(0, 1) || '我'}</span>}
@@ -994,6 +994,17 @@ export default function Friends() {
         <div className="chatcn-inbox-title">{section === 'private' ? '聊天' : '通知'}</div>
         {section === 'private' && (
           <div className="chatcn-filter-root" ref={filterMenuRef}>
+            <button
+              type="button"
+              className="chatcn-create-group-trigger"
+              aria-label="新建群聊"
+              title="新建群聊"
+              onClick={() => { setShowCreateGroup(true); setFilterMenuOpen(false); }}
+            >
+              <svg viewBox="0 0 20 20" width="19" height="19" fill="none" aria-hidden="true">
+                <path d="M10 3.5v13M3.5 10h13" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+              </svg>
+            </button>
             <button
               ref={filterTriggerRef}
               type="button"
@@ -1054,14 +1065,6 @@ export default function Friends() {
                 <button type="button" className="chatcn-filter-option" role="menuitem"
                   onClick={() => { setSection('private'); setTab('reqs'); setQuery(''); setFilterMenuOpen(false); }}>
                   <span className="chatcn-filter-icon"><ChatInboxIcon name="requests" /></span><span>请求</span>
-                </button>
-                <button type="button" className="chatcn-filter-option" role="menuitem"
-                  onClick={() => { setShowCreateGroup(true); setFilterMenuOpen(false); }}>
-                  <span className="chatcn-filter-icon"><ChatInboxIcon name="groups" /></span><span>新建群聊</span>
-                </button>
-                <button type="button" className="chatcn-filter-option" role="menuitem"
-                  onClick={() => { setFilterMenuOpen(false); nav('/me/notifications'); }}>
-                  <span className="chatcn-filter-icon"><ChatInboxIcon name="notifications" /></span><span>通知</span>
                 </button>
                 <button type="button" className="chatcn-filter-option" role="menuitem"
                   onClick={() => { setFilterMenuOpen(false); nav('/me/settings/notifications'); }}>

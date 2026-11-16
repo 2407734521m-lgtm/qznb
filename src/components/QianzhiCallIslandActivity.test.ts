@@ -19,6 +19,7 @@ describe('Qianzhi call island activity', () => {
       onToggleMute: () => {},
       onToggleSpeaker: () => {},
       onRestore: () => {},
+      onExpand: () => {},
     });
 
     expect(activity.id).toBe('qz-call-session');
@@ -47,6 +48,7 @@ describe('Qianzhi call island activity', () => {
       onToggleMute: () => {},
       onToggleSpeaker: () => {},
       onRestore: () => {},
+      onExpand: () => {},
     });
 
     expect(activity.alert).toBe(false);
@@ -72,6 +74,7 @@ describe('Qianzhi call island activity', () => {
       onToggleMute: () => {},
       onToggleSpeaker: () => {},
       onRestore: () => {},
+      onExpand: () => {},
     });
     const actionRow = activity.expanded?.bottom as ReactElement<{ children: ReactElement<{ children: ReactElement<{ label: string }>[] }> }>;
     const actionFragment = actionRow.props.children;
@@ -140,6 +143,7 @@ describe('call island phase transitions', () => {
     onToggleMute: noop,
     onToggleSpeaker: noop,
     onRestore: noop,
+    onExpand: noop,
   });
 
   it('keeps one activity while keying visible regions to the active phase', () => {
@@ -161,5 +165,21 @@ describe('call island phase transitions', () => {
 
     expect((muted.expanded?.bottom as ReactElement).key).toBe('in-call:true:false');
     expect((speaker.expanded?.bottom as ReactElement).key).toBe('in-call:false:true');
+  });
+
+  it('expands the island in place on tap instead of restoring the fullscreen call', () => {
+    const onExpand = () => {};
+    const onRestore = () => {};
+    const onHangUp = () => {};
+    const activity = createCallIslandActivity({ ...makeInput('in-call'), onExpand, onRestore, onHangUp });
+
+    // Tapping the minimized pill must expand the island so the hang-up
+    // action is visible right there — never jump back to fullscreen.
+    expect(activity.onPress).toBe(onExpand);
+    const actionRow = activity.expanded?.bottom as ReactElement<{ children: ReactElement<{ children: ReactElement<{ label: string; onAction: () => void }>[] }> }>;
+    const actions = actionRow.props.children.props.children;
+    expect(actions.map(action => action.props.label)).toEqual(['返回通话', '静音', '扬声器', '挂断']);
+    expect(actions[0].props.onAction).toBe(onRestore);
+    expect(actions[3].props.onAction).toBe(onHangUp);
   });
 });

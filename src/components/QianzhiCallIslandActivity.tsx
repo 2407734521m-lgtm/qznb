@@ -16,6 +16,12 @@ export interface CallIslandActivityInput {
   onToggleMute: () => void;
   onToggleSpeaker: () => void;
   onRestore: () => void;
+  /**
+   * Expands the island in place when the pill is tapped. Never navigates or
+   * restores the fullscreen call UI — the hang-up action lives in the
+   * expanded island itself, so it must be one tap away.
+   */
+  onExpand: () => void;
 }
 
 export interface CallIslandTargetRectInput {
@@ -115,7 +121,7 @@ export function createCallIslandActivity(input: CallIslandActivityInput): Activi
 
   return {
     id: 'qz-call-session',
-    onPress: input.onRestore,
+    onPress: input.onExpand,
     label: `${phaseLabel}，${peer}`,
     priority: 120,
     alert: phase === 'incoming',

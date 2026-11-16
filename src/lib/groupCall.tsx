@@ -67,6 +67,7 @@ type GroupCallParticipant = {
 type GroupCallContextValue = {
   busy: boolean;
   activeConversationId: number | null;
+  currentConversationId: number | null;
   activeParticipantCount: number;
   joinGroupCall: (conversationId: number, groupName: string) => Promise<void>;
   watchConversation: (conversationId: number | null) => void;
@@ -75,6 +76,7 @@ type GroupCallContextValue = {
 const GroupCallContext = createContext<GroupCallContextValue>({
   busy: false,
   activeConversationId: null,
+  currentConversationId: null,
   activeParticipantCount: 0,
   joinGroupCall: async () => {},
   watchConversation: () => {},
@@ -163,7 +165,6 @@ export function GroupCallProvider({ children }: { children: ReactNode }) {
   const conversationIdRef = useRef<number | null>(null);
   const phaseRef = useRef<GroupCallPhase>('idle');
   const mutedRef = useRef(false);
-  const mountedRef = useRef(true);
 
   const setPhaseSafe = useCallback((next: GroupCallPhase) => {
     phaseRef.current = next;
@@ -396,13 +397,9 @@ export function GroupCallProvider({ children }: { children: ReactNode }) {
   const restore = useCallback(() => setMinimized(false), []);
   const minimize = useCallback(() => setMinimized(true), []);
 
-  useEffect(() => {
-    mountedRef.current = true;
-    return () => {
-      mountedRef.current = false;
-      releaseRoom(undefined, true);
-      islandApi.end('qz-group-call-session');
-    };
+  useEffect(() => () => {
+    releaseRoom(undefined, true);
+    islandApi.end('qz-group-call-session');
   }, [islandApi, releaseRoom]);
 
   useEffect(() => {
@@ -428,6 +425,7 @@ export function GroupCallProvider({ children }: { children: ReactNode }) {
   const contextValue = useMemo(() => ({
     busy: phase !== 'idle',
     activeConversationId,
+    currentConversationId: conversationId,
     activeParticipantCount,
     joinGroupCall,
     watchConversation,

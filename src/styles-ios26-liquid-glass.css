@@ -343,7 +343,8 @@ button:focus-visible, a:focus-visible {
 
 @media (min-width: 769px) {
   .qz-ios26-dock-glass { display:none !important; }
-  .qz-ios26-topnav-glass { display:block; }
+  /* 桌面端顶部导航栏已撤：底部 FloatingDock 即主导航，顶栏四个链接与之完全重复。 */
+  .qz-ios26-topnav-glass { display:none !important; }
 }
 @media (max-width: 768px) {
   .qz-ios26-topnav-glass { display:none !important; }

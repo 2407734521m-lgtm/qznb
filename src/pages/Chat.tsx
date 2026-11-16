@@ -9,6 +9,7 @@ import SmoothProgress from '../components/fx/SmoothProgress';
 import { useDelayedLoading } from '../components/fx/Skeleton';
 import BlurImg from '../components/fx/BlurImg';
 import { useCall } from '../lib/call';
+import { useGroupCall } from '../lib/groupCall';
 import { goBackOr } from '../components/BackButton';
 import { confirmDialog } from '../lib/dialog';
 import { toast } from 'sonner';
@@ -213,6 +214,20 @@ export default function Chat() {
   const recordTimerRef = useRef<number | null>(null);
   const imageRef = useRef<HTMLInputElement>(null);
   const { startCall, busy: callBusy } = useCall();
+  const {
+    joinGroupCall,
+    watchConversation: watchGroupCallConversation,
+    activeConversationId: activeGroupVoiceConversationId,
+    currentConversationId: currentGroupVoiceConversationId,
+    activeParticipantCount: groupVoiceParticipantCount,
+    busy: groupCallBusy,
+  } = useGroupCall();
+
+  useEffect(() => {
+    const conversationId = isGroup && cid && Number.isSafeInteger(Number(cid)) ? Number(cid) : null;
+    watchGroupCallConversation(conversationId);
+    return () => watchGroupCallConversation(null);
+  }, [cid, isGroup, watchGroupCallConversation]);
   const fileRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState('');
   const [showDetails, setShowDetails] = useState(false);
@@ -994,6 +1009,22 @@ export default function Chat() {
         {!isGroup && <button type="button" className="im-icon im-call-button" aria-label="语音通话" title="语音通话" disabled={!peer || callBusy}
           onClick={() => { if (peer && cid) startCall({ id: peer.id, name }, Number(cid)); }}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6.62 10.79a15.05 15.05 0 0 0 6.59 6.59l2.2-2.2a1 1 0 0 1 1.02-.24 11.4 11.4 0 0 0 3.57.57 1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A17 17 0 0 1 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1 11.4 11.4 0 0 0 .57 3.57 1 1 0 0 1-.25 1.02z"/></svg>
+        </button>}
+        {isGroup && cid && <button
+          type="button"
+          className="im-icon im-call-button qz-group-call-trigger"
+          aria-label={currentGroupVoiceConversationId === Number(cid) ? '返回群语音' : activeGroupVoiceConversationId === Number(cid) ? '加入群语音' : '发起群语音'}
+          title={currentGroupVoiceConversationId === Number(cid) ? '返回群语音' : activeGroupVoiceConversationId === Number(cid) ? '加入群语音' : '发起群语音'}
+          disabled={callBusy || (groupCallBusy && currentGroupVoiceConversationId !== Number(cid))}
+          onClick={() => { void joinGroupCall(Number(cid), name); }}
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">
+            <path d="M4 10v4M8 6v12M12 3v18M16 7v10M20 10v4" />
+          </svg>
+          {activeGroupVoiceConversationId === Number(cid) && <>
+            <i className="qz-group-call-live-dot" aria-hidden="true" />
+            <span className="qz-group-call-count" aria-hidden="true">{groupVoiceParticipantCount}</span>
+          </>}
         </button>}
         <button className="im-icon im-info-button" aria-label="聊天详情" onClick={() => setShowDetails(true)}>
           <span aria-hidden="true">ⓘ</span>

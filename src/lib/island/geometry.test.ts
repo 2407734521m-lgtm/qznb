@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { expandedStageWidth, isMusicExpandedLayer, MUSIC_EXPANDED_STAGE_WIDTH } from "./geometry";
+import { expandedStageWidth, isCallExpandedLayer, isMusicExpandedLayer, MUSIC_EXPANDED_STAGE_WIDTH, CALL_EXPANDED_STAGE_WIDTH } from "./geometry";
 
 describe("expandedStageWidth", () => {
   it("caps the music player's expanded stage at 500 on desktop", () => {
@@ -7,8 +7,12 @@ describe("expandedStageWidth", () => {
     expect(MUSIC_EXPANDED_STAGE_WIDTH).toBe(500);
   });
 
+  it("caps the call card's expanded stage at 500 on desktop, like the music player", () => {
+    expect(expandedStageWidth("qz-call-session", 640)).toBe(CALL_EXPANDED_STAGE_WIDTH);
+    expect(CALL_EXPANDED_STAGE_WIDTH).toBe(500);
+  });
+
   it("leaves every other activity on the shared stage", () => {
-    expect(expandedStageWidth("qz-call-session", 640)).toBe(640);
     expect(expandedStageWidth("qz-route-navigation", 640)).toBe(640);
     expect(expandedStageWidth(null, 640)).toBe(640);
   });
@@ -16,6 +20,21 @@ describe("expandedStageWidth", () => {
   it("keeps phones on their own narrower container", () => {
     expect(expandedStageWidth("music-playback", 390)).toBe(390);
     expect(expandedStageWidth("music-playback", 320)).toBe(320);
+    expect(expandedStageWidth("qz-call-session", 390)).toBe(390);
+  });
+});
+
+describe("isCallExpandedLayer", () => {
+  it("matches the call's expanded layer with or without a revision", () => {
+    expect(isCallExpandedLayer("expanded:qz-call-session")).toBe(true);
+    expect(isCallExpandedLayer("expanded:qz-call-session#2")).toBe(true);
+  });
+
+  it("rejects other activities and other presentations", () => {
+    expect(isCallExpandedLayer("expanded:music-playback")).toBe(false);
+    expect(isCallExpandedLayer("compact:qz-call-session")).toBe(false);
+    expect(isCallExpandedLayer("expanded:qz-call-session-2")).toBe(false);
+    expect(isCallExpandedLayer("expanded:qz-call-sessionx")).toBe(false);
   });
 });
 

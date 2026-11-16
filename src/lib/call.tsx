@@ -554,6 +554,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
       onToggleSpeaker: toggleSpeaker,
       onRestore: restoreCall,
       onExpand: expandCallIsland,
+      onCollapse: () => islandApi.collapse(),
     }));
   }, [phase, peerName, callStartedAt, muted, speakerEnabled, islandApi, acceptCall, rejectCall, cancelCall, hangUp, toggleMute, toggleSpeaker, restoreCall, expandCallIsland]);
 

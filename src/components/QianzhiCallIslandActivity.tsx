@@ -16,6 +16,8 @@ export interface CallIslandActivityInput {
   onToggleMute: () => void;
   onToggleSpeaker: () => void;
   onRestore: () => void;
+  /** Collapses the expanded island back to the pill. Never ends the call. */
+  onCollapse: () => void;
   /**
    * Expands the island in place when the pill is tapped. Never navigates or
    * restores the fullscreen call UI — the hang-up action lives in the
@@ -106,6 +108,61 @@ function CallAction({ label, tone, onAction }: { label: string; tone?: 'primary'
   );
 }
 
+/**
+ * Round peer avatar: the first character of the name on a glass circle, the
+ * same 62px round anchor the music card's cover gives its expanded card, so
+ * the call card reads as one identity row instead of a name floating in a
+ * black void. Tinted by phase: red while ringing, green while talking.
+ */
+function CallAvatar({ peer, phase }: { peer: string; phase: CallPhase }) {
+  return (
+    <span className={'qz-call-island-avatar' + (phase === 'incoming' ? ' is-ringing' : phase === 'in-call' ? ' is-active' : '')} aria-hidden="true">
+      {peer.slice(0, 1)}
+    </span>
+  );
+}
+
+/** Header row: round avatar with the name and status right after it, like the player card. */
+function CallExpandedHead({ peer, phase, phaseLabel, startedAt, muted }: {
+  peer: string;
+  phase: CallPhase;
+  phaseLabel: string;
+  startedAt: number | null;
+  muted: boolean;
+}) {
+  return (
+    <span className="qz-call-island-head">
+      <CallAvatar peer={peer} phase={phase} />
+      <span className="qz-call-island-meta">
+        <span className="qz-call-island-kind">语音通话</span>
+        <strong>{peer}</strong>
+        <small>
+          <span key={phase + ':' + (muted && phase === 'in-call')} className="qz-call-island-status">
+            {phaseLabel}{muted && phase === 'in-call' ? ' · 已静音' : ''}
+          </span>
+          {phase === 'in-call' ? <> · <CallElapsedTime startedAt={startedAt} /></> : null}
+        </small>
+      </span>
+    </span>
+  );
+}
+
+function CallCollapseButton({ onCollapse }: { onCollapse: () => void }) {
+  return (
+    <button
+      type="button"
+      className="qz-call-island-close"
+      aria-label="收起灵动岛"
+      onPointerDown={event => event.stopPropagation()}
+      onClick={event => { event.preventDefault(); event.stopPropagation(); onCollapse(); }}
+    >
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M6 6l12 12M18 6L6 18" />
+      </svg>
+    </button>
+  );
+}
+
 /** Maps the existing WebRTC state machine to one high-priority island activity. */
 export function createCallIslandActivity(input: CallIslandActivityInput): ActivityOptions {
   const { phase, peerName, startedAt, muted, speakerEnabled } = input;
@@ -142,18 +199,8 @@ export function createCallIslandActivity(input: CallIslandActivityInput): Activi
     },
     minimal: <span className="qz-call-island-minimal" aria-label={phaseLabel}><PhoneIcon /></span>,
     expanded: {
-      leading: <span className="qz-call-island-label">语音通话</span>,
-      center: (
-        <span className="qz-call-island-copy">
-          <strong>{peer}</strong>
-          <small>
-            <span key={phase + ':' + (muted && phase === 'in-call')} className="qz-call-island-status">
-              {phaseLabel}{muted && phase === 'in-call' ? ' · 已静音' : ''}
-            </span>
-            {phase === 'in-call' ? <> · <CallElapsedTime startedAt={startedAt} /></> : null}
-          </small>
-        </span>
-      ),
+      leading: <CallExpandedHead peer={peer} phase={phase} phaseLabel={phaseLabel} startedAt={startedAt} muted={muted} />,
+      trailing: <CallCollapseButton onCollapse={input.onCollapse} />,
       bottom: (
         <div className="qz-call-island-actions">
           {/* Each action keeps a stable key for what it does, not where it sits:

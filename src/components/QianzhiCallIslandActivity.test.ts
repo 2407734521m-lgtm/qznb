@@ -20,6 +20,7 @@ describe('Qianzhi call island activity', () => {
       onToggleSpeaker: () => {},
       onRestore: () => {},
       onExpand: () => {},
+      onCollapse: () => {},
     });
 
     expect(activity.id).toBe('qz-call-session');
@@ -49,6 +50,7 @@ describe('Qianzhi call island activity', () => {
       onToggleSpeaker: () => {},
       onRestore: () => {},
       onExpand: () => {},
+      onCollapse: () => {},
     });
 
     expect(activity.alert).toBe(false);
@@ -60,6 +62,40 @@ describe('Qianzhi call island activity', () => {
     const actionGroup = actionRow.props.children;
     expect(actionGroup.props.children.map(action => action.props.label)).toEqual(['返回通话', '取消静音', '扬声器', '挂断']);
   });
+  it('shows an avatar-led head and a collapse button instead of a floating centered name', () => {
+    const onCollapse = () => {};
+    const activity = createCallIslandActivity({
+      phase: 'outgoing',
+      peerName: '千',
+      startedAt: null,
+      muted: false,
+      speakerEnabled: false,
+      onAccept: () => {},
+      onReject: () => {},
+      onCancel: () => {},
+      onHangUp: () => {},
+      onToggleMute: () => {},
+      onToggleSpeaker: () => {},
+      onRestore: () => {},
+      onExpand: () => {},
+      onCollapse,
+    });
+
+    // The head carries the peer into the leading slot, like the music card's cover.
+    const head = activity.expanded?.leading as ReactElement<{ peer: string; phaseLabel: string }>;
+    expect(isValidElement(head)).toBe(true);
+    expect(head.props.peer).toBe('千');
+    expect(head.props.phaseLabel).toBe('等待接听');
+    // No centered copy any more: the name no longer floats in the middle of the card.
+    expect(activity.expanded?.center).toBeUndefined();
+    // The trailing close button collapses the island without ending the call.
+    // (Its aria-label lives inside the button component; the visual check
+    // confirms it renders with "收起灵动岛".)
+    const close = activity.expanded?.trailing as ReactElement<{ onCollapse: () => void }>;
+    expect(isValidElement(close)).toBe(true);
+    expect(close.props.onCollapse).toBe(onCollapse);
+  });
+
   it('offers cancellation while the call is still connecting', () => {
     const activity = createCallIslandActivity({
       phase: 'connecting',
@@ -75,6 +111,7 @@ describe('Qianzhi call island activity', () => {
       onToggleSpeaker: () => {},
       onRestore: () => {},
       onExpand: () => {},
+      onCollapse: () => {},
     });
     const actionRow = activity.expanded?.bottom as ReactElement<{ children: ReactElement<{ children: ReactElement<{ label: string }>[] }> }>;
     const actionFragment = actionRow.props.children;
@@ -144,6 +181,7 @@ describe('call island phase transitions', () => {
     onToggleSpeaker: noop,
     onRestore: noop,
     onExpand: noop,
+    onCollapse: noop,
   });
 
   it('keeps the call layout mounted while animating only changing status labels', () => {
@@ -154,7 +192,7 @@ describe('call island phase transitions', () => {
     expect((incoming.compact?.leading as ReactElement).key).toBeNull();
     expect((incoming.compact?.trailing as ReactElement).key).toBeNull();
     expect((active.minimal as ReactElement).key).toBeNull();
-    expect((incoming.expanded?.center as ReactElement).key).toBeNull();
+    expect((incoming.expanded?.leading as ReactElement).key).toBeNull();
     expect((active.expanded?.bottom as ReactElement).key).toBeNull();
   });
 

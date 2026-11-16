@@ -125,6 +125,50 @@ export function shouldCrossfadeMusicTrack(
   return soleMusicActivity && isCompact;
 }
 
+/**
+ * Whether the incoming STATE means the song has played to the end. The music
+ * station never clears currentSong when the queue ends: it keeps pushing the
+ * finished song as paused at its full length, so the island must treat that
+ * as the end of the track session, not as a song paused mid-way. Progress is
+ * whole seconds, so a track counts as finished one second before its end.
+ */
+/** Paused at (or within a second of) the end of a track with a known length. */
+function isMusicTrackAtEnd(track: MusicTrack): boolean {
+  if (track.isPlaying) return false;
+  if (!Number.isFinite(track.duration) || track.duration <= 0) return false;
+  return track.currentTime >= track.duration - 1;
+}
+
+export function isMusicTrackFinished(
+  previous: MusicTrack | null,
+  next: MusicTrack,
+): boolean {
+  if (!previous) return false;
+  if (musicTrackIdentity(previous) !== musicTrackIdentity(next)) return false;
+  return isMusicTrackAtEnd(next);
+}
+
+/**
+ * Whether a STATE push is the bridge still re-sending a song whose grace
+ * window already elapsed. Those pushes must not resurrect the pill: the
+ * session ended, and only a live change to the song (playing, or paused
+ * mid-track) brings it back.
+ */
+export function isEndedTrackPush(
+  next: MusicTrack,
+  endedIdentity: string | null,
+): boolean {
+  if (endedIdentity === null) return false;
+  if (musicTrackIdentity(next) !== endedIdentity) return false;
+  return isMusicTrackAtEnd(next);
+}
+
+/** The pill's accessible name: a neutral one while no song is live. */
+export function resolveMusicIslandLabel(track: MusicTrack | null): string {
+  if (!track) return '还没放歌';
+  return (track.isPlaying ? '正在播放：' : '已暂停：') + track.title;
+}
+
 function MusicIsland() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -145,12 +189,19 @@ function MusicIsland() {
   const seekDraftRef = useRef<number | null>(null);
   const lastStateMessageAtRef = useRef(0);
   const lastTrackRef = useRef<MusicTrack | null>(null);
-  // A song ending sends track:null, and the next song (if any) arrives on the next
-  // STATE: ending the activity at once makes the pill blink out for a beat at every
-  // track change. The grace timer holds the last track as paused instead; only if
-  // nothing arrives within the window does the island go away.
+  // A song ending sends track:null — or, when the queue runs out, the bridge
+  // keeps pushing the finished song as paused at its full length (the station
+  // never clears currentSong). Either way the next song, if any, arrives on
+  // the next STATE: ending the activity at once makes the pill blink out for
+  // a beat at every track change. The grace timer holds the last track as
+  // paused instead; only if nothing arrives within the window does the island
+  // go away.
   const graceTimerRef = useRef<number | null>(null);
   const graceActiveRef = useRef(false);
+  // Identity of the song whose grace window already elapsed. The bridge keeps
+  // pushing that finished song every 700ms; without remembering it, the next
+  // push after the window would bring the pill straight back.
+  const endedTrackIdentityRef = useRef<string | null>(null);
   const shouldMountFrame = openedOnce || isMusicPage;
   const showMainIsland = shouldShowMainIsland(isMusicPage, activityIds);
 
@@ -235,7 +286,9 @@ function MusicIsland() {
         graceTimerRef.current = null;
         graceActiveRef.current = false;
       };
-      if (!message.track || typeof message.track.title !== 'string') {
+      // The equalizer only moves while a song is playing; once playback stops the
+      // bars fall back to their idle level instead of freezing on the last frame.
+      const resetEqualizerIdle = () => {
         islandWrapRef.current?.setAttribute('data-qz-music-eq-mode', 'idle');
         document.documentElement.dataset.qzMusicEqMode = 'idle';
         islandWrapRef.current?.style.setProperty('--qz-music-eq-bass', '.12');
@@ -246,42 +299,36 @@ function MusicIsland() {
         document.documentElement.style.setProperty('--qz-music-eq-lowMid', '.12');
         document.documentElement.style.setProperty('--qz-music-eq-vocal', '.12');
         document.documentElement.style.setProperty('--qz-music-eq-treble', '.12');
-        // Hold the last track as paused (its play control disabled) instead of
-        // dropping the pill the instant a song ends; the next song usually
-        // arrives on the next STATE. Only if nothing arrives within the grace
-        // window does the activity end.
+      };
+      // Hold a finished track as paused (its play control disabled) instead of
+      // dropping the pill the instant a song ends; the next song usually
+      // arrives on the next STATE. Only if nothing arrives within the grace
+      // window does the activity end. Already running: the bridge re-pushes
+      // every 700ms, so a second call must not rebuild the timer.
+      const startGrace = (held: MusicTrack) => {
+        if (graceActiveRef.current) return;
+        graceActiveRef.current = true;
+        const graceTrack: MusicTrack = { ...held, isPlaying: false, canToggle: false, currentTime: held.duration };
+        lastTrackRef.current = graceTrack;
+        setTrack(graceTrack);
+        graceTimerRef.current = window.setTimeout(() => {
+          graceTimerRef.current = null;
+          graceActiveRef.current = false;
+          endedTrackIdentityRef.current = musicTrackIdentity(lastTrackRef.current);
+          lastTrackRef.current = null;
+          setTrack(null);
+        }, 25000);
+      };
+      if (!message.track || typeof message.track.title !== 'string') {
+        resetEqualizerIdle();
         const last = lastTrackRef.current;
-        if (last && !graceActiveRef.current) {
-          graceActiveRef.current = true;
-          const graceTrack: MusicTrack = { ...last, isPlaying: false, canToggle: false, currentTime: last.duration };
-          lastTrackRef.current = graceTrack;
-          setTrack(graceTrack);
-          graceTimerRef.current = window.setTimeout(() => {
-            graceTimerRef.current = null;
-            graceActiveRef.current = false;
-            lastTrackRef.current = null;
-            setTrack(null);
-          }, 25000);
-        }
+        if (last) startGrace(last);
         return;
       }
-      clearGraceTimer();
       const incoming = message.track as MusicTrack;
       const duration = Number(incoming.duration);
       const currentTime = Number(incoming.currentTime);
       const volumeRaw = Number(incoming.volume);
-      if (!incoming.isPlaying) {
-        islandWrapRef.current?.setAttribute('data-qz-music-eq-mode', 'idle');
-        document.documentElement.dataset.qzMusicEqMode = 'idle';
-        islandWrapRef.current?.style.setProperty('--qz-music-eq-bass', '.12');
-        islandWrapRef.current?.style.setProperty('--qz-music-eq-lowMid', '.12');
-        islandWrapRef.current?.style.setProperty('--qz-music-eq-vocal', '.12');
-        islandWrapRef.current?.style.setProperty('--qz-music-eq-treble', '.12');
-        document.documentElement.style.setProperty('--qz-music-eq-bass', '.12');
-        document.documentElement.style.setProperty('--qz-music-eq-lowMid', '.12');
-        document.documentElement.style.setProperty('--qz-music-eq-vocal', '.12');
-        document.documentElement.style.setProperty('--qz-music-eq-treble', '.12');
-      }
       const nextTrack: MusicTrack = {
         title: incoming.title.slice(0, 180),
         artist: typeof incoming.artist === 'string' ? incoming.artist.slice(0, 180) : '',
@@ -299,6 +346,26 @@ function MusicIsland() {
         volume: Number.isFinite(volumeRaw) ? Math.max(0, Math.min(1, volumeRaw)) : null,
         isMuted: incoming.isMuted === true,
       };
+      // The station never sends track:null when the queue runs out: it keeps
+      // pushing the finished song as paused at its full length. Treat that as
+      // the end of the session too, and check it BEFORE clearGraceTimer():
+      // the bridge re-pushes every 700ms, so clearing first would restart the
+      // grace window on every push and it would never elapse.
+      if (isMusicTrackFinished(lastTrackRef.current, nextTrack)) {
+        resetEqualizerIdle();
+        startGrace(nextTrack);
+        return;
+      }
+      // The grace already elapsed for this song, but the bridge keeps pushing
+      // it finished every 700ms: swallow those pushes so the pill stays away.
+      if (isEndedTrackPush(nextTrack, endedTrackIdentityRef.current)) {
+        return;
+      }
+      clearGraceTimer();
+      endedTrackIdentityRef.current = null;
+      if (!incoming.isPlaying) {
+        resetEqualizerIdle();
+      }
       // The bridge pushes STATE every 700ms; most pushes change nothing the island shows.
       // Skipping those keeps the whole main-site tree from re-rendering on every push.
       if (!isSameMusicTrack(lastTrackRef.current, nextTrack)) {
@@ -313,6 +380,7 @@ function MusicIsland() {
       if (graceTimerRef.current !== null) window.clearTimeout(graceTimerRef.current);
       graceTimerRef.current = null;
       graceActiveRef.current = false;
+      endedTrackIdentityRef.current = null;
     };
   }, [shouldMountFrame]);
 
@@ -389,7 +457,15 @@ function MusicIsland() {
 
   const previousTrackIdentityRef = useRef<string | null>(null);
   useEffect(() => {
-    if (!hasTrack || isMusicPage || !track) return;
+    if (isMusicPage) return;
+    if (!hasTrack || !track) {
+      // The empty card's activity has no track: give the pill a neutral name
+      // instead of the '音乐正在播放' it was created with.
+      if (activityIds.includes('music-playback')) {
+        islandApi.update('music-playback', { label: resolveMusicIslandLabel(null) });
+      }
+      return;
+    }
     const nextIdentity = musicTrackIdentity(track);
     // A new song crossfades the whole compact layer instead of hard-swapping the title
     // and cover; a pause/resume or a progress tick keeps the in-place update.
@@ -401,7 +477,7 @@ function MusicIsland() {
     );
     previousTrackIdentityRef.current = nextIdentity;
     islandApi.update('music-playback', {
-      label: (track.isPlaying ? '正在播放：' : '已暂停：') + track.title,
+      label: resolveMusicIslandLabel(track),
       ...(crossfade ? { transition: 'crossfade' as const } : {}),
     });
   }, [hasTrack, isMusicPage, track?.title, track?.artist, track?.coverUrl, track?.isPlaying, islandApi, activityIds]);

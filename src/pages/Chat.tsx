@@ -214,6 +214,8 @@ export default function Chat() {
   const imageRef = useRef<HTMLInputElement>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
   const gifRef = useRef<HTMLInputElement>(null);
+  const attachmentButtonRef = useRef<HTMLButtonElement>(null);
+  const attachmentTrayRef = useRef<HTMLDivElement>(null);
   const { startCall, busy: callBusy } = useCall();
   const fileRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState('');
@@ -677,6 +679,43 @@ export default function Chat() {
     }
   }
 
+  async function sendGif(file?: File) {
+    if (!file || uploading || !cid) return;
+    if (file.type !== 'image/gif' && !/\.gif$/i.test(file.name)) {
+      setError('请选择 GIF 动图文件。');
+      return;
+    }
+    if (file.size > 15 * 1024 * 1024) {
+      setError('GIF 动图不能超过 15 MB。');
+      return;
+    }
+    setUploading(true);
+    setError('');
+    try {
+      setUpPct(0);
+      // Keep the original GIF bytes: image compression would flatten animation frames.
+      const path = await uploadMediaWithProgress('chat-media', file, Number(cid) + '/' + me, pct => setUpPct(pct));
+      const { error: sendError } = await supabase.from('messages').insert({
+        conversation_id: Number(cid),
+        sender_id: me,
+        body: '[[im-image:' + path + ']]',
+        reply_to_id: replyTarget?.id ?? null,
+      });
+      if (sendError) throw sendError;
+      setReplyTarget(null);
+      setShowStickers(false);
+      setShowStickerEmojis(false);
+      await load();
+    } catch (e) {
+      console.error('chat GIF upload failed', e);
+      setError('GIF 动图发送失败，请重试。');
+    } finally {
+      setUploading(false);
+      setUpPct(null);
+      if (gifRef.current) gifRef.current.value = '';
+    }
+  }
+
   async function sendFile(file?: File) {
     if (!file || uploading || !cid) return;
     if (file.size > 50 * 1024 * 1024) { setError('文件不能超过 50 MB。'); return; }
@@ -921,17 +960,40 @@ export default function Chat() {
   };
 
   useEffect(() => {
-    if (!showDetails && actionFor === null) return;
+    if (!showDetails && actionFor === null && !showStickers) return;
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         setShowDetails(false);
+        setShowProfileMore(false);
+        setShowStickers(false);
+        setShowStickerEmojis(false);
         setActionFor(null);
         setTapbackAnchor(null);
       }
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [showDetails, actionFor]);
+  }, [showDetails, showStickers, actionFor]);
+
+  useEffect(() => {
+    if (!showStickers) return;
+    const closeOnOutsidePointer = (event: PointerEvent) => {
+      const target = event.target as Node;
+      if (attachmentTrayRef.current?.contains(target) || attachmentButtonRef.current?.contains(target)) return;
+      setShowStickers(false);
+      setShowStickerEmojis(false);
+    };
+    document.addEventListener('pointerdown', closeOnOutsidePointer);
+    return () => document.removeEventListener('pointerdown', closeOnOutsidePointer);
+  }, [showStickers]);
+
+  useEffect(() => {
+    if (!showDetails) setShowProfileMore(false);
+    else {
+      setShowStickers(false);
+      setShowStickerEmojis(false);
+    }
+  }, [showDetails]);
 
   const latestOutgoingMessageId = [...msgs].reverse().find(message => message.sender_id === me)?.id ?? null;
 
@@ -1049,7 +1111,10 @@ export default function Chat() {
               <div className="im-profile-username">{isGroup ? groupMembers.length + ' 位成员 · 群聊' : peer?.username ? '@' + peer.username : '一对一私密会话'}</div>
               {!isGroup && <div className="im-profile-actions" role="group" aria-label="联系人快捷操作">
                 <button type="button" className="im-profile-action" disabled={!peer || callBusy}
-                  onClick={() => { if (peer && cid) startCall({ id: peer.id, name }, Number(cid)); }}>
+                  onClick={() => {
+                    setShowDetails(false);
+                    if (peer && cid) startCall({ id: peer.id, name }, Number(cid));
+                  }}>
                   <span className="im-profile-action-icon">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                       <path d="M7 3H4a1 1 0 0 0-1 1c0 9.4 7.6 17 17 17a1 1 0 0 0 1-1v-3l-5-2-2 2a14 14 0 0 1-6-6l2-2Z" />
@@ -1445,6 +1510,8 @@ export default function Chat() {
       {error && <div className="im-error">{error}</div>}
       <AnimatePresence initial={false}>
         {showStickers && <motion.div
+          ref={attachmentTrayRef}
+          id="chat-attachment-tray"
           key="chat-attachment-tray"
           className="im-sticker-tray"
           role="group"
@@ -1499,8 +1566,18 @@ export default function Chat() {
         <input ref={imageRef} type="file" accept="image/jpeg,image/png,image/webp,image/heic" hidden onChange={e => sendImage(e.target.files?.[0])} />
         <input ref={cameraRef} type="file" accept="image/*" capture="environment" hidden onChange={e => sendImage(e.target.files?.[0])} />
         <input ref={fileRef} type="file" hidden onChange={e => sendFile(e.target.files?.[0])} />
-        <input ref={gifRef} type="file" accept="image/gif" hidden onChange={e => sendFile(e.target.files?.[0])} />
-        <button type="button" className="im-plus" aria-label="打开附件菜单" title="打开附件菜单" disabled={uploading || recording} onClick={() => { setShowStickers(v => !v); setShowStickerEmojis(false); }}>{showStickers ? '×' : '＋'}</button>
+        <input ref={gifRef} type="file" accept="image/gif,.gif" hidden onChange={e => sendGif(e.target.files?.[0])} />
+        <button
+          ref={attachmentButtonRef}
+          type="button"
+          className="im-plus"
+          aria-label={showStickers ? '关闭附件菜单' : '打开附件菜单'}
+          aria-expanded={showStickers}
+          aria-controls="chat-attachment-tray"
+          title={showStickers ? '关闭附件菜单' : '打开附件菜单'}
+          disabled={uploading || recording}
+          onClick={() => { setShowStickers(v => !v); setShowStickerEmojis(false); }}
+        >{showStickers ? '×' : '＋'}</button>
         <div className="im-input-wrap">
           <input ref={inputRef} className="im-input" value={text} onChange={e => { setText(e.target.value); notifyTyping(e.target.value); }}
             placeholder={recording ? '录音中 ' + String(Math.floor(recordSeconds / 60)).padStart(2, '0') + ':' + String(recordSeconds % 60).padStart(2, '0') + ' · 点红色按钮结束' : uploading ? '正在发送媒体…' : '私信'} maxLength={2000} autoComplete="off" aria-label="输入消息" />

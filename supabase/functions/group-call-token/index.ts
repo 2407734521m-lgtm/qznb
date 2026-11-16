@@ -130,7 +130,7 @@ Deno.serve(async (req: Request) => {
     const accessToken = new AccessToken(apiKey, apiSecret, {
       identity: authData.user.id,
       name: participantName,
-      ttl: '30m',
+      ttl: '6h',
       metadata: JSON.stringify({ conversation_id: conversationId }),
     });
 

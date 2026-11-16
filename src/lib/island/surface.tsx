@@ -1,13 +1,15 @@
 "use client";
 
+import { useDrag } from "@use-gesture/react";
+
 import {
   type CSSProperties,
   type KeyboardEvent,
-  type PointerEvent,
   useCallback,
   useEffect,
   useId,
   useLayoutEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
@@ -44,8 +46,8 @@ export interface SurfaceInteraction {
   /** Accessible name of the detached bubble button, when there is one. */
   bubbleLabel: string | null;
   expanded: boolean;
-  onPressStart(target: PressTarget, event: PointerEvent<HTMLButtonElement>): void;
-  onPressEnd(event: PointerEvent<HTMLButtonElement>): void;
+  onPressStart(target: PressTarget, event: PointerEvent): void;
+  onPressEnd(event: PointerEvent): void;
   onPressCancel(): void;
   /** Keyboard activation (Enter or Space). */
   onActivate(target: PressTarget): void;
@@ -718,6 +720,42 @@ export const IslandSurface = (props: IslandSurfaceProps) => {
   // Everything the frame loop touches lives in refs, so frames never re-render React.
   const live = useRef(props);
   live.current = props;
+
+  // Gesture recognition owns pointer capture and the complete down/move/up lifecycle. The
+  // animation engine remains independent: these handlers only start/end the existing press state.
+  const gestureOptions = useMemo(() => ({
+    enabled: interaction !== null,
+    eventOptions: { passive: false },
+    pointer: { capture: true, keys: false },
+    threshold: 0,
+    triggerAllEvents: true,
+    filterTaps: false,
+    swipe: { distance: [18, 18] as [number, number], velocity: [0.35, 0.35] as [number, number], duration: 250 },
+  }), [interaction !== null]);
+  const pillGesture = useDrag<PointerEvent>(
+    ({ first, down, last, canceled, swipe, event }) => {
+      const current = live.current.interaction;
+      if (!current) return;
+      if (first && down) current.onPressStart("pill", event);
+      if (last) {
+        if (canceled || swipe[0] !== 0 || swipe[1] !== 0) current.onPressCancel();
+        else current.onPressEnd(event);
+      }
+    },
+    gestureOptions,
+  );
+  const bubbleGesture = useDrag<PointerEvent>(
+    ({ first, down, last, canceled, swipe, event }) => {
+      const current = live.current.interaction;
+      if (!current) return;
+      if (first && down) current.onPressStart("bubble", event);
+      if (last) {
+        if (canceled || swipe[0] !== 0 || swipe[1] !== 0) current.onPressCancel();
+        else current.onPressEnd(event);
+      }
+    },
+    gestureOptions,
+  );
   const stageWidthRef = useRef(containerWidth);
   stageWidthRef.current = containerWidth;
   const shape = useRef<ShapeAnimation | null>(null);
@@ -2213,10 +2251,7 @@ export const IslandSurface = (props: IslandSurfaceProps) => {
             tabIndex={interaction.pillLabel === null ? -1 : undefined}
             aria-expanded={interaction.expanded}
             style={{ pointerEvents: "auto", touchAction: "none" }}
-            onPointerDown={(event) => interaction.onPressStart("pill", event)}
-            onPointerUp={(event) => interaction.onPressEnd(event)}
-            onPointerCancel={() => interaction.onPressCancel()}
-            onPointerLeave={() => interaction.onPressCancel()}
+            {...pillGesture()}
             onContextMenu={(event) => event.preventDefault()}
             onKeyDown={keyDown("pill")}
           />
@@ -2228,10 +2263,7 @@ export const IslandSurface = (props: IslandSurfaceProps) => {
             data-islandcn-hit="bubble"
             aria-label={interaction.bubbleLabel}
             style={{ pointerEvents: "auto", touchAction: "none", display: "none" }}
-            onPointerDown={(event) => interaction.onPressStart("bubble", event)}
-            onPointerUp={(event) => interaction.onPressEnd(event)}
-            onPointerCancel={() => interaction.onPressCancel()}
-            onPointerLeave={() => interaction.onPressCancel()}
+            {...bubbleGesture()}
             onContextMenu={(event) => event.preventDefault()}
             onKeyDown={keyDown("bubble")}
           />

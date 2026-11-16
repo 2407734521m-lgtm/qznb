@@ -27,7 +27,8 @@
     "react-dom": "^19.3.1",
     "react-router-dom": "^7.18.5",
     "simple-liquid-glass": "^5.7.3",
-    "sonner": "^2.0.8"
+    "sonner": "^2.0.8",
+    "@use-gesture/react": "^10.3.1"
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.5.16",
@@ -38,6 +39,7 @@
     "playwright": "1.65.0",
     "typescript": "^7.0.2",
     "vite": "^8.3.8",
-    "vitest": "^5.1.0"
+    "vitest": "^5.1.0",
+    "tempus": "^1.0.0"
   }
 }

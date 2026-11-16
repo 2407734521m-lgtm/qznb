@@ -51,6 +51,16 @@ export interface ActivityContent {
   expanded?: ExpandedContent;
 }
 
+export type ActivityTaskStatus = "running" | "done" | "error";
+
+export interface ActivityTaskState {
+  status: ActivityTaskStatus;
+  /** Human-readable state detail, e.g. "Uploading 4 files". */
+  detail?: string;
+  /** Progress from 0 to 100. Null or omitted means indeterminate. */
+  progress?: number | null;
+}
+
 export interface ActivityOptions extends ActivityContent {
   /** Unique id. Starting an id that already runs updates it instead. */
   id: string;
@@ -60,6 +70,8 @@ export interface ActivityOptions extends ActivityContent {
   priority?: number;
   /** Called on a tap (a press shorter than the long-press). Defaults to none. */
   onPress?: () => void;
+  /** Optional structured state for background work shown in the activity list. */
+  task?: ActivityTaskState;
   /** Start with an alert: expand briefly, then settle to compact. Defaults to false. */
   alert?: boolean;
   /**
@@ -83,6 +95,8 @@ export interface ActivityUpdate {
   label?: string;
   /** Replaces the priority. Defaults to keeping it. */
   priority?: number;
+  /** Merges structured background-work state into the existing activity. */
+  task?: ActivityTaskState;
   /** Replaces the tap handler. Defaults to keeping it. */
   onPress?: () => void;
   /**
@@ -118,6 +132,8 @@ export interface Activity {
   revision: number;
   /** The group it shows in turn with (`ActivityOptions.group`), or null. */
   group: string | null;
+  /** Optional structured state for background work shown in the activity list. */
+  task?: ActivityTaskState;
 }
 
 /** Why the island is expanded. Alerts collapse by themselves; user expansions wait for a press outside. */

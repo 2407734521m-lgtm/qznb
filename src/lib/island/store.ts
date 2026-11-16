@@ -247,6 +247,7 @@ export const createIslandStore = (options: { clock: IslandClock; motion: () => I
         onPress: start.onPress ?? null,
         revision: 0,
         group: start.group ?? null,
+        task: start.task,
       };
       const idle = snapshot.activities.length === 0;
       commit({ ...snapshot, activities: [...snapshot.activities, activity].sort(byPriority) });
@@ -261,6 +262,7 @@ export const createIslandStore = (options: { clock: IslandClock; motion: () => I
         ...found,
         label: update.label ?? found.label,
         priority: update.priority ?? found.priority,
+        task: update.task ? { ...found.task, ...update.task } : found.task,
         onPress: "onPress" in update ? (update.onPress ?? null) : found.onPress,
         content: mergeContent(found.content, update),
         revision: update.transition === "crossfade" ? found.revision + 1 : found.revision,

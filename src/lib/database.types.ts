@@ -98,6 +98,7 @@ export type Database = {
           options: Json
           poke_at: string | null
           poke_count: number
+          poke_target_ids: Json
           revoked: boolean
           starts_at: string | null
           target_ids: Json
@@ -115,6 +116,7 @@ export type Database = {
           options?: Json
           poke_at?: string | null
           poke_count?: number
+          poke_target_ids?: Json
           revoked?: boolean
           starts_at?: string | null
           target_ids?: Json
@@ -132,6 +134,7 @@ export type Database = {
           options?: Json
           poke_at?: string | null
           poke_count?: number
+          poke_target_ids?: Json
           revoked?: boolean
           starts_at?: string | null
           target_ids?: Json

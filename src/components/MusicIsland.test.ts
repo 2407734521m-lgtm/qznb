@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isSameMusicTrack, musicTrackIdentity, resolveMusicEqualizerMode, shouldCrossfadeMusicTrack, shouldShowMainIsland } from './MusicIsland';
+import { isEndedTrackPush, isMusicTrackFinished, isSameMusicTrack, musicTrackIdentity, resolveMusicEqualizerMode, resolveMusicIslandLabel, shouldCrossfadeMusicTrack, shouldShowMainIsland } from './MusicIsland';
 import { hasNewIslandActivity, resolveIslandDockGesture, resolveIslandGestureSource, resolveMusicIslandTapAction, shouldCancelPendingIslandDock, shouldEndTracklessMusicActivity, shouldShowIslandIdleRecall, shouldShowMusicEmptyState } from './QianzhiMusicIslandActivity';
 import { resolveMetrics } from '../lib/island/config';
 import { createQianzhiIslandMetrics, qianzhiIslandMetrics } from '../lib/island/qianzhi-metrics';
@@ -95,6 +95,47 @@ describe('shouldCrossfadeMusicTrack', () => {
   it('does not crossfade while expanded or while another activity shares the island', () => {
     expect(shouldCrossfadeMusicTrack(first, second, true, false)).toBe(false);
     expect(shouldCrossfadeMusicTrack(first, second, false, true)).toBe(false);
+  });
+});
+
+describe('isMusicTrackFinished', () => {
+  it('treats the same song paused at its full length as finished', () => {
+    expect(isMusicTrackFinished(track(), track({ isPlaying: false, currentTime: 200 }))).toBe(true);
+    expect(isMusicTrackFinished(track(), track({ isPlaying: false, currentTime: 199 }))).toBe(true);
+  });
+
+  it('does not end the session on a pause mid-track, a resume, or a new song', () => {
+    expect(isMusicTrackFinished(track(), track({ isPlaying: false, currentTime: 100 }))).toBe(false);
+    expect(isMusicTrackFinished(track(), track({ isPlaying: true, currentTime: 200 }))).toBe(false);
+    expect(isMusicTrackFinished(track(), track({ title: 'Other', isPlaying: false, currentTime: 200 }))).toBe(false);
+  });
+
+  it('needs a previous track and a known length', () => {
+    expect(isMusicTrackFinished(null, track({ isPlaying: false, currentTime: 200 }))).toBe(false);
+    expect(isMusicTrackFinished(track({ duration: 0 }), track({ duration: 0, isPlaying: false, currentTime: 0 }))).toBe(false);
+  });
+});
+
+describe('isEndedTrackPush', () => {
+  const ended = musicTrackIdentity(track());
+
+  it('swallows the same song still pushed finished after its grace elapsed', () => {
+    expect(isEndedTrackPush(track({ isPlaying: false, currentTime: 200 }), ended)).toBe(true);
+  });
+
+  it('lets a live change to the song through', () => {
+    expect(isEndedTrackPush(track(), ended)).toBe(false);
+    expect(isEndedTrackPush(track({ isPlaying: false, currentTime: 100 }), ended)).toBe(false);
+    expect(isEndedTrackPush(track({ title: 'Other', isPlaying: false, currentTime: 200 }), ended)).toBe(false);
+    expect(isEndedTrackPush(track({ isPlaying: false, currentTime: 200 }), null)).toBe(false);
+  });
+});
+
+describe('resolveMusicIslandLabel', () => {
+  it('names a live song by its state, and stays neutral with no song', () => {
+    expect(resolveMusicIslandLabel(null)).toBe('还没放歌');
+    expect(resolveMusicIslandLabel(track())).toBe('正在播放：Hello');
+    expect(resolveMusicIslandLabel(track({ isPlaying: false }))).toBe('已暂停：Hello');
   });
 });
 

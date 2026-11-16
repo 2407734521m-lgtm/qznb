@@ -3275,7 +3275,7 @@ export type Database = {
         Returns: {
           conversation_id: number
           conversation_created_at: string
-          group_name: string
+          group_name: string | null
           group_avatar_path: string | null
           member_count: number
           last_message_id: number | null
@@ -3290,7 +3290,7 @@ export type Database = {
         Args: { p_conversation_id: number }
         Returns: {
           conversation_id: number
-          group_name: string
+          group_name: string | null
           group_avatar_path: string | null
           created_by: string | null
           member_count: number

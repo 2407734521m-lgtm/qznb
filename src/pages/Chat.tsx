@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
@@ -13,6 +13,7 @@ import { useCall } from '../lib/call';
 import { goBackOr } from '../components/BackButton';
 import { confirmDialog } from '../lib/dialog';
 import { toast } from 'sonner';
+import { Spoiler } from 'spoiled';
 import OptionSheet from '../components/OptionSheet';
 import DisappearingCustomDialog, { formatDisappearingDuration } from '../components/DisappearingCustomDialog';
 import type { ChatMessage } from '../types/message';
@@ -100,6 +101,29 @@ function fileExtLabel(name: string) {
   return ext && ext.length <= 5 ? ext : '文件';
 }
 
+// 隐形消息：||藏起来的字|| 用 spoiled（GitHub 项目，照 Telegram 剧透做的粒子遮罩）
+// 盖住，点一下显现、再点一下盖回去；未配对的 || 原样显示；预览里不泄露原文。
+// 注意：spoiled 的 noiseFadeDuration 单位是秒（0.3 = 300ms，贴合 DESIGN.md 动效 200–320ms），
+// 写成 300 会被当成 300 秒淡入、粒子几分钟都看不见。
+const SPOILER_SEGMENT_PATTERN = /(\|\|[\s\S]+?\|\|)/g;
+
+function renderSpoilerText(text: string) {
+  return text.split(SPOILER_SEGMENT_PATTERN).map((segment, index) => {
+    if (segment.length > 4 && segment.startsWith('||') && segment.endsWith('||')) {
+      return (
+        <Spoiler key={index} className="im-spoiler" revealOn="click" accentColor="#eaf6ff" mimicWords density={0.15} noiseFadeDuration={0.3}>
+          {segment.slice(2, -2)}
+        </Spoiler>
+      );
+    }
+    return <Fragment key={index}>{segment}</Fragment>;
+  });
+}
+
+function maskSpoilerText(text: string) {
+  return text.replace(/\|\|[\s\S]+?\|\|/g, '•••');
+}
+
 function MessageContent({ body }: { body: string }) {
   const imagePath = body.startsWith('[[im-image:') && body.endsWith(']]') ? body.slice(11, -2) : null;
   const audioPath = body.startsWith('[[im-audio:') && body.endsWith(']]') ? body.slice(11, -2) : null;
@@ -141,7 +165,7 @@ function MessageContent({ body }: { body: string }) {
     </div>
   ) : <div className="fx-skel-wrap" role="status" aria-label="文件加载中"><div className="fx-skel" style={{ width: 200, height: 44, maxWidth: '68vw', borderRadius: 12 }} /></div>;
   if (audioPath) return url ? <div className="im-audio-card"><div className="im-audio-symbol">▶</div><div className="im-audio-main"><div className="im-waveform" aria-hidden="true">{Array.from({ length: 34 }, (_, i) => <i key={i} style={{ height: (5 + ((i * 7 + 3) % 17)) + 'px' }} />)}</div><audio controls preload="metadata" src={url} aria-label="语音消息播放" /></div></div> : <div className="fx-skel-wrap" role="status" aria-label="语音加载中"><div className="fx-skel" style={{ width: 240, height: 60, maxWidth: '68vw', borderRadius: 12 }} /></div>;
-  return <>{body}</>;
+  return <>{renderSpoilerText(body)}</>;
 }
 
 function messageTimeLabel(value: string | number) {
@@ -1152,7 +1176,7 @@ export default function Chat() {
     if (message.body.startsWith('[[im-image:')) return '图片';
     if (message.body.startsWith('[[im-audio:')) return '语音';
     if (message.body.startsWith('[[im-file:')) return '文件';
-    return message.body;
+    return maskSpoilerText(message.body);
   }
 
   const dateLabel = (value: string, previous?: string) => {
@@ -1252,7 +1276,7 @@ export default function Chat() {
         @keyframes im-send-in{0%{opacity:0;transform:translateY(20px) scale(.94)}70%{opacity:1;transform:translateY(-2px) scale(1.005)}100%{opacity:1;transform:translateY(0) scale(1)}}
         .im-row-static{animation:none}
         .im-row{transition:opacity .26s ease,transform .26s ease}
-        .im-row-vanishing{opacity:0;transform:scale(.92) translateY(2px);pointer-events:none}
+        .im-row-vanishing{opacity:0;transform:scale(.92) translateY(2px);pointer-events:none}.im-spoiler{cursor:pointer}
         .im-vrow{box-sizing:border-box}
         .im-page .im-vrow .im-row{margin:0 !important;animation:none !important}
         .im-vrow-fresh{animation:im-vrow-fade .25s ease-out both}

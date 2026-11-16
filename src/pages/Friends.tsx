@@ -250,13 +250,15 @@ export default function Friends() {
       const viewportHeight = window.innerHeight;
       const edge = 14;
       const gap = 9;
-      const width = Math.min(300, Math.max(0, viewportWidth - edge * 2));
+      const availableWidth = Math.max(0, viewportWidth - edge * 2);
+      const minWidth = Math.min(184, availableWidth);
+      const width = Math.min(300, Math.max(minWidth, viewportWidth * 0.44), availableWidth);
       const spaceBelow = Math.max(0, viewportHeight - rect.bottom - edge - gap);
       const spaceAbove = Math.max(0, rect.top - edge - gap);
       const idealHeight = Math.min(560, viewportHeight * 0.72);
       const openAbove = spaceBelow < Math.min(idealHeight, 440) && spaceAbove > spaceBelow;
       const availableHeight = openAbove ? spaceAbove : spaceBelow;
-      const maxHeight = Math.max(160, Math.min(idealHeight, availableHeight));
+      const maxHeight = Math.max(0, Math.min(idealHeight, availableHeight));
       const top = openAbove
         ? Math.max(edge, rect.top - maxHeight - gap)
         : rect.bottom + gap;

@@ -53,6 +53,49 @@ describe('NavigationActivityScheduler', () => {
     expect(events).toEqual([]);
   });
 
+  it('marks a visible activity complete before its dismissal window', () => {
+    const timers = createFakeTimers();
+    const scheduler = new NavigationActivityScheduler(timers);
+    const events: string[] = [];
+    const sink = {
+      show: (label: string) => events.push('show:' + label),
+      complete: () => events.push('complete'),
+      end: () => events.push('end'),
+    };
+
+    scheduler.enter(sink, '发现');
+    timers.advance(NAVIGATION_ACTIVITY_SHOW_DELAY_MS);
+    scheduler.leave();
+
+    expect(events).toEqual(['show:发现', 'complete']);
+    timers.advance(NAVIGATION_ACTIVITY_END_DEBOUNCE_MS - 1);
+    expect(events).toEqual(['show:发现', 'complete']);
+    timers.advance(1);
+    expect(events).toEqual(['show:发现', 'complete', 'end']);
+  });
+
+  it('returns to loading when another route starts during the success window', () => {
+    const timers = createFakeTimers();
+    const scheduler = new NavigationActivityScheduler(timers);
+    const events: string[] = [];
+    const sink = {
+      show: (label: string) => events.push('show:' + label),
+      complete: () => events.push('complete'),
+      end: () => events.push('end'),
+    };
+
+    scheduler.enter(sink, '首页');
+    timers.advance(NAVIGATION_ACTIVITY_SHOW_DELAY_MS);
+    scheduler.leave();
+    timers.advance(200);
+    scheduler.enter(sink, '私聊');
+
+    expect(events).toEqual(['show:首页', 'complete', 'show:私聊']);
+    scheduler.leave();
+    timers.advance(NAVIGATION_ACTIVITY_END_DEBOUNCE_MS);
+    expect(events).toEqual(['show:首页', 'complete', 'show:私聊', 'complete', 'end']);
+  });
+
   it('keeps a shown activity visible for at least 1.5 seconds', () => {
     const timers = createFakeTimers();
     const scheduler = new NavigationActivityScheduler(timers);

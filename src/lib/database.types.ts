@@ -3269,8 +3269,42 @@ export type Database = {
       unhide_conversation: { Args: { p_conversation_id: number }; Returns: undefined }
       username_available: { Args: { u: string }; Returns: boolean }
       withdraw_friend_request: { Args: { target: string }; Returns: string }
+      create_group_conversation: { Args: { p_group_name: string; p_member_ids: string[] }; Returns: number }
+      my_group_conversations: {
+        Args: never
+        Returns: {
+          conversation_id: number
+          conversation_created_at: string
+          group_name: string
+          group_avatar_path: string | null
+          member_count: number
+          last_message_id: number | null
+          last_message_body: string | null
+          last_message_at: string | null
+          last_message_sender_id: string | null
+          last_message_deleted: boolean
+          unread_count: number
+        }[]
+      }
+      get_group_conversation_details: {
+        Args: { p_conversation_id: number }
+        Returns: {
+          conversation_id: number
+          group_name: string
+          group_avatar_path: string | null
+          created_by: string | null
+          member_count: number
+          my_role: string
+          members: Json
+        }[]
+      }
+      rename_group_conversation: { Args: { p_conversation_id: number; p_group_name: string }; Returns: undefined }
+      add_group_members: { Args: { p_conversation_id: number; p_member_ids: string[] }; Returns: number }
+      remove_group_member: { Args: { p_conversation_id: number; p_target_profile_id: string }; Returns: undefined }
+      leave_group_conversation: { Args: { p_conversation_id: number }; Returns: undefined }
+      transfer_group_ownership: { Args: { p_conversation_id: number; p_new_owner: string }; Returns: undefined }
     }
-    Enums: {
+    Enums:
       [_ in never]: never
     }
     CompositeTypes: {

@@ -42,6 +42,7 @@ describe('NavigationActivityScheduler', () => {
     const events: string[] = [];
     const sink = {
       show: (label: string) => events.push('show:' + label),
+      complete: () => events.push('complete'),
       end: () => events.push('end'),
     };
 
@@ -53,12 +54,13 @@ describe('NavigationActivityScheduler', () => {
     expect(events).toEqual([]);
   });
 
-  it('keeps a shown activity visible for at least 1.5 seconds', () => {
+  it('keeps a shown activity visible for at least 1.5 seconds and marks it complete before dismissal', () => {
     const timers = createFakeTimers();
     const scheduler = new NavigationActivityScheduler(timers);
     const events: string[] = [];
     const sink = {
       show: (label: string) => events.push('show:' + label),
+      complete: () => events.push('complete'),
       end: () => events.push('end'),
     };
 
@@ -67,18 +69,20 @@ describe('NavigationActivityScheduler', () => {
     timers.advance(120);
     scheduler.leave();
 
+    expect(events).toEqual(['show:首页', 'complete']);
     timers.advance(NAVIGATION_ACTIVITY_MIN_VISIBLE_MS - 121);
-    expect(events).toEqual(['show:首页']);
+    expect(events).toEqual(['show:首页', 'complete']);
     timers.advance(1);
-    expect(events).toEqual(['show:首页', 'end']);
+    expect(events).toEqual(['show:首页', 'complete', 'end']);
   });
 
-  it('merges a nearby route transition and updates the existing activity label', () => {
+  it('merges a nearby route transition and changes the completed activity back to loading', () => {
     const timers = createFakeTimers();
     const scheduler = new NavigationActivityScheduler(timers);
     const events: string[] = [];
     const sink = {
       show: (label: string) => events.push('show:' + label),
+      complete: () => events.push('complete'),
       end: () => events.push('end'),
     };
 
@@ -88,13 +92,14 @@ describe('NavigationActivityScheduler', () => {
     timers.advance(200);
 
     scheduler.enter(sink, '私聊');
-    expect(events).toEqual(['show:首页', 'show:私聊']);
+    expect(events).toEqual(['show:首页', 'complete', 'show:私聊']);
 
     scheduler.leave();
+    expect(events).toEqual(['show:首页', 'complete', 'show:私聊', 'complete']);
     timers.advance(NAVIGATION_ACTIVITY_MIN_VISIBLE_MS - 201);
-    expect(events).toEqual(['show:首页', 'show:私聊']);
+    expect(events).toEqual(['show:首页', 'complete', 'show:私聊', 'complete']);
     timers.advance(1);
-    expect(events).toEqual(['show:首页', 'show:私聊', 'end']);
+    expect(events).toEqual(['show:首页', 'complete', 'show:私聊', 'complete', 'end']);
   });
 
   it('ends after the quiet window when the route load is already long', () => {
@@ -103,6 +108,7 @@ describe('NavigationActivityScheduler', () => {
     const events: string[] = [];
     const sink = {
       show: (label: string) => events.push('show:' + label),
+      complete: () => events.push('complete'),
       end: () => events.push('end'),
     };
 
@@ -111,10 +117,11 @@ describe('NavigationActivityScheduler', () => {
     timers.advance(NAVIGATION_ACTIVITY_MIN_VISIBLE_MS);
     scheduler.leave();
 
+    expect(events).toEqual(['show:发现', 'complete']);
     timers.advance(NAVIGATION_ACTIVITY_END_DEBOUNCE_MS - 1);
-    expect(events).toEqual(['show:发现']);
+    expect(events).toEqual(['show:发现', 'complete']);
     timers.advance(1);
-    expect(events).toEqual(['show:发现', 'end']);
+    expect(events).toEqual(['show:发现', 'complete', 'end']);
   });
 
   it('updates the latest destination while the show delay is pending', () => {
@@ -123,6 +130,7 @@ describe('NavigationActivityScheduler', () => {
     const events: string[] = [];
     const sink = {
       show: (label: string) => events.push('show:' + label),
+      complete: () => events.push('complete'),
       end: () => events.push('end'),
     };
 

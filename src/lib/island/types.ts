@@ -139,6 +139,8 @@ export interface Activity {
 /** Why the island is expanded. Alerts collapse by themselves; user expansions wait for a press outside. */
 export type ExpandReason = "user" | "alert";
 
+export type IslandCycleDirection = "next" | "previous";
+
 export interface IslandApi {
   /** Starts an activity, or updates it if the id already runs. */
   start(options: ActivityOptions): ActivityHandle;
@@ -147,6 +149,13 @@ export interface IslandApi {
   /** Expands an activity (what a long-press does). Defaults to the primary activity. */
   expand(id?: string): void;
   collapse(): void;
+  /**
+   * Brings the next (swipe left) or previous (swipe right) shown activity to the front, wrapping
+   * around. A horizontal swipe on the pill calls this. It only reorders what shows: the activities
+   * themselves keep running. No-ops with fewer than two shown activities, while expanded, or
+   * while a call or route-loading activity holds the full capsule.
+   */
+  cycle(direction: IslandCycleDirection): void;
   /** Running activities, primary first, including grouped ones waiting hidden. */
   readonly activities: readonly Activity[];
   /** What the island shows right now. */

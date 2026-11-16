@@ -231,7 +231,7 @@ export default function QianzhiIslandTaskDrawer({ docked }: { docked: boolean })
                   <ActivityRow key={activity.id} activity={activity} onSelect={selectActivity} />
                 ))}
               </div>
-              <p className="qz-island-task-footnote">列表包含暂时未显示的活动。点按任意项目即可切换；通话、播放和传输仍由各自功能控制。</p>
+              <p className="qz-island-task-footnote">列表包含暂时未显示的活动。点按任意项目即可切换，也可以在灵动岛上左右滑动切换；通话、播放和传输仍由各自功能控制。</p>
             </section>
           </motion.div>
         )}

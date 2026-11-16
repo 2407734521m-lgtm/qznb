@@ -380,6 +380,23 @@ export const resolveIslandDockGesture = (
   return null;
 };
 
+/** Which way a horizontal swipe on the pill moves through the running activities. */
+export type IslandSwipeDirection = 'next' | 'previous';
+
+/**
+ * A deliberate horizontal swipe on the pill: at least 40px and clearly sideways, so a tap,
+ * a vertical dock swipe and a diagonal drag never count. Left goes to the next activity,
+ * right goes back to the previous one; with two activities either way just swaps them.
+ */
+export const resolveIslandSwipeGesture = (
+  deltaX: number,
+  deltaY: number,
+): IslandSwipeDirection | null => {
+  if (Math.abs(deltaX) < 40) return null;
+  if (Math.abs(deltaX) <= Math.abs(deltaY) * 1.5) return null;
+  return deltaX < 0 ? 'next' : 'previous';
+};
+
 function NavigationActivityIndicator({ docked, fullscreenSuppressed }: { docked: boolean; fullscreenSuppressed: boolean }) {
   const { activities } = useIsland();
   const reduceMotion = useReducedMotion();
@@ -427,11 +444,15 @@ export const MusicIslandView = ({
   const callArrivalTimerRef = useRef<number | null>(null);
   const collapseRef = useRef(value.collapse);
   const isExpandedRef = useRef(value.isExpanded);
+  const dockedRef = useRef(docked);
+  const islandActionsRef = useRef(islandActions);
   const suppressIslandClickUntilRef = useRef(0);
   const previousActivityIdsRef = useRef(value.activityIds);
   const activityIdsRef = useRef(value.activityIds);
   collapseRef.current = value.collapse;
   isExpandedRef.current = value.isExpanded;
+  dockedRef.current = docked;
+  islandActionsRef.current = islandActions;
   activityIdsRef.current = value.activityIds;
 
   useEffect(() => {
@@ -506,6 +527,17 @@ export const MusicIslandView = ({
       const deltaX = event.clientX - gesture.startX;
       const deltaY = event.clientY - gesture.startY;
       const alertActive = activityIdsRef.current.some(id => id.startsWith('qz-alert-'));
+      // A horizontal swipe on the pill switches between running activities (left: next,
+      // right: previous). It never docks, never dismisses an alert and never taps: the
+      // expanded card's own sliders keep their horizontal drags, so it stays off there.
+      const swipe = resolveIslandSwipeGesture(deltaX, deltaY);
+      if (swipe && gesture.source === 'island' && !isExpandedRef.current() && !dockedRef.current) {
+        if (event.cancelable) event.preventDefault();
+        suppressIslandClickUntilRef.current = Date.now() + 550;
+        haptic('tick');
+        islandActionsRef.current.cycle(swipe);
+        return;
+      }
       const action = resolveIslandDockGesture(gesture.source, deltaX, deltaY, alertActive);
       if (action === 'dock') {
         haptic('tick');
@@ -550,6 +582,11 @@ export const MusicIslandView = ({
       const deltaX = event.clientX - gesture.startX;
       const deltaY = event.clientY - gesture.startY;
       if (Math.abs(deltaY) > 9 && Math.abs(deltaY) > Math.abs(deltaX) * 1.1 && event.cancelable) {
+        event.preventDefault();
+      }
+      // A sideways drag on the pill is an activity switch, not a page scroll. The expanded
+      // card is excluded: its progress and volume sliders own their horizontal drags.
+      if (gesture.source === 'island' && !isExpandedRef.current() && Math.abs(deltaX) > 9 && Math.abs(deltaX) > Math.abs(deltaY) * 1.5 && event.cancelable) {
         event.preventDefault();
       }
     };

@@ -155,7 +155,9 @@
   pointer-events: none;
   background: conic-gradient(from 0deg, transparent 0deg, var(--fx-shimmer-color, rgba(255,255,255,.8)) 60deg, transparent 120deg, transparent 360deg);
   animation: fx-shimmer-spin var(--fx-shimmer-duration, 3s) linear infinite;
+  animation-play-state: paused;
 }
+.fx-shimmer-btn-active .fx-shimmer-ring { animation-play-state: running; }
 @keyframes fx-shimmer-spin {
   from { transform: translate(-50%, -50%) rotate(0deg); }
   to { transform: translate(-50%, -50%) rotate(360deg); }

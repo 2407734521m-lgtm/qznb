@@ -34,6 +34,11 @@ export function createDownloadIslandActivity(input: DownloadIslandActivityInput)
     id: 'qz-download-progress',
     label: title,
     priority: 22,
+    task: {
+      status: input.status === 'completed' ? 'done' : input.status === 'failed' ? 'error' : 'running',
+      detail,
+      progress,
+    },
     compact: {
       leading: (
         <span className="qz-download-island-compact">

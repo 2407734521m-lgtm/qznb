@@ -1352,7 +1352,7 @@ export default function Chat() {
                   ))}
                 </div>
               )}
-              {sharedMediaCount === 0 && <div className="im-profile-empty">你们分享的照片、链接和文件会显示在这里。</div>}
+              {sharedMediaCount === 0 && <div className="im-profile-empty">你们分享的照片、语音、链接和文件会显示在这里。</div>}
             </section>
             <div className="im-profile-footer">聊天背景仅对你自己生效，不会改变对方的聊天界面。</div>
           </div>

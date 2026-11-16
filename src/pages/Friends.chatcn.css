@@ -86,8 +86,12 @@
   z-index: 120;
   top: calc(100% + 9px);
   right: 0;
-  width: min(300px, calc(100vw - 28px));
-  max-height: min(72vh, 560px);
+  /* Use a viewport-relative width on narrow/high-density phones, capped on larger screens. */
+  box-sizing: border-box;
+  width: min(300px, 44vw);
+  min-width: min(184px, calc(100vw - 28px));
+  max-width: calc(100vw - 28px);
+  max-height: min(72dvh, 560px);
   overflow: auto;
   overscroll-behavior: contain;
   padding: 10px 0;

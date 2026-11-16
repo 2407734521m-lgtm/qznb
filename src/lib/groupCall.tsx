@@ -296,7 +296,17 @@ export function GroupCallProvider({ children }: { children: ReactNode }) {
       const { data, error } = await supabase.functions.invoke('group-call-token', {
         body: { conversation_id: nextConversationId, action: 'token' },
       });
-      if (error) throw error;
+      if (error) {
+        const context = (error as { context?: unknown }).context;
+        const body = context instanceof Response ? await context.clone().json().catch(() => null) : null;
+        if (body?.code === 'voice_not_configured') {
+          throw new Error('群语音服务还未配置 LiveKit，请完成服务密钥配置后再试');
+        }
+        if (body?.code === 'group_access_denied') {
+          throw new Error('你已不在该群聊中，无法加入语音');
+        }
+        throw error;
+      }
       if (data?.ok !== true || typeof data.url !== 'string' || typeof data.token !== 'string') {
         const code = typeof data?.code === 'string' ? data.code : '';
         if (code === 'voice_not_configured') {
@@ -372,6 +382,36 @@ export function GroupCallProvider({ children }: { children: ReactNode }) {
       toast.error(message);
     }
   }, [myId, oneToOneCall.busy, refreshParticipants, releaseRoom, setPhaseSafe]);
+
+
+  // Re-check group membership during long calls. Removing someone from the group
+  // must also disconnect that client from the private audio room shortly after.
+  useEffect(() => {
+    if (phase === 'idle' || conversationId === null) return;
+    let alive = true;
+    const verifyMembership = async () => {
+      try {
+        const { data, error } = await supabase.rpc('get_group_conversation_details', {
+          p_conversation_id: conversationId,
+        });
+        if (!alive || error) return;
+        if (!Array.isArray(data) || data.length === 0) {
+          releaseRoom(undefined, true);
+          toast.error('你已不在该群聊中，群语音已断开');
+        }
+      } catch {
+        // A temporary network error must not end a healthy call.
+      }
+    };
+    void verifyMembership();
+    const timer = window.setInterval(() => { void verifyMembership(); }, 15000);
+    document.addEventListener('visibilitychange', verifyMembership);
+    return () => {
+      alive = false;
+      window.clearInterval(timer);
+      document.removeEventListener('visibilitychange', verifyMembership);
+    };
+  }, [conversationId, phase, releaseRoom]);
 
   const toggleMute = useCallback(async () => {
     const room = roomRef.current;

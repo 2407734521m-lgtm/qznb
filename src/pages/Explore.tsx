@@ -8,11 +8,9 @@ import './Explore.css';
 import bloomPhoto from '../assets/discover/card-bloom.jpg';
 import inkPhoto from '../assets/discover/card-ink.jpg';
 import hotPhoto from '../assets/discover/card-hot.jpg';
-import lovePhoto from '../assets/discover/card-love.jpg';
 import questionsPhoto from '../assets/discover/card-questions.jpg';
 import musicPhoto from '../assets/discover/card-music.jpg';
 import signaturePhoto from '../assets/discover/card-signature.jpg';
-import fatePhoto from '../assets/discover/card-fate.jpg';
 
 type DiscoverCard = {
   to: string;
@@ -72,26 +70,6 @@ const sections: {
     description: '浏览话题、表达心意，也可以匿名交流。',
     cards: [
       {
-        to: '/topics',
-        className: 'discover-card--topics',
-        art: 'topics',
-        photo: questionsPhoto,
-        eyebrow: '社区话题',
-        title: '话题广场',
-        description: '从成员动态里的标签，发现大家正在聊什么。',
-        action: '探索话题',
-      },
-      {
-        to: '/love-wall',
-        className: 'discover-card--love',
-        art: 'love',
-        photo: lovePhoto,
-        eyebrow: '社区互动',
-        title: '表白墙',
-        description: '把喜欢、感谢和没来得及说的话，认真地留在这里。',
-        action: '写下心意',
-      },
-      {
         to: '/questions',
         className: 'discover-card--questions',
         art: 'questions',
@@ -127,16 +105,6 @@ const sections: {
         title: '音乐',
         description: '搜索曲目、发现音乐，创建自己的播放体验。',
         action: '进入音乐空间',
-      },
-      {
-        to: '/fate-notebook',
-        className: 'discover-card--fate',
-        art: 'fate',
-        photo: fatePhoto,
-        eyebrow: '趣味玩法',
-        title: '命运笔记',
-        description: '写下虚构角色的名字，看看会抽到什么有趣结果。',
-        action: '翻开笔记',
       },
     ],
   },

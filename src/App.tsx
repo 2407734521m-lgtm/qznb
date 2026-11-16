@@ -20,6 +20,7 @@ import { createIslandAlertScheduler } from './components/islandAlertScheduler';
 import { haptic } from './lib/haptics';
 import { createUploadIslandActivity } from './components/QianzhiIslandUploadActivity';
 import { createDownloadIslandActivity } from './components/QianzhiIslandDownloadActivity';
+import { createPausableDismissTimer } from './components/islandTaskDismissTimer';
 import QianzhiIslandNavigationActivity from './components/QianzhiIslandNavigationActivity';
 import type { MediaDownloadIslandEvent, MediaUploadIslandEvent } from './lib/media';
 import { lazyWithRetry } from './lib/lazyWithRetry';
@@ -718,12 +719,6 @@ function Shell() {
   useEffect(() => {
     const activeUploads = new Map<string, { progress: number | null; label: string }>();
     let failedDuringUploadBatch = false;
-    let terminalTimer: number | null = null;
-
-    const clearTerminalTimer = () => {
-      if (terminalTimer !== null) window.clearTimeout(terminalTimer);
-      terminalTimer = null;
-    };
 
     const renderActiveUploads = () => {
       const values = [...activeUploads.values()];
@@ -736,13 +731,20 @@ function Shell() {
       islandApi.start(createUploadIslandActivity({ count: values.length, progress, status: 'uploading', label }));
     };
 
+    const terminalTimer = createPausableDismissTimer(() => {
+      if (activeUploads.size) renderActiveUploads();
+      else islandApi.end('qz-upload-progress');
+    });
+    const clearTerminalTimer = () => terminalTimer.cancel();
+    const onDrawerVisibility = (event: Event) => {
+      const open = (event as CustomEvent<{ open?: boolean }>).detail?.open === true;
+      if (open) terminalTimer.pause();
+      else terminalTimer.resume();
+    };
+
     const showTerminalState = (status: 'completed' | 'failed') => {
       islandApi.start(createUploadIslandActivity({ count: 0, progress: status === 'completed' ? 100 : null, status }));
-      terminalTimer = window.setTimeout(() => {
-        terminalTimer = null;
-        if (activeUploads.size) renderActiveUploads();
-        else islandApi.end('qz-upload-progress');
-      }, status === 'failed' ? 2200 : 1100);
+      terminalTimer.restart(status === 'failed' ? 5000 : 4000);
     };
 
     const onUploadEvent = (event: Event) => {
@@ -774,8 +776,10 @@ function Shell() {
     };
 
     window.addEventListener('qz-island-upload', onUploadEvent);
+    window.addEventListener('qz-island-task-drawer-visibility', onDrawerVisibility);
     return () => {
-      clearTerminalTimer();
+      terminalTimer.dispose();
+      window.removeEventListener('qz-island-task-drawer-visibility', onDrawerVisibility);
       window.removeEventListener('qz-island-upload', onUploadEvent);
       islandApi.end('qz-upload-progress');
     };
@@ -785,12 +789,6 @@ function Shell() {
   useEffect(() => {
     const activeDownloads = new Map<string, { progress: number | null; label: string }>();
     let failedDuringDownloadBatch = false;
-    let terminalTimer: number | null = null;
-
-    const clearTerminalTimer = () => {
-      if (terminalTimer !== null) window.clearTimeout(terminalTimer);
-      terminalTimer = null;
-    };
 
     const renderActiveDownloads = () => {
       const values = [...activeDownloads.values()];
@@ -803,13 +801,20 @@ function Shell() {
       islandApi.start(createDownloadIslandActivity({ count: values.length, progress, status: 'downloading', label }));
     };
 
+    const terminalTimer = createPausableDismissTimer(() => {
+      if (activeDownloads.size) renderActiveDownloads();
+      else islandApi.end('qz-download-progress');
+    });
+    const clearTerminalTimer = () => terminalTimer.cancel();
+    const onDrawerVisibility = (event: Event) => {
+      const open = (event as CustomEvent<{ open?: boolean }>).detail?.open === true;
+      if (open) terminalTimer.pause();
+      else terminalTimer.resume();
+    };
+
     const showTerminalState = (status: 'completed' | 'failed') => {
       islandApi.start(createDownloadIslandActivity({ count: 0, progress: status === 'completed' ? 100 : null, status }));
-      terminalTimer = window.setTimeout(() => {
-        terminalTimer = null;
-        if (activeDownloads.size) renderActiveDownloads();
-        else islandApi.end('qz-download-progress');
-      }, status === 'failed' ? 2200 : 1100);
+      terminalTimer.restart(status === 'failed' ? 5000 : 4000);
     };
 
     const onDownloadEvent = (event: Event) => {
@@ -840,8 +845,10 @@ function Shell() {
     };
 
     window.addEventListener('qz-island-download', onDownloadEvent);
+    window.addEventListener('qz-island-task-drawer-visibility', onDrawerVisibility);
     return () => {
-      clearTerminalTimer();
+      terminalTimer.dispose();
+      window.removeEventListener('qz-island-task-drawer-visibility', onDrawerVisibility);
       window.removeEventListener('qz-island-download', onDownloadEvent);
       islandApi.end('qz-download-progress');
     };

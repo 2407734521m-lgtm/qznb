@@ -48,6 +48,25 @@ describe("deriveScene", () => {
     ]);
   });
 
+  it("keeps a minimized call in the full capsule while retaining secondary activities", () => {
+    const call = makeActivity("qz-call-session", 0);
+    const music = makeActivity("music-playback", 1);
+    const snapshot = makeSnapshot([call, music]);
+
+    const scene = deriveScene(snapshot);
+
+    expect(scene.presentation).toEqual({
+      kind: "compact",
+      leading: "qz-call-session-compact",
+    });
+    expect(scene.primary?.id).toBe("qz-call-session");
+    expect(scene.detached).toBeNull();
+    expect(snapshot.activities.map((activity) => activity.id)).toEqual([
+      "qz-call-session",
+      "music-playback",
+    ]);
+  });
+
   it("keeps the detached bubble for other combinations of activities", () => {
     const music = makeActivity("music-playback", 0);
     const download = makeActivity("download-task", 1);

@@ -1,5 +1,5 @@
 import './fx.css';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 
 /**
@@ -33,11 +33,33 @@ export default function Marquee({
 }: MarqueeProps) {
   // 手机上没有悬停：手指按住跑马灯时停住，松开继续滚，方便把一行公告读完。
   const [touchPaused, setTouchPaused] = useState(false);
+  const [isInView, setIsInView] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  // Pause the CSS loop while this marquee is outside the viewport. This avoids
+  // spending compositor work on announcements/cards the user cannot currently see.
+  useEffect(() => {
+    const element = rootRef.current;
+    if (!element) return;
+    if (typeof IntersectionObserver === 'undefined') {
+      setIsInView(true);
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => setIsInView(entry.isIntersecting),
+      { rootMargin: '80px 0px', threshold: 0 },
+    );
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
+
   const style = { '--fx-marquee-duration': `${duration}s` } as CSSProperties;
   const copies = Math.max(2, Math.min(8, Math.round(repeat)));
   return (
     <div
-      className={['fx-marquee', pauseOnHover ? 'fx-marquee-pause' : '', touchPaused ? 'fx-marquee-touch-paused' : '', className].filter(Boolean).join(' ')}
+      ref={rootRef}
+      className={['fx-marquee', !isInView ? 'fx-marquee-offscreen' : '', pauseOnHover ? 'fx-marquee-pause' : '', touchPaused ? 'fx-marquee-touch-paused' : '', className].filter(Boolean).join(' ')}
       style={style}
       onTouchStart={() => setTouchPaused(true)}
       onTouchEnd={() => setTouchPaused(false)}

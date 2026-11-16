@@ -82,12 +82,16 @@
 .chatcn-filter-trigger svg { width: 17px; height: 17px; }
 
 .chatcn-filter-menu {
-  position: absolute;
-  z-index: 120;
-  top: calc(100% + 9px);
-  right: 0;
-  width: min(300px, calc(100vw - 28px));
-  max-height: min(72vh, 560px);
+  /* Rendered through a body portal: escape the inbox scroller's overflow clipping. */
+  position: fixed;
+  z-index: 1800;
+  top: 0;
+  left: 0;
+  right: auto;
+  width: 300px;
+  max-width: calc(100vw - 28px);
+  max-height: min(72dvh, 560px);
+  box-sizing: border-box;
   overflow: auto;
   overscroll-behavior: contain;
   padding: 10px 0;

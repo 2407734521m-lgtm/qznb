@@ -70,10 +70,11 @@ export const isShown = (snapshot: Pick<IslandSnapshot, "activities" | "front" | 
 
 export const deriveScene = (snapshot: IslandSnapshot): IslandScene => {
   const [first, visibleSecond] = snapshot.activities.filter((a) => isShown(snapshot, a));
-  // Route loading is a brief, high-attention state. Keep its capsule focused and temporarily
-  // suppress the detached secondary bubble; the activity remains in the stack and resumes
-  // automatically when navigation ends.
-  const second = first?.id === "qz-route-navigation" ? undefined : visibleSecond;
+  // Route loading and minimized calls need the full capsule. A concurrent music/task activity
+  // must not force a call into its icon-only minimal state; it stays available in the task drawer.
+  const second = first?.id === "qz-route-navigation" || first?.id === "qz-call-session"
+    ? undefined
+    : visibleSecond;
   const expanded = snapshot.expanded ? snapshot.activities.find((a) => a.id === snapshot.expanded?.id) : undefined;
   if (expanded) {
     return {

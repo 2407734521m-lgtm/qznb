@@ -9,6 +9,9 @@
   background: #111821;
 }
 .call-overlay.is-minimizing {
+  /* Minimizing unmounts the card and portals the flight to body, so the
+     overlay is an empty box: it must never eat taps even if it ever lingers. */
+  pointer-events: none;
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
 }

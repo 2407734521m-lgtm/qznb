@@ -71,6 +71,8 @@ export function CallProvider({ children }: { children: ReactNode }) {
   const audioCtxRef = useRef<AudioContext | null>(null);
   const remoteAudioRef = useRef<HTMLAudioElement>(null);
   const callCardRef = useRef<HTMLDivElement>(null);
+  const minimizeTimerRef = useRef<number | null>(null);
+  const minimizeFinishedRef = useRef(false);
   const connectedRef = useRef(false);
   const callStartedAtRef = useRef<number | null>(null);
   const speakerEnabledRef = useRef(false);
@@ -90,6 +92,8 @@ export function CallProvider({ children }: { children: ReactNode }) {
 
   const cleanup = useCallback(() => {
     stopRing();
+    if (minimizeTimerRef.current) { window.clearTimeout(minimizeTimerRef.current); minimizeTimerRef.current = null; }
+    minimizeFinishedRef.current = false;
     if (pcRef.current) { try { pcRef.current.close(); } catch { /* 已关闭 */ } pcRef.current = null; }
     if (localStreamRef.current) { localStreamRef.current.getTracks().forEach(t => t.stop()); localStreamRef.current = null; }
     if (remoteAudioRef.current) remoteAudioRef.current.srcObject = null;
@@ -410,6 +414,23 @@ export function CallProvider({ children }: { children: ReactNode }) {
     islandApi.expand('qz-call-session');
   }, [islandApi]);
 
+  // Finishing the minimize flight unmounts the fullscreen overlay. The flight's
+  // onAnimationComplete is the only trigger today, and framer-motion never fires
+  // it when the flight mounts with initial={false}: it jumps straight to the end
+  // values, so no animation runs at all. The transparent overlay then stays
+  // mounted forever and swallows every tap on the island pill. So the finish
+  // step runs exactly once, from whichever fires first: the animation callback
+  // or a 900ms fallback timer started with the flight.
+  const finishMinimize = useCallback(() => {
+    if (minimizeFinishedRef.current) return;
+    minimizeFinishedRef.current = true;
+    if (minimizeTimerRef.current) { window.clearTimeout(minimizeTimerRef.current); minimizeTimerRef.current = null; }
+    window.dispatchEvent(new Event('qz-call-island-arrived'));
+    setMinimized(true);
+    setMinimizing(false);
+    setMinimizeFlight(null);
+  }, []);
+
   const minimizeCall = useCallback(() => {
     if (minimized || minimizing) return;
 
@@ -461,12 +482,15 @@ export function CallProvider({ children }: { children: ReactNode }) {
       return;
     }
 
+    minimizeFinishedRef.current = false;
     setMinimizeFlight({
       from: { left: cardRect.left, top: cardRect.top, width: cardRect.width, height: cardRect.height },
       to: destination,
     });
     setMinimizing(true);
-  }, [islandApi, minimized, minimizing, reduceMotion]);
+    if (minimizeTimerRef.current) window.clearTimeout(minimizeTimerRef.current);
+    minimizeTimerRef.current = window.setTimeout(finishMinimize, 900);
+  }, [islandApi, minimized, minimizing, reduceMotion, finishMinimize]);
 
   // Mirror the existing WebRTC lifecycle into the shared Qianzhi Island activity stack.
   // Calls outrank messages and uploads; the underlying call/session implementation is unchanged.
@@ -493,6 +517,11 @@ export function CallProvider({ children }: { children: ReactNode }) {
   }, [phase, peerName, callStartedAt, muted, speakerEnabled, islandApi, acceptCall, rejectCall, cancelCall, hangUp, toggleMute, toggleSpeaker, restoreCall, expandCallIsland]);
 
   useEffect(() => () => islandApi.end('qz-call-session'), [islandApi]);
+
+  // Never leave a pending minimize timer behind on unmount.
+  useEffect(() => () => {
+    if (minimizeTimerRef.current) window.clearTimeout(minimizeTimerRef.current);
+  }, []);
 
   // Signing out during a call must release the microphone and remove its live activity.
   useEffect(() => {
@@ -646,7 +675,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
                 key="call-card-flight"
                 className="call-card qz-call-card-flight"
                 aria-hidden="true"
-                initial={false}
+                initial={{ x: 0, y: 0, scaleX: 1, scaleY: 1, borderRadius: 0, opacity: 1 }}
                 animate={{
                   x: minimizeFlight.to.left - minimizeFlight.from.left,
                   y: minimizeFlight.to.top - minimizeFlight.from.top,
@@ -683,12 +712,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
                   willChange: 'transform, opacity',
                   pointerEvents: 'none',
                 }}
-                onAnimationComplete={() => {
-                  window.dispatchEvent(new Event('qz-call-island-arrived'));
-                  setMinimized(true);
-                  setMinimizing(false);
-                  setMinimizeFlight(null);
-                }}>
+                onAnimationComplete={finishMinimize}>
                 <motion.div
                   className="qz-call-card-flight-content"
                   initial={false}

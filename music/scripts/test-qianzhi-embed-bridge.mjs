@@ -81,19 +81,21 @@ assert.ok(bridgeSource.includes("case 'mute':"), 'The bridge must handle the mut
 assert.ok(!activity.includes('name="list"'), 'The queue-looking list icon must not stay on the open-music button.');
 assert.ok(activity.includes('name="open"'), 'The open-music button must use an open icon.');
 
-// With no live activity the island must not hang an empty black capsule: only
-// a thin glass edge with a note, which opens the music space.
-assert.ok(activity.includes('shouldShowIslandIdleRecall'), 'The idle recall decision must be an explicit, tested helper.');
-assert.ok(activity.includes('className="qz-island-idle"'), 'The idle state must render the recall edge.');
-assert.ok(styles.includes('.qz-island-idle'), 'The recall edge must be styled.');
+// With no live activity the island mounts nothing at the top: no empty black
+// capsule, and no idle music recall edge — the music shortcut was removed,
+// so the island only appears once an activity starts.
+assert.ok(activity.includes('shouldShowIslandHost'), 'The island-host decision must be an explicit, tested helper.');
+assert.ok(!activity.includes('shouldShowIslandIdleRecall'), 'The idle recall helper must be gone with the music shortcut.');
+assert.ok(!activity.includes('className="qz-island-idle"'), 'No idle recall edge may render.');
+assert.ok(!styles.includes('.qz-island-idle'), 'The recall edge styles must be gone with the music shortcut.');
 assert.ok(styles.includes('[data-qz-island-settings-open="true"]'), 'Opening the island settings must hide the live island chrome so it cannot double the preview.');
 
 // Collapse/restore must stay inside the 220–360ms band, and the collapsed
-// recall targets must be at least 44px tall.
+// restore target must be at least 44px tall.
 assert.ok(!styles.includes('420ms'), 'No 420ms island transition may remain.');
 assert.ok(styles.includes('transform 360ms'), 'The dock/restore slide must run at 360ms.');
 assert.ok(islandSurface.includes('Math.max(44, pill.height)'), 'The collapsed pill hit area must be at least 44px tall.');
-assert.ok(styles.includes('height: 44px;'), 'The peek and idle recall buttons must be at least 44px tall.');
+assert.ok(styles.includes('height: 44px;'), 'The peek restore button must be at least 44px tall.');
 
 // The new engine owns the morph, press handling, outside press and Escape behaviour.
 assert.ok(activity.includes('<Island'));

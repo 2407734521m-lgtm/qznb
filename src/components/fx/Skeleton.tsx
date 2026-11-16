@@ -141,3 +141,66 @@ export function InlineLoading({ label = '正在加载…' }: { label?: string })
 export function RouteLoading({ label = '正在打开…' }: { label?: string }) {
   return <InlineLoading label={label} />;
 }
+
+/** 路由切换时按目标页选骨架形状（纯函数，供单测）。 */
+export type RouteSkeletonKind = 'inbox' | 'chat' | 'page';
+
+export function routeSkeletonKind(pathname: string): RouteSkeletonKind {
+  if (pathname.startsWith('/friends') || pathname.startsWith('/messages')) return 'inbox';
+  if (pathname.startsWith('/chat/')) return 'chat';
+  return 'page';
+}
+
+/** 消息中心的样子：大标题 + 搜索条 + 一排药丸按钮 + 4 行会话骨架。 */
+function InboxSkeleton() {
+  return (
+    <div role="status" aria-label="页面加载中" style={{ padding: '18px 14px' }}>
+      <div className="fx-skel-wrap" style={{ marginBottom: 16 }}>
+        <Skel style={{ width: '38%', height: 26, marginBottom: 12 }} />
+        <Skel style={{ width: '70%', height: 13 }} />
+      </div>
+      <div className="fx-skel-wrap" style={{ marginBottom: 14 }}>
+        <Skel style={{ width: '100%', height: 40, borderRadius: 20 }} />
+      </div>
+      <div className="fx-skel-wrap" style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+        {[86, 76, 64, 84].map((w) => (
+          <Skel key={w} style={{ width: w, height: 32, borderRadius: 99, flexShrink: 0 }} />
+        ))}
+      </div>
+      <RowSkeleton count={4} />
+    </div>
+  );
+}
+
+/** 私聊页的样子：顶栏（返回圆钮 + 头像 + 名字）+ 左右交错的气泡骨架。 */
+function ChatSkeleton() {
+  return (
+    <div role="status" aria-label="页面加载中" style={{ padding: '12px 14px' }}>
+      <div className="fx-skel-wrap" style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 18 }}>
+        <Skel style={{ width: 36, height: 36, borderRadius: '50%', flexShrink: 0 }} />
+        <Skel style={{ width: 38, height: 38, borderRadius: '50%', flexShrink: 0 }} />
+        <div style={{ flex: 1 }}>
+          <Skel style={{ width: '30%', height: 13, marginBottom: 8 }} />
+          <Skel style={{ width: '18%', height: 11 }} />
+        </div>
+      </div>
+      {[0, 1, 2].map((i) => (
+        <div key={i} className="fx-skel-wrap" style={{ marginBottom: 12, display: 'flex', justifyContent: i % 2 ? 'flex-end' : 'flex-start' }}>
+          <Skel style={{ width: (58 - i * 8) + '%', height: 40, borderRadius: 18 }} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/**
+ * 路由切换时的 Suspense fallback：分块没到之前，先按目标页的样子摆骨架，
+ * 而不是全白加一行“正在打开…”。分块已缓存时 Suspense 根本不挂 fallback，
+ * 所以这里不需要 300ms 延迟——挂出来就是真在等分块。
+ */
+export function RouteTransitionSkeleton({ pathname }: { pathname: string }) {
+  const kind = routeSkeletonKind(pathname);
+  if (kind === 'inbox') return <InboxSkeleton />;
+  if (kind === 'chat') return <ChatSkeleton />;
+  return <PageSkeleton />;
+}

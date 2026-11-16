@@ -159,6 +159,10 @@
 }
 
 
+/* The leading slot stays at the upstream 88: widening it does NOT show more
+   of the song title — the black sensor capsule in the middle of the pill
+   covers whatever slides under it, so only ~43px beside the camera is ever
+   visible ("01 Ecris"). A wider slot only made the pill itself wider. */
 .qz-island-compact {
   display: inline-flex;
   align-items: center;
@@ -250,9 +254,9 @@
 
 .qz-island-wave {
   display: inline-flex;
-  width: 22px;
-  height: 17px;
-  flex: 0 0 22px;
+  width: 26px;
+  height: 18px;
+  flex: 0 0 26px;
   align-items: center;
   justify-content: center;
   gap: 2px;
@@ -262,7 +266,7 @@
 
 .qz-island-wave i {
   display: block;
-  width: 2px;
+  width: 2.5px;
   height: 100%;
   border-radius: 999px;
   background: #fff;
@@ -272,6 +276,17 @@
   transform-origin: center;
   will-change: transform;
   transition: transform 150ms cubic-bezier(.2,.8,.2,1), opacity 180ms ease;
+}
+
+/* Expanded card, middle column: a real visualizer, not four dots that read
+   as an ellipsis after the title. Taller bars at 3px; the width stays 26px
+   so the head and trailing buttons keep their room on narrow cards. */
+.qz-island-wave-expanded {
+  height: 24px;
+}
+
+.qz-island-wave-expanded i {
+  width: 3px;
 }
 
 .qz-island-wave i:nth-child(2) { transform: scaleY(var(--qz-music-eq-lowMid, .16)); }
@@ -421,7 +436,7 @@
 
 .qz-island-expanded-meta small {
   color: rgba(255,255,255,.65);
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.2;
 }
 

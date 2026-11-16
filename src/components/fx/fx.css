@@ -113,12 +113,13 @@
   gap: var(--fx-marquee-gap);
   min-width: max-content;
   animation: fx-marquee-move var(--fx-marquee-duration) linear infinite;
-  will-change: transform;
 }
 @keyframes fx-marquee-move {
   from { transform: translateX(0); }
   to { transform: translateX(calc(-100% - var(--fx-marquee-gap))); }
 }
+.fx-marquee-offscreen .fx-marquee-copy { animation-play-state: paused; }
+.fx-marquee:not(.fx-marquee-offscreen) .fx-marquee-copy { will-change: transform; }
 .fx-marquee-pause:hover .fx-marquee-copy { animation-play-state: paused; }
 .fx-marquee-touch-paused .fx-marquee-copy { animation-play-state: paused; }
 

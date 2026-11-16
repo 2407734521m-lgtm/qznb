@@ -181,6 +181,18 @@ function isTabActive(tab: string, path: string) {
   return path === tab;
 }
 
+// 私聊红点：任一会话有未读数即亮。复用私聊页同一 RPC，不新增表与字段。
+async function fetchMessageUnread(client: typeof supabase, uid: string): Promise<boolean> {
+  try {
+    const { data, error } = await client.rpc('my_conversations');
+    if (error) return false;
+    const conversations = (data ?? []) as Array<Record<string, unknown>>;
+    return conversations.some(item => Number(item.unread_count ?? 0) > 0);
+  } catch {
+    return false;
+  }
+}
+
 // 切页回顶：点链接进新页面时回到顶部；浏览器前进/后退（POP）时保持原来的滚动位置，
 // 比如从动态详情返回列表时还停在刚才那条附近。没有这个，/feed、/me 等页从别处跳过来会停在半中间。
 function ScrollToTopOnPush() {
@@ -554,6 +566,19 @@ function Shell() {
     window.addEventListener('board-read', h);
     return () => window.removeEventListener('board-read', h);
   }, []);
+  // 私聊红点：有未读私信时显示；切页与新消息到达时都刷新
+  const [messageUnread, setMessageUnread] = useState(false);
+  useEffect(() => {
+    if (!session) { setMessageUnread(false); return; }
+    let alive = true;
+    (async () => {
+      try {
+        const unread = await fetchMessageUnread(supabase, session.user.id);
+        if (alive) setMessageUnread(unread);
+      } catch { /* 忽略，红点不影响主流程 */ }
+    })();
+    return () => { alive = false; };
+  }, [session, loc.pathname]);
   // 站内通知红点
   const [notifUnread, setNotifUnread] = useState(false);
   useEffect(() => {
@@ -649,6 +674,13 @@ function Shell() {
       if (payload?.eventType !== 'INSERT') return;
       const message = payload?.new as Record<string, any> | undefined;
       if (!message || message.id == null || message.sender_id === uid) return;
+      // 新私信一到就刷新 Dock 红点，不等切页；提醒弹窗本身仍按通知偏好走。
+      void (async () => {
+        try {
+          const unread = await fetchMessageUnread(supabase, uid);
+          if (alive) setMessageUnread(unread);
+        } catch { /* 忽略，红点不影响主流程 */ }
+      })();
       if (document.visibilityState !== 'visible' || quietHoursActiveRef.current) return;
 
       const messageId = String(message.id);
@@ -1270,7 +1302,12 @@ function Shell() {
     icon: (
       <DockIcon
         kind={tab.kind}
-        unread={tab.to === '/home' && boardUnread}
+        unread={
+          tab.to === '/home' ? boardUnread
+            : tab.to === '/friends' ? messageUnread
+              : tab.to === '/me' ? notifUnread
+                : false
+        }
       />
     ),
   }));

@@ -405,12 +405,28 @@
   100% { transform: scaleY(.2); }
 }
 
-.qz-island-art-expanded {
+/* The expanded cover is a circle, full stop: the head-scoped selector outranks the
+   compact art rule whatever order the built bundle concatenates the sheets in. */
+.qz-island-expanded-head .qz-island-art-expanded {
   width: 84px;
   height: 84px;
-  flex-basis: 84px;
-  flex-shrink: 0;
+  min-width: 84px;
+  min-height: 84px;
+  flex: 0 0 84px;
   border-radius: 50%;
+}
+
+/* The cover wrapper remounts on a track change, so a new song's art fades and scales
+   in instead of hard-cutting; the img's own breathe loop is untouched. */
+.qz-island-expanded-art-wrap {
+  display: block;
+  flex: 0 0 auto;
+  animation: qz-island-art-arrive 280ms cubic-bezier(.2,.78,.22,1) both;
+}
+
+@keyframes qz-island-art-arrive {
+  from { opacity: 0; transform: scale(.88); filter: blur(2px); }
+  to { opacity: 1; transform: scale(1); filter: blur(0); }
 }
 
 /* Header row: round cover with the title and artist right after it. The cap
@@ -750,6 +766,7 @@
   .qz-island-volume button,
   .qz-island-close,
   .qz-island-art,
+  .qz-island-expanded-art-wrap,
   .qz-island-track-label { transition: none; animation: none !important; }
 }
 

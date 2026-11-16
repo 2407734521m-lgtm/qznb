@@ -15,11 +15,37 @@ export interface FloatingDockItem {
 
 const TAB_CLASS = 'qz-floating-dock-tab';
 // :focus-visible 写不进内联样式，随组件带一小段 <style>。
+// 红点样式也放这里：旧的 .qz26-dock-unread 只挂在已死的 .qz-ios26-liquid-dock
+// 选择器下，现役 Dock 里看不见；这里按现役 class 重新给一份，带弹出动画。
 const TAB_CSS = `
 .${TAB_CLASS}:focus-visible {
   outline: none;
   border-radius: 22px;
   box-shadow: inset 0 0 0 1.5px rgba(38, 59, 79, 0.55), 0 0 0 3px rgba(255, 255, 255, 0.65);
+}
+.qz-floating-dock .qz26-dock-icon-wrap {
+  position: relative;
+  display: inline-flex;
+}
+.qz-floating-dock .qz26-dock-unread {
+  position: absolute;
+  top: -1px;
+  right: -3px;
+  width: 6px;
+  height: 6px;
+  border: 1.5px solid rgba(255,255,255,.94);
+  border-radius: 50%;
+  background: #e56b7a;
+  box-shadow: 0 0 0 2px rgba(229,107,122,.12);
+  animation: qz26-dock-unread-in 320ms cubic-bezier(.2,.78,.22,1) both;
+}
+@keyframes qz26-dock-unread-in {
+  from { transform: scale(0); }
+  60% { transform: scale(1.35); }
+  to { transform: scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .qz-floating-dock .qz26-dock-unread { animation: none; }
 }
 @media (forced-colors: active) {
   .${TAB_CLASS}:focus-visible {

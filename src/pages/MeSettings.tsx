@@ -7,6 +7,7 @@ import IslandAlignOverlay from '../components/IslandAlignOverlay';
 import SponsorModal from '../components/SponsorModal';
 import { useUserPreferences } from '../lib/useUserPreferences';
 import { DEFAULT_ISLAND_PREFERENCE } from '../lib/userPreferences';
+import { ISLAND_TRACK_EVENT, readIslandLastTrack, type IslandLastTrack } from '../lib/islandLastTrack';
 
 type PanelKey = 'font' | 'search' | 'chat' | 'island';
 type IconName = 'account' | 'lock' | 'settings' | 'bell' | 'chat' | 'play' | 'wallpaper' | 'palette' | 'font' | 'device' | 'key' | 'history' | 'content' | 'help';
@@ -87,6 +88,21 @@ export default function MeSettings() {
   const [query, setQuery] = useState('');
   const [expanded, setExpanded] = useState<PanelKey | null>(null);
   const islandStageRef = useRef<HTMLDivElement | null>(null);
+  // The preview pill shows the last song the island played (or a sample title
+  // when nothing has played yet on this device), so it reads like the real
+  // island instead of a bare dot-and-line placeholder.
+  const [previewTrack, setPreviewTrack] = useState<IslandLastTrack | null>(() => readIslandLastTrack());
+
+  useEffect(() => {
+    const onTrack = (event: Event) => {
+      const detail = (event as CustomEvent<IslandLastTrack>).detail;
+      if (detail && typeof detail.title === 'string' && detail.title.trim()) {
+        setPreviewTrack({ title: detail.title, artist: typeof detail.artist === 'string' ? detail.artist : '' });
+      }
+    };
+    window.addEventListener(ISLAND_TRACK_EVENT, onTrack);
+    return () => window.removeEventListener(ISLAND_TRACK_EVENT, onTrack);
+  }, []);
   const [fontSize, setFontSize] = useState(() => {
     try { const saved = Number(localStorage.getItem('qznb_font_size_v1')); return [13, 14, 16, 18].includes(saved) ? saved : 14; } catch { return 14; }
   });
@@ -202,10 +218,9 @@ export default function MeSettings() {
         .qz-settings-history span{padding:6px 10px;border-radius:999px;background:#f1ebe2;color:#5f564c;font-size:12px}
         .qz-island-settings-stage{height:160px;margin:12px 0 14px;position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden;border-radius:14px;background:linear-gradient(135deg,#f3f0eb,#eae6df)}
         .qz-island-settings-stage:before{content:"";position:absolute;top:0;left:0;right:0;height:3px;background:rgba(5,5,6,.35)}
-        .qz-island-settings-preview{position:absolute;left:50%;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:999px;background:#050506;box-shadow:0 5px 14px rgba(0,0,0,.2);transition:width .14s ease,height .14s ease,top .14s ease,transform .14s ease}
-        .qz-island-settings-preview:before,.qz-island-settings-preview:after{content:"";display:block;border-radius:999px;background:rgba(255,255,255,.86)}
-        .qz-island-settings-preview:before{width:4px;height:4px;opacity:.7}
-        .qz-island-settings-preview:after{width:18px;height:2px;opacity:.55}
+        .qz-island-settings-preview{position:absolute;left:50%;display:flex;align-items:center;justify-content:center;gap:6px;padding:0 10px;overflow:hidden;border-radius:999px;background:#050506;box-shadow:0 5px 14px rgba(0,0,0,.2);transition:width .14s ease,height .14s ease,top .14s ease,transform .14s ease}
+        .qz-island-settings-preview-dot{flex:0 0 auto;color:rgba(255,255,255,.9);font-size:10px;line-height:1}
+        .qz-island-settings-preview-title{display:block;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:rgba(255,255,255,.92);font-size:10px;line-height:1.2}
         .qz-island-range{display:block!important;padding:11px 0!important;border-bottom:1px solid #eee7dd}
         .qz-island-range>span{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:14px;color:#302b24}
         .qz-island-range b{font-size:12px;font-weight:600;color:#80513c;font-variant-numeric:tabular-nums}
@@ -244,7 +259,7 @@ export default function MeSettings() {
                 {row.panel && expanded === row.panel && (
                   <div className="qz-settings-panel">
                     {row.panel === 'island' && <>
-                      <p>调整灵动岛在页面中的位置和胶囊尺寸。下面的框就是屏幕顶部，药丸的位置和大小跟真机上看到的一样；改动会即时预览，并同步到当前账号。</p>
+                      <p>调整灵动岛在页面中的位置和胶囊尺寸。下面的框就是屏幕顶部，药丸的位置和大小跟真机上看到的一样；预览里的歌名是最近一次播放的歌，没播过歌时显示示例；改动会即时预览，并同步到当前账号。</p>
                       <div className="qz-island-settings-stage" ref={islandStageRef} aria-label="灵动岛位置预览（屏幕顶部，等比）">
                         <span
                           className="qz-island-settings-preview"
@@ -255,7 +270,10 @@ export default function MeSettings() {
                             top: 20.5 + prefs.island.offsetY,
                             transform: `translateX(calc(-50% + ${prefs.island.offsetX}px))`,
                           }}
-                        />
+                        >
+                          <span className="qz-island-settings-preview-dot" aria-hidden="true">♫</span>
+                          <span className="qz-island-settings-preview-title">{previewTrack?.title ?? '流沙'}</span>
+                        </span>
                       </div>
                       <label className="qz-island-range">
                         <span><span>水平位置</span><b>{prefs.island.offsetX > 0 ? '+' : ''}{prefs.island.offsetX} px</b></span>

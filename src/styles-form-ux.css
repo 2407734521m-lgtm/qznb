@@ -61,10 +61,26 @@
   color: #8d94a3;
 }
 
-.login-card .password-reveal {
-  color: #7a6a58 !important;
+/* 密码可见切换贴在框内右侧：之前是没有定位的裸按钮，落在密码框下方左侧。 */
+.password-field { position: relative; }
+.password-field .password-reveal {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  border: 0;
+  background: transparent;
+  padding: 8px 10px;
+  border-radius: 8px;
+  color: #7a6a58;
   font-size: 13px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
 }
+.password-field .password-reveal:active { transform: translateY(-50%) scale(.94); }
+.password-field .password-reveal:disabled { opacity: .45; cursor: default; }
+/* 登录卡浮动标签框的内边距会盖掉通用规则，这里把右侧留给切换钮。 */
+.login-card .float-field .password-field > input:not([type="checkbox"]):not([type="range"]):not([type="file"]) { padding-right: 54px; }
 
 .login-card .code-input {
   display: flex;

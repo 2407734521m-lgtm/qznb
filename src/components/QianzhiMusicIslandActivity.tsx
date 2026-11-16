@@ -135,12 +135,17 @@ const MusicExpandedMeta = () => {
 };
 
 /** Header row: round cover with the title and artist right after it, like the player card. */
-const MusicExpandedHead = () => (
-  <span className="qz-island-expanded-head">
-    <AlbumArt size={84} expanded />
-    <MusicExpandedMeta />
-  </span>
-);
+const MusicExpandedHead = () => {
+  const { track } = useMusicIslandState();
+  return (
+    <span className="qz-island-expanded-head">
+      <span className="qz-island-expanded-art-wrap" key={track ? `${track.title}|${track.coverUrl ?? ''}` : 'none'}>
+        <AlbumArt size={84} expanded />
+      </span>
+      <MusicExpandedMeta />
+    </span>
+  );
+};
 
 const MusicExpandedClose = () => {
   const { collapse } = useMusicIslandState();

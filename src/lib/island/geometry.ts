@@ -51,12 +51,12 @@ export const expandedWidth = (screenWidth: number, metrics: IslandMetrics) =>
   screenWidth - 2 * metrics.expanded.sideInset;
 
 /**
- * Stage width the music player's expanded card lays out against: 500, so the
- * card is ~472 wide on desktop instead of the shared ~612. Phones are
- * unaffected — their container is already narrower than the cap, so `Math.min`
- * keeps their side margins exactly as they are.
+ * Maximum stage width for the expanded music card on wide screens.
+ * On phones, use 90% of the available stage width so the card keeps clear,
+ * consistent side margins instead of stretching almost edge to edge.
  */
 export const MUSIC_EXPANDED_STAGE_WIDTH = 500;
+export const MUSIC_EXPANDED_STAGE_RATIO = 0.9;
 
 /**
  * Stage width the call's expanded card lays out against: 500, the same
@@ -83,7 +83,7 @@ export const QIANZHI_ISLAND_BASELINE_Y_ADJUSTMENT = -10;
  */
 export const expandedStageWidth = (activityId: string | null, screenWidth: number): number =>
   activityId === "music-playback"
-    ? Math.min(screenWidth, MUSIC_EXPANDED_STAGE_WIDTH)
+    ? Math.min(screenWidth * MUSIC_EXPANDED_STAGE_RATIO, MUSIC_EXPANDED_STAGE_WIDTH)
     : activityId === "qz-call-session"
       ? Math.min(screenWidth, CALL_EXPANDED_STAGE_WIDTH)
       : screenWidth;

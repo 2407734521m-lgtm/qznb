@@ -1,6 +1,7 @@
 import { useEffect, useMemo, type ReactNode } from 'react';
 import { useAuth } from '../auth';
 import { IslandProvider } from '../lib/island';
+import { resolveIslandReducedMotion } from '../lib/island/preferences';
 import { createQianzhiIslandMetrics } from '../lib/island/qianzhi-metrics';
 import { qianzhiIslandMotion } from '../lib/island/qianzhi-motion';
 import { setHapticsEnabled } from '../lib/haptics';
@@ -53,7 +54,7 @@ export default function QianzhiIslandProvider({ children }: { children: ReactNod
   }, [island.offsetX, island.offsetY, island.width, island.height]);
 
   return (
-    <IslandProvider motion={qianzhiIslandMotion} metrics={metrics}>
+    <IslandProvider motion={qianzhiIslandMotion} metrics={metrics} reducedMotion={resolveIslandReducedMotion(prefs.motion)}>
       {children}
     </IslandProvider>
   );

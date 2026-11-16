@@ -1922,6 +1922,16 @@
 }
 
 
+/* Final chat header override: keep the reference's clean white top edge,
+   independent from the glass treatment used by the scrollable message surface. */
+.im-page .im-head {
+  background: #fff !important;
+  border-bottom: 0 !important;
+  box-shadow: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
 /* Conversation layout: floating vertical attachment panel and lightweight composer. */
 .im-page .im-composer {
   position: relative;
@@ -2004,6 +2014,8 @@
   margin: 0 !important;
   padding: 10px;
   overflow: auto;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
   border: 1px solid rgba(255,255,255,.96) !important;
   border-radius: 28px !important;
   background: rgba(238,239,241,.96) !important;

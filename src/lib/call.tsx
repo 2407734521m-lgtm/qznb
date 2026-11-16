@@ -454,7 +454,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
 
   const initial = (peerName.trim().charAt(0) || '友').toUpperCase();
   const callCardContent = (
-    <>
+    <div className="qz-call-card-content">
       <button type="button" className="call-minimize" aria-label="最小化通话窗口到灵动岛" title="最小化到灵动岛" onClick={minimizeCall}>−</button>
       <div className="call-avatar" aria-hidden="true">{initial}</div>
       <div className="call-name">{peerName || '同学'}</div>
@@ -481,7 +481,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
           <button type="button" className="call-btn call-btn-hangup" onClick={hangUp}>挂断</button>
         </div>
       )}
-    </>
+    </div>
   );
 
   return (
@@ -492,7 +492,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
       <AnimatePresence>
         {phase !== 'idle' && !minimized && (
           <>
-            <motion.div key="call-overlay" className="call-overlay" role="dialog" aria-modal="true" aria-label="语音通话"
+            <motion.div key="call-overlay" className={`call-overlay${minimizing ? ' is-minimizing' : ''}`} role="dialog" aria-modal="true" aria-label="语音通话"
               initial={reduceMotion ? false : { opacity: 0 }}
               animate={{ opacity: minimizing ? 0 : 1 }} exit={{ opacity: 0 }}
               transition={{ duration: reduceMotion ? 0.01 : minimizing ? 0.48 : 0.2, ease: [0.22, 1, 0.36, 1] }}>
@@ -521,12 +521,14 @@ export function CallProvider({ children }: { children: ReactNode }) {
                   opacity: [1, 1, 0],
                 }}
                 transition={{
-                  x: { type: 'spring', stiffness: 420, damping: 34, mass: 0.72 },
-                  y: { type: 'spring', stiffness: 420, damping: 34, mass: 0.72 },
-                  scaleX: { type: 'spring', stiffness: 420, damping: 34, mass: 0.72 },
-                  scaleY: { type: 'spring', stiffness: 420, damping: 34, mass: 0.72 },
-                  borderRadius: { duration: 0.5, ease: [0.22, 1, 0.36, 1] },
-                  opacity: { duration: 0.5, times: [0, 0.76, 1], ease: [0.22, 1, 0.36, 1] },
+                  // One shared tween keeps position and both scale axes on the same clock.
+                  duration: 0.64,
+                  ease: [0.22, 1, 0.36, 1],
+                  opacity: {
+                    duration: 0.64,
+                    times: [0, 0.84, 1],
+                    ease: [0.22, 1, 0.36, 1],
+                  },
                 }}
                 style={{
                   position: 'fixed',
@@ -539,7 +541,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
                   overflow: 'hidden',
                   zIndex: 4000,
                   transformOrigin: 'top left',
-                  willChange: 'left, top, width, height, border-radius, opacity',
+                  willChange: 'transform, opacity',
                   pointerEvents: 'none',
                 }}
                 onAnimationComplete={() => {
@@ -548,7 +550,16 @@ export function CallProvider({ children }: { children: ReactNode }) {
                   setMinimizing(false);
                   setMinimizeFlight(null);
                 }}>
-                {callCardContent}
+                <motion.div
+                  className="qz-call-card-flight-content"
+                  initial={false}
+                  animate={{ opacity: 0, scale: 0.97 }}
+                  transition={{
+                    opacity: { duration: 0.2, delay: 0.1, ease: 'easeOut' },
+                    scale: { duration: 0.28, delay: 0.08, ease: [0.22, 1, 0.36, 1] },
+                  }}>
+                  {callCardContent}
+                </motion.div>
               </motion.div>,
               document.body,
             )}

@@ -1552,6 +1552,9 @@ function Shell() {
                   ))}
                 </div>
                 <div className="qz-ios26-dock-more-actions">
+                  <button type="button" onClick={() => { setSearchOpen(true); setDockMoreOpen(false); }}>
+                    ⌕ 搜索
+                  </button>
                   <button type="button" onClick={() => { setDockCollapsed(value => !value); setDockMoreOpen(false); }}>
                     {dockCollapsed ? '展开 Dock' : '收起 Dock'}
                   </button>

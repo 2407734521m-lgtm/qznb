@@ -68,7 +68,7 @@ describe('NavigationActivityScheduler', () => {
     scheduler.leave();
 
     expect(events).toEqual(['show:发现', 'complete']);
-    timers.advance(NAVIGATION_ACTIVITY_END_DEBOUNCE_MS - 1);
+    timers.advance(NAVIGATION_ACTIVITY_MIN_VISIBLE_MS - 1);
     expect(events).toEqual(['show:发现', 'complete']);
     timers.advance(1);
     expect(events).toEqual(['show:发现', 'complete', 'end']);
@@ -92,7 +92,9 @@ describe('NavigationActivityScheduler', () => {
 
     expect(events).toEqual(['show:首页', 'complete', 'show:私聊']);
     scheduler.leave();
-    timers.advance(NAVIGATION_ACTIVITY_END_DEBOUNCE_MS);
+    timers.advance(NAVIGATION_ACTIVITY_MIN_VISIBLE_MS - 201);
+    expect(events).toEqual(['show:首页', 'complete', 'show:私聊', 'complete']);
+    timers.advance(1);
     expect(events).toEqual(['show:首页', 'complete', 'show:私聊', 'complete', 'end']);
   });
 

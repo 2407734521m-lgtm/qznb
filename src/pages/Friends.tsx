@@ -6,6 +6,8 @@ import { useSignedUrl } from '../lib/media';
 import { RowSkeleton, useDelayedLoading } from '../components/fx/Skeleton';
 import { preloadRoute } from '../lib/routePreload';
 import { confirmDialog } from '../lib/dialog';
+import ChatConversationItem from '../components/chatcn/ChatConversationItem';
+import './Friends.chatcn.css';
 
 type Friend = {
   id: string;
@@ -16,6 +18,7 @@ type Friend = {
 };
 
 type MemberSearchResult = Friend;
+type ConversationFilter = 'all' | 'unread' | 'direct' | 'groups';
 
 type InboxNotification = {
   id: number;
@@ -93,10 +96,54 @@ function previewText(item: ConversationPreview, myId: string) {
   return body || '消息';
 }
 
+
+function ChatInboxIcon({ name }: { name: string }) {
+  const common = {
+    viewBox: '0 0 24 24',
+    width: 26,
+    height: 26,
+    fill: 'none',
+    stroke: 'currentColor',
+    strokeWidth: 1.85,
+    strokeLinecap: 'round' as const,
+    strokeLinejoin: 'round' as const,
+    'aria-hidden': true as const,
+  };
+  switch (name) {
+    case 'all':
+      return <svg {...common}><path d="M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8A8.5 8.5 0 0 1 8.7 4a8.4 8.4 0 0 1 3.8-.9h.5a8.5 8.5 0 0 1 8 8z" /></svg>;
+    case 'unread':
+      return <svg {...common}><path d="M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8A8.5 8.5 0 0 1 8.7 4a8.4 8.4 0 0 1 3.8-.9" /><circle cx="19" cy="18.5" r="3.1" fill="currentColor" stroke="none" /></svg>;
+    case 'direct':
+      return <svg {...common}><circle cx="12" cy="7.2" r="4" /><path d="M4.2 21v-1.8a7.8 7.8 0 0 1 15.6 0V21z" /></svg>;
+    case 'groups':
+      return <svg {...common}><circle cx="9" cy="8" r="3" /><path d="M2.5 20v-1.3a6.5 6.5 0 0 1 11.2-4.4" /><circle cx="18" cy="9" r="2.3" /><path d="M16.2 14.3a5.4 5.4 0 0 1 5.3 5.4V20h-4.2" /></svg>;
+    case 'requests':
+      return <svg {...common}><path d="M20.5 11.3a8.5 8.5 0 0 1-8.4 8.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8A8.5 8.5 0 0 1 12.5 3" /><path d="M15 14.5h6m-3-3 3 3-3 3" /></svg>;
+    case 'settings':
+      return <svg {...common}><path d="M12 2.8 14 4l2.4-.2 1 2.2 2 1.2-.3 2.4 1.2 2-1.2 2 .3 2.4-2 1.2-1 2.2L14 19l-2 1.2L10 19l-2.4.2-1-2.2-2-1.2.3-2.4-1.2-2 1.2-2-.3-2.4 2-1.2 1-2.2L10 4z" /><circle cx="12" cy="11.8" r="3" /></svg>;
+    case 'read':
+      return <svg {...common}><path d="M4 6h8M4 11h5M4 16l3.2 3.2L20 6.5" strokeWidth="2.2" /></svg>;
+    case 'notifications':
+      return <svg {...common}><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9" /><path d="M10 21h4" /></svg>;
+    case 'search':
+      return <svg {...common}><circle cx="10.8" cy="10.8" r="7.2" strokeWidth="2.2" /><path d="m16.2 16.2 5 5" strokeWidth="2.2" /></svg>;
+    default:
+      return null;
+  }
+}
+
 export default function Friends() {
   const nav = useNavigate();
   const [searchParams] = useSearchParams();
   const me = useAuth().session!.user.id;
+  const [myAvatarPath, setMyAvatarPath] = useState<string | null>(null);
+  const [myUsername, setMyUsername] = useState('');
+  const myAvatarUrl = useSignedUrl('avatars', myAvatarPath);
+  const [conversationFilter, setConversationFilter] = useState<ConversationFilter>('all');
+  const [filterMenuOpen, setFilterMenuOpen] = useState(false);
+  const [markingAllRead, setMarkingAllRead] = useState(false);
+  const filterMenuRef = useRef<HTMLDivElement>(null);
   const [section, setSection] = useState<'private' | 'notifications'>(() =>
     searchParams.get('tab') === 'notifications' ? 'notifications' : 'private',
   );
@@ -143,6 +190,39 @@ export default function Friends() {
   const [notificationActionBusy, setNotificationActionBusy] = useState(false);
   const [notificationFilter, setNotificationFilter] = useState<'all' | 'unread'>('all');
   const [notificationPrefs, setNotificationPrefs] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    let active = true;
+    void (async () => {
+      const { data, error } = await supabase.from('profiles')
+        .select('avatar_path, username')
+        .eq('id', me)
+        .maybeSingle();
+      if (active && !error) {
+        setMyAvatarPath(data?.avatar_path ?? null);
+        setMyUsername(data?.username ?? '');
+      }
+    })();
+    return () => { active = false; };
+  }, [me]);
+
+  useEffect(() => {
+    if (!filterMenuOpen) return;
+    const closeOnPointer = (event: PointerEvent) => {
+      if (filterMenuRef.current && !filterMenuRef.current.contains(event.target as Node)) {
+        setFilterMenuOpen(false);
+      }
+    };
+    const closeOnKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setFilterMenuOpen(false);
+    };
+    document.addEventListener('pointerdown', closeOnPointer);
+    document.addEventListener('keydown', closeOnKey);
+    return () => {
+      document.removeEventListener('pointerdown', closeOnPointer);
+      document.removeEventListener('keydown', closeOnKey);
+    };
+  }, [filterMenuOpen]);
 
   async function load() {
     const requestId = ++loadSequenceRef.current;
@@ -334,9 +414,17 @@ export default function Friends() {
   );
   const filteredConversations = useMemo(
     () => conversations.filter(c => (c.display_name ?? c.username).toLocaleLowerCase().includes(normalizedQuery)
-      || c.username.toLocaleLowerCase().includes(normalizedQuery)),
-    [conversations, normalizedQuery],
+      || c.username.toLocaleLowerCase().includes(normalizedQuery)
+      || previewText(c, me).toLocaleLowerCase().includes(normalizedQuery)),
+    [conversations, normalizedQuery, me],
   );
+  // my_conversations() exposes one other_profile_id per result, so current records are direct chats.
+  // Keep the group filter visible, but do not misrepresent direct conversations as groups.
+  const visibleConversations = useMemo(() => {
+    if (conversationFilter === 'unread') return filteredConversations.filter(c => Number(c.unread_count) > 0);
+    if (conversationFilter === 'groups') return [];
+    return filteredConversations;
+  }, [filteredConversations, conversationFilter]);
   const filteredRequests = useMemo(
     () => reqs.filter(f => (f.display_name ?? f.username).toLocaleLowerCase().includes(normalizedQuery)
       || f.username.toLocaleLowerCase().includes(normalizedQuery)),
@@ -349,7 +437,7 @@ export default function Friends() {
   );
 
   useEffect(() => {
-    if (section !== 'private' || (!searchTerm && tab !== 'discover')) {
+    if (section !== 'private' || tab !== 'discover') {
       setSearchResults([]);
       setSearchError('');
       setSearchLoading(false);
@@ -406,6 +494,32 @@ export default function Friends() {
     nav('/chat/' + conversation.conversation_id, {
       state: { name: conversation.display_name ?? conversation.username },
     });
+  }
+
+  async function markAllConversationsRead() {
+    if (markingAllRead) return;
+    const unread = conversations.filter(conversation => Number(conversation.unread_count) > 0);
+    if (unread.length === 0) return;
+    setMarkingAllRead(true);
+    setMsg('');
+    try {
+      const results = await Promise.all(unread.map(conversation =>
+        supabase.rpc('mark_conversation_read', { p_conversation_id: conversation.conversation_id }),
+      ));
+      const failed = results.filter(result => result.error);
+      if (failed.length > 0) {
+        setMsg(failed.length + ' 个会话标记已读失败，请检查网络后重试。');
+      } else {
+        await load();
+        setMsg('所有私信已标记为已读。');
+        window.dispatchEvent(new Event('notif-read'));
+      }
+    } catch (error) {
+      console.error('mark all conversations read failed', error);
+      setMsg('标记已读失败，请稍后重试。');
+    } finally {
+      setMarkingAllRead(false);
+    }
   }
 
   async function withdrawRequest(person: MemberSearchResult) {
@@ -582,7 +696,7 @@ export default function Friends() {
     });
 
   return (
-    <div className="page im-inbox">
+    <div className="page im-inbox chatcn-inbox">
       <style>{`
         .im-inbox{position:relative;isolation:isolate;width:100%;height:100%;min-height:0;max-width:none;margin:0;padding:18px 16px 28px!important;overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain;background:transparent!important}
         .im-inbox:before{content:'';position:absolute;z-index:-1;pointer-events:none;inset:0;background:none}
@@ -708,14 +822,83 @@ export default function Friends() {
         @media(prefers-reduced-motion:reduce){.im-inbox-row,.im-primary-thumb{transition:none}}
       `}</style>
 
-      <header className="im-inbox-head">
-        <div>
-          <div className="im-inbox-title">消息中心</div>
-          <div className="im-inbox-subtitle">私信与账号通知，集中在这里</div>
-        </div>
+      <header className="im-inbox-head chatcn-inbox-head">
+        <button type="button" className="chatcn-profile-button" aria-label="打开个人主页" onClick={() => nav('/me')}>
+          {myAvatarUrl ? <img src={myAvatarUrl} alt="" /> : <span className="chatcn-profile-fallback">{myUsername.slice(0, 1) || '我'}</span>}
+        </button>
+        <div className="chatcn-inbox-title">{section === 'private' ? '聊天' : '通知'}</div>
+        {section === 'private' && (
+          <div className="chatcn-filter-root" ref={filterMenuRef}>
+            <button
+              type="button"
+              className="chatcn-filter-trigger"
+              aria-haspopup="menu"
+              aria-expanded={filterMenuOpen}
+              onClick={() => setFilterMenuOpen(open => !open)}
+            >
+              <span>{{ all: '全部', unread: '未读', direct: '直接', groups: '群组' }[conversationFilter]}</span>
+              <svg viewBox="0 0 20 20" width="17" height="17" fill="none" aria-hidden="true">
+                <path d="m4.5 7.5 5.5 5 5.5-5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
+            {filterMenuOpen && (
+              <div className="chatcn-filter-menu" role="menu" aria-label="聊天筛选">
+                {([
+                  { id: 'all', label: '全部', icon: 'all' },
+                  { id: 'unread', label: '未读', icon: 'unread' },
+                  { id: 'direct', label: '直接', icon: 'direct' },
+                  { id: 'groups', label: '群组', icon: 'groups' },
+                ] as const).map(option => (
+                  <button
+                    key={option.id}
+                    type="button"
+                    role="menuitemradio"
+                    aria-checked={conversationFilter === option.id}
+                    className="chatcn-filter-option"
+                    onClick={() => {
+                      setSection('private');
+                      setTab('messages');
+                      setQuery('');
+                      setConversationFilter(option.id);
+                      setFilterMenuOpen(false);
+                    }}
+                  >
+                    <span className="chatcn-filter-icon"><ChatInboxIcon name={option.icon} /></span>
+                    <span>{option.label}</span>
+                    {conversationFilter === option.id && (
+                      <span className="chatcn-filter-check" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none"><path d="m4.5 12.5 5 5L20 6.5" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                      </span>
+                    )}
+                  </button>
+                ))}
+                <div className="chatcn-filter-separator" />
+                <button type="button" className="chatcn-filter-option" role="menuitem"
+                  onClick={() => { setSection('private'); setTab('reqs'); setQuery(''); setFilterMenuOpen(false); }}>
+                  <span className="chatcn-filter-icon"><ChatInboxIcon name="requests" /></span><span>请求</span>
+                </button>
+                <button type="button" className="chatcn-filter-option" role="menuitem"
+                  onClick={() => { setFilterMenuOpen(false); nav('/me/notifications'); }}>
+                  <span className="chatcn-filter-icon"><ChatInboxIcon name="notifications" /></span><span>通知</span>
+                </button>
+                <button type="button" className="chatcn-filter-option" role="menuitem"
+                  onClick={() => { setFilterMenuOpen(false); nav('/me/settings/notifications'); }}>
+                  <span className="chatcn-filter-icon"><ChatInboxIcon name="settings" /></span><span>设置</span>
+                </button>
+                <div className="chatcn-filter-separator" />
+                <button type="button" className="chatcn-filter-option is-danger" role="menuitem"
+                  disabled={markingAllRead || !conversations.some(conversation => Number(conversation.unread_count) > 0)}
+                  onClick={() => { setFilterMenuOpen(false); void markAllConversationsRead(); }}>
+                  <span className="chatcn-filter-icon"><ChatInboxIcon name="read" /></span>
+                  <span>{markingAllRead ? '正在标记…' : '全部标记为已读'}</span>
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </header>
 
-      <div className="im-primary-tabs" role="tablist" aria-label="消息分类">
+      <div className={'im-primary-tabs' + (section === 'private' ? ' chatcn-hidden' : '')} role="tablist" aria-label="消息分类">
         <span aria-hidden="true" className={'im-primary-thumb' + (section === 'notifications' ? ' right' : '')} />
         <button type="button" role="tab" aria-selected={section === 'private'} className={section === 'private' ? 'on' : ''}
           onClick={() => { setSection('private'); setQuery(''); }}>私信</button>
@@ -725,26 +908,28 @@ export default function Friends() {
         </button>
       </div>
 
-      <label className="im-search">
-        <span aria-hidden="true">⌕</span>
+      <label className="chatcn-inbox-search">
+        <span className="chatcn-search-icon"><ChatInboxIcon name="search" /></span>
         <input value={query} onChange={e => setQuery(e.target.value)}
-          placeholder={section === 'private' ? '搜索昵称或 @用户名（真实姓名不公开）' : '搜索消息标题或内容'}
-          aria-label={section === 'private' ? '搜索昵称或用户名；真实姓名不公开' : '搜索系统消息'} />
+          placeholder={section === 'private' ? '搜索聊天' : '搜索消息标题或内容'}
+          aria-label={section === 'private' ? '搜索聊天' : '搜索系统消息'} />
       </label>
 
       {section === 'private' ? (
         <>
-          <div className="im-inbox-tabs">
-            <button type="button" className={tab === 'discover' ? 'on' : ''} onClick={() => setTab('discover')}>找人</button>
-            <button type="button" className={tab === 'messages' ? 'on' : ''} onClick={() => setTab('messages')}>私信 · {loading ? '…' : conversations.length}</button>
-            <button type="button" className={tab === 'friends' ? 'on' : ''} onClick={() => setTab('friends')}>好友 · {loading ? '…' : friends.length}</button>
-            <button type="button" className={tab === 'reqs' ? 'on' : ''} onClick={() => setTab('reqs')}>请求{loading ? ' · …' : reqs.length > 0 ? ' · ' + reqs.length : ''}</button>
-            <button type="button" className={tab === 'blocked' ? 'on' : ''} onClick={() => setTab('blocked')}>黑名单 · {loading ? '…' : blockedMembers.length}</button>
-          </div>
+          {tab !== 'messages' && (
+            <div className="im-inbox-tabs">
+              <button type="button" className={tab === 'discover' ? 'on' : ''} onClick={() => setTab('discover')}>找人</button>
+              <button type="button" onClick={() => { setTab('messages'); setConversationFilter('all'); }}>私信 · {loading ? '…' : conversations.length}</button>
+              <button type="button" className={tab === 'friends' ? 'on' : ''} onClick={() => setTab('friends')}>好友 · {loading ? '…' : friends.length}</button>
+              <button type="button" className={tab === 'reqs' ? 'on' : ''} onClick={() => setTab('reqs')}>请求{loading ? ' · …' : reqs.length > 0 ? ' · ' + reqs.length : ''}</button>
+              <button type="button" className={tab === 'blocked' ? 'on' : ''} onClick={() => setTab('blocked')}>黑名单 · {loading ? '…' : blockedMembers.length}</button>
+            </div>
+          )}
 
           {msg && <p className="im-inbox-message" role="status">{msg}</p>}
 
-          {searchTerm || tab === 'discover' ? (
+          {tab === 'discover' ? (
         <div className="im-inbox-list" aria-live="polite">
           <div className="im-inbox-search-caption">
             <span>{searchTerm ? '搜索站内成员' : '发现成员'}</span>
@@ -822,27 +1007,31 @@ export default function Friends() {
         <>
           {tab === 'messages' && (
             <div className="im-inbox-list im-conversation-list">
-              {showInboxSkeleton ? <RowSkeleton count={4} /> : loading ? null : filteredConversations.length === 0 ? (
-                <div className="im-inbox-empty">
-                  <div className="im-inbox-empty-title">还没有聊天记录</div>
-                  <div className="im-inbox-empty-copy">和好友开启一次对话，最近消息会自动显示在这里。</div>
-                  <button type="button" className="im-inbox-primary" onClick={() => setTab('friends')}>选择好友开始聊天</button>
+              {showInboxSkeleton ? <RowSkeleton count={4} /> : loading ? null : visibleConversations.length === 0 ? (
+                <div className="im-inbox-empty chatcn-empty-groups">
+                  <strong>{conversationFilter === 'groups' ? '群聊暂未开放' : conversationFilter === 'unread' ? '没有未读消息' : '还没有聊天记录'}</strong>
+                  <span>
+                    {conversationFilter === 'groups'
+                      ? '当前私信接口只提供一对一会话，群聊功能开放后会显示在这里。'
+                      : conversationFilter === 'unread'
+                        ? '新的未读私信会自动出现在这里。'
+                        : '和好友开启一次对话，最近消息会自动显示在这里。'}
+                  </span>
+                  {conversationFilter === 'groups'
+                    ? null
+                    : <button type="button" className="im-inbox-primary" onClick={() => { setTab('friends'); setConversationFilter('all'); }}>选择好友开始聊天</button>}
                 </div>
-              ) : filteredConversations.map(conversation => (
-                <button key={conversation.conversation_id} type="button" className={'im-inbox-row' + (conversation.unread_count > 0 ? ' unread' : '')} onPointerDown={() => preloadRoute('/chat')} onClick={() => openConversation(conversation)}>
-                  <ProfileAvatar asSpan person={{ id: conversation.other_profile_id, username: conversation.username, display_name: conversation.display_name, avatar_path: conversation.avatar_path }} />
-                  <span className="im-inbox-person">
-                    <span className="im-inbox-name" style={{ display: 'block' }}>{conversation.display_name ?? conversation.username}</span>
-                    <span className="im-inbox-preview" style={{ display: 'block' }}>
-                      {conversation.last_message_sender_id === me && conversation.last_message_id ? '我：' : ''}
-                      {previewText(conversation, me)}
-                    </span>
-                  </span>
-                  <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 7 }}>
-                    <span className="im-inbox-time">{formatInboxTime(conversation.last_message_at, conversation.conversation_created_at)}</span>
-                    {conversation.unread_count > 0 && <span className="im-unread">{conversation.unread_count > 99 ? '99+' : conversation.unread_count}</span>}
-                  </span>
-                </button>
+              ) : visibleConversations.map(conversation => (
+                <ChatConversationItem
+                  key={conversation.conversation_id}
+                  title={conversation.display_name ?? conversation.username}
+                  avatar={<ProfileAvatar asSpan size={58} person={{ id: conversation.other_profile_id, username: conversation.username, display_name: conversation.display_name, avatar_path: conversation.avatar_path }} />}
+                  preview={(conversation.last_message_sender_id === me && conversation.last_message_id ? '我：' : '') + previewText(conversation, me)}
+                  time={formatInboxTime(conversation.last_message_at, conversation.conversation_created_at)}
+                  unreadCount={Number(conversation.unread_count) || 0}
+                  onPointerDown={() => preloadRoute('/chat')}
+                  onClick={() => openConversation(conversation)}
+                />
               ))}
             </div>
           )}

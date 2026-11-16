@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isSameMusicTrack, resolveMusicEqualizerMode, shouldShowMainIsland } from './MusicIsland';
+import { isSameMusicTrack, musicTrackIdentity, resolveMusicEqualizerMode, shouldCrossfadeMusicTrack, shouldShowMainIsland } from './MusicIsland';
 import { hasNewIslandActivity, resolveIslandDockGesture, resolveIslandGestureSource, shouldCancelPendingIslandDock, shouldShowIslandIdleRecall } from './QianzhiMusicIslandActivity';
 import { resolveMetrics } from '../lib/island/config';
 import { createQianzhiIslandMetrics, qianzhiIslandMetrics } from '../lib/island/qianzhi-metrics';
@@ -63,6 +63,40 @@ describe('isSameMusicTrack', () => {
   });
 });
 
+
+describe('musicTrackIdentity', () => {
+  it('changes when the song, artist or cover changes, but not on a progress tick', () => {
+    const first = musicTrackIdentity(track());
+    expect(first).not.toBeNull();
+    expect(musicTrackIdentity(track({ currentTime: 13 }))).toBe(first);
+    expect(musicTrackIdentity(track({ isPlaying: false }))).toBe(first);
+    expect(musicTrackIdentity(track({ title: 'Other' }))).not.toBe(first);
+    expect(musicTrackIdentity(track({ artist: 'B' }))).not.toBe(first);
+    expect(musicTrackIdentity(track({ coverUrl: null }))).not.toBe(first);
+    expect(musicTrackIdentity(null)).toBeNull();
+  });
+});
+
+describe('shouldCrossfadeMusicTrack', () => {
+  const first = musicTrackIdentity(track());
+  const second = musicTrackIdentity(track({ title: 'Other' }));
+
+  it('crossfades a new song only when music is the sole activity in compact form', () => {
+    expect(shouldCrossfadeMusicTrack(first, second, true, true)).toBe(true);
+  });
+
+  it('stays in place on the first song, on a pause, and when the song is unchanged', () => {
+    expect(shouldCrossfadeMusicTrack(null, second, true, true)).toBe(false);
+    expect(shouldCrossfadeMusicTrack(first, first, true, true)).toBe(false);
+    expect(shouldCrossfadeMusicTrack(first, second, true, true)).toBe(true);
+    expect(shouldCrossfadeMusicTrack(first, musicTrackIdentity(track({ isPlaying: false })), true, true)).toBe(false);
+  });
+
+  it('does not crossfade while expanded or while another activity shares the island', () => {
+    expect(shouldCrossfadeMusicTrack(first, second, true, false)).toBe(false);
+    expect(shouldCrossfadeMusicTrack(first, second, false, true)).toBe(false);
+  });
+});
 
 describe('hasNewIslandActivity', () => {
   it('detects a newly arrived call, upload or notification', () => {

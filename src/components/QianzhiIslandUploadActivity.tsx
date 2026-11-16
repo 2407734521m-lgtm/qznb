@@ -41,7 +41,9 @@ export function createUploadIslandActivity(input: UploadIslandActivityInput): Ac
     },
     compact: {
       leading: (
-        <span className="qz-upload-island-compact">
+        // Keyed on status so the arrival animation replays when the transfer
+        // settles: uploading → completed is a visible change, not a silent swap.
+        <span key={input.status} className="qz-upload-island-compact">
           <span className="qz-upload-island-icon"><UploadIcon /></span>
           <span>{input.status === 'uploading' ? '上传中' : input.status === 'completed' ? '已完成' : '失败'}</span>
         </span>

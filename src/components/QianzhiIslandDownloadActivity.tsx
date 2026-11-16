@@ -41,7 +41,9 @@ export function createDownloadIslandActivity(input: DownloadIslandActivityInput)
     },
     compact: {
       leading: (
-        <span className="qz-download-island-compact">
+        // Keyed on status so the arrival animation replays when the transfer
+        // settles: downloading → completed is a visible change, not a silent swap.
+        <span key={input.status} className="qz-download-island-compact">
           <span className="qz-download-island-icon"><DownloadIcon /></span>
           <span>{input.status === 'downloading' ? '下载中' : input.status === 'completed' ? '已完成' : '失败'}</span>
         </span>

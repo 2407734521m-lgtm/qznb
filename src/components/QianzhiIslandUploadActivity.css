@@ -6,6 +6,14 @@
   white-space: nowrap;
   font-size: 11px;
   font-weight: 680;
+  /* One-shot arrival: the activity mounts when a transfer starts, so the icon
+     and label fade-rise in instead of the pill silently growing a new side.
+     Progress ticks update in place and never replay this. */
+  animation: qz-upload-island-arrive 240ms cubic-bezier(.2,.78,.22,1) both;
+}
+@keyframes qz-upload-island-arrive {
+  from { opacity: 0; transform: translateY(3px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 .qz-upload-island-icon,
 .qz-upload-island-minimal {
@@ -28,6 +36,7 @@
   width: 22px;
   height: 22px;
   color: #fff;
+  animation: qz-upload-island-arrive 240ms cubic-bezier(.2,.78,.22,1) both;
 }
 .qz-upload-island-percent {
   display: inline-block;
@@ -102,4 +111,6 @@
 @media (prefers-reduced-motion: reduce) {
   .qz-upload-island-track > span { transition: none; }
   .qz-upload-island-track > span.is-indeterminate { animation: none; width: 55%; }
+  .qz-upload-island-compact,
+  .qz-upload-island-minimal { animation: none; }
 }

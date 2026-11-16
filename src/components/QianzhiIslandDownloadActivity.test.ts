@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import type { ReactElement } from 'react';
 import { createDownloadIslandActivity } from './QianzhiIslandDownloadActivity';
 
 describe('createDownloadIslandActivity', () => {
@@ -24,5 +25,12 @@ describe('createDownloadIslandActivity', () => {
     expect(low.expanded?.bottom).toBeTruthy();
     expect(high.task?.progress).toBe(100);
     expect(low.task?.progress).toBe(0);
+  });
+
+  it('keys the compact label on status so the arrival animation replays when it settles', () => {
+    const downloading = createDownloadIslandActivity({ count: 1, progress: 30, status: 'downloading' });
+    const completed = createDownloadIslandActivity({ count: 0, progress: 100, status: 'completed' });
+    expect((downloading.compact?.leading as ReactElement).key).toBe('downloading');
+    expect((completed.compact?.leading as ReactElement).key).toBe('completed');
   });
 });

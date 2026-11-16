@@ -113,7 +113,7 @@ const sections: {
         photo: signaturePhoto,
         eyebrow: '创作工具',
         title: '动态签名',
-        description: '中文、英文都能逐笔写出，可切换字体并导出视频。',
+        description: '中文、英文都能逐笔写出，可切换字体并导出视频；切到韩文、日文、阿拉伯文，中文名字会按读音翻译了再写。',
         action: '开始写名',
       },
       {

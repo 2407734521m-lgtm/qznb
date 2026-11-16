@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../auth';
@@ -158,6 +159,9 @@ export default function Friends() {
   const myAvatarUrl = useSignedUrl('avatars', myAvatarPath);
   const [conversationFilter, setConversationFilter] = useState<ConversationFilter>('all');
   const [filterMenuOpen, setFilterMenuOpen] = useState(false);
+  const filterTriggerRef = useRef<HTMLButtonElement>(null);
+  const filterMenuPortalRef = useRef<HTMLDivElement>(null);
+  const [filterMenuBounds, setFilterMenuBounds] = useState<{ top: number; left: number; width: number; maxHeight: number } | null>(null);
   const [markingAllRead, setMarkingAllRead] = useState(false);
   const [showCreateGroup, setShowCreateGroup] = useState(false);
   const [groupName, setGroupName] = useState('');
@@ -232,11 +236,51 @@ export default function Friends() {
   }, [me]);
 
   useEffect(() => {
+    if (!filterMenuOpen) {
+      setFilterMenuBounds(null);
+      return;
+    }
+
+    const updateMenuPosition = () => {
+      const trigger = filterTriggerRef.current;
+      if (!trigger) return;
+
+      const rect = trigger.getBoundingClientRect();
+      const viewportWidth = document.documentElement.clientWidth || window.innerWidth;
+      const viewportHeight = window.innerHeight;
+      const edge = 14;
+      const gap = 9;
+      const width = Math.min(300, Math.max(0, viewportWidth - edge * 2));
+      const spaceBelow = Math.max(0, viewportHeight - rect.bottom - edge - gap);
+      const spaceAbove = Math.max(0, rect.top - edge - gap);
+      const idealHeight = Math.min(560, viewportHeight * 0.72);
+      const openAbove = spaceBelow < Math.min(idealHeight, 440) && spaceAbove > spaceBelow;
+      const availableHeight = openAbove ? spaceAbove : spaceBelow;
+      const maxHeight = Math.max(160, Math.min(idealHeight, availableHeight));
+      const top = openAbove
+        ? Math.max(edge, rect.top - maxHeight - gap)
+        : rect.bottom + gap;
+      const left = Math.max(edge, Math.min(rect.right - width, viewportWidth - width - edge));
+
+      setFilterMenuBounds({ top, left, width, maxHeight });
+    };
+
+    updateMenuPosition();
+    window.addEventListener('resize', updateMenuPosition);
+    window.addEventListener('scroll', updateMenuPosition, true);
+    return () => {
+      window.removeEventListener('resize', updateMenuPosition);
+      window.removeEventListener('scroll', updateMenuPosition, true);
+    };
+  }, [filterMenuOpen]);
+
+  useEffect(() => {
     if (!filterMenuOpen) return;
     const closeOnPointer = (event: PointerEvent) => {
-      if (filterMenuRef.current && !filterMenuRef.current.contains(event.target as Node)) {
-        setFilterMenuOpen(false);
-      }
+      const target = event.target as Node;
+      const clickedTriggerArea = Boolean(filterMenuRef.current?.contains(target));
+      const clickedMenu = Boolean(filterMenuPortalRef.current?.contains(target));
+      if (!clickedTriggerArea && !clickedMenu) setFilterMenuOpen(false);
     };
     const closeOnKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape') setFilterMenuOpen(false);
@@ -950,6 +994,7 @@ export default function Friends() {
         {section === 'private' && (
           <div className="chatcn-filter-root" ref={filterMenuRef}>
             <button
+              ref={filterTriggerRef}
               type="button"
               className="chatcn-filter-trigger"
               aria-haspopup="menu"
@@ -961,8 +1006,20 @@ export default function Friends() {
                 <path d="m4.5 7.5 5.5 5 5.5-5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </button>
-            {filterMenuOpen && (
-              <div className="chatcn-filter-menu" role="menu" aria-label="聊天筛选">
+            {filterMenuOpen && filterMenuBounds && createPortal(
+              <div
+                ref={filterMenuPortalRef}
+                className="chatcn-filter-menu"
+                role="menu"
+                aria-label="聊天筛选"
+                style={{
+                  position: 'fixed',
+                  top: filterMenuBounds.top,
+                  left: filterMenuBounds.left,
+                  width: filterMenuBounds.width,
+                  maxHeight: filterMenuBounds.maxHeight,
+                }}
+              >
                 {([
                   { id: 'all', label: '全部', icon: 'all' },
                   { id: 'unread', label: '未读', icon: 'unread' },
@@ -1016,7 +1073,8 @@ export default function Friends() {
                   <span className="chatcn-filter-icon"><ChatInboxIcon name="read" /></span>
                   <span>{markingAllRead ? '正在标记…' : '全部标记为已读'}</span>
                 </button>
-              </div>
+              </div>,
+              document.body,
             )}
           </div>
         )}

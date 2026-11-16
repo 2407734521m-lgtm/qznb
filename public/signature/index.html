@@ -38,6 +38,7 @@
   /* ---------- 控制面板 ---------- */
   .panel{ margin-top:14px; background:var(--card); border:1px solid var(--line); border-radius:18px; padding:14px; }
   .panel h2{ font-size:14px; margin-bottom:10px; color:#1f2a3a; }
+  .panel > .row{ display:flex; gap:8px; align-items:center; margin-bottom:10px; }
   .panel h2 span{ color:var(--muted); font-weight:400; font-size:12px; }
   .nameCard{ background:#f7f8f8; border:1px solid var(--line); border-radius:14px; padding:12px; margin-bottom:10px; }
   .nameCard .row{ display:flex; gap:8px; align-items:center; margin-bottom:10px; }
@@ -85,16 +86,16 @@
 <body>
 <header>
   <h1>动态签名</h1>
-  <p>写下两个名字，看它们一笔一笔为彼此写出来</p>
+  <p id="subtitle">写下两个名字，看它们一笔一笔为彼此写出来</p>
 </header>
 <main>
   <div id="stageWrap">
     <div id="stage">
       <canvas id="stars"></canvas>
       <div id="names">
-        <div class="nameRow"><div id="vara1" class="vara"></div><div class="deco" id="deco1"></div></div>
+        <div class="nameRow" id="row1"><div id="vara1" class="vara"></div><div class="deco" id="deco1"></div></div>
         <div id="divider"><svg viewBox="0 0 100 100" width="26" height="26" aria-hidden="true"><path d="M50 86 C20 62 8 44 8 30 C8 16 20 8 30 8 C40 8 47 14 50 22 C53 14 60 8 70 8 C80 8 92 16 92 30 C92 44 80 62 50 86Z" fill="#e7548a"/></svg></div>
-        <div class="nameRow"><div id="vara2" class="vara"></div><div class="deco" id="deco2"></div></div>
+        <div class="nameRow" id="row2"><div id="vara2" class="vara"></div><div class="deco" id="deco2"></div></div>
       </div>
       <canvas id="confetti"></canvas>
       <div id="doneTag">已完成 · 点「再看一遍」重新播放</div>
@@ -103,14 +104,15 @@
   </div>
 
   <section class="panel">
-    <h2>名字一 <span>· 上面那行</span></h2>
+    <div class="row"><label>人数</label><div class="seg" style="flex:1" id="modeSeg"><button type="button" class="chip on" data-mode="duo">两个人</button><button type="button" class="chip" data-mode="solo">一个人</button></div></div>
+    <h2 id="hName1">名字一 <span>· 上面那行</span></h2>
     <div class="nameCard" id="card1">
       <div class="row"><span class="tag">名字</span><input type="text" id="name1" value="Taiyang" maxlength="14" placeholder="输入英文拼音名字"><button type="button" class="pickerBtn" id="fontBtn1">签名连笔</button></div>
       <div class="row"><label>颜色</label><div class="swatches" id="color1"></div></div>
       <div class="row"><label>大小</label><input type="range" id="size1" min="0.6" max="1.8" step="0.1" value="1"><label>粗细</label><input type="range" id="thick1" min="0.5" max="2" step="0.1" value="1"></div>
       <div class="row"><label>装饰</label><div class="decoBtns" id="decoBtns1"></div></div>
     </div>
-    <h2>名字二 <span>· 下面那行</span></h2>
+    <h2 id="hName2">名字二 <span>· 下面那行</span></h2>
     <div class="nameCard" id="card2">
       <div class="row"><span class="tag">名字</span><input type="text" id="name2" value="yueliang" maxlength="14" placeholder="输入英文拼音名字"><button type="button" class="pickerBtn" id="fontBtn2">签名连笔</button></div>
       <div class="row"><label>颜色</label><div class="swatches" id="color2"></div></div>
@@ -139,7 +141,7 @@
     </div>
     <div class="status" id="status"></div>
     <div class="note">
-      <b>玩法：</b>改好两个名字和颜色，点 ▶ 播放，两个名字会一起一笔一笔写出来，写完纸屑一炸、慢慢淡出。想换效果直接改，改完会自动重播一遍。<br>
+      <b>玩法：</b>改好名字和颜色，点「播放签名」，名字会一笔一笔写出来，写完纸屑一炸、慢慢淡出。想换效果直接改，改完会自动重播一遍。<br>
       <b>注意：</b>手写字体只支持英文字母、数字和标点，中文名字请先用拼音（比如 Taiyang）；导出的是 <b>WebM 视频</b>，手机浏览器录出来就是这个格式，大多数播放器都能直接看，MP4 需要转码所以这次没做。
     </div>
   </section>
@@ -186,7 +188,7 @@ var $ = function(id){ return document.getElementById(id); };
 var stageEl = $("stage"), namesEl = $("names");
 
 var state = {
-  ratio:"16:9", bg:0, music:false, duration:"auto",
+  ratio:"16:9", bg:0, music:false, duration:"auto", mode:"duo",
   names:[
     {text:"Taiyang", font:"Parisienne", color:"#e7548a", size:1, thick:1, deco:"cat"},
     {text:"yueliang", font:"Parisienne", color:"#b8860b", size:1, thick:1, deco:"paw"}
@@ -276,11 +278,29 @@ function buildControls(){
       document.querySelectorAll("#durationSeg .chip").forEach(function(x){ x.classList.toggle("on", x===b); });
     });
   });
+  document.querySelectorAll("#modeSeg .chip").forEach(function(b){
+    b.addEventListener("click", function(){
+      state.mode = b.dataset.mode;
+      document.querySelectorAll("#modeSeg .chip").forEach(function(x){ x.classList.toggle("on", x===b); });
+      applyMode(); scheduleReplay();
+    });
+  });
   $("playBtn").addEventListener("click", function(){ play(); });
   $("replayBtn").addEventListener("click", function(){ play(); });
   $("exportBtn").addEventListener("click", exportVideo);
 }
 function setStatus(html){ $("status").innerHTML = html || ""; }
+
+/* 单人/双人切换 */
+function applyMode(){
+  var solo = state.mode === "solo";
+  $("row2").style.display = solo ? "none" : "";
+  $("divider").style.display = solo ? "none" : "";
+  $("card2").style.display = solo ? "none" : "";
+  $("hName2").style.display = solo ? "none" : "";
+  $("hName1").innerHTML = solo ? "名字" : "名字一 <span>· 上面那行</span>";
+  $("subtitle").textContent = solo ? "写下一个名字，看它一笔一笔写出来" : "写下两个名字，看它们一笔一笔为彼此写出来";
+}
 
 /* 站内字体选择面板（底部弹出卡片，不是浏览器原生下拉） */
 var sheetFor = 1;
@@ -412,13 +432,59 @@ function confettiBurst(){
 
 /* ================= 播放 ================= */
 function computeFontSize(i){
-  var w = stageEl.clientWidth || 600;
-  var base = w * 0.15 * state.names[i].size;
-  return Math.max(26, Math.min(150, Math.round(base)));
+  var row = $("row"+(i+1));
+  var rowW = (row && row.clientWidth) || (stageEl.clientWidth * 0.85) || 300;
+  var base = stageEl.clientWidth * 0.15 * state.names[i].size;
+  // 名字越长字越小，保证整行塞得进舞台，不换行、不裁切
+  var len = ((state.names[i].text || "").trim() || " ").length;
+  var cap = rowW * 0.92 / (len * 0.85);
+  return Math.max(20, Math.min(150, Math.round(Math.min(base, cap))));
 }
 function animDuration(text){ return Math.min(9000, 700 + (text||" ").length*520); }
 var replayTimer = null;
 function scheduleReplay(){ clearTimeout(replayTimer); replayTimer = setTimeout(function(){ play(); }, 450); }
+
+var nameGen = [0, 0];
+window.__fontSizes = {};
+/* 量一行的实际排版：换行时整组会变得很高（单行约 2em 以内） */
+function measureWrap(i){
+  var svg = $("vara"+(i+1)).querySelector("svg");
+  if(!svg) return null;
+  var g = svg.querySelector(":scope > g");
+  if(!g) return null;
+  if(!svg.querySelectorAll("path").length) return null;
+  var b = g.getBoundingClientRect();
+  var row = $("row"+(i+1));
+  var rr = row.getBoundingClientRect();
+  return { gH: b.height, xLeft: b.left - rr.left, xRight: b.right - rr.left, rowW: rr.width };
+}
+/* 建一个名字：建完实测排版，换行或溢出就缩小重建（最多 4 次） */
+function createName(token, i, fontSize, attempt, onDone){
+  var gen = ++nameGen[i];
+  var n = state.names[i];
+  var box = $("vara"+(i+1));
+  box.innerHTML = "";
+  var text = (n.text||"").trim() || " ";
+  window.__fontSizes[i] = fontSize;
+  var v = new Vara("#vara"+(i+1), fontURL(n.font), [{
+    text: text, fontSize: fontSize, strokeWidth: n.thick,
+    color: n.color, duration: animDuration(text), textAlign: "center"
+  }], {});
+  v.animationEnd(function(){
+    if(token !== playToken || gen !== nameGen[i]) return;
+    onDone();
+  });
+  var polls = 0;
+  (function poll(){
+    if(gen !== nameGen[i] || token !== playToken) return;
+    var m = measureWrap(i);
+    if(!m){ if(++polls < 15) setTimeout(poll, 80); return; }
+    var wrapped = m.gH > fontSize * 2.2 || m.xRight > m.rowW + 2 || m.xLeft < -2;
+    if(wrapped && attempt < 4){
+      createName(token, i, Math.max(12, Math.round(fontSize * 0.8)), attempt + 1, onDone);
+    }
+  })();
+}
 
 function play(){
   var token = ++playToken;
@@ -429,29 +495,23 @@ function play(){
   $("divider").classList.remove("show");
   cancelAnimationFrame(confettiRAF);
   var cc = $("confetti").getContext("2d"); cc.clearRect(0,0,$("confetti").width,$("confetti").height);
-  var done = [false,false];
-  state.names.forEach(function(n, i){
-    var box = $("vara"+(i+1));
-    box.innerHTML = "";
-    var text = (n.text||"").trim() || " ";
-    var v = new Vara("#vara"+(i+1), fontURL(n.font), [{
-      text: text, fontSize: computeFontSize(i), strokeWidth: n.thick,
-      color: n.color, duration: animDuration(text), textAlign: "center"
-    }], {});
-    v.animationEnd(function(){
-      if(token !== playToken) return;
+  var visible = state.mode === "solo" ? [0] : [0, 1];
+  var total = visible.length, finished = 0;
+  visible.forEach(function(i){
+    createName(token, i, computeFontSize(i), 0, function(){
+      var n = state.names[i];
       var d = $("deco"+(i+1));
       d.innerHTML = DECOS[n.deco].svg;
       if(n.deco !== "none") d.classList.add("show");
-      done[i] = true;
-      if(done[0] && done[1]) outro(token);
+      finished++;
+      if(finished === total) outro(token);
     });
   });
   if(state.music) startMusic();
   setStatus("");
 }
 function outro(token){
-  $("divider").classList.add("show");
+  if(state.mode !== "solo") $("divider").classList.add("show");
   setTimeout(function(){ if(token===playToken) confettiBurst(); }, 500);
   setTimeout(function(){
     if(token!==playToken) return;
@@ -548,7 +608,7 @@ function exportVideo(){
     setStatus("已生成视频 <b>"+mb+" MB</b>（WebM，" + size[0] + "×" + size[1] + "），正在下载…");
     var a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
-    a.download = "动态签名-" + (state.names[0].text||"name") + "-" + (state.names[1].text||"name") + ".webm";
+    a.download = "动态签名-" + (state.names[0].text||"name") + (state.mode==="solo" ? "" : "-" + (state.names[1].text||"name")) + ".webm";
     document.body.appendChild(a); a.click();
     setTimeout(function(){ document.body.removeChild(a); }, 1000);
   };
@@ -572,6 +632,7 @@ function stopRecording(){
 
 /* ================= 启动 ================= */
 buildControls();
+applyMode();
 applyBg();
 window.addEventListener("resize", function(){ drawStars(); });
 window.addEventListener("load", function(){ drawStars(); setTimeout(function(){ play(); }, 400); });

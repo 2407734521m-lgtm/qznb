@@ -83,6 +83,7 @@ type BroadcastRow = {
   starts_at: string | null;
   poke_at: string | null;
   poke_count: number;
+  poke_target_ids: unknown;
 };
 
 type TemplateRow = {
@@ -98,6 +99,10 @@ function templateOptions(t: TemplateRow): string[] {
 function rowTargets(row: BroadcastRow): string[] {
   if (!Array.isArray(row.target_ids)) return [];
   return row.target_ids.filter((o): o is string => typeof o === 'string');
+}
+function pokeTargets(row: BroadcastRow): string[] {
+  if (!Array.isArray(row.poke_target_ids)) return [];
+  return row.poke_target_ids.filter((o): o is string => typeof o === 'string');
 }
 type ReceiptRow = { broadcast_id: number; user_id: string; status: string; region: string | null; answer: string | null; updated_at: string };
 
@@ -206,7 +211,7 @@ export default function AdminBroadcast({ me, setMsg }: { me: string; setMsg: (s:
 
   const load = useCallback(async () => {
     const { data } = await supabase.from('admin_broadcasts')
-      .select('id, kind, title, body, button_label, audience, created_at, expires_at, revoked, options, target_ids, starts_at, poke_at, poke_count')
+      .select('id, kind, title, body, button_label, audience, created_at, expires_at, revoked, options, target_ids, starts_at, poke_at, poke_count, poke_target_ids')
       .order('created_at', { ascending: false })
       .limit(30);
     const rows = (data ?? []) as BroadcastRow[];
@@ -278,17 +283,33 @@ export default function AdminBroadcast({ me, setMsg }: { me: string; setMsg: (s:
     void load();
   }
 
-  // 催办：把 poke_at 记为现在，之前选了「暂不参与」的成员下次轮询会被重新弹一次。
-  async function poke(row: BroadcastRow) {
-    const ok = await confirmDialog('催办这条广播？之前选了「暂不参与」的人会再收到一次这条弹窗；还没打开过网站的人本来下次打开就会看到，不受影响。', { confirmText: '催办' });
+  // 催办：把 poke_at 记为现在，名单内之前选了「暂不参与」的人下次轮询会被重新弹一次，
+  // 弹窗上会写明「再次提醒 · 第 N 次」。targetIds 为 null 表示全部未处理的人（名单记空数组）。
+  async function poke(row: BroadcastRow, targetIds: string[] | null) {
+    if (targetIds !== null && targetIds.length === 0) { setMsg('没有可催办的人'); return; }
+    const nextCount = (row.poke_count ?? 0) + 1;
+    const who = targetIds === null
+      ? '全部未处理的人'
+      : targetIds.length === 1
+        ? `「${names[targetIds[0]] ?? '这位成员'}」一个人`
+        : `${targetIds.length} 人`;
+    const ok = await confirmDialog(`催办这条广播？这次只会再弹给${who}；弹窗上会写明这是第 ${nextCount} 次提醒。还没打开过网站的人本来下次打开就会看到，不受影响。`, { confirmText: '催办' });
     if (!ok) return;
     const { error } = await supabase.from('admin_broadcasts')
-      .update({ poke_at: new Date().toISOString(), poke_count: (row.poke_count ?? 0) + 1 })
+      .update({ poke_at: new Date().toISOString(), poke_count: nextCount, poke_target_ids: targetIds ?? [] })
       .eq('id', row.id);
     if (error) { setMsg('催办失败：' + error.message); return; }
-    await alog('broadcast_poke', { id: row.id, kind: row.kind });
-    setMsg('已催办：选了「暂不参与」的人会再收到一次这条弹窗');
+    await alog('broadcast_poke', { id: row.id, kind: row.kind, targets: targetIds === null ? 'all' : targetIds.length });
+    setMsg(`已催办：这次只会再弹给${who}，弹窗上会写明是第 ${nextCount} 次提醒`);
     void load();
+  }
+
+  // 可催办的人：点了「暂不参与 / 暂不分享」的；位置征集里系统未授权的也可以催（可改手动填写）。
+  // 还没打开过网站、没有回执的人不用催，下次打开本来就会看到。
+  function pokeableIds(row: BroadcastRow): string[] {
+    return respondents
+      .filter(r => r.status === 'declined' || (row.kind === 'location' && r.status === 'denied'))
+      .map(r => r.user_id);
   }
 
   async function revoke(row: BroadcastRow) {
@@ -417,7 +438,7 @@ export default function AdminBroadcast({ me, setMsg }: { me: string; setMsg: (s:
       <div style={card}>
         <h3 style={h3}>发布弹窗</h3>
         <p style={mut}>
-          普通弹窗：弹一次，点按钮记已读。位置征集：成员自愿共享城市 / 地区，本人点同意才定位，不存精确位置。投票征集：成员选一项，后台看票数和名单。填写征集：成员填一段文字提交。报名：成员选参加 / 不参加，后台自动统计。远程刷新：不弹窗，成员在网站时会自动刷新到最新页面，专治旧缓存。可见范围可选全部 / 仅软件版 / 仅网页版 / 指定成员（勾谁谁收到），都能设有效期、能撤回，每人只处理一次。还能定时发布（到点自动发出）、发布前先预览效果，发出后对选了「暂不参与」的人可以催办再弹一次。
+          普通弹窗：弹一次，点按钮记已读。位置征集：成员自愿共享城市 / 地区，本人点同意才定位，不存精确位置。投票征集：成员选一项，后台看票数和名单。填写征集：成员填一段文字提交。报名：成员选参加 / 不参加，后台自动统计。远程刷新：不弹窗，成员在网站时会自动刷新到最新页面，专治旧缓存。可见范围可选全部 / 仅软件版 / 仅网页版 / 指定成员（勾谁谁收到），都能设有效期、能撤回，每人只处理一次。还能定时发布（到点自动发出）、发布前先预览效果，发出后可以催办：能只催某个人、或全部还没处理的人，可以催多次，每次弹窗上都会写明是第几次提醒。
         </p>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '10px 0' }}>
           <OptionSheet value={kind} options={KIND_OPTIONS} onChange={setKind} buttonText={KIND_LABEL[kind]} title="弹窗类型" buttonStyle={SHEET_BTN} />
@@ -493,7 +514,7 @@ export default function AdminBroadcast({ me, setMsg }: { me: string; setMsg: (s:
                 {expanded === row.id ? '收起名单' : '看回执名单'}
               </button>
               {!row.revoked && row.kind !== 'refresh' && (
-                <button type="button" className="mini ghost" onClick={() => void poke(row)}>催办</button>
+                <button type="button" className="mini ghost" onClick={() => void poke(row, null)}>催办</button>
               )}
               {!row.revoked && (
                 <button type="button" className="mini ghost" onClick={() => void revoke(row)}>撤回</button>
@@ -508,7 +529,7 @@ export default function AdminBroadcast({ me, setMsg }: { me: string; setMsg: (s:
             )}
             <p style={{ ...mut, margin: '4px 0 0' }}>{countText(row)}</p>
             {row.poke_count > 0 && (
-              <p style={{ ...mut, margin: '4px 0 0' }}>已催办 {row.poke_count} 次</p>
+              <p style={{ ...mut, margin: '4px 0 0' }}>已催办 {row.poke_count} 次{pokeTargets(row).length > 0 ? ` · 上次只催了 ${pokeTargets(row).length} 人` : ''}</p>
             )}
             {expanded === row.id && (
               <div style={{ marginTop: 8 }}>
@@ -556,8 +577,18 @@ export default function AdminBroadcast({ me, setMsg }: { me: string; setMsg: (s:
                     <button type="button" className="mini ghost" onClick={() => void copyRespondents(row)}>复制名单</button>
                   </div>
                 )}
+                {!loadingDetail && row.kind !== 'refresh' && pokeableIds(row).length > 0 && (
+                  <div style={{ margin: '0 0 8px', padding: '8px 10px', border: '1px solid rgba(176,64,79,.35)', borderRadius: 10, background: '#fff' }}>
+                    <p style={{ ...mut, margin: '0 0 6px' }}>
+                      可催办 {pokeableIds(row).length} 人：点了「{row.kind === 'location' ? '暂不分享' : '暂不参与'}」的 {respondents.filter(r => r.status === 'declined').length} 人
+                      {row.kind === 'location' && respondents.some(r => r.status === 'denied') ? `、系统未授权的 ${respondents.filter(r => r.status === 'denied').length} 人` : ''}
+                      。催办后弹窗上会写明是第 {(row.poke_count ?? 0) + 1} 次提醒。
+                    </p>
+                    <button type="button" className="mini ghost" onClick={() => void poke(row, pokeableIds(row))}>催办全部未交的人</button>
+                  </div>
+                )}
                 {!loadingDetail && respondents.map(r => (
-                  <div key={r.user_id} style={{ display: 'flex', gap: 8, padding: '6px 0', borderTop: '1px dashed rgba(34,49,74,.08)', fontSize: 13, color: '#22314a', flexWrap: 'wrap' }}>
+                  <div key={r.user_id} style={{ display: 'flex', gap: 8, padding: '6px 0', borderTop: '1px dashed rgba(34,49,74,.08)', fontSize: 13, color: '#22314a', flexWrap: 'wrap', alignItems: 'center' }}>
                     <strong>{names[r.user_id] ?? '成员'}</strong>
                     <span>{statusLabel(row.kind, r.status)}</span>
                     {r.region && <span style={{ color: '#817669' }}>{r.region}</span>}
@@ -565,6 +596,9 @@ export default function AdminBroadcast({ me, setMsg }: { me: string; setMsg: (s:
                       <span style={{ color: '#4a4438', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{r.status === 'voted' ? `投了「${r.answer}」` : r.answer}</span>
                     )}
                     <span style={{ color: '#817669' }}>{timeAgo(r.updated_at)}</span>
+                    {(r.status === 'declined' || (row.kind === 'location' && r.status === 'denied')) && (
+                      <button type="button" className="mini ghost" onClick={() => void poke(row, [r.user_id])}>单独催办</button>
+                    )}
                   </div>
                 ))}
               </div>

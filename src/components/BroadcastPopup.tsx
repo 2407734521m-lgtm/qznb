@@ -18,6 +18,8 @@ type Broadcast = {
   target_ids: unknown;
   starts_at: string | null;
   poke_at: string | null;
+  poke_count: number;
+  poke_target_ids: unknown;
 };
 
 const KICKER: Record<BroadcastKind, string> = {
@@ -42,6 +44,11 @@ function targetList(b: Broadcast): string[] {
   return b.target_ids.filter((o): o is string => typeof o === 'string');
 }
 
+function pokeList(b: Broadcast): string[] {
+  if (!Array.isArray(b.poke_target_ids)) return [];
+  return b.poke_target_ids.filter((o): o is string => typeof o === 'string');
+}
+
 function voteOptions(b: Broadcast): string[] {
   if (!Array.isArray(b.options)) return [];
   return b.options.filter((o): o is string => typeof o === 'string' && o.trim().length > 0);
@@ -59,6 +66,8 @@ function voteOptions(b: Broadcast): string[] {
 // - 定时发布：starts_at 在未来的广播对成员不可见，到点自动生效。
 // - 催办重弹：管理员点「催办」后（poke_at 晚于本人 declined 回执），之前选了
 //   「暂不参与」的人会被重新弹一次；其他已有回执的人仍不重复弹。refresh 不参与。
+//   定向催办（poke_target_ids 非空）只重弹给名单内的人；位置征集里系统未授权
+//   （denied）也可被催办重弹。重弹时弹窗顶上会写明「再次提醒 · 第 N 次」。
 // 三种征集都可以点「暂不参与」跳过（回执 declined），之后不再重复弹。
 export default function BroadcastPopup({ uid }: { uid: string }) {
   const [current, setCurrent] = useState<Broadcast | null>(null);
@@ -69,6 +78,7 @@ export default function BroadcastPopup({ uid }: { uid: string }) {
   const [selected, setSelected] = useState('');
   const [formText, setFormText] = useState('');
   const [answered, setAnswered] = useState<string | null>(null);
+  const [pokeTimes, setPokeTimes] = useState<number | null>(null);
   const currentRef = useRef<Broadcast | null>(null);
   currentRef.current = current;
 
@@ -78,7 +88,7 @@ export default function BroadcastPopup({ uid }: { uid: string }) {
       const now = new Date().toISOString();
       const audiences = isInApp() ? ['all', 'app', 'selected'] : ['all', 'web', 'selected'];
       const { data } = await supabase.from('admin_broadcasts')
-        .select('id, kind, title, body, button_label, audience, created_at, expires_at, options, target_ids, starts_at, poke_at')
+        .select('id, kind, title, body, button_label, audience, created_at, expires_at, options, target_ids, starts_at, poke_at, poke_count, poke_target_ids')
         .eq('revoked', false)
         .in('audience', audiences)
         .or(`expires_at.is.null,expires_at.gt.${now}`)
@@ -99,10 +109,14 @@ export default function BroadcastPopup({ uid }: { uid: string }) {
         if (!r) return true;
         // 催办重弹：管理员催办时刻晚于本人「暂不参与」回执时，这条重新当作未处理。
         // 重新提交走既有 upsert 覆盖旧回执；其余已有回执（已读/已投等）仍排除。
+        // 定向催办：poke_target_ids 非空时只重弹给名单内的人（空名单=全部）。
+        // 位置征集里系统未授权（denied）也可被催办重弹，改手动填写也能交。
+        const targets = pokeList(d);
         return d.kind !== 'refresh'
-          && r.status === 'declined'
+          && (r.status === 'declined' || (d.kind === 'location' && r.status === 'denied'))
           && !!d.poke_at
-          && new Date(d.poke_at).getTime() > new Date(r.updated_at).getTime();
+          && new Date(d.poke_at).getTime() > new Date(r.updated_at).getTime()
+          && (targets.length === 0 || targets.includes(uid));
       });
       if (next && next.kind === 'refresh') {
         // 远程刷新：不弹窗。先写回执（刷新后靠回执排除），再用 sessionStorage 守卫防循环。
@@ -124,6 +138,12 @@ export default function BroadcastPopup({ uid }: { uid: string }) {
         return;
       }
       if (next) {
+        const mine = mineMap.get(next.id);
+        const isPokeReshow = !!mine
+          && !!next.poke_at
+          && new Date(next.poke_at).getTime() > new Date(mine.updated_at).getTime()
+          && (mine.status === 'declined' || (next.kind === 'location' && mine.status === 'denied'));
+        setPokeTimes(isPokeReshow ? (next.poke_count ?? 1) : null);
         setSharedRegion(null);
         setError('');
         setManual('');
@@ -164,6 +184,7 @@ export default function BroadcastPopup({ uid }: { uid: string }) {
 
   function close() {
     setCurrent(null);
+    setPokeTimes(null);
     setBusy(false);
     setError('');
     setManual('');
@@ -258,6 +279,12 @@ export default function BroadcastPopup({ uid }: { uid: string }) {
     <div className="bc-overlay" role="dialog" aria-modal="true" aria-label={title}>
       <div className="bc-card">
         <div className="bc-kicker">{KICKER[kind]}</div>
+        {pokeTimes !== null && (
+          <>
+            <p className="bc-note" style={{ color: '#b0404f', fontWeight: 700, margin: '0 0 4px' }}>再次提醒 · 第 {pokeTimes} 次</p>
+            <p className="bc-note" style={{ margin: '0 0 8px' }}>管理员再次提醒，这条之前弹过一次，请抽空处理一下。</p>
+          </>
+        )}
         <h2 className="bc-title">{title}</h2>
         {current.body.trim() && <p className="bc-body">{current.body}</p>}
 

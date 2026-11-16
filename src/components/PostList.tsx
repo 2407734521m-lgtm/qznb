@@ -29,10 +29,10 @@ const DEFAULT_IMPRESSION_OPTIONS = ['阳光开朗', '安静慢热', '幽默有�
 const PAGE_SIZE = 30;
 
 
-function Avatar({ p, url, size = 42 }: { p?: Profile; url?: string; size?: number }) {
+function Avatar({ p, url, size = 42, loading = 'lazy' }: { p?: Profile; url?: string; size?: number; loading?: 'lazy' | 'eager' }) {
   return (
     <div className="av" style={{ width: size, height: size }}>
-      {url ? <BlurImg src={url} alt="" loading="eager" /> : <span>{(p?.display_name ?? p?.username ?? '?').slice(0, 1)}</span>}
+      {url ? <BlurImg src={url} alt="" loading={loading} /> : <span>{(p?.display_name ?? p?.username ?? '?').slice(0, 1)}</span>}
     </div>
   );
 }
@@ -649,7 +649,7 @@ export default function PostList({ section, searchQuery = '', embedded = false, 
             initial={reduce ? {} : { opacity: 0, y: isFeed ? 8 : 10 }} animate={{ opacity: 1, y: 0 }}
             transition={{ duration: isFeed ? 0.32 : 0.34, delay: Math.min(i * 0.025, isFeed ? 0.15 : 0.18) }}>
             <div className="hd">
-              <Avatar p={a} url={a?.avatar_path ? avatarUrls[a.avatar_path] : undefined} />
+              <Avatar p={a} url={a?.avatar_path ? avatarUrls[a.avatar_path] : undefined} loading={i < 3 ? 'eager' : 'lazy'} />
               <div><div className="nm">{a ? (a.display_name ?? a.username) : '…'}</div>
                 <div className="tm">{timeAgo(p.created_at)}</div></div>
             </div>

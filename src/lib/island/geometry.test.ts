@@ -18,9 +18,10 @@ describe("expandedStageWidth", () => {
   });
 
   it("keeps phones on their own narrower container", () => {
-    expect(expandedStageWidth("music-playback", 390)).toBe(390);
-    expect(expandedStageWidth("music-playback", 320)).toBe(320);
+    expect(expandedStageWidth("music-playback", 390)).toBe(351);
+    expect(expandedStageWidth("music-playback", 320)).toBe(288);
     expect(expandedStageWidth("qz-call-session", 390)).toBe(390);
+    expect(expandedStageWidth("qz-call-session", 320)).toBe(320);
   });
 });
 

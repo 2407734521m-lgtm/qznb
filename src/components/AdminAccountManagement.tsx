@@ -223,7 +223,9 @@ export default function AdminAccountManagement({
     const { error } = await supabase.rpc('admin_execute_sensitive_action', {
       p_action_type: 'delete_member_account',
       p_target_user_id: account.id,
-      p_requested_role: account.role,
+      // The database RPC requires NULL for delete_member_account; requested_role
+      // is only used by the set_role action.
+      p_requested_role: null,
       p_reason: reason.trim(),
     });
     setBusy(null);

@@ -555,8 +555,8 @@ export function CallProvider({ children }: { children: ReactNode }) {
                   initial={false}
                   animate={{ opacity: 0, scale: 0.97 }}
                   transition={{
-                    opacity: { duration: 0.2, delay: 0.1, ease: 'easeOut' },
-                    scale: { duration: 0.28, delay: 0.08, ease: [0.22, 1, 0.36, 1] },
+                    opacity: { duration: 0.2, delay: 0.22, ease: 'easeOut' },
+                    scale: { duration: 0.28, delay: 0.2, ease: [0.22, 1, 0.36, 1] },
                   }}>
                   {callCardContent}
                 </motion.div>

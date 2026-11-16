@@ -20,8 +20,10 @@ import { bubblePose, createShapeAnimation, followingClip, type FrameGeometry, fr
 import {
   type ContentMeasure,
   emptyMeasure,
+  expandedStageWidth,
   expandedWidth as expandedWidthFor,
   islandScreenWidth,
+  isMusicExpandedLayer,
   shapeTarget,
   shapeTransition,
   type ShapeTarget,
@@ -703,6 +705,10 @@ export const IslandSurface = (props: IslandSurfaceProps) => {
   const stageWidth = islandScreenWidth(containerWidth, metrics);
   const stageHeight = Math.ceil(metrics.top + metrics.expanded.maxHeight * 1.3);
   const expandedWidth = expandedWidthFor(stageWidth, metrics);
+  // The music player's expanded card lays out against its narrower stage; every
+  // other activity's layer keeps the shared width (a leaving call layer keeps
+  // the width it was laid out at, so its fade-out never reflows).
+  const musicExpandedWidth = expandedWidthFor(expandedStageWidth("music-playback", stageWidth), metrics);
 
   // Layers: the current presentation plus any that are still fading out. Adjusting state while
   // rendering (instead of in an effect) puts the leaving layer in the same commit as the new one.
@@ -1733,7 +1739,12 @@ export const IslandSurface = (props: IslandSurfaceProps) => {
     });
 
     const width = islandScreenWidth(stageWidthRef.current, m);
-    const target = shapeTarget(p.presentation.kind, measure, width, m);
+    // The music player's expanded card is narrower than the shared stage. The
+    // stored `width` below stays the uncapped stage width, so a scene change
+    // never trips the resize snap (`prev.width !== width`) — only the shape
+    // target for this scene takes the capped width, and `shapeTarget` reads it
+    // for the expanded kind alone.
+    const target = shapeTarget(p.presentation.kind, measure, expandedStageWidth(p.activityId, width), m);
     const prev = last.current;
     const first = prev.key === null;
     const keyChanged = prev.key !== p.contentKey;
@@ -2293,7 +2304,7 @@ export const IslandSurface = (props: IslandSurfaceProps) => {
               presentation={layer.presentation}
               register={(slot, element) => register(layer.key, slot, element)}
               metrics={metrics}
-              expandedWidth={expandedWidth}
+              expandedWidth={layer.presentation.kind === "expanded" && isMusicExpandedLayer(layer.key) ? musicExpandedWidth : expandedWidth}
               leaving={layer.key !== contentKey}
             />
           ))}

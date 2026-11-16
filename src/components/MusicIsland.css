@@ -417,13 +417,15 @@
 }
 
 /* The expanded cover is a circle, full stop: the head-scoped selector outranks the
-   compact art rule whatever order the built bundle concatenates the sheets in. */
+   compact art rule whatever order the built bundle concatenates the sheets in.
+   62px, not 84: the expanded player card is a compact card now, and the cover
+   sets its height — a smaller cover is what makes the whole card read smaller. */
 .qz-island-expanded-head .qz-island-art-expanded {
-  width: 84px;
-  height: 84px;
-  min-width: 84px;
-  min-height: 84px;
-  flex: 0 0 84px;
+  width: 62px;
+  height: 62px;
+  min-width: 62px;
+  min-height: 62px;
+  flex: 0 0 62px;
   border-radius: 50%;
 }
 
@@ -447,13 +449,13 @@
 .qz-island-expanded-head {
   display: flex;
   align-items: center;
-  gap: 12px;
-  max-width: min(320px, 46vw);
+  gap: 10px;
+  max-width: min(300px, 52vw);
 }
 
 /* The fallback note fills the big round cover in the expanded card. */
 .qz-island-art-expanded.qz-island-art-fallback {
-  font-size: 34px;
+  font-size: 26px;
 }
 
 .qz-island-expanded-meta {
@@ -461,7 +463,7 @@
   min-width: 0;
   max-width: 100%;
   flex-direction: column;
-  gap: 3px;
+  gap: 2px;
   text-align: left;
 }
 
@@ -476,20 +478,20 @@
 
 .qz-island-expanded-meta strong {
   color: #fff;
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 680;
   line-height: 1.25;
 }
 
 .qz-island-expanded-meta span {
   color: rgba(255,255,255,.78);
-  font-size: 14px;
+  font-size: 13px;
   line-height: 1.25;
 }
 
 .qz-island-expanded-meta small {
   color: rgba(255,255,255,.65);
-  font-size: 12px;
+  font-size: 11px;
   line-height: 1.2;
 }
 
@@ -497,7 +499,7 @@
 .qz-island-expanded-trailing {
   display: flex;
   align-items: start;
-  gap: 8px;
+  gap: 6px;
 }
 
 .qz-island-close,
@@ -524,7 +526,7 @@
   width: 100%;
   min-width: 0;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
   pointer-events: auto;
 }
 
@@ -534,7 +536,7 @@
   width: 100%;
   min-width: 0;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
 }
 
 .qz-island-progress span {
@@ -701,13 +703,13 @@
   display: flex;
   align-items: center;
   justify-content: space-evenly;
-  gap: 12px;
-  min-height: 64px;
+  gap: 10px;
+  min-height: 56px;
 }
 
 .qz-island-controls button {
-  width: 44px;
-  height: 44px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   transition: background 230ms cubic-bezier(.22,1,.36,1), transform 230ms cubic-bezier(.22,1,.36,1), opacity 230ms cubic-bezier(.22,1,.36,1);
 }
@@ -719,8 +721,8 @@
 .qz-island-controls button:not(:disabled):active,
 .qz-island-close:active { transform: scale(.92); }
 .qz-island-controls .qz-island-play {
-  width: 64px;
-  height: 64px;
+  width: 56px;
+  height: 56px;
   color: #111216;
   background: #fff;
 }

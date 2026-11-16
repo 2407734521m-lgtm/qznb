@@ -140,7 +140,7 @@ const MusicExpandedHead = () => {
   return (
     <span className="qz-island-expanded-head">
       <span className="qz-island-expanded-art-wrap" key={track ? `${track.title}|${track.coverUrl ?? ''}` : 'none'}>
-        <AlbumArt size={84} expanded />
+        <AlbumArt size={62} expanded />
       </span>
       <MusicExpandedMeta />
     </span>
@@ -240,19 +240,19 @@ const MusicExpandedControls = () => {
       </div>
       <div className="qz-island-controls">
         <button type="button" onClick={() => seekBy(-10)} disabled={!connected || track.duration <= 0} aria-label="后退 10 秒">
-          <MusicIcon name="back10" size={40} />
+          <MusicIcon name="back10" size={34} />
         </button>
         <button type="button" onClick={() => sendCommand('previous')} disabled={!connected || !track.canPrevious} aria-label="上一首">
-          <MusicIcon name="previous" size={20} />
+          <MusicIcon name="previous" size={18} />
         </button>
         <button type="button" className="qz-island-play" onClick={() => sendCommand('toggle')} disabled={!connected || !track.canToggle} aria-label={track.isPlaying ? '暂停音乐' : '继续播放音乐'}>
-          <MusicIcon name={track.isPlaying ? 'pause' : 'play'} size={28} />
+          <MusicIcon name={track.isPlaying ? 'pause' : 'play'} size={26} />
         </button>
         <button type="button" onClick={() => sendCommand('next')} disabled={!connected || !track.canNext} aria-label="下一首">
-          <MusicIcon name="next" size={20} />
+          <MusicIcon name="next" size={18} />
         </button>
         <button type="button" onClick={() => seekBy(10)} disabled={!connected || track.duration <= 0} aria-label="前进 10 秒">
-          <MusicIcon name="forward10" size={40} />
+          <MusicIcon name="forward10" size={34} />
         </button>
       </div>
       <div className="qz-island-volume">

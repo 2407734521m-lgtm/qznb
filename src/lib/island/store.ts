@@ -69,7 +69,11 @@ export const isShown = (snapshot: Pick<IslandSnapshot, "activities" | "front" | 
   activity.group === null || (snapshot.handoff !== activity.group && shownOf(snapshot, activity.group) === activity.id);
 
 export const deriveScene = (snapshot: IslandSnapshot): IslandScene => {
-  const [first, second] = snapshot.activities.filter((a) => isShown(snapshot, a));
+  const [first, visibleSecond] = snapshot.activities.filter((a) => isShown(snapshot, a));
+  // Route loading is a brief, high-attention state. Keep its capsule focused and temporarily
+  // suppress the detached secondary bubble; the activity remains in the stack and resumes
+  // automatically when navigation ends.
+  const second = first?.id === "qz-route-navigation" ? undefined : visibleSecond;
   const expanded = snapshot.expanded ? snapshot.activities.find((a) => a.id === snapshot.expanded?.id) : undefined;
   if (expanded) {
     return {

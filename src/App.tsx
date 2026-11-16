@@ -24,6 +24,7 @@ import { createPausableDismissTimer } from './components/islandTaskDismissTimer'
 import QianzhiIslandNavigationActivity from './components/QianzhiIslandNavigationActivity';
 import type { MediaDownloadIslandEvent, MediaUploadIslandEvent } from './lib/media';
 import { lazyWithRetry } from './lib/lazyWithRetry';
+import { preloadRoute } from './lib/routePreload';
 // 只在特定时刻才出现的覆盖层/弹窗：懒加载，不占首屏包体积。
 // （WelcomeOverlay、GuideCarousel、WallpaperOnboarding、LoginSuccessOverlay、
 //  BroadcastPopup、AppAnnouncementDialog 首次打开时才下载对应分包。）
@@ -35,7 +36,7 @@ const AppAnnouncementDialog = lazyWithRetry(() => import('./components/AppAnnoun
 const LoginSuccessOverlay = lazyWithRetry(() => import('./components/LoginSuccessOverlay'));
 import BlurText from './components/fx/BlurText';
 import ShinyText from './components/fx/ShinyText';
-import { DelayedPageSkeleton, RouteLoading } from './components/fx/Skeleton';
+import { DelayedPageSkeleton, RouteTransitionSkeleton } from './components/fx/Skeleton';
 import AppUpdateDialog from './components/AppUpdateDialog';
 import bgUrl from './assets/bg.jpg';
 const Login = lazyWithRetry(() => import('./pages/Login'));
@@ -423,6 +424,33 @@ function Shell() {
     return () => document.removeEventListener('visibilitychange', onVis);
   }, [session?.user.id]);
 
+  // 空闲时预热 Dock 另外三栏的分块：用户在当前页停留时把常去的页面取回来，
+  // 点 Dock 切页时分块已在缓存里。登录后跑一次；当前页的分块已在，不重复取。
+  useEffect(() => {
+    if (!session?.user.id) return;
+    let cancelled = false;
+    const warm = () => {
+      if (cancelled) return;
+      for (const tab of TABS) {
+        if (tab.to !== loc.pathname) preloadRoute(tab.to);
+      }
+    };
+    const w = window as unknown as {
+      requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number;
+      cancelIdleCallback?: (handle: number) => void;
+    };
+    const handle = w.requestIdleCallback
+      ? w.requestIdleCallback(warm, { timeout: 3000 })
+      : window.setTimeout(warm, 2000);
+    return () => {
+      cancelled = true;
+      if (w.cancelIdleCallback) w.cancelIdleCallback(handle);
+      else window.clearTimeout(handle);
+    };
+    // 只在登录态就绪时跑一次：当前页是挂载那一刻的页，之后切页由 pointerdown 预热接手。
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session?.user.id]);
+
   // 网站自身也要保鲜：定期比对线上脚本包与本页正在跑的包，不一致就自动刷新一次，
   // 免得旧页面在应用里躺着、永远收不到新功能和更新框（60 秒内不重复刷新，防抖）。
   useEffect(() => {
@@ -529,6 +557,15 @@ function Shell() {
     dockLongPressTriggered.current = false;
   };
   useEffect(() => () => clearDockLongPress(), []);
+  // Dock 点按预热：手指按下（或桌面悬停）时就开始取目标页的分块，
+  // 切页的退出动画 300ms 内分块多半已在路上，Suspense 不用从零等。
+  // Dock 按钮没有路由属性，用 aria-label 对回 TABS 找目标页。
+  const preloadDockTabFromEvent = (event: ReactPointerEvent<HTMLElement> | ReactMouseEvent<HTMLElement>) => {
+    const target = (event.target as HTMLElement | null)?.closest?.('.qz-floating-dock-tab');
+    const label = target?.getAttribute('aria-label');
+    const tab = TABS.find((t) => t.label === label);
+    if (tab) preloadRoute(tab.to);
+  };
   // 搜索入口已从 dock 移到首页：首页搜索条发这个事件打开全站搜索。
   useEffect(() => {
     const open = () => setSearchOpen(true);
@@ -1412,7 +1449,7 @@ function Shell() {
             animate={isImmersivePage ? { opacity: 1 } : { opacity: 1, y: 0, scale: 1 }}
             exit={reduce ? { opacity: 1 } : isImmersivePage ? { opacity: 0 } : { opacity: 0, y: -7, scale: 0.996 }}
             transition={{ duration: reduce ? 0 : DUR.base + 0.06, ease: EASE }}>
-            <Suspense fallback={<><RouteLoading /><QianzhiIslandNavigationActivity /></>}>
+            <Suspense fallback={<><RouteTransitionSkeleton pathname={loc.pathname} /><QianzhiIslandNavigationActivity /></>}>
             <Routes location={loc}>
               <Route path="/" element={<Navigate to="/home" replace />} />
               <Route path="/board" element={<Board />} />
@@ -1473,7 +1510,8 @@ function Shell() {
       {!isAdminPage && !isChatPage && !isImmersivePage && !keyboardOpen && (
         <div
           className={`qz-ios26-dock-host dock-side-${dockSide}`}
-          onPointerDown={startDockLongPress}
+          onPointerDown={(event) => { preloadDockTabFromEvent(event); startDockLongPress(event); }}
+          onMouseOver={preloadDockTabFromEvent}
           onPointerMove={moveDockLongPress}
           onPointerUp={clearDockLongPress}
           onPointerLeave={clearDockLongPress}

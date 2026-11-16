@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../auth';
 import { useSignedUrl } from '../lib/media';
 import { RowSkeleton, useDelayedLoading } from '../components/fx/Skeleton';
+import { preloadRoute } from '../lib/routePreload';
 import { confirmDialog } from '../lib/dialog';
 
 type Friend = {
@@ -120,6 +121,12 @@ export default function Friends() {
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const showInboxSkeleton = useDelayedLoading(loading);
+  // 进消息中心后空闲时预热聊天页分块：在列表里挑会话、点进去是下一步最可能的动作，
+  // 提前取回来，点会话时不用等分块。
+  useEffect(() => {
+    const timer = window.setTimeout(() => { preloadRoute('/chat'); }, 1200);
+    return () => window.clearTimeout(timer);
+  }, []);
   const [searchResults, setSearchResults] = useState<MemberSearchResult[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchError, setSearchError] = useState('');
@@ -729,10 +736,10 @@ export default function Friends() {
         <>
           <div className="im-inbox-tabs">
             <button type="button" className={tab === 'discover' ? 'on' : ''} onClick={() => setTab('discover')}>找人</button>
-            <button type="button" className={tab === 'messages' ? 'on' : ''} onClick={() => setTab('messages')}>私信 · {conversations.length}</button>
-            <button type="button" className={tab === 'friends' ? 'on' : ''} onClick={() => setTab('friends')}>好友 · {friends.length}</button>
-            <button type="button" className={tab === 'reqs' ? 'on' : ''} onClick={() => setTab('reqs')}>请求{reqs.length > 0 ? ' · ' + reqs.length : ''}</button>
-            <button type="button" className={tab === 'blocked' ? 'on' : ''} onClick={() => setTab('blocked')}>黑名单 · {blockedMembers.length}</button>
+            <button type="button" className={tab === 'messages' ? 'on' : ''} onClick={() => setTab('messages')}>私信 · {loading ? '…' : conversations.length}</button>
+            <button type="button" className={tab === 'friends' ? 'on' : ''} onClick={() => setTab('friends')}>好友 · {loading ? '…' : friends.length}</button>
+            <button type="button" className={tab === 'reqs' ? 'on' : ''} onClick={() => setTab('reqs')}>请求{loading ? ' · …' : reqs.length > 0 ? ' · ' + reqs.length : ''}</button>
+            <button type="button" className={tab === 'blocked' ? 'on' : ''} onClick={() => setTab('blocked')}>黑名单 · {loading ? '…' : blockedMembers.length}</button>
           </div>
 
           {msg && <p className="im-inbox-message" role="status">{msg}</p>}
@@ -822,7 +829,7 @@ export default function Friends() {
                   <button type="button" className="im-inbox-primary" onClick={() => setTab('friends')}>选择好友开始聊天</button>
                 </div>
               ) : filteredConversations.map(conversation => (
-                <button key={conversation.conversation_id} type="button" className={'im-inbox-row' + (conversation.unread_count > 0 ? ' unread' : '')} onClick={() => openConversation(conversation)}>
+                <button key={conversation.conversation_id} type="button" className={'im-inbox-row' + (conversation.unread_count > 0 ? ' unread' : '')} onPointerDown={() => preloadRoute('/chat')} onClick={() => openConversation(conversation)}>
                   <ProfileAvatar asSpan person={{ id: conversation.other_profile_id, username: conversation.username, display_name: conversation.display_name, avatar_path: conversation.avatar_path }} />
                   <span className="im-inbox-person">
                     <span className="im-inbox-name" style={{ display: 'block' }}>{conversation.display_name ?? conversation.username}</span>
@@ -915,15 +922,15 @@ export default function Friends() {
         <>
           <div className="im-notification-toolbar">
             <button type="button" className={notificationFilter === 'all' ? 'on' : ''}
-              onClick={() => setNotificationFilter('all')}>全部（{notifications.length}）</button>
+              onClick={() => setNotificationFilter('all')}>全部（{notificationsLoading ? '…' : notifications.length}）</button>
             <button type="button" className={notificationFilter === 'unread' ? 'on' : ''}
-              onClick={() => setNotificationFilter('unread')}>未读（{unreadNotificationCount}）</button>
+              onClick={() => setNotificationFilter('unread')}>未读（{notificationsLoading ? '…' : unreadNotificationCount}）</button>
             <button type="button" style={{ marginLeft: 'auto' }}
               onClick={() => void markAllNotificationsRead()}
               disabled={notificationActionBusy || unreadNotificationCount === 0}>
               {notificationActionBusy ? '处理中…' : '全部标为已读'}
             </button>
-            <span className="im-notification-count">{unreadNotificationCount ? unreadNotificationCount + ' 条未读' : '已全部读完'}</span>
+            <span className="im-notification-count">{notificationsLoading ? '加载中…' : unreadNotificationCount ? unreadNotificationCount + ' 条未读' : '已全部读完'}</span>
           </div>
           {notificationActionError && <p className="im-inbox-message" role="alert">{notificationActionError}</p>}
           {showNotifSkeleton && <RowSkeleton count={3} />}

@@ -56,6 +56,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
   const [callStartedAt, setCallStartedAt] = useState<number | null>(null);
   const [muted, setMuted] = useState(false);
   const [speakerEnabled, setSpeakerEnabled] = useState(false);
+  const [remoteAudioRevision, setRemoteAudioRevision] = useState(0);
   const [note, setNote] = useState('');
 
   const phaseRef = useRef<CallPhase>('idle');
@@ -227,7 +228,9 @@ export function CallProvider({ children }: { children: ReactNode }) {
     pcRef.current = pc;
     stream.getAudioTracks().forEach(t => pc.addTrack(t, stream));
     pc.ontrack = event => {
-      if (remoteAudioRef.current) remoteAudioRef.current.srcObject = event.streams[0] ?? null;
+      const remoteStream = event.streams[0] ?? null;
+      if (remoteAudioRef.current) remoteAudioRef.current.srcObject = remoteStream;
+      setRemoteAudioRevision(version => version + 1);
     };
     pc.onicecandidate = event => {
       if (event.candidate) sendSession('ice', { candidate: event.candidate.toJSON(), fromId: myId });
@@ -442,12 +445,15 @@ export function CallProvider({ children }: { children: ReactNode }) {
     }
   }, [showNote]);
 
-  // Read only the existing local microphone signal while the full call screen is visible.
-  // The analyser is never connected to the audio destination and no samples are stored or sent.
+  // Read only the already-received peer audio while the full call screen is visible.
+  // Playback remains on the existing audio element; the analyser is not connected to output.
   // DOM/CSS variables are updated at a modest rate to avoid React renders on every audio frame.
   useEffect(() => {
     const ring = callAvatarRingRef.current;
-    const stream = localStreamRef.current;
+    const remoteSource = remoteAudioRef.current?.srcObject;
+    const stream = remoteSource && typeof (remoteSource as MediaStream).getAudioTracks === 'function'
+      ? remoteSource as MediaStream
+      : null;
     if (
       phase !== 'in-call' || muted || minimized || minimizing || reduceMotion ||
       !ring || !stream || typeof window === 'undefined'
@@ -522,7 +528,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
       ring.style.removeProperty('--qz-call-voice-opacity');
       ring.style.removeProperty('--qz-call-voice-level');
     };
-  }, [phase, muted, minimized, minimizing, reduceMotion]);
+  }, [phase, muted, minimized, minimizing, reduceMotion, remoteAudioRevision]);
 
   const restoreCall = useCallback(() => {
     setMinimizing(false);

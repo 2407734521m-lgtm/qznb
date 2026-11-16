@@ -365,6 +365,17 @@ function MusicIsland() {
     if (islandApi.presentation === 'expanded') islandApi.collapse();
   };
 
+  // Tapping the idle recall edge expands the player in place, with or without
+  // a song. Without a track the music activity isn't running, so start it
+  // first and then expand it; the expansion shows the empty card, and only
+  // the button inside that card navigates to the music space.
+  const expandMusicPlayer = () => {
+    if (!islandApi.activities.some(a => a.id === 'music-playback')) {
+      islandApi.start(createMusicIslandActivity(() => islandApi.expand('music-playback')));
+    }
+    islandApi.expand('music-playback');
+  };
+
   // Keep the music activity mounted once per track session. Its content reads current track state
   // through context, avoiding a full activity-stack update on every playback clock tick.
   useEffect(() => {
@@ -494,6 +505,7 @@ function MusicIsland() {
             sendCommand,
             openMusic: () => navigate('/music'),
             openFullscreenPlayer,
+            expandMusicPlayer,
             seekDraft,
             setSeekDraft: updateSeekDraft,
             commitSeekDraft,

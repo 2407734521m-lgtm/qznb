@@ -31,6 +31,11 @@ export interface IslandSnapshot {
   joining: number | null;
   /** Per group, the activity brought forward by an alert or `expand()`; else the first started shows. */
   front: Readonly<Record<string, string>>;
+  /**
+   * Activity a horizontal swipe last brought to the front (`cycle()`), or null when priority
+   * order decides. It only reorders what shows; priorities and start order are untouched.
+   */
+  manualPrimary: string | null;
   /** A group handing over to a hidden activity: none of its activities shows until the expansion. */
   handoff: string | null;
 }
@@ -68,8 +73,24 @@ const shownOf = (snapshot: Pick<IslandSnapshot, "activities" | "front">, group: 
 export const isShown = (snapshot: Pick<IslandSnapshot, "activities" | "front" | "handoff">, activity: Activity) =>
   activity.group === null || (snapshot.handoff !== activity.group && shownOf(snapshot, activity.group) === activity.id);
 
+/** Activities that hold the whole capsule on their own: a swipe never demotes them. */
+const LOCKED_PRIMARY_IDS: ReadonlySet<string> = new Set(["qz-route-navigation", "qz-call-session"]);
+
+/**
+ * Shown activities in display order: the swipe-chosen one first when it still shows, the rest in
+ * priority order. With no swipe choice this is exactly the priority order the island always used.
+ */
+const orderedVisible = (snapshot: IslandSnapshot): readonly Activity[] => {
+  const visible = snapshot.activities.filter((a) => isShown(snapshot, a));
+  const manual = snapshot.manualPrimary;
+  if (manual === null) return visible;
+  const index = visible.findIndex((a) => a.id === manual);
+  if (index <= 0) return visible;
+  return [visible[index], ...visible.slice(0, index), ...visible.slice(index + 1)];
+};
+
 export const deriveScene = (snapshot: IslandSnapshot): IslandScene => {
-  const [first, visibleSecond] = snapshot.activities.filter((a) => isShown(snapshot, a));
+  const [first, visibleSecond] = orderedVisible(snapshot);
   // Route loading and minimized calls need the full capsule. A concurrent music/task activity
   // must not force a call into its icon-only minimal state; it stays available in the task drawer.
   const second = first?.id === "qz-route-navigation" || first?.id === "qz-call-session"
@@ -149,6 +170,7 @@ export const createIslandStore = (options: { clock: IslandClock; motion: () => I
     pressed: null,
     joining: null,
     front: {},
+    manualPrimary: null,
     handoff: null,
   };
   /** Timers of the press in progress (decide, expand, spring back). */
@@ -255,7 +277,11 @@ export const createIslandStore = (options: { clock: IslandClock; motion: () => I
         task: start.task,
       };
       const idle = snapshot.activities.length === 0;
-      commit({ ...snapshot, activities: [...snapshot.activities, activity].sort(byPriority) });
+      // A new arrival that outranks the swipe-chosen activity takes the front back: the manual
+      // choice was about the activities running then, not about everything that comes later.
+      const manual = snapshot.manualPrimary === null ? undefined : snapshot.activities.find((a) => a.id === snapshot.manualPrimary);
+      const manualPrimary = manual !== undefined && activity.priority > manual.priority ? null : snapshot.manualPrimary;
+      commit({ ...snapshot, activities: [...snapshot.activities, activity].sort(byPriority), manualPrimary });
       if (start.alert) alert(start.id, idle);
       return handle(start.id);
     },
@@ -310,7 +336,8 @@ export const createIslandStore = (options: { clock: IslandClock; motion: () => I
       const handingTo = ending !== undefined && ending.group !== null && snapshot.handoff === ending.group && snapshot.front[ending.group] === id;
       if (!expanded || handingTo) clearAlert();
       const front = Object.fromEntries(Object.entries(snapshot.front).filter(([, forward]) => forward !== id));
-      commit({ ...snapshot, activities: snapshot.activities.filter((a) => a.id !== id), expanded, front, handoff: handingTo ? null : snapshot.handoff });
+      const manualPrimary = snapshot.manualPrimary === id ? null : snapshot.manualPrimary;
+      commit({ ...snapshot, activities: snapshot.activities.filter((a) => a.id !== id), expanded, front, manualPrimary, handoff: handingTo ? null : snapshot.handoff });
     },
     expand(id) {
       // Default: the primary activity among those on show.
@@ -326,6 +353,21 @@ export const createIslandStore = (options: { clock: IslandClock; motion: () => I
       if (!snapshot.expanded) return;
       clearAlert();
       commit({ ...snapshot, expanded: null });
+    },
+    cycle(direction) {
+      // An expanded card owns its own horizontal drags (progress, volume), and a call or route
+      // loading owns the whole capsule, so a swipe leaves both alone.
+      if (snapshot.expanded) return;
+      const pool = snapshot.activities.filter((a) => isShown(snapshot, a));
+      if (pool.length < 2 || pool.some((a) => LOCKED_PRIMARY_IDS.has(a.id))) return;
+      // Rotation order is the priority order the activities already run in, so repeated swipes
+      // walk through every shown activity and wrap around instead of just toggling two.
+      const current = orderedVisible(snapshot)[0];
+      const at = pool.findIndex((a) => a.id === current?.id);
+      const next = direction === "next" ? (at + 1) % pool.length : (at - 1 + pool.length) % pool.length;
+      const target = pool[next];
+      if (!target || target.id === current?.id) return;
+      commit({ ...snapshot, manualPrimary: target.id });
     },
     get activities() {
       return snapshot.activities;
@@ -433,7 +475,7 @@ export const createIslandStore = (options: { clock: IslandClock; motion: () => I
         holding = null;
         for (const apply of [...pendingContent.values()]) apply();
         pendingContent.clear();
-        commit({ activities: [], expanded: null, pressed: null, joining: null, front: {}, handoff: null });
+        commit({ activities: [], expanded: null, pressed: null, joining: null, front: {}, manualPrimary: null, handoff: null });
       } finally {
         instant = false;
       }

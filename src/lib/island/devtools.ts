@@ -51,6 +51,7 @@ export const createDevtools = (options: {
     end: (id) => base.end(id),
     expand: (id) => base.expand(id),
     collapse: () => base.collapse(),
+    cycle: (direction) => base.cycle(direction),
     get activities() {
       return base.activities;
     },

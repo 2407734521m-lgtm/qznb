@@ -99,17 +99,20 @@ export default function QianzhiIslandTaskDrawer({ docked }: { docked: boolean })
     return () => window.dispatchEvent(new CustomEvent('qz-island-task-drawer-visibility', { detail: { open: false } }));
   }, [open]);
 
-  // Announce task starts and status changes, but not every percentage update.
+  // Announce background-task starts and status changes, but not unrelated calls/messages
+  // and not every percentage update.
   useEffect(() => {
-    const signature = activities.map(activity => [
+    const taskActivities = activities.filter(activity => activity.task);
+    const signature = taskActivities.map(activity => [
       activity.id,
       activity.label,
       activity.task?.status ?? '',
     ].join('|')).join('::');
-    if (!signature || signature === lastAnnouncementRef.current) return;
+    if (signature === lastAnnouncementRef.current) return;
     lastAnnouncementRef.current = signature;
-    setAnnouncement(activities.map(activity => {
-      const status = activity.task ? resolveIslandTaskStatusLabel(activity.task.status) : '正在运行';
+    if (!signature) return;
+    setAnnouncement(taskActivities.map(activity => {
+      const status = resolveIslandTaskStatusLabel(activity.task!.status);
       return activity.label + '，' + status;
     }).join('；'));
   }, [activities]);

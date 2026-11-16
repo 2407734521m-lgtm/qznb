@@ -1,5 +1,6 @@
 import { useEffect, useState, useSyncExternalStore } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
+import SlideToConfirm from '../components/SlideToConfirm';
 
 // 站内弹窗：替代浏览器原生 confirm / alert / prompt（原生弹窗样式不受控、与站点风格不符）。
 // 用法：import { confirmDialog, alertDialog, promptDialog } from '.../lib/dialog';
@@ -8,6 +9,15 @@ import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 
 type ConfirmReq = {
   kind: 'confirm'; id: number; message: string;
+  confirmText: string; cancelText: string; danger: boolean;
+  resolve: (v: boolean) => void;
+};
+/**
+ * 滑动确认：和 confirm 同样的文案与取消路径，确认动作从“点按钮”
+ * 改成“把滑块拖到底”。只在 Dock 退出登录一处用，其他确认框不动。
+ */
+type SlideConfirmReq = {
+  kind: 'slide-confirm'; id: number; message: string;
   confirmText: string; cancelText: string; danger: boolean;
   resolve: (v: boolean) => void;
 };
@@ -20,7 +30,7 @@ type PromptReq = {
   confirmText: string; cancelText: string;
   resolve: (v: string | null) => void;
 };
-type Req = ConfirmReq | AlertReq | PromptReq;
+type Req = ConfirmReq | SlideConfirmReq | AlertReq | PromptReq;
 
 let seq = 0;
 let current: Req | null = null;
@@ -49,6 +59,21 @@ export function confirmDialog(message: string, opts?: {
   return new Promise<boolean>(resolve => {
     enqueue({
       kind: 'confirm', id: ++seq, message,
+      confirmText: opts?.confirmText ?? '确定',
+      cancelText: opts?.cancelText ?? '取消',
+      danger: opts?.danger ?? false,
+      resolve,
+    });
+  });
+}
+
+/** 滑动确认框：文案与取消路径和 confirmDialog 相同，确认靠滑到底。 */
+export function slideConfirmDialog(message: string, opts?: {
+  confirmText?: string; cancelText?: string; danger?: boolean;
+}): Promise<boolean> {
+  return new Promise<boolean>(resolve => {
+    enqueue({
+      kind: 'slide-confirm', id: ++seq, message,
       confirmText: opts?.confirmText ?? '确定',
       cancelText: opts?.cancelText ?? '取消',
       danger: opts?.danger ?? false,
@@ -138,7 +163,7 @@ export function DialogHost() {
     if (!req) return;
     const r = req;
     function dismiss() {
-      if (r.kind === 'confirm') r.resolve(false);
+      if (r.kind === 'confirm' || r.kind === 'slide-confirm') r.resolve(false);
       else if (r.kind === 'prompt') r.resolve(null);
       else r.resolve();
       advance();
@@ -152,7 +177,7 @@ export function DialogHost() {
 
   function backdrop() {
     if (!r || r.kind === 'prompt') return; // 输入型弹窗：点蒙层不丢已输入内容，只能点取消/确认
-    if (r.kind === 'confirm') r.resolve(false);
+    if (r.kind === 'confirm' || r.kind === 'slide-confirm') r.resolve(false);
     else r.resolve();
     advance();
   }
@@ -187,6 +212,21 @@ export function DialogHost() {
           >
             {r.kind === 'prompt' ? (
               <PromptBody key={r.id} req={r} />
+            ) : r.kind === 'slide-confirm' ? (
+              <>
+                <div style={msgStyle}>{r.message}</div>
+                <div style={{ marginTop: 18 }}>
+                  <SlideToConfirm
+                    label={r.confirmText}
+                    danger={r.danger}
+                    onConfirm={() => { r.resolve(true); advance(); }}
+                  />
+                </div>
+                <div style={rowStyle}>
+                  <button type="button" className="admin-dialog-cancel" style={cancelBtn}
+                    onClick={() => { r.resolve(false); advance(); }}>{r.cancelText}</button>
+                </div>
+              </>
             ) : r.kind === 'confirm' ? (
               <>
                 <div style={msgStyle}>{r.message}</div>

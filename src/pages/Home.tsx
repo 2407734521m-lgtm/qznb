@@ -8,6 +8,7 @@ import VisitCounter from '../components/VisitCounter';
 import LargeTitleBar from '../components/LargeTitleBar';
 import PullToRefresh from '../components/PullToRefresh';
 import Marquee from '../components/fx/Marquee';
+import CardSwitcher from '../components/CardSwitcher';
 import BorderBeam from '../components/fx/BorderBeam';
 import { InlineLoading, useDelayedLoading } from '../components/fx/Skeleton';
 import { isInApp } from '../lib/installedApp';
@@ -253,8 +254,9 @@ export default function Home() {
           <button className="vh-text-link" onClick={() => nav('/board')}>全部公告 ↗</button>
         </div>
         {notices.length > 0 ? (
-          <div className="vh-notices">
-            {notices.map((n, i) => (
+          <CardSwitcher
+            label="公告卡片"
+            items={notices.map((n, i) => (
               <button className={`vh-notice${i === 0 ? ' vh-notice-first' : ''}`} key={n.id} onClick={() => setAnnPop(n)}>
                 {i === 0 && <BorderBeam duration={8} />}
                 <span className="vh-notice-tag">{i === 0 ? '最新公告' : '站内消息'}</span>
@@ -263,7 +265,7 @@ export default function Home() {
                 <time>{timeAgo(n.created_at)}</time>
               </button>
             ))}
-          </div>
+          />
         ) : (
           !loading && <div className="vh-empty">暂无公告。</div>
         )}

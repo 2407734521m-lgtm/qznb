@@ -1,0 +1,38 @@
+/* 语音光晕（Libraries.dev voice-glow 形态）：贴在私聊输入框底部。 */
+.fx-voice-glow {
+  flex: none;
+  height: 8px;
+  margin: 8px 4px 0;
+  border-radius: 999px;
+  pointer-events: none;
+}
+
+/* 聚焦：淡淡一层，不抢输入框的风头。 */
+.fx-voice-glow--focused {
+  background: radial-gradient(ellipse at center, rgba(112, 155, 218, 0.28) 0%, rgba(112, 155, 218, 0) 70%);
+}
+
+/* 录音：最亮，缓慢呼吸；颜色沿用私聊页已有的录音红。 */
+.fx-voice-glow--recording {
+  background: radial-gradient(ellipse at center, rgba(217, 95, 110, 0.5) 0%, rgba(217, 95, 110, 0) 70%);
+  animation: fx-voice-glow-breathe 1.6s ease-in-out infinite;
+}
+
+@keyframes fx-voice-glow-breathe {
+  0%,
+  100% {
+    opacity: 0.55;
+    transform: scaleX(0.92);
+  }
+  50% {
+    opacity: 1;
+    transform: scaleX(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fx-voice-glow--recording {
+    animation: none;
+    opacity: 0.85;
+  }
+}

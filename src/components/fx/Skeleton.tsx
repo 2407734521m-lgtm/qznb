@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import ThinkingOrb from './ThinkingOrb';
 import './fx.css';
 
 /**
@@ -197,10 +198,16 @@ function ChatSkeleton() {
  * 路由切换时的 Suspense fallback：分块没到之前，先按目标页的样子摆骨架，
  * 而不是全白加一行“正在打开…”。分块已缓存时 Suspense 根本不挂 fallback，
  * 所以这里不需要 300ms 延迟——挂出来就是真在等分块。
+ * 顶部加一颗思考小球（Libraries.dev thinking-orbs 形态），表示正在加载。
  */
 export function RouteTransitionSkeleton({ pathname }: { pathname: string }) {
   const kind = routeSkeletonKind(pathname);
-  if (kind === 'inbox') return <InboxSkeleton />;
-  if (kind === 'chat') return <ChatSkeleton />;
-  return <PageSkeleton />;
+  return (
+    <div>
+      <div style={{ padding: '6px 14px 0' }}>
+        <ThinkingOrb label="正在加载…" />
+      </div>
+      {kind === 'inbox' ? <InboxSkeleton /> : kind === 'chat' ? <ChatSkeleton /> : <PageSkeleton />}
+    </div>
+  );
 }

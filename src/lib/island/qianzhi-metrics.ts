@@ -25,11 +25,11 @@ export const qianzhiIslandMetrics = {
     height: 31.5,
   },
   /**
-   * Room for the full expanded player: the engine default (180) clips the
-   * controls row, whose buttons end up outside the painted capsule and cannot
-   * be tapped. 300 fits the header, progress, five controls and volume.
+   * The compact player layout is sized around a 52px cover, progress, controls
+   * and volume row. Keep enough headroom for the complete controls while
+   * avoiding the oversized 300px expansion on mobile.
    */
-  expanded: { maxHeight: 300 },
+  expanded: { maxHeight: 224 },
 } satisfies IslandMetricsOverrides;
 
 

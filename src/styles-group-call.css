@@ -365,3 +365,31 @@
   .qz-group-call-control-icon,
   .qz-group-call-avatar { transition: none; }
 }
+
+.qz-group-call-trigger { position: relative; }
+.qz-group-call-live-dot {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 7px;
+  height: 7px;
+  border: 1.5px solid var(--im-head-bg, #fff);
+  border-radius: 50%;
+  background: #48b989;
+  box-shadow: 0 0 0 2px rgba(72,185,137,.14);
+}
+.qz-group-call-count {
+  position: absolute;
+  right: -2px;
+  bottom: -3px;
+  min-width: 13px;
+  height: 13px;
+  padding: 0 2px;
+  border-radius: 999px;
+  background: #263548;
+  color: #fff;
+  font-size: 8px;
+  font-variant-numeric: tabular-nums;
+  line-height: 13px;
+  text-align: center;
+}

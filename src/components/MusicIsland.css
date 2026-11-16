@@ -528,54 +528,6 @@
   pointer-events: auto;
 }
 
-/* Empty expanded card: no track is live. The message sits in the middle of the
-   dark card; the white pill is the only tap that opens the music space. */
-.qz-island-expanded-empty {
-  display: flex;
-  width: 100%;
-  min-width: 0;
-  flex-direction: column;
-  align-items: center;
-  gap: 14px;
-  padding: 10px 0 6px;
-  text-align: center;
-  pointer-events: auto;
-}
-
-.qz-island-expanded-empty p {
-  margin: 0;
-  color: rgba(255,255,255,.88);
-  font-size: 15px;
-  font-weight: 600;
-  line-height: 1.4;
-}
-
-.qz-island-expanded-empty button {
-  border: 0;
-  border-radius: 999px;
-  padding: 10px 18px;
-  color: #141414;
-  background: #fff;
-  font-size: 14px;
-  font-weight: 650;
-  line-height: 1.2;
-  cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
-}
-
-.qz-island-expanded-empty button:hover {
-  background: rgba(255,255,255,.92);
-}
-
-.qz-island-expanded-empty button:active {
-  transform: scale(.97);
-}
-
-.qz-island-expanded-empty button:focus-visible {
-  outline: 2px solid rgba(255,255,255,.85);
-  outline-offset: 2px;
-}
-
 /* Progress row: current time, bar, total time on one line, like the player card. */
 .qz-island-progress {
   display: flex;

@@ -20,6 +20,9 @@ type MusicTrack = {
   canPrevious: boolean;
   canNext: boolean;
   canToggle: boolean;
+  /** Player volume 0–1, or null when the connected music station does not report it. */
+  volume: number | null;
+  isMuted: boolean;
 };
 
 type MusicStateMessage = {
@@ -29,7 +32,7 @@ type MusicStateMessage = {
   track: MusicTrack | null;
 };
 
-type MusicCommand = 'toggle' | 'previous' | 'next' | 'seek';
+type MusicCommand = 'toggle' | 'previous' | 'next' | 'seek' | 'volume' | 'mute';
 
 type MusicSpectrumMessage = {
   source: 'qznb-music';
@@ -93,7 +96,9 @@ export function isSameMusicTrack(a: MusicTrack | null, b: MusicTrack | null): bo
     && a.duration === b.duration
     && a.canPrevious === b.canPrevious
     && a.canNext === b.canNext
-    && a.canToggle === b.canToggle;
+    && a.canToggle === b.canToggle
+    && a.volume === b.volume
+    && a.isMuted === b.isMuted;
 }
 
 function MusicIsland() {
@@ -213,6 +218,7 @@ function MusicIsland() {
       const incoming = message.track as MusicTrack;
       const duration = Number(incoming.duration);
       const currentTime = Number(incoming.currentTime);
+      const volumeRaw = Number(incoming.volume);
       if (!incoming.isPlaying) {
         islandWrapRef.current?.setAttribute('data-qz-music-eq-mode', 'idle');
         document.documentElement.dataset.qzMusicEqMode = 'idle';
@@ -237,6 +243,10 @@ function MusicIsland() {
         canPrevious: incoming.canPrevious === true,
         canNext: incoming.canNext === true,
         canToggle: incoming.canToggle !== false,
+        // Older music stations do not report volume: null keeps the island volume
+        // control disabled instead of showing a made-up level.
+        volume: Number.isFinite(volumeRaw) ? Math.max(0, Math.min(1, volumeRaw)) : null,
+        isMuted: incoming.isMuted === true,
       };
       // The bridge pushes STATE every 700ms; most pushes change nothing the island shows.
       // Skipping those keeps the whole main-site tree from re-rendering on every push.

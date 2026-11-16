@@ -1,10 +1,10 @@
 import { haptic } from '../lib/haptics';
 import { createContext, useContext, useEffect, useRef, useState, type CSSProperties, type RefObject } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
-import { Island, useIsland } from '../lib/island';
+import { Island, useIsland, useIslandActions } from '../lib/island';
 import QianzhiIslandTaskDrawer from './QianzhiIslandTaskDrawer';
 
-type MusicCommand = 'toggle' | 'previous' | 'next' | 'seek';
+type MusicCommand = 'toggle' | 'previous' | 'next' | 'seek' | 'volume' | 'mute';
 
 interface MusicTrack {
   title: string;
@@ -16,6 +16,9 @@ interface MusicTrack {
   canPrevious: boolean;
   canNext: boolean;
   canToggle: boolean;
+  /** Player volume 0–1, or null when the connected music station does not report it. */
+  volume: number | null;
+  isMuted: boolean;
 }
 
 interface MusicIslandState {
@@ -45,7 +48,7 @@ const formatTime = (value: number): string => {
   return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
 };
 
-const MusicIcon = ({ name, size = 17 }: { name: 'play' | 'pause' | 'previous' | 'next' | 'close' | 'list'; size?: number }) => {
+const MusicIcon = ({ name, size = 17 }: { name: 'play' | 'pause' | 'previous' | 'next' | 'close' | 'volume' | 'mute' | 'open'; size?: number }) => {
   const common = {
     width: size,
     height: size,
@@ -62,7 +65,9 @@ const MusicIcon = ({ name, size = 17 }: { name: 'play' | 'pause' | 'previous' | 
   if (name === 'previous') return <svg {...common}><path d="M6 5v14M19 5l-11 7 11 7z" /></svg>;
   if (name === 'next') return <svg {...common}><path d="M18 5v14M5 5l11 7-11 7z" /></svg>;
   if (name === 'close') return <svg {...common}><path d="m6 6 12 12M18 6 6 18" /></svg>;
-  return <svg {...common}><path d="M4 6h16M4 12h16M4 18h16" /></svg>;
+  if (name === 'volume') return <svg {...common}><path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5H4z" fill="currentColor" stroke="none" /><path d="M15.5 9.2c1.4 1.7 1.4 3.9 0 5.6M18 6.8c2.3 2.7 2.3 7.7 0 10.4" /></svg>;
+  if (name === 'mute') return <svg {...common}><path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5H4z" fill="currentColor" stroke="none" /><path d="m16 9.5 5 5M21 9.5l-5 5" /></svg>;
+  return <svg {...common}><path d="M14 4h6v6M20 4l-9.5 9.5M18.5 13.5V19a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6.5a1 1 0 0 1 1-1H10.5" /></svg>;
 };
 
 const AlbumArt = ({ size, expanded = false }: { size: number; expanded?: boolean }) => {
@@ -128,6 +133,7 @@ const MusicExpandedClose = () => {
 const MusicExpandedControls = () => {
   const { track, connected, sendCommand, openMusic, seekDraft, setSeekDraft, commitSeekDraft, cancelSeekDraft } = useMusicIslandState();
   const [smoothTime, setSmoothTime] = useState(track ? track.currentTime : 0);
+  const [volumeDraft, setVolumeDraft] = useState<number | null>(null);
   const anchorRef = useRef({ time: track ? track.currentTime : 0, at: Date.now() });
   // 桥每 700ms 才推一次整秒进度，进度条会一格一格跳；播放时在两次推送之间
   // 本地按 120ms 一格往前补，滑块和时间走得顺滑。拖动时以手指为准，不补。
@@ -143,11 +149,26 @@ const MusicExpandedControls = () => {
     }, 120);
     return () => window.clearInterval(timer);
   }, [track ? track.isPlaying : false, seekDraft, track ? track.duration : 0]);
+  // 音量回声最多 700ms 才到：拖动时先按手指的位置显示并实时发给播放器，
+  // 回声追上手指的位置后再回到桥推回来的值，避免滑块在两次回声之间来回跳。
+  useEffect(() => {
+    if (volumeDraft === null || !track || track.volume === null) return;
+    if (Math.abs(track.volume - volumeDraft) < 0.005) setVolumeDraft(null);
+  }, [track ? track.volume : null, track ? track.title : '', volumeDraft]);
   if (!track) return null;
   const duration = Math.max(1, track.duration);
   const shownTime = seekDraft ?? smoothTime;
   const progress = Math.min(track.duration || 0, shownTime);
   const progressPercent = track.duration > 0 ? Math.min(100, Math.max(0, (progress / track.duration) * 100)) : 0;
+  const shownVolume = volumeDraft ?? track.volume;
+  const volumePercent = shownVolume === null ? 0 : Math.round(shownVolume * 100);
+  const onVolumeChange = (value: number) => {
+    const next = Math.max(0, Math.min(100, value)) / 100;
+    setVolumeDraft(next);
+    sendCommand('volume', next);
+  };
+  const commitVolumeDraft = () => setVolumeDraft(null);
+  const cancelVolumeDraft = () => setVolumeDraft(null);
   return (
     <div className="qz-island-expanded-bottom">
       <div className="qz-island-progress">
@@ -168,6 +189,32 @@ const MusicExpandedControls = () => {
         />
         <div><span>{formatTime(shownTime)}</span><span>{formatTime(track.duration)}</span></div>
       </div>
+      <div className="qz-island-volume">
+        <button
+          type="button"
+          onClick={() => sendCommand('mute', track.isMuted ? 0 : 1)}
+          disabled={!connected || track.volume === null}
+          aria-label={track.isMuted ? '取消静音' : '静音'}
+        >
+          <MusicIcon name={track.isMuted || track.volume === 0 ? 'mute' : 'volume'} size={17} />
+        </button>
+        <input
+          type="range"
+          min={0}
+          max={100}
+          step={1}
+          value={volumePercent}
+          style={{ '--qz-music-volume': volumePercent + '%' } as CSSProperties}
+          onChange={event => onVolumeChange(Number(event.target.value))}
+          onPointerUp={commitVolumeDraft}
+          onPointerCancel={cancelVolumeDraft}
+          onKeyUp={commitVolumeDraft}
+          onBlur={commitVolumeDraft}
+          aria-label="音量"
+          disabled={!connected || track.volume === null}
+        />
+        <span>{track.volume === null ? '音量 --' : volumePercent + '%'}</span>
+      </div>
       <div className="qz-island-controls">
         <button type="button" onClick={() => sendCommand('previous')} disabled={!connected || !track.canPrevious} aria-label="上一首">
           <MusicIcon name="previous" size={18} />
@@ -179,7 +226,7 @@ const MusicExpandedControls = () => {
           <MusicIcon name="next" size={18} />
         </button>
         <button type="button" onClick={openMusic} aria-label="打开音乐空间">
-          <MusicIcon name="list" size={17} />
+          <MusicIcon name="open" size={17} />
         </button>
       </div>
     </div>
@@ -206,6 +253,13 @@ export const resolveIslandGestureSource = (
   isPeek: boolean,
   isInsideIslandHost: boolean,
 ): IslandDockSource | null => isPeek ? 'peek' : isInsideIslandHost ? 'island' : null;
+
+/** True when the island has nothing live to show: render the thin recall edge instead of an empty capsule. */
+export const shouldShowIslandIdleRecall = (
+  activityIds: readonly string[],
+  docked: boolean,
+  fullscreenSuppressed: boolean,
+): boolean => activityIds.length === 0 && !docked && !fullscreenSuppressed;
 
 /** A fresh touch on the visible island cancels a delayed dock from the previous swipe. */
 export const shouldCancelPendingIslandDock = (source: IslandDockSource): boolean => source === 'island';
@@ -268,6 +322,7 @@ export const MusicIslandView = ({
 }) => {
   const [docked, setDocked] = useState(false);
   const [fullscreenSuppressed, setFullscreenSuppressed] = useState(false);
+  const islandActions = useIslandActions();
   const gestureRef = useRef<IslandDockGesture | null>(null);
   const dockTimerRef = useRef<number | null>(null);
   const callArrivalTimerRef = useRef<number | null>(null);
@@ -462,25 +517,46 @@ export const MusicIslandView = ({
     setDocked(false);
   };
 
+  // No live activity: the engine would still draw an empty black capsule that is
+  // not a control. Show only a thin glass edge with a note instead; tapping it
+  // expands the player when a track is live, otherwise opens the music space.
+  const showIdleRecall = shouldShowIslandIdleRecall(value.activityIds, docked, fullscreenSuppressed);
+  const handleIdleRecall = () => {
+    haptic('tick');
+    if (value.track) islandActions.expand('music-playback');
+    else value.openMusic();
+  };
+
   return (
     <MusicIslandContext.Provider value={value}>
       <>
         <NavigationActivityIndicator docked={docked} fullscreenSuppressed={fullscreenSuppressed} />
         <QianzhiIslandTaskDrawer docked={docked || fullscreenSuppressed} />
-        <div
-          ref={hostRef}
-          className={'qz-island-host' + (docked ? ' is-docked' : '') + (fullscreenSuppressed ? ' is-fullscreen-suppressed' : '')}
-          data-docked={docked ? 'true' : 'false'}
-          aria-hidden={docked || fullscreenSuppressed || undefined}
-        >
-          <Island
-            className="qz-island-call-anchor"
-            placement="viewport"
-            label="堯实时活动"
-            keyline="off"
-            style={{ top: 'var(--qz-island-anchor-top, max(env(safe-area-inset-top, 0px), 18px))', zIndex: 4001 }}
-          />
-        </div>
+        {showIdleRecall ? (
+          <button
+            type="button"
+            className="qz-island-idle"
+            aria-label="打开音乐空间"
+            onClick={handleIdleRecall}
+          >
+            <span aria-hidden="true">♫</span>
+          </button>
+        ) : (
+          <div
+            ref={hostRef}
+            className={'qz-island-host' + (docked ? ' is-docked' : '') + (fullscreenSuppressed ? ' is-fullscreen-suppressed' : '')}
+            data-docked={docked ? 'true' : 'false'}
+            aria-hidden={docked || fullscreenSuppressed || undefined}
+          >
+            <Island
+              className="qz-island-call-anchor"
+              placement="viewport"
+              label="堯实时活动"
+              keyline="off"
+              style={{ top: 'var(--qz-island-anchor-top, max(env(safe-area-inset-top, 0px), 18px))', zIndex: 4001 }}
+            />
+          </div>
+        )}
         {docked && (
           <button
             type="button"

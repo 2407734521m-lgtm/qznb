@@ -3,6 +3,7 @@ import type { AppOverlaysModel } from '../app/overlays/buildAppOverlaysModel';
 import { getSongArtistLabel } from '../../services/onlineMusic/songMetadata';
 import { PlayerState } from '../../types';
 import { audioBands, audioLevel } from '../../stores/motionSignals';
+import { handleSetVolume, useAudioSettingsStore } from '../../stores/useAudioSettingsStore';
 import {
     selectDisplayCoverUrl,
     selectDisplayPlayerState,
@@ -18,7 +19,7 @@ type BridgeCommand = {
     source: 'qznb-main';
     type: 'HELLO' | 'COMMAND';
     version: 1;
-    command?: 'toggle' | 'previous' | 'next' | 'seek';
+    command?: 'toggle' | 'previous' | 'next' | 'seek' | 'volume' | 'mute';
     value?: number;
 };
 
@@ -29,11 +30,13 @@ const QianzhiEmbedBridge = ({ model }: Props) => {
     const displayCoverUrl = usePlaybackStore(selectDisplayCoverUrl);
     const displayPlayerState = usePlaybackStore(selectDisplayPlayerState);
     const playbackRoute = usePlaybackStore(state => state.playbackRoute);
+    const volume = useAudioSettingsStore(state => state.volume);
+    const isMuted = useAudioSettingsStore(state => state.isMuted);
 
     const modelRef = useRef(model);
     modelRef.current = model;
-    const playbackRef = useRef({ currentSong, displayCoverUrl, displayPlayerState, playbackRoute });
-    playbackRef.current = { currentSong, displayCoverUrl, displayPlayerState, playbackRoute };
+    const playbackRef = useRef({ currentSong, displayCoverUrl, displayPlayerState, playbackRoute, volume, isMuted });
+    playbackRef.current = { currentSong, displayCoverUrl, displayPlayerState, playbackRoute, volume, isMuted };
 
     useEffect(() => {
         if (window.parent === window) return;
@@ -71,6 +74,8 @@ const QianzhiEmbedBridge = ({ model }: Props) => {
                     canPrevious: controls?.trackNavigation?.canPrev === true,
                     canNext: controls?.trackNavigation?.canNext === true,
                     canToggle: controls?.canTogglePlay === true && !!controls,
+                    volume: Number.isFinite(playback.volume) ? Math.max(0, Math.min(1, playback.volume)) : null,
+                    isMuted: playback.isMuted === true,
                 },
             }, parentOrigin);
         };
@@ -143,6 +148,17 @@ const QianzhiEmbedBridge = ({ model }: Props) => {
                     if (Number.isFinite(value) && controls.duration > 0) {
                         controls.onSeek(Math.max(0, Math.min(controls.duration, value)));
                     }
+                    break;
+                }
+                case 'volume': {
+                    const value = Number(message.value);
+                    if (Number.isFinite(value)) {
+                        handleSetVolume(Math.max(0, Math.min(1, value)));
+                    }
+                    break;
+                }
+                case 'mute': {
+                    useAudioSettingsStore.getState().handleSetMuted(message.value === 1);
                     break;
                 }
             }

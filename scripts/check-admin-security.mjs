@@ -77,6 +77,16 @@ assert.ok(admin.includes('qz_admin_idle_logout'),
 const hardening = read('supabase/migrations/20261115020000_admin_console_security_hardening.sql');
 const securityCenter = read('src/components/AdminSecurityCenter.tsx');
 const adminShared = read('src/pages/admin/shared.ts');
+const accountManagement = read('src/components/AdminAccountManagement.tsx');
+const sensitiveActionMigration = read('supabase/migrations/20261101150500_approval_requester_context.sql');
+const deleteRpcCall = accountManagement.match(
+  /supabase\\.rpc\\('admin_execute_sensitive_action', \\{\\s*p_action_type: 'delete_member_account',[\\s\\S]*?\\}\\)/,
+);
+assert.ok(deleteRpcCall, 'member deletion must use the protected super-admin execution RPC');
+assert.ok(deleteRpcCall[0].includes('p_requested_role: null'),
+  'member deletion must pass NULL for p_requested_role; the database RPC rejects non-NULL delete roles');
+assert.ok(sensitiveActionMigration.includes("v_target_role <> 'member' or p_requested_role is not null"),
+  'the database must keep member-only deletion and reject a requested role on delete');
 assert.ok(login.includes("p_method: 'admin'"), 'admin login failures must be counted without recording credentials');
 assert.ok(login.includes("alog('admin_login_success'"), 'successful admin login must be audited after PIN verification');
 assert.ok(hardening.includes("check (method in ('email', 'username', 'admin'))"), 'login telemetry must distinguish admin login failures');

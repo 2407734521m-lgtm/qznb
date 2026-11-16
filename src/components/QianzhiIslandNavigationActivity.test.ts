@@ -27,13 +27,13 @@ describe('createNavigationIslandActivity', () => {
     expect(activity.expanded?.center).toBeTruthy();
   });
 
-  it('replaces the loading indicator with a check when the destination is ready', () => {
+  it('replaces the loading indicator with a check and clears the expanded progress slot', () => {
     const activity = createNavigationIslandActivity('私聊', 'success');
     expect(activity.label).toBe('已打开私聊');
     expect(activity.compact?.trailing).toBeTruthy();
     expect(activity.minimal).toBeTruthy();
     expect(activity.expanded?.trailing).toBeTruthy();
-    expect(activity.expanded?.bottom).toBeUndefined();
+    expect(activity.expanded?.bottom).toBeNull();
     expect(activity.expanded?.center).toBeTruthy();
   });
 });

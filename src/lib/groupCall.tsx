@@ -6,7 +6,7 @@ import { supabase } from './supabase';
 import { useAuth } from '../auth';
 import { useCall } from './call';
 import { useIslandActions } from './island';
-import { createGroupCallIslandActivity } from '../components/QianzhiGroupCallIslandActivity';
+import { CallElapsedTime, createGroupCallIslandActivity } from '../components/QianzhiGroupCallIslandActivity';
 import '../styles-group-call.css';
 
 type GroupCallPhase = 'idle' | 'connecting' | 'connected' | 'reconnecting';
@@ -504,7 +504,7 @@ export function GroupCallProvider({ children }: { children: ReactNode }) {
                 <div>
                   <span className="qz-group-call-eyebrow">GROUP VOICE</span>
                   <h1>{groupName}</h1>
-                  <p>{participants.length || 1} 人 · {statusLabel}</p>
+                  <p>{statusLabel}{startedAt !== null ? <> · <CallElapsedTime startedAt={startedAt} /></> : ''}</p>
                 </div>
                 <button type="button" className="qz-group-call-minimize" onClick={minimize} aria-label="最小化到灵动岛" title="最小化到灵动岛">
                   <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14" /></svg>
@@ -521,7 +521,7 @@ export function GroupCallProvider({ children }: { children: ReactNode }) {
                   {participants.map(person => (
                     <div className={'qz-group-call-person' + (person.speaking ? ' is-speaking' : '')} key={person.id}>
                       <span className="qz-group-call-avatar">{shortInitial(person.name)}</span>
-                      <span className="qz-group-call-person-name">{person.name}{person.isLocal ? '（我）' : ''}</span>
+                      <span className="qz-group-call-person-name">{person.name}</span>
                       <small>{person.muted ? '已静音' : person.speaking ? '正在说话' : '已加入'}</small>
                     </div>
                   ))}

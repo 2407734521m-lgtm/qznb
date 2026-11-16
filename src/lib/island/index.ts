@@ -30,3 +30,5 @@ export { resolveMetrics, resolveMotion, type IslandMetricsOverrides, type Island
 export { bridgePath, capsulePath, continuousRectPath, roundedRectPath, type CornerShape } from "./path";
 export type { IslandDevtools, DevtoolsOptions } from "./devtools";
 export type { FrameStats } from "./perf";
+
+export { resolveIslandReducedMotion } from "./preferences";

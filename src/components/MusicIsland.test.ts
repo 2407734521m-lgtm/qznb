@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { isSameMusicTrack, resolveMusicEqualizerMode, shouldShowMainIsland } from './MusicIsland';
-import { hasNewIslandActivity, resolveIslandDockGesture, resolveIslandGestureSource } from './QianzhiMusicIslandActivity';
+import { hasNewIslandActivity, resolveIslandDockGesture, resolveIslandGestureSource, shouldCancelPendingIslandDock } from './QianzhiMusicIslandActivity';
 import { resolveMetrics } from '../lib/island/config';
 import { createQianzhiIslandMetrics, qianzhiIslandMetrics } from '../lib/island/qianzhi-metrics';
 
@@ -189,5 +189,13 @@ describe('resolveMusicEqualizerMode', () => {
       level: 0,
       bands: null,
     })).toBe('idle');
+  });
+});
+
+
+describe('shouldCancelPendingIslandDock', () => {
+  it('cancels a delayed dock when the visible island receives a new gesture', () => {
+    expect(shouldCancelPendingIslandDock('island')).toBe(true);
+    expect(shouldCancelPendingIslandDock('peek')).toBe(false);
   });
 });

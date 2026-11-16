@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { createPortal } from 'react-dom';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
@@ -151,6 +152,7 @@ function insertAt<T>(list: T[], item: T, index: number): T[] {
 
 export default function Friends() {
   const nav = useNavigate();
+  const reduceMotion = useReducedMotion();
   const [searchParams] = useSearchParams();
   const me = useAuth().session!.user.id;
   const [myAvatarPath, setMyAvatarPath] = useState<string | null>(null);
@@ -160,7 +162,7 @@ export default function Friends() {
   const [filterMenuOpen, setFilterMenuOpen] = useState(false);
   const filterTriggerRef = useRef<HTMLButtonElement>(null);
   const filterMenuPortalRef = useRef<HTMLDivElement>(null);
-  const [filterMenuBounds, setFilterMenuBounds] = useState<{ top: number; left: number; width: number; maxHeight: number } | null>(null);
+  const [filterMenuBounds, setFilterMenuBounds] = useState<{ top: number; left: number; width: number; maxHeight: number; openAbove: boolean } | null>(null);
   const [markingAllRead, setMarkingAllRead] = useState(false);
   const [showCreateGroup, setShowCreateGroup] = useState(false);
   const [groupName, setGroupName] = useState('');
@@ -260,7 +262,7 @@ export default function Friends() {
         : rect.bottom + gap;
       const left = Math.max(edge, Math.min(rect.right - width, viewportWidth - width - edge));
 
-      setFilterMenuBounds({ top, left, width, maxHeight });
+      setFilterMenuBounds({ top, left, width, maxHeight, openAbove });
     };
 
     updateMenuPosition();
@@ -997,20 +999,39 @@ export default function Friends() {
                 <path d="m4.5 7.5 5.5 5 5.5-5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </button>
-            {filterMenuOpen && filterMenuBounds && createPortal(
-              <div
-                ref={filterMenuPortalRef}
-                className="chatcn-filter-menu"
-                role="menu"
-                aria-label="聊天筛选"
-                style={{
-                  position: 'fixed',
-                  top: filterMenuBounds.top,
-                  left: filterMenuBounds.left,
-                  width: filterMenuBounds.width,
-                  maxHeight: filterMenuBounds.maxHeight,
-                }}
-              >
+            {createPortal(
+              <AnimatePresence>
+                {filterMenuOpen && filterMenuBounds && (
+                  <motion.div
+                    key="chatcn-filter-menu"
+                    ref={filterMenuPortalRef}
+                    className="chatcn-filter-menu"
+                    role="menu"
+                    aria-label="聊天筛选"
+                    initial={reduceMotion ? false : {
+                      opacity: 0,
+                      y: filterMenuBounds.openAbove ? 7 : -7,
+                      scale: 0.985,
+                    }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={reduceMotion ? { opacity: 0 } : {
+                      opacity: 0,
+                      y: filterMenuBounds.openAbove ? 5 : -5,
+                      scale: 0.99,
+                    }}
+                    transition={reduceMotion ? { duration: 0 } : {
+                      duration: 0.2,
+                      ease: [0.22, 1, 0.36, 1],
+                    }}
+                    style={{
+                      position: 'fixed',
+                      top: filterMenuBounds.top,
+                      left: filterMenuBounds.left,
+                      width: filterMenuBounds.width,
+                      maxHeight: filterMenuBounds.maxHeight,
+                      transformOrigin: filterMenuBounds.openAbove ? 'bottom right' : 'top right',
+                    }}
+                  >
                 {([
                   { id: 'all', label: '全部', icon: 'all' },
                   { id: 'unread', label: '未读', icon: 'unread' },
@@ -1056,7 +1077,9 @@ export default function Friends() {
                   <span className="chatcn-filter-icon"><ChatInboxIcon name="read" /></span>
                   <span>{markingAllRead ? '正在标记…' : '全部标记为已读'}</span>
                 </button>
-              </div>,
+                  </motion.div>
+                )}
+              </AnimatePresence>,
               document.body,
             )}
           </div>

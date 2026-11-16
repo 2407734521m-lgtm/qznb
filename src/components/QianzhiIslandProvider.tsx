@@ -7,6 +7,8 @@ import { qianzhiIslandMotion } from '../lib/island/qianzhi-motion';
 import { setHapticsEnabled } from '../lib/haptics';
 import { readUserPreferences, useUserPreferences } from '../lib/useUserPreferences';
 
+const QIANZHI_ISLAND_BASELINE_Y_ADJUSTMENT = -10;
+
 export default function QianzhiIslandProvider({ children }: { children: ReactNode }) {
   const { session } = useAuth();
   const { prefs, setPrefs } = useUserPreferences(session?.user.id ?? null);
@@ -44,11 +46,18 @@ export default function QianzhiIslandProvider({ children }: { children: ReactNod
       const next = readUserPreferences(uid);
       setPrefs(current => JSON.stringify(current) === JSON.stringify(next) ? current : next);
     };
+    const preferenceKey = `qznb_user_preferences_v1:${uid}`;
+    const syncStorage = (event: StorageEvent) => {
+      if (event.key !== preferenceKey && event.key !== null) return;
+      sync();
+    };
     window.addEventListener('qznb-settings-changed', sync);
     window.addEventListener('focus', sync);
+    window.addEventListener('storage', syncStorage);
     return () => {
       window.removeEventListener('qznb-settings-changed', sync);
       window.removeEventListener('focus', sync);
+      window.removeEventListener('storage', syncStorage);
     };
   }, [session?.user.id, setPrefs]);
 
@@ -64,8 +73,8 @@ export default function QianzhiIslandProvider({ children }: { children: ReactNod
   useEffect(() => {
     const root = document.documentElement;
     root.style.setProperty('--qz-island-config-x', island.offsetX + 'px');
-    // Raise the default capsule position by 10px; the setting remains a relative adjustment.
-    root.style.setProperty('--qz-island-config-y', (island.offsetY - 10) + 'px');
+    // Keep the saved offset relative to the tuned default capsule position.
+    root.style.setProperty('--qz-island-config-y', (island.offsetY + QIANZHI_ISLAND_BASELINE_Y_ADJUSTMENT) + 'px');
     root.style.setProperty('--qz-island-config-width', island.width + 'px');
     root.style.setProperty('--qz-island-config-half-width', (island.width / 2) + 'px');
     root.style.setProperty('--qz-island-config-height', island.height + 'px');

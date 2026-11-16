@@ -50,6 +50,33 @@ export const islandScreenWidth = (containerWidth: number, metrics: IslandMetrics
 export const expandedWidth = (screenWidth: number, metrics: IslandMetrics) =>
   screenWidth - 2 * metrics.expanded.sideInset;
 
+/**
+ * Stage width the music player's expanded card lays out against: 500, so the
+ * card is ~472 wide on desktop instead of the shared ~612. Phones are
+ * unaffected — their container is already narrower than the cap, so `Math.min`
+ * keeps their side margins exactly as they are.
+ */
+export const MUSIC_EXPANDED_STAGE_WIDTH = 500;
+
+/**
+ * The stage width an expanded scene lays out against. Only the music player
+ * (`music-playback`, the scene's primary activity) takes the narrower stage;
+ * every other activity keeps the shared stage, so call, upload and alert
+ * cards do not move at all. `shapeTarget` only reads the width for the
+ * expanded kind, so other presentations are unaffected either way.
+ */
+export const expandedStageWidth = (activityId: string | null, screenWidth: number): number =>
+  activityId === "music-playback" ? Math.min(screenWidth, MUSIC_EXPANDED_STAGE_WIDTH) : screenWidth;
+
+/**
+ * Whether a layer key is the music player's expanded card. The key carries a
+ * `#revision` suffix after a crossfade update, so the revision part is
+ * ignored — any other activity id sharing the prefix would not match, because
+ * the key always starts with `expanded:` plus the full activity id.
+ */
+export const isMusicExpandedLayer = (contentKey: string): boolean =>
+  contentKey === "expanded:music-playback" || contentKey.startsWith("expanded:music-playback#");
+
 const hiddenBubble = (right: number, height: number) => ({ bubbleLeft: right - height, bubbleRight: right, bubbleHeight: 0 });
 
 /** The two pills of the compact split, or null when the content is too wide and `minimal` takes over. */

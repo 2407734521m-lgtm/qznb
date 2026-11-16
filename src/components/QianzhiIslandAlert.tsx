@@ -75,11 +75,14 @@ const ICONS: Record<IslandAlertKind, ReactNode> = {
   system: <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5 20 18H4L12 3.5Z" /><path d="M12 9v4M12 16h.01" /></svg>,
 };
 
-function CompactAlert({ kind }: { kind: IslandAlertKind }) {
+function CompactAlert({ kind, count }: { kind: IslandAlertKind; count?: number }) {
   return (
     <span className="qz-island-alert-compact">
       <span className="qz-island-alert-icon">{ICONS[kind]}</span>
       <span>{LABELS[kind]}</span>
+      {count !== undefined && count > 1 ? (
+        <span className="qz-island-alert-count" aria-label={`${count} 条`}>×{count}</span>
+      ) : null}
     </span>
   );
 }
@@ -147,9 +150,39 @@ function ExpandedAlert({ kind, title, body }: Pick<IslandAlertInput, 'kind' | 't
   );
 }
 
+/**
+ * Builds the activity options for one alert. `end` runs when the alert leaves however it ends;
+ * `scheduleEnd` restarts its auto-dismiss countdown (typing a quick reply holds it open).
+ */
+export function createIslandAlertActivity(
+  input: IslandAlertInput,
+  hooks: { end: () => void; scheduleEnd: (delayMs: number) => void },
+) {
+  return {
+    id: 'qz-alert-' + input.kind + '-' + input.id,
+    label: input.title,
+    priority: input.priority,
+    alert: input.alert !== false,
+    compact: {
+      leading: <CompactAlert kind={input.kind} count={input.count} />,
+    },
+    minimal: <CompactAlert kind={input.kind} count={input.count} />,
+    expanded: {
+      leading: <span className="qz-island-alert-expanded-label">{LABELS[input.kind]}</span>,
+      center: <ExpandedAlert kind={input.kind} title={input.title} body={input.body} />,
+      ...(input.kind === 'message' && input.onQuickReply
+        ? { bottom: <QuickReplyForm onSend={input.onQuickReply} onEngage={() => { input.onQuickReplyEngage?.(); hooks.scheduleEnd(45_000); }} onSent={() => { input.onQuickReplySent?.(); hooks.scheduleEnd(2_200); }} /> }
+        : {}),
+    },
+    onPress: () => {
+      hooks.end();
+      input.onPress?.();
+    },
+  };
+}
+
 /** Adds a short-lived, tappable activity without replacing music or other ongoing activities. */
 export function showIslandAlert(api: IslandApi, input: IslandAlertInput): { id: string; update: ActivityHandle['update']; end: () => void } {
-  const id = 'qz-alert-' + input.kind + '-' + input.id;
   let handle: ActivityHandle | null = null;
   let timer: number | null = null;
   let ended = false;
@@ -167,27 +200,7 @@ export function showIslandAlert(api: IslandApi, input: IslandAlertInput): { id: 
     timer = window.setTimeout(end, delayMs);
   };
 
-  handle = api.start({
-    id,
-    label: input.title,
-    priority: input.priority,
-    alert: input.alert !== false,
-    compact: {
-      leading: <CompactAlert kind={input.kind} />,
-    },
-    minimal: <CompactAlert kind={input.kind} />,
-    expanded: {
-      leading: <span className="qz-island-alert-expanded-label">{LABELS[input.kind]}</span>,
-      center: <ExpandedAlert kind={input.kind} title={input.title} body={input.body} />,
-      ...(input.kind === 'message' && input.onQuickReply
-        ? { bottom: <QuickReplyForm onSend={input.onQuickReply} onEngage={() => { input.onQuickReplyEngage?.(); scheduleEnd(45_000); }} onSent={() => { input.onQuickReplySent?.(); scheduleEnd(2_200); }} /> }
-        : {}),
-    },
-    onPress: () => {
-      end();
-      input.onPress?.();
-    },
-  });
+  handle = api.start(createIslandAlertActivity(input, { end, scheduleEnd }));
 
   scheduleEnd(duration);
   // Ending through this handle also clears the timer and reports the end.

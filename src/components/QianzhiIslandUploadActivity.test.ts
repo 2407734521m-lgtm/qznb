@@ -42,4 +42,11 @@ describe('Qianzhi upload island activity', () => {
     const failed = createUploadIslandActivity({ count: 0, progress: null, status: 'failed' });
     expect(failed.task?.status).toBe('error');
   });
+
+  it('keys the compact label on status so the arrival animation replays when it settles', () => {
+    const uploading = createUploadIslandActivity({ count: 1, progress: 30, status: 'uploading' });
+    const completed = createUploadIslandActivity({ count: 0, progress: 100, status: 'completed' });
+    expect((uploading.compact?.leading as ReactElement).key).toBe('uploading');
+    expect((completed.compact?.leading as ReactElement).key).toBe('completed');
+  });
 });

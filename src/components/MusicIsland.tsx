@@ -102,6 +102,29 @@ export function isSameMusicTrack(a: MusicTrack | null, b: MusicTrack | null): bo
     && a.isMuted === b.isMuted;
 }
 
+/** Identity of the song the island shows: a new key means a different song, not just a newer second. */
+export function musicTrackIdentity(track: Pick<MusicTrack, 'title' | 'artist' | 'coverUrl'> | null): string | null {
+  if (!track) return null;
+  return track.title + '\n' + track.artist + '\n' + (track.coverUrl ?? '');
+}
+
+/**
+ * Whether a song change should blur-and-fade the island's content layer instead of swapping it
+ * in place. Only when music is the one activity on show in compact form: while expanded the
+ * cover and title already arrive with their own keyed animation, and while another activity
+ * shares the island the layer also carries that activity, which must not re-animate.
+ */
+export function shouldCrossfadeMusicTrack(
+  previousIdentity: string | null,
+  nextIdentity: string | null,
+  soleMusicActivity: boolean,
+  isCompact: boolean,
+): boolean {
+  if (previousIdentity === null || nextIdentity === null) return false;
+  if (previousIdentity === nextIdentity) return false;
+  return soleMusicActivity && isCompact;
+}
+
 function MusicIsland() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -353,12 +376,24 @@ function MusicIsland() {
     return () => islandApi.end('music-playback');
   }, [hasTrack, isMusicPage, islandApi]);
 
+  const previousTrackIdentityRef = useRef<string | null>(null);
   useEffect(() => {
     if (!hasTrack || isMusicPage || !track) return;
+    const nextIdentity = musicTrackIdentity(track);
+    // A new song crossfades the whole compact layer instead of hard-swapping the title
+    // and cover; a pause/resume or a progress tick keeps the in-place update.
+    const crossfade = shouldCrossfadeMusicTrack(
+      previousTrackIdentityRef.current,
+      nextIdentity,
+      activityIds.length === 1 && activityIds[0] === 'music-playback',
+      islandApi.presentation === 'compact',
+    );
+    previousTrackIdentityRef.current = nextIdentity;
     islandApi.update('music-playback', {
       label: (track.isPlaying ? '正在播放：' : '已暂停：') + track.title,
+      ...(crossfade ? { transition: 'crossfade' as const } : {}),
     });
-  }, [hasTrack, isMusicPage, track?.title, track?.isPlaying, islandApi]);
+  }, [hasTrack, isMusicPage, track?.title, track?.artist, track?.coverUrl, track?.isPlaying, islandApi, activityIds]);
 
   useEffect(() => {
     if (!track || isMusicPage || activityIds.some(id => id !== 'music-playback')) {

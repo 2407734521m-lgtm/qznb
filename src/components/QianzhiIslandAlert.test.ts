@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
-import { combineIslandAlertBatch, type IslandAlertInput } from './QianzhiIslandAlert';
+import type { ReactElement } from 'react';
+import { combineIslandAlertBatch, createIslandAlertActivity, type IslandAlertInput } from './QianzhiIslandAlert';
 
 const makeAlert = (overrides: Partial<IslandAlertInput> = {}): IslandAlertInput => ({
   id: 'notice-1',
@@ -57,6 +58,22 @@ describe('combineIslandAlertBatch', () => {
     expect(batch?.alert).toBe(false);
     expect(batch?.priority).toBe(28);
   });
+
+  it('keeps the merged count on the combined alert', () => {
+    const batch = combineIslandAlertBatch([
+      makeAlert({ id: 'like-a' }),
+      makeAlert({ id: 'comment-b', title: '收到新评论' }),
+      makeAlert({ id: 'friend-c', kind: 'friend', priority: 46 }),
+    ]);
+    expect(batch?.count).toBe(3);
+    expect(batch?.title).toBe('收到 3 条新提醒');
+  });
+
+  it('counts a nested combination for everything it stands for', () => {
+    const inner = combineIslandAlertBatch([makeAlert({ id: 'a' }), makeAlert({ id: 'b' })]);
+    const batch = combineIslandAlertBatch([inner!, makeAlert({ id: 'c' })]);
+    expect(batch?.count).toBe(3);
+  });
 });
 
 
@@ -74,5 +91,22 @@ describe('quick reply metadata', () => {
       makeAlert({ id: 'notice-2', kind: 'system', priority: 36 }),
     ]);
     expect(batch).not.toHaveProperty('onQuickReply');
+  });
+});
+
+describe('createIslandAlertActivity count badge', () => {
+  const noop = () => {};
+  const build = (input: IslandAlertInput) =>
+    createIslandAlertActivity(input, { end: noop, scheduleEnd: noop });
+
+  it('passes the merged count to the compact and minimal slots', () => {
+    const options = build(makeAlert({ count: 3, title: '收到 3 条新提醒' }));
+    expect((options.compact?.leading as ReactElement<{ count?: number }>).props.count).toBe(3);
+    expect((options.minimal as ReactElement<{ count?: number }>).props.count).toBe(3);
+  });
+
+  it('leaves the count off for a single alert', () => {
+    const options = build(makeAlert());
+    expect((options.compact?.leading as ReactElement<{ count?: number }>).props.count).toBeUndefined();
   });
 });

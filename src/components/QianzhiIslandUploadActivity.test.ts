@@ -14,6 +14,7 @@ describe('Qianzhi upload island activity', () => {
     expect(activity.id).toBe('qz-upload-progress');
     expect(activity.priority).toBeLessThan(55);
     expect(activity.label).toBe('正在上传 3 项');
+    expect(activity.task).toEqual({ status: 'running', detail: '已完成 42%', progress: 42 });
     expect(activity.expanded?.bottom).toBeTruthy();
   });
 
@@ -37,5 +38,8 @@ describe('Qianzhi upload island activity', () => {
 
     expect(unknownProgress.label).toBe('正在上传文件');
     expect(completed.label).toBe('上传完成');
+    expect(completed.task?.status).toBe('done');
+    const failed = createUploadIslandActivity({ count: 0, progress: null, status: 'failed' });
+    expect(failed.task?.status).toBe('error');
   });
 });

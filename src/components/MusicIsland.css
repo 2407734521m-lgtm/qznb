@@ -202,7 +202,11 @@
 @media (prefers-reduced-motion: reduce) {
   .qz-island-wave.is-playing i {
     animation: none !important;
-    filter: none;
+  }
+  /* !important for the same reason as the bars above: the glow rule is declared later. */
+  .qz-island-wave.is-playing i::after {
+    animation: none !important;
+    opacity: .55 !important;
   }
   .qz-island-host[data-qz-music-eq-mode="fallback"] .qz-island-wave.is-playing i {
     animation: qz-island-eq-fallback-bass 1.5s ease-in-out infinite alternate !important;
@@ -335,6 +339,7 @@
   border-radius: 999px;
   background: #fff;
   opacity: .72;
+  position: relative;
   transform: scaleY(var(--qz-music-eq-bass, .16));
   transform-origin: center;
   will-change: transform;
@@ -344,25 +349,33 @@
 .qz-island-wave i:nth-child(2) { transform: scaleY(var(--qz-music-eq-lowMid, .16)); }
 .qz-island-wave i:nth-child(3) { transform: scaleY(var(--qz-music-eq-vocal, .16)); }
 .qz-island-wave i:nth-child(4) { transform: scaleY(var(--qz-music-eq-treble, .16)); }
-.qz-island-wave.is-playing i {
-  opacity: 1;
-  filter: drop-shadow(0 0 4px rgba(255,255,255,.28));
+/* The glow breathes by fading a pseudo layer. Animating filter: drop-shadow on the bars
+   repainted all four of them on every frame for as long as music played; opacity on a
+   layer is composited and costs nothing per frame. */
+.qz-island-wave.is-playing i { opacity: 1; }
+.qz-island-wave.is-playing i::after {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: 0 0 5px rgba(255,255,255,.42);
+  opacity: .3;
+  pointer-events: none;
   animation: qz-island-wave-glow 1.35s ease-in-out infinite alternate;
+  content: "";
 }
-.qz-island-wave.is-playing i:nth-child(2) { animation-delay: -0.35s; }
-.qz-island-wave.is-playing i:nth-child(3) { animation-delay: -0.7s; }
-.qz-island-wave.is-playing i:nth-child(4) { animation-delay: -1.05s; }
+.qz-island-wave.is-playing i:nth-child(2)::after { animation-delay: -0.35s; }
+.qz-island-wave.is-playing i:nth-child(3)::after { animation-delay: -0.7s; }
+.qz-island-wave.is-playing i:nth-child(4)::after { animation-delay: -1.05s; }
 
 @keyframes qz-island-wave-glow {
-  from { filter: drop-shadow(0 0 1px rgba(255,255,255,.12)); }
-  to { filter: drop-shadow(0 0 5px rgba(255,255,255,.42)); }
+  from { opacity: .3; }
+  to { opacity: 1; }
 }
 
 /* A route without readable analyser data still gets a real animated EQ silhouette.
    This is visual feedback only; it never claims to represent measured volume. */
 .qz-island-host[data-qz-music-eq-mode="fallback"] .qz-island-wave.is-playing i {
   animation: qz-island-eq-fallback-bass 720ms ease-in-out infinite alternate;
-  filter: drop-shadow(0 0 3px rgba(255,255,255,.22));
 }
 .qz-island-host[data-qz-music-eq-mode="fallback"] .qz-island-wave.is-playing i:nth-child(2) {
   animation-name: qz-island-eq-fallback-lowmid;

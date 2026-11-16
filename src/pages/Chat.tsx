@@ -216,6 +216,8 @@ export default function Chat() {
   const fileRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState('');
   const [showDetails, setShowDetails] = useState(false);
+  const [showProfileMore, setShowProfileMore] = useState(false);
+  const sharedMediaRef = useRef<HTMLElement | null>(null);
   const [showStickers, setShowStickers] = useState(false);
   const [chatBackground, setChatBackground] = useState('default');
   const [backgroundSaving, setBackgroundSaving] = useState(false);
@@ -243,6 +245,20 @@ export default function Chat() {
   const backgroundPath = chatBackground.startsWith('image:') ? chatBackground.slice(6) : null;
   const wallpaperUrl = useSignedUrl('chat-media', backgroundPath);
   const peerAvatarUrl = useSignedUrl('avatars', peer?.avatar_path);
+  const sharedImageMessages = useMemo(
+    () => msgs.filter(message => !message.deleted_at && message.body.startsWith('[[im-image:')),
+    [msgs],
+  );
+  const sharedFileMessages = useMemo(
+    () => msgs.filter(message => !message.deleted_at && message.body.startsWith('[[im-file:')),
+    [msgs],
+  );
+  const sharedLinkItems = useMemo(() => msgs.flatMap(message => {
+    if (message.deleted_at || message.body.startsWith('[[')) return [];
+    const urls = message.body.match(/https?:\/\/[^\s<>"']+/g) ?? [];
+    return urls.map((url, index) => ({ key: message.id + '-' + index, url }));
+  }), [msgs]);
+  const sharedMediaCount = sharedImageMessages.length + sharedFileMessages.length + sharedLinkItems.length;
 
   // 第 2 阶段虚拟化：只渲染可视区的消息行（变高行用 measureElement 动态测量）。
   // 滚动容器就是 .im-feed；outbox（秒发本地条目）数量极小，仍直接渲染在列表之后。
@@ -1003,9 +1019,25 @@ export default function Chat() {
         <section className="im-profile-sheet" role="dialog" aria-modal="true" aria-label="会话资料"
           onClick={event => event.stopPropagation()}>
           <header className="im-profile-header">
-            <button type="button" className="im-profile-close" onClick={() => setShowDetails(false)} aria-label="关闭会话资料">‹</button>
-            <span>会话资料</span>
-            <button type="button" className="im-profile-done" onClick={() => setShowDetails(false)}>完成</button>
+            <button type="button" className="im-profile-close" onClick={() => setShowDetails(false)} aria-label="返回聊天">←</button>
+            <span className="im-profile-header-spacer" aria-hidden="true" />
+            <button
+              type="button"
+              className="im-profile-done"
+              aria-label={isGroup ? '编辑群聊资料' : '编辑联系人备注'}
+              title={isGroup ? '编辑群聊资料' : '编辑联系人备注'}
+              onClick={() => {
+                if (isGroup) {
+                  document.querySelector<HTMLInputElement>('.chatcn-chat-group-rename input')?.focus();
+                } else {
+                  toast.info('联系人备注编辑功能暂未开放。');
+                }
+              }}
+            >
+              <svg viewBox="0 0 24 24" width="23" height="23" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M12 20h9" /><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L8 18l-4 1 1-4Z" />
+              </svg>
+            </button>
           </header>
           <div className="im-profile-scroll">
             <div className="im-profile-hero">
@@ -1015,7 +1047,63 @@ export default function Chat() {
               </button>
               <div className="im-profile-name">{peer?.display_name ?? name}</div>
               <div className="im-profile-username">{isGroup ? groupMembers.length + ' 位成员 · 群聊' : peer?.username ? '@' + peer.username : '一对一私密会话'}</div>
-              <span className="im-private-label">仅对话成员可见</span>
+              {!isGroup && <div className="im-profile-actions" role="group" aria-label="联系人快捷操作">
+                <button type="button" className="im-profile-action" disabled={!peer || callBusy}
+                  onClick={() => { if (peer && cid) startCall({ id: peer.id, name }, Number(cid)); }}>
+                  <span className="im-profile-action-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M7 3H4a1 1 0 0 0-1 1c0 9.4 7.6 17 17 17a1 1 0 0 0 1-1v-3l-5-2-2 2a14 14 0 0 1-6-6l2-2Z" />
+                    </svg>
+                  </span>
+                  <span>电话</span>
+                </button>
+                <button type="button" className="im-profile-action"
+                  onClick={() => toast.info('当前版本仅支持语音通话，视频通话尚未开放。')}>
+                  <span className="im-profile-action-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <rect x="2.5" y="6" width="13" height="12" rx="2.5" /><path d="m15.5 10 6-3v10l-6-3" />
+                    </svg>
+                  </span>
+                  <span>视频</span>
+                </button>
+                <button type="button" className="im-profile-action" disabled={!peer}
+                  onClick={() => { if (peer) { setShowDetails(false); nav('/members/' + peer.id); } }}>
+                  <span className="im-profile-action-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <circle cx="12" cy="7" r="4" /><path d="M4.5 21v-1.5a7.5 7.5 0 0 1 15 0V21Z" />
+                    </svg>
+                  </span>
+                  <span>个人资料</span>
+                </button>
+                <button type="button" className="im-profile-action" aria-expanded={showProfileMore}
+                  onClick={() => setShowProfileMore(open => !open)}>
+                  <span className="im-profile-action-icon">
+                    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                      <circle cx="5" cy="12" r="1.8" /><circle cx="12" cy="12" r="1.8" /><circle cx="19" cy="12" r="1.8" />
+                    </svg>
+                  </span>
+                  <span>更多</span>
+                </button>
+              </div>}
+              {showProfileMore && !isGroup && (
+                <div className="im-profile-more-menu">
+                  <button type="button" onClick={() => {
+                    if (!peer?.username || !navigator.clipboard?.writeText) {
+                      toast.error('当前浏览器暂不支持复制用户名。');
+                    } else {
+                      void navigator.clipboard.writeText('@' + peer.username)
+                        .then(() => toast.success('已复制用户名'))
+                        .catch(() => toast.error('复制失败，请重试。'));
+                    }
+                    setShowProfileMore(false);
+                  }}>复制用户名</button>
+                  <button type="button" onClick={() => {
+                    setShowProfileMore(false);
+                    setShowDetails(false);
+                    if (peer) nav('/members/' + peer.id);
+                  }}>打开公开主页</button>
+                </div>
+              )}
               {isGroup && <section className="im-profile-section">
                 <div className="im-profile-section-heading">群成员（{groupMembers.length}）
                   {(myGroupRole === 'owner' || myGroupRole === 'admin') && <button type="button" className="chatcn-group-add-trigger" disabled={groupInviteBusy} onClick={async () => {
@@ -1094,16 +1182,40 @@ export default function Chat() {
                 }}>{myGroupRole === 'owner' ? '群主需先转让群主身份才能退出' : '退出群聊'}</button>
               </section>}
             </div>
-            <div className="im-profile-stats">
-              <div><strong>{msgs.length}</strong><span>条消息</span></div>
-              <div><strong>{msgs.filter(m => !m.deleted_at && m.body.startsWith('[[im-image:')).length}</strong><span>张照片</span></div>
-              <div><strong>{msgs.filter(m => !m.deleted_at && m.body.startsWith('[[im-audio:')).length}</strong><span>条语音</span></div>
-            </div>
-            <button type="button" className="im-profile-home-link"
-              onClick={() => { setShowDetails(false); if (peer) nav('/members/' + peer.id); }}>
-              <span>查看主页</span>
-              <span aria-hidden="true">›</span>
-            </button>
+            {!isGroup && <div className="im-profile-settings-card">
+              <button type="button" className="im-profile-setting-row" onClick={() => {
+                sharedMediaRef.current?.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' });
+              }}>
+                <span className="im-profile-setting-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <rect x="4" y="5" width="14" height="14" rx="3" transform="rotate(-8 4 5)" /><rect x="7" y="3" width="14" height="14" rx="3" transform="rotate(8 7 3)" /><circle cx="14" cy="9" r="1.5" /><path d="m8 16 3.5-4 2.5 2 1.5-1.5L19 16" />
+                  </svg>
+                </span>
+                <span className="im-profile-setting-label">媒体、链接、文档</span>
+                <span className="im-profile-setting-meta">{sharedMediaCount} 项</span>
+                <span className="im-profile-setting-chevron" aria-hidden="true">›</span>
+              </button>
+              <button type="button" className="im-profile-setting-row" onClick={() => toast.info('当前会话尚未接入消息自动过期功能，此设置保持关闭。')}>
+                <span className="im-profile-setting-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /><path d="M17.5 3.5 20 6" />
+                  </svg>
+                </span>
+                <span className="im-profile-setting-label">消失的私信</span>
+                <span className="im-profile-setting-meta">关闭</span>
+                <span className="im-profile-setting-chevron" aria-hidden="true">›</span>
+              </button>
+              <button type="button" className="im-profile-setting-row" onClick={() => toast.info('网页端无法可靠阻止系统级截屏，因此暂不提供此开关。')}>
+                <span className="im-profile-setting-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3" /><rect x="7" y="8" width="10" height="8" rx="2" /><circle cx="12" cy="12" r="2" />
+                  </svg>
+                </span>
+                <span className="im-profile-setting-label">阻止截屏</span>
+                <span className="im-profile-setting-meta">关闭</span>
+                <span className="im-profile-setting-chevron" aria-hidden="true">›</span>
+              </button>
+            </div>}
             <section className="im-profile-section">
               <div className="im-profile-section-heading">聊天背景</div>
               <div className="im-wallpaper-grid">
@@ -1132,15 +1244,30 @@ export default function Chat() {
                 {chatBackground.startsWith('image:') && <span className="im-background-hint">当前使用自定义照片</span>}
               </div>
             </section>
-            <section className="im-profile-section">
-              <div className="im-profile-section-heading">共享照片</div>
-              {msgs.some(m => !m.deleted_at && m.body.startsWith('[[im-image:')) ? (
+            <section className="im-profile-section" ref={sharedMediaRef}>
+              <div className="im-profile-section-heading">媒体、链接、文档</div>
+              {sharedImageMessages.length > 0 && (
                 <div className="im-shared-grid">
-                  {msgs.filter(m => !m.deleted_at && m.body.startsWith('[[im-image:')).slice(-6).reverse().map(photo => (
+                  {sharedImageMessages.slice(-9).reverse().map(photo => (
                     <div className="im-shared-photo" key={photo.id}><MessageContent body={photo.body} /></div>
                   ))}
                 </div>
-              ) : <div className="im-profile-empty">你们发送的照片会显示在这里。</div>}
+              )}
+              {sharedFileMessages.length > 0 && (
+                <div className="im-profile-shared-files">
+                  {sharedFileMessages.slice(-8).reverse().map(file => (
+                    <div className="im-profile-shared-file" key={file.id}><MessageContent body={file.body} /></div>
+                  ))}
+                </div>
+              )}
+              {sharedLinkItems.length > 0 && (
+                <div className="im-profile-shared-links">
+                  {sharedLinkItems.slice(-8).reverse().map(item => (
+                    <a key={item.key} href={item.url} target="_blank" rel="noreferrer">{item.url}</a>
+                  ))}
+                </div>
+              )}
+              {sharedMediaCount === 0 && <div className="im-profile-empty">你们分享的照片、链接和文件会显示在这里。</div>}
             </section>
             <div className="im-profile-footer">聊天背景仅对你自己生效，不会改变对方的聊天界面。</div>
           </div>

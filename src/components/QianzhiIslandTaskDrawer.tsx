@@ -96,7 +96,9 @@ export default function QianzhiIslandTaskDrawer({ docked }: { docked: boolean })
   // cards pause their auto-dismiss countdown until the user closes the list.
   useEffect(() => {
     window.dispatchEvent(new CustomEvent('qz-island-task-drawer-visibility', { detail: { open } }));
-    return () => window.dispatchEvent(new CustomEvent('qz-island-task-drawer-visibility', { detail: { open: false } }));
+    return () => {
+      window.dispatchEvent(new CustomEvent('qz-island-task-drawer-visibility', { detail: { open: false } }));
+    };
   }, [open]);
 
   // Announce background-task starts and status changes, but not unrelated calls/messages

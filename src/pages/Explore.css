@@ -127,6 +127,7 @@
 .discover-card--bloom { --card-bg: #f4f6f8; }
 .discover-card--ink,
 .discover-card--hot { --card-bg: #fafbfc; }
+.discover-card--signature { --card-bg: #f8f9fb; }
 
 .discover-card-link {
   position: relative;
@@ -228,6 +229,7 @@
 .discover-photo--questions { width: 47%; object-position: 76% 50%; }
 .discover-photo--music { width: 47%; object-position: 50% 50%; }
 .discover-photo--radio { width: 47%; object-position: 50% 50%; }
+.discover-photo--signature { width: 47%; object-position: 50% 50%; }
 .discover-photo--fate { width: 47%; object-position: 50% 50%; }
 
 @media (min-width: 760px) {
@@ -339,6 +341,7 @@
   .discover-photo--questions,
   .discover-photo--music,
   .discover-photo--radio,
+  .discover-photo--signature,
   .discover-photo--fate {
     width: 48%;
   }
@@ -506,4 +509,23 @@
 @media (max-width: 600px) {
   .discover-card--radio { min-height: 148px; }
   .discover-card--radio .discover-card-copy { max-width: 60%; }
+}
+
+/* 动态签名入口：深紫夜空卡，粉金手写字呼应照片。 */
+.discover-card--signature {
+  grid-column: 1 / -1;
+  min-height: 158px;
+  background:
+    radial-gradient(ellipse at 84% 12%, rgba(255, 126, 182, .16), transparent 42%),
+    linear-gradient(132deg, #160a2e 0%, #1e1038 55%, #241640 100%);
+  color: #d9c8f5;
+  border-color: rgba(38, 22, 64, .14);
+}
+.discover-card--signature h2 { color: #f6eefc; }
+.discover-card--signature p { color: rgba(240, 232, 250, .82); }
+.discover-card--signature .discover-card-action { color: #f5c86b; }
+.discover-card--signature .discover-card-action span { border-color: rgba(245, 200, 107, .3); }
+@media (max-width: 600px) {
+  .discover-card--signature { min-height: 148px; }
+  .discover-card--signature .discover-card-copy { max-width: 60%; }
 }

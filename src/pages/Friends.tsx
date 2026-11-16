@@ -920,7 +920,7 @@ export default function Friends() {
           {tab !== 'messages' && (
             <div className="im-inbox-tabs">
               <button type="button" className={tab === 'discover' ? 'on' : ''} onClick={() => setTab('discover')}>找人</button>
-              <button type="button" className={tab === 'messages' ? 'on' : ''} onClick={() => { setTab('messages'); setConversationFilter('all'); }}>私信 · {loading ? '…' : conversations.length}</button>
+              <button type="button" onClick={() => { setTab('messages'); setConversationFilter('all'); }}>私信 · {loading ? '…' : conversations.length}</button>
               <button type="button" className={tab === 'friends' ? 'on' : ''} onClick={() => setTab('friends')}>好友 · {loading ? '…' : friends.length}</button>
               <button type="button" className={tab === 'reqs' ? 'on' : ''} onClick={() => setTab('reqs')}>请求{loading ? ' · …' : reqs.length > 0 ? ' · ' + reqs.length : ''}</button>
               <button type="button" className={tab === 'blocked' ? 'on' : ''} onClick={() => setTab('blocked')}>黑名单 · {loading ? '…' : blockedMembers.length}</button>

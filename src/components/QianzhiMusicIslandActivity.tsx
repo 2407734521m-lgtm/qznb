@@ -142,7 +142,7 @@ const MusicExpandedHead = () => {
   return (
     <span className="qz-island-expanded-head">
       <span className="qz-island-expanded-art-wrap" key={track ? `${track.title}|${track.coverUrl ?? ''}` : 'none'}>
-        <AlbumArt size={62} expanded />
+        <AlbumArt size={52} expanded />
       </span>
       <MusicExpandedMeta />
     </span>
@@ -176,8 +176,8 @@ const MusicExpandedControls = () => {
   const [smoothTime, setSmoothTime] = useState(track ? track.currentTime : 0);
   const [volumeDraft, setVolumeDraft] = useState<number | null>(null);
   const anchorRef = useRef({ time: track ? track.currentTime : 0, at: Date.now() });
-  // 桥每 700ms 才推一次整秒进度，进度条会一格一格跳；播放时在两次推送之间
-  // 本地按 120ms 一格往前补，滑块和时间走得顺滑。拖动时以手指为准，不补。
+  // 桥每 700ms 才推一次整秒进度；本地适度补帧，让进度条保持连贯，
+  // 同时避免过密的 React 更新给移动端灵动岛增加额外负担。拖动时以手指为准，不补。
   useEffect(() => {
     anchorRef.current = { time: track ? track.currentTime : 0, at: Date.now() };
     setSmoothTime(track ? track.currentTime : 0);
@@ -187,7 +187,7 @@ const MusicExpandedControls = () => {
     const timer = window.setInterval(() => {
       const elapsed = (Date.now() - anchorRef.current.at) / 1000;
       setSmoothTime(Math.min(track.duration, anchorRef.current.time + elapsed));
-    }, 120);
+    }, 200);
     return () => window.clearInterval(timer);
   }, [track ? track.isPlaying : false, seekDraft, track ? track.duration : 0]);
   // 音量回声最多 700ms 才到：拖动时先按手指的位置显示并实时发给播放器，

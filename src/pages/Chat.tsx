@@ -977,9 +977,9 @@ export default function Chat() {
           <span aria-hidden="true">‹</span>
         </button>
         <button type="button" className="im-contact-stack" aria-label="查看会话资料" onClick={() => setShowDetails(true)}>
-          <span className="im-avatar im-avatar-open" role="button" aria-label={'查看' + name + '的主页'}
-            onClick={event => { event.stopPropagation(); if (peer) nav('/members/' + peer.id); }}>
-            {peerAvatarUrl ? <img src={peerAvatarUrl} alt="" /> : (name.trim().charAt(0).toUpperCase() || '友')}
+          <span className="im-avatar im-avatar-open" role="button" aria-label={isGroup ? '群聊资料' : '查看' + name + '的主页'}
+            onClick={event => { event.stopPropagation(); if (peer && !isGroup) nav('/members/' + peer.id); }}>
+            {!isGroup && peerAvatarUrl ? <img src={peerAvatarUrl} alt="" /> : (isGroup ? '群' : (name.trim().charAt(0).toUpperCase() || '友'))}
           </span>
           <span className="im-contact-name-pill">
             <span className="im-title">{name}</span>
@@ -987,10 +987,10 @@ export default function Chat() {
           </span>
           {otherTyping && <span className="im-sub">{isGroup ? '有人正在输入…' : '正在输入…'}</span>}
         </button>
-        <button type="button" className="im-icon im-call-button" aria-label="语音通话" title="语音通话" disabled={!peer || callBusy}
+        {!isGroup && <button type="button" className="im-icon im-call-button" aria-label="语音通话" title="语音通话" disabled={!peer || callBusy}
           onClick={() => { if (peer && cid) startCall({ id: peer.id, name }, Number(cid)); }}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6.62 10.79a15.05 15.05 0 0 0 6.59 6.59l2.2-2.2a1 1 0 0 1 1.02-.24 11.4 11.4 0 0 0 3.57.57 1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A17 17 0 0 1 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1 11.4 11.4 0 0 0 .57 3.57 1 1 0 0 1-.25 1.02z"/></svg>
-        </button>
+        </button>}
         <button className="im-icon im-info-button" aria-label="聊天详情" onClick={() => setShowDetails(true)}>
           <span aria-hidden="true">ⓘ</span>
         </button>
@@ -1005,13 +1005,41 @@ export default function Chat() {
           </header>
           <div className="im-profile-scroll">
             <div className="im-profile-hero">
-              <button type="button" className="im-profile-avatar im-profile-avatar-btn" aria-label={'查看' + name + '的主页'}
-                onClick={() => { setShowDetails(false); if (peer) nav('/members/' + peer.id); }}>
-                {peerAvatarUrl ? <img src={peerAvatarUrl} alt="" /> : <span>{name.trim().charAt(0).toUpperCase() || '友'}</span>}
+              <button type="button" className="im-profile-avatar im-profile-avatar-btn" aria-label={isGroup ? '群聊资料' : '查看' + name + '的主页'}
+                onClick={() => { setShowDetails(false); if (peer && !isGroup) nav('/members/' + peer.id); }}>
+                {!isGroup && peerAvatarUrl ? <img src={peerAvatarUrl} alt="" /> : <span>{isGroup ? '群' : (name.trim().charAt(0).toUpperCase() || '友')}</span>}
               </button>
               <div className="im-profile-name">{peer?.display_name ?? name}</div>
-              <div className="im-profile-username">{peer?.username ? '@' + peer.username : '一对一私密会话'}</div>
+              <div className="im-profile-username">{isGroup ? groupMembers.length + ' 位成员 · 群聊' : peer?.username ? '@' + peer.username : '一对一私密会话'}</div>
               <span className="im-private-label">仅对话成员可见</span>
+              {isGroup && <section className="im-profile-section">
+                <div className="im-profile-section-heading">群成员（{groupMembers.length}）</div>
+                <div className="chatcn-chat-group-members">
+                  {groupMembers.map(member => <div className="chatcn-chat-group-member" key={member.id}>
+                    <span className="chatcn-chat-group-member-avatar">{member.display_name?.slice(0, 1) ?? member.username.slice(0, 1)}</span>
+                    <span><strong>{member.display_name ?? member.username}</strong><small>@{member.username}</small></span>
+                    <em>{member.role === 'owner' ? '群主' : member.role === 'admin' ? '管理员' : '成员'}</em>
+                  </div>)}
+                </div>
+                {(myGroupRole === 'owner' || myGroupRole === 'admin') && <div className="chatcn-chat-group-rename">
+                  <input aria-label="群聊名称" maxLength={40} value={groupRenameValue} onChange={event => setGroupRenameValue(event.target.value)} />
+                  <button type="button" disabled={groupActionBusy || !groupRenameValue.trim() || groupRenameValue.trim() === name} onClick={async () => {
+                    setGroupActionBusy(true);
+                    const { error } = await supabase.rpc('rename_group_conversation', { p_conversation_id: Number(cid), p_group_name: groupRenameValue.trim() });
+                    if (error) setError('修改群名称失败：' + error.message);
+                    else { setName(groupRenameValue.trim()); setShowDetails(false); }
+                    setGroupActionBusy(false);
+                  }}>{groupActionBusy ? '保存中…' : '保存群名'}</button>
+                </div>}
+                <button type="button" className="chatcn-chat-group-leave" disabled={groupActionBusy || myGroupRole === 'owner'} onClick={async () => {
+                  if (myGroupRole === 'owner') return;
+                  setGroupActionBusy(true);
+                  const { error } = await supabase.rpc('leave_group_conversation', { p_conversation_id: Number(cid) });
+                  if (error) setError('退出群聊失败：' + error.message);
+                  else nav('/friends');
+                  setGroupActionBusy(false);
+                }}>{myGroupRole === 'owner' ? '群主需先转让群主身份才能退出' : '退出群聊'}</button>
+              </section>}
             </div>
             <div className="im-profile-stats">
               <div><strong>{msgs.length}</strong><span>条消息</span></div>

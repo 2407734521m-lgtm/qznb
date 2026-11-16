@@ -10,6 +10,7 @@ import { DUR, EASE } from './lib/motion';
 import { supabase } from './lib/supabase';
 import { detectInstalledApp, detectInstalledAdminApp, isBelowMinCode, isInApp, isNewerAppCode } from './lib/installedApp';
 import { CallProvider } from './lib/call';
+import { GroupCallProvider } from './lib/groupCall';
 import { startSitePresence } from './lib/sitePresence';
 import { useAuth } from './auth';
 import { getWallpaper } from './lib/wallpaper';
@@ -1773,7 +1774,9 @@ function Shell() {
 export default function App() {
   return (
     <CallProvider>
-      <Shell />
+      <GroupCallProvider>
+        <Shell />
+      </GroupCallProvider>
     </CallProvider>
   );
 }

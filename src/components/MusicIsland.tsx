@@ -63,6 +63,21 @@ export function shouldShowMainIsland(isMusicPage: boolean, activityIds: readonly
 
 export type MusicEqualizerMode = 'live' | 'fallback' | 'idle';
 
+export const EQUALIZER_BANDS = ['bass', 'lowMid', 'vocal', 'treble'] as const;
+/** Bar level the equalizer rests at while nothing is playing. */
+export const EQUALIZER_REST_LEVEL = '.12';
+
+/**
+ * The fullscreen player is rendered outside the island host, so the only way it can read the
+ * equalizer variables and mode is from <html>. Writing a custom property on <html> makes the
+ * browser re-check styles across the whole page on every spectrum message, so that mirror
+ * exists only while the player is on screen. The player's render condition uses this too, so
+ * the two cannot drift apart.
+ */
+export function shouldMirrorEqualizerToRoot(fullPlayerOpen: boolean, hasTrack: boolean, isMusicPage: boolean): boolean {
+  return fullPlayerOpen && hasTrack && !isMusicPage;
+}
+
 /** Use real spectrum/RMS data when it carries energy; otherwise keep the playing bars animated. */
 export function resolveMusicEqualizerMode(
   spectrum: Pick<MusicSpectrumMessage, 'playing' | 'available' | 'mode' | 'level' | 'bands'>,
@@ -186,6 +201,8 @@ function MusicIsland() {
   const [track, setTrack] = useState<MusicTrack | null>(null);
   const [seekDraft, setSeekDraft] = useState<number | null>(null);
   const [fullPlayerOpen, setFullPlayerOpen] = useState(false);
+  const fullscreenPlayerVisible = shouldMirrorEqualizerToRoot(fullPlayerOpen, track !== null, isMusicPage);
+  const equalizerRootRef = useRef(false);
   const seekDraftRef = useRef<number | null>(null);
   const lastStateMessageAtRef = useRef(0);
   const lastTrackRef = useRef<MusicTrack | null>(null);
@@ -235,8 +252,40 @@ function MusicIsland() {
     };
   }, [shouldMountFrame, frameLoaded]);
 
+  // Keep <html> carrying the equalizer state only while the fullscreen player needs it.
+  useEffect(() => {
+    equalizerRootRef.current = fullscreenPlayerVisible;
+    if (!fullscreenPlayerVisible) return;
+    const root = document.documentElement;
+    const host = islandWrapRef.current;
+    // Seed from what the island already shows so the player's bars do not restart from rest.
+    root.dataset.qzMusicEqMode = host?.dataset.qzMusicEqMode ?? 'idle';
+    for (const name of EQUALIZER_BANDS) {
+      const shown = host?.style.getPropertyValue(`--qz-music-eq-${name}`);
+      root.style.setProperty(`--qz-music-eq-${name}`, shown || EQUALIZER_REST_LEVEL);
+    }
+    // Writing stops on close but the last values stay on <html>: the player's exit animation
+    // still reads them, and the next open seeds them again.
+    return () => {
+      equalizerRootRef.current = false;
+    };
+  }, [fullscreenPlayerVisible]);
+
   useEffect(() => {
     if (!shouldMountFrame) return;
+    // The island host always rests; <html> only when the fullscreen player is mirroring it.
+    const restEqualizer = () => {
+      const host = islandWrapRef.current;
+      if (host) {
+        host.setAttribute('data-qz-music-eq-mode', 'idle');
+        for (const name of EQUALIZER_BANDS) host.style.setProperty(`--qz-music-eq-${name}`, EQUALIZER_REST_LEVEL);
+      }
+      if (equalizerRootRef.current) {
+        const root = document.documentElement;
+        root.dataset.qzMusicEqMode = 'idle';
+        for (const name of EQUALIZER_BANDS) root.style.setProperty(`--qz-music-eq-${name}`, EQUALIZER_REST_LEVEL);
+      }
+    };
     const onMessage = (event: MessageEvent<unknown>) => {
       if (event.origin !== MUSIC_ORIGIN || event.source !== frameRef.current?.contentWindow) return;
       const message = event.data as Partial<MusicStateMessage> | Partial<MusicSpectrumMessage> | null;
@@ -247,18 +296,17 @@ function MusicIsland() {
         const host = islandWrapRef.current;
         if (!host) return;
         const style = host.style;
-        const rootStyle = document.documentElement.style;
+        const root = equalizerRootRef.current ? document.documentElement : null;
         const equalizerMode = resolveMusicEqualizerMode(spectrum);
-        host.dataset.qzMusicEqMode = equalizerMode;
-        document.documentElement.dataset.qzMusicEqMode = equalizerMode;
-        if (equalizerMode === 'idle') {
-          for (const name of ['bass', 'lowMid', 'vocal', 'treble']) {
-            rootStyle.setProperty('--qz-music-eq-' + name, '.12');
-          }
+        // Messages arrive many times a second and the mode rarely changes: write it only on change.
+        if (host.dataset.qzMusicEqMode !== equalizerMode) host.dataset.qzMusicEqMode = equalizerMode;
+        if (root && root.dataset.qzMusicEqMode !== equalizerMode) root.dataset.qzMusicEqMode = equalizerMode;
+        if (equalizerMode === 'idle' && root) {
+          for (const name of EQUALIZER_BANDS) root.style.setProperty('--qz-music-eq-' + name, EQUALIZER_REST_LEVEL);
         }
         if (equalizerMode !== 'live') return;
 
-        const names = ['bass', 'lowMid', 'vocal', 'treble'] as const;
+        const names = EQUALIZER_BANDS;
         const levelMultipliers = { bass: 0.68, lowMid: 0.86, vocal: 1, treble: 0.76 } as const;
         const spectrumBands = spectrum.mode === 'spectrum' && spectrum.available
           ? spectrum.bands
@@ -272,7 +320,7 @@ function MusicIsland() {
           // Frequency mode keeps four independent bands; RMS mode moves all bars with overall loudness.
           const measured = String(0.12 + energy * 0.88);
           style.setProperty(`--qz-music-eq-${name}`, measured);
-          rootStyle.setProperty(`--qz-music-eq-${name}`, measured);
+          root?.style.setProperty(`--qz-music-eq-${name}`, measured);
         }
         return;
       }
@@ -288,18 +336,6 @@ function MusicIsland() {
       };
       // The equalizer only moves while a song is playing; once playback stops the
       // bars fall back to their idle level instead of freezing on the last frame.
-      const resetEqualizerIdle = () => {
-        islandWrapRef.current?.setAttribute('data-qz-music-eq-mode', 'idle');
-        document.documentElement.dataset.qzMusicEqMode = 'idle';
-        islandWrapRef.current?.style.setProperty('--qz-music-eq-bass', '.12');
-        islandWrapRef.current?.style.setProperty('--qz-music-eq-lowMid', '.12');
-        islandWrapRef.current?.style.setProperty('--qz-music-eq-vocal', '.12');
-        islandWrapRef.current?.style.setProperty('--qz-music-eq-treble', '.12');
-        document.documentElement.style.setProperty('--qz-music-eq-bass', '.12');
-        document.documentElement.style.setProperty('--qz-music-eq-lowMid', '.12');
-        document.documentElement.style.setProperty('--qz-music-eq-vocal', '.12');
-        document.documentElement.style.setProperty('--qz-music-eq-treble', '.12');
-      };
       // Hold a finished track as paused (its play control disabled) instead of
       // dropping the pill the instant a song ends; the next song usually
       // arrives on the next STATE. Only if nothing arrives within the grace
@@ -320,7 +356,7 @@ function MusicIsland() {
         }, 25000);
       };
       if (!message.track || typeof message.track.title !== 'string') {
-        resetEqualizerIdle();
+        restEqualizer();
         const last = lastTrackRef.current;
         if (last) startGrace(last);
         return;
@@ -352,7 +388,7 @@ function MusicIsland() {
       // the bridge re-pushes every 700ms, so clearing first would restart the
       // grace window on every push and it would never elapse.
       if (isMusicTrackFinished(lastTrackRef.current, nextTrack)) {
-        resetEqualizerIdle();
+        restEqualizer();
         startGrace(nextTrack);
         return;
       }
@@ -364,7 +400,7 @@ function MusicIsland() {
       clearGraceTimer();
       endedTrackIdentityRef.current = null;
       if (!incoming.isPlaying) {
-        resetEqualizerIdle();
+        restEqualizer();
       }
       // The bridge pushes STATE every 700ms; most pushes change nothing the island shows.
       // Skipping those keeps the whole main-site tree from re-rendering on every push.
@@ -560,7 +596,7 @@ function MusicIsland() {
       )}
 
       <AnimatePresence>
-        {fullPlayerOpen && track && !isMusicPage && (
+        {fullscreenPlayerVisible && track && (
           <MusicFullscreenPlayer
             key={track.title + ':' + track.artist}
             track={track}

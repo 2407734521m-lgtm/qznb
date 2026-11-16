@@ -1,5 +1,6 @@
 import { BRAND_NAME } from '../lib/brand';
 import BrandMark from './BrandMark';
+import { supabase } from '../lib/supabase';
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from 'react';
 
 type AdminTab = [string, string, boolean];
@@ -135,6 +136,7 @@ export default function AdminWorkspace({
   const commandInput = useRef<HTMLInputElement>(null);
   const commandDialog = useRef<HTMLElement>(null);
   const commandTrigger = useRef<HTMLButtonElement>(null);
+  const [todoCounts, setTodoCounts] = useState<Record<string, number> | null>(null);
 
   const groups = useMemo(() => NAV_GROUPS.map(group => ({
     label: group.label,
@@ -175,6 +177,50 @@ export default function AdminWorkspace({
 
   const current = tabs.find(item => item[0] === activeTab);
   const currentGroup = groupFor(activeTab);
+  const todoCountFor = (id: string) => todoCounts?.[id] ?? 0;
+
+  // 与总览使用同一组待办口径；仅在后台前台可见时刷新，失败时不伪报 0。
+  useEffect(() => {
+    let alive = true;
+    let inFlight = false;
+    const loadTodoCounts = async () => {
+      if (!alive || inFlight || document.visibilityState !== 'visible') return;
+      inFlight = true;
+      try {
+        const results = await Promise.all([
+          supabase.from('love_wall_posts').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+          supabase.from('song_posts').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+          supabase.from('game_profiles').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+          supabase.from('reports').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+          supabase.from('feedbacks').select('id', { count: 'exact', head: true }).eq('status', 'open'),
+        ]);
+        if (!alive) return;
+        if (results.some(result => result.error)) return;
+        setTodoCounts({
+          loveWall: results[0].count ?? 0,
+          songWall: results[1].count ?? 0,
+          game: results[2].count ?? 0,
+          moderate: results[3].count ?? 0,
+          feedback: results[4].count ?? 0,
+        });
+      } catch {
+        // 保持上一次成功结果；首次读取失败时不显示误导性的零数量。
+      } finally {
+        inFlight = false;
+      }
+    };
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') void loadTodoCounts();
+    };
+    void loadTodoCounts();
+    const timer = window.setInterval(() => void loadTodoCounts(), 60_000);
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    return () => {
+      alive = false;
+      window.clearInterval(timer);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+    };
+  }, []);
 
   useEffect(() => {
     try { localStorage.setItem('qznb-admin-rail-collapsed', collapsed ? '1' : '0'); } catch { /* storage may be disabled */ }
@@ -329,6 +375,21 @@ export default function AdminWorkspace({
                       onClick={() => choose(item.id)}>
                       <span className="admin-nav-icon"><AdminIcon name={item.id} size={16} /></span>
                       <span className="admin-nav-label">{item.label}</span>
+                      {todoCountFor(item.id) > 0 && (
+                        <span
+                          aria-label={`${todoCountFor(item.id)} 项待处理`}
+                          title={`${todoCountFor(item.id)} 项待处理`}
+                          style={{
+                            marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                            minWidth: collapsed ? 7 : 18, height: collapsed ? 7 : 18,
+                            padding: collapsed ? 0 : '0 5px', borderRadius: 999,
+                            background: '#d94b5b', color: '#fff', fontSize: 10.5, fontWeight: 800,
+                            lineHeight: 1, flexShrink: 0, fontVariantNumeric: 'tabular-nums',
+                          }}
+                        >
+                          {collapsed ? '' : todoCountFor(item.id) > 99 ? '99+' : todoCountFor(item.id)}
+                        </span>
+                      )}
                     </button>
                     <button type="button" className={['admin-nav-pin', favoriteIds.includes(item.id) ? 'is-pinned' : ''].join(' ')}
                       aria-label={`${favoriteIds.includes(item.id) ? '取消常用' : '设为常用'}：${item.label}`}
@@ -420,7 +481,20 @@ export default function AdminWorkspace({
               className={['admin-mobile-quick-item', activeTab === item.id ? 'is-active' : ''].join(' ')}
               aria-current={activeTab === item.id ? 'page' : undefined}
               onClick={() => choose(item.id)}>
-              <span className="admin-mobile-quick-icon"><AdminIcon name={item.id} size={18} /></span>
+              <span className="admin-mobile-quick-icon" style={{ position: 'relative' }}>
+                <AdminIcon name={item.id} size={18} />
+                {todoCountFor(item.id) > 0 && (
+                  <span
+                    aria-label={`${todoCountFor(item.id)} 项待处理`}
+                    style={{
+                      position: 'absolute', top: -6, right: -10, minWidth: 16, height: 16, padding: '0 4px',
+                      borderRadius: 999, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                      background: '#d94b5b', color: '#fff', fontSize: 9.5, fontWeight: 800,
+                      lineHeight: 1, fontVariantNumeric: 'tabular-nums',
+                    }}
+                  >{todoCountFor(item.id) > 99 ? '99+' : todoCountFor(item.id)}</span>
+                )}
+              </span>
               <span>{item.label}</span>
             </button>
           ))}

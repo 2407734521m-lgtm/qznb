@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type CSSProperties, type MouseEvent } from 'react';
 import { motion } from 'framer-motion';
+import './MusicFullscreenPlayer.css';
 
 type MusicTrack = {
   title: string;
@@ -118,7 +119,7 @@ export default function MusicFullscreenPlayer({ track, connected, sendCommand, o
     setSeekDraft(null);
   };
 
-  const closeFromBackdrop = (event: React.MouseEvent<HTMLDivElement>) => {
+  const closeFromBackdrop = (event: MouseEvent<HTMLDivElement>) => {
     if (event.target === event.currentTarget) onMinimize();
   };
 
@@ -168,7 +169,7 @@ export default function MusicFullscreenPlayer({ track, connected, sendCommand, o
             max={Math.max(1, duration)}
             step={1}
             value={Math.min(duration || 0, shownTime)}
-            style={{ '--qz-fullscreen-progress': progress + '%' } as React.CSSProperties}
+            style={{ '--qz-fullscreen-progress': progress + '%' } as CSSProperties}
             onChange={event => updateSeekDraft(Number(event.target.value))}
             onPointerUp={commitSeek}
             onPointerCancel={cancelSeek}

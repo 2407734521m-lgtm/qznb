@@ -39,6 +39,8 @@ interface ClockOptions {
    * timer render before the next timer or frame, which keeps stepped captures exact.
    */
   wrapTimer?: (run: () => void) => void;
+  /** Receives callback failures without allowing one activity to stop the shared clock. */
+  onError?: (error: unknown) => void;
 }
 
 const hasWindow = () => typeof window !== "undefined" && typeof window.requestAnimationFrame === "function";
@@ -56,6 +58,17 @@ export const createFrameClock = (options: ClockOptions = {}): ControllableClock 
   let origin = 0;
   let scale = 1;
   const wrap = options.wrapTimer ?? ((run: () => void) => run());
+  const reportError = (error: unknown) => {
+    try {
+      if (options.onError) {
+        options.onError(error);
+        return;
+      }
+    } catch (handlerError) {
+      console.error("[islandcn] clock error handler failed", handlerError);
+    }
+    console.error("[islandcn] clock callback failed", error);
+  };
 
   const wall = () => (typeof performance === "undefined" ? Date.now() : performance.now());
   const now = () => (paused ? frozenAt : (wall() - origin) * scale + base);
@@ -70,21 +83,39 @@ export const createFrameClock = (options: ClockOptions = {}): ControllableClock 
       if (!due) return;
       timers = timers.filter((timer) => timer.id !== due.id);
       setNow(due.at);
-      wrap(() => due.run(due.at));
+      try {
+        wrap(() => due.run(due.at));
+      } catch (error) {
+        // A broken activity timer must not prevent later timers from being delivered.
+        reportError(error);
+      }
     }
   };
 
   const emitFrame = (time: number) => {
-    for (const listener of [...frameListeners]) listener(time);
+    for (const listener of [...frameListeners]) {
+      try {
+        listener(time);
+      } catch (error) {
+        // Frame subscribers are independent; one faulty renderer must not starve the rest.
+        reportError(error);
+      }
+    }
   };
 
   const loop = () => {
     raf = 0;
     if (paused) return;
-    const time = now();
-    runTimersUntil(time, () => undefined);
-    emitFrame(time);
-    schedule();
+    try {
+      const time = now();
+      runTimersUntil(time, () => undefined);
+      emitFrame(time);
+    } catch (error) {
+      // Keep the shared clock alive even if its own frame bookkeeping fails.
+      reportError(error);
+    } finally {
+      schedule();
+    }
   };
 
   const schedule = () => {

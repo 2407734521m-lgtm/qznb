@@ -45,6 +45,46 @@ const stubClock: IslandClock = {
 
 const makeStore = () => createIslandStore({ clock: stubClock, motion: () => ({}) as IslandMotion });
 
+/** A small controllable clock for lifecycle races involving delayed press callbacks. */
+const makeTimedStore = () => {
+  let time = 0;
+  let nextId = 1;
+  const timers = new Map<number, { at: number; run: (due: number) => void }>();
+  const clock: IslandClock = {
+    now: () => time,
+    onFrame: () => () => {},
+    at: (at, run) => {
+      const id = nextId++;
+      timers.set(id, { at, run });
+      return () => timers.delete(id);
+    },
+  };
+  const motion = {
+    longPress: 0.5,
+    press: {
+      decide: 0.15,
+      holdReturn: 0.2,
+      tapReturn: 0.1,
+      releaseReturn: 0.05,
+    },
+  } as unknown as IslandMotion;
+  const advance = (ms: number) => {
+    const target = time + ms;
+    for (;;) {
+      const next = [...timers.entries()]
+        .filter(([, timer]) => timer.at <= target)
+        .sort((a, b) => a[1].at - b[1].at || a[0] - b[0])[0];
+      if (!next) break;
+      timers.delete(next[0]);
+      time = next[1].at;
+      next[1].run(next[1].at);
+    }
+    time = target;
+  };
+  return { store: createIslandStore({ clock, motion: () => motion }), advance };
+};
+
+
 describe("deriveScene", () => {
   it("keeps route loading in one capsule while retaining the secondary activity", () => {
     const navigation = makeActivity("qz-route-navigation", 0);
@@ -189,5 +229,27 @@ describe("swipe to cycle activities", () => {
     store.api.end("download-task");
     expect(store.getSnapshot().manualPrimary).toBeNull();
     expect(deriveScene(store.getSnapshot()).primary?.id).toBe("upload-task");
+  });
+});
+
+
+describe("press lifecycle", () => {
+  it("cancels a pending long-press when its activity ends", () => {
+    const { store, advance } = makeTimedStore();
+    store.api.start({ id: "music-playback" });
+
+    store.press("pill");
+    advance(200); // The press is now classified as a long-press, but has not expanded yet.
+    expect(store.getSnapshot().pressed).toBe("pill");
+
+    store.api.end("music-playback");
+
+    expect(store.getSnapshot().activities).toHaveLength(0);
+    expect(store.getSnapshot().pressed).toBeNull();
+    expect(store.getSnapshot().joining).toBeNull();
+
+    advance(500);
+    expect(store.getSnapshot().expanded).toBeNull();
+    expect(store.getSnapshot().activities).toHaveLength(0);
   });
 });

@@ -329,8 +329,17 @@ export const createIslandStore = (options: { clock: IslandClock; motion: () => I
     },
     end(id) {
       pendingContent.get(id)?.();
-      if (!snapshot.activities.some((a) => a.id === id)) return;
       const ending = snapshot.activities.find((a) => a.id === id);
+      if (!ending) return;
+      // Ending an activity also cancels a long-press that started on its pill or bubble.
+      // Otherwise its delayed callback could expand an activity that no longer exists.
+      if (holding?.activityId === id) {
+        cancelHold();
+        holding = null;
+        if (snapshot.pressed !== null || snapshot.joining !== null) {
+          commit({ ...snapshot, pressed: null, joining: null });
+        }
+      }
       const expanded = snapshot.expanded?.id === id ? null : snapshot.expanded;
       // An activity handed to mid-handoff that ends calls the handoff off.
       const handingTo = ending !== undefined && ending.group !== null && snapshot.handoff === ending.group && snapshot.front[ending.group] === id;
@@ -429,6 +438,15 @@ export const createIslandStore = (options: { clock: IslandClock; motion: () => I
       pressTimers.push(
         clock.at(at + longPress * 1000, (due) => {
           if (!holding || holding.at !== at || !holding.long) return;
+          // The activity may have ended while the long-press timer was waiting.
+          if (!snapshot.activities.some((current) => current.id === activity.id)) {
+            holding = null;
+            cancelHold();
+            if (snapshot.pressed !== null || snapshot.joining !== null) {
+              commit({ ...snapshot, pressed: null, joining: null }, due);
+            }
+            return;
+          }
           holding = null;
           pressTimers = [];
           clearAlert();

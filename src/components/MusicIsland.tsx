@@ -5,6 +5,7 @@ import { createMusicIslandActivity, MusicIslandView } from './QianzhiMusicIsland
 import MusicFullscreenPlayer from './MusicFullscreenPlayer';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { haptic } from '../lib/haptics';
+import { saveIslandLastTrack } from '../lib/islandLastTrack';
 import './MusicIsland.css';
 
 const MUSIC_URL = 'https://music.qianzhi.pw';
@@ -121,6 +122,12 @@ function MusicIsland() {
   const seekDraftRef = useRef<number | null>(null);
   const lastStateMessageAtRef = useRef(0);
   const lastTrackRef = useRef<MusicTrack | null>(null);
+  // A song ending sends track:null, and the next song (if any) arrives on the next
+  // STATE: ending the activity at once makes the pill blink out for a beat at every
+  // track change. The grace timer holds the last track as paused instead; only if
+  // nothing arrives within the window does the island go away.
+  const graceTimerRef = useRef<number | null>(null);
+  const graceActiveRef = useRef(false);
   const shouldMountFrame = openedOnce || isMusicPage;
   const showMainIsland = shouldShowMainIsland(isMusicPage, activityIds);
 
@@ -200,6 +207,11 @@ function MusicIsland() {
       lastStateMessageAtRef.current = Date.now();
       setConnected(true);
       setShowFallback(false);
+      const clearGraceTimer = () => {
+        if (graceTimerRef.current !== null) window.clearTimeout(graceTimerRef.current);
+        graceTimerRef.current = null;
+        graceActiveRef.current = false;
+      };
       if (!message.track || typeof message.track.title !== 'string') {
         islandWrapRef.current?.setAttribute('data-qz-music-eq-mode', 'idle');
         document.documentElement.dataset.qzMusicEqMode = 'idle';
@@ -211,10 +223,26 @@ function MusicIsland() {
         document.documentElement.style.setProperty('--qz-music-eq-lowMid', '.12');
         document.documentElement.style.setProperty('--qz-music-eq-vocal', '.12');
         document.documentElement.style.setProperty('--qz-music-eq-treble', '.12');
-        lastTrackRef.current = null;
-        setTrack(null);
+        // Hold the last track as paused (its play control disabled) instead of
+        // dropping the pill the instant a song ends; the next song usually
+        // arrives on the next STATE. Only if nothing arrives within the grace
+        // window does the activity end.
+        const last = lastTrackRef.current;
+        if (last && !graceActiveRef.current) {
+          graceActiveRef.current = true;
+          const graceTrack: MusicTrack = { ...last, isPlaying: false, canToggle: false, currentTime: last.duration };
+          lastTrackRef.current = graceTrack;
+          setTrack(graceTrack);
+          graceTimerRef.current = window.setTimeout(() => {
+            graceTimerRef.current = null;
+            graceActiveRef.current = false;
+            lastTrackRef.current = null;
+            setTrack(null);
+          }, 25000);
+        }
         return;
       }
+      clearGraceTimer();
       const incoming = message.track as MusicTrack;
       const duration = Number(incoming.duration);
       const currentTime = Number(incoming.currentTime);
@@ -253,10 +281,16 @@ function MusicIsland() {
       if (!isSameMusicTrack(lastTrackRef.current, nextTrack)) {
         lastTrackRef.current = nextTrack;
         setTrack(nextTrack);
+        saveIslandLastTrack({ title: nextTrack.title, artist: nextTrack.artist });
       }
     };
     window.addEventListener('message', onMessage);
-    return () => window.removeEventListener('message', onMessage);
+    return () => {
+      window.removeEventListener('message', onMessage);
+      if (graceTimerRef.current !== null) window.clearTimeout(graceTimerRef.current);
+      graceTimerRef.current = null;
+      graceActiveRef.current = false;
+    };
   }, [shouldMountFrame]);
 
   useEffect(() => {

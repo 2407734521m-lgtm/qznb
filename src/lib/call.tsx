@@ -1,11 +1,11 @@
-import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { createPortal } from 'react-dom';
 import type { ReactNode } from 'react';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import { supabase } from './supabase';
 import { useIslandActions } from './island';
-import { createCallIslandActivity } from '../components/QianzhiCallIslandActivity';
+import { CallElapsedTime, createCallIslandActivity } from '../components/QianzhiCallIslandActivity';
 import { useAuth } from '../auth';
 import '../styles-call.css';
 
@@ -50,7 +50,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
   const [minimizing, setMinimizing] = useState(false);
   const [minimizeFlight, setMinimizeFlight] = useState<CallIslandFlight | null>(null);
   const [peerName, setPeerName] = useState('');
-  const [seconds, setSeconds] = useState(0);
+  const [callStartedAt, setCallStartedAt] = useState<number | null>(null);
   const [muted, setMuted] = useState(false);
   const [note, setNote] = useState('');
 
@@ -66,13 +66,12 @@ export function CallProvider({ children }: { children: ReactNode }) {
   const iceQueueRef = useRef<RTCIceCandidateInit[]>([]);
   const ringTimerRef = useRef<number | null>(null);
   const waitTimerRef = useRef<number | null>(null);
-  const secondsTimerRef = useRef<number | null>(null);
   const noteTimerRef = useRef<number | null>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
   const remoteAudioRef = useRef<HTMLAudioElement>(null);
   const callCardRef = useRef<HTMLDivElement>(null);
   const connectedRef = useRef(false);
-  const secondsRef = useRef(0);
+  const callStartedAtRef = useRef<number | null>(null);
 
   const setPhaseBoth = useCallback((p: CallPhase) => { phaseRef.current = p; setPhase(p); }, []);
 
@@ -85,7 +84,6 @@ export function CallProvider({ children }: { children: ReactNode }) {
   const stopRing = useCallback(() => {
     if (ringTimerRef.current) { window.clearInterval(ringTimerRef.current); ringTimerRef.current = null; }
     if (waitTimerRef.current) { window.clearTimeout(waitTimerRef.current); waitTimerRef.current = null; }
-    if (secondsTimerRef.current) { window.clearInterval(secondsTimerRef.current); secondsTimerRef.current = null; }
   }, []);
 
   const cleanup = useCallback(() => {
@@ -100,8 +98,8 @@ export function CallProvider({ children }: { children: ReactNode }) {
     isCallerRef.current = false;
     iceQueueRef.current = [];
     connectedRef.current = false;
-    secondsRef.current = 0;
-    setSeconds(0);
+    callStartedAtRef.current = null;
+    setCallStartedAt(null);
     setMuted(false);
     setPeerName('');
     setMinimized(false);
@@ -129,12 +127,14 @@ export function CallProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const recordCallMessage = useCallback(async () => {
-    if (!isCallerRef.current || !connectedRef.current || !convIdRef.current || !myId) return;
-    if (secondsRef.current < 3) return;
+    const startedAt = callStartedAtRef.current;
+    if (!isCallerRef.current || !connectedRef.current || !convIdRef.current || !myId || startedAt === null) return;
+    const elapsed = Math.max(0, Math.floor((Date.now() - startedAt) / 1000));
+    if (elapsed < 3) return;
     await supabase.from('messages').insert({
       conversation_id: convIdRef.current,
       sender_id: myId,
-      body: '语音通话 ' + formatDuration(secondsRef.current),
+      body: '语音通话 ' + formatDuration(elapsed),
     });
   }, [myId]);
 
@@ -195,12 +195,12 @@ export function CallProvider({ children }: { children: ReactNode }) {
     pc.onconnectionstatechange = () => {
       if (pc.connectionState === 'connected') {
         connectedRef.current = true;
+        if (callStartedAtRef.current === null) {
+          const startedAt = Date.now();
+          callStartedAtRef.current = startedAt;
+          setCallStartedAt(startedAt);
+        }
         setPhaseBoth('in-call');
-        if (secondsTimerRef.current) window.clearInterval(secondsTimerRef.current);
-        secondsTimerRef.current = window.setInterval(() => {
-          secondsRef.current += 1;
-          setSeconds(secondsRef.current);
-        }, 1000);
       } else if (pc.connectionState === 'failed' || pc.connectionState === 'disconnected' || pc.connectionState === 'closed') {
         if (phaseRef.current === 'in-call' || phaseRef.current === 'connecting') {
           void recordCallMessage();
@@ -434,7 +434,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
     islandApi.start(createCallIslandActivity({
       phase,
       peerName,
-      seconds,
+      startedAt: callStartedAt,
       muted,
       onAccept: acceptCall,
       onReject: rejectCall,
@@ -443,7 +443,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
       onToggleMute: toggleMute,
       onRestore: restoreCall,
     }));
-  }, [phase, peerName, seconds, muted, islandApi, acceptCall, rejectCall, cancelCall, hangUp, toggleMute, restoreCall]);
+  }, [phase, peerName, callStartedAt, muted, islandApi, acceptCall, rejectCall, cancelCall, hangUp, toggleMute, restoreCall]);
 
   useEffect(() => () => islandApi.end('qz-call-session'), [islandApi]);
 
@@ -462,7 +462,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
         {phase === 'incoming' && '邀请你语音通话'}
         {phase === 'outgoing' && '正在等待对方接听…'}
         {phase === 'connecting' && '连接中…'}
-        {phase === 'in-call' && <span className="call-timer">{formatDuration(seconds)}</span>}
+        {phase === 'in-call' && <span className="call-timer"><CallElapsedTime startedAt={callStartedAt} /></span>}
       </div>
       {phase === 'incoming' && (
         <div className="call-actions">
@@ -484,8 +484,10 @@ export function CallProvider({ children }: { children: ReactNode }) {
     </div>
   );
 
+  const callContextValue = useMemo(() => ({ phase, busy: phase !== 'idle', startCall }), [phase, startCall]);
+
   return (
-    <CallContext.Provider value={{ phase, busy: phase !== 'idle', startCall }}>
+    <CallContext.Provider value={callContextValue}>
       {children}
       <audio ref={remoteAudioRef} autoPlay playsInline style={{ display: 'none' }} />
       {note && phase === 'idle' && <div className="call-note" role="status" aria-live="polite"><span aria-hidden="true">☎</span><span>{note}</span></div>}

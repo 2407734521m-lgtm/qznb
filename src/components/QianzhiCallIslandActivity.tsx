@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import type { ActivityOptions } from '../lib/island';
 import type { CallPhase } from '../lib/call';
 import './QianzhiCallIslandActivity.css';
@@ -5,7 +6,7 @@ import './QianzhiCallIslandActivity.css';
 export interface CallIslandActivityInput {
   phase: CallPhase;
   peerName: string;
-  seconds: number;
+  startedAt: number | null;
   muted: boolean;
   onAccept: () => void;
   onReject: () => void;
@@ -18,6 +19,18 @@ export interface CallIslandActivityInput {
 function formatDuration(totalSeconds: number) {
   const value = Math.max(0, Math.floor(totalSeconds));
   return String(Math.floor(value / 60)).padStart(2, '0') + ':' + String(value % 60).padStart(2, '0');
+}
+
+/** Updates only the timer text; it does not notify or re-render the island activity store. */
+export function CallElapsedTime({ startedAt }: { startedAt: number | null }) {
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    if (startedAt === null) return;
+    const timer = window.setInterval(() => setTick(value => value + 1), 1000);
+    return () => window.clearInterval(timer);
+  }, [startedAt]);
+  const elapsed = startedAt === null ? 0 : Math.max(0, Math.floor((Date.now() - startedAt) / 1000));
+  return <>{formatDuration(elapsed)}</>;
 }
 
 function PhoneIcon() {
@@ -43,7 +56,7 @@ function CallAction({ label, tone, onAction }: { label: string; tone?: 'primary'
 
 /** Maps the existing WebRTC state machine to one high-priority island activity. */
 export function createCallIslandActivity(input: CallIslandActivityInput): ActivityOptions {
-  const { phase, peerName, seconds, muted } = input;
+  const { phase, peerName, startedAt, muted } = input;
   const phaseLabel = phase === 'incoming'
     ? '来电邀请'
     : phase === 'outgoing'
@@ -52,8 +65,7 @@ export function createCallIslandActivity(input: CallIslandActivityInput): Activi
         ? '正在连接'
         : '通话中';
   const peer = peerName.trim() || '好友';
-  const duration = formatDuration(seconds);
-  const trailing = phase === 'in-call' ? duration : phase === 'connecting' ? '…' : '';
+  const trailing = phase === 'connecting' ? '…' : peer.slice(0, 8);
 
   return {
     id: 'qz-call-session',
@@ -68,7 +80,7 @@ export function createCallIslandActivity(input: CallIslandActivityInput): Activi
           <span>{phase === 'incoming' ? '来电' : phase === 'outgoing' ? '呼叫中' : phase === 'connecting' ? '连接中' : '通话'}</span>
         </span>
       ),
-      trailing: <span className="qz-call-island-time">{trailing || peer.slice(0, 8)}</span>,
+      trailing: <span className="qz-call-island-time">{phase === 'in-call' ? <CallElapsedTime startedAt={startedAt} /> : trailing}</span>,
     },
     minimal: <span className="qz-call-island-minimal" aria-label={phaseLabel}><PhoneIcon /></span>,
     expanded: {
@@ -76,7 +88,7 @@ export function createCallIslandActivity(input: CallIslandActivityInput): Activi
       center: (
         <span className="qz-call-island-copy">
           <strong>{peer}</strong>
-          <small>{phaseLabel}{phase === 'in-call' ? ` · ${duration}` : ''}{muted && phase === 'in-call' ? ' · 已静音' : ''}</small>
+          <small>{phaseLabel}{phase === 'in-call' ? <> · <CallElapsedTime startedAt={startedAt} /></> : null}{muted && phase === 'in-call' ? ' · 已静音' : ''}</small>
         </span>
       ),
       bottom: (

@@ -8,11 +8,13 @@ export interface CallIslandActivityInput {
   peerName: string;
   startedAt: number | null;
   muted: boolean;
+  speakerEnabled: boolean;
   onAccept: () => void;
   onReject: () => void;
   onCancel: () => void;
   onHangUp: () => void;
   onToggleMute: () => void;
+  onToggleSpeaker: () => void;
   onRestore: () => void;
 }
 
@@ -56,7 +58,7 @@ function CallAction({ label, tone, onAction }: { label: string; tone?: 'primary'
 
 /** Maps the existing WebRTC state machine to one high-priority island activity. */
 export function createCallIslandActivity(input: CallIslandActivityInput): ActivityOptions {
-  const { phase, peerName, startedAt, muted } = input;
+  const { phase, peerName, startedAt, muted, speakerEnabled } = input;
   const phaseLabel = phase === 'incoming'
     ? '来电邀请'
     : phase === 'outgoing'
@@ -109,6 +111,7 @@ export function createCallIslandActivity(input: CallIslandActivityInput): Activi
             <>
               <CallAction label="返回通话" onAction={input.onRestore} />
               <CallAction label={muted ? '取消静音' : '静音'} onAction={input.onToggleMute} />
+              <CallAction label={speakerEnabled ? '听筒' : '扬声器'} onAction={input.onToggleSpeaker} />
               <CallAction label="挂断" tone="danger" onAction={input.onHangUp} />
             </>
           )}

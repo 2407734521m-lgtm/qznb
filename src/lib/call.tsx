@@ -52,6 +52,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
   const [peerName, setPeerName] = useState('');
   const [callStartedAt, setCallStartedAt] = useState<number | null>(null);
   const [muted, setMuted] = useState(false);
+  const [speakerEnabled, setSpeakerEnabled] = useState(false);
   const [note, setNote] = useState('');
 
   const phaseRef = useRef<CallPhase>('idle');
@@ -72,6 +73,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
   const callCardRef = useRef<HTMLDivElement>(null);
   const connectedRef = useRef(false);
   const callStartedAtRef = useRef<number | null>(null);
+  const speakerEnabledRef = useRef(false);
 
   const setPhaseBoth = useCallback((p: CallPhase) => { phaseRef.current = p; setPhase(p); }, []);
 
@@ -101,6 +103,12 @@ export function CallProvider({ children }: { children: ReactNode }) {
     callStartedAtRef.current = null;
     setCallStartedAt(null);
     setMuted(false);
+    setSpeakerEnabled(false);
+    speakerEnabledRef.current = false;
+    try {
+      const audioSession = (navigator as Navigator & { audioSession?: { type: string } }).audioSession;
+      if (audioSession) audioSession.type = 'auto';
+    } catch { /* 不支持音频会话路由时忽略 */ }
     setPeerName('');
     setMinimized(false);
     setMinimizing(false);
@@ -181,6 +189,12 @@ export function CallProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const setupPeerConnection = useCallback(async () => {
+    // The Audio Session API can hint the preferred route on supporting browsers.
+    // Android Chrome/WebView currently does not expose this API; the UI reports that honestly.
+    try {
+      const audioSession = (navigator as Navigator & { audioSession?: { type: string } }).audioSession;
+      if (audioSession) audioSession.type = speakerEnabledRef.current ? 'playback' : 'play-and-record';
+    } catch { /* 设备不支持网页音频路由时保留系统默认输出 */ }
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     localStreamRef.current = stream;
     const pc = new RTCPeerConnection(RTC_CONFIG);
@@ -364,6 +378,24 @@ export function CallProvider({ children }: { children: ReactNode }) {
     setMuted(next);
   }, [muted]);
 
+  const toggleSpeaker = useCallback(() => {
+    const audioSession = (navigator as Navigator & { audioSession?: { type: string } }).audioSession;
+    if (!audioSession) {
+      showNote('当前浏览器暂不支持网页切换扬声器，请使用设备的音频输出设置');
+      return;
+    }
+    const next = !speakerEnabledRef.current;
+    try {
+      // `playback` requests the normal media output route; `play-and-record`
+      // returns to the platform's communication route where supported.
+      audioSession.type = next ? 'playback' : 'play-and-record';
+      speakerEnabledRef.current = next;
+      setSpeakerEnabled(next);
+    } catch {
+      showNote('设备未允许切换扬声器，请检查系统音频设置');
+    }
+  }, [showNote]);
+
   const restoreCall = useCallback(() => {
     setMinimizing(false);
     setMinimizeFlight(null);
@@ -453,32 +485,114 @@ export function CallProvider({ children }: { children: ReactNode }) {
   }, [myId, cleanup]);
 
   const initial = (peerName.trim().charAt(0) || '友').toUpperCase();
+  const speakerRoutingSupported = typeof navigator !== 'undefined' &&
+    Boolean((navigator as Navigator & { audioSession?: { type: string } }).audioSession);
+  const callStatus = phase === 'incoming'
+    ? '邀请你语音通话'
+    : phase === 'outgoing'
+      ? '正在等待对方接听'
+      : phase === 'connecting'
+        ? '正在连接…'
+        : '通话中';
+
   const callCardContent = (
-    <div className="qz-call-card-content">
-      <button type="button" className="call-minimize" aria-label="最小化通话窗口到灵动岛" title="最小化到灵动岛" onClick={minimizeCall}>−</button>
-      <div className="call-avatar" aria-hidden="true">{initial}</div>
-      <div className="call-name">{peerName || '同学'}</div>
-      <div className="call-status">
-        {phase === 'incoming' && '邀请你语音通话'}
-        {phase === 'outgoing' && '正在等待对方接听…'}
-        {phase === 'connecting' && '连接中…'}
-        {phase === 'in-call' && <span className="call-timer"><CallElapsedTime startedAt={callStartedAt} /></span>}
-      </div>
+    <div className="qz-call-fullscreen">
+      <header className="qz-call-topbar">
+        <span className="qz-call-topbar-label">语音通话</span>
+        <button
+          type="button"
+          className="call-minimize"
+          aria-label="最小化通话窗口到灵动岛"
+          title="最小化到灵动岛"
+          onClick={minimizeCall}
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14" /></svg>
+        </button>
+      </header>
+
+      <main className="qz-call-stage">
+        <div className={'qz-call-avatar-ring' + (phase === 'incoming' || phase === 'outgoing' ? ' is-ringing' : '')}>
+          <div className="call-avatar" aria-hidden="true">{initial}</div>
+        </div>
+        <div className="call-name">{peerName || '同学'}</div>
+        <div className="qz-call-state">
+          <span className={'qz-call-state-dot qz-call-state-' + phase} aria-hidden="true" />
+          <span>{callStatus}</span>
+        </div>
+        <div className="call-status" aria-live="polite">
+          {phase === 'in-call'
+            ? <span className="call-timer"><CallElapsedTime startedAt={callStartedAt} /></span>
+            : phase === 'incoming'
+              ? '接听后即可开始语音交流'
+              : phase === 'outgoing'
+                ? '等待对方回应…'
+                : '正在建立语音连接'}
+        </div>
+      </main>
+
       {phase === 'incoming' && (
-        <div className="call-actions">
-          <button type="button" className="call-btn call-btn-reject" onClick={rejectCall}>拒绝</button>
-          <button type="button" className="call-btn call-btn-accept" onClick={acceptCall}>接听</button>
+        <div className="qz-call-main-actions qz-call-incoming-actions">
+          <button type="button" className="qz-call-action" onClick={rejectCall}>
+            <span className="qz-call-action-icon is-danger" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M4.5 14.2c4.8-4.1 10.2-4.1 15 0l-2.1 3.2a1.2 1.2 0 0 1-1.5.4l-2.1-1a1.2 1.2 0 0 1-.7-1.1v-1.1a9.8 9.8 0 0 0-2.2 0v1.1a1.2 1.2 0 0 1-.7 1.1l-2.1 1a1.2 1.2 0 0 1-1.5-.4L4.5 14.2Z" /></svg>
+            </span>
+            <span>拒绝</span>
+          </button>
+          <button type="button" className="qz-call-action" onClick={acceptCall}>
+            <span className="qz-call-action-icon is-accept" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M4.5 14.2c4.8-4.1 10.2-4.1 15 0l-2.1 3.2a1.2 1.2 0 0 1-1.5.4l-2.1-1a1.2 1.2 0 0 1-.7-1.1v-1.1a9.8 9.8 0 0 0-2.2 0v1.1a1.2 1.2 0 0 1-.7 1.1l-2.1 1a1.2 1.2 0 0 1-1.5-.4L4.5 14.2Z" /></svg>
+            </span>
+            <span>接听</span>
+          </button>
         </div>
       )}
+
       {phase === 'outgoing' && (
-        <div className="call-actions">
-          <button type="button" className="call-btn call-btn-hangup" onClick={cancelCall}>取消</button>
+        <div className="qz-call-main-actions qz-call-outgoing-actions">
+          <button type="button" className="qz-call-action" onClick={cancelCall}>
+            <span className="qz-call-action-icon is-danger" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M4.5 14.2c4.8-4.1 10.2-4.1 15 0l-2.1 3.2a1.2 1.2 0 0 1-1.5.4l-2.1-1a1.2 1.2 0 0 1-.7-1.1v-1.1a9.8 9.8 0 0 0-2.2 0v1.1a1.2 1.2 0 0 1-.7 1.1l-2.1 1a1.2 1.2 0 0 1-1.5-.4L4.5 14.2Z" /></svg>
+            </span>
+            <span>取消呼叫</span>
+          </button>
         </div>
       )}
+
       {(phase === 'connecting' || phase === 'in-call') && (
-        <div className="call-actions">
-          <button type="button" className={'call-btn call-btn-mute' + (muted ? ' is-muted' : '')} onClick={toggleMute}>{muted ? '取消静音' : '静音'}</button>
-          <button type="button" className="call-btn call-btn-hangup" onClick={hangUp}>挂断</button>
+        <div className="qz-call-controls">
+          <button
+            type="button"
+            className={'qz-call-control' + (speakerEnabled ? ' is-active' : '') + (!speakerRoutingSupported ? ' is-unavailable' : '')}
+            onClick={toggleSpeaker}
+            aria-label={speakerRoutingSupported ? '切换扬声器' : '扬声器切换暂不可用'}
+            aria-pressed={speakerEnabled}
+            title={speakerRoutingSupported ? '扬声器' : '当前浏览器不支持网页扬声器切换'}
+          >
+            <span className="qz-call-control-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9H4Z" /><path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a7.5 7.5 0 0 1 0 11" /></svg>
+            </span>
+            <span>扬声器</span>
+          </button>
+          <button
+            type="button"
+            className={'qz-call-control' + (muted ? ' is-active' : '')}
+            onClick={toggleMute}
+            aria-label={muted ? '取消静音' : '静音'}
+            aria-pressed={muted}
+          >
+            <span className="qz-call-control-icon" aria-hidden="true">
+              {muted
+                ? <svg viewBox="0 0 24 24"><path d="M12 3a3 3 0 0 0-3 3v5a3 3 0 0 0 5.1 2.1M15 9v2a3 3 0 0 1-.3 1.3M6 11v1a6 6 0 0 0 10.2 4.2M12 19v3M8 22h8M3 3l18 18" /></svg>
+                : <svg viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="13" rx="3" /><path d="M5 11a7 7 0 0 0 14 0M12 18v4M8 22h8" /></svg>}
+            </span>
+            <span>{muted ? '取消静音' : '静音'}</span>
+          </button>
+          <button type="button" className="qz-call-control qz-call-control-hangup" onClick={hangUp} aria-label="挂断">
+            <span className="qz-call-control-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M4.5 14.2c4.8-4.1 10.2-4.1 15 0l-2.1 3.2a1.2 1.2 0 0 1-1.5.4l-2.1-1a1.2 1.2 0 0 1-.7-1.1v-1.1a9.8 9.8 0 0 0-2.2 0v1.1a1.2 1.2 0 0 1-.7 1.1l-2.1 1a1.2 1.2 0 0 1-1.5-.4L4.5 14.2Z" /></svg>
+            </span>
+            <span>挂断</span>
+          </button>
         </div>
       )}
     </div>

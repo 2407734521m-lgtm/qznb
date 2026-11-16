@@ -112,11 +112,13 @@ export const MusicCompactContent = () => {
   );
 };
 
-export const MusicSpectrumContent = () => {
+/** The live equalizer. In the expanded card it renders larger (a real
+    visualizer in the middle column); in the compact pill it stays small. */
+export const MusicSpectrumContent = ({ size = 'compact' }: { size?: 'compact' | 'expanded' }) => {
   const { track } = useMusicIslandState();
   if (!track) return null;
   return (
-    <span className={'qz-island-wave' + (track.isPlaying ? ' is-playing' : '')} aria-label={track.isPlaying ? '音乐正在播放' : '音乐已暂停'}>
+    <span className={'qz-island-wave' + (size === 'expanded' ? ' qz-island-wave-expanded' : '') + (track.isPlaying ? ' is-playing' : '')} aria-label={track.isPlaying ? '音乐正在播放' : '音乐已暂停'}>
       <i /><i /><i /><i />
     </span>
   );
@@ -701,7 +703,7 @@ export const createMusicIslandActivity = (onPress: () => void) => ({
   minimal: <MusicCompactContent />,
   expanded: {
     leading: <MusicExpandedHead />,
-    center: <MusicSpectrumContent />,
+    center: <MusicSpectrumContent size="expanded" />,
     trailing: <MusicExpandedTrailing />,
     bottom: <MusicExpandedControls />,
   },

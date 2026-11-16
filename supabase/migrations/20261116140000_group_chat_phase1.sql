@@ -361,9 +361,12 @@ begin
      or not public.site_feature_enabled('chat') then
     raise exception 'not authorized' using errcode = '42501';
   end if;
-  select member_role into v_role
-    from public.conversation_members
-   where conversation_id = p_conversation_id and profile_id = auth.uid();
+  select cm.member_role into v_role
+    from public.conversation_members cm
+    join public.conversations c on c.id = cm.conversation_id
+   where cm.conversation_id = p_conversation_id
+     and cm.profile_id = auth.uid()
+     and c.conversation_type = 'group';
   if v_role is null then raise exception 'not a group member' using errcode = '42501'; end if;
   if v_role = 'owner' then
     raise exception 'transfer ownership before leaving the group' using errcode = '22023';
@@ -413,6 +416,229 @@ grant execute on function public.add_group_members(bigint, uuid[]) to authentica
 grant execute on function public.remove_group_member(bigint, uuid) to authenticated;
 grant execute on function public.leave_group_conversation(bigint) to authenticated;
 grant execute on function public.transfer_group_ownership(bigint, uuid) to authenticated;
+
+-- The existing private typing channel uses chat-typing:<conversation_id>.
+-- Keep it private and authorize both directions only for active members.
+drop policy if exists chat_typing_broadcast_read on realtime.messages;
+create policy chat_typing_broadcast_read on realtime.messages
+for select to authenticated
+using (
+  extension = 'broadcast'
+  and realtime.topic() ~ '^chat-typing:[0-9]+ the direct inbox RPC to direct conversations so a group never
+-- fans out into one duplicate row per other member.
+-- Keep the established return shape stable for existing clients.
+create or replace function public.my_conversations()
+returns table (
+  conversation_id bigint,
+  conversation_created_at timestamptz,
+  other_profile_id uuid,
+  username text,
+  display_name text,
+  avatar_path text,
+  last_message_id bigint,
+  last_message_body text,
+  last_message_at timestamptz,
+  last_message_sender_id uuid,
+  last_message_deleted boolean,
+  unread_count bigint,
+  other_last_read_message_id bigint
+)
+language sql
+stable
+security definer
+set search_path = ''
+as $function$
+  select mine.conversation_id, c.created_at, peer.profile_id, p.username::text,
+         case when pr.show_name then p.display_name else null end,
+         case when pr.show_avatar then p.avatar_path else null end,
+         latest.id,
+         case when latest.deleted_at is null then latest.body else null end,
+         latest.created_at, latest.sender_id,
+         coalesce(latest.deleted_at is not null, false),
+         (select count(*)::bigint from public.messages incoming
+           where incoming.conversation_id = mine.conversation_id
+             and incoming.sender_id <> auth.uid()
+             and incoming.deleted_at is null
+             and incoming.id > coalesce(mine.last_read_message_id, 0)),
+         peer.last_receipt_message_id
+    from public.conversation_members mine
+    join public.conversation_members peer
+      on peer.conversation_id = mine.conversation_id
+     and peer.profile_id <> mine.profile_id
+    join public.conversations c on c.id = mine.conversation_id
+    join public.profiles p on p.id = peer.profile_id and p.joined = true
+    join public.profile_privacy pr on pr.profile_id = p.id
+    left join lateral (
+      select m.id, m.body, m.created_at, m.sender_id, m.deleted_at
+        from public.messages m
+       where m.conversation_id = mine.conversation_id
+       order by m.id desc limit 1
+    ) latest on true
+   where auth.uid() is not null
+     and public.is_member()
+     and public.site_feature_enabled('chat')
+     and mine.profile_id = auth.uid()
+     and c.conversation_type = 'direct'
+     and chat_private.is_conversation_member(mine.conversation_id)
+     and not exists (
+       select 1 from public.conversation_hides h
+        where h.profile_id = auth.uid() and h.conversation_id = mine.conversation_id
+     )
+   order by coalesce(latest.created_at, c.created_at) desc;
+$function$;
+
+revoke all on function public.my_conversations() from public, anon;
+grant execute on function public.my_conversations() to authenticated;
+
+-- Existing get_or_create_conversation must never return a group id.
+create or replace function public.get_or_create_conversation(other uuid)
+returns bigint
+language plpgsql
+security definer
+set search_path = ''
+as $function$
+declare cid bigint; v_pair text;
+begin
+  if auth.uid() is null or not public.is_member() then raise exception 'not authenticated or not a joined member'; end if;
+  if other is null or other = auth.uid() then raise exception 'invalid recipient'; end if;
+  if not exists (select 1 from public.profiles p where p.id = other and p.joined) then raise exception 'user not found'; end if;
+  if not exists (
+    select 1 from public.friendships f where f.status = 'accepted'
+      and ((f.requester = auth.uid() and f.addressee = other) or (f.requester = other and f.addressee = auth.uid()))
+  ) then raise exception 'not friends'; end if;
+  v_pair := case when auth.uid()::text < other::text
+    then auth.uid()::text || ':' || other::text else other::text || ':' || auth.uid()::text end;
+  perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended(v_pair, 0));
+  select cm.conversation_id into cid
+    from public.conversation_members cm
+    join public.conversation_members cm2 on cm2.conversation_id = cm.conversation_id and cm2.profile_id = other
+    join public.conversations c on c.id = cm.conversation_id and c.conversation_type = 'direct'
+   where cm.profile_id = auth.uid()
+   limit 1;
+  if cid is null then
+    insert into public.conversations default values returning id into cid;
+    insert into public.conversation_members (conversation_id, profile_id) values (cid, auth.uid()), (cid, other);
+  end if;
+  return cid;
+end;
+$function$;
+revoke all on function public.get_or_create_conversation(uuid) from public, anon;
+grant execute on function public.get_or_create_conversation(uuid) to authenticated;
+
+commit;
+
+  and chat_private.is_conversation_member(split_part(realtime.topic(), ':', 2)::bigint)
+);
+drop policy if exists chat_typing_broadcast_write on realtime.messages;
+create policy chat_typing_broadcast_write on realtime.messages
+for insert to authenticated
+with check (
+  extension = 'broadcast'
+  and realtime.topic() ~ '^chat-typing:[0-9]+ the direct inbox RPC to direct conversations so a group never
+-- fans out into one duplicate row per other member.
+-- Keep the established return shape stable for existing clients.
+create or replace function public.my_conversations()
+returns table (
+  conversation_id bigint,
+  conversation_created_at timestamptz,
+  other_profile_id uuid,
+  username text,
+  display_name text,
+  avatar_path text,
+  last_message_id bigint,
+  last_message_body text,
+  last_message_at timestamptz,
+  last_message_sender_id uuid,
+  last_message_deleted boolean,
+  unread_count bigint,
+  other_last_read_message_id bigint
+)
+language sql
+stable
+security definer
+set search_path = ''
+as $function$
+  select mine.conversation_id, c.created_at, peer.profile_id, p.username::text,
+         case when pr.show_name then p.display_name else null end,
+         case when pr.show_avatar then p.avatar_path else null end,
+         latest.id,
+         case when latest.deleted_at is null then latest.body else null end,
+         latest.created_at, latest.sender_id,
+         coalesce(latest.deleted_at is not null, false),
+         (select count(*)::bigint from public.messages incoming
+           where incoming.conversation_id = mine.conversation_id
+             and incoming.sender_id <> auth.uid()
+             and incoming.deleted_at is null
+             and incoming.id > coalesce(mine.last_read_message_id, 0)),
+         peer.last_receipt_message_id
+    from public.conversation_members mine
+    join public.conversation_members peer
+      on peer.conversation_id = mine.conversation_id
+     and peer.profile_id <> mine.profile_id
+    join public.conversations c on c.id = mine.conversation_id
+    join public.profiles p on p.id = peer.profile_id and p.joined = true
+    join public.profile_privacy pr on pr.profile_id = p.id
+    left join lateral (
+      select m.id, m.body, m.created_at, m.sender_id, m.deleted_at
+        from public.messages m
+       where m.conversation_id = mine.conversation_id
+       order by m.id desc limit 1
+    ) latest on true
+   where auth.uid() is not null
+     and public.is_member()
+     and public.site_feature_enabled('chat')
+     and mine.profile_id = auth.uid()
+     and c.conversation_type = 'direct'
+     and chat_private.is_conversation_member(mine.conversation_id)
+     and not exists (
+       select 1 from public.conversation_hides h
+        where h.profile_id = auth.uid() and h.conversation_id = mine.conversation_id
+     )
+   order by coalesce(latest.created_at, c.created_at) desc;
+$function$;
+
+revoke all on function public.my_conversations() from public, anon;
+grant execute on function public.my_conversations() to authenticated;
+
+-- Existing get_or_create_conversation must never return a group id.
+create or replace function public.get_or_create_conversation(other uuid)
+returns bigint
+language plpgsql
+security definer
+set search_path = ''
+as $function$
+declare cid bigint; v_pair text;
+begin
+  if auth.uid() is null or not public.is_member() then raise exception 'not authenticated or not a joined member'; end if;
+  if other is null or other = auth.uid() then raise exception 'invalid recipient'; end if;
+  if not exists (select 1 from public.profiles p where p.id = other and p.joined) then raise exception 'user not found'; end if;
+  if not exists (
+    select 1 from public.friendships f where f.status = 'accepted'
+      and ((f.requester = auth.uid() and f.addressee = other) or (f.requester = other and f.addressee = auth.uid()))
+  ) then raise exception 'not friends'; end if;
+  v_pair := case when auth.uid()::text < other::text
+    then auth.uid()::text || ':' || other::text else other::text || ':' || auth.uid()::text end;
+  perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended(v_pair, 0));
+  select cm.conversation_id into cid
+    from public.conversation_members cm
+    join public.conversation_members cm2 on cm2.conversation_id = cm.conversation_id and cm2.profile_id = other
+    join public.conversations c on c.id = cm.conversation_id and c.conversation_type = 'direct'
+   where cm.profile_id = auth.uid()
+   limit 1;
+  if cid is null then
+    insert into public.conversations default values returning id into cid;
+    insert into public.conversation_members (conversation_id, profile_id) values (cid, auth.uid()), (cid, other);
+  end if;
+  return cid;
+end;
+$function$;
+revoke all on function public.get_or_create_conversation(uuid) from public, anon;
+grant execute on function public.get_or_create_conversation(uuid) to authenticated;
+
+commit;
+
+  and chat_private.is_conversation_member(split_part(realtime.topic(), ':', 2)::bigint)
+);
 
 -- Restrict the direct inbox RPC to direct conversations so a group never
 -- fans out into one duplicate row per other member.

@@ -2580,7 +2580,7 @@ export type Database = {
         Args: {
           p_action_type: string
           p_reason: string
-          p_requested_role: string
+          p_requested_role: string | null
           p_target_user_id: string
         }
         Returns: undefined

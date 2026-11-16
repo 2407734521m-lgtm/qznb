@@ -121,24 +121,24 @@ export function createCallIslandActivity(input: CallIslandActivityInput): Activi
     alert: phase === 'incoming',
     compact: {
       leading: (
-        <span className={'qz-call-island-compact' + (phase === 'incoming' ? ' is-ringing' : phase === 'in-call' ? ' is-active' : '')}>
+        <span key={phase} className={'qz-call-island-compact' + (phase === 'incoming' ? ' is-ringing' : phase === 'in-call' ? ' is-active' : '')}>
           <span className="qz-call-island-icon"><PhoneIcon /></span>
           <span>{phase === 'incoming' ? '来电' : phase === 'outgoing' ? '呼叫中' : phase === 'connecting' ? '连接中' : '通话'}</span>
         </span>
       ),
-      trailing: <span className="qz-call-island-time">{phase === 'in-call' ? <CallElapsedTime startedAt={startedAt} /> : trailing}</span>,
+      trailing: <span key={phase} className="qz-call-island-time">{phase === 'in-call' ? <CallElapsedTime startedAt={startedAt} /> : trailing}</span>,
     },
-    minimal: <span className="qz-call-island-minimal" aria-label={phaseLabel}><PhoneIcon /></span>,
+    minimal: <span key={phase} className="qz-call-island-minimal" aria-label={phaseLabel}><PhoneIcon /></span>,
     expanded: {
       leading: <span className="qz-call-island-label">语音通话</span>,
       center: (
-        <span className="qz-call-island-copy">
+        <span key={phase} className="qz-call-island-copy">
           <strong>{peer}</strong>
           <small>{phaseLabel}{phase === 'in-call' ? <> · <CallElapsedTime startedAt={startedAt} /></> : null}{muted && phase === 'in-call' ? ' · 已静音' : ''}</small>
         </span>
       ),
       bottom: (
-        <div className="qz-call-island-actions">
+        <div key={phase + ':' + muted + ':' + speakerEnabled} className="qz-call-island-actions">
           {phase === 'incoming' ? (
             <>
               <CallAction label="拒绝" tone="danger" onAction={input.onReject} />

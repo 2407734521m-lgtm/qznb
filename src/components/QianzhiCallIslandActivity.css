@@ -99,7 +99,7 @@
   touch-action: manipulation;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
-  transition: transform 160ms cubic-bezier(.2,.72,.24,1), background-color 160ms ease, border-color 160ms ease;
+  transition: transform 190ms cubic-bezier(.2,.8,.2,1), background-color 190ms ease, border-color 190ms ease;
 }
 .qz-call-island-action.is-primary {
   color: #111;
@@ -174,5 +174,36 @@
     min-height: 36px;
     padding: 0 8px;
     font-size: 11px;
+  }
+}
+
+
+/* Phase-keyed island slots enter together instead of replacing call status abruptly. */
+.qz-call-island-compact,
+.qz-call-island-time,
+.qz-call-island-minimal,
+.qz-call-island-copy,
+.qz-call-island-actions {
+  animation: qz-call-island-phase-enter 200ms cubic-bezier(.2,.8,.2,1) both;
+}
+
+@keyframes qz-call-island-phase-enter {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 3px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .qz-call-island-compact,
+  .qz-call-island-time,
+  .qz-call-island-minimal,
+  .qz-call-island-copy,
+  .qz-call-island-actions {
+    animation: none;
   }
 }

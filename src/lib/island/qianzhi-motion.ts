@@ -11,7 +11,7 @@ import type { IslandMotionOverrides } from './config';
 const spring = (response: number, dampingFraction: number) => ({
   response,
   dampingFraction,
-  blendDuration: 0.055,
+  blendDuration: 0.08,
 });
 
 export const qianzhiIslandMotion = {

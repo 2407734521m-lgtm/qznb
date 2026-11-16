@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { isSameMusicTrack, musicTrackIdentity, resolveMusicEqualizerMode, shouldCrossfadeMusicTrack, shouldShowMainIsland } from './MusicIsland';
-import { hasNewIslandActivity, resolveIslandDockGesture, resolveIslandGestureSource, shouldCancelPendingIslandDock, shouldShowIslandIdleRecall } from './QianzhiMusicIslandActivity';
+import { hasNewIslandActivity, resolveIslandDockGesture, resolveIslandGestureSource, resolveMusicIslandTapAction, shouldCancelPendingIslandDock, shouldEndTracklessMusicActivity, shouldShowIslandIdleRecall, shouldShowMusicEmptyState } from './QianzhiMusicIslandActivity';
 import { resolveMetrics } from '../lib/island/config';
 import { createQianzhiIslandMetrics, qianzhiIslandMetrics } from '../lib/island/qianzhi-metrics';
 
@@ -240,6 +240,36 @@ describe('shouldCancelPendingIslandDock', () => {
   it('cancels a delayed dock when the visible island receives a new gesture', () => {
     expect(shouldCancelPendingIslandDock('island')).toBe(true);
     expect(shouldCancelPendingIslandDock('peek')).toBe(false);
+  });
+});
+
+describe('resolveMusicIslandTapAction', () => {
+  it('expands in place when the island itself is tapped, with or without a track', () => {
+    expect(resolveMusicIslandTapAction('idle-recall')).toBe('expand');
+  });
+
+  it('opens the music space only from the button inside the expanded empty card', () => {
+    expect(resolveMusicIslandTapAction('empty-state-button')).toBe('openMusic');
+  });
+});
+
+describe('shouldShowMusicEmptyState', () => {
+  it('shows the empty card exactly when no track is live', () => {
+    expect(shouldShowMusicEmptyState(null)).toBe(true);
+    expect(shouldShowMusicEmptyState(track())).toBe(false);
+  });
+});
+
+describe('shouldEndTracklessMusicActivity', () => {
+  it('ends a trackless music activity once the island leaves the expanded view', () => {
+    expect(shouldEndTracklessMusicActivity(false, false, ['music-playback'])).toBe(true);
+    expect(shouldEndTracklessMusicActivity(false, false, [])).toBe(false);
+  });
+
+  it('keeps the empty card while it is expanded, and keeps a playing song untouched', () => {
+    expect(shouldEndTracklessMusicActivity(false, true, ['music-playback'])).toBe(false);
+    expect(shouldEndTracklessMusicActivity(true, false, ['music-playback'])).toBe(false);
+    expect(shouldEndTracklessMusicActivity(true, true, ['music-playback'])).toBe(false);
   });
 });
 

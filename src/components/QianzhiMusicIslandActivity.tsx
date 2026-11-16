@@ -1,7 +1,7 @@
 import { haptic } from '../lib/haptics';
 import { createContext, useContext, useEffect, useRef, useState, type CSSProperties, type RefObject } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
-import { Island, useIsland, useIslandActions } from '../lib/island';
+import { Island, useIsland } from '../lib/island';
 import QianzhiIslandTaskDrawer from './QianzhiIslandTaskDrawer';
 
 type MusicCommand = 'toggle' | 'previous' | 'next' | 'seek' | 'volume' | 'mute';
@@ -28,6 +28,11 @@ interface MusicIslandState {
   openMusic: () => void;
   /** Opens the fullscreen player overlay (from the expanded island). */
   openFullscreenPlayer: () => void;
+  /**
+   * Expands the player in place, starting the music activity first when no
+   * track is live. Never navigates anywhere.
+   */
+  expandMusicPlayer: () => void;
   seekDraft: number | null;
   setSeekDraft: (value: number) => void;
   commitSeekDraft: () => void;
@@ -170,7 +175,7 @@ const MusicExpandedTrailing = () => {
 };
 
 const MusicExpandedControls = () => {
-  const { track, connected, sendCommand, seekDraft, setSeekDraft, commitSeekDraft, cancelSeekDraft } = useMusicIslandState();
+  const { track, connected, openMusic, sendCommand, seekDraft, setSeekDraft, commitSeekDraft, cancelSeekDraft } = useMusicIslandState();
   const [smoothTime, setSmoothTime] = useState(track ? track.currentTime : 0);
   const [volumeDraft, setVolumeDraft] = useState<number | null>(null);
   const anchorRef = useRef({ time: track ? track.currentTime : 0, at: Date.now() });
@@ -194,7 +199,24 @@ const MusicExpandedControls = () => {
     if (volumeDraft === null || !track || track.volume === null) return;
     if (Math.abs(track.volume - volumeDraft) < 0.005) setVolumeDraft(null);
   }, [track ? track.volume : null, track ? track.title : '', volumeDraft]);
-  if (!track) return null;
+  // No track: the expanded card shows the empty state instead of the player
+  // controls. Only the button inside it opens the music space — tapping the
+  // island itself never navigates anywhere.
+  if (shouldShowMusicEmptyState(track)) {
+    return (
+      <div className="qz-island-expanded-empty">
+        <p>还没放歌</p>
+        <button
+          type="button"
+          onClick={() => {
+            if (resolveMusicIslandTapAction('empty-state-button') === 'openMusic') openMusic();
+          }}
+        >
+          去音乐空间选歌
+        </button>
+      </div>
+    );
+  }
   const duration = Math.max(1, track.duration);
   const shownTime = seekDraft ?? smoothTime;
   const progress = Math.min(track.duration || 0, shownTime);
@@ -313,6 +335,31 @@ export const shouldShowIslandIdleRecall = (
   fullscreenSuppressed: boolean,
 ): boolean => activityIds.length === 0 && !docked && !fullscreenSuppressed;
 
+/** Which taps navigate to the music space. Only the button inside the expanded empty card does — tapping the island itself only ever expands it in place. */
+export type MusicIslandTapTarget = 'idle-recall' | 'empty-state-button';
+
+export function resolveMusicIslandTapAction(target: MusicIslandTapTarget): 'expand' | 'openMusic' {
+  return target === 'empty-state-button' ? 'openMusic' : 'expand';
+}
+
+/** The expanded card shows the empty state exactly when no track is live. */
+export function shouldShowMusicEmptyState(track: MusicTrack | null): track is null {
+  return track === null;
+}
+
+/**
+ * True when a trackless music activity should be ended. Such an activity only
+ * exists to show the empty expanded card: once the island leaves the expanded
+ * view, end it so the thin recall edge comes back instead of an empty capsule.
+ */
+export function shouldEndTracklessMusicActivity(
+  hasTrack: boolean,
+  isExpanded: boolean,
+  activityIds: readonly string[],
+): boolean {
+  return !hasTrack && !isExpanded && activityIds.includes('music-playback');
+}
+
 /** A fresh touch on the visible island cancels a delayed dock from the previous swipe. */
 export const shouldCancelPendingIslandDock = (source: IslandDockSource): boolean => source === 'island';
 
@@ -374,7 +421,7 @@ export const MusicIslandView = ({
 }) => {
   const [docked, setDocked] = useState(false);
   const [fullscreenSuppressed, setFullscreenSuppressed] = useState(false);
-  const islandActions = useIslandActions();
+  const islandActions = useIsland();
   const gestureRef = useRef<IslandDockGesture | null>(null);
   const dockTimerRef = useRef<number | null>(null);
   const callArrivalTimerRef = useRef<number | null>(null);
@@ -563,6 +610,17 @@ export const MusicIslandView = ({
     setDocked(false);
   }, [value.activityIds]);
 
+  // A trackless music activity only exists to show the empty expanded card.
+  // Once the island leaves the expanded view — closed, docked, or an alert
+  // that took over has ended — end it, so the thin recall edge comes back
+  // instead of an empty capsule.
+  const presentation = islandActions.presentation;
+  useEffect(() => {
+    if (shouldEndTracklessMusicActivity(value.track !== null, presentation === 'expanded', value.activityIds)) {
+      islandActions.end('music-playback');
+    }
+  }, [value.track, value.activityIds, presentation, islandActions]);
+
   const restoreIsland = () => {
     if (dockTimerRef.current !== null) window.clearTimeout(dockTimerRef.current);
     dockTimerRef.current = null;
@@ -571,11 +629,13 @@ export const MusicIslandView = ({
 
   // No live activity: the engine would still draw an empty black capsule that is
   // not a control. Show only a thin glass edge with a note instead; tapping it
-  // expands the player when a track is live, otherwise opens the music space.
+  // always expands the player in place — with a track it opens the playing song,
+  // without one it opens the empty card. It never navigates: the music space is
+  // only opened from the button inside the expanded card.
   const showIdleRecall = shouldShowIslandIdleRecall(value.activityIds, docked, fullscreenSuppressed);
   const handleIdleRecall = () => {
     haptic('tick');
-    if (value.track) islandActions.expand('music-playback');
+    if (resolveMusicIslandTapAction('idle-recall') === 'expand') value.expandMusicPlayer();
     else value.openMusic();
   };
 
@@ -588,7 +648,7 @@ export const MusicIslandView = ({
           <button
             type="button"
             className="qz-island-idle"
-            aria-label="打开音乐空间"
+            aria-label="展开音乐播放器"
             onClick={handleIdleRecall}
           >
             <span aria-hidden="true">♫</span>

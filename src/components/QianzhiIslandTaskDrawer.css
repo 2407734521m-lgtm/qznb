@@ -46,6 +46,15 @@
   transition: background .18s ease, border-color .18s ease, transform .18s cubic-bezier(.2,.8,.2,1);
 }
 
+/* The drawn circle stays 29px, but the hit area reaches 44px so a fingertip
+   can land on it. The left inset stops 1px short of the pill so the trigger
+   never covers the pill itself. */
+.qz-island-task-trigger::after {
+  content: '';
+  position: absolute;
+  inset: -8px -8px -8px -7px;
+}
+
 /* With the navigation bead present (fixed at centre + 60..80), the trigger
    must clear the bead too: +28px past the pill edge. */
 .qz-island-task-ui.has-route-indicator .qz-island-task-anchor {
@@ -262,6 +271,8 @@
 @media (max-width: 360px) {
   .qz-island-task-anchor { width: 27px; }
   .qz-island-task-trigger { width: 27px; height: 27px; }
+  /* 27px circle + 9px top/bottom, 9px right, 8px left = 45px tall, 44px wide. */
+  .qz-island-task-trigger::after { inset: -9px -9px -9px -8px; }
   .qz-island-task-panel { border-radius: 19px; }
   .qz-island-task-row { min-height: 50px; gap: 8px; padding-inline: 8px; }
 }

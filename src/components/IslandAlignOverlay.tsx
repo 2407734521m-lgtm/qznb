@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type PointerEvent } from 'react';
 import { createPortal } from 'react-dom';
+import { QIANZHI_ISLAND_BASELINE_Y_ADJUSTMENT } from '../lib/island/geometry';
 import './IslandAlignOverlay.css';
 
 type Props = {
@@ -17,8 +18,8 @@ const signed = (value: number) => (value > 0 ? '+' : '') + value;
 function applyOffset(x: number, y: number) {
   const root = document.documentElement;
   root.style.setProperty('--qz-island-config-x', x + 'px');
-  // Same -10px raise the provider applies, so the preview sits exactly where the saved spot will.
-  root.style.setProperty('--qz-island-config-y', (y - 10) + 'px');
+  // Same baseline raise the provider applies, so the preview sits exactly where the saved spot will.
+  root.style.setProperty('--qz-island-config-y', (y + QIANZHI_ISLAND_BASELINE_Y_ADJUSTMENT) + 'px');
 }
 
 /**

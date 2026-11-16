@@ -103,6 +103,20 @@ export function readCachedUserPreferences(profileId: string | null | undefined):
   }
 }
 
+/**
+ * The one rule for "should this surface reduce motion": reduced when the
+ * account preference says "reduce", or when the operating system does.
+ * "full" only means "don't force it yourself" — it never overrides the system
+ * setting, and "system" follows the system. The island engine mapping in
+ * resolveIslandReducedMotion expresses the same rule in its own terms.
+ */
+export function resolveMotionReduced(
+  preference: UserPreferences['motion'],
+  systemReducedMotion: boolean,
+): boolean {
+  return preference === 'reduce' || systemReducedMotion;
+}
+
 export function isQuietHoursActive(
   preference: QuietHoursPreference,
   now: Date = new Date(),

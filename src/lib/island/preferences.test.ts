@@ -6,8 +6,10 @@ describe("resolveIslandReducedMotion", () => {
     expect(resolveIslandReducedMotion("reduce")).toBe("always");
   });
 
-  it("keeps the full motion profile when explicitly selected", () => {
-    expect(resolveIslandReducedMotion("full")).toBe("never");
+  it("still follows the operating system when full motion is selected", () => {
+    // The settings page promises full motion still respects the system's
+    // reduced-motion setting; "never" would ignore it.
+    expect(resolveIslandReducedMotion("full")).toBe("user");
   });
 
   it("follows the operating system when set to system", () => {

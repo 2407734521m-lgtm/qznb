@@ -13,7 +13,7 @@ import { CallProvider } from './lib/call';
 import { startSitePresence } from './lib/sitePresence';
 import { useAuth } from './auth';
 import { getWallpaper } from './lib/wallpaper';
-import { readCachedUserPreferences, useQuietHoursActive } from './lib/userPreferences';
+import { readCachedUserPreferences, resolveMotionReduced, useQuietHoursActive } from './lib/userPreferences';
 import { useIslandActions } from './lib/island';
 import { showIslandAlert } from './components/QianzhiIslandAlert';
 import { createIslandAlertScheduler } from './components/islandAlertScheduler';
@@ -482,7 +482,7 @@ function Shell() {
   const [motionPreference, setMotionPreference] = useState<'system' | 'reduce' | 'full'>(() => {
     try { return (localStorage.getItem('qznb_motion_preference_v1') as 'system' | 'reduce' | 'full') || 'system'; } catch { return 'system'; }
   });
-  const reduce = motionPreference === 'reduce' || !!systemReduce;
+  const reduce = resolveMotionReduced(motionPreference, !!systemReduce);
   useEffect(() => {
     const syncMotion = () => {
       try { setMotionPreference((localStorage.getItem('qznb_motion_preference_v1') as 'system' | 'reduce' | 'full') || 'system'); } catch { setMotionPreference('system'); }

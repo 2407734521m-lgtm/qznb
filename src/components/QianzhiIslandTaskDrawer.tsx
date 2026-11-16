@@ -17,6 +17,24 @@ export function resolveIslandTaskStatusLabel(status: ActivityTaskState['status']
   return '进行中';
 }
 
+/**
+ * The row's accessible name. A plain aria-label would hide the row's visible
+ * status, detail and progress text from screen readers, so the label carries
+ * them: category, status, detail and — while running — the progress percentage.
+ */
+export function resolveIslandTaskAccessibleLabel(activity: Activity): string {
+  const category = resolveIslandActivityCategory(activity.id);
+  const task = activity.task;
+  const status = task
+    ? resolveIslandTaskStatusLabel(task.status)
+    : activity.group ? '分组活动' : '正在运行';
+  const parts = [`切换到：${activity.label}`, `${category} · ${status}`];
+  if (task?.detail) parts.push(task.detail);
+  const progress = resolveIslandTaskProgress(task?.progress);
+  if (task?.status === 'running' && progress !== null) parts.push(`进度 ${progress}%`);
+  return parts.join('，');
+}
+
 /** Stable classification for the site's existing activity IDs. */
 export function resolveIslandActivityCategory(id: string): IslandActivityCategory {
   const value = id.toLowerCase();
@@ -46,7 +64,7 @@ function ActivityRow({ activity, onSelect }: { activity: Activity; onSelect: (id
       type="button"
       className="qz-island-task-row"
       onClick={() => onSelect(activity.id)}
-      aria-label={`切换到：${activity.label}`}
+      aria-label={resolveIslandTaskAccessibleLabel(activity)}
     >
       <span className="qz-island-task-symbol" aria-hidden="true">{activitySymbol(category)}</span>
       <span className="qz-island-task-copy">

@@ -1541,7 +1541,7 @@
   backdrop-filter: blur(20px) saturate(1.25);
 }
 .im-page .im-bubble {
-  box-shadow: 0 5px 16px rgba(42,61,94,.065), inset 0 1px 0 rgba(255,255,255,.16);
+  box-shadow: 0 5px 16px rgba(42,61,94,.065), inset 0 1px 0 rgba(255,255,255,.16) !important;
 }
 .im-page .im-bubble.mine {
   background: #3478d4 !important;

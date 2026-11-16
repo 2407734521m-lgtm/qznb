@@ -1,139 +1,19 @@
-/* 语音通话浮层：纸面风 */
-.call-overlay{position:fixed;inset:0;z-index:300;display:grid;place-items:center;background:rgba(38,32,22,.48);padding:20px}
-.call-card{width:min(320px,100%);background:#fffdf9;border:1px solid rgba(122,100,66,.32);border-radius:20px;padding:28px 22px 22px;text-align:center;box-shadow:0 18px 50px rgba(30,24,12,.35)}
-.call-avatar{width:72px;height:72px;border-radius:50%;background:#22314a;color:#fdf9ef;display:grid;place-items:center;font-size:28px;font-weight:700;margin:0 auto 12px}
-.call-name{font-size:19px;font-weight:700;color:#22314a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.call-status{margin-top:6px;font-size:13.5px;color:#8a7c66;min-height:20px}
-.call-timer{font-variant-numeric:tabular-nums;color:#22314a;font-size:15px}
-.call-actions{display:flex;gap:12px;justify-content:center;margin-top:20px}
-.call-btn{appearance:none;border-radius:999px;padding:12px 24px;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit}
-.call-btn-accept{background:#22314a;border:1px solid #22314a;color:#fdf9ef}
-.call-btn-reject{background:#fffdf9;border:1px solid #b0404f;color:#b0404f}
-.call-btn-hangup{background:#b0404f;border:1px solid #b0404f;color:#fff}
-.call-btn-mute{background:#f7f2e4;border:1px solid rgba(122,100,66,.35);color:#22314a}
-.call-btn-mute.is-muted{background:#22314a;border-color:#22314a;color:#fdf9ef}
-.call-note{position:fixed;left:50%;bottom:calc(104px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:301;display:flex;align-items:center;gap:10px;width:max-content;max-width:calc(100vw - 32px);padding:13px 19px;border:1px solid rgba(255,255,255,.78);border-radius:18px;background:#1d293b;color:#fff;font-size:14px;font-weight:650;line-height:1.35;white-space:normal;box-shadow:0 12px 34px rgba(22,35,55,.28),inset 0 1px 0 rgba(255,255,255,.12);animation:call-note-in .24s cubic-bezier(.22,1,.36,1) both}.call-note>span:first-child{display:grid;place-items:center;flex:none;width:28px;height:28px;border-radius:10px;background:rgba(255,255,255,.13);font-size:15px}@keyframes call-note-in{from{opacity:0;transform:translate(-50%,8px) scale(.97)}to{opacity:1;transform:translate(-50%,0) scale(1)}}@media(prefers-reduced-motion:reduce){.call-note{animation:none}}
-
-
-/* Refined, lightweight voice-call sheet */
+/* Full-screen voice call; scoped so it cannot alter other site surfaces. */
 .call-overlay {
-  background: rgba(18,26,39,.28);
-  -webkit-backdrop-filter: blur(14px) saturate(1.12);
-  backdrop-filter: blur(14px) saturate(1.12);
-  padding: 22px;
-}
-.call-card {
-  position: relative;
-  width: min(340px,100%);
-  padding: 30px 24px 24px;
-  border: 1px solid rgba(255,255,255,.92);
-  border-radius: 28px;
-  background: rgba(255,255,255,.97);
-  box-shadow: 0 24px 70px rgba(20,35,58,.18),0 2px 8px rgba(20,35,58,.06);
-  color: #202938;
-}
-.call-avatar {
-  width: 78px;
-  height: 78px;
-  margin-bottom: 15px;
-  border: 3px solid #fff;
-  background: linear-gradient(145deg,#e8f1ff,#dce8f8);
-  color: #315b91;
-  box-shadow: 0 4px 18px rgba(50,91,145,.14);
-}
-.call-name { color:#202938; font-size:20px; letter-spacing:-.025em; }
-.call-status { margin-top:7px; color:#8993a2; font-size:13px; }
-.call-timer {
-  display:inline-block; margin-top:3px; color:#53647c;
-  font-size:14px; font-weight:600; font-variant-numeric:tabular-nums;
-}
-.call-actions { gap:10px; margin-top:24px; }
-.call-btn {
-  min-width:112px; padding:12px 18px; border-radius:15px;
-  font-size:14px; font-weight:650;
-  transition:transform .16s ease,background .16s ease,box-shadow .16s ease;
-}
-.call-btn:active { transform:scale(.97); }
-.call-btn-accept {
-  border-color:#087cff; background:#087cff; color:#fff;
-  box-shadow:0 5px 13px rgba(8,124,255,.18);
-}
-.call-btn-reject { border-color:#e5e8ed; background:#f6f7f9; color:#697487; }
-.call-btn-hangup {
-  border-color:#e34e59; background:#e34e59; color:#fff;
-  box-shadow:0 5px 13px rgba(227,78,89,.16);
-}
-.call-btn-mute { border-color:#e5e9ef; background:#f4f6f9; color:#46556b; }
-.call-btn-mute.is-muted { border-color:#d9e7fb; background:#eaf2ff; color:#1769c2; }
-.call-note {
-  bottom:calc(92px + env(safe-area-inset-bottom));
-  gap:9px; padding:11px 15px; border:1px solid rgba(225,230,237,.9);
-  border-radius:16px; background:rgba(255,255,255,.96); color:#273448;
-  font-size:13px; font-weight:600; box-shadow:0 8px 28px rgba(24,39,61,.13);
-  -webkit-backdrop-filter:blur(18px); backdrop-filter:blur(18px);
-}
-.call-note > span:first-child {
-  width:25px; height:25px; border-radius:9px;
-  background:#edf4ff; color:#2874cf; font-size:13px;
-}
-@media(prefers-reduced-motion:reduce) { .call-btn { transition:none; } }
-
-
-/* Keep the active call controls available while letting the island remain visible. */
-.call-minimize {
-  position: absolute;
-  top: 13px;
-  right: 13px;
-  display: grid;
-  width: 40px;
-  height: 40px;
-  place-items: center;
-  border: 1px solid rgba(119,143,176,.2);
-  border-radius: 50%;
-  background: rgba(248,250,253,.98);
-  color: #53647c;
-  font: inherit;
-  font-size: 24px;
-  line-height: 1;
-  cursor: pointer;
-  touch-action: manipulation;
-  user-select: none;
-  -webkit-tap-highlight-color: transparent;
-  box-shadow: 0 4px 12px rgba(35,55,85,.08), inset 0 1px 0 #fff;
-  transition: transform .18s cubic-bezier(.22,1,.36,1), background .18s ease, box-shadow .18s ease;
-}
-.call-minimize:active { transform: scale(.92); background: #eaf2ff; }
-.call-minimize:focus-visible { outline: 2px solid #087cff; outline-offset: 3px; }
-@media (prefers-reduced-motion: reduce) { .call-minimize { transition: none; } }
-
-
-/* Keep the minimise flight cheap to composite on mobile browsers. */
-.call-overlay.is-minimizing {
-  -webkit-backdrop-filter: none;
-  backdrop-filter: none;
-}
-.qz-call-card-content {
-  display: block;
-}
-.qz-call-card-flight-content {
-  pointer-events: none;
-}
-
-
-/* Full-screen voice call surface. Scoped to the call overlay only. */
-.call-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
   display: block;
   padding: 0;
   overflow: hidden;
   background: #111821;
-  -webkit-backdrop-filter: none;
-  backdrop-filter: none;
 }
 .call-overlay.is-minimizing {
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
 }
 .call-card {
+  position: relative;
   box-sizing: border-box;
   width: 100vw;
   height: 100vh;
@@ -167,18 +47,6 @@
     linear-gradient(160deg, #202936 0%, #171f2a 53%, #111821 100%);
   text-align: center;
 }
-.qz-call-fullscreen::after {
-  position: absolute;
-  z-index: -1;
-  right: -28%;
-  bottom: -37%;
-  left: -28%;
-  height: 58%;
-  border-radius: 50%;
-  background: radial-gradient(ellipse, rgba(255,255,255,.035), transparent 68%);
-  content: "";
-  pointer-events: none;
-}
 .qz-call-topbar {
   display: flex;
   width: 100%;
@@ -194,17 +62,22 @@
   letter-spacing: .04em;
 }
 .qz-call-fullscreen .call-minimize {
-  position: static;
   display: grid;
   width: 44px;
   height: 44px;
   flex: 0 0 44px;
   place-items: center;
+  padding: 0;
   border: 1px solid rgba(255,255,255,.13);
   border-radius: 50%;
   background: rgba(255,255,255,.085);
   color: rgba(255,255,255,.9);
   box-shadow: inset 0 1px 0 rgba(255,255,255,.09);
+  font: inherit;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 160ms ease, background-color 160ms ease;
 }
 .qz-call-fullscreen .call-minimize svg {
   width: 20px;
@@ -214,8 +87,12 @@
   stroke-width: 1.8;
   stroke-linecap: round;
 }
-.qz-call-fullscreen .call-minimize:active {
-  background: rgba(255,255,255,.18);
+.qz-call-fullscreen .call-minimize:active { transform: scale(.93); background: rgba(255,255,255,.18); }
+.qz-call-fullscreen .call-minimize:focus-visible,
+.qz-call-control:focus-visible,
+.qz-call-action:focus-visible {
+  outline: 2px solid rgba(255,255,255,.92);
+  outline-offset: 4px;
 }
 .qz-call-stage {
   display: flex;
@@ -239,9 +116,7 @@
   background: rgba(255,255,255,.035);
   box-shadow: 0 0 0 9px rgba(255,255,255,.025), 0 18px 48px rgba(0,0,0,.18);
 }
-.qz-call-avatar-ring.is-ringing {
-  animation: qz-call-avatar-breathe 2s ease-in-out infinite;
-}
+.qz-call-avatar-ring.is-ringing { animation: qz-call-avatar-breathe 2s ease-in-out infinite; }
 .qz-call-fullscreen .call-avatar {
   display: grid;
   width: 108px;
@@ -418,6 +293,47 @@
   stroke-linejoin: round;
 }
 .qz-call-action:active .qz-call-action-icon { transform: scale(.94); }
+.qz-call-card-flight-content { pointer-events: none; }
+
+.call-note {
+  position: fixed;
+  z-index: 301;
+  left: 50%;
+  bottom: calc(92px + env(safe-area-inset-bottom));
+  display: flex;
+  width: max-content;
+  max-width: calc(100vw - 32px);
+  align-items: center;
+  gap: 9px;
+  padding: 11px 15px;
+  border: 1px solid rgba(225,230,237,.9);
+  border-radius: 16px;
+  background: rgba(255,255,255,.96);
+  color: #273448;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.35;
+  white-space: normal;
+  box-shadow: 0 8px 28px rgba(24,39,61,.13);
+  -webkit-backdrop-filter: blur(18px);
+  backdrop-filter: blur(18px);
+  animation: call-note-in .24s cubic-bezier(.22,1,.36,1) both;
+}
+.call-note > span:first-child {
+  display: grid;
+  width: 25px;
+  height: 25px;
+  flex: none;
+  place-items: center;
+  border-radius: 9px;
+  background: #edf4ff;
+  color: #2874cf;
+  font-size: 13px;
+}
+@keyframes call-note-in {
+  from { opacity: 0; transform: translate(-50%, 8px) scale(.97); }
+  to { opacity: 1; transform: translate(-50%, 0) scale(1); }
+}
 @keyframes qz-call-avatar-breathe {
   0%, 100% { box-shadow: 0 0 0 8px rgba(255,255,255,.025), 0 18px 48px rgba(0,0,0,.18); }
   50% { box-shadow: 0 0 0 14px rgba(255,255,255,.045), 0 18px 48px rgba(0,0,0,.18); }
@@ -433,31 +349,12 @@
   .qz-call-action-icon { width: 58px; height: 58px; }
 }
 @media (orientation: landscape) and (max-height: 520px) {
-  .qz-call-fullscreen { padding-right: max(28px, env(safe-area-inset-right)); padding-left: max(28px, env(safe-area-inset-left)); }
-  .qz-call-stage { padding: 0; }
-  .qz-call-avatar-ring { width: 82px; height: 82px; margin-bottom: 10px; }
-  .qz-call-fullscreen .call-avatar { width: 66px; height: 66px; font-size: 26px; }
-  .qz-call-controls { width: min(100%, 390px); }
-}
-@media (prefers-reduced-motion: reduce) {
-  .qz-call-avatar-ring.is-ringing { animation: none; }
-  .qz-call-control-icon,
-  .qz-call-action-icon { transition: none; }
-}
-
-
-/* Landscape calls use a compact side-by-side identity layout to protect the controls. */
-@media (orientation: landscape) and (max-height: 520px) {
   .qz-call-fullscreen {
     padding-top: calc(env(safe-area-inset-top, 0px) + 6px);
     padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 8px);
   }
   .qz-call-topbar { min-height: 36px; }
-  .qz-call-fullscreen .call-minimize {
-    width: 36px;
-    height: 36px;
-    flex-basis: 36px;
-  }
+  .qz-call-fullscreen .call-minimize { width: 36px; height: 36px; flex-basis: 36px; }
   .qz-call-stage {
     display: grid;
     grid-template-columns: 76px minmax(0, 1fr);
@@ -475,11 +372,7 @@
     height: 68px;
     margin: 0;
   }
-  .qz-call-fullscreen .call-avatar {
-    width: 54px;
-    height: 54px;
-    font-size: 22px;
-  }
+  .qz-call-fullscreen .call-avatar { width: 54px; height: 54px; font-size: 22px; }
   .qz-call-fullscreen .call-name {
     grid-column: 2;
     grid-row: 1;
@@ -487,44 +380,25 @@
     margin: 0;
     font-size: 20px;
   }
-  .qz-call-state {
-    grid-column: 2;
-    grid-row: 2;
-    margin-top: 3px;
-    font-size: 12px;
-  }
-  .qz-call-fullscreen .call-status {
-    grid-column: 2;
-    grid-row: 3;
-    min-height: 18px;
-    margin-top: 2px;
-    font-size: 11px;
-  }
+  .qz-call-state { grid-column: 2; grid-row: 2; margin-top: 3px; font-size: 12px; }
+  .qz-call-fullscreen .call-status { grid-column: 2; grid-row: 3; min-height: 18px; margin-top: 2px; font-size: 11px; }
   .qz-call-controls {
     width: min(100%, 340px);
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 18px;
     margin: 0 auto;
   }
-  .qz-call-control {
-    min-height: 48px;
-    gap: 3px;
-    font-size: 10px;
-  }
-  .qz-call-control-icon {
-    width: 42px;
-    height: 42px;
-    flex-basis: 42px;
-  }
-  .qz-call-control-hangup .qz-call-control-icon {
-    width: 44px;
-    height: 44px;
-    flex-basis: 44px;
-  }
+  .qz-call-control { min-height: 48px; gap: 3px; font-size: 10px; }
+  .qz-call-control-icon { width: 42px; height: 42px; flex-basis: 42px; }
+  .qz-call-control-hangup .qz-call-control-icon { width: 44px; height: 44px; flex-basis: 44px; }
   .qz-call-main-actions { margin: 0 auto; }
   .qz-call-action { gap: 4px; font-size: 11px; }
-  .qz-call-action-icon {
-    width: 44px;
-    height: 44px;
-  }
+  .qz-call-action-icon { width: 44px; height: 44px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .qz-call-avatar-ring.is-ringing { animation: none; }
+  .qz-call-control-icon,
+  .qz-call-action-icon,
+  .qz-call-fullscreen .call-minimize { transition: none; }
+  .call-note { animation: none; }
 }

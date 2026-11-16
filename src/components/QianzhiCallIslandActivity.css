@@ -164,3 +164,15 @@
   .qz-call-island-compact .qz-call-island-icon { transition: none; }
   .qz-call-island-compact.is-ringing .qz-call-island-icon { animation: none; }
 }
+
+
+/* Four compact actions fit the expanded call island on common Android phone widths. */
+@media (max-width: 420px) {
+  .qz-call-island-actions { gap: 6px; }
+  .qz-call-island-action {
+    min-width: 60px;
+    min-height: 36px;
+    padding: 0 8px;
+    font-size: 11px;
+  }
+}

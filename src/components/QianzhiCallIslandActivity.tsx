@@ -8,12 +8,58 @@ export interface CallIslandActivityInput {
   peerName: string;
   startedAt: number | null;
   muted: boolean;
+  speakerEnabled: boolean;
   onAccept: () => void;
   onReject: () => void;
   onCancel: () => void;
   onHangUp: () => void;
   onToggleMute: () => void;
+  onToggleSpeaker: () => void;
   onRestore: () => void;
+}
+
+export interface CallIslandTargetRectInput {
+  presentation: string | undefined;
+  docked: boolean;
+  pillRect: { left: number; top: number; width: number; height: number } | null;
+  viewportWidth: number;
+  anchorTop: number;
+  shapeTop: number;
+  shapeHeight: number;
+  configuredWidth: number;
+  offsetX: number;
+  offsetY: number;
+}
+
+/**
+ * Resolve the call-flight landing point even when the island is currently translated
+ * off-screen. A docked pill keeps its measured horizontal size, but its vertical
+ * destination comes from the saved capsule geometry rather than its hidden DOM rect.
+ */
+export function resolveCallIslandTargetRect(input: CallIslandTargetRectInput) {
+  const pill = input.pillRect;
+  if (
+    input.presentation !== 'expanded'
+    && pill
+    && pill.width > 0
+    && pill.height > 0
+  ) {
+    return {
+      left: pill.left,
+      top: input.docked ? input.anchorTop + input.shapeTop + input.offsetY : pill.top,
+      width: pill.width,
+      height: pill.height,
+    };
+  }
+
+  const width = Math.max(1, input.configuredWidth);
+  const height = Math.max(1, input.shapeHeight);
+  return {
+    left: input.viewportWidth / 2 + input.offsetX - width / 2,
+    top: input.anchorTop + input.shapeTop + input.offsetY,
+    width,
+    height,
+  };
 }
 
 function formatDuration(totalSeconds: number) {
@@ -56,7 +102,7 @@ function CallAction({ label, tone, onAction }: { label: string; tone?: 'primary'
 
 /** Maps the existing WebRTC state machine to one high-priority island activity. */
 export function createCallIslandActivity(input: CallIslandActivityInput): ActivityOptions {
-  const { phase, peerName, startedAt, muted } = input;
+  const { phase, peerName, startedAt, muted, speakerEnabled } = input;
   const phaseLabel = phase === 'incoming'
     ? '来电邀请'
     : phase === 'outgoing'
@@ -109,6 +155,7 @@ export function createCallIslandActivity(input: CallIslandActivityInput): Activi
             <>
               <CallAction label="返回通话" onAction={input.onRestore} />
               <CallAction label={muted ? '取消静音' : '静音'} onAction={input.onToggleMute} />
+              <CallAction label={speakerEnabled ? '听筒' : '扬声器'} onAction={input.onToggleSpeaker} />
               <CallAction label="挂断" tone="danger" onAction={input.onHangUp} />
             </>
           )}

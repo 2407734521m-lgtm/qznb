@@ -206,6 +206,9 @@ export const resolveIslandGestureSource = (
   isInsideIslandHost: boolean,
 ): IslandDockSource | null => isPeek ? 'peek' : isInsideIslandHost ? 'island' : null;
 
+/** A fresh touch on the visible island cancels a delayed dock from the previous swipe. */
+export const shouldCancelPendingIslandDock = (source: IslandDockSource): boolean => source === 'island';
+
 export const resolveIslandDockGesture = (
   source: IslandDockSource,
   deltaX: number,
@@ -292,6 +295,13 @@ export const MusicIslandView = ({
         target.closest('.qz-island-host') !== null,
       );
       if (!source) return;
+
+      // If the user taps or starts another gesture while the expanded collapse is
+      // waiting to dock, the newer interaction wins. Do not hide the island afterward.
+      if (shouldCancelPendingIslandDock(source) && dockTimerRef.current !== null) {
+        window.clearTimeout(dockTimerRef.current);
+        dockTimerRef.current = null;
+      }
 
       gestureRef.current = {
         pointerId: event.pointerId,

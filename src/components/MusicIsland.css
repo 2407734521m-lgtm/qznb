@@ -21,9 +21,10 @@
 }
 
 .qz-island-host.is-docked {
+  /* Keep a constant 7px glass lip visible regardless of the user's vertical alignment offset. */
   transform: translate3d(
     var(--qz-island-offset-x),
-    calc(0px - var(--qz-island-safe-top) - var(--qz-island-shape-top) - var(--qz-island-shape-height) + var(--qz-island-offset-y) + 7px),
+    calc(0px - var(--qz-island-safe-top) - var(--qz-island-shape-top) - var(--qz-island-shape-height) + 7px),
     0
   );
 }

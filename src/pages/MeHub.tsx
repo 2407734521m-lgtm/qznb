@@ -5,6 +5,7 @@ import { useAuth } from '../auth';
 import { useSignedUrl, useSignedUrls } from '../lib/media';
 import './MeHub.css';
 import './MeHub.polish.css';
+import LargeTitleBar from '../components/LargeTitleBar';
 import NumberTicker from '../components/fx/NumberTicker';
 import BlurImg from '../components/fx/BlurImg';
 
@@ -231,13 +232,14 @@ export default function MeHub() {
 
   return (
     <main className="page me-hub">
+      {/*
+        大标题收起：LargeTitleBar 必须直接挂在页面滚动流里——.me-hub-hero 有
+        overflow:hidden，吸顶条放卡片里会被裁在卡片范围内、滚走后留不住。
+        所以标题移到 hero 卡片上方（与首页/发现页同一 pattern）；副标题不另写，
+        “管理你的资料、内容与账号设置”已在下方头像旁的身份区里。
+      */}
+      <LargeTitleBar title="个人中心" headerClassName="me-hub-large-title" />
       <section className="me-hub-hero">
-        <div className="me-hub-topbar">
-          <div>
-            <h1>个人中心</h1>
-          </div>
-        </div>
-
         <div className="me-hub-profile">
           <button className="me-hub-avatar" onClick={() => nav('/members/' + me)} aria-label="打开我的个人主页">
             {avUrl ? <img src={avUrl} alt="个人头像" /> : <span>{(name || '我').slice(0, 1)}</span>}

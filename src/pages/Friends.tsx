@@ -8,6 +8,8 @@ import { preloadRoute } from '../lib/routePreload';
 import { confirmDialog } from '../lib/dialog';
 import ChatConversationItem from '../components/chatcn/ChatConversationItem';
 import './Friends.chatcn.css';
+import LargeTitleBar from '../components/LargeTitleBar';
+import SwipeToDelete, { showUndoToast } from '../components/SwipeToDelete';
 
 type Friend = {
   id: string;
@@ -96,7 +98,6 @@ function previewText(item: ConversationPreview, myId: string) {
   return body || '消息';
 }
 
-
 function ChatInboxIcon({ name }: { name: string }) {
   const common = {
     viewBox: '0 0 24 24',
@@ -131,6 +132,13 @@ function ChatInboxIcon({ name }: { name: string }) {
     default:
       return null;
   }
+}
+
+/** 把条目插回原位（撤销 / 隐藏失败时用），下标夹在合法范围内。 */
+function insertAt<T>(list: T[], item: T, index: number): T[] {
+  const next = [...list];
+  next.splice(Math.max(0, Math.min(index, next.length)), 0, item);
+  return next;
 }
 
 export default function Friends() {
@@ -182,6 +190,11 @@ export default function Friends() {
   const [friendActionId, setFriendActionId] = useState<string | null>(null);
   const loadSequenceRef = useRef(0);
   const notificationsLoadSequenceRef = useRef(0);
+  // 私聊页在 .im-inbox 内层容器里滚动（窗口 scrollY 不动），大标题跟这个容器。
+  const inboxRef = useRef<HTMLDivElement>(null);
+  // 左滑隐藏进行中（已从界面拿掉、5 秒撤销窗口内、还没真正调 hide_conversation）的会话 id：
+  // 15 秒兜底刷新 / realtime 重拉会把还没提交的会话带回来，渲染时先过滤掉，别让它在撤销窗口里闪回来。
+  const [pendingHiddenIds, setPendingHiddenIds] = useState<ReadonlySet<number>>(new Set());
   const [notifications, setNotifications] = useState<InboxNotification[]>([]);
   const [notificationsLoading, setNotificationsLoading] = useState(true);
   const showNotifSkeleton = useDelayedLoading(notificationsLoading);
@@ -412,11 +425,15 @@ export default function Friends() {
       || f.username.toLocaleLowerCase().includes(normalizedQuery)),
     [friends, normalizedQuery],
   );
+  const unhiddenConversations = useMemo(
+    () => conversations.filter(c => !pendingHiddenIds.has(c.conversation_id)),
+    [conversations, pendingHiddenIds],
+  );
   const filteredConversations = useMemo(
-    () => conversations.filter(c => (c.display_name ?? c.username).toLocaleLowerCase().includes(normalizedQuery)
+    () => unhiddenConversations.filter(c => (c.display_name ?? c.username).toLocaleLowerCase().includes(normalizedQuery)
       || c.username.toLocaleLowerCase().includes(normalizedQuery)
       || previewText(c, me).toLocaleLowerCase().includes(normalizedQuery)),
-    [conversations, normalizedQuery, me],
+    [unhiddenConversations, normalizedQuery, me],
   );
   // my_conversations() exposes one other_profile_id per result, so current records are direct chats.
   // Keep the group filter visible, but do not misrepresent direct conversations as groups.
@@ -520,6 +537,47 @@ export default function Friends() {
     } finally {
       setMarkingAllRead(false);
     }
+  }
+
+  /** 左滑隐藏的真正提交：只在 5 秒撤销窗口过去后调 hide_conversation。 */
+  async function commitHideConversation(conversation: ConversationPreview, index: number) {
+    const { error } = await supabase.rpc('hide_conversation', { p_conversation_id: conversation.conversation_id });
+    setPendingHiddenIds(prev => {
+      const next = new Set(prev);
+      next.delete(conversation.conversation_id);
+      return next;
+    });
+    if (error) {
+      // 隐藏接口还没上生产库时也会走到这里：把行放回原位并报错，不要静默丢会话。
+      setConversations(prev => insertAt(prev, conversation, index));
+      setMsg('隐藏失败：' + error.message);
+      return;
+    }
+    setMsg('已隐藏该会话。');
+  }
+
+  /**
+   * 左滑隐藏（延迟提交，照我的发布同一模式）：先只在界面上拿掉；
+   * 5 秒内点 toast 上的“撤销”就放回原位，不点才真正调 hide_conversation。
+   * 隐藏只影响当前用户，对方不受影响；新消息进来数据库触发器会自动取消隐藏。
+   */
+  function swipeHideConversation(conversation: ConversationPreview, index: number) {
+    setPendingHiddenIds(prev => new Set(prev).add(conversation.conversation_id));
+    setConversations(prev => prev.filter(item => item.conversation_id !== conversation.conversation_id));
+    showUndoToast({
+      message: '已隐藏该会话',
+      onUndo: () => {
+        setPendingHiddenIds(prev => {
+          const next = new Set(prev);
+          next.delete(conversation.conversation_id);
+          return next;
+        });
+        setConversations(prev => insertAt(prev, conversation, index));
+      },
+      onCommit: () => {
+        void commitHideConversation(conversation, index);
+      },
+    });
   }
 
   async function withdrawRequest(person: MemberSearchResult) {
@@ -696,7 +754,7 @@ export default function Friends() {
     });
 
   return (
-    <div className="page im-inbox chatcn-inbox">
+    <div className="page im-inbox chatcn-inbox" ref={inboxRef}>
       <style>{`
         .im-inbox{position:relative;isolation:isolate;width:100%;height:100%;min-height:0;max-width:none;margin:0;padding:18px 16px 28px!important;overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain;background:transparent!important}
         .im-inbox:before{content:'';position:absolute;z-index:-1;pointer-events:none;inset:0;background:none}
@@ -820,8 +878,30 @@ export default function Friends() {
         @media(max-width:520px){.im-conversation-list{border-radius:18px}.im-conversation-list > .im-inbox-row{gap:11px;padding:12px 13px}}
         @media(prefers-reduced-transparency:reduce){.im-primary-tabs,.im-search,.im-conversation-list{backdrop-filter:none;-webkit-backdrop-filter:none;background:#fff}}
         @media(prefers-reduced-motion:reduce){.im-inbox-row,.im-primary-thumb{transition:none}}
+        /* LargeTitleBar：h1/p 复用原来 .im-inbox-title/.im-inbox-subtitle 的字号与颜色。 */
+        .im-inbox-head h1{margin:0;font-size:29px;line-height:1.15;font-weight:760;letter-spacing:-.035em;color:#1d293b}
+        .im-inbox-head p{margin:6px 0 0;font-size:12px;color:#8793a4}
+        /* 会话行包了 SwipeToDelete 后不再是 .im-conversation-list 的直接子节点。
+           ChatCN 行本身是 button.chatcn-conversation-item：布局/分隔线/未读态都在
+           ChatConversationItem.css 里，只按嵌套路径补最后一行去分隔线
+           （:last-child 现在落在 .swipe-delete 上，行自身的 :last-child 不再命中）；
+           未读底色不重写，ChatCN 行只靠 .is-unread 加粗标题/预览。 */
+        .im-conversation-list > .swipe-delete:last-child > .swipe-delete-surface > .chatcn-conversation-item{border-bottom:0}
+        /* 滑出底色只露在右侧：表面本身要不透明（ChatCN 行按钮是透明底），否则印泥红会整行透出来；
+           圆角归 0——ChatCN 列表是无边框平铺行，没有圆角容器要裁。 */
+        .im-conversation-list .swipe-delete{--r:0}
+        .im-conversation-list .swipe-delete-surface{background:#fff}
       `}</style>
 
+      {/* 大标题收起：私信/消息分段、搜索框、找人/私信/好友/请求/黑名单 tab 行都在头外面，是头的兄弟节点，标题收起不影响它们。 */}
+      <LargeTitleBar
+        title="消息中心"
+        subtitle="私信与账号通知，集中在这里"
+        headerClassName="im-inbox-head"
+        scrollContainerRef={inboxRef}
+      />
+
+      {/* ChatCN 功能条保留在下面：头像与筛选菜单（请求/通知/设置/全部标已读）都在这里，大标题只负责收起。 */}
       <header className="im-inbox-head chatcn-inbox-head">
         <button type="button" className="chatcn-profile-button" aria-label="打开个人主页" onClick={() => nav('/me')}>
           {myAvatarUrl ? <img src={myAvatarUrl} alt="" /> : <span className="chatcn-profile-fallback">{myUsername.slice(0, 1) || '我'}</span>}
@@ -920,7 +1000,7 @@ export default function Friends() {
           {tab !== 'messages' && (
             <div className="im-inbox-tabs">
               <button type="button" className={tab === 'discover' ? 'on' : ''} onClick={() => setTab('discover')}>找人</button>
-              <button type="button" onClick={() => { setTab('messages'); setConversationFilter('all'); }}>私信 · {loading ? '…' : conversations.length}</button>
+              <button type="button" onClick={() => { setTab('messages'); setConversationFilter('all'); }}>私信 · {loading ? '…' : visibleConversations.length}</button>
               <button type="button" className={tab === 'friends' ? 'on' : ''} onClick={() => setTab('friends')}>好友 · {loading ? '…' : friends.length}</button>
               <button type="button" className={tab === 'reqs' ? 'on' : ''} onClick={() => setTab('reqs')}>请求{loading ? ' · …' : reqs.length > 0 ? ' · ' + reqs.length : ''}</button>
               <button type="button" className={tab === 'blocked' ? 'on' : ''} onClick={() => setTab('blocked')}>黑名单 · {loading ? '…' : blockedMembers.length}</button>
@@ -1022,16 +1102,24 @@ export default function Friends() {
                     : <button type="button" className="im-inbox-primary" onClick={() => { setTab('friends'); setConversationFilter('all'); }}>选择好友开始聊天</button>}
                 </div>
               ) : visibleConversations.map(conversation => (
-                <ChatConversationItem
+                <SwipeToDelete
                   key={conversation.conversation_id}
-                  title={conversation.display_name ?? conversation.username}
-                  avatar={<ProfileAvatar asSpan size={58} person={{ id: conversation.other_profile_id, username: conversation.username, display_name: conversation.display_name, avatar_path: conversation.avatar_path }} />}
-                  preview={(conversation.last_message_sender_id === me && conversation.last_message_id ? '我：' : '') + previewText(conversation, me)}
-                  time={formatInboxTime(conversation.last_message_at, conversation.conversation_created_at)}
-                  unreadCount={Number(conversation.unread_count) || 0}
-                  onPointerDown={() => preloadRoute('/chat')}
-                  onClick={() => openConversation(conversation)}
-                />
+                  deleteLabel="隐藏"
+                  onSwipeDelete={() => swipeHideConversation(
+                    conversation,
+                    conversations.findIndex(item => item.conversation_id === conversation.conversation_id),
+                  )}
+                >
+                  <ChatConversationItem
+                    title={conversation.display_name ?? conversation.username}
+                    avatar={<ProfileAvatar asSpan size={58} person={{ id: conversation.other_profile_id, username: conversation.username, display_name: conversation.display_name, avatar_path: conversation.avatar_path }} />}
+                    preview={(conversation.last_message_sender_id === me && conversation.last_message_id ? '我：' : '') + previewText(conversation, me)}
+                    time={formatInboxTime(conversation.last_message_at, conversation.conversation_created_at)}
+                    unreadCount={Number(conversation.unread_count) || 0}
+                    onPointerDown={() => preloadRoute('/chat')}
+                    onClick={() => openConversation(conversation)}
+                  />
+                </SwipeToDelete>
               ))}
             </div>
           )}

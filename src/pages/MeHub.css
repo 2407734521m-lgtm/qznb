@@ -39,6 +39,17 @@
   line-height: 1.15;
   letter-spacing: -.045em;
 }
+/* 大标题收起（LargeTitleBar）：字号/字重/字距/颜色复用原来 .me-hub-topbar h1
+   经 polish 覆盖后的最终值（--mh-ink 在 MeHub.polish.css 里定为 #202733）。 */
+.me-hub-large-title { margin: 2px 4px 14px; }
+.me-hub-large-title h1 {
+  margin: 0;
+  color: var(--mh-ink, #153f50);
+  font-size: 25px;
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: -.02em;
+}
 .me-hub-head-actions { gap: 8px; }
 .me-hub-head-icon {
   position: relative;
@@ -444,6 +455,8 @@
   .me-hub { padding-top: 3px; }
   .me-hub-hero { padding: 19px 17px 16px; border-radius: 23px; }
   .me-hub-topbar h1 { font-size: 23px; }
+  .me-hub-large-title { margin-bottom: 12px; }
+  .me-hub-large-title h1 { font-size: 23px; }
   .me-hub-profile { gap: 10px; margin-top: 18px; }
   .me-hub-avatar { width: 58px; height: 58px; flex-basis: 58px; border-radius: 19px; }
   .me-hub-identity strong { font-size: 16px; }

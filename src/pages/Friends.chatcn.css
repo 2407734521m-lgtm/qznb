@@ -8,7 +8,7 @@
 .im-inbox.chatcn-inbox .im-inbox-head.chatcn-inbox-head {
   position: relative;
   display: grid;
-  grid-template-columns: 56px minmax(0, 1fr) 112px;
+  grid-template-columns: 56px minmax(0, 1fr) 152px;
   align-items: center;
   gap: 8px;
   min-height: 72px;
@@ -57,6 +57,9 @@
 .chatcn-filter-root {
   position: relative;
   justify-self: end;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .chatcn-filter-trigger {
@@ -80,6 +83,25 @@
 
 .chatcn-filter-trigger:active { transform: scale(.97); }
 .chatcn-filter-trigger svg { width: 17px; height: 17px; }
+
+.chatcn-create-group-trigger {
+  width: 36px;
+  height: 42px;
+  flex: 0 0 36px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid rgba(31, 41, 55, .13);
+  border-radius: 50%;
+  color: #35404a;
+  background: rgba(255,255,255,.92);
+  box-shadow: 0 1px 3px rgba(20,28,40,.04);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background .18s ease, border-color .18s ease, transform .18s ease;
+}
+.chatcn-create-group-trigger:active { transform: scale(.94); }
+.chatcn-create-group-trigger svg { width: 19px; height: 19px; }
 
 .chatcn-filter-menu {
   /* Body portal avoids clipping by the inbox scroller; coordinates come from the trigger. */
@@ -257,15 +279,26 @@
 @media (max-width: 420px) {
   .im-inbox.chatcn-inbox { padding-left: 16px !important; padding-right: 16px !important; }
   .im-inbox.chatcn-inbox .im-inbox-head.chatcn-inbox-head {
-    grid-template-columns: 52px minmax(0, 1fr) 104px;
+    grid-template-columns: 52px minmax(0, 1fr) 144px;
     min-height: 66px;
     margin-bottom: 11px;
   }
   .chatcn-profile-button { width: 52px; height: 52px; }
   .chatcn-filter-trigger { min-width: 100px; height: 48px; padding: 0 13px; }
+  .chatcn-create-group-trigger { width: 36px; height: 40px; }
   .chatcn-inbox-search { height: 54px; margin-bottom: 18px; }
   .chatcn-conversation-item { min-height: 78px; gap: 12px; }
   .chatcn-conversation-avatar { width: 54px; height: 54px; flex-basis: 54px; }
+}
+
+@media (max-width: 360px) {
+  .im-inbox.chatcn-inbox .im-inbox-head.chatcn-inbox-head {
+    grid-template-columns: 52px minmax(0, 1fr) 132px;
+  }
+  .chatcn-filter-root { gap: 6px; }
+  .chatcn-filter-trigger { min-width: 88px; padding: 0 10px; }
+  .chatcn-create-group-trigger { width: 32px; flex-basis: 32px; height: 38px; }
+  .chatcn-inbox-title { left: calc(50% - 8px); }
 }
 
 @media (prefers-reduced-transparency: reduce) {

@@ -9,6 +9,7 @@ import {
   useEffect,
   useId,
   useLayoutEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
@@ -722,7 +723,7 @@ export const IslandSurface = (props: IslandSurfaceProps) => {
 
   // Gesture recognition owns pointer capture and the complete down/move/up lifecycle. The
   // animation engine remains independent: these handlers only start/end the existing press state.
-  const gestureOptions = {
+  const gestureOptions = useMemo(() => ({
     enabled: interaction !== null,
     eventOptions: { passive: false },
     pointer: { capture: true, keys: false },
@@ -730,7 +731,7 @@ export const IslandSurface = (props: IslandSurfaceProps) => {
     triggerAllEvents: true,
     filterTaps: false,
     swipe: { distance: [18, 18] as [number, number], velocity: [0.35, 0.35] as [number, number], duration: 250 },
-  };
+  }), [interaction !== null]);
   const pillGesture = useDrag<PointerEvent>(
     ({ first, down, last, canceled, swipe, event }) => {
       const current = live.current.interaction;

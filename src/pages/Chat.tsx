@@ -184,9 +184,14 @@ export default function Chat() {
   const me = useAuth().session!.user.id;
   const userPreferences = useUserPreferences(me);
   const nav = useNavigate();
-  const loc = useLocation() as { state?: { name?: string } };
+  const loc = useLocation() as { state?: { name?: string; isGroup?: boolean } };
   const [name, setName] = useState(loc.state?.name ?? '聊天');
   const [peer, setPeer] = useState<ChatPeer | null>(null);
+  const [isGroup, setIsGroup] = useState(Boolean(loc.state?.isGroup));
+  const [groupMembers, setGroupMembers] = useState<Array<{ id: string; username: string; display_name: string | null; avatar_path: string | null; role: string; joined_at: string }>>([]);
+  const [myGroupRole, setMyGroupRole] = useState('member');
+  const [groupActionBusy, setGroupActionBusy] = useState(false);
+  const [groupRenameValue, setGroupRenameValue] = useState('');
   const [msgs, setMsgs] = useState<ChatMessage[]>([]);
   const [loadingMsgs, setLoadingMsgs] = useState(true);
   const showMsgsSkeleton = useDelayedLoading(loadingMsgs);
@@ -339,7 +344,7 @@ export default function Chat() {
       .select('profile_id,last_receipt_message_id')
       .eq('conversation_id', conversationId);
     if (requestId !== loadSequenceRef.current) return;
-    const otherMember = (members ?? []).find(member => member.profile_id !== me);
+    const otherMember = isGroup ? null : (members ?? []).find(member => member.profile_id !== me);
     setOtherLastReadMessageId(otherMember?.last_receipt_message_id ?? null);
 
     if (document.visibilityState === 'visible') {
@@ -355,16 +360,25 @@ export default function Chat() {
     load();
     let peerLookupActive = true;
     void (async () => {
-      const { data: members } = await supabase.from('conversation_members').select('profile_id')
-        .eq('conversation_id', Number(cid));
+      const { data: groupRows, error: groupError } = await supabase.rpc('get_group_conversation_details', { p_conversation_id: Number(cid) });
+      const group = !groupError && Array.isArray(groupRows) ? groupRows[0] : null;
+      if (group) {
+        if (!peerLookupActive) return;
+        setIsGroup(true);
+        setName(group.group_name ?? loc.state?.name ?? '群聊');
+        setGroupRenameValue(group.group_name ?? '');
+        setMyGroupRole(group.my_role ?? 'member');
+        setGroupMembers(Array.isArray(group.members) ? group.members : []);
+        setPeer(null);
+        return;
+      }
+      setIsGroup(false);
+      const { data: members } = await supabase.from('conversation_members').select('profile_id').eq('conversation_id', Number(cid));
       const other = ((members ?? []) as Array<{ profile_id: string }>).map(x => x.profile_id).find(x => x !== me);
       if (!other) return;
       const { data: friends } = await supabase.rpc('my_friends');
       const found = ((friends ?? []) as ChatPeer[]).find(item => item.id === other);
-      if (peerLookupActive && found) {
-        setPeer(found);
-        setName(found.display_name ?? found.username ?? loc.state?.name ?? '聊天');
-      }
+      if (peerLookupActive && found) { setPeer(found); setName(found.display_name ?? found.username ?? loc.state?.name ?? '聊天'); }
     })();
     const channel = supabase.channel('chat-' + cid)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'messages', filter: 'conversation_id=eq.' + cid }, () => { load(); })
@@ -394,7 +408,7 @@ export default function Chat() {
       supabase.removeChannel(channel);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cid]);
+  }, [cid, isGroup]);
 
   useEffect(() => {
     let active = true;
@@ -971,7 +985,7 @@ export default function Chat() {
             <span className="im-title">{name}</span>
             <span className="im-contact-chevron" aria-hidden="true">›</span>
           </span>
-          {otherTyping && <span className="im-sub">正在输入…</span>}
+          {otherTyping && <span className="im-sub">{isGroup ? '有人正在输入…' : '正在输入…'}</span>}
         </button>
         <button type="button" className="im-icon im-call-button" aria-label="语音通话" title="语音通话" disabled={!peer || callBusy}
           onClick={() => { if (peer && cid) startCall({ id: peer.id, name }, Number(cid)); }}>

@@ -105,8 +105,11 @@
 
 /* No live activity: no empty capsule. Only a thin glass edge with a note in the
    middle, at the same anchor as the island; tapping it opens the music space
-   (or expands the player when a track is live). The visible lip is 16px; the
-   button itself is 44px tall so the tap target meets the 44px rule. */
+   (or expands the player when a track is live). The visible lip is 12px; the
+   button itself is 44px tall so the tap target meets the 44px rule.
+   The lip is translucent frosted glass with a soft (not pill-round) bottom
+   edge: at desktop scale a near-opaque 16px half-pill read as a solid black
+   capsule with only its lower half showing, so the lip must not look solid. */
 .qz-island-idle {
   position: fixed;
   top: 0;
@@ -132,14 +135,14 @@
   top: 0;
   left: 0;
   width: 100%;
-  height: 16px;
-  border: 1px solid rgba(255,255,255,.15);
+  height: 12px;
+  border: 1px solid rgba(255,255,255,.22);
   border-top: 0;
-  border-radius: 0 0 999px 999px;
-  background: rgba(7,8,12,.82);
+  border-radius: 0 0 9px 9px;
+  background: rgba(13,15,20,.58);
   box-shadow:
-    0 4px 16px rgba(0,0,0,.22),
-    inset 0 -1px rgba(255,255,255,.12);
+    0 4px 16px rgba(0,0,0,.18),
+    inset 0 -1px rgba(255,255,255,.14);
   -webkit-backdrop-filter: blur(20px) saturate(1.4);
   backdrop-filter: blur(20px) saturate(1.4);
   content: "";
@@ -149,16 +152,17 @@
 .qz-island-idle span {
   position: relative;
   z-index: 1;
-  color: rgba(255,255,255,.92);
-  font-size: 12px;
+  color: rgba(255,255,255,.95);
+  font-size: 11px;
   font-weight: 650;
-  line-height: 16px;
+  line-height: 12px;
+  text-shadow: 0 1px 2px rgba(0,0,0,.35);
   pointer-events: none;
 }
 
 .qz-island-idle:active::before {
-  height: 18px;
-  background: rgba(7,8,12,.92);
+  height: 14px;
+  background: rgba(13,15,20,.72);
 }
 
 .qz-island-idle:focus-visible {
@@ -169,13 +173,25 @@
 
 /* While the island settings panel is open, the live island chrome would sit on
    top of the in-panel preview. Hide it; the panel's own preview is the thing
-   being adjusted. The drag-align overlay removes this flag while it is open. */
+   being adjusted. The drag-align overlay removes this flag while it is open.
+   display:none (not visibility:hidden): the island engine writes inline
+   visibility:visible on its content layers, which re-shows the song row
+   (album art + white title) through a hidden host — the pill background hides
+   but the white text floats on the beige settings page. display:none removes
+   the whole subtree, so nothing can leak. The same hide also applies while
+   the preview stage sits in the viewport-top band (data-qz-island-stage-near-top),
+   so scrolling the stage to the top can never re-expose the live island. */
 [data-qz-island-settings-open="true"] .qz-island-host,
 [data-qz-island-settings-open="true"] .qz-island-peek,
 [data-qz-island-settings-open="true"] .qz-island-idle,
 [data-qz-island-settings-open="true"] .qz-island-navigation-indicator,
-[data-qz-island-settings-open="true"] .qz-island-task-ui {
-  visibility: hidden;
+[data-qz-island-settings-open="true"] .qz-island-task-ui,
+[data-qz-island-stage-near-top="true"] .qz-island-host,
+[data-qz-island-stage-near-top="true"] .qz-island-peek,
+[data-qz-island-stage-near-top="true"] .qz-island-idle,
+[data-qz-island-stage-near-top="true"] .qz-island-navigation-indicator,
+[data-qz-island-stage-near-top="true"] .qz-island-task-ui {
+  display: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -390,10 +406,26 @@
 }
 
 .qz-island-art-expanded {
-  width: 48px;
-  height: 48px;
-  flex-basis: 48px;
-  border-radius: 11px;
+  width: 84px;
+  height: 84px;
+  flex-basis: 84px;
+  flex-shrink: 0;
+  border-radius: 50%;
+}
+
+/* Header row: round cover with the title and artist right after it. The cap
+   keeps a long title from squeezing the middle column (and the trailing
+   buttons) out on narrow cards; the meta ellipsizes inside it. */
+.qz-island-expanded-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: min(320px, 46vw);
+}
+
+/* The fallback note fills the big round cover in the expanded card. */
+.qz-island-art-expanded.qz-island-art-fallback {
+  font-size: 34px;
 }
 
 .qz-island-expanded-meta {
@@ -416,21 +448,28 @@
 
 .qz-island-expanded-meta strong {
   color: #fff;
-  font-size: 13px;
+  font-size: 18px;
   font-weight: 680;
   line-height: 1.25;
 }
 
 .qz-island-expanded-meta span {
   color: rgba(255,255,255,.78);
-  font-size: 12px;
+  font-size: 14px;
   line-height: 1.25;
 }
 
 .qz-island-expanded-meta small {
   color: rgba(255,255,255,.65);
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.2;
+}
+
+/* Header trailing: fullscreen entry next to the collapse button. */
+.qz-island-expanded-trailing {
+  display: flex;
+  align-items: start;
+  gap: 8px;
 }
 
 .qz-island-close,
@@ -457,18 +496,32 @@
   width: 100%;
   min-width: 0;
   flex-direction: column;
-  gap: 7px;
+  gap: 12px;
   pointer-events: auto;
 }
 
+/* Progress row: current time, bar, total time on one line, like the player card. */
 .qz-island-progress {
+  display: flex;
   width: 100%;
   min-width: 0;
+  align-items: center;
+  gap: 10px;
+}
+
+.qz-island-progress span {
+  flex: 0 0 auto;
+  color: rgba(255,255,255,.75);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+  white-space: nowrap;
 }
 
 .qz-island-progress input {
   display: block;
-  width: 100%;
+  min-width: 0;
+  flex: 1;
   height: 22px;
   margin: 0;
   padding: 0;
@@ -518,16 +571,6 @@
 }
 
 .qz-island-progress input:disabled { opacity: .36; }
-
-.qz-island-progress div {
-  display: flex;
-  justify-content: space-between;
-  margin-top: 1px;
-  color: rgba(255,255,255,.65);
-  font-size: 11px;
-  font-variant-numeric: tabular-nums;
-  line-height: 1.2;
-}
 
 .qz-island-volume {
   display: flex;
@@ -629,14 +672,14 @@
 .qz-island-controls {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 19px;
-  min-height: 34px;
+  justify-content: space-evenly;
+  gap: 12px;
+  min-height: 64px;
 }
 
 .qz-island-controls button {
-  width: 36px;
-  height: 36px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   transition: background .16s ease, transform .16s ease, opacity .16s ease;
 }
@@ -648,8 +691,8 @@
 .qz-island-controls button:not(:disabled):active,
 .qz-island-close:active { transform: scale(.92); }
 .qz-island-controls .qz-island-play {
-  width: 40px;
-  height: 40px;
+  width: 64px;
+  height: 64px;
   color: #111216;
   background: #fff;
 }

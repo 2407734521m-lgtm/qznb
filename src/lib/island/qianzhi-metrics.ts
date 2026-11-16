@@ -6,6 +6,12 @@ import type { IslandMetricsOverrides } from './config';
  */
 export const qianzhiIslandMetrics = {
   top: 12.5,
+  /**
+   * Wider expanded card on desktop: the expanded player is a large floating
+   * card (cover, progress, five controls), not a phone-width slab. Phones are
+   * unaffected: the stage clamps to the container when it is narrower.
+   */
+  screen: { width: 640 },
   idle: {
     width: 104,
     height: 31.5,
@@ -18,6 +24,12 @@ export const qianzhiIslandMetrics = {
   minimal: {
     height: 31.5,
   },
+  /**
+   * Room for the full expanded player: the engine default (180) clips the
+   * controls row, whose buttons end up outside the painted capsule and cannot
+   * be tapped. 300 fits the header, progress, five controls and volume.
+   */
+  expanded: { maxHeight: 300 },
 } satisfies IslandMetricsOverrides;
 
 

@@ -15,6 +15,7 @@ const [
   worker,
   audioSignals,
   visualizerBridge,
+  qianzhiMetrics,
 ] = await Promise.all([
   read('src/components/MusicIsland.tsx'),
   read('src/components/QianzhiMusicIslandActivity.tsx'),
@@ -27,6 +28,7 @@ const [
   read('music/folia/worker/index.ts'),
   read('music/folia/src/stores/motionSignals.ts'),
   read('music/folia/src/components/app/playback/bridges/usePlaybackVisualizerBridge.ts'),
+  read('src/lib/island/qianzhi-metrics.ts'),
 ]);
 
 assert.equal(bridgeApplied, bridgeSource, 'The checked-out Folia bridge must match the maintained overlay source.');
@@ -38,13 +40,14 @@ assert.ok(parent.includes('Date.now() - lastSeen > 6500'));
 
 // The music control presentation now lives in the Qianzhi activity component, not MusicIsland.tsx.
 assert.ok(parent.includes('useIslandActions()'));
-assert.ok(parent.includes('createMusicIslandActivity(openFullscreenPlayer)'));
+assert.ok(parent.includes("createMusicIslandActivity(() => islandApi.expand('music-playback'))"), 'Tapping the music pill must expand the island in place instead of opening the fullscreen player.');
+assert.ok(parent.includes('openFullscreenPlayer'), 'The fullscreen player opener must still exist for the expanded island button.');
 assert.ok(parent.includes("islandApi.end('music-playback')"));
 assert.ok(activity.includes("onClick={() => sendCommand('toggle')}"));
 assert.ok(activity.includes('onPointerUp={commitSeekDraft}'));
 assert.ok(activity.includes("sendCommand('previous')"));
 assert.ok(activity.includes("sendCommand('next')"));
-assert.ok(activity.includes('onClick={openMusic}'));
+assert.ok(activity.includes('onClick={openFullscreenPlayer}'), 'The expanded open button must open the fullscreen player.');
 assert.ok(activity.includes('MusicCompactContent'));
 assert.ok(activity.includes('MusicSpectrumContent'));
 assert.ok(activity.includes('MusicExpandedControls'));
@@ -56,6 +59,13 @@ assert.ok(activity.includes("sendCommand('volume'"), 'The expanded island must s
 assert.ok(activity.includes("sendCommand('mute'"), 'The expanded island must send mute changes across the bridge.');
 assert.ok(activity.includes('aria-label="音量"'), 'The volume slider must be labelled.');
 assert.ok(activity.includes('qz-island-volume'), 'The expanded island must render a volume row.');
+
+// The expanded island is a floating player card, not a fullscreen page: cover,
+// progress and five controls (ten-second skips included) must all fit inside
+// the painted capsule, so the card is sized for its content.
+assert.ok(activity.includes('back10') && activity.includes('forward10'), 'The expanded island must offer ten-second skip buttons like the fullscreen player.');
+assert.ok(activity.includes("sendCommand('seek'"), 'The ten-second skip buttons must seek across the bridge.');
+assert.ok(qianzhiMetrics.includes('expanded: { maxHeight: 300 }'), 'The expanded card must be tall enough for the full player instead of clipping the controls row.');
 assert.ok(parent.includes('volume: number | null'), 'The main-site track must carry the reported volume, or null when unreported.');
 assert.ok(parent.includes('isMuted: boolean'), 'The main-site track must carry the mute state.');
 assert.ok(parent.includes("'volume' | 'mute'"), 'The main-site command set must include volume and mute.');

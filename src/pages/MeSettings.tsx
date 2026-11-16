@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth';
 import { confirmDialog } from '../lib/dialog';
@@ -86,6 +86,7 @@ export default function MeSettings() {
   const [searchHistory, setSearchHistory] = useState<string[]>(() => readSearchHistory(uid));
   const [query, setQuery] = useState('');
   const [expanded, setExpanded] = useState<PanelKey | null>(null);
+  const islandStageRef = useRef<HTMLDivElement | null>(null);
   const [fontSize, setFontSize] = useState(() => {
     try { const saved = Number(localStorage.getItem('qznb_font_size_v1')); return [13, 14, 16, 18].includes(saved) ? saved : 14; } catch { return 14; }
   });
@@ -105,6 +106,35 @@ export default function MeSettings() {
     if (!open) return;
     document.documentElement.dataset.qzIslandSettingsOpen = 'true';
     return () => { delete document.documentElement.dataset.qzIslandSettingsOpen; };
+  }, [expanded, aligning]);
+
+  // The panel-open flag alone cannot cover the scrolled-to-top position: when
+  // the preview stage's top edge meets the viewport top, the live island sits
+  // exactly on the preview pill. Hide the live chrome whenever the stage is
+  // inside the viewport-top band (120px), not only while the panel is open.
+  // Same drag-align exclusion as above: while aligning, the real island must
+  // stay visible so there is something to line up.
+  useEffect(() => {
+    const open = expanded === 'island' && !aligning;
+    const stage = islandStageRef.current;
+    if (!open || !stage) return;
+    const TOP_BAND_PX = 120;
+    const sync = () => {
+      const rect = stage.getBoundingClientRect();
+      if (rect.top < TOP_BAND_PX && rect.bottom > 0) {
+        document.documentElement.dataset.qzIslandStageNearTop = 'true';
+      } else {
+        delete document.documentElement.dataset.qzIslandStageNearTop;
+      }
+    };
+    sync();
+    window.addEventListener('scroll', sync, { passive: true });
+    window.addEventListener('resize', sync);
+    return () => {
+      window.removeEventListener('scroll', sync);
+      window.removeEventListener('resize', sync);
+      delete document.documentElement.dataset.qzIslandStageNearTop;
+    };
   }, [expanded, aligning]);
 
   const normalizedQuery = query.trim().toLocaleLowerCase();
@@ -215,7 +245,7 @@ export default function MeSettings() {
                   <div className="qz-settings-panel">
                     {row.panel === 'island' && <>
                       <p>调整灵动岛在页面中的位置和胶囊尺寸。下面的框就是屏幕顶部，药丸的位置和大小跟真机上看到的一样；改动会即时预览，并同步到当前账号。</p>
-                      <div className="qz-island-settings-stage" aria-label="灵动岛位置预览（屏幕顶部，等比）">
+                      <div className="qz-island-settings-stage" ref={islandStageRef} aria-label="灵动岛位置预览（屏幕顶部，等比）">
                         <span
                           className="qz-island-settings-preview"
                           style={{

@@ -372,7 +372,7 @@ export default function Chat() {
         setName(group.group_name ?? loc.state?.name ?? '群聊');
         setGroupRenameValue(group.group_name ?? '');
         setMyGroupRole(group.my_role ?? 'member');
-        setGroupMembers(Array.isArray(group.members) ? group.members : []);
+        setGroupMembers(Array.isArray(group.members) ? group.members as unknown as Array<{ id: string; username: string; display_name: string | null; avatar_path: string | null; role: string; joined_at: string }> : []);
         setPeer(null);
         return;
       }
@@ -1066,7 +1066,7 @@ export default function Chat() {
                       if (error) setError('邀请成员失败：' + error.message);
                       else {
                         const { data: refreshed } = await supabase.rpc('get_group_conversation_details', { p_conversation_id: Number(cid) });
-                        if (refreshed?.[0]) setGroupMembers(Array.isArray(refreshed[0].members) ? refreshed[0].members : []);
+                        if (refreshed?.[0]) setGroupMembers(Array.isArray(refreshed[0].members) ? refreshed[0].members as unknown as Array<{ id: string; username: string; display_name: string | null; avatar_path: string | null; role: string; joined_at: string }> : []);
                         setShowGroupInvitePicker(false);
                         setGroupInviteSelectedIds([]);
                       }

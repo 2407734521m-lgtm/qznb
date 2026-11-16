@@ -266,7 +266,7 @@
 
 .qz-island-wave i {
   display: block;
-  width: 2.5px;
+  width: 4px;
   height: 100%;
   border-radius: 999px;
   background: #fff;
@@ -279,14 +279,17 @@
 }
 
 /* Expanded card, middle column: a real visualizer, not four dots that read
-   as an ellipsis after the title. Taller bars at 3px; the width stays 26px
-   so the head and trailing buttons keep their room on narrow cards. */
+   as an ellipsis after the title. Taller bars at 4.5px; the width stays 26px
+   so the head and trailing buttons keep their room on narrow cards.
+   The bars themselves span ~25px of that 26px: the cloud check caught the
+   earlier 2.5/3px bars spanning only ~17px inside the 26px box. */
 .qz-island-wave-expanded {
   height: 24px;
+  gap: 2.5px;
 }
 
 .qz-island-wave-expanded i {
-  width: 3px;
+  width: 4.5px;
 }
 
 .qz-island-wave i:nth-child(2) { transform: scaleY(var(--qz-music-eq-lowMid, .16)); }

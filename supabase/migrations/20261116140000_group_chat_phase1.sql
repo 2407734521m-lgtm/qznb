@@ -299,7 +299,12 @@ begin
         and ((f.requester = auth.uid() and f.addressee = requested.id)
           or (f.requester = requested.id and f.addressee = auth.uid()))
     )
-  ) then raise exception 'you can only invite your friends'; end if;
+    or exists (
+      select 1 from public.user_blocks b
+      where (b.blocker_id = auth.uid() and b.blocked_id = requested.id)
+         or (b.blocker_id = requested.id and b.blocked_id = auth.uid())
+    )
+  ) then raise exception 'you can only invite friends who are not blocked'; end if;
 
   if (select count(*) from public.conversation_members cm where cm.conversation_id = p_conversation_id)
       + (select count(*) from unnest(v_ids) x where not exists (

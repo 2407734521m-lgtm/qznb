@@ -296,3 +296,25 @@
     transform: none;
   }
 }
+
+/* Dynamic post virtualization: preserve the normal window scroll while only
+   mounting rows around the viewport. Row spacing is owned by the virtualizer's
+   measured gap, so card margins must not be counted twice. */
+.postlist-virtual {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+  overflow-anchor: none;
+}
+
+.postlist-virtual-row {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  min-width: 0;
+}
+
+.postlist-virtual-row > .post {
+  margin-bottom: 0 !important;
+}

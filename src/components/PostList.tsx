@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { motion, useReducedMotion } from 'framer-motion';
+import { useWindowVirtualizer } from '@tanstack/react-virtual';
 import './PostList.layout.css';
 import './PostList.longform.css';
 import { supabase } from '../lib/supabase';
@@ -175,6 +176,10 @@ export default function PostList({ section, searchQuery = '', embedded = false, 
   const [friendIds, setFriendIds] = useState<string[]>([]);
   const fref = useRef<HTMLInputElement>(null);
   const composerRef = useRef<HTMLTextAreaElement>(null);
+  const composerBlockRef = useRef<HTMLDivElement | null>(null);
+  const postListRef = useRef<HTMLDivElement | null>(null);
+  const [postListOffset, setPostListOffset] = useState(0);
+  const hasAnimatedPostsRef = useRef(false);
 
   async function refreshImpressionPolls(postIds: number[]) {
     if (!postIds.length) return;
@@ -260,25 +265,6 @@ export default function PostList({ section, searchQuery = '', embedded = false, 
     setLoadingMore(true);
     try { await load(true); } finally { setLoadingMore(false); }
   }
-  useEffect(() => {
-    if (!focusPostId || focusedPostRef.current === focusPostId || !posts.some(post => post.id === focusPostId)) return;
-    focusedPostRef.current = focusPostId;
-    setHighlightedPostId(focusPostId);
-    setOpenCmt(current => ({ ...current, [focusPostId]: true }));
-    const frame = window.requestAnimationFrame(() => {
-      const target = document.getElementById(`${section}-post-${focusPostId}`);
-      if (!target) return;
-      target.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'center' });
-      target.focus({ preventScroll: true });
-    });
-    const timer = window.setTimeout(() => {
-      setHighlightedPostId(current => current === focusPostId ? null : current);
-    }, 2400);
-    return () => {
-      window.cancelAnimationFrame(frame);
-      window.clearTimeout(timer);
-    };
-  }, [focusPostId, posts, reduce]);
   useEffect(() => {
     if (!isFeed) return;
     let alive = true;
@@ -536,9 +522,87 @@ export default function PostList({ section, searchQuery = '', embedded = false, 
     }
   }
 
-  const visiblePosts = isFeed
+  const visiblePosts = useMemo(() => isFeed
     ? posts.filter(post => feedScope === 'all' || post.author_id === me || friendIds.includes(post.author_id))
-    : posts;
+    : posts, [isFeed, posts, feedScope, friendIds, me]);
+
+  // 窗口级动态高度虚拟列表：继续使用页面原生滚动，不创建内层滚动容器。
+  const getPostKey = useCallback((index: number) => visiblePosts[index]?.id ?? index, [visiblePosts]);
+  const postVirtualizer = useWindowVirtualizer({
+    count: visiblePosts.length,
+    estimateSize: () => 420,
+    overscan: 5,
+    gap: 14,
+    paddingEnd: 14,
+    scrollMargin: postListOffset,
+    getItemKey: getPostKey,
+  });
+  const animateInitialPosts = !hasAnimatedPostsRef.current;
+
+  useLayoutEffect(() => {
+    const list = postListRef.current;
+    if (!list) return;
+
+    const updateOffset = () => {
+      const next = list.getBoundingClientRect().top + window.scrollY;
+      setPostListOffset(previous => Math.abs(previous - next) > 0.5 ? next : previous);
+    };
+
+    updateOffset();
+    const observer = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(updateOffset) : null;
+    const main = list.parentElement;
+    if (main) observer?.observe(main);
+    if (composerBlockRef.current) observer?.observe(composerBlockRef.current);
+    window.addEventListener('resize', updateOffset);
+    return () => {
+      observer?.disconnect();
+      window.removeEventListener('resize', updateOffset);
+    };
+  }, [searchQuery, impressionEnabled, img, busy, upPct, visiblePosts.length]);
+
+  useEffect(() => {
+    if (visiblePosts.length > 0) hasAnimatedPostsRef.current = true;
+  }, [visiblePosts.length]);
+
+  // 改变视口宽度会影响长正文换行；清空旧高度缓存，等待可见行重新测量。
+  useEffect(() => {
+    const onResize = () => postVirtualizer.measure();
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, [postVirtualizer]);
+
+  useEffect(() => {
+    if (!focusPostId || focusedPostRef.current === focusPostId) return;
+    const focusIndex = visiblePosts.findIndex(post => post.id === focusPostId);
+    if (focusIndex < 0) return;
+
+    focusedPostRef.current = focusPostId;
+    setHighlightedPostId(focusPostId);
+    setOpenCmt(current => ({ ...current, [focusPostId]: true }));
+    postVirtualizer.scrollToIndex(focusIndex, { align: 'center', behavior: reduce ? 'auto' : 'smooth' });
+    let frame = 0;
+    let attempts = 0;
+    const focusWhenMounted = () => {
+      const target = document.getElementById(`${section}-post-${focusPostId}`);
+      if (target) {
+        target.focus({ preventScroll: true });
+        return;
+      }
+      // Smooth window scrolling may not mount a distant virtual row immediately.
+      if (attempts < 180) {
+        attempts += 1;
+        frame = window.requestAnimationFrame(focusWhenMounted);
+      }
+    };
+    frame = window.requestAnimationFrame(focusWhenMounted);
+    const timer = window.setTimeout(() => {
+      setHighlightedPostId(current => current === focusPostId ? null : current);
+    }, 2400);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.clearTimeout(timer);
+    };
+  }, [focusPostId, visiblePosts, reduce, postVirtualizer]);
   // 右栏“本页”统计：只由已加载的数据派生，不新增请求。
   const myPostCount = visiblePosts.filter(post => post.author_id === me).length;
   const totalLikes = visiblePosts.reduce((sum, post) => sum + (likes[post.id] || 0), 0);
@@ -573,7 +637,7 @@ export default function PostList({ section, searchQuery = '', embedded = false, 
         </div>
         {searchQuery.trim() && <div className="feed-search-banner">搜索日常：{searchQuery}<button type="button" onClick={() => nav('/daily', { replace: true })}>清除搜索</button></div>}
       </>}
-      <div className="composer">
+      <div className="composer" ref={composerBlockRef}>
         <textarea ref={composerRef} value={text} onChange={e => setText(e.target.value)} placeholder={isFeed ? '写下此刻的想法，分享给大家…' : (embedded ? '分享点什么…' : '分享今天的小日常…')} rows={3} maxLength={2000} />
         {isFeed && <div className="impression-composer-actions">
           <button type="button" className={impressionEnabled ? 'impression-toggle is-active' : 'impression-toggle'}
@@ -637,17 +701,43 @@ export default function PostList({ section, searchQuery = '', embedded = false, 
         {err && <p className="err">{err}</p>}
       </div>
 
-      {visiblePosts.map((p, i) => {
-        const a = profiles[p.author_id];
-        const list = cmts[p.id] ?? [];
-        const open = !!openCmt[p.id];
-        const poll = impressionPolls[p.id];
-        return (
-          <motion.article key={p.id} id={`${section}-post-${p.id}`}
-            className={`post${highlightedPostId === p.id ? ' post--focused' : ''}`}
-            tabIndex={-1}
-            initial={reduce ? {} : { opacity: 0, y: isFeed ? 8 : 10 }} animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: isFeed ? 0.32 : 0.34, delay: Math.min(i * 0.025, isFeed ? 0.15 : 0.18) }}>
+      {visiblePosts.length > 0 && (
+        <div
+          ref={postListRef}
+          className="postlist-virtual"
+          style={{ height: postVirtualizer.getTotalSize(), position: 'relative' }}
+        >
+          {postVirtualizer.getVirtualItems().map(virtualPost => {
+            const i = virtualPost.index;
+            const p = visiblePosts[i];
+            if (!p) return null;
+            const a = profiles[p.author_id];
+            const list = cmts[p.id] ?? [];
+            const open = !!openCmt[p.id];
+            const poll = impressionPolls[p.id];
+            return (
+              <div
+                key={virtualPost.key}
+                ref={postVirtualizer.measureElement}
+                data-index={virtualPost.index}
+                className="postlist-virtual-row"
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: '100%',
+                  transform: `translateY(${virtualPost.start - postListOffset}px)`,
+                }}
+              >
+                <motion.article id={`${section}-post-${p.id}`}
+                  className={`post${highlightedPostId === p.id ? ' post--focused' : ''}`}
+                  tabIndex={-1}
+                  initial={reduce || !animateInitialPosts ? false : { opacity: 0, y: isFeed ? 8 : 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: animateInitialPosts ? (isFeed ? 0.32 : 0.34) : 0, delay: animateInitialPosts ? Math.min(i * 0.025, isFeed ? 0.15 : 0.18) : 0 }}
+                  aria-posinset={i + 1}
+                  aria-setsize={visiblePosts.length}
+                >
             <div className="hd">
               <Avatar p={a} url={a?.avatar_path ? avatarUrls[a.avatar_path] : undefined} loading={i < 3 ? 'eager' : 'lazy'} />
               <div><div className="nm">{a ? (a.display_name ?? a.username) : '…'}</div>
@@ -743,9 +833,12 @@ export default function PostList({ section, searchQuery = '', embedded = false, 
                   onClick={() => void addCmt(p)}>{sendingComment[p.id] ? '发送中…' : '发送'}</button>
               </div>
             </div>}
-          </motion.article>
-        );
-      })}
+                </motion.article>
+              </div>
+            );
+          })}
+        </div>
+      )}
       {!initialLoading && hasMore && (
         <div style={{ textAlign: 'center', margin: '16px 0 8px' }}>
           <button type="button" className="ghost" disabled={loadingMore} onClick={() => void loadMore()}>

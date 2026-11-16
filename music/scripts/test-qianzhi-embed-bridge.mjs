@@ -36,7 +36,7 @@ assert.ok(parent.includes('Date.now() - lastSeen > 6500'));
 
 // The music control presentation now lives in the Qianzhi activity component, not MusicIsland.tsx.
 assert.ok(parent.includes('useIslandActions()'));
-assert.ok(parent.includes('createMusicIslandActivity(toggleExpanded)'));
+assert.ok(parent.includes('createMusicIslandActivity(openFullscreenPlayer)'));
 assert.ok(parent.includes("islandApi.end('music-playback')"));
 assert.ok(activity.includes("onClick={() => sendCommand('toggle')}"));
 assert.ok(activity.includes('onPointerUp={commitSeekDraft}'));

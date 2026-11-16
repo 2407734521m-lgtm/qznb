@@ -192,6 +192,10 @@ export default function Chat() {
   const [myGroupRole, setMyGroupRole] = useState('member');
   const [groupActionBusy, setGroupActionBusy] = useState(false);
   const [groupRenameValue, setGroupRenameValue] = useState('');
+  const [showGroupInvitePicker, setShowGroupInvitePicker] = useState(false);
+  const [groupInviteFriends, setGroupInviteFriends] = useState<ChatPeer[]>([]);
+  const [groupInviteSelectedIds, setGroupInviteSelectedIds] = useState<string[]>([]);
+  const [groupInviteBusy, setGroupInviteBusy] = useState(false);
   const [msgs, setMsgs] = useState<ChatMessage[]>([]);
   const [loadingMsgs, setLoadingMsgs] = useState(true);
   const showMsgsSkeleton = useDelayedLoading(loadingMsgs);
@@ -1013,7 +1017,20 @@ export default function Chat() {
               <div className="im-profile-username">{isGroup ? groupMembers.length + ' 位成员 · 群聊' : peer?.username ? '@' + peer.username : '一对一私密会话'}</div>
               <span className="im-private-label">仅对话成员可见</span>
               {isGroup && <section className="im-profile-section">
-                <div className="im-profile-section-heading">群成员（{groupMembers.length}）</div>
+                <div className="im-profile-section-heading">群成员（{groupMembers.length}）
+                  {(myGroupRole === 'owner' || myGroupRole === 'admin') && <button type="button" className="chatcn-group-add-trigger" disabled={groupInviteBusy} onClick={async () => {
+                    setGroupInviteBusy(true);
+                    const { data, error } = await supabase.rpc('my_friends');
+                    if (error) setError('加载好友列表失败：' + error.message);
+                    else {
+                      const currentIds = new Set(groupMembers.map(member => member.id));
+                      setGroupInviteFriends(((data ?? []) as ChatPeer[]).filter(friend => !currentIds.has(friend.id)));
+                      setGroupInviteSelectedIds([]);
+                      setShowGroupInvitePicker(true);
+                    }
+                    setGroupInviteBusy(false);
+                  }}>{groupInviteBusy ? '加载中…' : '添加成员'}</button>}
+                </div>
                 <div className="chatcn-chat-group-members">
                   {groupMembers.map(member => <div className="chatcn-chat-group-member" key={member.id}>
                     <span className="chatcn-chat-group-member-avatar">{member.display_name?.slice(0, 1) ?? member.username.slice(0, 1)}</span>
@@ -1035,6 +1052,28 @@ export default function Chat() {
                     }}>移除</button>}
                   </div>)}
                 </div>
+                {showGroupInvitePicker && <div className="chatcn-group-invite">
+                  {groupInviteFriends.length === 0 ? <p>没有可邀请的新好友。</p> : groupInviteFriends.map(friend => <label key={friend.id}>
+                    <span className="chatcn-group-invite-avatar">{friend.display_name?.slice(0,1) ?? friend.username.slice(0,1)}</span>
+                    <span>{friend.display_name ?? friend.username}<small>@{friend.username}</small></span>
+                    <input type="checkbox" checked={groupInviteSelectedIds.includes(friend.id)} onChange={event => setGroupInviteSelectedIds(current => event.target.checked ? [...current, friend.id] : current.filter(id => id !== friend.id))} />
+                  </label>)}
+                  <div className="chatcn-group-invite-actions">
+                    <button type="button" onClick={() => setShowGroupInvitePicker(false)}>取消</button>
+                    <button type="button" disabled={groupInviteBusy || groupInviteSelectedIds.length === 0} onClick={async () => {
+                      setGroupInviteBusy(true);
+                      const { error } = await supabase.rpc('add_group_members', { p_conversation_id: Number(cid), p_member_ids: groupInviteSelectedIds });
+                      if (error) setError('邀请成员失败：' + error.message);
+                      else {
+                        const { data: refreshed } = await supabase.rpc('get_group_conversation_details', { p_conversation_id: Number(cid) });
+                        if (refreshed?.[0]) setGroupMembers(Array.isArray(refreshed[0].members) ? refreshed[0].members : []);
+                        setShowGroupInvitePicker(false);
+                        setGroupInviteSelectedIds([]);
+                      }
+                      setGroupInviteBusy(false);
+                    }}>{groupInviteBusy ? '处理中…' : '邀请所选成员'}</button>
+                  </div>
+                </div>}
                 {(myGroupRole === 'owner' || myGroupRole === 'admin') && <div className="chatcn-chat-group-rename">
                   <input aria-label="群聊名称" maxLength={40} value={groupRenameValue} onChange={event => setGroupRenameValue(event.target.value)} />
                   <button type="button" disabled={groupActionBusy || !groupRenameValue.trim() || groupRenameValue.trim() === name} onClick={async () => {

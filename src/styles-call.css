@@ -105,3 +105,16 @@
 .call-minimize:active { transform: scale(.92); background: #eaf2ff; }
 .call-minimize:focus-visible { outline: 2px solid #087cff; outline-offset: 3px; }
 @media (prefers-reduced-motion: reduce) { .call-minimize { transition: none; } }
+
+
+/* Keep the minimise flight cheap to composite on mobile browsers. */
+.call-overlay.is-minimizing {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+.qz-call-card-content {
+  display: block;
+}
+.qz-call-card-flight-content {
+  pointer-events: none;
+}

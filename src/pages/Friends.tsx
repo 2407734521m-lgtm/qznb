@@ -659,7 +659,8 @@ export default function Friends() {
         @media(max-width:768px){.im-inbox{padding:calc(18px + env(safe-area-inset-top)) calc(16px + env(safe-area-inset-right)) calc(118px + env(safe-area-inset-bottom)) calc(16px + env(safe-area-inset-left))!important}}
         @media(prefers-reduced-motion:reduce){.im-inbox-row{transition:none}}
 
-        /* iMessage-inspired conversation inbox; adapted to the existing Supabase-backed rows. */
+
+        /* iMessage-inspired conversation inbox, scoped so friend/request lists keep their existing layout. */
         .im-inbox{color:#1d293b!important;background:#fff!important}
         .im-inbox:before{background:radial-gradient(ellipse at 15% 0%,rgba(190,214,248,.16),transparent 38%),linear-gradient(180deg,#fff 0%,#fff 100%)}
         .im-inbox-head{margin:4px 2px 18px;padding:2px 2px 0}
@@ -669,32 +670,34 @@ export default function Friends() {
         .im-primary-thumb{border:1px solid rgba(255,255,255,.96);border-radius:14px;background:rgba(255,255,255,.94);box-shadow:0 4px 12px rgba(42,65,101,.08),inset 0 1px 0 #fff}
         .im-primary-thumb::after{display:none}
         .im-primary-tabs button{min-height:42px;color:#7e8ba0;font-size:13px;font-weight:650;letter-spacing:0}
-        .im-primary-tabs button.on{color:#245fa6}
+        .im-primary-tabs button.on{background:transparent;color:#245fa6}
         .im-primary-unread{background:#3478d4;box-shadow:0 0 0 3px rgba(52,120,212,.12)}
         .im-search{height:46px;border:1px solid rgba(119,143,176,.17);border-radius:17px;background:rgba(248,250,253,.86);box-shadow:inset 0 1px 0 #fff,0 5px 16px rgba(48,68,103,.035);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px)}
         .im-search:focus-within{border-color:rgba(86,139,207,.48);box-shadow:0 0 0 3px rgba(86,139,207,.10),inset 0 1px 0 #fff}
         .im-search input{color:#26364d!important}
-        .im-inbox-tabs{gap:7px}
-        .im-inbox-tabs button{border-color:rgba(119,143,176,.18);border-radius:13px;background:rgba(255,255,255,.88);color:#6d7c91}
+        .im-inbox-tabs{display:flex;flex-wrap:nowrap;gap:7px;margin:0 -2px 14px;padding:2px 2px 5px;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+        .im-inbox-tabs::-webkit-scrollbar{display:none}
+        .im-inbox-tabs button{flex:0 0 auto;min-width:max-content;min-height:38px;padding:0 13px;border:1px solid rgba(119,143,176,.18);border-radius:999px;background:rgba(255,255,255,.9);color:#6d7c91;font-size:12px;white-space:nowrap}
         .im-inbox-tabs button.on{background:#3478d4;border-color:#3478d4;color:#fff;box-shadow:0 5px 14px rgba(52,120,212,.16)}
-        .im-inbox-list{gap:0;padding:3px 0;overflow:hidden;border:1px solid rgba(119,143,176,.15);border-radius:21px;background:rgba(255,255,255,.88);box-shadow:0 9px 25px rgba(42,62,96,.045);-webkit-backdrop-filter:blur(18px) saturate(1.14);backdrop-filter:blur(18px) saturate(1.14)}
-        .im-inbox-row{position:relative;gap:13px;min-height:76px;padding:13px 15px;border:0;border-bottom:1px solid rgba(118,140,171,.12);border-radius:0;background:transparent;color:#1d293b;transition:background .18s ease}
-        .im-inbox-row:last-child{border-bottom:0}
-        .im-inbox-row.unread{background:linear-gradient(90deg,rgba(236,245,255,.82),rgba(255,255,255,.72))}
-        .im-inbox-row.unread .im-inbox-name{font-weight:760;color:#1c2e47}
-        .im-inbox-row:active,button.im-inbox-row:active{transform:none;background:rgba(235,243,253,.8);border-color:rgba(118,140,171,.12)}
-        .im-list-avatar{border:1px solid rgba(255,255,255,.98);box-shadow:0 3px 10px rgba(39,58,90,.09);background:#eef2f8;color:#60718a}
-        .im-inbox-name{color:#26364d;font-size:14px;font-weight:680;letter-spacing:-.01em}
-        .im-inbox-preview{color:#8390a2;font-size:12px;line-height:1.45}
-        .im-inbox-time{color:#8b97a8;font-size:10px;font-variant-numeric:tabular-nums}
-        .im-unread{min-width:19px;height:19px;padding:0 6px;background:#3478d4;color:#fff;box-shadow:0 3px 8px rgba(52,120,212,.16)}
-        .im-inbox-empty{border:1px solid rgba(119,143,176,.15);border-radius:18px;background:rgba(255,255,255,.88);box-shadow:0 7px 20px rgba(42,62,96,.04)}
-        .im-inbox-empty-title{color:#26364d}
-        .im-inbox-primary{border:1px solid #3478d4;border-radius:13px;background:#3478d4;color:#fff;box-shadow:0 5px 14px rgba(52,120,212,.15)}
+        .im-conversation-list{display:flex;flex-direction:column;gap:0;padding:3px 0;overflow:hidden;border:1px solid rgba(119,143,176,.15);border-radius:21px;background:rgba(255,255,255,.9);box-shadow:0 9px 25px rgba(42,62,96,.045);-webkit-backdrop-filter:blur(18px) saturate(1.14);backdrop-filter:blur(18px) saturate(1.14)}
+        .im-conversation-list > .im-inbox-row{position:relative;display:flex;flex-wrap:nowrap;align-items:center;gap:13px;min-height:76px;padding:13px 15px;border:0;border-bottom:1px solid rgba(118,140,171,.12);border-radius:0;background:transparent;color:#1d293b;transition:background .18s ease}
+        .im-conversation-list > .im-inbox-row:last-child{border-bottom:0}
+        .im-conversation-list > .im-inbox-row.unread{background:linear-gradient(90deg,rgba(236,245,255,.82),rgba(255,255,255,.72))}
+        .im-conversation-list > .im-inbox-row.unread .im-inbox-name{font-weight:760;color:#1c2e47}
+        .im-conversation-list > .im-inbox-row:active{transform:none;background:rgba(235,243,253,.8);border-color:rgba(118,140,171,.12)}
+        .im-conversation-list .im-list-avatar{border:1px solid rgba(255,255,255,.98);box-shadow:0 3px 10px rgba(39,58,90,.09);background:#eef2f8;color:#60718a}
+        .im-conversation-list .im-inbox-person{flex:1;min-width:0}
+        .im-conversation-list .im-inbox-name{color:#26364d;font-size:14px;font-weight:680;letter-spacing:-.01em}
+        .im-conversation-list .im-inbox-preview{color:#8390a2;font-size:12px;line-height:1.45}
+        .im-conversation-list .im-inbox-time{color:#8b97a8;font-size:10px;font-variant-numeric:tabular-nums}
+        .im-conversation-list .im-unread{min-width:19px;height:19px;padding:0 6px;background:#3478d4;color:#fff;box-shadow:0 3px 8px rgba(52,120,212,.16)}
+        .im-conversation-list .im-inbox-empty{border:0;border-radius:18px;background:transparent;box-shadow:none}
+        .im-conversation-list .im-inbox-empty-title{color:#26364d}
+        .im-conversation-list .im-inbox-primary{border:1px solid #3478d4;border-radius:13px;background:#3478d4;color:#fff;box-shadow:0 5px 14px rgba(52,120,212,.15)}
         .im-inbox-message{border-color:rgba(119,143,176,.16);border-radius:14px;background:rgba(245,248,252,.9);color:#5b6d84}
         .im-inbox-row:focus-visible,.im-primary-tabs button:focus-visible,.im-inbox-tabs button:focus-visible{outline:2px solid rgba(86,139,207,.85);outline-offset:2px}
-        @media(max-width:520px){.im-inbox-row:where(button){flex-wrap:nowrap}.im-inbox-row{padding:12px 13px}.im-inbox-list{border-radius:18px}}
-        @media(prefers-reduced-transparency:reduce){.im-primary-tabs,.im-search,.im-inbox-list{backdrop-filter:none;-webkit-backdrop-filter:none;background:#fff}}
+        @media(max-width:520px){.im-conversation-list{border-radius:18px}.im-conversation-list > .im-inbox-row{gap:11px;padding:12px 13px}}
+        @media(prefers-reduced-transparency:reduce){.im-primary-tabs,.im-search,.im-conversation-list{backdrop-filter:none;-webkit-backdrop-filter:none;background:#fff}}
         @media(prefers-reduced-motion:reduce){.im-inbox-row,.im-primary-thumb{transition:none}}
       `}</style>
 
@@ -811,7 +814,7 @@ export default function Friends() {
       ) : (
         <>
           {tab === 'messages' && (
-            <div className="im-inbox-list">
+            <div className="im-inbox-list im-conversation-list">
               {showInboxSkeleton ? <RowSkeleton count={4} /> : loading ? null : filteredConversations.length === 0 ? (
                 <div className="im-inbox-empty">
                   <div className="im-inbox-empty-title">还没有聊天记录</div>

@@ -31,7 +31,6 @@ export const acquireIslandFrameProfiler = async (): Promise<Dispose> => {
       activeDispose = dispose;
       return dispose;
     }).catch((error) => {
-      leases = Math.max(0, leases - 1);
       startPromise = null;
       throw error;
     });
@@ -40,6 +39,7 @@ export const acquireIslandFrameProfiler = async (): Promise<Dispose> => {
   try {
     await startPromise;
   } catch (error) {
+    leases = Math.max(0, leases - 1);
     throw error;
   }
 

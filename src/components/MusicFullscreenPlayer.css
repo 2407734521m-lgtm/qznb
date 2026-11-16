@@ -1,0 +1,370 @@
+/* Full-screen now-playing surface inspired by the reference screenshot. */
+.qz-music-fullscreen-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 8000;
+  display: grid;
+  place-items: center;
+  padding: max(14px, env(safe-area-inset-top, 0px)) 2vw max(14px, env(safe-area-inset-bottom, 0px));
+  background: rgba(6, 12, 28, .32);
+  -webkit-backdrop-filter: blur(15px) saturate(1.2);
+  backdrop-filter: blur(15px) saturate(1.2);
+}
+
+.qz-music-fullscreen-panel {
+  position: relative;
+  display: flex;
+  width: min(96vw, 1480px);
+  height: min(88dvh, 760px);
+  min-height: min(500px, calc(100dvh - 28px));
+  flex-direction: column;
+  justify-content: space-between;
+  overflow: hidden;
+  box-sizing: border-box;
+  padding: clamp(28px, 5.3vw, 82px);
+  border: 1px solid rgba(154, 193, 255, .15);
+  border-radius: clamp(38px, 5vw, 76px);
+  color: #fff;
+  background:
+    radial-gradient(ellipse at 82% 27%, rgba(43, 105, 177, .46), transparent 38%),
+    radial-gradient(ellipse at 13% 88%, rgba(0, 19, 58, .92), transparent 48%),
+    linear-gradient(116deg, #06214b 0%, #082d60 55%, #0b3d78 100%);
+  box-shadow:
+    0 34px 100px rgba(2, 12, 32, .44),
+    inset 0 1px rgba(255,255,255,.09),
+    inset 0 -1px rgba(0,0,0,.18);
+}
+
+.qz-music-fullscreen-panel::before,
+.qz-music-fullscreen-panel::after {
+  position: absolute;
+  z-index: 0;
+  border-radius: 50%;
+  content: "";
+  pointer-events: none;
+}
+
+.qz-music-fullscreen-panel::before {
+  top: -32%;
+  right: -10%;
+  width: 66%;
+  height: 82%;
+  background: radial-gradient(ellipse, rgba(98, 158, 224, .13), transparent 70%);
+  filter: blur(28px);
+}
+
+.qz-music-fullscreen-panel::after {
+  right: 16%;
+  bottom: -48%;
+  width: 60%;
+  height: 75%;
+  background: radial-gradient(ellipse, rgba(0, 14, 48, .48), transparent 68%);
+  filter: blur(24px);
+}
+
+.qz-music-fullscreen-panel > * {
+  position: relative;
+  z-index: 1;
+}
+
+.qz-music-fullscreen-minimize {
+  position: absolute;
+  top: clamp(13px, 2vw, 25px);
+  right: clamp(13px, 2vw, 25px);
+  z-index: 3;
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  padding: 9px;
+  border: 1px solid rgba(255,255,255,.18);
+  border-radius: 50%;
+  color: rgba(255,255,255,.92);
+  background: rgba(255,255,255,.09);
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+  cursor: pointer;
+  transition: background .18s ease, transform .18s ease;
+}
+
+.qz-music-fullscreen-minimize:active { transform: scale(.92); background: rgba(255,255,255,.17); }
+
+.qz-music-fullscreen-header {
+  display: grid;
+  grid-template-columns: clamp(128px, 16vw, 232px) minmax(0, 1fr) clamp(66px, 9vw, 112px);
+  align-items: center;
+  gap: clamp(18px, 2.2vw, 34px);
+  min-width: 0;
+  padding-right: clamp(34px, 5vw, 76px);
+}
+
+.qz-music-fullscreen-art {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  border: 1px solid rgba(255,255,255,.14);
+  border-radius: 50%;
+  object-fit: cover;
+  background: rgba(0, 10, 32, .52);
+  box-shadow: 0 18px 42px rgba(0, 0, 0, .25), 0 0 0 7px rgba(255,255,255,.025);
+}
+
+.qz-music-fullscreen-art-fallback {
+  display: grid;
+  place-items: center;
+  color: rgba(255,255,255,.85);
+  font-size: clamp(42px, 6vw, 76px);
+}
+
+.qz-music-fullscreen-meta { min-width: 0; }
+
+.qz-music-fullscreen-meta h2,
+.qz-music-fullscreen-meta p,
+.qz-music-fullscreen-meta span {
+  display: block;
+  overflow: hidden;
+  margin: 0;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.qz-music-fullscreen-meta h2 {
+  color: #fff;
+  font-size: clamp(22px, 3vw, 43px);
+  font-weight: 760;
+  letter-spacing: -.035em;
+  line-height: 1.2;
+  animation: qz-music-title-enter .28s cubic-bezier(.2,.8,.2,1) both;
+}
+
+.qz-music-fullscreen-meta p {
+  margin-top: 13px;
+  color: rgba(231,239,255,.64);
+  font-size: clamp(15px, 2vw, 28px);
+  font-weight: 570;
+  line-height: 1.3;
+  animation: qz-music-title-enter .32s cubic-bezier(.2,.8,.2,1) both;
+}
+
+.qz-music-fullscreen-meta span {
+  margin-top: 10px;
+  color: rgba(216,229,249,.38);
+  font-size: 11px;
+  letter-spacing: .08em;
+}
+
+@keyframes qz-music-title-enter {
+  from { opacity: 0; transform: translateY(5px); filter: blur(3px); }
+  to { opacity: 1; transform: translateY(0); filter: blur(0); }
+}
+
+.qz-music-fullscreen-wave {
+  display: flex;
+  height: clamp(42px, 6vw, 72px);
+  align-items: center;
+  justify-content: flex-end;
+  gap: clamp(4px, .55vw, 7px);
+  color: #087cf0;
+  filter: drop-shadow(0 0 7px rgba(0, 112, 255, .33));
+}
+
+.qz-music-fullscreen-wave i {
+  display: block;
+  width: clamp(5px, .65vw, 9px);
+  height: 100%;
+  max-height: 100%;
+  border-radius: 999px;
+  background: currentColor;
+  opacity: .96;
+  transform: scaleY(var(--qz-music-eq-bass, .18));
+  transform-origin: center;
+  transition: transform 110ms linear;
+}
+.qz-music-fullscreen-wave i:nth-child(2) { transform: scaleY(var(--qz-music-eq-lowMid, .18)); }
+.qz-music-fullscreen-wave i:nth-child(3) { transform: scaleY(var(--qz-music-eq-vocal, .18)); }
+.qz-music-fullscreen-wave i:nth-child(4) { transform: scaleY(var(--qz-music-eq-treble, .18)); }
+.qz-music-fullscreen-wave i:nth-child(5) { transform: scaleY(var(--qz-music-eq-lowMid, .18)); }
+.qz-music-fullscreen-wave i:nth-child(6) { transform: scaleY(var(--qz-music-eq-bass, .18)); }
+.qz-music-fullscreen-wave i:nth-child(7) { transform: scaleY(var(--qz-music-eq-vocal, .18)); }
+
+html[data-qz-music-eq-mode="fallback"] .qz-music-fullscreen-wave.is-playing i {
+  animation: qz-music-fullscreen-eq .72s ease-in-out infinite alternate;
+}
+html[data-qz-music-eq-mode="fallback"] .qz-music-fullscreen-wave.is-playing i:nth-child(2) { animation-delay: -.31s; animation-duration: .86s; }
+html[data-qz-music-eq-mode="fallback"] .qz-music-fullscreen-wave.is-playing i:nth-child(3) { animation-delay: -.47s; animation-duration: .64s; }
+html[data-qz-music-eq-mode="fallback"] .qz-music-fullscreen-wave.is-playing i:nth-child(4) { animation-delay: -.18s; animation-duration: .93s; }
+html[data-qz-music-eq-mode="fallback"] .qz-music-fullscreen-wave.is-playing i:nth-child(5) { animation-delay: -.56s; animation-duration: .79s; }
+html[data-qz-music-eq-mode="fallback"] .qz-music-fullscreen-wave.is-playing i:nth-child(6) { animation-delay: -.24s; animation-duration: .69s; }
+html[data-qz-music-eq-mode="fallback"] .qz-music-fullscreen-wave.is-playing i:nth-child(7) { animation-delay: -.42s; animation-duration: .9s; }
+
+@keyframes qz-music-fullscreen-eq {
+  from { transform: scaleY(.14); }
+  to { transform: scaleY(.92); }
+}
+
+.qz-music-fullscreen-progress {
+  display: grid;
+  grid-template-columns: 58px minmax(0, 1fr) 58px;
+  align-items: center;
+  gap: clamp(12px, 2vw, 24px);
+  margin: auto 0;
+  padding: 0 clamp(4px, 1vw, 16px);
+}
+
+.qz-music-fullscreen-progress span {
+  color: rgba(226,237,255,.54);
+  font-size: clamp(13px, 1.8vw, 21px);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.qz-music-fullscreen-progress input {
+  display: block;
+  width: 100%;
+  height: 30px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  outline: none;
+  appearance: none;
+  -webkit-appearance: none;
+  background: transparent;
+  cursor: pointer;
+  touch-action: pan-y;
+}
+.qz-music-fullscreen-progress input::-webkit-slider-runnable-track {
+  height: 8px;
+  border-radius: 999px;
+  background: linear-gradient(to right, #fff 0 var(--qz-fullscreen-progress, 0%), rgba(255,255,255,.18) var(--qz-fullscreen-progress, 0%) 100%);
+}
+.qz-music-fullscreen-progress input::-webkit-slider-thumb {
+  width: 15px;
+  height: 15px;
+  margin-top: -3.5px;
+  border: 2px solid #09234d;
+  border-radius: 50%;
+  appearance: none;
+  -webkit-appearance: none;
+  background: #fff;
+  box-shadow: 0 1px 8px rgba(0,0,0,.36);
+}
+.qz-music-fullscreen-progress input::-moz-range-track { height: 8px; border-radius: 999px; background: rgba(255,255,255,.18); }
+.qz-music-fullscreen-progress input::-moz-range-progress { height: 8px; border-radius: 999px; background: #fff; }
+.qz-music-fullscreen-progress input::-moz-range-thumb { width: 11px; height: 11px; border: 2px solid #09234d; border-radius: 50%; background: #fff; }
+.qz-music-fullscreen-progress input:disabled { opacity: .35; cursor: default; }
+.qz-music-fullscreen-progress input:focus-visible::-webkit-slider-thumb { outline: 2px solid rgba(255,255,255,.8); outline-offset: 4px; }
+
+.qz-music-fullscreen-controls {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  align-items: center;
+  justify-items: center;
+  gap: clamp(8px, 2vw, 32px);
+  width: 100%;
+  max-width: 1120px;
+  margin: 0 auto;
+}
+
+.qz-music-fullscreen-controls button {
+  display: grid;
+  width: clamp(48px, 6vw, 88px);
+  aspect-ratio: 1;
+  place-items: center;
+  padding: 13%;
+  border: 0;
+  border-radius: 50%;
+  color: rgba(255,255,255,.94);
+  background: transparent;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform .18s cubic-bezier(.2,.8,.2,1), background .18s ease, opacity .18s ease;
+}
+
+.qz-music-fullscreen-controls button:active { transform: scale(.9); background: rgba(255,255,255,.10); }
+.qz-music-fullscreen-controls button:disabled { opacity: .28; cursor: default; }
+.qz-music-fullscreen-controls button:disabled:active { transform: none; background: transparent; }
+
+.qz-music-fullscreen-controls .qz-music-fullscreen-play {
+  width: clamp(66px, 8vw, 116px);
+  color: #fff;
+  background: rgba(255,255,255,.12);
+  box-shadow: inset 0 1px rgba(255,255,255,.13), 0 8px 28px rgba(0,0,0,.12);
+}
+.qz-music-fullscreen-controls .qz-music-fullscreen-play:active { background: rgba(255,255,255,.2); }
+
+.qz-music-fullscreen-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: clamp(14px, 2vw, 22px);
+  color: rgba(220,233,255,.38);
+  font-size: 11px;
+}
+.qz-music-fullscreen-footer button {
+  border: 1px solid rgba(255,255,255,.17);
+  border-radius: 999px;
+  padding: 9px 15px;
+  color: rgba(255,255,255,.82);
+  background: rgba(255,255,255,.08);
+  font-size: 11px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+@media (max-width: 680px) {
+  .qz-music-fullscreen-backdrop {
+    padding: max(10px, env(safe-area-inset-top, 0px)) 2vw max(10px, env(safe-area-inset-bottom, 0px));
+  }
+  .qz-music-fullscreen-panel {
+    width: 96vw;
+    height: min(88dvh, 760px);
+    min-height: min(460px, calc(100dvh - 20px));
+    padding: 64px 22px 22px;
+    border-radius: 42px;
+  }
+  .qz-music-fullscreen-header {
+    grid-template-columns: clamp(104px, 30vw, 142px) minmax(0, 1fr);
+    gap: 18px;
+    padding-right: 0;
+  }
+  .qz-music-fullscreen-wave {
+    grid-column: 2;
+    justify-content: flex-start;
+    height: 31px;
+    margin-top: -8px;
+  }
+  .qz-music-fullscreen-wave i { width: 5px; }
+  .qz-music-fullscreen-meta h2 { font-size: clamp(20px, 5.3vw, 28px); }
+  .qz-music-fullscreen-meta p { margin-top: 8px; font-size: 15px; }
+  .qz-music-fullscreen-meta span { margin-top: 7px; }
+  .qz-music-fullscreen-progress {
+    grid-template-columns: 40px minmax(0, 1fr) 40px;
+    gap: 7px;
+    padding: 0;
+  }
+  .qz-music-fullscreen-progress span { font-size: 11px; }
+  .qz-music-fullscreen-progress input::-webkit-slider-runnable-track { height: 5px; }
+  .qz-music-fullscreen-progress input::-moz-range-track,
+  .qz-music-fullscreen-progress input::-moz-range-progress { height: 5px; }
+  .qz-music-fullscreen-controls { gap: 2px; }
+  .qz-music-fullscreen-controls button { width: clamp(44px, 13vw, 58px); padding: 10%; }
+  .qz-music-fullscreen-controls .qz-music-fullscreen-play { width: clamp(60px, 16vw, 76px); }
+  .qz-music-fullscreen-footer { font-size: 9px; }
+  .qz-music-fullscreen-footer button { padding: 8px 10px; font-size: 10px; }
+}
+
+@media (max-width: 380px) {
+  .qz-music-fullscreen-panel { padding-right: 17px; padding-left: 17px; border-radius: 34px; }
+  .qz-music-fullscreen-header { grid-template-columns: 96px minmax(0, 1fr); gap: 13px; }
+  .qz-music-fullscreen-controls button { width: 43px; }
+  .qz-music-fullscreen-controls .qz-music-fullscreen-play { width: 58px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .qz-music-fullscreen-panel,
+  .qz-music-fullscreen-controls button,
+  .qz-music-fullscreen-minimize,
+  .qz-music-fullscreen-wave i { transition: none !important; animation: none !important; }
+}

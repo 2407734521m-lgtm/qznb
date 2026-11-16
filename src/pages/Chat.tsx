@@ -1021,8 +1021,10 @@ export default function Chat() {
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">
             <path d="M4 10v4M8 6v12M12 3v18M16 7v10M20 10v4" />
           </svg>
-          {activeGroupVoiceConversationId === Number(cid) && <i className="qz-group-call-live-dot" aria-hidden="true" />}
-          <span className="qz-group-call-count" aria-hidden="true">{activeGroupVoiceConversationId === Number(cid) ? groupVoiceParticipantCount : ''}</span>
+          {activeGroupVoiceConversationId === Number(cid) && <>
+            <i className="qz-group-call-live-dot" aria-hidden="true" />
+            <span className="qz-group-call-count" aria-hidden="true">{groupVoiceParticipantCount}</span>
+          </>}
         </button>}
         <button className="im-icon im-info-button" aria-label="聊天详情" onClick={() => setShowDetails(true)}>
           <span aria-hidden="true">ⓘ</span>

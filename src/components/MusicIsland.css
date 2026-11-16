@@ -657,7 +657,7 @@
   background: transparent;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
-  transition: background .16s ease, transform .16s ease, opacity .16s ease;
+  transition: background 190ms cubic-bezier(.2,.8,.2,1), transform 190ms cubic-bezier(.2,.8,.2,1), opacity 190ms ease;
 }
 
 .qz-island-volume button:disabled { opacity: .28; cursor: default; }
@@ -745,7 +745,7 @@
   width: 44px;
   height: 44px;
   border-radius: 50%;
-  transition: background .16s ease, transform .16s ease, opacity .16s ease;
+  transition: background 190ms cubic-bezier(.2,.8,.2,1), transform 190ms cubic-bezier(.2,.8,.2,1), opacity 190ms ease;
 }
 
 .qz-island-controls button:disabled { opacity: .28; cursor: default; }

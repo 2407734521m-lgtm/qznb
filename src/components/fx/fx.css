@@ -51,7 +51,6 @@
   background: linear-gradient(100deg, transparent 30%, rgba(255,255,255,.8) 50%, transparent 70%);
   transform: translateX(-100%);
   animation: fx-skel-sweep 1.5s infinite;
-  will-change: transform;
   pointer-events: none;
 }
 @keyframes fx-skel-sweep { to { transform: translateX(100%); } }
@@ -216,7 +215,9 @@
   mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   mask-composite: exclude;
   animation: fx-border-beam-spin var(--fx-border-beam-duration) linear infinite;
+  animation-play-state: paused;
 }
+.fx-border-beam-active::before { animation-play-state: running; }
 @keyframes fx-border-beam-spin {
   to { transform: rotate(1turn); }
 }

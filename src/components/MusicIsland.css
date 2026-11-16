@@ -251,9 +251,9 @@
   transform: scale(1);
   filter: saturate(1);
   transition:
-    transform 360ms cubic-bezier(.2,.78,.22,1),
-    filter 360ms ease,
-    border-radius 320ms cubic-bezier(.2,.78,.22,1);
+    transform 300ms cubic-bezier(.22,1,.36,1),
+    filter 300ms ease,
+    border-radius 300ms cubic-bezier(.22,1,.36,1);
   will-change: transform;
 }
 
@@ -264,7 +264,7 @@
 
 @keyframes qz-island-art-breathe {
   0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.045); }
+  50% { transform: scale(1.025); }
 }
 
 .qz-island-compact {
@@ -290,20 +290,18 @@
 }
 
 .qz-island-track-label {
-  animation: qz-island-track-arrive 260ms cubic-bezier(.2,.78,.22,1) both;
-  will-change: opacity, transform, filter;
+  animation: qz-island-track-arrive 240ms cubic-bezier(.22,1,.36,1) both;
+  will-change: opacity, transform;
 }
 
 @keyframes qz-island-track-arrive {
   from {
     opacity: 0;
-    transform: translateY(4px) scale(.985);
-    filter: blur(3px);
+    transform: translateY(2px);
   }
   to {
     opacity: 1;
-    transform: translateY(0) scale(1);
-    filter: blur(0);
+    transform: translateY(0);
   }
 }
 
@@ -434,12 +432,13 @@
 .qz-island-expanded-art-wrap {
   display: block;
   flex: 0 0 auto;
-  animation: qz-island-art-arrive 280ms cubic-bezier(.2,.78,.22,1) both;
+  animation: qz-island-art-arrive 320ms cubic-bezier(.22,1,.36,1) both;
+  will-change: opacity, transform;
 }
 
 @keyframes qz-island-art-arrive {
-  from { opacity: 0; transform: scale(.88); filter: blur(2px); }
-  to { opacity: 1; transform: scale(1); filter: blur(0); }
+  from { opacity: 0; transform: scale(.94); }
+  to { opacity: 1; transform: scale(1); }
 }
 
 /* Header row: round cover with the title and artist right after it. The cap
@@ -670,7 +669,7 @@
   background: transparent;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
-  transition: background 190ms cubic-bezier(.2,.8,.2,1), transform 190ms cubic-bezier(.2,.8,.2,1), opacity 190ms ease;
+  transition: background 230ms cubic-bezier(.22,1,.36,1), transform 230ms cubic-bezier(.22,1,.36,1), opacity 230ms cubic-bezier(.22,1,.36,1);
 }
 
 .qz-island-volume button:disabled { opacity: .28; cursor: default; }
@@ -758,7 +757,7 @@
   width: 44px;
   height: 44px;
   border-radius: 50%;
-  transition: background 190ms cubic-bezier(.2,.8,.2,1), transform 190ms cubic-bezier(.2,.8,.2,1), opacity 190ms ease;
+  transition: background 230ms cubic-bezier(.22,1,.36,1), transform 230ms cubic-bezier(.22,1,.36,1), opacity 230ms cubic-bezier(.22,1,.36,1);
 }
 
 .qz-island-controls button:disabled { opacity: .28; cursor: default; }

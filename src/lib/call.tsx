@@ -626,7 +626,11 @@ export function CallProvider({ children }: { children: ReactNode }) {
             <motion.div key="call-overlay" className={`call-overlay${minimizing ? ' is-minimizing' : ''}`} role="dialog" aria-modal="true" aria-label="语音通话"
               initial={reduceMotion ? false : { opacity: 0 }}
               animate={{ opacity: minimizing ? 0 : 1 }} exit={{ opacity: 0 }}
-              transition={{ duration: reduceMotion ? 0.01 : minimizing ? 0.48 : 0.2, ease: [0.22, 1, 0.36, 1] }}>
+              transition={reduceMotion
+                ? { duration: 0.01 }
+                : minimizing
+                  ? { opacity: { duration: 0.32, delay: 0.04, ease: [0.32, 0, 0.2, 1] } }
+                  : { opacity: { duration: 0.22, ease: [0.22, 1, 0.36, 1] } }}>
               {!minimizing && (
                 <motion.div ref={callCardRef} className="call-card"
                   initial={reduceMotion ? false : { opacity: 0, y: 14, scale: 0.97 }}
@@ -649,16 +653,20 @@ export function CallProvider({ children }: { children: ReactNode }) {
                   scaleX: minimizeFlight.to.width / minimizeFlight.from.width,
                   scaleY: minimizeFlight.to.height / minimizeFlight.from.height,
                   borderRadius: 999,
-                  opacity: [1, 1, 0],
+                  opacity: 0,
                 }}
                 transition={{
-                  // One shared tween keeps position and both scale axes on the same clock.
-                  duration: 0.64,
-                  ease: [0.22, 1, 0.36, 1],
+                  // One near-critically-damped spring drives position, size and corner shape.
+                  // It preserves a continuous trajectory instead of easing every axis to a hard stop.
+                  type: 'spring',
+                  stiffness: 270,
+                  damping: 28,
+                  mass: 0.9,
                   opacity: {
-                    duration: 0.64,
-                    times: [0, 0.84, 1],
-                    ease: [0.22, 1, 0.36, 1],
+                    type: 'tween',
+                    duration: 0.16,
+                    delay: 0.42,
+                    ease: [0.32, 0, 0.2, 1],
                   },
                 }}
                 style={{
@@ -684,10 +692,11 @@ export function CallProvider({ children }: { children: ReactNode }) {
                 <motion.div
                   className="qz-call-card-flight-content"
                   initial={false}
-                  animate={{ opacity: 0, scale: 0.97 }}
+                  animate={{ opacity: 0, scale: 0.96, y: -3 }}
                   transition={{
-                    opacity: { duration: 0.2, delay: 0.22, ease: 'easeOut' },
-                    scale: { duration: 0.28, delay: 0.2, ease: [0.22, 1, 0.36, 1] },
+                    opacity: { duration: 0.18, delay: 0.14, ease: [0.32, 0, 0.2, 1] },
+                    scale: { type: 'spring', stiffness: 320, damping: 30, mass: 0.8 },
+                    y: { type: 'spring', stiffness: 320, damping: 30, mass: 0.8 },
                   }}>
                   {callCardContent}
                 </motion.div>

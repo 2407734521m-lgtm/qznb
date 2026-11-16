@@ -99,7 +99,7 @@
   touch-action: manipulation;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
-  transition: transform 190ms cubic-bezier(.2,.8,.2,1), background-color 190ms ease, border-color 190ms ease;
+  transition: transform 230ms cubic-bezier(.22,1,.36,1), background-color 230ms cubic-bezier(.22,1,.36,1), border-color 230ms cubic-bezier(.22,1,.36,1);
 }
 .qz-call-island-action.is-primary {
   color: #111;
@@ -111,7 +111,7 @@
   border-color: rgba(255,112,112,.25);
   background: rgba(160,35,35,.22);
 }
-.qz-call-island-action:active { transform: scale(.96); }
+.qz-call-island-action:active { transform: scale(.97); }
 .qz-call-island-action:focus-visible {
   outline: 2px solid rgba(255,255,255,.85);
   outline-offset: 2px;
@@ -178,32 +178,27 @@
 }
 
 
-/* Phase-keyed island slots enter together instead of replacing call status abruptly. */
-.qz-call-island-compact,
-.qz-call-island-time,
-.qz-call-island-minimal,
-.qz-call-island-copy,
-.qz-call-island-actions {
-  animation: qz-call-island-phase-enter 200ms cubic-bezier(.2,.8,.2,1) both;
+/* Animate only the changing words. The call layout, timer and action row remain mounted. */
+.qz-call-island-phase-text,
+.qz-call-island-status {
+  display: inline-block;
+  animation: qz-call-island-label-change 240ms cubic-bezier(.22,1,.36,1) both;
 }
 
-@keyframes qz-call-island-phase-enter {
+@keyframes qz-call-island-label-change {
   from {
     opacity: 0;
-    transform: translate3d(0, 3px, 0);
+    transform: translate3d(0, 2px, 0);
   }
   to {
     opacity: 1;
-    transform: translate3d(0, 0, 0) scale(1);
+    transform: translate3d(0, 0, 0);
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .qz-call-island-compact,
-  .qz-call-island-time,
-  .qz-call-island-minimal,
-  .qz-call-island-copy,
-  .qz-call-island-actions {
+  .qz-call-island-phase-text,
+  .qz-call-island-status {
     animation: none;
   }
 }

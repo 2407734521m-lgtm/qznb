@@ -58,7 +58,7 @@
   height: 100%;
   border-radius: inherit;
   background: rgba(255,255,255,.92);
-  animation: qz-island-navigation-sweep 1.05s cubic-bezier(.4,0,.2,1) infinite;
+  animation: qz-island-navigation-sweep 1.28s linear infinite;
 }
 
 /* A separate glass bead, aligned to the island's right edge without entering its hit area. */
@@ -93,7 +93,7 @@
 .qz-island-navigation-indicator > svg {
   position: relative;
   grid-area: 1 / 1;
-  transition: opacity 190ms ease, transform 240ms cubic-bezier(.22,1,.36,1);
+  transition: opacity 240ms cubic-bezier(.22,1,.36,1), transform 280ms cubic-bezier(.22,1,.36,1);
 }
 
 .qz-island-navigation-dot {
@@ -117,19 +117,19 @@
   stroke-linecap: round;
   stroke-linejoin: round;
   opacity: 0;
-  transform: scale(.58);
+  transform: scale(.84);
 }
 
 .qz-island-navigation-indicator > svg path {
   stroke-dasharray: 24;
   stroke-dashoffset: 24;
-  transition: stroke-dashoffset 250ms ease 35ms;
+  transition: stroke-dashoffset 320ms cubic-bezier(.22,1,.36,1) 20ms;
 }
 
 .qz-island-navigation-indicator[data-state="success"] .qz-island-navigation-dot {
   animation: none;
   opacity: 0;
-  transform: scale(.35);
+  transform: scale(.68);
 }
 
 .qz-island-navigation-indicator[data-state="success"] > svg {

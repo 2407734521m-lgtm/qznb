@@ -1,9 +1,21 @@
 import { useEffect, useRef, useState } from 'react';
+import type { ActivityTaskState } from '../lib/island';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { useIsland, type Activity } from '../lib/island';
 import './QianzhiIslandTaskDrawer.css';
 
 export type IslandActivityCategory = '通话' | '音乐' | '通知' | '文件传输' | '网页活动';
+
+export function resolveIslandTaskProgress(progress: number | null | undefined): number | null {
+  if (typeof progress !== 'number' || !Number.isFinite(progress)) return null;
+  return Math.round(Math.max(0, Math.min(100, progress)));
+}
+
+export function resolveIslandTaskStatusLabel(status: ActivityTaskState['status']): string {
+  if (status === 'done') return '已完成';
+  if (status === 'error') return '失败';
+  return '进行中';
+}
 
 /** Stable classification for the site's existing activity IDs. */
 export function resolveIslandActivityCategory(id: string): IslandActivityCategory {
@@ -27,6 +39,8 @@ function activitySymbol(category: IslandActivityCategory): string {
 
 function ActivityRow({ activity, onSelect }: { activity: Activity; onSelect: (id: string) => void }) {
   const category = resolveIslandActivityCategory(activity.id);
+  const task = activity.task;
+  const progress = resolveIslandTaskProgress(task?.progress);
   return (
     <button
       type="button"
@@ -37,8 +51,23 @@ function ActivityRow({ activity, onSelect }: { activity: Activity; onSelect: (id
       <span className="qz-island-task-symbol" aria-hidden="true">{activitySymbol(category)}</span>
       <span className="qz-island-task-copy">
         <strong>{activity.label}</strong>
-        <small>{activity.group ? category + ' · 分组活动' : category + ' · 正在运行'}</small>
+        <small>{task ? category + ' · ' + resolveIslandTaskStatusLabel(task.status) : activity.group ? category + ' · 分组活动' : category + ' · 正在运行'}</small>
+        {task?.detail && <small className="qz-island-task-detail">{task.detail}</small>}
+        {task?.status === 'running' && (
+          <span
+            className="qz-island-task-progress"
+            role="progressbar"
+            aria-label={activity.label + '进度'}
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={progress ?? undefined}
+          >
+            <i className={progress === null ? 'is-indeterminate' : ''} style={progress === null ? undefined : { width: progress + '%' }} />
+          </span>
+        )}
       </span>
+      {task?.status === 'done' && <span className="qz-island-task-state is-done" aria-label="已完成">✓</span>}
+      {task?.status === 'error' && <span className="qz-island-task-state is-error" aria-label="失败">!</span>}
       <span className="qz-island-task-switch">切换</span>
     </button>
   );
@@ -56,10 +85,34 @@ export default function QianzhiIslandTaskDrawer({ docked }: { docked: boolean })
   const [keyboardOpen, setKeyboardOpen] = useState(false);
   const reduceMotion = useReducedMotion();
   const rootRef = useRef<HTMLDivElement | null>(null);
+  const lastAnnouncementRef = useRef('');
+  const [announcement, setAnnouncement] = useState('');
 
   useEffect(() => {
     if (docked || activities.length === 0) setOpen(false);
   }, [docked, activities.length]);
+
+  // Notify background-task owners when the list is being inspected. Finished task
+  // cards pause their auto-dismiss countdown until the user closes the list.
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent('qz-island-task-drawer-visibility', { detail: { open } }));
+    return () => window.dispatchEvent(new CustomEvent('qz-island-task-drawer-visibility', { detail: { open: false } }));
+  }, [open]);
+
+  // Announce task starts and status changes, but not every percentage update.
+  useEffect(() => {
+    const signature = activities.map(activity => [
+      activity.id,
+      activity.label,
+      activity.task?.status ?? '',
+    ].join('|')).join('::');
+    if (!signature || signature === lastAnnouncementRef.current) return;
+    lastAnnouncementRef.current = signature;
+    setAnnouncement(activities.map(activity => {
+      const status = activity.task ? resolveIslandTaskStatusLabel(activity.task.status) : '正在运行';
+      return activity.label + '，' + status;
+    }).join('；'));
+  }, [activities]);
 
   useEffect(() => {
     const viewport = window.visualViewport;
@@ -110,6 +163,7 @@ export default function QianzhiIslandTaskDrawer({ docked }: { docked: boolean })
 
   return (
     <div className="qz-island-task-ui" ref={rootRef}>
+      <output className="qz-island-task-sr-only" aria-live="polite">{announcement}</output>
       <div className="qz-island-task-anchor">
         <button
           type="button"

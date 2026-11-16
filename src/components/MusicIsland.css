@@ -366,14 +366,13 @@
 
 /* The expanded cover is a circle, full stop: the head-scoped selector outranks the
    compact art rule whatever order the built bundle concatenates the sheets in.
-   62px, not 84: the expanded player card is a compact card now, and the cover
-   sets its height — a smaller cover is what makes the whole card read smaller. */
+   52px: the smaller cover sets the expanded player's more compact card height. */
 .qz-island-expanded-head .qz-island-art-expanded {
-  width: 62px;
-  height: 62px;
-  min-width: 62px;
-  min-height: 62px;
-  flex: 0 0 62px;
+  width: 52px;
+  height: 52px;
+  min-width: 52px;
+  min-height: 52px;
+  flex: 0 0 52px;
   border-radius: 50%;
 }
 
@@ -397,8 +396,8 @@
 .qz-island-expanded-head {
   display: flex;
   align-items: center;
-  gap: 10px;
-  max-width: min(300px, 52vw);
+  gap: 8px;
+  max-width: min(220px, 42vw);
 }
 
 /* The fallback note fills the big round cover in the expanded card. */
@@ -474,7 +473,7 @@
   width: 100%;
   min-width: 0;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
   pointer-events: auto;
 }
 
@@ -548,7 +547,7 @@
   display: block;
   min-width: 0;
   flex: 1;
-  height: 22px;
+  height: 20px;
   margin: 0;
   padding: 0;
   border: 0;
@@ -608,9 +607,9 @@
 
 .qz-island-volume button {
   display: grid;
-  width: 30px;
-  height: 30px;
-  flex: 0 0 30px;
+  width: 28px;
+  height: 28px;
+  flex: 0 0 28px;
   place-items: center;
   border: 0;
   padding: 0;
@@ -700,7 +699,7 @@
   align-items: center;
   justify-content: space-evenly;
   gap: 10px;
-  min-height: 56px;
+  min-height: 48px;
 }
 
 .qz-island-controls button {
@@ -717,8 +716,8 @@
 .qz-island-controls button:not(:disabled):active,
 .qz-island-close:active { transform: scale(.92); }
 .qz-island-controls .qz-island-play {
-  width: 56px;
-  height: 56px;
+  width: 48px;
+  height: 48px;
   color: #111216;
   background: #fff;
 }

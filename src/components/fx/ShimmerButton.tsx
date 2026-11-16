@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react';
 import './fx.css';
 import type { ButtonHTMLAttributes, CSSProperties, ReactNode } from 'react';
 
@@ -30,6 +31,38 @@ export default function ShimmerButton({
   disabled,
   ...props
 }: ShimmerButtonProps) {
+  const buttonRef = useRef<HTMLButtonElement | null>(null);
+  const inViewportRef = useRef(false);
+  const [isActive, setIsActive] = useState(false);
+
+  useEffect(() => {
+    const element = buttonRef.current;
+    if (!element) return;
+
+    const syncActivity = () => {
+      setIsActive(inViewportRef.current && !document.hidden && !disabled);
+    };
+
+    let observer: IntersectionObserver | undefined;
+    if (typeof IntersectionObserver !== 'undefined') {
+      observer = new IntersectionObserver(([entry]) => {
+        inViewportRef.current = Boolean(entry?.isIntersecting);
+        syncActivity();
+      }, { rootMargin: '80px' });
+      observer.observe(element);
+    } else {
+      // Older browsers retain the existing behavior while the tab is visible.
+      inViewportRef.current = true;
+      syncActivity();
+    }
+
+    document.addEventListener('visibilitychange', syncActivity);
+    return () => {
+      observer?.disconnect();
+      document.removeEventListener('visibilitychange', syncActivity);
+    };
+  }, [disabled]);
+
   const vars = {
     '--fx-shimmer-color': shimmerColor,
     '--fx-shimmer-duration': shimmerDuration,
@@ -37,8 +70,9 @@ export default function ShimmerButton({
   } as CSSProperties;
   return (
     <button
+      ref={buttonRef}
       type="button"
-      className={['fx-shimmer-btn', className].filter(Boolean).join(' ')}
+      className={['fx-shimmer-btn', isActive && 'fx-shimmer-btn-active', className].filter(Boolean).join(' ')}
       style={{ ...vars, ...style }}
       disabled={disabled}
       {...props}

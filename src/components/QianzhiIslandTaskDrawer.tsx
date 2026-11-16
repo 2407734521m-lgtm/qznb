@@ -167,7 +167,7 @@ export default function QianzhiIslandTaskDrawer({ docked }: { docked: boolean })
   if (docked || keyboardOpen || activities.length === 0) return null;
 
   return (
-    <div className="qz-island-task-ui" ref={rootRef}>
+    <div className={'qz-island-task-ui' + (activities.some(activity => activity.id === 'qz-route-navigation') ? ' has-route-indicator' : '')} ref={rootRef}>
       <output className="qz-island-task-sr-only" aria-live="polite">{announcement}</output>
       <div className="qz-island-task-anchor">
         <button

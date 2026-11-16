@@ -257,7 +257,7 @@ export default function Friends() {
       const idealHeight = Math.min(560, viewportHeight * 0.72);
       const openAbove = spaceBelow < Math.min(idealHeight, 440) && spaceAbove > spaceBelow;
       const availableHeight = openAbove ? spaceAbove : spaceBelow;
-      const maxHeight = Math.max(160, Math.min(idealHeight, availableHeight));
+      const maxHeight = Math.min(idealHeight, availableHeight);
       const top = openAbove
         ? Math.max(edge, rect.top - maxHeight - gap)
         : rect.bottom + gap;

@@ -6,7 +6,8 @@ import { supabase } from './supabase';
 import { useAuth } from '../auth';
 import { useCall } from './call';
 import { useIslandActions } from './island';
-import { CallElapsedTime, createGroupCallIslandActivity } from '../components/QianzhiGroupCallIslandActivity';
+import { CallElapsedTime } from '../components/QianzhiCallIslandActivity';
+import { createGroupCallIslandActivity } from '../components/QianzhiGroupCallIslandActivity';
 import '../styles-group-call.css';
 
 type GroupCallPhase = 'idle' | 'connecting' | 'connected' | 'reconnecting';
@@ -360,8 +361,9 @@ export function GroupCallProvider({ children }: { children: ReactNode }) {
         }
       });
       room.on(sdk.RoomEvent.Disconnected, () => {
-        if (roomRef.current !== room) return;
-        releaseRoom(room, false);
+        const disconnectedRoom = roomRef.current;
+        if (!disconnectedRoom || disconnectedRoom !== room) return;
+        releaseRoom(disconnectedRoom, false);
         toast.info('群语音连接已结束');
       });
 

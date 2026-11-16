@@ -1,57 +1,53 @@
 import type { IslandMotionOverrides } from './config';
 
 /**
- * Qianzhi's island profile: slightly quicker, more tactile transitions than the
- * calibrated upstream defaults, while keeping the same continuous geometry.
+ * Keep the island's geometry springs on the motion table's iOS-calibrated values.
+ * The previous local profile shortened nearly every response and lowered damping,
+ * which made expansion/collapse feel tight and slightly mechanical on touch devices.
  *
- * blendDuration carries a little of the in-flight motion into a retarget, so a
- * quick tap/expand/collapse does not feel like the pill changed its mind abruptly.
- * The split/neck choreography is intentionally left at its calibrated defaults.
+ * Only retarget blending is tuned locally: a longer blend preserves more of the
+ * current velocity when a user interrupts a transition with another gesture.
  */
-const spring = (response: number, dampingFraction: number) => ({
-  response,
-  dampingFraction,
-  blendDuration: 0.08,
-});
+const spring = () => ({ blendDuration: 0.12 });
 
 export const qianzhiIslandMotion = {
   shape: {
-    appear: spring(0.44, 0.73),
-    expand: spring(0.45, 0.77),
-    pressExpand: spring(0.36, 0.76),
-    appearExpand: spring(0.46, 0.78),
-    swap: spring(0.45, 0.78),
-    collapse: spring(0.42, 0.88),
-    alertCollapse: spring(0.44, 0.86),
-    split: spring(0.44, 0.78),
-    unsplit: spring(0.44, 0.78),
-    dismiss: spring(0.4, 0.92),
-    resize: spring(0.4, 0.82),
+    appear: spring(),
+    expand: spring(),
+    pressExpand: spring(),
+    appearExpand: spring(),
+    swap: spring(),
+    collapse: spring(),
+    alertCollapse: spring(),
+    split: spring(),
+    unsplit: spring(),
+    dismiss: spring(),
+    resize: spring(),
   },
   body: {
-    appear: spring(0.44, 0.73),
-    expand: spring(0.45, 0.77),
-    pressExpand: spring(0.36, 0.76),
-    appearExpand: spring(0.46, 0.78),
-    swap: spring(0.45, 0.78),
-    collapse: spring(0.42, 0.9),
-    alertCollapse: spring(0.44, 0.88),
-    split: spring(0.44, 0.78),
-    unsplit: spring(0.44, 0.78),
-    dismiss: spring(0.4, 0.92),
-    resize: spring(0.4, 0.82),
+    appear: spring(),
+    expand: spring(),
+    pressExpand: spring(),
+    appearExpand: spring(),
+    swap: spring(),
+    collapse: spring(),
+    alertCollapse: spring(),
+    split: spring(),
+    unsplit: spring(),
+    dismiss: spring(),
+    resize: spring(),
   },
   corner: {
-    appear: spring(0.44, 0.73),
-    expand: { ...spring(0.42, 0.82), delay: 0.018 },
-    pressExpand: { ...spring(0.31, 0.8), delay: 0.019 },
-    appearExpand: { ...spring(0.43, 0.82), delay: 0.02 },
-    swap: { ...spring(0.4, 0.86), delay: 0.244 },
-    collapse: { ...spring(0.41, 0.92), delay: 0.01 },
-    alertCollapse: { ...spring(0.43, 0.88), delay: 0.009 },
-    split: spring(0.44, 0.78),
-    unsplit: spring(0.44, 0.78),
-    dismiss: spring(0.4, 0.92),
-    resize: spring(0.4, 0.82),
+    appear: spring(),
+    expand: spring(),
+    pressExpand: spring(),
+    appearExpand: spring(),
+    swap: spring(),
+    collapse: spring(),
+    alertCollapse: spring(),
+    split: spring(),
+    unsplit: spring(),
+    dismiss: spring(),
+    resize: spring(),
   },
 } satisfies IslandMotionOverrides;

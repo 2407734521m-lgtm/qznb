@@ -98,7 +98,7 @@
   height: 100%;
   border-radius: inherit;
   background: rgba(255,255,255,.92);
-  transition: width 180ms linear;
+  transition: width 220ms cubic-bezier(.22,1,.36,1);
 }
 .qz-upload-island-track > span.is-indeterminate {
   width: 36%;

@@ -146,25 +146,26 @@ describe('call island phase transitions', () => {
     onExpand: noop,
   });
 
-  it('keeps one activity while keying visible regions to the active phase', () => {
+  it('keeps the call layout mounted while animating only changing status labels', () => {
     const incoming = createCallIslandActivity(makeInput('incoming'));
     const active = createCallIslandActivity(makeInput('in-call'));
 
     expect(active.id).toBe(incoming.id);
-    expect((incoming.compact?.leading as ReactElement).key).toBe('incoming');
-    expect((active.compact?.leading as ReactElement).key).toBe('in-call');
-    expect((incoming.compact?.trailing as ReactElement).key).toBe('incoming');
-    expect((active.minimal as ReactElement).key).toBe('in-call');
-    expect((incoming.expanded?.center as ReactElement).key).toBe('incoming');
-    expect((active.expanded?.bottom as ReactElement).key).toBe('in-call:false:false');
+    expect((incoming.compact?.leading as ReactElement).key).toBeNull();
+    expect((incoming.compact?.trailing as ReactElement).key).toBeNull();
+    expect((active.minimal as ReactElement).key).toBeNull();
+    expect((incoming.expanded?.center as ReactElement).key).toBeNull();
+    expect((active.expanded?.bottom as ReactElement).key).toBeNull();
   });
 
-  it('re-enters the call action row when mute or speaker state changes', () => {
+  it('does not remount the entire action row when mute or speaker state changes', () => {
+    const active = createCallIslandActivity(makeInput('in-call'));
     const muted = createCallIslandActivity({ ...makeInput('in-call'), muted: true });
     const speaker = createCallIslandActivity({ ...makeInput('in-call'), speakerEnabled: true });
 
-    expect((muted.expanded?.bottom as ReactElement).key).toBe('in-call:true:false');
-    expect((speaker.expanded?.bottom as ReactElement).key).toBe('in-call:false:true');
+    expect((active.expanded?.bottom as ReactElement).key).toBeNull();
+    expect((muted.expanded?.bottom as ReactElement).key).toBeNull();
+    expect((speaker.expanded?.bottom as ReactElement).key).toBeNull();
   });
 
   it('expands the island in place on tap instead of restoring the fullscreen call', () => {
@@ -173,8 +174,6 @@ describe('call island phase transitions', () => {
     const onHangUp = () => {};
     const activity = createCallIslandActivity({ ...makeInput('in-call'), onExpand, onRestore, onHangUp });
 
-    // Tapping the minimized pill must expand the island so the hang-up
-    // action is visible right there — never jump back to fullscreen.
     expect(activity.onPress).toBe(onExpand);
     const actionRow = activity.expanded?.bottom as ReactElement<{ children: ReactElement<{ children: ReactElement<{ label: string; onAction: () => void }>[] }> }>;
     const actions = actionRow.props.children.props.children;

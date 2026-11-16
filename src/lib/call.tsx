@@ -5,7 +5,7 @@ import type { ReactNode } from 'react';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import { supabase } from './supabase';
 import { useIslandActions } from './island';
-import { CallElapsedTime, createCallIslandActivity } from '../components/QianzhiCallIslandActivity';
+import { CallElapsedTime, createCallIslandActivity, resolveCallIslandTargetRect } from '../components/QianzhiCallIslandActivity';
 import { useAuth } from '../auth';
 import '../styles-call.css';
 
@@ -410,12 +410,13 @@ export function CallProvider({ children }: { children: ReactNode }) {
     const islandRoot = document.querySelector<HTMLElement>('.qz-island-call-anchor');
     const islandHost = islandRoot?.closest<HTMLElement>('.qz-island-host') ?? null;
     const pill = islandRoot?.querySelector<HTMLElement>('[data-islandcn-hit="pill"]') ?? null;
-    const pillRect = pill?.getBoundingClientRect();
+    const pillRect = pill?.getBoundingClientRect() ?? null;
 
     let destination: { left: number; top: number; width: number; height: number } | null = null;
-    if (islandRoot?.dataset.presentation === 'expanded' && islandHost) {
-      // An incoming-call alert can still be expanded when the user minimizes it.
-      // Resolve the compact landing point from the island's configured capsule geometry.
+    if (islandRoot && islandHost) {
+      // The pill's DOM rect is translated off-screen while docked. Preserve its measured
+      // width, but resolve the landing Y from saved capsule geometry so calls still fly
+      // into the visible island position when the user previously hid it.
       const hostStyle = getComputedStyle(islandHost);
       const islandStyle = getComputedStyle(islandRoot);
       const cssNumber = (value: string, fallback: number) => {
@@ -428,16 +429,20 @@ export function CallProvider({ children }: { children: ReactNode }) {
       const offsetY = cssNumber(hostStyle.getPropertyValue('--qz-island-offset-y'), 0);
       const anchorTop = cssNumber(islandStyle.top, 18);
       const width = cssNumber(hostStyle.getPropertyValue('--qz-island-capsule-width'), 104);
-      const centerX = window.innerWidth / 2 + offsetX;
-      const centerY = anchorTop + top + height / 2 + offsetY;
-      destination = { left: centerX - width / 2, top: centerY - height / 2, width, height };
-    } else if (pillRect && pillRect.width > 0 && pillRect.height > 0) {
-      destination = {
-        left: pillRect.left,
-        top: pillRect.top,
-        width: pillRect.width,
-        height: pillRect.height,
-      };
+      const docked = islandHost.classList.contains('is-docked');
+      destination = resolveCallIslandTargetRect({
+        presentation: islandRoot.dataset.presentation,
+        docked,
+        pillRect: pillRect ? { left: pillRect.left, top: pillRect.top, width: pillRect.width, height: pillRect.height } : null,
+        viewportWidth: window.innerWidth,
+        anchorTop,
+        shapeTop: top,
+        shapeHeight: height,
+        configuredWidth: width,
+        offsetX,
+        offsetY,
+      });
+      if (docked) window.dispatchEvent(new Event('qznb-island-restore'));
     }
 
     // Keep the WebRTC session, microphone tracks and elapsed-time clock untouched.

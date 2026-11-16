@@ -82,7 +82,7 @@ const SongWall = lazyWithRetry(() => import('./pages/SongWall'));
 const Daily = lazyWithRetry(() => import('./pages/Daily'));
 const ParticleFlower = lazyWithRetry(() => import('./pages/ParticleFlower'));
 const AirInk = lazyWithRetry(() => import('./pages/AirInk'));
-import { alertDialog } from './lib/dialog';
+import { alertDialog, confirmDialog } from './lib/dialog';
 import { resolveApproximateRegion, saveSharedRegion } from './lib/location';
 import GlobalSearch from './components/GlobalSearch';
 import MusicIsland from './components/MusicIsland';
@@ -1248,6 +1248,14 @@ function Shell() {
 
   async function logout() { await supabase.auth.signOut({ scope: 'local' }); }
 
+  // Dock 快捷面板里的“退出登录”：先关面板，再走站内确认框，确认后才退出。
+  // 顶栏已撤，快捷面板是全站任何页面都能打开退出入口的地方。
+  async function handleDockLogout() {
+    setDockMoreOpen(false);
+    if (!(await confirmDialog('确定退出登录吗？退出后需要重新登录才能进入。', { danger: true, confirmText: '退出登录' }))) return;
+    await logout();
+  }
+
   if (loading) return <DelayedPageSkeleton />;
   if (!session && isAdminPage) return (<><div className="glow" /><div style={{ position: 'fixed', inset: 0, background: '#fff' }} /><div style={{ position: 'relative' }}><AdminLogin /></div></>);
   // 从重置密码邮件回来：优先显示设置新密码页。
@@ -1554,6 +1562,9 @@ function Shell() {
                 <div className="qz-ios26-dock-more-actions">
                   <button type="button" onClick={() => { setSearchOpen(true); setDockMoreOpen(false); }}>
                     ⌕ 搜索
+                  </button>
+                  <button type="button" onClick={() => void handleDockLogout()}>
+                    退出登录
                   </button>
                   <button type="button" onClick={() => { setDockCollapsed(value => !value); setDockMoreOpen(false); }}>
                     {dockCollapsed ? '展开 Dock' : '收起 Dock'}

@@ -118,3 +118,329 @@
 .qz-call-card-flight-content {
   pointer-events: none;
 }
+
+
+/* Full-screen voice call surface. Scoped to the call overlay only. */
+.call-overlay {
+  display: block;
+  padding: 0;
+  overflow: hidden;
+  background: #111821;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+.call-overlay.is-minimizing {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+.call-card {
+  box-sizing: border-box;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  border-radius: 0;
+  background: #111821;
+  color: #f7f8fa;
+  text-align: left;
+  box-shadow: none;
+}
+.qz-call-fullscreen {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  width: 100%;
+  height: 100%;
+  min-height: 100%;
+  box-sizing: border-box;
+  flex-direction: column;
+  align-items: center;
+  padding: calc(env(safe-area-inset-top, 0px) + 12px) 24px calc(env(safe-area-inset-bottom, 0px) + 30px);
+  overflow: hidden;
+  color: #f7f8fa;
+  background:
+    radial-gradient(ellipse at 50% 34%, rgba(132, 151, 178, .16), transparent 43%),
+    linear-gradient(160deg, #202936 0%, #171f2a 53%, #111821 100%);
+  text-align: center;
+}
+.qz-call-fullscreen::after {
+  position: absolute;
+  z-index: -1;
+  right: -28%;
+  bottom: -37%;
+  left: -28%;
+  height: 58%;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(255,255,255,.035), transparent 68%);
+  content: "";
+  pointer-events: none;
+}
+.qz-call-topbar {
+  display: flex;
+  width: 100%;
+  min-height: 44px;
+  align-items: center;
+  justify-content: space-between;
+  flex: 0 0 auto;
+}
+.qz-call-topbar-label {
+  color: rgba(247,248,250,.68);
+  font-size: 13px;
+  font-weight: 620;
+  letter-spacing: .04em;
+}
+.qz-call-fullscreen .call-minimize {
+  position: static;
+  display: grid;
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
+  place-items: center;
+  border: 1px solid rgba(255,255,255,.13);
+  border-radius: 50%;
+  background: rgba(255,255,255,.085);
+  color: rgba(255,255,255,.9);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.09);
+}
+.qz-call-fullscreen .call-minimize svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+}
+.qz-call-fullscreen .call-minimize:active {
+  background: rgba(255,255,255,.18);
+}
+.qz-call-stage {
+  display: flex;
+  width: 100%;
+  min-height: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px 0 30px;
+}
+.qz-call-avatar-ring {
+  display: grid;
+  width: 132px;
+  height: 132px;
+  flex: 0 0 auto;
+  place-items: center;
+  margin-bottom: 28px;
+  border: 1px solid rgba(255,255,255,.14);
+  border-radius: 50%;
+  background: rgba(255,255,255,.035);
+  box-shadow: 0 0 0 9px rgba(255,255,255,.025), 0 18px 48px rgba(0,0,0,.18);
+}
+.qz-call-avatar-ring.is-ringing {
+  animation: qz-call-avatar-breathe 2s ease-in-out infinite;
+}
+.qz-call-fullscreen .call-avatar {
+  display: grid;
+  width: 108px;
+  height: 108px;
+  place-items: center;
+  margin: 0;
+  border: 1px solid rgba(255,255,255,.18);
+  border-radius: 50%;
+  background: linear-gradient(145deg, #76869d, #46566c);
+  color: #fff;
+  font-size: 39px;
+  font-weight: 650;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.2);
+}
+.qz-call-fullscreen .call-name {
+  max-width: min(88vw, 440px);
+  margin-top: 2px;
+  color: #fff;
+  font-size: clamp(25px, 6vw, 31px);
+  font-weight: 680;
+  letter-spacing: -.035em;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+.qz-call-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+  color: rgba(245,247,250,.78);
+  font-size: 14px;
+  font-weight: 560;
+}
+.qz-call-state-dot {
+  width: 7px;
+  height: 7px;
+  flex: 0 0 7px;
+  border-radius: 50%;
+  background: #9ca8b8;
+}
+.qz-call-state-in-call { background: #54c98a; }
+.qz-call-state-incoming,
+.qz-call-state-outgoing { background: #d9b56b; }
+.qz-call-fullscreen .call-status {
+  min-height: 22px;
+  margin-top: 8px;
+  color: rgba(226,232,240,.56);
+  font-size: 13px;
+}
+.qz-call-fullscreen .call-timer {
+  display: inline-block;
+  margin: 0;
+  color: rgba(255,255,255,.9);
+  font-size: 17px;
+  font-weight: 580;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: .06em;
+}
+.qz-call-controls {
+  display: grid;
+  width: min(100%, 430px);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: start;
+  gap: 14px;
+  flex: 0 0 auto;
+  margin: auto 0 4px;
+}
+.qz-call-control {
+  display: flex;
+  min-width: 0;
+  min-height: 94px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: rgba(247,248,250,.88);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 560;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+.qz-call-control-icon {
+  display: grid;
+  width: 62px;
+  height: 62px;
+  flex: 0 0 62px;
+  place-items: center;
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 50%;
+  background: rgba(255,255,255,.105);
+  color: #f7f8fa;
+  transition: transform 160ms ease, background-color 160ms ease, border-color 160ms ease;
+}
+.qz-call-control-icon svg {
+  width: 25px;
+  height: 25px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.qz-call-control:active .qz-call-control-icon { transform: scale(.94); }
+.qz-call-control.is-active .qz-call-control-icon {
+  border-color: rgba(255,255,255,.55);
+  background: #f4f6f8;
+  color: #273140;
+}
+.qz-call-control.is-unavailable { color: rgba(247,248,250,.52); }
+.qz-call-control.is-unavailable .qz-call-control-icon { opacity: .58; }
+.qz-call-control-hangup .qz-call-control-icon {
+  width: 66px;
+  height: 66px;
+  flex-basis: 66px;
+  border-color: rgba(255,91,99,.35);
+  background: #d84c55;
+  color: #fff;
+  box-shadow: 0 8px 24px rgba(216,76,85,.2);
+}
+.qz-call-main-actions {
+  display: flex;
+  width: min(100%, 340px);
+  align-items: center;
+  justify-content: center;
+  gap: clamp(34px, 12vw, 66px);
+  flex: 0 0 auto;
+  margin: auto 0 10px;
+}
+.qz-call-action {
+  display: flex;
+  min-width: 76px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: rgba(247,248,250,.88);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 560;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+.qz-call-action-icon {
+  display: grid;
+  width: 66px;
+  height: 66px;
+  place-items: center;
+  border-radius: 50%;
+  background: #d84c55;
+  color: #fff;
+  box-shadow: 0 8px 24px rgba(216,76,85,.18);
+  transition: transform 160ms ease;
+}
+.qz-call-action-icon.is-accept {
+  background: #2d9a68;
+  box-shadow: 0 8px 24px rgba(45,154,104,.18);
+}
+.qz-call-action-icon svg {
+  width: 28px;
+  height: 28px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.qz-call-action:active .qz-call-action-icon { transform: scale(.94); }
+@keyframes qz-call-avatar-breathe {
+  0%, 100% { box-shadow: 0 0 0 8px rgba(255,255,255,.025), 0 18px 48px rgba(0,0,0,.18); }
+  50% { box-shadow: 0 0 0 14px rgba(255,255,255,.045), 0 18px 48px rgba(0,0,0,.18); }
+}
+@media (max-height: 680px) {
+  .qz-call-stage { padding: 8px 0 14px; }
+  .qz-call-avatar-ring { width: 104px; height: 104px; margin-bottom: 18px; }
+  .qz-call-fullscreen .call-avatar { width: 84px; height: 84px; font-size: 32px; }
+  .qz-call-controls { gap: 8px; }
+  .qz-call-control { min-height: 82px; gap: 7px; }
+  .qz-call-control-icon { width: 54px; height: 54px; flex-basis: 54px; }
+  .qz-call-control-hangup .qz-call-control-icon { width: 58px; height: 58px; flex-basis: 58px; }
+  .qz-call-action-icon { width: 58px; height: 58px; }
+}
+@media (orientation: landscape) and (max-height: 520px) {
+  .qz-call-fullscreen { padding-right: max(28px, env(safe-area-inset-right)); padding-left: max(28px, env(safe-area-inset-left)); }
+  .qz-call-stage { padding: 0; }
+  .qz-call-avatar-ring { width: 82px; height: 82px; margin-bottom: 10px; }
+  .qz-call-fullscreen .call-avatar { width: 66px; height: 66px; font-size: 26px; }
+  .qz-call-controls { width: min(100%, 390px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .qz-call-avatar-ring.is-ringing { animation: none; }
+  .qz-call-control-icon,
+  .qz-call-action-icon { transition: none; }
+}

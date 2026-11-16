@@ -21,7 +21,6 @@ import { haptic } from './lib/haptics';
 import { createUploadIslandActivity } from './components/QianzhiIslandUploadActivity';
 import { createDownloadIslandActivity } from './components/QianzhiIslandDownloadActivity';
 import { createPausableDismissTimer } from './components/islandTaskDismissTimer';
-import QianzhiIslandNavigationActivity from './components/QianzhiIslandNavigationActivity';
 import type { MediaDownloadIslandEvent, MediaUploadIslandEvent } from './lib/media';
 import { lazyWithRetry } from './lib/lazyWithRetry';
 import { preloadRoute } from './lib/routePreload';
@@ -1449,7 +1448,7 @@ function Shell() {
             animate={isImmersivePage ? { opacity: 1 } : { opacity: 1, y: 0, scale: 1 }}
             exit={reduce ? { opacity: 1 } : isImmersivePage ? { opacity: 0 } : { opacity: 0, y: -7, scale: 0.996 }}
             transition={{ duration: reduce ? 0 : DUR.base + 0.06, ease: EASE }}>
-            <Suspense fallback={<><RouteTransitionSkeleton pathname={loc.pathname} /><QianzhiIslandNavigationActivity /></>}>
+            <Suspense fallback={<RouteTransitionSkeleton pathname={loc.pathname} />}>
             <Routes location={loc}>
               <Route path="/" element={<Navigate to="/home" replace />} />
               <Route path="/board" element={<Board />} />

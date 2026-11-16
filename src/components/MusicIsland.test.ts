@@ -154,14 +154,31 @@ describe('resolveMusicEqualizerMode', () => {
     })).toBe('fallback');
   });
 
-  it('uses visual fallback for near-silent RMS instead of leaving the bars frozen', () => {
+  it('keeps near-silent and zero RMS readings live so the bars follow actual volume', () => {
     expect(resolveMusicEqualizerMode({
       playing: true,
       available: false,
       mode: 'level',
       level: 0.004,
       bands: null,
-    })).toBe('fallback');
+    })).toBe('live');
+    expect(resolveMusicEqualizerMode({
+      playing: true,
+      available: false,
+      mode: 'level',
+      level: 0,
+      bands: null,
+    })).toBe('live');
+  });
+
+  it('keeps a valid silent FFT frame live instead of switching to decorative motion', () => {
+    expect(resolveMusicEqualizerMode({
+      playing: true,
+      available: true,
+      mode: 'spectrum',
+      level: 0,
+      bands: { bass: 0, lowMid: 0, vocal: 0, treble: 0 },
+    })).toBe('live');
   });
 
   it('stops the equalizer when playback is paused', () => {

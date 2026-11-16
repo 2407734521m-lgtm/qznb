@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
-import { motion, useReducedMotion } from 'framer-motion';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { useIslandActions, useIslandActivityIds } from '../lib/island';
 import { createMusicIslandActivity, MusicIslandView } from './QianzhiMusicIslandActivity';
+import MusicFullscreenPlayer from './MusicFullscreenPlayer';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { haptic } from '../lib/haptics';
 import './MusicIsland.css';
@@ -111,6 +112,7 @@ function MusicIsland() {
   const [showFallback, setShowFallback] = useState(false);
   const [track, setTrack] = useState<MusicTrack | null>(null);
   const [seekDraft, setSeekDraft] = useState<number | null>(null);
+  const [fullPlayerOpen, setFullPlayerOpen] = useState(false);
   const seekDraftRef = useRef<number | null>(null);
   const lastStateMessageAtRef = useRef(0);
   const lastTrackRef = useRef<MusicTrack | null>(null);
@@ -159,8 +161,15 @@ function MusicIsland() {
         const host = islandWrapRef.current;
         if (!host) return;
         const style = host.style;
+        const rootStyle = document.documentElement.style;
         const equalizerMode = resolveMusicEqualizerMode(spectrum);
         host.dataset.qzMusicEqMode = equalizerMode;
+        document.documentElement.dataset.qzMusicEqMode = equalizerMode;
+        if (equalizerMode === 'idle') {
+          for (const name of ['bass', 'lowMid', 'vocal', 'treble']) {
+            rootStyle.setProperty('--qz-music-eq-' + name, '.12');
+          }
+        }
         if (equalizerMode !== 'live') return;
 
         const names = ['bass', 'lowMid', 'vocal', 'treble'] as const;
@@ -175,7 +184,9 @@ function MusicIsland() {
           const raw = spectrumBands ? spectrumBands[name] : rmsLevel * levelMultipliers[name];
           const energy = Number.isFinite(raw) ? Math.max(0, Math.min(1, raw ?? 0)) : 0;
           // Frequency mode keeps four independent bands; RMS mode moves all bars with overall loudness.
-          style.setProperty(`--qz-music-eq-${name}`, String(0.12 + energy * 0.88));
+          const measured = String(0.12 + energy * 0.88);
+          style.setProperty(`--qz-music-eq-${name}`, measured);
+          rootStyle.setProperty(`--qz-music-eq-${name}`, measured);
         }
         return;
       }
@@ -186,10 +197,15 @@ function MusicIsland() {
       setShowFallback(false);
       if (!message.track || typeof message.track.title !== 'string') {
         islandWrapRef.current?.setAttribute('data-qz-music-eq-mode', 'idle');
+        document.documentElement.dataset.qzMusicEqMode = 'idle';
         islandWrapRef.current?.style.setProperty('--qz-music-eq-bass', '.12');
         islandWrapRef.current?.style.setProperty('--qz-music-eq-lowMid', '.12');
         islandWrapRef.current?.style.setProperty('--qz-music-eq-vocal', '.12');
         islandWrapRef.current?.style.setProperty('--qz-music-eq-treble', '.12');
+        document.documentElement.style.setProperty('--qz-music-eq-bass', '.12');
+        document.documentElement.style.setProperty('--qz-music-eq-lowMid', '.12');
+        document.documentElement.style.setProperty('--qz-music-eq-vocal', '.12');
+        document.documentElement.style.setProperty('--qz-music-eq-treble', '.12');
         lastTrackRef.current = null;
         setTrack(null);
         return;
@@ -199,10 +215,15 @@ function MusicIsland() {
       const currentTime = Number(incoming.currentTime);
       if (!incoming.isPlaying) {
         islandWrapRef.current?.setAttribute('data-qz-music-eq-mode', 'idle');
+        document.documentElement.dataset.qzMusicEqMode = 'idle';
         islandWrapRef.current?.style.setProperty('--qz-music-eq-bass', '.12');
         islandWrapRef.current?.style.setProperty('--qz-music-eq-lowMid', '.12');
         islandWrapRef.current?.style.setProperty('--qz-music-eq-vocal', '.12');
         islandWrapRef.current?.style.setProperty('--qz-music-eq-treble', '.12');
+        document.documentElement.style.setProperty('--qz-music-eq-bass', '.12');
+        document.documentElement.style.setProperty('--qz-music-eq-lowMid', '.12');
+        document.documentElement.style.setProperty('--qz-music-eq-vocal', '.12');
+        document.documentElement.style.setProperty('--qz-music-eq-treble', '.12');
       }
       const nextTrack: MusicTrack = {
         title: incoming.title.slice(0, 180),
@@ -275,12 +296,12 @@ function MusicIsland() {
       islandApi.end('music-playback');
       return;
     }
-    const toggleExpanded = () => {
+    const openFullscreenPlayer = () => {
       haptic('tick');
+      setFullPlayerOpen(true);
       if (islandApi.presentation === 'expanded') islandApi.collapse();
-      else islandApi.expand('music-playback');
     };
-    islandApi.start(createMusicIslandActivity(toggleExpanded));
+    islandApi.start(createMusicIslandActivity(openFullscreenPlayer));
     return () => islandApi.end('music-playback');
   }, [hasTrack, isMusicPage, islandApi]);
 
@@ -290,6 +311,12 @@ function MusicIsland() {
       label: (track.isPlaying ? '正在播放：' : '已暂停：') + track.title,
     });
   }, [hasTrack, isMusicPage, track?.title, track?.isPlaying, islandApi]);
+
+  useEffect(() => {
+    if (!track || isMusicPage || activityIds.some(id => id !== 'music-playback')) {
+      setFullPlayerOpen(false);
+    }
+  }, [track?.title, isMusicPage, activityIds]);
 
   return (
     <>
@@ -361,6 +388,19 @@ function MusicIsland() {
           )}
         </motion.div>
       )}
+
+      <AnimatePresence>
+        {fullPlayerOpen && track && !isMusicPage && (
+          <MusicFullscreenPlayer
+            key={track.title + ':' + track.artist}
+            track={track}
+            connected={connected}
+            sendCommand={sendCommand}
+            onMinimize={() => setFullPlayerOpen(false)}
+            onOpenMusic={() => { setFullPlayerOpen(false); navigate('/music'); }}
+          />
+        )}
+      </AnimatePresence>
 
       {showMainIsland && (
         <MusicIslandView

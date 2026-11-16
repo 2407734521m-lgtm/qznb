@@ -5,6 +5,8 @@ export const NAVIGATION_ACTIVITY_END_DEBOUNCE_MS = 500;
 export interface NavigationActivitySink {
   /** Starts the activity, or updates its content when the ID is already active. */
   show(label: string): void;
+  /** Switches the visible activity to its completed state before it is dismissed. */
+  complete?(): void;
   end(): void;
 }
 
@@ -72,7 +74,11 @@ export class NavigationActivityScheduler<Handle> {
       return;
     }
 
+    // Mark completion immediately. If another route starts during the quiet window,
+    // enter() clears the dismissal and show() returns the same activity to loading.
+    const shouldComplete = this.pendingEnd === null;
     if (this.pendingEnd !== null) this.timers.clearTimeout(this.pendingEnd);
+    if (shouldComplete) this.sink?.complete?.();
 
     const visibleFor = Math.max(0, this.timers.now() - this.visibleSince);
     const remainingMinimum = Math.max(0, NAVIGATION_ACTIVITY_MIN_VISIBLE_MS - visibleFor);

@@ -100,8 +100,13 @@ begin
           and ((f.requester = auth.uid() and f.addressee = requested.id)
             or (f.requester = requested.id and f.addressee = auth.uid()))
      )
+     or exists (
+       select 1 from public.user_blocks b
+        where (b.blocker_id = auth.uid() and b.blocked_id = requested.id)
+           or (b.blocker_id = requested.id and b.blocked_id = auth.uid())
+     )
   ) then
-    raise exception 'all invited members must be your friends';
+    raise exception 'all invited members must be your friends and not blocked';
   end if;
 
   insert into public.conversations
@@ -338,7 +343,7 @@ begin
   select member_role into v_target_role
     from public.conversation_members
    where conversation_id = p_conversation_id and profile_id = p_target_profile_id;
-  if v_actor_role not in ('owner', 'admin') or v_target_role is null
+  if v_actor_role is null or v_actor_role not in ('owner', 'admin') or v_target_role is null
      or p_target_profile_id = auth.uid()
      or (v_actor_role = 'admin' and v_target_role in ('owner', 'admin')) then
     raise exception 'insufficient permissions' using errcode = '42501';

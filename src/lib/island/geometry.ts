@@ -59,6 +59,14 @@ export const expandedWidth = (screenWidth: number, metrics: IslandMetrics) =>
 export const MUSIC_EXPANDED_STAGE_WIDTH = 500;
 
 /**
+ * The saved island offset is relative to the tuned default capsule position:
+ * the provider and the drag-to-align preview both raise the capsule by this
+ * much, so the spot a user saves matches the spot they previewed. Keep the
+ * number in this one place — a second literal here would drift apart silently.
+ */
+export const QIANZHI_ISLAND_BASELINE_Y_ADJUSTMENT = -10;
+
+/**
  * The stage width an expanded scene lays out against. Only the music player
  * (`music-playback`, the scene's primary activity) takes the narrower stage;
  * every other activity keeps the shared stage, so call, upload and alert

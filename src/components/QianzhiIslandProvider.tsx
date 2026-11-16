@@ -1,17 +1,16 @@
 import { useEffect, useMemo, type ReactNode } from 'react';
 import { useAuth } from '../auth';
 import { IslandProvider } from '../lib/island';
+import { QIANZHI_ISLAND_BASELINE_Y_ADJUSTMENT } from '../lib/island/geometry';
 import { resolveIslandReducedMotion } from '../lib/island/preferences';
 import { createQianzhiIslandMetrics } from '../lib/island/qianzhi-metrics';
 import { qianzhiIslandMotion } from '../lib/island/qianzhi-motion';
 import { setHapticsEnabled } from '../lib/haptics';
-import { readUserPreferences, useUserPreferences } from '../lib/useUserPreferences';
-
-const QIANZHI_ISLAND_BASELINE_Y_ADJUSTMENT = -10;
+import { readUserPreferences, hasLocalPreferences, useUserPreferences } from '../lib/useUserPreferences';
 
 export default function QianzhiIslandProvider({ children }: { children: ReactNode }) {
   const { session } = useAuth();
-  const { prefs, setPrefs } = useUserPreferences(session?.user.id ?? null);
+  const { prefs, setPrefs, reloadPreferences } = useUserPreferences(session?.user.id ?? null);
   const island = prefs.island;
 
 
@@ -43,6 +42,9 @@ export default function QianzhiIslandProvider({ children }: { children: ReactNod
     const uid = session?.user.id;
     if (!uid) return;
     const sync = () => {
+      // 本地缓存没了（另一标签页删了、或清掉了 localStorage）不等于用户把
+      // 设置改回默认：从云端重读，而不是把默认值写回云端盖掉真设置。
+      if (!hasLocalPreferences(uid)) { reloadPreferences(); return; }
       const next = readUserPreferences(uid);
       setPrefs(current => JSON.stringify(current) === JSON.stringify(next) ? current : next);
     };
@@ -59,7 +61,7 @@ export default function QianzhiIslandProvider({ children }: { children: ReactNod
       window.removeEventListener('focus', sync);
       window.removeEventListener('storage', syncStorage);
     };
-  }, [session?.user.id, setPrefs]);
+  }, [session?.user.id, setPrefs, reloadPreferences]);
 
   const metrics = useMemo(
     () => createQianzhiIslandMetrics({ width: island.width, height: island.height }),

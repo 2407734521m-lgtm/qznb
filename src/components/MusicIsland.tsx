@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
-import { useIslandActions, useIslandActivityIds } from '../lib/island';
+import { AnimatePresence, motion } from 'framer-motion';
+import { useIslandActions, useIslandActivityIds, useIslandReducedMotion } from '../lib/island';
 import { createMusicIslandActivity, MusicIslandView } from './QianzhiMusicIslandActivity';
 import MusicFullscreenPlayer from './MusicFullscreenPlayer';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -200,7 +200,7 @@ export function resolveMusicIslandLabel(track: MusicTrack | null): string {
 function MusicIsland() {
   const location = useLocation();
   const navigate = useNavigate();
-  const reduceMotion = useReducedMotion();
+  const reduceMotion = useIslandReducedMotion();
   const islandApi = useIslandActions();
   const activityIds = useIslandActivityIds();
   const frameRef = useRef<HTMLIFrameElement | null>(null);

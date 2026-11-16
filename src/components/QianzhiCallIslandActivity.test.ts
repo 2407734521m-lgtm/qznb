@@ -181,4 +181,27 @@ describe('call island phase transitions', () => {
     expect(actions[0].props.onAction).toBe(onRestore);
     expect(actions[3].props.onAction).toBe(onHangUp);
   });
+
+  it('keys actions by what they do, so a double-tap cannot fire the next phase’s button', () => {
+    const actionKeys = (phase: CallPhase): (string | null)[] => {
+      const activity = createCallIslandActivity(makeInput(phase));
+      const actionRow = activity.expanded?.bottom as ReactElement<{ children: ReactElement<{ children?: ReactElement<{ label: string }>[] }> }>;
+      const child = actionRow.props.children;
+      // incoming / connecting / in-call wrap the actions in a fragment;
+      // outgoing renders its single button directly.
+      const group = child.props.children ?? child;
+      const actions = Array.isArray(group) ? group : [group];
+      return actions.map(action => action.key);
+    };
+
+    // "接听" and "取消连接" sit in the same slot across the incoming ->
+    // connecting change: with different keys React unmounts the old button
+    // instead of reusing its node for the new action.
+    expect(actionKeys('incoming')).toEqual(['reject', 'accept']);
+    expect(actionKeys('connecting')).toEqual(['restore', 'cancel-connection']);
+    expect(actionKeys('outgoing')).toEqual(['cancel']);
+    expect(actionKeys('in-call')).toEqual(['restore', 'mute', 'speaker', 'hangup']);
+    // The same action keeps its key across phases, so it is not remounted.
+    expect(actionKeys('connecting')[0]).toBe(actionKeys('in-call')[0]);
+  });
 });

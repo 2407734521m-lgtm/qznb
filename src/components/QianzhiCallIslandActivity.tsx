@@ -156,24 +156,30 @@ export function createCallIslandActivity(input: CallIslandActivityInput): Activi
       ),
       bottom: (
         <div className="qz-call-island-actions">
+          {/* Each action keeps a stable key for what it does, not where it sits:
+              when the phase changes, React unmounts the old button instead of
+              reusing its node for a different action — so a fast double-tap on
+              "接听" cannot land on "取消连接". The 300ms throttle in call.tsx
+              (createCallActionThrottle) covers taps that arrive after the new
+              button has already mounted. */}
           {phase === 'incoming' ? (
             <>
-              <CallAction label="拒绝" tone="danger" onAction={input.onReject} />
-              <CallAction label="接听" tone="primary" onAction={input.onAccept} />
+              <CallAction key="reject" label="拒绝" tone="danger" onAction={input.onReject} />
+              <CallAction key="accept" label="接听" tone="primary" onAction={input.onAccept} />
             </>
           ) : phase === 'outgoing' ? (
-            <CallAction label="取消呼叫" tone="danger" onAction={input.onCancel} />
+            <CallAction key="cancel" label="取消呼叫" tone="danger" onAction={input.onCancel} />
           ) : phase === 'connecting' ? (
             <>
-              <CallAction label="返回通话" onAction={input.onRestore} />
-              <CallAction label="取消连接" tone="danger" onAction={input.onHangUp} />
+              <CallAction key="restore" label="返回通话" onAction={input.onRestore} />
+              <CallAction key="cancel-connection" label="取消连接" tone="danger" onAction={input.onHangUp} />
             </>
           ) : (
             <>
-              <CallAction label="返回通话" onAction={input.onRestore} />
-              <CallAction label={muted ? '取消静音' : '静音'} onAction={input.onToggleMute} />
-              <CallAction label={speakerEnabled ? '听筒' : '扬声器'} onAction={input.onToggleSpeaker} />
-              <CallAction label="挂断" tone="danger" onAction={input.onHangUp} />
+              <CallAction key="restore" label="返回通话" onAction={input.onRestore} />
+              <CallAction key="mute" label={muted ? '取消静音' : '静音'} onAction={input.onToggleMute} />
+              <CallAction key="speaker" label={speakerEnabled ? '听筒' : '扬声器'} onAction={input.onToggleSpeaker} />
+              <CallAction key="hangup" label="挂断" tone="danger" onAction={input.onHangUp} />
             </>
           )}
         </div>

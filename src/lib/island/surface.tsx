@@ -894,10 +894,15 @@ export const IslandSurface = (props: IslandSurfaceProps) => {
     const bHit = bubbleHit.current;
     if (bHit) {
       bHit.style.display = bubble.height >= 1 ? "block" : "none";
-      bHit.style.transform = `translate(${bubble.x}px, ${bubble.y}px)`;
+      // Detached bubbles are drawn only ~31px tall; give their hit area the
+      // same 44px minimum as the pill, centred on the bubble, so a fingertip
+      // can land on them.
+      const bHitHeight = Math.max(44, bubble.height);
+      const bHitY = bubble.y - (bHitHeight - bubble.height) / 2;
+      bHit.style.transform = `translate(${bubble.x}px, ${bHitY}px)`;
       bHit.style.width = `${bubble.width}px`;
-      bHit.style.height = `${bubble.height}px`;
-      bHit.style.borderRadius = `${bubble.height / 2}px`;
+      bHit.style.height = `${bHitHeight}px`;
+      bHit.style.borderRadius = `${bHitHeight / 2}px`;
     }
     if (svg.current) {
       // The expanded island casts a soft shadow whose strength follows the expansion: two layers

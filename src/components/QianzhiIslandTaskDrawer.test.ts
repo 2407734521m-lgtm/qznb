@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { resolveIslandActivityCategory, resolveIslandTaskProgress, resolveIslandTaskStatusLabel } from './QianzhiIslandTaskDrawer';
+import type { Activity } from '../lib/island';
+import { resolveIslandActivityCategory, resolveIslandTaskAccessibleLabel, resolveIslandTaskProgress, resolveIslandTaskStatusLabel } from './QianzhiIslandTaskDrawer';
 
 describe('resolveIslandActivityCategory', () => {
   it('recognizes the existing call, music, notification and transfer activities', () => {
@@ -33,5 +34,33 @@ describe('activity task status presentation', () => {
     expect(resolveIslandTaskStatusLabel('running')).toBe('进行中');
     expect(resolveIslandTaskStatusLabel('done')).toBe('已完成');
     expect(resolveIslandTaskStatusLabel('error')).toBe('失败');
+  });
+});
+
+describe('resolveIslandTaskAccessibleLabel', () => {
+  const activity = (overrides: Partial<Activity>): Activity => ({
+    id: 'qz-upload-progress',
+    label: '上传照片',
+    priority: 10,
+    ...overrides,
+  } as Activity);
+
+  it('carries status, detail and progress into the accessible name', () => {
+    expect(resolveIslandTaskAccessibleLabel(activity({
+      task: { status: 'running', progress: 42.4, detail: '正在上传 3 张照片' },
+    }))).toBe('切换到：上传照片，文件传输 · 进行中，正在上传 3 张照片，进度 42%');
+  });
+
+  it('names completed and failed tasks without a progress percentage', () => {
+    expect(resolveIslandTaskAccessibleLabel(activity({
+      task: { status: 'done', progress: 100 },
+    }))).toBe('切换到：上传照片，文件传输 · 已完成');
+    expect(resolveIslandTaskAccessibleLabel(activity({
+      task: { status: 'error', detail: '网络中断' },
+    }))).toBe('切换到：上传照片，文件传输 · 失败，网络中断');
+  });
+
+  it('falls back to a running label when there is no task state', () => {
+    expect(resolveIslandTaskAccessibleLabel(activity({}))).toBe('切换到：上传照片，文件传输 · 正在运行');
   });
 });

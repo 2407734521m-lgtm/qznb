@@ -1,7 +1,7 @@
 import { haptic } from '../lib/haptics';
 import { createContext, useContext, useEffect, useRef, useState, type CSSProperties, type RefObject } from 'react';
-import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
-import { Island, useIsland } from '../lib/island';
+import { AnimatePresence, motion } from 'framer-motion';
+import { Island, useIslandActions, useIslandActivity, useIslandPresentation, useIslandReducedMotion } from '../lib/island';
 import QianzhiIslandTaskDrawer from './QianzhiIslandTaskDrawer';
 
 type MusicCommand = 'toggle' | 'previous' | 'next' | 'seek' | 'volume' | 'mute';
@@ -381,9 +381,8 @@ export const resolveIslandSwipeGesture = (
 };
 
 function NavigationActivityIndicator({ docked, fullscreenSuppressed }: { docked: boolean; fullscreenSuppressed: boolean }) {
-  const { activities } = useIsland();
-  const reduceMotion = useReducedMotion();
-  const activity = activities.find(item => item.id === 'qz-route-navigation');
+  const activity = useIslandActivity('qz-route-navigation');
+  const reduceMotion = useIslandReducedMotion();
   const success = activity?.label.startsWith('已打开') ?? false;
 
   return (
@@ -421,7 +420,7 @@ export const MusicIslandView = ({
 }) => {
   const [docked, setDocked] = useState(false);
   const [fullscreenSuppressed, setFullscreenSuppressed] = useState(false);
-  const islandActions = useIsland();
+  const islandActions = useIslandActions();
   const gestureRef = useRef<IslandDockGesture | null>(null);
   const dockTimerRef = useRef<number | null>(null);
   const callArrivalTimerRef = useRef<number | null>(null);
@@ -633,7 +632,9 @@ export const MusicIslandView = ({
   // A trackless music activity only exists to show the empty expanded card.
   // Once the island leaves the expanded view — closed, docked, or an alert
   // that took over has ended — end it, so nothing shows instead of an empty capsule.
-  const presentation = islandActions.presentation;
+  // The presentation comes from its own selector, so content ticks (progress,
+  // timers) do not re-render this view; only a kind change does.
+  const presentation = useIslandPresentation();
   useEffect(() => {
     if (shouldEndTracklessMusicActivity(value.track !== null, presentation === 'expanded', value.activityIds)) {
       islandActions.end('music-playback');

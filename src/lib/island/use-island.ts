@@ -3,7 +3,7 @@
 import { useCallback, useRef, useSyncExternalStore } from "react";
 
 import { useIslandContext, useReducedMotion } from "./context";
-import type { IslandApi } from "./types";
+import type { Activity, IslandApi, PresentationKind } from "./types";
 
 /**
  * Starts, updates and ends activities. The returned object is stable; reading `activities` or
@@ -47,8 +47,42 @@ export const useIslandActivityIds = (): readonly string[] => {
   return useSyncExternalStore(context.store.subscribe, getSnapshot, getSnapshot);
 };
 
+/**
+ * Subscribes only to one activity by id. Callers that render a single activity
+ * (such as the route-navigation bead) do not re-render when any other activity
+ * ticks. Activity objects are stable unless that activity itself updates, so
+ * the cached reference is the change signal — the same pattern as
+ * useIslandActivityIds above.
+ */
+export const useIslandActivity = (id: string): Activity | undefined => {
+  const context = useIslandContext();
+  if (!context) throw new Error("islandcn: useIslandActivity() must be called inside <IslandProvider>.");
+  const cache = useRef<Activity | undefined>(undefined);
+  const getSnapshot = useCallback(() => {
+    const next = context.store.api.activities.find((activity) => activity.id === id);
+    if (next === cache.current) return next;
+    cache.current = next;
+    return next;
+  }, [context.store, id]);
+  return useSyncExternalStore(context.store.subscribe, getSnapshot, getSnapshot);
+};
+
 /** Whether the island runs reduced motion: the provider's `reducedMotion` setting resolved against the system's. */
 export const useIslandReducedMotion = (): boolean => {
   const context = useIslandContext();
   return useReducedMotion(context?.reducedMotion ?? "user");
+};
+
+/**
+ * Subscribes only to the island's presentation kind ("idle" | "compact" |
+ * "expanded" | ...). Callers that react to expansion changes — but not to
+ * every activity content tick — re-render only when the kind itself changes.
+ * The kind is a plain string, so the store's getter is already a stable
+ * snapshot; no reference cache is needed.
+ */
+export const useIslandPresentation = (): PresentationKind => {
+  const context = useIslandContext();
+  if (!context) throw new Error("islandcn: useIslandPresentation() must be called inside <IslandProvider>.");
+  const getSnapshot = useCallback(() => context.store.api.presentation, [context.store]);
+  return useSyncExternalStore(context.store.subscribe, getSnapshot, getSnapshot);
 };

@@ -1,10 +1,11 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import { createPortal } from 'react-dom';
 import type { ReactNode } from 'react';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import { supabase } from './supabase';
-import { useIslandActions } from './island';
+import { useIslandActions, useIslandReducedMotion } from './island';
+import { createCallActionThrottle } from './callActionThrottle';
 import { CallElapsedTime, createCallIslandActivity, resolveCallIslandTargetRect } from '../components/QianzhiCallIslandActivity';
 import { useAuth } from '../auth';
 import '../styles-call.css';
@@ -41,7 +42,9 @@ function formatDuration(totalSeconds: number) {
 
 export function CallProvider({ children }: { children: ReactNode }) {
   const { session } = useAuth();
-  const reduceMotion = Boolean(useReducedMotion());
+  // The fullscreen call UI follows the same resolved motion setting as the
+  // island (account preference + system), not the system alone.
+  const reduceMotion = useIslandReducedMotion();
   const myId = session?.user?.id ?? null;
   const islandApi = useIslandActions();
 
@@ -57,6 +60,13 @@ export function CallProvider({ children }: { children: ReactNode }) {
 
   const phaseRef = useRef<CallPhase>('idle');
   const myNameRef = useRef('同学');
+  // Monotonic session id: every cleanup and every new session bumps it, so a
+  // getUserMedia() that resolves after the user already hung up can tell it
+  // belongs to a dead session and must release its tracks instead of wiring
+  // a microphone and a PeerConnection into the next (or no) call.
+  const callEpochRef = useRef(0);
+  // Shared throttle for the four phase-changing actions (see callActionThrottle).
+  const callActionThrottleRef = useRef(createCallActionThrottle());
   const callIdRef = useRef<string | null>(null);
   const convIdRef = useRef<number | null>(null);
   const peerIdRef = useRef<string | null>(null);
@@ -91,6 +101,9 @@ export function CallProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const cleanup = useCallback(() => {
+    // Bump first: any getUserMedia() still awaiting permission for this session
+    // must see a stale epoch when it resolves and release its tracks.
+    callEpochRef.current += 1;
     stopRing();
     if (minimizeTimerRef.current) { window.clearTimeout(minimizeTimerRef.current); minimizeTimerRef.current = null; }
     minimizeFinishedRef.current = false;
@@ -192,14 +205,22 @@ export function CallProvider({ children }: { children: ReactNode }) {
     for (const c of queued) { try { await pc.addIceCandidate(c); } catch { /* 忽略失效候选 */ } }
   }, []);
 
-  const setupPeerConnection = useCallback(async () => {
+  const setupPeerConnection = useCallback(async (): Promise<RTCPeerConnection | null> => {
     // The Audio Session API can hint the preferred route on supporting browsers.
     // Android Chrome/WebView currently does not expose this API; the UI reports that honestly.
     try {
       const audioSession = (navigator as Navigator & { audioSession?: { type: string } }).audioSession;
       if (audioSession) audioSession.type = speakerEnabledRef.current ? 'playback' : 'play-and-record';
     } catch { /* 设备不支持网页音频路由时保留系统默认输出 */ }
+    const epoch = callEpochRef.current;
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    if (epoch !== callEpochRef.current || phaseRef.current === 'idle') {
+      // The user hung up (or the session ended) while the permission prompt was
+      // still open: never wire this stream into a PeerConnection. Stop it at
+      // once so no microphone stays live after the call is gone.
+      stream.getTracks().forEach(t => t.stop());
+      return null;
+    }
     localStreamRef.current = stream;
     const pc = new RTCPeerConnection(RTC_CONFIG);
     pcRef.current = pc;
@@ -240,11 +261,14 @@ export function CallProvider({ children }: { children: ReactNode }) {
       void (async () => {
         try {
           const pc = await setupPeerConnection();
+          if (!pc) return;
           const offer = await pc.createOffer();
           await pc.setLocalDescription(offer);
           sendSession('offer', { sdp: offer.sdp, fromId: myId });
         } catch {
-          void endCall('end', '需要麦克风权限才能通话');
+          // If the session already ended (user hung up while the permission
+          // prompt was open), cleanup ran and there is nothing to end.
+          if (phaseRef.current !== 'idle') void endCall('end', '需要麦克风权限才能通话');
         }
       })();
     });
@@ -253,6 +277,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
       void (async () => {
         try {
           const pc = pcRef.current ?? (await setupPeerConnection());
+          if (!pc) return;
           await pc.setRemoteDescription({ type: 'offer', sdp: String(payload?.sdp ?? '') });
           await flushIce();
           const answer = await pc.createAnswer();
@@ -330,6 +355,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
       peerIdRef.current = String(payload?.fromId ?? '');
       convIdRef.current = typeof payload?.conversationId === 'number' ? payload.conversationId : null;
       isCallerRef.current = false;
+      callEpochRef.current += 1;
       setPeerName(String(payload?.fromName ?? '同学'));
       setPhaseBoth('incoming');
       startRing(true);
@@ -346,6 +372,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
     peerIdRef.current = peer.id;
     convIdRef.current = conversationId;
     isCallerRef.current = true;
+    callEpochRef.current += 1;
     setPeerName(peer.name);
     setPhaseBoth('outgoing');
     startRing(false);
@@ -364,15 +391,29 @@ export function CallProvider({ children }: { children: ReactNode }) {
 
   const acceptCall = useCallback(() => {
     if (phaseRef.current !== 'incoming') return;
+    // A fast double-tap must not fire twice: the second tap would land after
+    // the phase already changed to 'connecting'.
+    if (!callActionThrottleRef.current.tryRun()) return;
     stopRing();
     setPhaseBoth('connecting');
     sendSession('accept', { fromId: myId });
-    void setupPeerConnection().catch(() => { endCall('end', '需要麦克风权限才能通话'); });
+    void setupPeerConnection()
+      .then(pc => { if (pc === null && phaseRef.current !== 'idle') void endCall('end', '需要麦克风权限才能通话'); })
+      .catch(() => { if (phaseRef.current !== 'idle') void endCall('end', '需要麦克风权限才能通话'); });
   }, [endCall, myId, sendSession, setPhaseBoth, setupPeerConnection, stopRing]);
 
-  const rejectCall = useCallback(() => { void endCall('reject', '已拒绝通话'); }, [endCall]);
-  const cancelCall = useCallback(() => { void endCall('cancel', '已取消通话'); }, [endCall]);
-  const hangUp = useCallback(() => { void endCall('end', '已结束通话'); }, [endCall]);
+  const rejectCall = useCallback(() => {
+    if (!callActionThrottleRef.current.tryRun()) return;
+    void endCall('reject', '已拒绝通话');
+  }, [endCall]);
+  const cancelCall = useCallback(() => {
+    if (!callActionThrottleRef.current.tryRun()) return;
+    void endCall('cancel', '已取消通话');
+  }, [endCall]);
+  const hangUp = useCallback(() => {
+    if (!callActionThrottleRef.current.tryRun()) return;
+    void endCall('end', '已结束通话');
+  }, [endCall]);
 
   const toggleMute = useCallback(() => {
     const stream = localStreamRef.current;

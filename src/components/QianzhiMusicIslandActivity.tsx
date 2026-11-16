@@ -26,6 +26,8 @@ interface MusicIslandState {
   connected: boolean;
   sendCommand: (command: MusicCommand, value?: number) => void;
   openMusic: () => void;
+  /** Opens the fullscreen player overlay (from the expanded island). */
+  openFullscreenPlayer: () => void;
   seekDraft: number | null;
   setSeekDraft: (value: number) => void;
   commitSeekDraft: () => void;
@@ -48,7 +50,7 @@ const formatTime = (value: number): string => {
   return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
 };
 
-const MusicIcon = ({ name, size = 17 }: { name: 'play' | 'pause' | 'previous' | 'next' | 'close' | 'volume' | 'mute' | 'open'; size?: number }) => {
+const MusicIcon = ({ name, size = 17 }: { name: 'play' | 'pause' | 'previous' | 'next' | 'close' | 'volume' | 'mute' | 'open' | 'back10' | 'forward10'; size?: number }) => {
   const common = {
     width: size,
     height: size,
@@ -60,6 +62,17 @@ const MusicIcon = ({ name, size = 17 }: { name: 'play' | 'pause' | 'previous' | 
     strokeLinejoin: 'round' as const,
     'aria-hidden': true as const,
   };
+  // Ten-second skip, same circular-arrow-plus-10 mark as the fullscreen player.
+  if (name === 'back10' || name === 'forward10') {
+    return (
+      <svg {...common} viewBox="0 0 64 64" strokeWidth={3.4}>
+        {name === 'back10'
+          ? <path d="M17 19A22 22 0 1 1 10 36M8 9v13h13" />
+          : <path d="M47 19a22 22 0 1 0 7 17M56 9v13H43" />}
+        <text x="32" y="37" textAnchor="middle" dominantBaseline="middle" fill="currentColor" stroke="none" fontSize="16" fontWeight="750">10</text>
+      </svg>
+    );
+  }
   if (name === 'play') return <svg {...common}><path d="M8 5v14l11-7z" fill="currentColor" stroke="none" /></svg>;
   if (name === 'pause') return <svg {...common}><path d="M8 5v14M16 5v14" /></svg>;
   if (name === 'previous') return <svg {...common}><path d="M6 5v14M19 5l-11 7 11 7z" /></svg>;
@@ -121,6 +134,14 @@ const MusicExpandedMeta = () => {
   );
 };
 
+/** Header row: round cover with the title and artist right after it, like the player card. */
+const MusicExpandedHead = () => (
+  <span className="qz-island-expanded-head">
+    <AlbumArt size={84} expanded />
+    <MusicExpandedMeta />
+  </span>
+);
+
 const MusicExpandedClose = () => {
   const { collapse } = useMusicIslandState();
   return (
@@ -130,8 +151,21 @@ const MusicExpandedClose = () => {
   );
 };
 
+/** Header trailing: the fullscreen player is entered from here, never by tapping the pill. */
+const MusicExpandedTrailing = () => {
+  const { openFullscreenPlayer } = useMusicIslandState();
+  return (
+    <span className="qz-island-expanded-trailing">
+      <button type="button" className="qz-island-close" onClick={openFullscreenPlayer} aria-label="打开音乐空间">
+        <MusicIcon name="open" size={15} />
+      </button>
+      <MusicExpandedClose />
+    </span>
+  );
+};
+
 const MusicExpandedControls = () => {
-  const { track, connected, sendCommand, openMusic, seekDraft, setSeekDraft, commitSeekDraft, cancelSeekDraft } = useMusicIslandState();
+  const { track, connected, sendCommand, seekDraft, setSeekDraft, commitSeekDraft, cancelSeekDraft } = useMusicIslandState();
   const [smoothTime, setSmoothTime] = useState(track ? track.currentTime : 0);
   const [volumeDraft, setVolumeDraft] = useState<number | null>(null);
   const anchorRef = useRef({ time: track ? track.currentTime : 0, at: Date.now() });
@@ -162,6 +196,15 @@ const MusicExpandedControls = () => {
   const progressPercent = track.duration > 0 ? Math.min(100, Math.max(0, (progress / track.duration) * 100)) : 0;
   const shownVolume = volumeDraft ?? track.volume;
   const volumePercent = shownVolume === null ? 0 : Math.round(shownVolume * 100);
+  // Ten-second skip, same as the fullscreen player: clamp, move the local
+  // clock at once, and send the seek across the bridge.
+  const seekBy = (seconds: number) => {
+    if (!connected || track.duration <= 0) return;
+    const next = Math.min(track.duration, Math.max(0, shownTime + seconds));
+    anchorRef.current = { time: next, at: Date.now() };
+    setSmoothTime(next);
+    sendCommand('seek', next);
+  };
   const onVolumeChange = (value: number) => {
     const next = Math.max(0, Math.min(100, value)) / 100;
     setVolumeDraft(next);
@@ -172,6 +215,7 @@ const MusicExpandedControls = () => {
   return (
     <div className="qz-island-expanded-bottom">
       <div className="qz-island-progress">
+        <span>{formatTime(shownTime)}</span>
         <input
           type="range"
           min={0}
@@ -187,7 +231,24 @@ const MusicExpandedControls = () => {
           aria-label="歌曲播放进度"
           disabled={!connected || track.duration <= 0}
         />
-        <div><span>{formatTime(shownTime)}</span><span>{formatTime(track.duration)}</span></div>
+        <span>{formatTime(track.duration)}</span>
+      </div>
+      <div className="qz-island-controls">
+        <button type="button" onClick={() => seekBy(-10)} disabled={!connected || track.duration <= 0} aria-label="后退 10 秒">
+          <MusicIcon name="back10" size={40} />
+        </button>
+        <button type="button" onClick={() => sendCommand('previous')} disabled={!connected || !track.canPrevious} aria-label="上一首">
+          <MusicIcon name="previous" size={20} />
+        </button>
+        <button type="button" className="qz-island-play" onClick={() => sendCommand('toggle')} disabled={!connected || !track.canToggle} aria-label={track.isPlaying ? '暂停音乐' : '继续播放音乐'}>
+          <MusicIcon name={track.isPlaying ? 'pause' : 'play'} size={28} />
+        </button>
+        <button type="button" onClick={() => sendCommand('next')} disabled={!connected || !track.canNext} aria-label="下一首">
+          <MusicIcon name="next" size={20} />
+        </button>
+        <button type="button" onClick={() => seekBy(10)} disabled={!connected || track.duration <= 0} aria-label="前进 10 秒">
+          <MusicIcon name="forward10" size={40} />
+        </button>
       </div>
       <div className="qz-island-volume">
         <button
@@ -214,20 +275,6 @@ const MusicExpandedControls = () => {
           disabled={!connected || track.volume === null}
         />
         <span>{track.volume === null ? '音量 --' : volumePercent + '%'}</span>
-      </div>
-      <div className="qz-island-controls">
-        <button type="button" onClick={() => sendCommand('previous')} disabled={!connected || !track.canPrevious} aria-label="上一首">
-          <MusicIcon name="previous" size={18} />
-        </button>
-        <button type="button" className="qz-island-play" onClick={() => sendCommand('toggle')} disabled={!connected || !track.canToggle} aria-label={track.isPlaying ? '暂停音乐' : '继续播放音乐'}>
-          <MusicIcon name={track.isPlaying ? 'pause' : 'play'} size={18} />
-        </button>
-        <button type="button" onClick={() => sendCommand('next')} disabled={!connected || !track.canNext} aria-label="下一首">
-          <MusicIcon name="next" size={18} />
-        </button>
-        <button type="button" onClick={openMusic} aria-label="打开音乐空间">
-          <MusicIcon name="open" size={17} />
-        </button>
       </div>
     </div>
   );
@@ -582,9 +629,9 @@ export const createMusicIslandActivity = (onPress: () => void) => ({
   },
   minimal: <MusicCompactContent />,
   expanded: {
-    leading: <AlbumArt size={48} expanded />,
-    center: <MusicExpandedMeta />,
-    trailing: <MusicExpandedClose />,
+    leading: <MusicExpandedHead />,
+    center: <MusicSpectrumContent />,
+    trailing: <MusicExpandedTrailing />,
     bottom: <MusicExpandedControls />,
   },
 });

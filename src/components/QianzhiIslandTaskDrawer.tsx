@@ -81,16 +81,37 @@ function ActivityRow({ activity, onSelect }: { activity: Activity; onSelect: (id
 export default function QianzhiIslandTaskDrawer({ docked }: { docked: boolean }) {
   const island = useIsland();
   const activities = island.activities;
+  const expanded = island.presentation === 'expanded';
   const [open, setOpen] = useState(false);
   const [keyboardOpen, setKeyboardOpen] = useState(false);
   const reduceMotion = useReducedMotion();
   const rootRef = useRef<HTMLDivElement | null>(null);
+  const anchorRef = useRef<HTMLDivElement | null>(null);
   const lastAnnouncementRef = useRef('');
   const [announcement, setAnnouncement] = useState('');
 
   useEffect(() => {
-    if (docked || activities.length === 0) setOpen(false);
-  }, [docked, activities.length]);
+    if (docked || activities.length === 0 || expanded) setOpen(false);
+  }, [docked, activities.length, expanded]);
+
+  // The pill is wider than its 104px config width (sensor + content: ~200px
+  // with a track, ~400px expanded), so a trigger parked at a fixed offset
+  // from the config anchor lands on the pill. Track the pill's real
+  // half-width and park the trigger just past its right edge; 52px is the
+  // config-width fallback when the pill is not in the DOM yet.
+  useEffect(() => {
+    const anchor = anchorRef.current;
+    if (!anchor || typeof ResizeObserver === 'undefined') return;
+    const pill = document.querySelector('[data-islandcn-hit="pill"]');
+    if (!(pill instanceof HTMLElement)) return;
+    const sync = () => {
+      anchor.style.setProperty('--qz-island-pill-half', (pill.getBoundingClientRect().width / 2) + 'px');
+    };
+    sync();
+    const observer = new ResizeObserver(sync);
+    observer.observe(pill);
+    return () => observer.disconnect();
+  }, [activities.length, expanded]);
 
   // Notify background-task owners when the list is being inspected. Finished task
   // cards pause their auto-dismiss countdown until the user closes the list.
@@ -164,12 +185,12 @@ export default function QianzhiIslandTaskDrawer({ docked }: { docked: boolean })
     setOpen(false);
   };
 
-  if (docked || keyboardOpen || activities.length === 0) return null;
+  if (docked || keyboardOpen || activities.length === 0 || expanded) return null;
 
   return (
     <div className={'qz-island-task-ui' + (activities.some(activity => activity.id === 'qz-route-navigation') ? ' has-route-indicator' : '')} ref={rootRef}>
       <output className="qz-island-task-sr-only" aria-live="polite">{announcement}</output>
-      <div className="qz-island-task-anchor">
+      <div className="qz-island-task-anchor" ref={anchorRef}>
         <button
           type="button"
           className="qz-island-task-trigger"

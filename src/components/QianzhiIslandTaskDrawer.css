@@ -6,20 +6,25 @@
   pointer-events: none;
 }
 
+/* The anchor parks the trigger just past the pill's real right edge. The pill
+   is wider than its 104px config width (sensor + content), so a fixed offset
+   from the config anchor used to land the trigger on the pill. The component
+   measures the pill and writes --qz-island-pill-half; 52px is the
+   config-width fallback. */
 .qz-island-task-anchor {
   position: fixed;
   top: calc(var(--qz-island-anchor-top, max(env(safe-area-inset-top, 0px), 18px)) + 12.5px + var(--qz-island-config-y, 0px));
-  left: calc(50% + var(--qz-island-config-x, 0px));
-  width: var(--qz-island-config-width, 104px);
+  left: calc(50% + var(--qz-island-config-x, 0px) + var(--qz-island-pill-half, 52px) + 8px);
+  width: 29px;
   height: var(--qz-island-config-height, 31.5px);
-  transform: translateX(-50%);
   pointer-events: none;
+  transition: left .2s ease;
 }
 
 .qz-island-task-trigger {
   position: absolute;
   top: 50%;
-  right: -36px;
+  left: 0;
   display: flex;
   width: 29px;
   height: 29px;
@@ -41,8 +46,10 @@
   transition: background .18s ease, border-color .18s ease, transform .18s cubic-bezier(.2,.8,.2,1);
 }
 
-.qz-island-task-ui.has-route-indicator .qz-island-task-trigger {
-  right: -70px;
+/* With the navigation bead present (fixed at centre + 60..80), the trigger
+   must clear the bead too: +28px past the pill edge. */
+.qz-island-task-ui.has-route-indicator .qz-island-task-anchor {
+  left: calc(50% + var(--qz-island-config-x, 0px) + var(--qz-island-pill-half, 52px) + 36px);
 }
 
 .qz-island-task-trigger svg {
@@ -253,13 +260,14 @@
 }
 
 @media (max-width: 360px) {
-  .qz-island-task-trigger { right: -33px; width: 27px; height: 27px; }
-  .qz-island-task-ui.has-route-indicator .qz-island-task-trigger { right: -64px; }
+  .qz-island-task-anchor { width: 27px; }
+  .qz-island-task-trigger { width: 27px; height: 27px; }
   .qz-island-task-panel { border-radius: 19px; }
   .qz-island-task-row { min-height: 50px; gap: 8px; padding-inline: 8px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .qz-island-task-anchor,
   .qz-island-task-trigger,
   .qz-island-task-row { transition: none; }
   .qz-island-task-row:active { transform: none; }

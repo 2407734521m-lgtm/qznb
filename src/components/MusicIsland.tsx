@@ -299,6 +299,15 @@ function MusicIsland() {
 
   const hasTrack = track !== null;
 
+  // Tapping the pill expands the island in place (the volume slider lives
+  // there); the fullscreen player is entered from the expanded island's open
+  // button instead of hijacking the tap.
+  const openFullscreenPlayer = () => {
+    haptic('tick');
+    setFullPlayerOpen(true);
+    if (islandApi.presentation === 'expanded') islandApi.collapse();
+  };
+
   // Keep the music activity mounted once per track session. Its content reads current track state
   // through context, avoiding a full activity-stack update on every playback clock tick.
   useEffect(() => {
@@ -306,12 +315,7 @@ function MusicIsland() {
       islandApi.end('music-playback');
       return;
     }
-    const openFullscreenPlayer = () => {
-      haptic('tick');
-      setFullPlayerOpen(true);
-      if (islandApi.presentation === 'expanded') islandApi.collapse();
-    };
-    islandApi.start(createMusicIslandActivity(openFullscreenPlayer));
+    islandApi.start(createMusicIslandActivity(() => islandApi.expand('music-playback')));
     return () => islandApi.end('music-playback');
   }, [hasTrack, isMusicPage, islandApi]);
 
@@ -420,6 +424,7 @@ function MusicIsland() {
             connected,
             sendCommand,
             openMusic: () => navigate('/music'),
+            openFullscreenPlayer,
             seekDraft,
             setSeekDraft: updateSeekDraft,
             commitSeekDraft,

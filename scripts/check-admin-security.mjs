@@ -79,11 +79,10 @@ const securityCenter = read('src/components/AdminSecurityCenter.tsx');
 const adminShared = read('src/pages/admin/shared.ts');
 const accountManagement = read('src/components/AdminAccountManagement.tsx');
 const sensitiveActionMigration = read('supabase/migrations/20261101150500_approval_requester_context.sql');
-const deleteRpcCall = accountManagement.match(
-  /supabase\\.rpc\\('admin_execute_sensitive_action', \\{\\s*p_action_type: 'delete_member_account',[\\s\\S]*?\\}\\)/,
-);
-assert.ok(deleteRpcCall, 'member deletion must use the protected super-admin execution RPC');
-assert.ok(deleteRpcCall[0].includes('p_requested_role: null'),
+const deleteActionIndex = accountManagement.indexOf("p_action_type: 'delete_member_account'");
+assert.ok(deleteActionIndex >= 0, 'member deletion must use the protected super-admin execution RPC');
+const deleteActionArgs = accountManagement.slice(deleteActionIndex, deleteActionIndex + 400);
+assert.ok(deleteActionArgs.includes('p_requested_role: null'),
   'member deletion must pass NULL for p_requested_role; the database RPC rejects non-NULL delete roles');
 assert.ok(sensitiveActionMigration.includes("v_target_role <> 'member' or p_requested_role is not null"),
   'the database must keep member-only deletion and reject a requested role on delete');

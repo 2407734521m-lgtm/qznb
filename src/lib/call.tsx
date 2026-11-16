@@ -81,6 +81,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
   const audioCtxRef = useRef<AudioContext | null>(null);
   const remoteAudioRef = useRef<HTMLAudioElement>(null);
   const callCardRef = useRef<HTMLDivElement>(null);
+  const callAvatarRingRef = useRef<HTMLDivElement>(null);
   const minimizeTimerRef = useRef<number | null>(null);
   const minimizeFinishedRef = useRef(false);
   const connectedRef = useRef(false);
@@ -441,6 +442,88 @@ export function CallProvider({ children }: { children: ReactNode }) {
     }
   }, [showNote]);
 
+  // Read only the existing local microphone signal while the full call screen is visible.
+  // The analyser is never connected to the audio destination and no samples are stored or sent.
+  // DOM/CSS variables are updated at a modest rate to avoid React renders on every audio frame.
+  useEffect(() => {
+    const ring = callAvatarRingRef.current;
+    const stream = localStreamRef.current;
+    if (
+      phase !== 'in-call' || muted || minimized || minimizing || reduceMotion ||
+      !ring || !stream || typeof window === 'undefined'
+    ) {
+      ring?.classList.remove('is-voice-active');
+      ring?.style.removeProperty('--qz-call-voice-scale');
+      ring?.style.removeProperty('--qz-call-voice-opacity');
+      ring?.style.removeProperty('--qz-call-voice-level');
+      return;
+    }
+
+    let source: MediaStreamAudioSourceNode | null = null;
+    let analyser: AnalyserNode | null = null;
+    let frame = 0;
+    let lastSampleAt = 0;
+    let smoothedLevel = 0;
+
+    try {
+      const AudioContextConstructor = window.AudioContext ||
+        (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+      if (!AudioContextConstructor) return;
+
+      const context = audioCtxRef.current && audioCtxRef.current.state !== 'closed'
+        ? audioCtxRef.current
+        : new AudioContextConstructor();
+      audioCtxRef.current = context;
+      if (context.state === 'suspended') void context.resume().catch(() => undefined);
+
+      source = context.createMediaStreamSource(stream);
+      analyser = context.createAnalyser();
+      analyser.fftSize = 256;
+      analyser.smoothingTimeConstant = 0.78;
+      source.connect(analyser);
+      const samples = new Uint8Array(analyser.fftSize);
+
+      const sampleVoice = (timestamp: number) => {
+        frame = window.requestAnimationFrame(sampleVoice);
+        if (timestamp - lastSampleAt < 72) return;
+        lastSampleAt = timestamp;
+
+        analyser!.getByteTimeDomainData(samples);
+        let sum = 0;
+        for (let i = 0; i < samples.length; i += 1) {
+          const centered = (samples[i] - 128) / 128;
+          sum += centered * centered;
+        }
+        const rms = Math.sqrt(sum / samples.length);
+        const level = Math.max(0, Math.min(1, (rms - 0.018) / 0.14));
+        smoothedLevel = smoothedLevel * 0.58 + level * 0.42;
+
+        ring.style.setProperty('--qz-call-voice-level', smoothedLevel.toFixed(3));
+        ring.style.setProperty('--qz-call-voice-scale', (1 + smoothedLevel * 0.17).toFixed(3));
+        ring.style.setProperty('--qz-call-voice-opacity', (0.12 + smoothedLevel * 0.66).toFixed(3));
+        ring.classList.toggle('is-voice-active', rms > 0.032 && smoothedLevel > 0.06);
+      };
+
+      frame = window.requestAnimationFrame(sampleVoice);
+    } catch {
+      // Audio analysis is decorative only. Unsupported browsers keep the normal call UI.
+      ring.classList.remove('is-voice-active');
+      ring.style.removeProperty('--qz-call-voice-scale');
+      ring.style.removeProperty('--qz-call-voice-opacity');
+      ring.style.removeProperty('--qz-call-voice-level');
+    }
+
+    return () => {
+      if (frame) window.cancelAnimationFrame(frame);
+      try { source?.disconnect(); } catch { /* The call may already be closing. */ }
+      try { analyser?.disconnect(); } catch { /* The analyser may already be detached. */ }
+      ring.classList.remove('is-voice-active');
+      ring.style.removeProperty('--qz-call-voice-scale');
+      ring.style.removeProperty('--qz-call-voice-opacity');
+      ring.style.removeProperty('--qz-call-voice-level');
+    };
+  }, [phase, muted, minimized, minimizing, reduceMotion]);
+
   const restoreCall = useCallback(() => {
     setMinimizing(false);
     setMinimizeFlight(null);
@@ -597,7 +680,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
       </header>
 
       <main className="qz-call-stage">
-        <div className={'qz-call-avatar-ring' + (phase === 'incoming' || phase === 'outgoing' ? ' is-ringing' : '')}>
+        <div ref={callAvatarRingRef} className={'qz-call-avatar-ring' + (phase === 'incoming' || phase === 'outgoing' ? ' is-ringing' : '')}>
           <div className="call-avatar" aria-hidden="true">{initial}</div>
         </div>
         <div className="call-name">{peerName || '同学'}</div>

@@ -7,7 +7,7 @@ describe('Qianzhi call island activity', () => {
     const activity = createCallIslandActivity({
       phase: 'incoming',
       peerName: '同学 A',
-      seconds: 0,
+      startedAt: null,
       muted: false,
       onAccept: () => {},
       onReject: () => {},
@@ -33,7 +33,7 @@ describe('Qianzhi call island activity', () => {
     const activity = createCallIslandActivity({
       phase: 'in-call',
       peerName: '同学 B',
-      seconds: 125,
+      startedAt: Date.now() - 125_000,
       muted: true,
       onAccept: () => {},
       onReject: () => {},
@@ -56,7 +56,7 @@ describe('Qianzhi call island activity', () => {
     const activity = createCallIslandActivity({
       phase: 'connecting',
       peerName: '同学 C',
-      seconds: 0,
+      startedAt: 0,
       muted: false,
       onAccept: () => {},
       onReject: () => {},

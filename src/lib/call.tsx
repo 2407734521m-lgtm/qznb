@@ -1,11 +1,11 @@
-import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { createPortal } from 'react-dom';
 import type { ReactNode } from 'react';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import { supabase } from './supabase';
 import { useIslandActions } from './island';
-import { createCallIslandActivity } from '../components/QianzhiCallIslandActivity';
+import { CallElapsedTime, createCallIslandActivity } from '../components/QianzhiCallIslandActivity';
 import { useAuth } from '../auth';
 import '../styles-call.css';
 
@@ -50,7 +50,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
   const [minimizing, setMinimizing] = useState(false);
   const [minimizeFlight, setMinimizeFlight] = useState<CallIslandFlight | null>(null);
   const [peerName, setPeerName] = useState('');
-  const [seconds, setSeconds] = useState(0);
+  const [callStartedAt, setCallStartedAt] = useState<number | null>(null);
   const [muted, setMuted] = useState(false);
   const [note, setNote] = useState('');
 
@@ -66,13 +66,12 @@ export function CallProvider({ children }: { children: ReactNode }) {
   const iceQueueRef = useRef<RTCIceCandidateInit[]>([]);
   const ringTimerRef = useRef<number | null>(null);
   const waitTimerRef = useRef<number | null>(null);
-  const secondsTimerRef = useRef<number | null>(null);
   const noteTimerRef = useRef<number | null>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
   const remoteAudioRef = useRef<HTMLAudioElement>(null);
   const callCardRef = useRef<HTMLDivElement>(null);
   const connectedRef = useRef(false);
-  const secondsRef = useRef(0);
+  const callStartedAtRef = useRef<number | null>(null);
 
   const setPhaseBoth = useCallback((p: CallPhase) => { phaseRef.current = p; setPhase(p); }, []);
 
@@ -85,7 +84,6 @@ export function CallProvider({ children }: { children: ReactNode }) {
   const stopRing = useCallback(() => {
     if (ringTimerRef.current) { window.clearInterval(ringTimerRef.current); ringTimerRef.current = null; }
     if (waitTimerRef.current) { window.clearTimeout(waitTimerRef.current); waitTimerRef.current = null; }
-    if (secondsTimerRef.current) { window.clearInterval(secondsTimerRef.current); secondsTimerRef.current = null; }
   }, []);
 
   const cleanup = useCallback(() => {
@@ -100,8 +98,8 @@ export function CallProvider({ children }: { children: ReactNode }) {
     isCallerRef.current = false;
     iceQueueRef.current = [];
     connectedRef.current = false;
-    secondsRef.current = 0;
-    setSeconds(0);
+    callStartedAtRef.current = null;
+    setCallStartedAt(null);
     setMuted(false);
     setPeerName('');
     setMinimized(false);
@@ -129,12 +127,14 @@ export function CallProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const recordCallMessage = useCallback(async () => {
-    if (!isCallerRef.current || !connectedRef.current || !convIdRef.current || !myId) return;
-    if (secondsRef.current < 3) return;
+    const startedAt = callStartedAtRef.current;
+    if (!isCallerRef.current || !connectedRef.current || !convIdRef.current || !myId || startedAt === null) return;
+    const elapsed = Math.max(0, Math.floor((Date.now() - startedAt) / 1000));
+    if (elapsed < 3) return;
     await supabase.from('messages').insert({
       conversation_id: convIdRef.current,
       sender_id: myId,
-      body: '语音通话 ' + formatDuration(secondsRef.current),
+      body: '语音通话 ' + formatDuration(elapsed),
     });
   }, [myId]);
 
@@ -195,12 +195,12 @@ export function CallProvider({ children }: { children: ReactNode }) {
     pc.onconnectionstatechange = () => {
       if (pc.connectionState === 'connected') {
         connectedRef.current = true;
+        if (callStartedAtRef.current === null) {
+          const startedAt = Date.now();
+          callStartedAtRef.current = startedAt;
+          setCallStartedAt(startedAt);
+        }
         setPhaseBoth('in-call');
-        if (secondsTimerRef.current) window.clearInterval(secondsTimerRef.current);
-        secondsTimerRef.current = window.setInterval(() => {
-          secondsRef.current += 1;
-          setSeconds(secondsRef.current);
-        }, 1000);
       } else if (pc.connectionState === 'failed' || pc.connectionState === 'disconnected' || pc.connectionState === 'closed') {
         if (phaseRef.current === 'in-call' || phaseRef.current === 'connecting') {
           void recordCallMessage();
@@ -434,7 +434,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
     islandApi.start(createCallIslandActivity({
       phase,
       peerName,
-      seconds,
+      startedAt: callStartedAt,
       muted,
       onAccept: acceptCall,
       onReject: rejectCall,
@@ -443,7 +443,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
       onToggleMute: toggleMute,
       onRestore: restoreCall,
     }));
-  }, [phase, peerName, seconds, muted, islandApi, acceptCall, rejectCall, cancelCall, hangUp, toggleMute, restoreCall]);
+  }, [phase, peerName, callStartedAt, muted, islandApi, acceptCall, rejectCall, cancelCall, hangUp, toggleMute, restoreCall]);
 
   useEffect(() => () => islandApi.end('qz-call-session'), [islandApi]);
 
@@ -454,7 +454,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
 
   const initial = (peerName.trim().charAt(0) || '友').toUpperCase();
   const callCardContent = (
-    <>
+    <div className="qz-call-card-content">
       <button type="button" className="call-minimize" aria-label="最小化通话窗口到灵动岛" title="最小化到灵动岛" onClick={minimizeCall}>−</button>
       <div className="call-avatar" aria-hidden="true">{initial}</div>
       <div className="call-name">{peerName || '同学'}</div>
@@ -462,7 +462,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
         {phase === 'incoming' && '邀请你语音通话'}
         {phase === 'outgoing' && '正在等待对方接听…'}
         {phase === 'connecting' && '连接中…'}
-        {phase === 'in-call' && <span className="call-timer">{formatDuration(seconds)}</span>}
+        {phase === 'in-call' && <span className="call-timer"><CallElapsedTime startedAt={callStartedAt} /></span>}
       </div>
       {phase === 'incoming' && (
         <div className="call-actions">
@@ -481,18 +481,20 @@ export function CallProvider({ children }: { children: ReactNode }) {
           <button type="button" className="call-btn call-btn-hangup" onClick={hangUp}>挂断</button>
         </div>
       )}
-    </>
+    </div>
   );
 
+  const callContextValue = useMemo(() => ({ phase, busy: phase !== 'idle', startCall }), [phase, startCall]);
+
   return (
-    <CallContext.Provider value={{ phase, busy: phase !== 'idle', startCall }}>
+    <CallContext.Provider value={callContextValue}>
       {children}
       <audio ref={remoteAudioRef} autoPlay playsInline style={{ display: 'none' }} />
       {note && phase === 'idle' && <div className="call-note" role="status" aria-live="polite"><span aria-hidden="true">☎</span><span>{note}</span></div>}
       <AnimatePresence>
         {phase !== 'idle' && !minimized && (
           <>
-            <motion.div key="call-overlay" className="call-overlay" role="dialog" aria-modal="true" aria-label="语音通话"
+            <motion.div key="call-overlay" className={`call-overlay${minimizing ? ' is-minimizing' : ''}`} role="dialog" aria-modal="true" aria-label="语音通话"
               initial={reduceMotion ? false : { opacity: 0 }}
               animate={{ opacity: minimizing ? 0 : 1 }} exit={{ opacity: 0 }}
               transition={{ duration: reduceMotion ? 0.01 : minimizing ? 0.48 : 0.2, ease: [0.22, 1, 0.36, 1] }}>
@@ -513,20 +515,22 @@ export function CallProvider({ children }: { children: ReactNode }) {
                 aria-hidden="true"
                 initial={false}
                 animate={{
-                  left: minimizeFlight.to.left,
-                  top: minimizeFlight.to.top,
-                  width: minimizeFlight.to.width,
-                  height: minimizeFlight.to.height,
+                  x: minimizeFlight.to.left - minimizeFlight.from.left,
+                  y: minimizeFlight.to.top - minimizeFlight.from.top,
+                  scaleX: minimizeFlight.to.width / minimizeFlight.from.width,
+                  scaleY: minimizeFlight.to.height / minimizeFlight.from.height,
                   borderRadius: 999,
-                  opacity: 0.08,
+                  opacity: [1, 1, 0],
                 }}
                 transition={{
-                  left: { type: 'spring', stiffness: 360, damping: 30, mass: 0.78 },
-                  top: { type: 'spring', stiffness: 360, damping: 30, mass: 0.78 },
-                  width: { type: 'spring', stiffness: 360, damping: 30, mass: 0.78 },
-                  height: { type: 'spring', stiffness: 360, damping: 30, mass: 0.78 },
-                  borderRadius: { duration: 0.42, ease: [0.22, 1, 0.36, 1] },
-                  opacity: { duration: 0.42, ease: [0.22, 1, 0.36, 1] },
+                  // One shared tween keeps position and both scale axes on the same clock.
+                  duration: 0.64,
+                  ease: [0.22, 1, 0.36, 1],
+                  opacity: {
+                    duration: 0.64,
+                    times: [0, 0.84, 1],
+                    ease: [0.22, 1, 0.36, 1],
+                  },
                 }}
                 style={{
                   position: 'fixed',
@@ -538,8 +542,8 @@ export function CallProvider({ children }: { children: ReactNode }) {
                   boxSizing: 'border-box',
                   overflow: 'hidden',
                   zIndex: 4000,
-                  transformOrigin: '50% 50%',
-                  willChange: 'left, top, width, height, border-radius, opacity',
+                  transformOrigin: 'top left',
+                  willChange: 'transform, opacity',
                   pointerEvents: 'none',
                 }}
                 onAnimationComplete={() => {
@@ -548,7 +552,16 @@ export function CallProvider({ children }: { children: ReactNode }) {
                   setMinimizing(false);
                   setMinimizeFlight(null);
                 }}>
-                {callCardContent}
+                <motion.div
+                  className="qz-call-card-flight-content"
+                  initial={false}
+                  animate={{ opacity: 0, scale: 0.97 }}
+                  transition={{
+                    opacity: { duration: 0.2, delay: 0.22, ease: 'easeOut' },
+                    scale: { duration: 0.28, delay: 0.2, ease: [0.22, 1, 0.36, 1] },
+                  }}>
+                  {callCardContent}
+                </motion.div>
               </motion.div>,
               document.body,
             )}

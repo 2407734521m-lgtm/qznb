@@ -1607,3 +1607,5 @@
 .chatcn-chat-group-rename button,.chatcn-chat-group-leave { min-height:40px;padding:0 12px;border:1px solid #e3e6e9;border-radius:11px;background:#fff;color:#39434d;font-size:12px; }
 .chatcn-chat-group-rename button:disabled,.chatcn-chat-group-leave:disabled { opacity:.5; }
 .chatcn-chat-group-leave { width:100%;margin-top:10px;color:#a34b50;border-color:rgba(163,75,80,.2); }
+
+.chatcn-group-sender-name { display:block; margin:0 0 4px 10px; color:#77818b; font-size:11px; line-height:1.3; font-weight:600; }

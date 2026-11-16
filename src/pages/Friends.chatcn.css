@@ -88,10 +88,12 @@
   top: 0;
   left: 0;
   right: auto;
-  width: 300px;
+  /* Match the compact reference menu across CSS viewport sizes and device pixel ratios. */
+  box-sizing: border-box;
+  width: min(300px, 44vw);
+  min-width: min(184px, calc(100vw - 28px));
   max-width: calc(100vw - 28px);
   max-height: min(72dvh, 560px);
-  box-sizing: border-box;
   overflow: auto;
   overscroll-behavior: contain;
   padding: 10px 0;

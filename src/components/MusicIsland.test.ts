@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { EQUALIZER_BANDS, EQUALIZER_REST_LEVEL, isEndedTrackPush, isMusicTrackFinished, isSameMusicTrack, musicTrackIdentity, resolveMusicEqualizerMode, resolveMusicIslandLabel, shouldCrossfadeMusicTrack, shouldMirrorEqualizerToRoot, shouldShowMainIsland } from './MusicIsland';
-import { hasNewIslandActivity, resolveIslandDockGesture, resolveIslandGestureSource, resolveMusicIslandTapAction, shouldCancelPendingIslandDock, shouldEndTracklessMusicActivity, shouldShowIslandIdleRecall, shouldShowMusicEmptyState } from './QianzhiMusicIslandActivity';
+import { hasNewIslandActivity, resolveIslandDockGesture, resolveIslandGestureSource, shouldCancelPendingIslandDock, shouldEndTracklessMusicActivity, shouldShowIslandHost, shouldShowMusicEmptyState } from './QianzhiMusicIslandActivity';
 import { resolveMetrics } from '../lib/island/config';
 import { createQianzhiIslandMetrics, qianzhiIslandMetrics } from '../lib/island/qianzhi-metrics';
 
@@ -284,13 +284,11 @@ describe('shouldCancelPendingIslandDock', () => {
   });
 });
 
-describe('resolveMusicIslandTapAction', () => {
-  it('expands in place when the island itself is tapped, with or without a track', () => {
-    expect(resolveMusicIslandTapAction('idle-recall')).toBe('expand');
-  });
-
-  it('opens the music space only from the button inside the expanded empty card', () => {
-    expect(resolveMusicIslandTapAction('empty-state-button')).toBe('openMusic');
+describe('shouldShowIslandHost', () => {
+  it('mounts the island only while something is live, and nothing when idle', () => {
+    expect(shouldShowIslandHost([])).toBe(false);
+    expect(shouldShowIslandHost(['music-playback'])).toBe(true);
+    expect(shouldShowIslandHost(['qz-call-session'])).toBe(true);
   });
 });
 
@@ -311,18 +309,6 @@ describe('shouldEndTracklessMusicActivity', () => {
     expect(shouldEndTracklessMusicActivity(false, true, ['music-playback'])).toBe(false);
     expect(shouldEndTracklessMusicActivity(true, false, ['music-playback'])).toBe(false);
     expect(shouldEndTracklessMusicActivity(true, true, ['music-playback'])).toBe(false);
-  });
-});
-
-describe('shouldShowIslandIdleRecall', () => {
-  it('shows the thin recall edge only when nothing is live', () => {
-    expect(shouldShowIslandIdleRecall([], false, false)).toBe(true);
-  });
-
-  it('keeps the capsule when an activity, a dock or fullscreen suppression is in play', () => {
-    expect(shouldShowIslandIdleRecall(['music-playback'], false, false)).toBe(false);
-    expect(shouldShowIslandIdleRecall([], true, false)).toBe(false);
-    expect(shouldShowIslandIdleRecall([], false, true)).toBe(false);
   });
 });
 

@@ -103,74 +103,6 @@
   border-radius: 0 0 999px 999px;
 }
 
-/* No live activity: no empty capsule. Only a thin glass edge with a note in the
-   middle, at the same anchor as the island; tapping it opens the music space
-   (or expands the player when a track is live). The visible lip is 12px; the
-   button itself is 44px tall so the tap target meets the 44px rule.
-   The lip is translucent frosted glass with a soft (not pill-round) bottom
-   edge: at desktop scale a near-opaque 16px half-pill read as a solid black
-   capsule with only its lower half showing, so the lip must not look solid. */
-.qz-island-idle {
-  position: fixed;
-  top: 0;
-  left: calc(50% + var(--qz-island-config-x, 0px));
-  z-index: 4002;
-  display: grid;
-  width: min(92px, 26vw, calc(var(--qz-island-config-width, 104px) - 8px));
-  height: 44px;
-  margin: 0;
-  padding: 0;
-  border: 0;
-  place-items: start center;
-  transform: translateX(-50%);
-  background: transparent;
-  cursor: pointer;
-  pointer-events: auto;
-  touch-action: none;
-  -webkit-tap-highlight-color: transparent;
-}
-
-.qz-island-idle::before {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 12px;
-  border: 1px solid rgba(255,255,255,.22);
-  border-top: 0;
-  border-radius: 0 0 9px 9px;
-  background: rgba(13,15,20,.58);
-  box-shadow:
-    0 4px 16px rgba(0,0,0,.18),
-    inset 0 -1px rgba(255,255,255,.14);
-  -webkit-backdrop-filter: blur(20px) saturate(1.4);
-  backdrop-filter: blur(20px) saturate(1.4);
-  content: "";
-  transition: height 220ms cubic-bezier(.2,.8,.2,1), background 220ms ease;
-}
-
-.qz-island-idle span {
-  position: relative;
-  z-index: 1;
-  color: rgba(255,255,255,.95);
-  font-size: 11px;
-  font-weight: 650;
-  line-height: 12px;
-  text-shadow: 0 1px 2px rgba(0,0,0,.35);
-  pointer-events: none;
-}
-
-.qz-island-idle:active::before {
-  height: 14px;
-  background: rgba(13,15,20,.72);
-}
-
-.qz-island-idle:focus-visible {
-  outline: 2px solid rgba(10,132,255,.8);
-  outline-offset: 2px;
-  border-radius: 0 0 999px 999px;
-}
-
 /* While the island settings panel is open, the live island chrome would sit on
    top of the in-panel preview. Hide it; the panel's own preview is the thing
    being adjusted. The drag-align overlay removes this flag while it is open.
@@ -183,12 +115,10 @@
    so scrolling the stage to the top can never re-expose the live island. */
 [data-qz-island-settings-open="true"] .qz-island-host,
 [data-qz-island-settings-open="true"] .qz-island-peek,
-[data-qz-island-settings-open="true"] .qz-island-idle,
 [data-qz-island-settings-open="true"] .qz-island-navigation-indicator,
 [data-qz-island-settings-open="true"] .qz-island-task-ui,
 [data-qz-island-stage-near-top="true"] .qz-island-host,
 [data-qz-island-stage-near-top="true"] .qz-island-peek,
-[data-qz-island-stage-near-top="true"] .qz-island-idle,
 [data-qz-island-stage-near-top="true"] .qz-island-navigation-indicator,
 [data-qz-island-stage-near-top="true"] .qz-island-task-ui {
   display: none;

@@ -59,6 +59,14 @@ export const expandedWidth = (screenWidth: number, metrics: IslandMetrics) =>
 export const MUSIC_EXPANDED_STAGE_WIDTH = 500;
 
 /**
+ * Stage width the call's expanded card lays out against: 500, the same
+ * compact stage as the music player. The call card used the shared stage
+ * before, so on desktop it was a ~612 wide slab with the name floating in
+ * the middle and one button stranded at the far right.
+ */
+export const CALL_EXPANDED_STAGE_WIDTH = 500;
+
+/**
  * The saved island offset is relative to the tuned default capsule position:
  * the provider and the drag-to-align preview both raise the capsule by this
  * much, so the spot a user saves matches the spot they previewed. Keep the
@@ -67,14 +75,18 @@ export const MUSIC_EXPANDED_STAGE_WIDTH = 500;
 export const QIANZHI_ISLAND_BASELINE_Y_ADJUSTMENT = -10;
 
 /**
- * The stage width an expanded scene lays out against. Only the music player
- * (`music-playback`, the scene's primary activity) takes the narrower stage;
- * every other activity keeps the shared stage, so call, upload and alert
- * cards do not move at all. `shapeTarget` only reads the width for the
- * expanded kind, so other presentations are unaffected either way.
+ * The stage width an expanded scene lays out against. The music player
+ * (`music-playback`) and the call card (`qz-call-session`) take the narrower
+ * 500 stage; every other activity keeps the shared stage. `shapeTarget`
+ * only reads the width for the expanded kind, so other presentations are
+ * unaffected either way.
  */
 export const expandedStageWidth = (activityId: string | null, screenWidth: number): number =>
-  activityId === "music-playback" ? Math.min(screenWidth, MUSIC_EXPANDED_STAGE_WIDTH) : screenWidth;
+  activityId === "music-playback"
+    ? Math.min(screenWidth, MUSIC_EXPANDED_STAGE_WIDTH)
+    : activityId === "qz-call-session"
+      ? Math.min(screenWidth, CALL_EXPANDED_STAGE_WIDTH)
+      : screenWidth;
 
 /**
  * Whether a layer key is the music player's expanded card. The key carries a
@@ -84,6 +96,10 @@ export const expandedStageWidth = (activityId: string | null, screenWidth: numbe
  */
 export const isMusicExpandedLayer = (contentKey: string): boolean =>
   contentKey === "expanded:music-playback" || contentKey.startsWith("expanded:music-playback#");
+
+/** Whether a layer key is the call's expanded card. Same `#revision` rule as music. */
+export const isCallExpandedLayer = (contentKey: string): boolean =>
+  contentKey === "expanded:qz-call-session" || contentKey.startsWith("expanded:qz-call-session#");
 
 const hiddenBubble = (right: number, height: number) => ({ bubbleLeft: right - height, bubbleRight: right, bubbleHeight: 0 });
 

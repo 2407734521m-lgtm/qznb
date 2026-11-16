@@ -23,6 +23,7 @@ import {
   expandedStageWidth,
   expandedWidth as expandedWidthFor,
   islandScreenWidth,
+  isCallExpandedLayer,
   isMusicExpandedLayer,
   shapeTarget,
   shapeTransition,
@@ -705,10 +706,14 @@ export const IslandSurface = (props: IslandSurfaceProps) => {
   const stageWidth = islandScreenWidth(containerWidth, metrics);
   const stageHeight = Math.ceil(metrics.top + metrics.expanded.maxHeight * 1.3);
   const expandedWidth = expandedWidthFor(stageWidth, metrics);
-  // The music player's expanded card lays out against its narrower stage; every
-  // other activity's layer keeps the shared width (a leaving call layer keeps
-  // the width it was laid out at, so its fade-out never reflows).
+  // The music player's and the call card's expanded layers lay out against
+  // their narrower stage; every other activity's layer keeps the shared width
+  // (a leaving layer keeps the width it was laid out at, so its fade-out
+  // never reflows). The shape target takes the same capped width from
+  // expandedStageWidth — layer and shape must agree, or the trailing content
+  // spills outside the black card on desktop.
   const musicExpandedWidth = expandedWidthFor(expandedStageWidth("music-playback", stageWidth), metrics);
+  const callExpandedWidth = expandedWidthFor(expandedStageWidth("qz-call-session", stageWidth), metrics);
 
   // Layers: the current presentation plus any that are still fading out. Adjusting state while
   // rendering (instead of in an effect) puts the leaving layer in the same commit as the new one.
@@ -2309,7 +2314,7 @@ export const IslandSurface = (props: IslandSurfaceProps) => {
               presentation={layer.presentation}
               register={(slot, element) => register(layer.key, slot, element)}
               metrics={metrics}
-              expandedWidth={layer.presentation.kind === "expanded" && isMusicExpandedLayer(layer.key) ? musicExpandedWidth : expandedWidth}
+              expandedWidth={layer.presentation.kind === "expanded" && isMusicExpandedLayer(layer.key) ? musicExpandedWidth : layer.presentation.kind === "expanded" && isCallExpandedLayer(layer.key) ? callExpandedWidth : expandedWidth}
               leaving={layer.key !== contentKey}
             />
           ))}

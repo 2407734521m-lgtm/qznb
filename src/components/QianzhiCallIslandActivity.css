@@ -35,42 +35,91 @@
   height: 22px;
   color: #fff;
 }
-.qz-call-island-label {
-  display: inline-flex;
+/* Expanded head: round peer avatar with the name and status right after it,
+   the same 62px round anchor the music card's cover gives its expanded card.
+   The old centered copy floated in the middle of a black void; the head is
+   one solid unit on the left, the close button balances the right. */
+.qz-call-island-head {
+  display: flex;
+  min-width: 0;
   align-items: center;
-  min-height: 22px;
-  padding: 0 8px;
-  border-radius: 999px;
-  color: rgba(255,255,255,.78);
-  background: rgba(255,255,255,.1);
-  font-size: 10px;
-  font-weight: 650;
-  white-space: nowrap;
+  gap: 12px;
 }
-.qz-call-island-copy {
+.qz-call-island-avatar {
+  display: grid;
+  flex: 0 0 62px;
+  width: 62px;
+  height: 62px;
+  place-items: center;
+  border: 1px solid rgba(255,255,255,.16);
+  border-radius: 50%;
+  color: #fff;
+  background: rgba(255,255,255,.12);
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1;
+}
+.qz-call-island-avatar.is-ringing {
+  border-color: rgba(255,115,125,.55);
+  background: rgba(255,115,125,.18);
+}
+.qz-call-island-avatar.is-active {
+  border-color: rgba(86,223,160,.5);
+  background: rgba(86,223,160,.14);
+}
+.qz-call-island-meta {
   display: flex;
   min-width: 0;
   flex-direction: column;
-  gap: 3px;
+  gap: 2px;
   text-align: left;
 }
-.qz-call-island-copy strong,
-.qz-call-island-copy small {
+.qz-call-island-meta strong,
+.qz-call-island-meta small {
   display: block;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.qz-call-island-copy strong {
-  color: #fff;
-  font-size: 13px;
-  font-weight: 700;
-}
-.qz-call-island-copy small {
+.qz-call-island-kind {
   color: rgba(255,255,255,.6);
-  font-size: 10px;
-  font-variant-numeric: tabular-nums;
+  font-size: 11px;
+  font-weight: 650;
 }
+.qz-call-island-meta strong {
+  color: #fff;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+.qz-call-island-meta small {
+  color: rgba(255,255,255,.65);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+.qz-call-island-close {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  color: rgba(255,255,255,.9);
+  background: rgba(255,255,255,.10);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.qz-call-island-close svg {
+  display: block;
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+.qz-call-island-close:active { transform: scale(.94); }
 .qz-call-island-actions {
   position: relative;
   z-index: 2;
@@ -84,7 +133,7 @@
 .qz-call-island-action {
   display: inline-flex;
   min-width: 82px;
-  min-height: 38px;
+  min-height: 40px;
   align-items: center;
   justify-content: center;
   padding: 0 14px;
@@ -93,7 +142,7 @@
   color: rgba(255,255,255,.92);
   background: rgba(255,255,255,.1);
   font: inherit;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 680;
   cursor: pointer;
   touch-action: manipulation;

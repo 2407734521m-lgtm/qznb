@@ -513,20 +513,20 @@ export function CallProvider({ children }: { children: ReactNode }) {
                 aria-hidden="true"
                 initial={false}
                 animate={{
-                  left: minimizeFlight.to.left,
-                  top: minimizeFlight.to.top,
-                  width: minimizeFlight.to.width,
-                  height: minimizeFlight.to.height,
+                  x: minimizeFlight.to.left - minimizeFlight.from.left,
+                  y: minimizeFlight.to.top - minimizeFlight.from.top,
+                  scaleX: minimizeFlight.to.width / minimizeFlight.from.width,
+                  scaleY: minimizeFlight.to.height / minimizeFlight.from.height,
                   borderRadius: 999,
-                  opacity: 0.08,
+                  opacity: [1, 1, 0],
                 }}
                 transition={{
-                  left: { type: 'spring', stiffness: 360, damping: 30, mass: 0.78 },
-                  top: { type: 'spring', stiffness: 360, damping: 30, mass: 0.78 },
-                  width: { type: 'spring', stiffness: 360, damping: 30, mass: 0.78 },
-                  height: { type: 'spring', stiffness: 360, damping: 30, mass: 0.78 },
-                  borderRadius: { duration: 0.42, ease: [0.22, 1, 0.36, 1] },
-                  opacity: { duration: 0.42, ease: [0.22, 1, 0.36, 1] },
+                  x: { type: 'spring', stiffness: 420, damping: 34, mass: 0.72 },
+                  y: { type: 'spring', stiffness: 420, damping: 34, mass: 0.72 },
+                  scaleX: { type: 'spring', stiffness: 420, damping: 34, mass: 0.72 },
+                  scaleY: { type: 'spring', stiffness: 420, damping: 34, mass: 0.72 },
+                  borderRadius: { duration: 0.5, ease: [0.22, 1, 0.36, 1] },
+                  opacity: { duration: 0.5, times: [0, 0.76, 1], ease: [0.22, 1, 0.36, 1] },
                 }}
                 style={{
                   position: 'fixed',
@@ -538,7 +538,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
                   boxSizing: 'border-box',
                   overflow: 'hidden',
                   zIndex: 4000,
-                  transformOrigin: '50% 50%',
+                  transformOrigin: 'top left',
                   willChange: 'left, top, width, height, border-radius, opacity',
                   pointerEvents: 'none',
                 }}

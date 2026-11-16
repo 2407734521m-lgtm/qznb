@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { motion, useReducedMotion } from 'framer-motion';
@@ -527,13 +527,15 @@ export default function PostList({ section, searchQuery = '', embedded = false, 
     : posts, [isFeed, posts, feedScope, friendIds, me]);
 
   // 窗口级动态高度虚拟列表：继续使用页面原生滚动，不创建内层滚动容器。
+  const getPostKey = useCallback((index: number) => visiblePosts[index]?.id ?? index, [visiblePosts]);
   const postVirtualizer = useWindowVirtualizer({
     count: visiblePosts.length,
     estimateSize: () => 420,
     overscan: 5,
     gap: 14,
+    paddingEnd: 14,
     scrollMargin: postListOffset,
-    getItemKey: index => visiblePosts[index]?.id ?? index,
+    getItemKey: getPostKey,
   });
   const animateInitialPosts = !hasAnimatedPostsRef.current;
 
@@ -692,7 +694,7 @@ export default function PostList({ section, searchQuery = '', embedded = false, 
         <div
           ref={postListRef}
           className="postlist-virtual"
-          style={{ height: Math.max(0, postVirtualizer.getTotalSize() - postListOffset), position: 'relative' }}
+          style={{ height: postVirtualizer.getTotalSize(), position: 'relative' }}
         >
           {postVirtualizer.getVirtualItems().map(virtualPost => {
             const i = virtualPost.index;

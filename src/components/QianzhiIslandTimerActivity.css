@@ -1,0 +1,111 @@
+.qz-island-timer-compact {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: rgba(255,255,255,.96);
+  white-space: nowrap;
+  font-size: 11px;
+  font-weight: 680;
+}
+.qz-island-timer-icon,
+.qz-island-timer-minimal {
+  display: inline-grid;
+  flex: 0 0 auto;
+  place-items: center;
+  color: #f2c77a;
+}
+.qz-island-timer-icon svg,
+.qz-island-timer-minimal svg {
+  display: block;
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.qz-island-timer-icon.is-large {
+  width: 52px;
+  height: 52px;
+  border: 1px solid rgba(242,199,122,.28);
+  border-radius: 50%;
+  background: rgba(242,199,122,.12);
+}
+.qz-island-timer-icon.is-large svg { width: 23px; height: 23px; }
+.qz-island-timer-minimal { width: 22px; height: 22px; }
+.qz-island-timer-clock {
+  color: rgba(255,255,255,.82);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.qz-island-timer-clock.is-large {
+  display: block;
+  width: 100%;
+  color: #fff;
+  font-size: clamp(34px, 9vw, 46px);
+  font-weight: 680;
+  letter-spacing: -.045em;
+  line-height: 1;
+  text-align: center;
+}
+.qz-island-timer-clock.is-done { color: #9fe0b8; }
+.qz-island-timer-expanded-head {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: 12px;
+}
+.qz-island-timer-expanded-copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 4px;
+}
+.qz-island-timer-expanded-copy strong { color: #fff; font-size: 15px; font-weight: 700; }
+.qz-island-timer-expanded-copy small { color: rgba(255,255,255,.62); font-size: 11px; }
+.qz-island-timer-actions {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.qz-island-timer-action {
+  display: inline-flex;
+  min-width: 76px;
+  min-height: 36px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 13px;
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 999px;
+  color: rgba(255,255,255,.9);
+  background: rgba(255,255,255,.1);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 650;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+.qz-island-timer-action.is-primary {
+  color: #25211a;
+  border-color: rgba(242,199,122,.86);
+  background: #f2c77a;
+}
+.qz-island-timer-action.is-danger {
+  color: #ffb7b7;
+  border-color: rgba(255,112,112,.22);
+  background: rgba(160,35,35,.18);
+}
+.qz-island-timer-action:active { transform: scale(.97); }
+.qz-island-timer-action:focus-visible { outline: 2px solid rgba(255,255,255,.85); outline-offset: 2px; }
+@media (max-width: 360px) {
+  .qz-island-timer-actions { gap: 6px; }
+  .qz-island-timer-action { min-width: 66px; min-height: 34px; padding: 0 9px; font-size: 11px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .qz-island-timer-action { transition: none; }
+}

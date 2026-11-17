@@ -117,7 +117,7 @@ describe('renderRichText', () => {
   it('剧透里的链接、@提及与等宽能渲染', () => {
     const out = html('||[官网](https://qianzhi.pw) @[千](abc-123) `码`||');
     expect(out).toContain('im-ink');
-    expect(out).toContain('<a class="im-link" href="https://qianzhi.pw" target="_blank" rel="noopener noreferrer">官网</a>');
+    expect(out).toContain('<a class="im-link" href="https://qianzhi.pw" target="_blank" rel="noopener noreferrer" tabindex="-1">官网</a>');
     expect(out).toContain('class="im-mention"');
     expect(out).toContain('<code class="im-code">码</code>');
   });
@@ -140,5 +140,30 @@ describe('renderRichText', () => {
     expect(out).toContain('**没闭合');
     expect(out).not.toContain('<a ');
     expect(out).toContain('[点](javascript:alert(1))');
+  });
+});
+
+describe('InvisibleInk（剧透盖着时的读屏与 Tab 保护：初始态）', () => {
+  it('盖着时内容包在 aria-hidden 里、读屏读不到原文', () => {
+    const out = html('||明天去看电影||');
+    expect(out).toContain('aria-label="隐形消息，滑动擦除或点按显示内容"');
+    expect(out).toContain('<span class="im-ink-content" aria-hidden="true"');
+    // 原文仍在 DOM 里（视觉遮罩要盖住它），但 aria-hidden 让读屏跳过这段子树。
+    expect(out).toContain('明天去看电影');
+  });
+
+  it('盖着时剧透里的链接/@拿出 Tab 顺序，剧透外的链接不动', () => {
+    const out = html('||[官网](https://qianzhi.pw) @[千](abc-123)|| [站外](https://example.com)');
+    expect(out).toContain('<a class="im-link" href="https://qianzhi.pw" target="_blank" rel="noopener noreferrer" tabindex="-1">官网</a>');
+    expect(out).toContain('tabindex="-1"');
+    // 剧透外的链接保持默认可聚焦，不带 tabindex。
+    expect(out).toContain('<a class="im-link" href="https://example.com" target="_blank" rel="noopener noreferrer">站外</a>');
+    expect(out).not.toContain('tabindex="-1">站外</a>');
+  });
+
+  it('盖着时剧透里的 @提及按钮同样拿出 Tab 顺序', () => {
+    const out = html('||@[千](abc-123) 你好||');
+    expect(out).toContain('class="im-mention"');
+    expect(out).toContain('tabindex="-1"');
   });
 });

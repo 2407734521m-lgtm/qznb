@@ -98,4 +98,12 @@ assert.ok(securityCenter.includes('admin_list_own_sessions') && securityCenter.i
 assert.ok(securityCenter.includes("signOut({ scope: 'others' })"), 'security center must retain supported revoke-other-sessions behavior');
 assert.ok(adminShared.includes('Promise<boolean>') && adminShared.includes('return false'), 'audit helper must report whether the write succeeded');
 
-console.log('Admin secondary PIN security regression checks passed.');
+const securityOverviewGuard = read('supabase/migrations/20261117000859_admin_security_overview_null_role_guard.sql');
+assert.ok(securityOverviewGuard.includes("coalesce(public.my_role(), '') <> 'super_admin'"),
+  'admin security overview must reject authenticated sessions whose role lookup returns NULL');
+assert.ok(securityOverviewGuard.includes('revoke all on function public.admin_security_overview()'),
+  'admin security overview must revoke default/public execution privileges');
+assert.ok(securityOverviewGuard.includes('grant execute on function public.admin_security_overview()'),
+  'admin security overview must retain authenticated RPC access with its internal super-admin guard');
+
+console.log('Admin secondary PIN and security overview regression checks passed.');

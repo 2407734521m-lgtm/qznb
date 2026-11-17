@@ -201,3 +201,10 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+## wavesurfer.js
+
+- Repository: https://github.com/katspaugh/wavesurfer.js
+- Package: `wavesurfer.js@7.12.12`
+- Usage: interactive voice-message waveform rendering, seeking and playback progress.
+- License: BSD-3-Clause. Used as a dependency; no upstream application UI is copied.

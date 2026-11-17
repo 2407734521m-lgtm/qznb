@@ -90,12 +90,14 @@ begin
   insert into public.broadcast_deliveries (broadcast_id, user_id)
   select new.id, p.id
     from public.profiles p
-   where p.joined = true and p.role = 'member'
+   where p.joined = true
      and (
-       new.audience = 'all'
-       or (new.audience = 'app' and exists (select 1 from public.member_presence mp where mp.profile_id = p.id and mp.client_platform = 'mobile'))
-       or (new.audience = 'web' and exists (select 1 from public.member_presence mp where mp.profile_id = p.id and mp.client_platform = 'web'))
-       or (new.audience = 'selected' and new.target_ids ? p.id::text)
+       (p.role = 'member' and (
+         new.audience = 'all'
+         or (new.audience = 'app' and exists (select 1 from public.member_presence mp where mp.profile_id = p.id and mp.client_platform = 'mobile'))
+         or (new.audience = 'web' and exists (select 1 from public.member_presence mp where mp.profile_id = p.id and mp.client_platform = 'web'))
+       ))
+       or (p.role in ('member','admin') and new.audience = 'selected' and new.target_ids ? p.id::text)
      )
   on conflict (broadcast_id, user_id) do nothing;
   return new;
@@ -132,7 +134,7 @@ declare
   v_broadcast public.admin_broadcasts%rowtype;
 begin
   if auth.uid() is null then raise exception 'authentication required' using errcode = '42501'; end if;
-  if p_event not in ('view','click','dismiss') then raise exception 'invalid delivery event' using errcode = '22023'; end if;
+  if coalesce(p_event, '') not in ('view','click','dismiss') then raise exception 'invalid delivery event' using errcode = '22023'; end if;
   select d.* into v_delivery from public.broadcast_deliveries d
    where d.broadcast_id = p_broadcast_id and d.user_id = auth.uid() for update;
   if not found then return false; end if;
@@ -177,7 +179,7 @@ returns table (
 language plpgsql stable security definer set search_path = ''
 as $function$
 begin
-  if auth.uid() is null or p_client_platform not in ('mobile','web')
+  if auth.uid() is null or coalesce(p_client_platform, '') not in ('mobile','web')
      or not exists (select 1 from public.profiles p where p.id = auth.uid() and p.joined = true) then
     raise exception 'joined member required' using errcode = '42501';
   end if;

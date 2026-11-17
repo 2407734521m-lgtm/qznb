@@ -21,6 +21,7 @@ import { createIslandAlertScheduler } from './components/islandAlertScheduler';
 import { haptic } from './lib/haptics';
 import { createUploadIslandActivity } from './components/QianzhiIslandUploadActivity';
 import { createDownloadIslandActivity } from './components/QianzhiIslandDownloadActivity';
+import { createVoiceRecordingIslandActivity } from './components/QianzhiIslandVoiceRecordingActivity';
 import { createPausableDismissTimer } from './components/islandTaskDismissTimer';
 import type { MediaDownloadIslandEvent, MediaUploadIslandEvent } from './lib/media';
 import { lazyWithRetry } from './lib/lazyWithRetry';
@@ -783,6 +784,41 @@ function Shell() {
       void supabase.removeChannel(channel);
     };
   }, [session, islandApi]);
+
+  // Mirror chat voice recording into the island. The recording clock ticks inside the activity
+  // component so one-second updates do not churn the shared activity store.
+  useEffect(() => {
+    let activeConversationId: number | null = null;
+    const onVoiceRecording = (event: Event) => {
+      const detail = (event as CustomEvent<{
+        phase?: 'start' | 'stop';
+        conversationId?: number;
+        startedAt?: number;
+      }>).detail;
+      if (!detail) return;
+      const conversationId = Number(detail.conversationId);
+      if (!Number.isFinite(conversationId) || conversationId <= 0) return;
+      if (detail.phase === 'stop') {
+        if (activeConversationId !== null && activeConversationId !== conversationId) return;
+        activeConversationId = null;
+        islandApi.end('qz-voice-recording');
+        return;
+      }
+      const startedAt = Number(detail.startedAt);
+      if (detail.phase !== 'start' || !Number.isFinite(startedAt) || startedAt <= 0) return;
+      activeConversationId = conversationId;
+      islandApi.start(createVoiceRecordingIslandActivity({
+        startedAt,
+        onPress: () => nav('/chat/' + conversationId),
+      }));
+    };
+    window.addEventListener('qz-island-voice-recording', onVoiceRecording);
+    return () => {
+      window.removeEventListener('qz-island-voice-recording', onVoiceRecording);
+      activeConversationId = null;
+      islandApi.end('qz-voice-recording');
+    };
+  }, [islandApi, nav]);
 
   // Aggregate storage upload events into one activity so concurrent uploads never create a stack of pills.
   useEffect(() => {

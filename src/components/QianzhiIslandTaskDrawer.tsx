@@ -4,7 +4,7 @@ import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { useIsland, type Activity } from '../lib/island';
 import './QianzhiIslandTaskDrawer.css';
 
-export type IslandActivityCategory = '通话' | '音乐' | '通知' | '文件传输' | '网页活动';
+export type IslandActivityCategory = '通话' | '音乐' | '通知' | '录音' | '文件传输' | '网页活动';
 
 export function resolveIslandTaskProgress(progress: number | null | undefined): number | null {
   if (typeof progress !== 'number' || !Number.isFinite(progress)) return null;
@@ -38,6 +38,7 @@ export function resolveIslandTaskAccessibleLabel(activity: Activity): string {
 /** Stable classification for the site's existing activity IDs. */
 export function resolveIslandActivityCategory(id: string): IslandActivityCategory {
   const value = id.toLowerCase();
+  if (value.includes('voice-recording') || value.includes('recording')) return '录音';
   if (value.includes('call')) return '通话';
   if (value.includes('music')) return '音乐';
   if (value.includes('alert') || value.includes('notification')) return '通知';
@@ -50,6 +51,7 @@ function activitySymbol(category: IslandActivityCategory): string {
     case '通话': return '☎';
     case '音乐': return '♫';
     case '通知': return '•';
+    case '录音': return '🎙';
     case '文件传输': return '↑';
     default: return '◈';
   }

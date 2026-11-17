@@ -1,0 +1,90 @@
+.qz-voice-island-compact {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: rgba(255,255,255,.96);
+  white-space: nowrap;
+  font-size: 11px;
+  font-weight: 680;
+}
+.qz-voice-island-mic,
+.qz-voice-island-minimal {
+  display: inline-grid;
+  flex: 0 0 auto;
+  place-items: center;
+  color: #ff6976;
+}
+.qz-voice-island-mic svg,
+.qz-voice-island-minimal svg {
+  display: block;
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.qz-voice-island-minimal { width: 22px; height: 22px; }
+.qz-voice-island-clock {
+  color: rgba(255,255,255,.78);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.qz-voice-island-expanded-head {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: 12px;
+}
+.qz-voice-island-mic-large {
+  width: 52px;
+  height: 52px;
+  border: 1px solid rgba(255,105,118,.32);
+  border-radius: 50%;
+  background: rgba(255,105,118,.12);
+}
+.qz-voice-island-mic-large svg { width: 22px; height: 22px; }
+.qz-voice-island-expanded-copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 4px;
+}
+.qz-voice-island-expanded-copy strong { color: #fff; font-size: 14px; font-weight: 700; }
+.qz-voice-island-expanded-copy small { color: rgba(255,255,255,.62); font-size: 11px; }
+.qz-voice-island-waveform {
+  display: flex;
+  width: 100%;
+  height: 34px;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  color: #ff7882;
+}
+.qz-voice-island-waveform i {
+  display: block;
+  width: 3px;
+  height: 9px;
+  border-radius: 999px;
+  background: currentColor;
+  opacity: .88;
+  transform-origin: center;
+  animation: qz-voice-island-wave 760ms ease-in-out infinite alternate;
+}
+.qz-voice-island-waveform i:nth-child(2n) { animation-duration: 610ms; animation-delay: -240ms; }
+.qz-voice-island-waveform i:nth-child(3n) { animation-duration: 920ms; animation-delay: -470ms; }
+.qz-voice-island-waveform i:nth-child(4n) { animation-duration: 680ms; animation-delay: -330ms; }
+.qz-voice-island-waveform i:nth-child(1),
+.qz-voice-island-waveform i:nth-child(9) { height: 6px; }
+.qz-voice-island-hint { color: rgba(255,255,255,.58); font-size: 11px; text-align: center; }
+@keyframes qz-voice-island-wave {
+  from { transform: scaleY(.45); opacity: .48; }
+  to { transform: scaleY(1.65); opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .qz-voice-island-waveform i { animation: none; }
+  .qz-voice-island-waveform i:nth-child(3n) { height: 15px; }
+  .qz-voice-island-waveform i:nth-child(2n) { height: 11px; }
+}

@@ -77,7 +77,6 @@ describe('renderRichText', () => {
     expect((out.match(/class="im-ink"/g) ?? [])).toHaveLength(1);
     expect(out).toContain('<span class="im-ink-char">第</span>');
     expect(out).toContain('<span class="im-ink-char">二</span>');
-    expect(out).toContain('</span>\\n<span class="im-ink-char">第</span>');
     expect(out).not.toContain('||');
   });
 

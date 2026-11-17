@@ -42,7 +42,7 @@ export function createChatForwardAttachmentPlan(
 ): ChatForwardAttachmentPlan | null {
   const body = stripChatBubbleEffect(originalBody);
 
-  const image = /^\\[\\[im-image:([^\\]\\r\\n]+)\\]\\]$/.exec(body);
+  const image = /^\[\[im-image:([^\]]+)\]\]$/.exec(body);
   if (image) {
     const sourcePath = image[1];
     assertSourcePath(sourcePath, sourceConversationId);
@@ -51,12 +51,12 @@ export function createChatForwardAttachmentPlan(
       sourcePaths: [sourcePath],
       buildBody: paths => {
         requireDestinationPaths(paths, 1);
-        return `[[im-image:${paths[0]}]]`;
+        return \`[[im-image:\${paths[0]}]]\`;
       },
     };
   }
 
-  const audio = /^\\[\\[im-audio:([^\\]\\r\\n]+)\\]\\]$/.exec(body);
+  const audio = /^\[\[im-audio:([^\]]+)\]\]$/.exec(body);
   if (audio) {
     const sourcePath = audio[1];
     assertSourcePath(sourcePath, sourceConversationId);
@@ -65,12 +65,12 @@ export function createChatForwardAttachmentPlan(
       sourcePaths: [sourcePath],
       buildBody: paths => {
         requireDestinationPaths(paths, 1);
-        return `[[im-audio:${paths[0]}]]`;
+        return \`[[im-audio:\${paths[0]}]]\`;
       },
     };
   }
 
-  const video = /^\\[\\[im-video:([^|\\]\\r\\n]+)(?:\\|([^\\]\\r\\n]*))?\\]\\]$/.exec(body);
+  const video = /^\[\[im-video:([^|\]]+)(?:\|([^\]]*))?\]\]$/.exec(body);
   if (video) {
     const sourcePaths = [video[1], ...(video[2] ? [video[2]] : [])];
     sourcePaths.forEach(path => assertSourcePath(path, sourceConversationId));
@@ -79,12 +79,12 @@ export function createChatForwardAttachmentPlan(
       sourcePaths,
       buildBody: paths => {
         requireDestinationPaths(paths, sourcePaths.length);
-        return `[[im-video:${paths[0]}${paths[1] ? `|${paths[1]}` : ''}]]`;
+        return \`[[im-video:\${paths[0]}\${paths[1] ? \`|\${paths[1]}\` : ''}]]\`;
       },
     };
   }
 
-  const file = /^\\[\\[im-file:([^|\\]\\r\\n]+)\\|([^|\\]\\r\\n]{1,80})\\|(\\d+)\\]\\]$/.exec(body);
+  const file = /^\[\[im-file:([^|\]]+)\|([^|\]]{1,80})\|(\d+)\]\]$/.exec(body);
   if (file) {
     const sourcePath = file[1];
     const fileName = file[2];
@@ -97,12 +97,12 @@ export function createChatForwardAttachmentPlan(
       fileSize,
       buildBody: paths => {
         requireDestinationPaths(paths, 1);
-        return `[[im-file:${paths[0]}|${fileName}|${file[3]}]]`;
+        return \`[[im-file:\${paths[0]}|\${fileName}|\${file[3]}]]\`;
       },
     };
   }
 
-  if (/^\\[\\[im-(?:image|audio|video|file):/.test(body)) {
+  if (/^\[\[im-(?:image|audio|video|file):/.test(body)) {
     throw new Error('这条媒体消息格式不完整，暂时无法转发。');
   }
   return null;

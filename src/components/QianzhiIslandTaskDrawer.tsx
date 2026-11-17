@@ -7,6 +7,10 @@ import './QianzhiIslandTaskDrawer.css';
 
 export type IslandActivityCategory = '通话' | '音乐' | '通知' | '录音' | '计时器' | '文件传输' | '网页活动';
 
+export function shouldRenderIslandTaskDrawer(docked: boolean, keyboardOpen: boolean): boolean {
+  return !docked && !keyboardOpen;
+}
+
 export function resolveIslandTaskProgress(progress: number | null | undefined): number | null {
   if (typeof progress !== 'number' || !Number.isFinite(progress)) return null;
   return Math.round(Math.max(0, Math.min(100, progress)));
@@ -251,9 +255,11 @@ export default function QianzhiIslandTaskDrawer({ docked }: { docked: boolean })
     };
   }, [timerSession?.status, timerSession?.endsAt]);
 
+  const hasCallActivity = activities.some(activity => activity.id === 'qz-call-session' || activity.id === 'qz-group-call-session');
+
   useEffect(() => {
-    if (docked || expanded) setOpen(false);
-  }, [docked, activities.length, expanded]);
+    if (docked || (hasCallActivity && expanded)) setOpen(false);
+  }, [docked, hasCallActivity, expanded]);
 
   // The pill is wider than its 104px config width (sensor + content: ~200px
   // with a track, ~400px expanded), so a trigger parked at a fixed offset
@@ -262,16 +268,26 @@ export default function QianzhiIslandTaskDrawer({ docked }: { docked: boolean })
   // config-width fallback when the pill is not in the DOM yet.
   useEffect(() => {
     const anchor = anchorRef.current;
-    if (!anchor || typeof ResizeObserver === 'undefined') return;
+    const root = rootRef.current;
+    if (!anchor || !root || typeof ResizeObserver === 'undefined') return;
     const pill = document.querySelector('[data-islandcn-hit="pill"]');
     if (!(pill instanceof HTMLElement)) return;
     const sync = () => {
-      anchor.style.setProperty('--qz-island-pill-half', (pill.getBoundingClientRect().width / 2) + 'px');
+      const rect = pill.getBoundingClientRect();
+      anchor.style.setProperty('--qz-island-pill-half', (rect.width / 2) + 'px');
+      // Keep the activity panel below the capsule in both compact and expanded layouts.
+      const panelTop = Math.min(rect.bottom + 18, Math.max(12, window.innerHeight * 0.42));
+      root.style.setProperty('--qz-island-task-panel-top', panelTop + 'px');
     };
     sync();
     const observer = new ResizeObserver(sync);
     observer.observe(pill);
-    return () => observer.disconnect();
+    window.addEventListener('resize', sync);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', sync);
+      root.style.removeProperty('--qz-island-task-panel-top');
+    };
   }, [activities.length, expanded]);
 
   // Notify background-task owners when the list is being inspected. Finished task
@@ -346,7 +362,7 @@ export default function QianzhiIslandTaskDrawer({ docked }: { docked: boolean })
     setOpen(false);
   };
 
-  if (docked || keyboardOpen || expanded) return null;
+  if (!shouldRenderIslandTaskDrawer(docked, keyboardOpen)) return null;
 
   return (
     <div className={'qz-island-task-ui' + (activities.some(activity => activity.id === 'qz-route-navigation') ? ' has-route-indicator' : '')} ref={rootRef}>

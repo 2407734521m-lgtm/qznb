@@ -1793,12 +1793,12 @@ export default function Chat() {
           const destinationPaths: string[] = [];
           for (let assetIndex = 0; assetIndex < downloadedAssets.length; assetIndex += 1) {
             const asset = downloadedAssets[assetIndex];
-            setForwardProgress(\`正在复制附件：\${target.label}（\${index + 1}/\${targets.length}）\`);
+            setForwardProgress(`正在复制附件：${target.label}（${index + 1}/${targets.length}）`);
             const forwardedFile = new File([asset.blob], asset.fileName, { type: asset.mimeType });
             const newPath = await uploadMediaWithProgress(
               'chat-media',
               forwardedFile,
-              \`\${target.conversationId}/\${me}\`,
+              `${target.conversationId}/${me}`,
             );
             uploadedPaths.push(newPath);
             destinationPaths.push(newPath);
@@ -1806,7 +1806,7 @@ export default function Chat() {
           forwardedMediaBody = attachmentPlan.buildBody(destinationPaths);
         }
 
-        setForwardProgress(\`正在发送到：\${target.label}（\${index + 1}/\${targets.length}）\`);
+        setForwardProgress(`正在发送到：${target.label}（${index + 1}/${targets.length}）`);
         const { error: forwardError } = await supabase.rpc('forward_chat_message', {
           p_source_message_id: source.id,
           p_target_conversation_id: target.conversationId,
@@ -1830,10 +1830,10 @@ export default function Chat() {
 
     setForwardBusy(false);
     setForwardProgress('');
-    if (succeeded > 0) toast.success(\`已成功转发到 \${succeeded} 个会话。\`);
+    if (succeeded > 0) toast.success(`已成功转发到 ${succeeded} 个会话。`);
     if (failures.length > 0) {
       setSelectedForwardIds(failures.map(item => item.id));
-      toast.error(\`有 \${failures.length} 个会话转发失败，请检查后重试。\`);
+      toast.error(`有 ${failures.length} 个会话转发失败，请检查后重试。`);
       return;
     }
     closeForwardPicker();

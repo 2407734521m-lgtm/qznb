@@ -345,7 +345,6 @@ export default function Chat() {
   const [vanishingIds, setVanishingIds] = useState<ReadonlySet<number>>(new Set());
   const vanishingIdsRef = useRef<ReadonlySet<number>>(new Set());
   const rowElsRef = useRef(new Map<number, HTMLElement>());
-  const disappearingModeRef = useRef<DisappearingMode>('off');
   const [showProfileMore, setShowProfileMore] = useState(false);
   const sharedMediaRef = useRef<HTMLElement | null>(null);
   const [showStickers, setShowStickers] = useState(false);
@@ -483,17 +482,24 @@ export default function Chat() {
     return map;
   }, [reactions]);
 
-  // 消失动画的两个收尾步骤。finishVanish 只在消息仍过期时移除；用户在
-  // 动画中途关掉消失模式时，把行高还回去、取消淡出，消息留着。
+  // 消息是否移除只看这条消息自己的 expires_at，不依赖会话当前开关状态。
+  // 关闭自动消失后，已经开始倒计时的消息仍会按原定时间消失。
   function finishVanish(ids: number[]) {
     const rowEls = rowElsRef.current;
-    if (disappearingModeRef.current === 'off') {
-      ids.forEach(id => {
-        const el = rowEls.get(id);
-        if (el) { el.style.height = ''; el.style.overflow = ''; }
-      });
-    } else {
-      setMsgs(prev => prev.filter(m => !ids.includes(m.id)));
+    const expiredIds = new Set(
+      msgsRef.current
+        .filter(message => ids.includes(message.id) && isExpiredMessage(message))
+        .map(message => message.id),
+    );
+
+    ids.forEach(id => {
+      if (expiredIds.has(id)) return;
+      const el = rowEls.get(id);
+      if (el) { el.style.height = ''; el.style.overflow = ''; }
+    });
+
+    if (expiredIds.size > 0) {
+      setMsgs(prev => prev.filter(message => !expiredIds.has(message.id)));
       if (cid) {
         void supabase.rpc('cleanup_expired_messages', { p_conversation_id: Number(cid) })
           .then(({ error: cleanupError }) => {
@@ -501,6 +507,7 @@ export default function Chat() {
           });
       }
     }
+
     const next = new Set(vanishingIdsRef.current);
     ids.forEach(id => next.delete(id));
     vanishingIdsRef.current = next;
@@ -544,14 +551,9 @@ export default function Chat() {
     }, fadeMs);
   }
 
+  // 消失动画只根据单条消息自己的 expires_at 工作。
+  // 即使会话开关后来被关闭，已经进入倒计时的消息也不会被取消。
   useEffect(() => {
-    disappearingModeRef.current = disappearingMode;
-  }, [disappearingMode]);
-
-  // 消失动画的定时器：找到最近一个到期时间，到点把那一批消息淡出收起。
-  // 已过期但还没动画的消息由 load() 直接过滤（用户不在本页时不播动画）。
-  useEffect(() => {
-    if (disappearingMode === 'off') return;
     const now = Date.now();
     const upcoming = msgs.filter(m => m.expires_at
       && new Date(m.expires_at as string).getTime() > now
@@ -566,7 +568,7 @@ export default function Chat() {
       if (expiredIds.length) startVanish(expiredIds);
     }, Math.max(0, nextAt - now));
     return () => window.clearTimeout(timer);
-  }, [msgs, disappearingMode, vanishingIds]);
+  }, [msgs, vanishingIds]);
 
   // Android 虚拟键盘打开时，可视视口会缩小；用它同步聊天容器高度。
   useEffect(() => {

@@ -2037,7 +2037,7 @@ export default function Chat() {
           )}
         </div>
       )}
-      <form className="im-composer"      <form className="im-composer" onSubmit={e => { e.preventDefault(); send(); }}>
+      <form className="im-composer" onSubmit={e => { e.preventDefault(); send(); }}>
         <input ref={imageRef} type="file" accept="image/jpeg,image/png,image/webp,image/heic" hidden onChange={e => sendImage(e.target.files?.[0])} />
         <input ref={cameraRef} type="file" accept="image/*" capture="environment" hidden onChange={e => sendImage(e.target.files?.[0])} />
         <input ref={fileRef} type="file" hidden onChange={e => sendFile(e.target.files?.[0])} />

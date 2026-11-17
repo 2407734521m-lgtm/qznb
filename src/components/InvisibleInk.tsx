@@ -7,17 +7,21 @@ import type { KeyboardEvent, PointerEvent } from 'react';
 const WIPE_RADIUS = 26;
 const RECOVER_DELAY = 5000;
 const RECOVER_FADE_MS = 900;
-const FRAME_INTERVAL_MS = 42;
-const MAX_PARTICLES = 5200;
+const FRAME_INTERVAL_MS = 30;
+const MAX_PARTICLES = 2200;
 
 type Particle = {
   x: number;
   y: number;
   radius: number;
+  aspect: number;
+  rotation: number;
   opacity: number;
   phase: number;
+  phaseY: number;
   speed: number;
-  drift: number;
+  driftX: number;
+  driftY: number;
   light: boolean;
 };
 
@@ -69,59 +73,67 @@ export default function InvisibleInk({ text }: { text: string }) {
     mode: 'pending' | 'wipe' | 'scroll';
   } | null>(null);
 
-  // Sample one jittered point per small grid cell. The grid prevents random clumps,
-  // while deterministic jitter keeps the texture stable after resize and rerender.
+  // Keep a loose, jittered grain field rather than filling every pixel with noise.
+  // A few omitted cells and a sparse secondary grain make the spacing feel organic
+  // without forming the large, clumped blobs that obscure the message.
   const seedParticles = () => {
     const { width, height } = sizeRef.current;
     if (!width || !height) return;
 
     const area = width * height;
-    const spacing = Math.max(2.15, Math.sqrt(area / MAX_PARTICLES));
+    const spacing = Math.max(6.4, Math.sqrt(area / MAX_PARTICLES));
     const particles: Particle[] = [];
-    const columns = Math.ceil(width / spacing);
     let index = 0;
 
     for (let y = spacing * 0.5; y < height; y += spacing) {
       for (let x = spacing * 0.5; x < width; x += spacing) {
         const seed = Math.imul(index + 1, 0x45d9f3b);
+        index += 1;
+
+        // Leave occasional gaps so the veil does not read as a rigid dotted grid.
+        if (seededRandom(seed ^ 0x3c6ef372) < 0.1) continue;
+
         const rx = seededRandom(seed ^ 0x68bc21eb);
         const ry = seededRandom(seed ^ 0x02e5be93);
         const size = seededRandom(seed ^ 0x967a889b);
         particles.push({
-          x: Math.min(width, x + (rx - 0.5) * spacing * 0.72),
-          y: Math.min(height, y + (ry - 0.5) * spacing * 0.72),
-          radius: 0.48 + size * 0.43,
-          opacity: 0.2 + seededRandom(seed ^ 0x51ed270b) * 0.34,
-          phase: seededRandom(seed ^ 0x165667b1) * Math.PI * 2,
-          speed: 0.6 + seededRandom(seed ^ 0x7f4a7c15) * 0.8,
-          drift: 0.08 + seededRandom(seed ^ 0x94d049bb) * 0.2,
-          light: seededRandom(seed ^ 0x27d4eb2f) > 0.34,
+          x: Math.min(width, x + (rx - 0.5) * spacing * 0.86),
+          y: Math.min(height, y + (ry - 0.5) * spacing * 0.86),
+          radius: 0.42 + size * 0.52,
+          aspect: 0.62 + seededRandom(seed ^ 0x51ed270b) * 0.86,
+          rotation: seededRandom(seed ^ 0x165667b1) * Math.PI,
+          opacity: 0.2 + seededRandom(seed ^ 0x7f4a7c15) * 0.28,
+          phase: seededRandom(seed ^ 0x94d049bb) * Math.PI * 2,
+          phaseY: seededRandom(seed ^ 0x27d4eb2f) * Math.PI * 2,
+          speed: 0.62 + seededRandom(seed ^ 0x165667b1) * 0.72,
+          driftX: 1.05 + seededRandom(seed ^ 0x68bc21eb) * 1.75,
+          driftY: 0.72 + seededRandom(seed ^ 0x02e5be93) * 1.35,
+          light: seededRandom(seed ^ 0x51ed270b) > 0.32,
         });
-        index += 1;
-        if (index >= MAX_PARTICLES) break;
       }
-      if (index >= MAX_PARTICLES) break;
     }
 
-    // A sparse second grain adds depth without creating large circles or bright blobs.
-    const fineSpacing = spacing * 0.72;
-    const fineCount = Math.min(1100, Math.floor(area / (fineSpacing * fineSpacing) * 0.18));
+    // A small number of finer grains adds texture while keeping the blue field airy.
+    const fineCount = Math.min(520, Math.floor((area / (spacing * spacing)) * 0.18));
     for (let i = 0; i < fineCount; i += 1) {
       const seed = Math.imul(i + 1, 0x27d4eb2d) ^ 0x165667b1;
       particles.push({
         x: seededRandom(seed ^ 0x68bc21eb) * width,
         y: seededRandom(seed ^ 0x02e5be93) * height,
-        radius: 0.34 + seededRandom(seed ^ 0x967a889b) * 0.28,
-        opacity: 0.12 + seededRandom(seed ^ 0x51ed270b) * 0.2,
-        phase: seededRandom(seed ^ 0x165667b1) * Math.PI * 2,
-        speed: 0.5 + seededRandom(seed ^ 0x7f4a7c15) * 0.7,
-        drift: 0.05 + seededRandom(seed ^ 0x94d049bb) * 0.12,
-        light: seededRandom(seed ^ 0x27d4eb2f) > 0.28,
+        radius: 0.22 + seededRandom(seed ^ 0x967a889b) * 0.32,
+        aspect: 0.72 + seededRandom(seed ^ 0x51ed270b) * 0.7,
+        rotation: seededRandom(seed ^ 0x165667b1) * Math.PI,
+        opacity: 0.08 + seededRandom(seed ^ 0x7f4a7c15) * 0.19,
+        phase: seededRandom(seed ^ 0x94d049bb) * Math.PI * 2,
+        phaseY: seededRandom(seed ^ 0x27d4eb2f) * Math.PI * 2,
+        speed: 0.5 + seededRandom(seed ^ 0x3c6ef372) * 0.74,
+        driftX: 0.7 + seededRandom(seed ^ 0x68bc21eb) * 1.25,
+        driftY: 0.48 + seededRandom(seed ^ 0x02e5be93) * 1.0,
+        light: seededRandom(seed ^ 0x51ed270b) > 0.27,
       });
     }
 
     particlesRef.current = particles;
-    void columns;
   };
 
   const resolvePalette = () => {
@@ -156,14 +168,27 @@ export default function InvisibleInk({ text }: { text: string }) {
     const time = now / 1000;
     for (const particle of particlesRef.current) {
       const phase = time * particle.speed + particle.phase;
-      const driftX = reducedMotionRef.current ? 0 : Math.sin(phase) * particle.drift;
-      const driftY = reducedMotionRef.current ? 0 : Math.cos(phase * 0.83) * particle.drift;
-      const shimmer = reducedMotionRef.current ? 1 : 0.78 + (Math.sin(phase * 1.7) + 1) * 0.11;
+      // Two out-of-sync waves give each grain its own slow, visible drift.
+      const waveX = Math.sin(phase) + Math.sin(phase * 0.47 + particle.phaseY) * 0.24;
+      const waveY = Math.cos(phase * 0.82 + particle.phaseY) + Math.sin(phase * 0.39 + particle.phase) * 0.2;
+      const driftX = reducedMotionRef.current ? 0 : waveX * particle.driftX;
+      const driftY = reducedMotionRef.current ? 0 : waveY * particle.driftY;
+      const shimmer = reducedMotionRef.current
+        ? 1
+        : 0.54 + (Math.sin(phase * 1.35 + particle.phaseY) + 1) * 0.23;
 
       ctx.globalAlpha = particle.opacity * shimmer;
       ctx.fillStyle = particle.light ? paletteRef.current.light : paletteRef.current.shade;
       ctx.beginPath();
-      ctx.arc(particle.x + driftX, particle.y + driftY, particle.radius, 0, Math.PI * 2);
+      ctx.ellipse(
+        particle.x + driftX,
+        particle.y + driftY,
+        particle.radius,
+        particle.radius * particle.aspect,
+        particle.rotation,
+        0,
+        Math.PI * 2,
+      );
       ctx.fill();
     }
     ctx.globalAlpha = 1;

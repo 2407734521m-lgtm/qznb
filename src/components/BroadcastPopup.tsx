@@ -47,11 +47,6 @@ const DEFAULT_TITLE: Record<BroadcastKind, string> = {
   refresh: '远程刷新',
 };
 
-function targetList(b: Broadcast): string[] {
-  if (!Array.isArray(b.target_ids)) return [];
-  return b.target_ids.filter((o): o is string => typeof o === 'string');
-}
-
 function pokeList(b: Broadcast): string[] {
   if (!Array.isArray(b.poke_target_ids)) return [];
   return b.poke_target_ids.filter((o): o is string => typeof o === 'string');
@@ -63,14 +58,14 @@ function voteOptions(b: Broadcast): string[] {
 }
 
 // 管理员广播弹窗：后台「弹窗广播」发布后，成员端在主站 Shell 里轮询领取。
-// - popup：普通弹窗，点按钮记「已读」，每人只弹一次。
+// - popup：普通弹窗，展示次数和重复间隔由管理员配置，并记录查看、点击与关闭事件。
 // - location：位置征集，必须本人点同意才走定位；只保存城市/地区文字
 //   （坐标在定位工具里先粗化到约 10 公里），拒绝/未授权也会回执给后台统计。
 // - vote：投票征集，选项来自 options，选一项提交，回执 status=voted、answer=选项原文。
 // - form：填写征集，填文字提交，回执 status=submitted、answer=填写内容。
 // - signup：报名征集，参加回执 joined、不参加回执 not_joined。
 // - refresh：远程刷新，不弹窗，领到后先写回执再刷新页面（sessionStorage 防重复刷新）。
-// - 受众 selected：只给 target_ids 里的指定成员，其他人客户端直接跳过。
+// - 受众 selected：服务端只返回当前账号的收件记录，成员端不会接收到其他人的定向广播。
 // - 定时发布：starts_at 在未来的广播对成员不可见，到点自动生效。
 // - 催办重弹：管理员点「催办」后（poke_at 晚于本人 declined 回执），之前选了
 //   「暂不参与」的人会被重新弹一次；其他已有回执的人仍不重复弹。refresh 不参与。

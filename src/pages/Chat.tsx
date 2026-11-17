@@ -1880,7 +1880,7 @@ export default function Chat() {
   };
 
   useEffect(() => {
-    if (!showDetails && actionFor === null && !showStickers) return;
+    if (!showDetails && actionFor === null && !showStickers && forwardingMessageId === null) return;
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         setShowDetails(false);
@@ -1889,11 +1889,12 @@ export default function Chat() {
         setShowStickerEmojis(false);
         setActionFor(null);
         setTapbackAnchor(null);
+        closeForwardPicker();
       }
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [showDetails, showStickers, actionFor]);
+  }, [showDetails, showStickers, actionFor, forwardingMessageId, forwardBusy]);
 
   useEffect(() => {
     if (!showStickers) return;

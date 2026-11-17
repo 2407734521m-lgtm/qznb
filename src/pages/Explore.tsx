@@ -10,6 +10,7 @@ import inkPhoto from '../assets/discover/card-ink.jpg';
 import hotPhoto from '../assets/discover/card-hot.jpg';
 import questionsPhoto from '../assets/discover/card-questions.jpg';
 import musicPhoto from '../assets/discover/card-music.jpg';
+import videosPhoto from '../assets/discover/card-videos.jpg';
 import signaturePhoto from '../assets/discover/card-signature.jpg';
 
 type DiscoverCard = {
@@ -105,6 +106,16 @@ const sections: {
         title: '音乐',
         description: '搜索曲目、发现音乐，创建自己的播放体验。',
         action: '进入音乐空间',
+      },
+      {
+        to: '/videos',
+        className: 'discover-card--videos',
+        art: 'videos',
+        photo: videosPhoto,
+        eyebrow: '每日发现',
+        title: '海外视频',
+        description: '每天自动发现的海外优质视频，管理员审核后发布，点封面看官方播放。',
+        action: '去看看',
       },
     ],
   },

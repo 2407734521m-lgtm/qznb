@@ -4,7 +4,7 @@ import { useEffect, useRef } from 'react';
 // 停 5 秒没碰自动盖回去；点一下（或按回车/空格）直接全显。
 // 做法：字拆成单字 span（opacity 0 盖住），上面盖一层粒子画布；滑动时同时
 // 做两件事——擦掉手指附近的粒子、把附近的字拨回 opacity 1。
-// 粒子只布在字的位置上（按单字 rect 布点），不铺满整个气泡；
+// 粒子沿真实字形笔画分布，不铺满字框或整个气泡；
 // 减动效时粒子静止、盖回不做淡入淡出。
 // 之前用的是 GitHub 的 spoiled（点按显现），用户 2026-11-17 01:16 令改滑动版，
 // spoiled 的粒子是 paint worklet 画的、没法按区域擦掉，所以改成自写组件。
@@ -214,7 +214,7 @@ export default function InvisibleInk({ text }: { text: string }) {
     }
   };
 
-  // 把细碎墨点画到 field 画布上；不再整体抖动，保持颗粒边缘清晰。
+  // 把细碎墨点画到 field 画布上，保持颗粒边缘清晰。
   const paintField = () => {
     const field = fieldRef.current;
     if (!field) return;

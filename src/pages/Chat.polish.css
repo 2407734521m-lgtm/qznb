@@ -2559,3 +2559,43 @@
 @media (prefers-reduced-motion: reduce) {
   .im-page .im-attachment-effect-banner button { transition: none !important; }
 }
+
+/* Interactive voice waveform */
+.im-page .im-audio-card {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  width: min(100%, 310px);
+  min-width: 220px;
+  padding: 9px 11px;
+  border-radius: 15px;
+  background: rgba(255,255,255,.72);
+}
+.im-page .im-audio-symbol {
+  flex: 0 0 36px;
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 14px;
+}
+.im-page .im-audio-symbol:disabled { opacity: .65; cursor: default; }
+.im-page .im-audio-main { flex: 1; min-width: 0; }
+.im-page .im-waveform { width: 100%; min-height: 34px; cursor: pointer; }
+.im-page .im-waveform wave { overflow: hidden !important; }
+.im-page .im-audio-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 3px;
+  color: #718096;
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+@media (max-width: 600px) {
+  .im-page .im-audio-card { min-width: min(220px, 68vw); padding: 8px 9px; gap: 9px; }
+  .im-page .im-audio-symbol { flex-basis: 32px; width: 32px; height: 32px; }
+}

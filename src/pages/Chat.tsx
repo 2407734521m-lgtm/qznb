@@ -30,6 +30,12 @@ type ChatReaction = { message_id: number; profile_id: string; reaction: string; 
 type ChatPeer = { id: string; username: string; display_name: string | null; avatar_path: string | null };
 type TapbackAnchor = { left: number; top: number; width: number; dockLeft: number; dockTop: number; menuLeft: number; menuTop: number };
 const QUICK_REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '🙏'];
+const CHAT_EFFECT_LABELS: Record<ChatBubbleEffect, string> = {
+  slam: '撞击', loud: '放大', gentle: '轻柔', 'invisible-ink': '隐形墨水',
+  'screen-echo': '回声', 'screen-spotlight': '聚光灯', 'screen-balloons': '气球',
+  'screen-confetti': '彩纸', 'screen-love': '爱心', 'screen-lasers': '激光',
+  'screen-fireworks': '烟花', 'screen-celebration': '庆祝',
+};
 
 
 function MessageImagePreview({ url }: { url: string }) {
@@ -985,9 +991,9 @@ export default function Chat() {
   async function persistMediaMessage(body: string, effect: ChatBubbleEffect | null) {
     if (!cid) throw new Error('聊天已关闭，无法发送媒体。');
     const decoratedBody = withChatBubbleEffect(body, effect);
-    const { error: sendError } = await supabase.from('messages').insert({
+    const { data: inserted, error: sendError } = await supabase.from('messages').insert({
       conversation_id: Number(cid), sender_id: me, body: decoratedBody, reply_to_id: replyTarget?.id ?? null,
-    });
+    }).select('id').single();
     if (sendError) throw sendError;
     setReplyTarget(null);
     setPendingAttachmentEffect(null);
@@ -996,7 +1002,7 @@ export default function Chat() {
     await load();
     const screenKind = getScreenEffectKind(decoratedBody);
     if (screenKind) {
-      setActiveScreenEffect({ kind: screenKind, messageId: '', replay: ++screenEffectReplayRef.current });
+      setActiveScreenEffect({ kind: screenKind, messageId: String(inserted.id), replay: ++screenEffectReplayRef.current });
     }
   }
 
@@ -1387,6 +1393,7 @@ export default function Chat() {
 
   function openMessageEffectsPicker(mode: 'text' | 'attachment' = 'text') {
     if (effectsPickerOpen || uploading || recording || (mode === 'text' && !text.trim())) return;
+    if (mode === 'attachment') setShowStickers(false);
     setEffectsPickerMode(mode);
     setEffectsPickerSelection(null);
     setEffectsPickerOpen(true);
@@ -1987,7 +1994,8 @@ export default function Chat() {
             && !dateLabel(nextMessage.created_at, m.created_at)
             && new Date(nextMessage.created_at).getTime() - new Date(m.created_at).getTime() <= 300000);
           const deleted = Boolean(m.deleted_at);
-          const canEdit = mine && !deleted && !m.body.startsWith('[[im-image:') && !m.body.startsWith('[[im-audio:');
+          const editBody = stripChatBubbleEffect(m.body);
+          const canEdit = mine && !deleted && !editBody.startsWith('[[im-image:') && !editBody.startsWith('[[im-audio:') && !editBody.startsWith('[[im-video:') && !editBody.startsWith('[[im-file:');
           // 正在消失的消息即使已被清理打上 deleted_at，也继续显示原文，不中途变成“撤回”。
           const displayBody = deleted && !vanishingIds.has(m.id) ? (mine ? '你撤回了一条消息' : '对方撤回了一条消息') : m.body;
           const inlineMeta = editingId !== m.id && canShowInlineMeta(displayBody, Boolean(m.reply_to_id));
@@ -2006,7 +2014,16 @@ export default function Chat() {
                   <div className={'im-bubble ' + (mine ? 'mine' : 'theirs') + (samePrevious ? ' im-bubble-grouped-prev' : '') + (sameNext ? ' im-bubble-grouped-next' : '')}
                     data-im-effect={getChatBubbleEffect(m.body) ?? undefined}
                     data-message-id={m.id}
-                    onTouchStart={event => { startMessagePress(m.id, event.currentTarget); startMessageSwipe(m.id, event); }}
+                    onTouchStart={event => {
+                      const target = event.target as HTMLElement;
+                      if (target.closest('button, a, input, textarea, audio, video, [contenteditable="true"]')) {
+                        clearMessagePress();
+                        endMessageSwipe();
+                        return;
+                      }
+                      startMessagePress(m.id, event.currentTarget);
+                      startMessageSwipe(m.id, event);
+                    }}
                     onTouchMove={event => { moveMessageSwipe(m, event); clearMessagePress(event); }}
                     onTouchEnd={event => { endMessageSwipe(); clearMessagePress(event); }}
                     onTouchCancel={event => { endMessageSwipe(); clearMessagePress(event); }}
@@ -2089,7 +2106,8 @@ export default function Chat() {
         if (!message) return null;
         const mine = message.sender_id === me;
         const deleted = Boolean(message.deleted_at);
-        const canEdit = mine && !deleted && !message.body.startsWith('[[im-image:') && !message.body.startsWith('[[im-audio:');
+        const editBody = stripChatBubbleEffect(message.body);
+        const canEdit = mine && !deleted && !editBody.startsWith('[[im-image:') && !editBody.startsWith('[[im-audio:') && !editBody.startsWith('[[im-video:') && !editBody.startsWith('[[im-file:');
         return <div className="im-context-overlay" role="presentation" onClick={() => { setActionFor(null); setTapbackAnchor(null); }}>
           {tapbackAnchor && <div className={'im-tapback-preview ' + (mine ? 'mine' : 'theirs')}
             style={{ left: tapbackAnchor.left, top: tapbackAnchor.top, width: tapbackAnchor.width }}
@@ -2148,6 +2166,11 @@ export default function Chat() {
             <button type="button" role="tab" aria-selected={showStickerEmojis} className={showStickerEmojis ? 'on' : ''} onClick={() => setShowStickerEmojis(true)}>贴纸</button>
           </div>
           {!showStickerEmojis ? (
+            <>
+            {pendingAttachmentEffect && <div className="im-attachment-effect-banner">
+              <span>下一条媒体：{CHAT_EFFECT_LABELS[pendingAttachmentEffect]}</span>
+              <button type="button" onClick={() => setPendingAttachmentEffect(null)}>取消</button>
+            </div>}
             <div className="im-attach-list">
               <button type="button" className="im-attach-choice" onClick={() => { setShowStickers(false); imageRef.current?.click(); }}>
                 <span className="im-attach-icon" aria-hidden="true">
@@ -2173,6 +2196,7 @@ export default function Chat() {
                 <span className="im-attach-icon im-gif-icon" aria-hidden="true">GIF</span><span>GIF</span>
               </button>
             </div>
+            </>
           ) : (
             <div className="im-sticker-grid">
               {['🥹','😂','❤️','😍','🐱','🐻','✨','🎉','👍','😭','🫶','🌸','💖','😎'].map(sticker => (
@@ -2267,9 +2291,9 @@ export default function Chat() {
           onPointerUp={endAttachmentButtonPress}
           onPointerCancel={endAttachmentButtonPress}
           onPointerLeave={endAttachmentButtonPress}
-          onContextMenu={event => { event.preventDefault(); attachmentHoldTriggeredRef.current = true; openMessageEffectsPicker('attachment'); }}
+          onContextMenu={event => { event.preventDefault(); openMessageEffectsPicker('attachment'); }}
           onClick={handleAttachmentButtonClick}
-          title={pendingAttachmentEffect ? `下一条媒体：${({ slam: '撞击', loud: '放大', gentle: '轻柔', 'screen-echo': '回声', 'screen-spotlight': '聚光灯', 'screen-balloons': '气球', 'screen-confetti': '彩纸', 'screen-love': '爱心', 'screen-lasers': '激光', 'screen-fireworks': '烟花', 'screen-celebration': '庆祝' } as Record<string, string>)[pendingAttachmentEffect] ?? '特效'}；长按修改` : '单击打开附件，长按设置媒体特效'}
+          title={pendingAttachmentEffect ? `下一条媒体：${CHAT_EFFECT_LABELS[pendingAttachmentEffect]}；长按修改` : '单击打开附件，长按设置媒体特效'}
         >{showStickers ? '×' : '＋'}{pendingAttachmentEffect && <span className="im-attachment-effect-indicator" aria-hidden="true">✦</span>}</button>
         {!isGroup && (
           <OptionSheet

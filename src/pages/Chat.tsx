@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
@@ -1534,7 +1534,7 @@ export default function Chat() {
     inputRef.current?.focus();
   }
 
-  function handleMediaEnded(messageId: number) {
+  const handleMediaEnded = useCallback((messageId: number) => {
     const mediaMessages = msgs.filter(message => {
       if (message.deleted_at) return false;
       const body = stripChatBubbleEffect(message.body);
@@ -1546,7 +1546,7 @@ export default function Chat() {
     setAutoPlayMediaId(next.id);
     const nextIndex = msgs.findIndex(message => message.id === next.id);
     if (nextIndex >= 0) virtualizer.scrollToIndex(nextIndex, { align: 'center' });
-  }
+  }, [msgs, virtualizer]);
 
   function messageSummary(message?: ChatMessage | null) {
     if (!message || message.deleted_at) return '消息已撤回';

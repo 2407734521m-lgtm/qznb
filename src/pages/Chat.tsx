@@ -384,6 +384,7 @@ export default function Chat() {
 
   useEffect(() => {
     prevMsgsLenRef.current = 0;
+    messageSwipeRef.current = null;
     setFreshId(null);
     setActiveScreenEffect(null);
   }, [cid]);

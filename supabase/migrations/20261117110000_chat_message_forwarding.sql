@@ -104,10 +104,7 @@ begin
 
   -- Retain ordinary bubble effects such as Invisible Ink, but do not replay
   -- a sender-triggered full-screen animation when the copied message arrives.
-  v_effect_kind := pg_catalog.substring(
-    v_source.body
-    from '^\[\[im-bubble-effect:(slam|loud|gentle|invisible-ink|screen-(echo|spotlight|balloons|confetti|love|lasers|fireworks|celebration))\]\]'
-  );
+  v_effect_kind := pg_catalog.substring(v_source.body, '^\[\[im-bubble-effect:(slam|loud|gentle|invisible-ink|screen-(echo|spotlight|balloons|confetti|love|lasers|fireworks|celebration))\]\]');
 
   if v_effect_kind is not null then
     v_source_content := pg_catalog.regexp_replace(
@@ -132,8 +129,8 @@ begin
       raise exception 'invalid forwarded image';
     end if;
 
-    v_source_path := pg_catalog.substring(v_source_content from 12 for pg_catalog.char_length(v_source_content) - 13);
-    v_new_path := pg_catalog.substring(p_forwarded_media_body from 12 for pg_catalog.char_length(p_forwarded_media_body) - 13);
+    v_source_path := pg_catalog.substr(v_source_content, 12, pg_catalog.char_length(v_source_content) - 13);
+    v_new_path := pg_catalog.substr(p_forwarded_media_body, 12, pg_catalog.char_length(p_forwarded_media_body) - 13);
 
     if v_source_path !~ ('^' || v_source.conversation_id::text || '/[^/]+/[^/]+$')
        or pg_catalog.strpos(v_source_path, '..') > 0
@@ -156,8 +153,8 @@ begin
       raise exception 'invalid forwarded audio';
     end if;
 
-    v_source_path := pg_catalog.substring(v_source_content from 12 for pg_catalog.char_length(v_source_content) - 13);
-    v_new_path := pg_catalog.substring(p_forwarded_media_body from 12 for pg_catalog.char_length(p_forwarded_media_body) - 13);
+    v_source_path := pg_catalog.substr(v_source_content, 12, pg_catalog.char_length(v_source_content) - 13);
+    v_new_path := pg_catalog.substr(p_forwarded_media_body, 12, pg_catalog.char_length(p_forwarded_media_body) - 13);
 
     if v_source_path !~ ('^' || v_source.conversation_id::text || '/[^/]+/[^/]+$')
        or pg_catalog.strpos(v_source_path, '..') > 0
@@ -180,8 +177,8 @@ begin
       raise exception 'invalid forwarded video';
     end if;
 
-    v_source_inner := pg_catalog.substring(v_source_content from 12 for pg_catalog.char_length(v_source_content) - 13);
-    v_new_inner := pg_catalog.substring(p_forwarded_media_body from 12 for pg_catalog.char_length(p_forwarded_media_body) - 13);
+    v_source_inner := pg_catalog.substr(v_source_content, 12, pg_catalog.char_length(v_source_content) - 13);
+    v_new_inner := pg_catalog.substr(p_forwarded_media_body, 12, pg_catalog.char_length(p_forwarded_media_body) - 13);
     v_source_path := pg_catalog.split_part(v_source_inner, '|', 1);
     v_source_poster := nullif(pg_catalog.split_part(v_source_inner, '|', 2), '');
     v_new_path := pg_catalog.split_part(v_new_inner, '|', 1);
@@ -225,8 +222,8 @@ begin
       raise exception 'invalid forwarded file';
     end if;
 
-    v_source_inner := pg_catalog.substring(v_source_content from 11 for pg_catalog.char_length(v_source_content) - 12);
-    v_new_inner := pg_catalog.substring(p_forwarded_media_body from 11 for pg_catalog.char_length(p_forwarded_media_body) - 12);
+    v_source_inner := pg_catalog.substr(v_source_content, 11, pg_catalog.char_length(v_source_content) - 12);
+    v_new_inner := pg_catalog.substr(p_forwarded_media_body, 11, pg_catalog.char_length(p_forwarded_media_body) - 12);
     v_source_path := pg_catalog.split_part(v_source_inner, '|', 1);
     v_source_filename := pg_catalog.split_part(v_source_inner, '|', 2);
     v_source_size := pg_catalog.split_part(v_source_inner, '|', 3);

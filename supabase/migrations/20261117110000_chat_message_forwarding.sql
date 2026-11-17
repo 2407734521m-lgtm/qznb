@@ -187,8 +187,8 @@ begin
     v_new_path := pg_catalog.split_part(v_new_inner, '|', 1);
     v_new_poster := nullif(pg_catalog.split_part(v_new_inner, '|', 2), '');
 
-    if v_source_inner <> v_source_path || case when v_source_poster is not null then '|' || v_source_poster else '' end
-       or v_new_inner <> v_new_path || case when v_new_poster is not null then '|' || v_new_poster else '' end
+    if v_source_inner <> (v_source_path || case when v_source_poster is not null then '|' || v_source_poster else '' end)
+       or v_new_inner <> (v_new_path || case when v_new_poster is not null then '|' || v_new_poster else '' end)
        or (v_source_poster is null and v_new_poster is not null)
        or (v_source_poster is not null and v_new_poster is null)
        or v_source_path !~ ('^' || v_source.conversation_id::text || '/[^/]+/[^/]+$')
@@ -234,8 +234,8 @@ begin
     v_new_filename := pg_catalog.split_part(v_new_inner, '|', 2);
     v_new_size := pg_catalog.split_part(v_new_inner, '|', 3);
 
-    if v_source_inner <> v_source_path || '|' || v_source_filename || '|' || v_source_size
-       or v_new_inner <> v_new_path || '|' || v_new_filename || '|' || v_new_size
+    if v_source_inner <> (v_source_path || '|' || v_source_filename || '|' || v_source_size)
+       or v_new_inner <> (v_new_path || '|' || v_new_filename || '|' || v_new_size)
        or v_source_filename = ''
        or v_source_size !~ '^[0-9]+$'
        or v_new_filename <> v_source_filename
@@ -261,10 +261,11 @@ begin
   end if;
 
   -- Preserve the first/original author when a forwarded copy is forwarded again.
-  v_origin_sender_id := coalesce(v_source.forwarded_from_sender_id, v_source.sender_id);
+  v_origin_sender_id := v_source.forwarded_from_sender_id;
   v_origin_name := nullif(pg_catalog.btrim(v_source.forwarded_from_name), '');
 
   if v_origin_name is null then
+    v_origin_sender_id := v_source.sender_id;
     select p.username::text,
            p.display_name,
            coalesce(privacy.show_name, false)

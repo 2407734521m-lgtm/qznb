@@ -1,5 +1,5 @@
-import { useEffect, useRef } from 'react';
-import type { KeyboardEvent, PointerEvent, ReactNode } from 'react';
+import { Children, cloneElement, isValidElement, useEffect, useRef, useState } from 'react';
+import type { KeyboardEvent, MouseEvent, PointerEvent, ReactElement, ReactNode } from 'react';
 
 // iMessage-style invisible ink: a uniform, fine-grain particle veil covers the whole
 // message area. Dragging a finger removes only the veil beneath the gesture; the
@@ -45,6 +45,15 @@ function isTransparentColor(color: string): boolean {
 }
 
 export default function InvisibleInk({ children }: { children: ReactNode }) {
+  // 「已揭示」是二值状态：点按/回车/空格整块揭示后为 true，5 秒自动盖回后为 false。
+  // 滑动只擦掉局部遮罩，不改这个状态——局部擦除时文字仍大部盖着，读屏不读、链接不点。
+  const [revealed, setRevealed] = useState(false);
+  const revealedRef = useRef(false);
+  // 点按揭示后紧随其到的 click 属于同一手势：不拦它，剧透里的链接/@会被顺带点开。
+  const suppressClickRef = useRef(false);
+  // 上一次 pointer 手势是不是一次干净点按（移动 <10px 且 <400ms）。
+  // 只有干净点按后的 click 才能激活链接/@；滑动擦除后松手产生的 click 不能点开链接。
+  const lastTapRef = useRef(false);
   const rootRef = useRef<HTMLSpanElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fieldRef = useRef<HTMLCanvasElement | null>(null);
@@ -218,6 +227,7 @@ export default function InvisibleInk({ children }: { children: ReactNode }) {
       if (progress >= 1) {
         recoveringRef.current = false;
         mask.getContext('2d')?.clearRect(0, 0, mask.width, mask.height);
+        setCovered();
       }
     } else {
       ctx.drawImage(mask, 0, 0, width, height);
@@ -269,7 +279,8 @@ export default function InvisibleInk({ children }: { children: ReactNode }) {
     );
   };
 
-  const revealAll = () => {
+  // 只擦掉遮罩画布（纯 canvas 操作，jsdom 里 getContext 为空时直接跳过）。
+  const fillMask = () => {
     const mask = maskRef.current;
     if (!mask) return;
     const { width, height, dpr } = sizeRef.current;
@@ -279,7 +290,18 @@ export default function InvisibleInk({ children }: { children: ReactNode }) {
     ctx.globalCompositeOperation = 'source-over';
     ctx.fillStyle = '#fff';
     ctx.fillRect(0, 0, width, height);
+  };
+
+  const setCovered = () => {
+    revealedRef.current = false;
+    setRevealed(false);
+  };
+
+  const revealAll = () => {
+    fillMask();
     recoveringRef.current = false;
+    revealedRef.current = true;
+    setRevealed(true);
     scheduleRecover();
   };
 
@@ -294,6 +316,7 @@ export default function InvisibleInk({ children }: { children: ReactNode }) {
         const mask = maskRef.current;
         mask?.getContext('2d')?.clearRect(0, 0, mask.width, mask.height);
         drawFrame(performance.now());
+        setCovered();
         return;
       }
       recoveringRef.current = true;
@@ -337,6 +360,8 @@ export default function InvisibleInk({ children }: { children: ReactNode }) {
       const mask = maskRef.current;
       mask?.getContext('2d')?.clearRect(0, 0, mask.width, mask.height);
       seedParticles();
+      // 布局变化会清空遮罩画布；已揭示时把遮罩重新擦掉，保持视觉与无障碍状态一致。
+      if (revealedRef.current) fillMask();
       drawFrame(performance.now());
     };
 
@@ -381,10 +406,56 @@ export default function InvisibleInk({ children }: { children: ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // 盖回去时如果焦点正落在剧透里的链接/@上，把焦点收回根节点：
+  // 焦点不能留在 aria-hidden 的子树里，否则读屏会读到盖住的内容。
+  useEffect(() => {
+    if (revealed) return;
+    const root = rootRef.current;
+    if (!root) return;
+    const active = document.activeElement;
+    if (active && active !== root && root.contains(active)) {
+      (active as HTMLElement).blur?.();
+      root.focus({ preventScroll: true });
+    }
+  }, [revealed]);
+
+  // 盖着时把剧透里的可聚焦元素（链接/@）逐个拿出 Tab 顺序，揭示后恢复。
+  // 用 cloneElement 逐层改 tabIndex，不动原元素的 key 与事件处理；
+  // tabIndex={undefined} 时 React 不渲染该属性，等于恢复默认可聚焦。
+  const applyCoverTabState = (nodes: ReactNode, covered: boolean): ReactNode => {
+    type InkChildProps = { children?: ReactNode; tabIndex?: number };
+    return Children.map(nodes, (node) => {
+      if (!isValidElement<InkChildProps>(node)) return node;
+      if (node.type === 'a' || node.type === 'button') {
+        return cloneElement(node, {
+          tabIndex: covered ? -1 : undefined,
+          children: node.props.children
+            ? applyCoverTabState(node.props.children, covered)
+            : node.props.children,
+        });
+      }
+      if (node.props.children) {
+        return cloneElement(node, {
+          children: applyCoverTabState(node.props.children, covered),
+        });
+      }
+      return node;
+    });
+  };
+
   const onPointerDown = (event: PointerEvent<HTMLSpanElement>) => {
     // 右键/中键不启动擦除与揭示：右键开操作菜单时 pointerup 同样会到这里，
     // 不拦的话菜单弹出的同时文字就被揭示了。
     if (event.button !== 0) return;
+    // 上一次点按揭示后如果 click 没到（极少数情况），清掉残留的拦截标记，
+    // 免得下一次点链接被误拦。
+    suppressClickRef.current = false;
+    // 从链接/@上按下去的手势不抓 pointer capture：抓了的话 pointerup 的目标会变成
+    // 外层 span，随后的 click 按「按下/抬起目标的最近公共祖先」算到 span 身上，
+    // 链接/@永远点不开（揭示后第二下也打不开）。从普通文字上按下去才抓 capture，
+    // 保证滑动擦除拖出气泡也能继续跟手。
+    const targetEl = event.target as Element | null;
+    const startedOnInteractive = !!targetEl?.closest?.('a, button');
     pendingScrollRecoverRef.current = false;
     pointerRef.current = {
       x: event.clientX,
@@ -399,10 +470,12 @@ export default function InvisibleInk({ children }: { children: ReactNode }) {
       recoveryTimerRef.current = null;
     }
     recoveringRef.current = false;
-    try {
-      event.currentTarget.setPointerCapture(event.pointerId);
-    } catch {
-      // Pointer capture may be unavailable in embedded webviews; normal pointer events still work.
+    if (!startedOnInteractive) {
+      try {
+        event.currentTarget.setPointerCapture(event.pointerId);
+      } catch {
+        // Pointer capture may be unavailable in embedded webviews; normal pointer events still work.
+      }
     }
     // 鼠标/触控笔按下即进入擦除模式：先在落点擦一个点，快速拖动的第一段才不会丢。
     // 触屏先保持 pending（等分清是横滑擦除还是竖滑滚动），不在落点先擦。
@@ -462,11 +535,48 @@ export default function InvisibleInk({ children }: { children: ReactNode }) {
 
     const moved = Math.hypot(event.clientX - pointer.startX, event.clientY - pointer.startY);
     const elapsed = performance.now() - pointer.startedAt;
-    if (moved < 10 && elapsed < 400) {
+    const isTap = moved < 10 && elapsed < 400;
+    lastTapRef.current = isTap;
+    if (isTap) {
+      if (!revealedRef.current) {
+        // 这一 tap 会揭示；紧随其后的 click 属于同一手势，不拦它就会顺带点开
+        // 剧透里的链接/@——拦截标记由 onClickCapture 消费。
+        suppressClickRef.current = true;
+      }
       revealAll();
     } else {
       scheduleRecover();
     }
+  };
+
+  const onClickCapture = (event: MouseEvent<HTMLSpanElement>) => {
+    // 盖着时点到剧透里的链接/@：只揭示，不跳转、不进对方主页；揭示后再点恢复正常。
+    // 注意点按揭示（pointerup）先于 click 到达：同一手势的 click 必须用
+    // suppressClickRef 拦下来，只看 revealed 状态会放行、当场打开链接。
+    // 另外滑动擦除后松手也可能产生 click：那不是点按，不能点开链接。
+    if (event.clientX === 0 && event.clientY === 0) {
+      // 键盘/读屏触发的 click 没有落点坐标：盖着时只揭示、不放行；揭示后按原样放行。
+      if (!revealedRef.current) {
+        event.preventDefault();
+        event.stopPropagation();
+        revealAll();
+      }
+      return;
+    }
+    const target = document.elementFromPoint(event.clientX, event.clientY);
+    const onInteractive = !!target?.closest?.('a, button');
+    if (!onInteractive) {
+      suppressClickRef.current = false;
+      return;
+    }
+    // 只有「已揭示 + 刚才是一次干净点按 + 不是刚揭示完的那一下」才放行；
+    // 其余情况（还盖着、刚揭示、刚滑过）一律只揭示、不激活链接/@。
+    const cleanTap = lastTapRef.current && !suppressClickRef.current;
+    suppressClickRef.current = false;
+    if (revealedRef.current && cleanTap) return;
+    event.preventDefault();
+    event.stopPropagation();
+    if (!revealedRef.current) revealAll();
   };
 
   const onKeyDown = (event: KeyboardEvent<HTMLSpanElement>) => {
@@ -482,10 +592,11 @@ export default function InvisibleInk({ children }: { children: ReactNode }) {
       className="im-ink"
       role="button"
       tabIndex={0}
-      aria-label="隐形消息，滑动擦除或点按显示内容"
+      aria-label={revealed ? '隐形消息，已显示' : '隐形消息，滑动擦除或点按显示内容'}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
+      onClickCapture={onClickCapture}
       onPointerCancel={(event) => {
         pointerRef.current = null;
         if (event.pointerType === 'touch') {
@@ -513,8 +624,12 @@ export default function InvisibleInk({ children }: { children: ReactNode }) {
         cursor: 'pointer',
       }}
     >
-      <span className="im-ink-content" style={{ position: 'relative', zIndex: 0 }}>
-        {children}
+      <span
+        className="im-ink-content"
+        aria-hidden={!revealed}
+        style={{ position: 'relative', zIndex: 0 }}
+      >
+        {applyCoverTabState(children, !revealed)}
       </span>
       <canvas
         ref={canvasRef}

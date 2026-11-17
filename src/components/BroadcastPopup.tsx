@@ -20,6 +20,14 @@ type Broadcast = {
   poke_at: string | null;
   poke_count: number;
   poke_target_ids: unknown;
+  image_url: string | null;
+  action_url: string | null;
+  action_label: string;
+  visual_style: 'standard' | 'highlight' | 'compact';
+  max_impressions: number;
+  repeat_interval_hours: number;
+  delivery_view_count: number;
+  delivery_last_viewed_at: string | null;
 };
 
 const KICKER: Record<BroadcastKind, string> = {
@@ -85,18 +93,12 @@ export default function BroadcastPopup({ uid }: { uid: string }) {
   const poll = useCallback(async () => {
     if (currentRef.current) return;
     try {
-      const now = new Date().toISOString();
-      const audiences = isInApp() ? ['all', 'app', 'selected'] : ['all', 'web', 'selected'];
-      const { data } = await supabase.from('admin_broadcasts')
-        .select('id, kind, title, body, button_label, audience, created_at, expires_at, options, target_ids, starts_at, poke_at, poke_count, poke_target_ids')
-        .eq('revoked', false)
-        .in('audience', audiences)
-        .or(`expires_at.is.null,expires_at.gt.${now}`)
-        .or(`starts_at.is.null,starts_at.lte.${now}`)
-        .order('created_at', { ascending: false })
-        .limit(10);
-      if (!data?.length) return;
-      const visible = (data as Broadcast[]).filter(d => d.audience !== 'selected' || targetList(d).includes(uid));
+      const platform = isInApp() ? 'mobile' : 'web';
+      const { data, error: loadError } = await supabase.rpc('member_active_broadcasts', {
+        p_client_platform: platform,
+      });
+      if (loadError || !data?.length) return;
+      const visible = data as Broadcast[];
       if (!visible.length) return;
       const ids = visible.map(d => d.id);
       const { data: mine } = await supabase.from('broadcast_receipts')
@@ -106,17 +108,20 @@ export default function BroadcastPopup({ uid }: { uid: string }) {
       const mineMap = new Map((mine ?? []).map(r => [r.broadcast_id, r]));
       const next = visible.find(d => {
         const r = mineMap.get(d.id);
-        if (!r) return true;
-        // 催办重弹：管理员催办时刻晚于本人「暂不参与」回执时，这条重新当作未处理。
-        // 重新提交走既有 upsert 覆盖旧回执；其余已有回执（已读/已投等）仍排除。
-        // 定向催办：poke_target_ids 非空时只重弹给名单内的人（空名单=全部）。
-        // 位置征集里系统未授权（denied）也可被催办重弹，改手动填写也能交。
+        const canRepeat = d.kind === 'popup'
+          && d.delivery_view_count < d.max_impressions
+          && (!d.delivery_last_viewed_at
+            || Date.now() - new Date(d.delivery_last_viewed_at).getTime() >= d.repeat_interval_hours * 60 * 60 * 1000);
+        if (!r) return canRepeat || d.kind !== 'popup';
+        // 普通弹窗按后台配置的展示次数和间隔控制重复显示；
+        // 征集类仍按一次提交/暂不参与的回执规则处理。
         const targets = pokeList(d);
-        return d.kind !== 'refresh'
+        const isPokeDue = d.kind !== 'refresh'
           && (r.status === 'declined' || (d.kind === 'location' && r.status === 'denied'))
           && !!d.poke_at
           && new Date(d.poke_at).getTime() > new Date(r.updated_at).getTime()
           && (targets.length === 0 || targets.includes(uid));
+        return isPokeDue || canRepeat;
       });
       if (next && next.kind === 'refresh') {
         // 远程刷新：不弹窗。先写回执（刷新后靠回执排除），再用 sessionStorage 守卫防循环。
@@ -168,6 +173,15 @@ export default function BroadcastPopup({ uid }: { uid: string }) {
     };
   }, [poll]);
 
+  const currentId = current?.id;
+  useEffect(() => {
+    if (currentId === undefined) return;
+    void supabase.rpc('record_broadcast_delivery_event', {
+      p_broadcast_id: currentId,
+      p_event: 'view',
+    });
+  }, [currentId]);
+
   async function receipt(status: 'seen' | 'declined' | 'shared' | 'denied' | 'voted' | 'submitted' | 'joined' | 'not_joined', region?: string, answer?: string) {
     if (!current) return;
     try {
@@ -183,6 +197,12 @@ export default function BroadcastPopup({ uid }: { uid: string }) {
   }
 
   function close() {
+    if (current) {
+      void supabase.rpc('record_broadcast_delivery_event', {
+        p_broadcast_id: current.id,
+        p_event: 'dismiss',
+      });
+    }
     setCurrent(null);
     setPokeTimes(null);
     setBusy(false);
@@ -193,6 +213,20 @@ export default function BroadcastPopup({ uid }: { uid: string }) {
     setFormText('');
     setAnswered(null);
     window.setTimeout(() => void poll(), 800);
+  }
+
+  async function openPopupAction() {
+    if (!current?.action_url || !current.action_url.startsWith('/') || current.action_url.startsWith('//')) return;
+    const destination = current.action_url;
+    setBusy(true);
+    await supabase.rpc('record_broadcast_delivery_event', {
+      p_broadcast_id: current.id,
+      p_event: 'click',
+    });
+    await receipt('seen');
+    setBusy(false);
+    close();
+    window.location.assign(destination);
   }
 
   async function confirmPopup() {
@@ -277,7 +311,10 @@ export default function BroadcastPopup({ uid }: { uid: string }) {
 
   return (
     <div className="bc-overlay" role="dialog" aria-modal="true" aria-label={title}>
-      <div className="bc-card">
+      <div className={`bc-card bc-card--${current.visual_style || 'standard'}`}>
+        {current.image_url && (
+          <img className="bc-image" src={current.image_url} alt="" loading="lazy" />
+        )}
         <div className="bc-kicker">{KICKER[kind]}</div>
         {pokeTimes !== null && (
           <>
@@ -299,8 +336,13 @@ export default function BroadcastPopup({ uid }: { uid: string }) {
 
         {answered === null && kind === 'popup' && (
           <div className="bc-actions">
-            <button type="button" className="bc-primary" onClick={() => void confirmPopup()}>
-              {current.button_label.trim() || '知道了'}
+            {current.action_url && (
+              <button type="button" className="bc-primary" disabled={busy} onClick={() => void openPopupAction()}>
+                {busy ? '正在打开…' : current.action_label.trim() || '查看详情'}
+              </button>
+            )}
+            <button type="button" className={current.action_url ? 'bc-ghost' : 'bc-primary'} onClick={() => void confirmPopup()}>
+              {current.action_url ? '知道了' : (current.button_label.trim() || '知道了')}
             </button>
           </div>
         )}

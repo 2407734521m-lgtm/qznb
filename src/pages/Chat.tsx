@@ -1278,12 +1278,13 @@ export default function Chat() {
   }
 
   function openMessageEffectsPicker() {
-    if (!text.trim() || uploading || recording) return;
+    if (effectsPickerOpen || !text.trim() || uploading || recording) return;
     setEffectsPickerSelection(null);
     setEffectsPickerOpen(true);
   }
 
-  function startSendButtonPress() {
+  function startSendButtonPress(event: React.PointerEvent<HTMLButtonElement>) {
+    if (event.button !== 0) return;
     sendHoldTriggeredRef.current = false;
     if (sendHoldTimerRef.current !== null) window.clearTimeout(sendHoldTimerRef.current);
     sendHoldTimerRef.current = window.setTimeout(() => {

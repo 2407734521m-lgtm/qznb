@@ -84,8 +84,10 @@ describe('renderRichText', () => {
   it('跨多行选中的剧透仍作为同一个隐形墨水区域渲染', () => {
     const out = html('前||第一行\n第二行||后');
     expect((out.match(/class="im-ink"/g) ?? [])).toHaveLength(1);
-    expect(out).toContain('<span class="im-ink-char">第</span>');
-    expect(out).toContain('<span class="im-ink-char">二</span>');
+    expect(out).toContain('<span class="im-ink-content"');
+    expect(out).toContain('第一行\n第二行');
+    expect(out).toContain('<canvas class="im-ink-canvas" aria-hidden="true"');
+    expect(out).not.toContain('im-ink-char');
     expect(out).not.toContain('||');
   });
 

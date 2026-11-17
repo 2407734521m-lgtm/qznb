@@ -173,6 +173,7 @@ export default function AdminBroadcast({ me, setMsg }: { me: string; setMsg: (s:
       const { data } = await supabase.from('profiles')
         .select('id, display_name, username, role, created_at')
         .eq('joined', true)
+        .in('role', ['member', 'admin'])
         .order('created_at', { ascending: false })
         .limit(1000);
       const profiles = data ?? [];
@@ -256,6 +257,19 @@ export default function AdminBroadcast({ me, setMsg }: { me: string; setMsg: (s:
     setSelectedGroup(String(data.id));
     await alog('broadcast_member_group_create', { group_id: data.id, size: selectedIds.length });
     setMsg(`已保存成员分组「${data.name}」，共 ${selectedIds.length} 人。`);
+  }
+
+  async function deleteSelectedGroup() {
+    const groupId = Number(selectedGroup);
+    const group = groups.find(item => item.id === groupId);
+    if (!groupId || !group) return;
+    if (!(await confirmDialog(`确定删除成员分组「${group.name}」？不会删除成员账号或已发布广播。`, { danger: true, confirmText: '删除分组' }))) return;
+    const { error } = await supabase.from('admin_member_groups').delete().eq('id', groupId);
+    if (error) { setMsg('删除分组失败：' + error.message); return; }
+    setGroups(previous => previous.filter(item => item.id !== groupId));
+    setSelectedGroup('');
+    await alog('broadcast_member_group_delete', { group_id: groupId });
+    setMsg('成员分组已删除。');
   }
 
   const loadTemplates = useCallback(async () => {
@@ -617,6 +631,7 @@ export default function AdminBroadcast({ me, setMsg }: { me: string; setMsg: (s:
               <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginBottom: 8 }}>
                 <OptionSheet value={selectedGroup} options={[{value:'',label:'选择已保存分组'}, ...groups.map(group => ({value:String(group.id),label:group.name}))]} onChange={applySavedGroup} buttonText={groups.find(group=>String(group.id)===selectedGroup)?.name ?? '载入保存的分组'} title="成员分组" buttonStyle={SHEET_BTN} />
                 <button type="button" className="mini ghost" onClick={() => void saveSelectedGroup()}>将当前名单保存为分组</button>
+                <button type="button" className="mini ghost" disabled={!selectedGroup} onClick={() => void deleteSelectedGroup()}>删除所选分组</button>
               </div>
             )}
             {groups.length === 0 && <button type="button" className="mini ghost" style={{ marginBottom: 8 }} onClick={() => void saveSelectedGroup()}>将当前名单保存为分组</button>}

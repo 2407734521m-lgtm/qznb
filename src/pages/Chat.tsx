@@ -427,7 +427,16 @@ export default function Chat() {
 
   useEffect(() => {
     prevMsgsLenRef.current = 0;
-    messageSwipeRef.current = null;
+    const activeTouch = messageTouchRef.current;
+    if (activeTouch) {
+      activeTouch.element.classList.remove('im-swipe-active');
+      activeTouch.element.style.transform = '';
+      activeTouch.element.style.removeProperty('--im-swipe-progress');
+    }
+    messageTouchRef.current = null;
+    if (longPressTimerRef.current !== null) window.clearTimeout(longPressTimerRef.current);
+    longPressTimerRef.current = null;
+    longPressTriggeredRef.current = false;
     setFreshId(null);
     setActiveScreenEffect(null);
     setEffectsPickerOpen(false);

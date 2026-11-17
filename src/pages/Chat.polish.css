@@ -203,6 +203,21 @@
   box-shadow: 0 0 0 4px rgba(230, 86, 111, .10), 0 7px 18px rgba(190, 58, 80, .17) !important;
 }
 
+/* 格式栏 B 按钮（在输入框里面）：基础样式是深色主题的浅字，在白底输入框里
+   几乎看不见，这里按浅色主题改成深 slate 字 + 浅底；点开时变蓝，和钟表按钮
+   点开变青色一个意思。按钮留在 32px（在输入框里，不跟外面 43px 的大按钮走）。 */
+.im-page .im-format-btn {
+  color: #586981 !important;
+  background: rgba(255,255,255,.65) !important;
+  border: 1px solid rgba(255,255,255,.9) !important;
+}
+
+.im-page .im-format-btn--on {
+  color: #2f6fb2 !important;
+  border-color: rgba(47,111,178,.45) !important;
+  background: linear-gradient(145deg, rgba(233,242,252,.98), rgba(214,230,250,.78)) !important;
+}
+
 .im-page .im-input-wrap {
   min-height: 46px;
   padding-left: 15px;
@@ -364,11 +379,17 @@
   background: rgba(255,241,243,.96) !important;
 }
 
+/* 输入框的焦点框不要画在 input 自己身上：外层 .im-input-wrap 的 :focus-within
+   已经给了蓝边 + 光晕，input 再画一圈 outline 会在白底输入框里多出一个蓝框
+   （B 按钮把 input 收窄后尤其明显）。按钮和编辑框的焦点框保留。 */
 .im-page :where(button):focus-visible,
-.im-page .im-input:focus-visible,
 .im-page .im-edit-box:focus-visible {
   outline: 2px solid rgba(105,148,213,.88) !important;
   outline-offset: 3px;
+}
+
+.im-page .im-input:focus-visible {
+  outline: none !important;
 }
 
 @supports (backdrop-filter: url("#qz-chat-liquid-glass-filter")) or (-webkit-backdrop-filter: url("#qz-chat-liquid-glass-filter")) {

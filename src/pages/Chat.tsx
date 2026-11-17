@@ -20,6 +20,7 @@ import DisappearingCustomDialog, { formatDisappearingDuration } from '../compone
 import type { ChatMessage } from '../types/message';
 import { useUserPreferences } from '../lib/userPreferences';
 import { SPRING_SNAPPY } from '../lib/motion';
+import { isSwipeToReply } from '../lib/chatGestures';
 import MessageEffectsPicker from '../components/MessageEffectsPicker';
 import ScreenEffectCanvas from '../components/ScreenEffectCanvas';
 import { getChatBubbleEffect, getScreenEffectKind, stripChatBubbleEffect, withChatBubbleEffect, type ChatBubbleEffect, type ScreenEffectKind } from '../lib/chatMessageEffect';
@@ -319,6 +320,7 @@ export default function Chat() {
   const typingStopTimerRef = useRef<number | null>(null);
   const longPressTimerRef = useRef<number | null>(null);
   const longPressTriggeredRef = useRef(false);
+  const messageSwipeRef = useRef<{ messageId: number; startX: number; startY: number; triggered: boolean } | null>(null);
   const typingReadyRef = useRef(false);
   const typingActiveRef = useRef(false);
   const [replyTarget, setReplyTarget] = useState<ChatMessage | null>(null);
@@ -382,6 +384,7 @@ export default function Chat() {
 
   useEffect(() => {
     prevMsgsLenRef.current = 0;
+    messageSwipeRef.current = null;
     setFreshId(null);
     setActiveScreenEffect(null);
   }, [cid]);
@@ -821,6 +824,41 @@ export default function Chat() {
       openMessageActions(messageId, element);
       longPressTimerRef.current = null;
     }, 480);
+  }
+
+  function startMessageSwipe(messageId: number, event: React.TouchEvent<HTMLDivElement>) {
+    if (event.touches.length !== 1) {
+      messageSwipeRef.current = null;
+      return;
+    }
+    const target = event.target as HTMLElement;
+    if (target.closest('button, a, input, textarea, audio, video, [contenteditable="true"]')) {
+      messageSwipeRef.current = null;
+      return;
+    }
+    const touch = event.touches[0];
+    messageSwipeRef.current = { messageId, startX: touch.clientX, startY: touch.clientY, triggered: false };
+  }
+
+  function moveMessageSwipe(message: ChatMessage, event: React.TouchEvent<HTMLDivElement>) {
+    const swipe = messageSwipeRef.current;
+    if (!swipe || swipe.messageId !== message.id || swipe.triggered || event.touches.length !== 1) return;
+    const touch = event.touches[0];
+    const deltaX = touch.clientX - swipe.startX;
+    const deltaY = Math.abs(touch.clientY - swipe.startY);
+    // Let the feed own vertical movement. Only a deliberate, mostly horizontal left swipe replies.
+    if (deltaY > 24 && deltaY > Math.abs(deltaX)) {
+      messageSwipeRef.current = null;
+      return;
+    }
+    if (isSwipeToReply({ x: swipe.startX, y: swipe.startY }, { x: touch.clientX, y: touch.clientY })) {
+      swipe.triggered = true;
+      beginReply(message);
+    }
+  }
+
+  function endMessageSwipe() {
+    messageSwipeRef.current = null;
   }
 
   function clearMessagePress(event?: React.TouchEvent<HTMLDivElement>) {
@@ -1881,10 +1919,10 @@ export default function Chat() {
                   <div className={'im-bubble ' + (mine ? 'mine' : 'theirs') + (samePrevious ? ' im-bubble-grouped-prev' : '') + (sameNext ? ' im-bubble-grouped-next' : '')}
                     data-im-effect={getChatBubbleEffect(m.body) ?? undefined}
                     data-message-id={m.id}
-                    onTouchStart={event => startMessagePress(m.id, event.currentTarget)}
-                    onTouchMove={clearMessagePress}
-                    onTouchEnd={clearMessagePress}
-                    onTouchCancel={clearMessagePress}
+                    onTouchStart={event => { startMessagePress(m.id, event.currentTarget); startMessageSwipe(m.id, event); }}
+                    onTouchMove={event => { moveMessageSwipe(m, event); clearMessagePress(event); }}
+                    onTouchEnd={event => { endMessageSwipe(); clearMessagePress(event); }}
+                    onTouchCancel={event => { endMessageSwipe(); clearMessagePress(event); }}
                     onContextMenu={event => { event.preventDefault(); openMessageActions(m.id, event.currentTarget); }}>
                     {m.reply_to_id && <div className="im-reply-quote">回复：{messageSummary(parent)}</div>}
                     {editingId === m.id ? (

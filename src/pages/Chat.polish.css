@@ -2434,3 +2434,46 @@
 .im-effects-symbol.effect-screen-love { color:#e24a73; background:#fff0f4; }
 .im-effects-symbol.effect-screen-fireworks,.im-effects-symbol.effect-screen-celebration { color:#aa78d9; background:#f6efff; }
 @media(prefers-reduced-motion:reduce) { .im-effects-tabs button { transition:none !important; } }
+
+
+/* Final iMessage presentation pass: system blue/gray bubbles, connected groups and
+   a tail only on the last message in each sender group. */
+.im-page .im-message-column .im-bubble {
+  position: relative;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  border: 0 !important;
+  box-shadow: 0 1px 1px rgba(18,34,58,.055) !important;
+  isolation: isolate;
+  touch-action: pan-y;
+}
+.im-page .im-bubble.mine {
+  color: #fff !important;
+  background: #0a84ff !important;
+  border-radius: 20px 20px 5px 20px !important;
+}
+.im-page .im-bubble.theirs {
+  color: #17181b !important;
+  background: #e9e9eb !important;
+  border-radius: 20px 20px 20px 5px !important;
+}
+.im-page .im-bubble.mine::after,
+.im-page .im-bubble.theirs::after {
+  display: block !important;
+}
+.im-page .im-bubble.mine::after { background: #0a84ff !important; }
+.im-page .im-bubble.theirs::after { background: #e9e9eb !important; }
+.im-page .im-bubble.im-bubble-grouped-next::after { display: none !important; }
+.im-page .im-bubble.mine.im-bubble-grouped-prev { border-top-right-radius: 6px !important; }
+.im-page .im-bubble.theirs.im-bubble-grouped-prev { border-top-left-radius: 6px !important; }
+.im-page .im-bubble.mine.im-bubble-grouped-next { border-bottom-right-radius: 6px !important; }
+.im-page .im-bubble.theirs.im-bubble-grouped-next { border-bottom-left-radius: 6px !important; }
+.im-page .im-row-grouped-prev { margin-top: 2px !important; }
+.im-page .im-row-grouped-next { margin-bottom: 2px !important; }
+@media (max-width: 600px) {
+  .im-page .im-message-column .im-bubble {
+    padding: 9px 13px;
+    font-size: 14px;
+    line-height: 1.45;
+  }
+}

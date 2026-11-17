@@ -1889,7 +1889,12 @@ export default function Chat() {
         setShowStickerEmojis(false);
         setActionFor(null);
         setTapbackAnchor(null);
-        closeForwardPicker();
+        if (forwardingMessageId !== null && !forwardBusy) {
+          setForwardingMessageId(null);
+          setForwardSearch('');
+          setSelectedForwardIds([]);
+          setForwardProgress('');
+        }
       }
     };
     window.addEventListener('keydown', onKeyDown);

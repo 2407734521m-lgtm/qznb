@@ -157,3 +157,30 @@
   color: #2b2823;
   resize: vertical;
 }
+
+.bc-image {
+  display: block;
+  width: calc(100% + 40px);
+  max-width: none;
+  max-height: 190px;
+  object-fit: cover;
+  margin: -22px -20px 16px;
+  border-radius: 15px 15px 0 0;
+}
+.bc-card--highlight {
+  border-color: rgba(176, 64, 79, 0.32);
+  box-shadow: 0 22px 58px rgba(46, 36, 16, 0.3);
+}
+.bc-card--highlight .bc-kicker { color: #9b3545; }
+.bc-card--highlight .bc-title { font-size: 22px; }
+.bc-card--compact { max-width: 340px; padding: 17px 16px 14px; }
+.bc-card--compact .bc-title { font-size: 18px; }
+.bc-card--compact .bc-body { font-size: 13.5px; line-height: 1.55; }
+.bc-card--compact .bc-image {
+  width: calc(100% + 32px);
+  max-height: 130px;
+  margin: -17px -16px 13px;
+}
+@media (max-width: 480px) {
+  .bc-image { max-height: 160px; }
+}

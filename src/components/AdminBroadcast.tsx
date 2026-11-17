@@ -84,6 +84,12 @@ type BroadcastRow = {
   poke_at: string | null;
   poke_count: number;
   poke_target_ids: unknown;
+  image_url: string | null;
+  action_url: string | null;
+  action_label: string;
+  visual_style: string;
+  max_impressions: number;
+  repeat_interval_hours: number;
 };
 
 type TemplateRow = {
@@ -105,6 +111,15 @@ function pokeTargets(row: BroadcastRow): string[] {
   return row.poke_target_ids.filter((o): o is string => typeof o === 'string');
 }
 type ReceiptRow = { broadcast_id: number; user_id: string; status: string; region: string | null; answer: string | null; updated_at: string };
+type DeliveryRow = {
+  broadcast_id: number; user_id: string; created_at: string; first_viewed_at: string | null;
+  last_viewed_at: string | null; view_count: number; clicked_at: string | null; click_count: number;
+  dismissed_at: string | null;
+};
+type TargetMember = {
+  id: string; label: string; role: string; created_at: string;
+  lastActive: string | null; platform: string | null;
+};
 
 function rowOptions(row: BroadcastRow): string[] {
   if (!Array.isArray(row.options)) return [];
@@ -118,6 +133,12 @@ export default function AdminBroadcast({ me, setMsg }: { me: string; setMsg: (s:
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
   const [buttonLabel, setButtonLabel] = useState('知道了');
+  const [imageUrl, setImageUrl] = useState('');
+  const [actionUrl, setActionUrl] = useState('');
+  const [actionLabel, setActionLabel] = useState('查看详情');
+  const [visualStyle, setVisualStyle] = useState('standard');
+  const [maxImpressions, setMaxImpressions] = useState('1');
+  const [repeatIntervalHours, setRepeatIntervalHours] = useState('24');
   const [optionsText, setOptionsText] = useState('');
   const [busy, setBusy] = useState(false);
   const [list, setList] = useState<BroadcastRow[]>([]);
@@ -126,8 +147,17 @@ export default function AdminBroadcast({ me, setMsg }: { me: string; setMsg: (s:
   const [respondents, setRespondents] = useState<ReceiptRow[]>([]);
   const [names, setNames] = useState<Record<string, string>>({});
   const [loadingDetail, setLoadingDetail] = useState(false);
-  const [members, setMembers] = useState<{ id: string; label: string }[]>([]);
+  const [members, setMembers] = useState<TargetMember[]>([]);
+  const [membersLoaded, setMembersLoaded] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [groups, setGroups] = useState<{ id: number; name: string }[]>([]);
+  const [selectedGroup, setSelectedGroup] = useState('');
+  const [roleFilter, setRoleFilter] = useState('member');
+  const [registrationFilter, setRegistrationFilter] = useState('all');
+  const [activityFilter, setActivityFilter] = useState('all');
+  const [platformFilter, setPlatformFilter] = useState('all');
+  const [deliveryRows, setDeliveryRows] = useState<DeliveryRow[]>([]);
+  const [deliveryStats, setDeliveryStats] = useState<Record<number, { received: number; viewed: number; clicks: number; pending: number }>>({});
   const [whenMode, setWhenMode] = useState('now');
   const [startAt, setStartAt] = useState('');
   const [preview, setPreview] = useState(false);
@@ -136,23 +166,110 @@ export default function AdminBroadcast({ me, setMsg }: { me: string; setMsg: (s:
   const [templates, setTemplates] = useState<TemplateRow[]>([]);
   const [templatePick, setTemplatePick] = useState('');
 
-  // 指定成员受众：第一次切到「指定成员」时拉一次成员名单供勾选。
+  // 受众与分组只读取已加入成员；活动状态来自成员在线心跳时间。
   useEffect(() => {
-    if (audience !== 'selected' || members.length) return;
+    if (audience !== 'selected' || membersLoaded) return;
     void (async () => {
       const { data } = await supabase.from('profiles')
-        .select('id, display_name, username')
-        .order('created_at', { ascending: true })
-        .limit(200);
-      setMembers((data ?? []).map((p: { id: string; display_name: string | null; username: string | null }) => ({
-        id: p.id,
-        label: p.display_name || p.username || '成员',
-      })));
+        .select('id, display_name, username, role, created_at')
+        .eq('joined', true)
+        .in('role', ['member', 'admin'])
+        .order('created_at', { ascending: false })
+        .limit(1000);
+      const profiles = data ?? [];
+      const ids = profiles.map(p => p.id);
+      const { data: presence } = ids.length
+        ? await supabase.from('member_presence').select('profile_id, updated_at, client_platform').in('profile_id', ids)
+        : { data: [] as { profile_id: string; updated_at: string; client_platform: string }[] };
+      const presenceMap = new Map((presence ?? []).map(p => [p.profile_id, p]));
+      setMembers(profiles.map((p: { id: string; display_name: string | null; username: string | null; role: string; created_at: string }) => {
+        const status = presenceMap.get(p.id);
+        return {
+          id: p.id,
+          label: p.display_name || p.username || '成员',
+          role: p.role,
+          created_at: p.created_at,
+          lastActive: status?.updated_at ?? null,
+          platform: status?.client_platform ?? null,
+        };
+      }));
+      setMembersLoaded(true);
     })();
-  }, [audience, members.length]);
+  }, [audience, membersLoaded]);
+
+  useEffect(() => {
+    void (async () => {
+      const { data } = await supabase.from('admin_member_groups')
+        .select('id, name').order('name', { ascending: true });
+      setGroups((data ?? []) as { id: number; name: string }[]);
+    })();
+  }, []);
 
   function toggleTarget(id: string) {
     setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  }
+
+  function applyMemberFilters() {
+    const cutoffRegistration = registrationFilter === 'all' ? 0
+      : Date.now() - Number(registrationFilter) * 24 * 60 * 60 * 1000;
+    const cutoffActivity = Date.now() - 30 * 24 * 60 * 60 * 1000;
+    const ids = members.filter(member => {
+      if (roleFilter !== 'all' && member.role !== roleFilter) return false;
+      if (cutoffRegistration && new Date(member.created_at).getTime() < cutoffRegistration) return false;
+      if (activityFilter === 'active30' && (!member.lastActive || new Date(member.lastActive).getTime() < cutoffActivity)) return false;
+      if (activityFilter === 'inactive30' && member.lastActive && new Date(member.lastActive).getTime() >= cutoffActivity) return false;
+      if (platformFilter !== 'all' && member.platform !== platformFilter) return false;
+      return true;
+    }).map(member => member.id);
+    setSelectedIds(ids);
+    setMsg(`筛选完成：预计触达 ${ids.length} 位成员。发布前可以继续手动调整名单。`);
+  }
+
+  async function applySavedGroup(id: string) {
+    setSelectedGroup(id);
+    if (!id) return;
+    const { data, error } = await supabase.from('admin_member_group_members')
+      .select('user_id').eq('group_id', Number(id));
+    if (error) { setMsg('成员分组读取失败：' + error.message); return; }
+    const eligible = new Set(members.map(member => member.id));
+    const ids = [...new Set((data ?? []).map(row => row.user_id).filter(id => eligible.has(id)))];
+    setSelectedIds(ids);
+    setMsg(`已载入成员分组，当前 ${ids.length} 位成员符合接收条件。`);
+  }
+
+  async function saveSelectedGroup() {
+    if (!selectedIds.length) { setMsg('先选择成员，再保存为分组。'); return; }
+    const name = await promptDialog('给成员分组命名', { placeholder: '例如：近期活跃成员', confirmText: '保存分组' });
+    if (!name?.trim()) return;
+    const { data, error } = await supabase.from('admin_member_groups')
+      .insert({ name: name.trim(), created_by: me })
+      .select('id, name').single();
+    if (error || !data) { setMsg('分组保存失败：' + (error?.message ?? '未返回分组')); return; }
+    const { error: memberError } = await supabase.from('admin_member_group_members').insert(
+      selectedIds.map(user_id => ({ group_id: data.id, user_id }))
+    );
+    if (memberError) {
+      await supabase.from('admin_member_groups').delete().eq('id', data.id);
+      setMsg('分组成员保存失败：' + memberError.message);
+      return;
+    }
+    setGroups(previous => [...previous, data].sort((a, b) => a.name.localeCompare(b.name)));
+    setSelectedGroup(String(data.id));
+    await alog('broadcast_member_group_create', { group_id: data.id, size: selectedIds.length });
+    setMsg(`已保存成员分组「${data.name}」，共 ${selectedIds.length} 人。`);
+  }
+
+  async function deleteSelectedGroup() {
+    const groupId = Number(selectedGroup);
+    const group = groups.find(item => item.id === groupId);
+    if (!groupId || !group) return;
+    if (!(await confirmDialog(`确定删除成员分组「${group.name}」？不会删除成员账号或已发布广播。`, { danger: true, confirmText: '删除分组' }))) return;
+    const { error } = await supabase.from('admin_member_groups').delete().eq('id', groupId);
+    if (error) { setMsg('删除分组失败：' + error.message); return; }
+    setGroups(previous => previous.filter(item => item.id !== groupId));
+    setSelectedGroup('');
+    await alog('broadcast_member_group_delete', { group_id: groupId });
+    setMsg('成员分组已删除。');
   }
 
   const loadTemplates = useCallback(async () => {
@@ -211,7 +328,7 @@ export default function AdminBroadcast({ me, setMsg }: { me: string; setMsg: (s:
 
   const load = useCallback(async () => {
     const { data } = await supabase.from('admin_broadcasts')
-      .select('id, kind, title, body, button_label, audience, created_at, expires_at, revoked, options, target_ids, starts_at, poke_at, poke_count, poke_target_ids')
+      .select('id, kind, title, body, button_label, audience, created_at, expires_at, revoked, options, target_ids, starts_at, poke_at, poke_count, poke_target_ids, image_url, action_url, action_label, visual_style, max_impressions, repeat_interval_hours')
       .order('created_at', { ascending: false })
       .limit(30);
     const rows = (data ?? []) as BroadcastRow[];
@@ -226,8 +343,22 @@ export default function AdminBroadcast({ me, setMsg }: { me: string; setMsg: (s:
         agg[r.broadcast_id][r.status] = (agg[r.broadcast_id][r.status] ?? 0) + 1;
       });
       setCounts(agg);
+      const { data: deliveries } = await supabase.from('broadcast_deliveries')
+        .select('broadcast_id, first_viewed_at, click_count')
+        .in('broadcast_id', rows.map(r => r.id));
+      const stats: Record<number, { received: number; viewed: number; clicks: number; pending: number }> = {};
+      (deliveries ?? []).forEach(d => {
+        const item = stats[d.broadcast_id] ?? { received: 0, viewed: 0, clicks: 0, pending: 0 };
+        item.received += 1;
+        if (d.first_viewed_at) item.viewed += 1;
+        item.clicks += d.click_count ?? 0;
+        stats[d.broadcast_id] = item;
+      });
+      Object.values(stats).forEach(item => { item.pending = item.received - item.viewed; });
+      setDeliveryStats(stats);
     } else {
       setCounts({});
+      setDeliveryStats({});
     }
   }, []);
 
@@ -247,6 +378,8 @@ export default function AdminBroadcast({ me, setMsg }: { me: string; setMsg: (s:
     if (kind === 'form' && !t && !b) { setMsg('填写征集的标题和说明至少填一个'); return; }
     if (kind === 'signup' && !t && !b) { setMsg('报名弹窗的标题和说明至少填一个'); return; }
     if (audience === 'selected' && selectedIds.length === 0) { setMsg('指定成员要先勾选至少一位成员'); return; }
+    if (kind === 'popup' && imageUrl.trim() && !/^https:\/\//i.test(imageUrl.trim())) { setMsg('图片地址必须使用 HTTPS'); return; }
+    if (kind === 'popup' && actionUrl.trim() && (!actionUrl.trim().startsWith('/') || actionUrl.trim().startsWith('//'))) { setMsg('跳转地址只能填写站内路径，例如 /discover'); return; }
     let startsAtIso: string | null = null;
     if (whenMode === 'later') {
       if (!startAt) { setMsg('定时发布要先选发布时间'); return; }
@@ -265,20 +398,27 @@ export default function AdminBroadcast({ me, setMsg }: { me: string; setMsg: (s:
       created_by: me,
       options: voteOpts,
       target_ids: audience === 'selected' ? selectedIds : [],
+      image_url: kind === 'popup' ? (imageUrl.trim() || null) : null,
+      action_url: kind === 'popup' ? (actionUrl.trim() || null) : null,
+      action_label: actionLabel.trim() || '查看详情',
+      visual_style: visualStyle,
+      max_impressions: kind === 'popup' ? Number(maxImpressions) : 1,
+      repeat_interval_hours: Number(repeatIntervalHours),
       starts_at: startsAtIso,
-      expires_at: days > 0 ? new Date(Date.now() + days * 864e5).toISOString() : null,
+      expires_at: days > 0 ? new Date((startsAtIso ? new Date(startsAtIso).getTime() : Date.now()) + days * 864e5).toISOString() : null,
     });
     setBusy(false);
     if (error) { setMsg('发布失败：' + error.message); return; }
     await alog('broadcast_post', { kind, audience, exp_days: days, targets: audience === 'selected' ? selectedIds.length : 0, starts_at: startsAtIso });
     setTitle(''); setBody(''); setButtonLabel('知道了'); setOptionsText(''); setSelectedIds([]); setExp('0');
+    setImageUrl(''); setActionUrl(''); setActionLabel('查看详情'); setVisualStyle('standard'); setMaxImpressions('1'); setRepeatIntervalHours('24');
     setWhenMode('now'); setStartAt('');
     if (startsAtIso) {
-      setMsg(`已预约：${fmtStart(startsAtIso)} 自动发布，成员到点打开网站时就会收到`);
+      setMsg(`已预约：${fmtStart(startsAtIso)} 自动生效，成员到点后在下一轮页面同步时收到`);
     } else {
       setMsg(kind === 'refresh'
         ? '远程刷新已发布，成员打开或停留在网站时会自动刷新到最新页面'
-        : `${KIND_LABEL[kind]}已发布，成员打开网站时就会弹窗`);
+        : `${KIND_LABEL[kind]}已发布，成员下一轮页面同步时会看到`);
     }
     void load();
   }
@@ -332,12 +472,25 @@ export default function AdminBroadcast({ me, setMsg }: { me: string; setMsg: (s:
       .order('updated_at', { ascending: false });
     const recs = (data ?? []) as ReceiptRow[];
     setRespondents(recs);
+    const { data: deliveryData } = await supabase.from('broadcast_deliveries')
+      .select('broadcast_id, user_id, created_at, first_viewed_at, last_viewed_at, view_count, clicked_at, click_count, dismissed_at')
+      .eq('broadcast_id', row.id)
+      .order('created_at', { ascending: true });
+    const currentDeliveries = (deliveryData ?? []) as DeliveryRow[];
+    setDeliveryRows(currentDeliveries);
+    const stat = {
+      received: currentDeliveries.length,
+      viewed: currentDeliveries.filter(item => !!item.first_viewed_at).length,
+      clicks: currentDeliveries.reduce((sum, item) => sum + item.click_count, 0),
+      pending: currentDeliveries.filter(item => !item.first_viewed_at).length,
+    };
+    setDeliveryStats(previous => ({ ...previous, [row.id]: stat }));
     // 展开名单时顺手用最新回执刷新这一条的计数，避免列表计数还是打开页面时的旧数。
     const agg: Record<string, number> = {};
     recs.forEach(r => { agg[r.status] = (agg[r.status] ?? 0) + 1; });
     setCounts(prev => ({ ...prev, [row.id]: agg }));
-    if (recs.length) {
-      const ids = [...new Set(recs.map(r => r.user_id))];
+    if (recs.length || currentDeliveries.length) {
+      const ids = [...new Set([...recs.map(r => r.user_id), ...currentDeliveries.map(r => r.user_id)])];
       const { data: profs } = await supabase.from('profiles').select('id, display_name, username').in('id', ids);
       const map: Record<string, string> = {};
       (profs ?? []).forEach((p: { id: string; display_name: string | null; username: string | null }) => {
@@ -397,9 +550,11 @@ export default function AdminBroadcast({ me, setMsg }: { me: string; setMsg: (s:
   }
 
   function countText(row: BroadcastRow): string {
+    const delivery = deliveryStats[row.id];
+    if (delivery) return `送达 ${delivery.received} · 已查看 ${delivery.viewed} · 待查看 ${delivery.pending} · 点击 ${delivery.clicks}`;
     const c = counts[row.id] ?? {};
     const total = Object.values(c).reduce((a, b) => a + b, 0);
-    if (!total) return '暂无回执';
+    if (!total) return '暂无收件记录';
     const parts = Object.entries(c).map(([s, n]) => `${statusLabel(row.kind, s)} ${n}`);
     return `回执 ${total}：${parts.join(' · ')}`;
   }
@@ -438,7 +593,7 @@ export default function AdminBroadcast({ me, setMsg }: { me: string; setMsg: (s:
       <div style={card}>
         <h3 style={h3}>发布弹窗</h3>
         <p style={mut}>
-          普通弹窗：弹一次，点按钮记已读。位置征集：成员自愿共享城市 / 地区，本人点同意才定位，不存精确位置。投票征集：成员选一项，后台看票数和名单。填写征集：成员填一段文字提交。报名：成员选参加 / 不参加，后台自动统计。远程刷新：不弹窗，成员在网站时会自动刷新到最新页面，专治旧缓存。可见范围可选全部 / 仅软件版 / 仅网页版 / 指定成员（勾谁谁收到），都能设有效期、能撤回，每人只处理一次。还能定时发布（到点自动发出）、发布前先预览效果，发出后可以催办：能只催某个人、或全部还没处理的人，可以催多次，每次弹窗上都会写明是第几次提醒。
+          普通弹窗：可配置图片、站内跳转、重点/紧凑样式、最多展示次数和重复间隔，后台记录查看与点击。位置征集：成员自愿共享城市 / 地区，本人点同意才定位，不存精确位置。投票征集：成员选一项，后台看票数和名单。填写征集：成员填一段文字提交。报名：成员选参加 / 不参加，后台自动统计。远程刷新：不弹窗，成员在网站时会自动刷新到最新页面。可见范围可选全部 / 仅软件版 / 仅网页版 / 指定成员或保存的成员分组，支持有效期和撤回。定时发布按预约时间生效，成员在下一轮页面同步时收到；发布前可以预览，发布后可以催办。
         </p>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '10px 0' }}>
           <OptionSheet value={kind} options={KIND_OPTIONS} onChange={setKind} buttonText={KIND_LABEL[kind]} title="弹窗类型" buttonStyle={SHEET_BTN} />
@@ -463,17 +618,35 @@ export default function AdminBroadcast({ me, setMsg }: { me: string; setMsg: (s:
           </div>
         )}
         {audience === 'selected' && (
-          <div style={{ border: '1px solid rgba(34,49,74,.15)', borderRadius: 10, padding: '8px 10px', marginBottom: 10, background: '#fff' }}>
-            <p style={{ ...mut, margin: '0 0 6px' }}>勾选要收到的成员（已选 {selectedIds.length} 人）：</p>
-            {members.length === 0 && <p style={mut}>正在加载成员名单…</p>}
-            <div style={{ maxHeight: 168, overflowY: 'auto' }}>
-              {members.map(m => (
-                <label key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 2px', fontSize: 13.5, color: '#22314a', cursor: 'pointer' }}>
-                  <input type="checkbox" checked={selectedIds.includes(m.id)} onChange={() => toggleTarget(m.id)} />
-                  {m.label}
-                </label>
-              ))}
+          <div style={{ border: '1px solid rgba(34,49,74,.15)', borderRadius: 10, padding: '10px', marginBottom: 10, background: '#fff' }}>
+            <p style={{ ...mut, margin: '0 0 8px' }}>成员定向触达 · 预计接收 {selectedIds.length} 人</p>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginBottom: 8 }}>
+              <OptionSheet value={roleFilter} options={[{value:'member',label:'普通成员'},{value:'admin',label:'管理员'},{value:'all',label:'所有角色'}]} onChange={setRoleFilter} buttonText={roleFilter==='all'?'所有角色':roleFilter==='admin'?'管理员':'普通成员'} title="成员角色" buttonStyle={SHEET_BTN} />
+              <OptionSheet value={registrationFilter} options={[{value:'all',label:'不限注册时间'},{value:'7',label:'近 7 天注册'},{value:'30',label:'近 30 天注册'},{value:'90',label:'近 90 天注册'}]} onChange={setRegistrationFilter} buttonText={registrationFilter==='all'?'不限注册时间':`近 ${registrationFilter} 天注册`} title="注册时间" buttonStyle={SHEET_BTN} />
+              <OptionSheet value={activityFilter} options={[{value:'all',label:'不限活跃状态'},{value:'active30',label:'近 30 天活跃'},{value:'inactive30',label:'超过 30 天未活跃'}]} onChange={setActivityFilter} buttonText={activityFilter==='all'?'不限活跃状态':activityFilter==='active30'?'近 30 天活跃':'超过 30 天未活跃'} title="活跃情况" buttonStyle={SHEET_BTN} />
+              <OptionSheet value={platformFilter} options={[{value:'all',label:'全部端'},{value:'web',label:'网页版'},{value:'mobile',label:'软件版'}]} onChange={setPlatformFilter} buttonText={platformFilter==='all'?'全部端':platformFilter==='mobile'?'软件版':'网页版'} title="使用端" buttonStyle={SHEET_BTN} />
+              <button type="button" className="mini ghost" onClick={applyMemberFilters}>按条件筛选</button>
             </div>
+            {groups.length > 0 && (
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginBottom: 8 }}>
+                <OptionSheet value={selectedGroup} options={[{value:'',label:'选择已保存分组'}, ...groups.map(group => ({value:String(group.id),label:group.name}))]} onChange={applySavedGroup} buttonText={groups.find(group=>String(group.id)===selectedGroup)?.name ?? '载入保存的分组'} title="成员分组" buttonStyle={SHEET_BTN} />
+                <button type="button" className="mini ghost" onClick={() => void saveSelectedGroup()}>将当前名单保存为分组</button>
+                <button type="button" className="mini ghost" disabled={!selectedGroup} onClick={() => void deleteSelectedGroup()}>删除所选分组</button>
+              </div>
+            )}
+            {groups.length === 0 && <button type="button" className="mini ghost" style={{ marginBottom: 8 }} onClick={() => void saveSelectedGroup()}>将当前名单保存为分组</button>}
+            {members.length === 0
+              ? <p style={mut}>正在加载成员名单…</p>
+              : <div style={{ maxHeight: 190, overflowY: 'auto', borderTop: '1px solid rgba(34,49,74,.08)' }}>
+                {members.map(m => (
+                  <label key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 2px', fontSize: 13.5, color: '#22314a', cursor: 'pointer' }}>
+                    <input type="checkbox" checked={selectedIds.includes(m.id)} onChange={() => toggleTarget(m.id)} />
+                    <span style={{ flex: 1 }}>{m.label}</span>
+                    <span style={{ color: '#817669', fontSize: 11.5 }}>{m.role==='super_admin'?'超级管理员':m.role==='admin'?'管理员':'成员'}</span>
+                  </label>
+                ))}
+              </div>}
+            <p style={{ ...mut, margin: '7px 0 0' }}>可按角色、注册日期、近 30 天活跃状态与使用端筛选；也可保存或载入手动分组，再逐个调整收件人。</p>
           </div>
         )}
         {kind === 'refresh' && (
@@ -488,8 +661,22 @@ export default function AdminBroadcast({ me, setMsg }: { me: string; setMsg: (s:
             placeholder={'投票选项，一行一个，至少 2 个、最多 6 个\n例如：\n周六\n周日'} />
         )}
         {kind === 'popup' && (
-          <input style={{ ...inputStyle, marginTop: 8 }} value={buttonLabel} onChange={e => setButtonLabel(e.target.value)} maxLength={12}
-            placeholder="按钮文字（默认「知道了」）" />
+          <div style={{ display: 'grid', gap: 8, marginTop: 8 }}>
+            <input style={inputStyle} value={buttonLabel} onChange={e => setButtonLabel(e.target.value)} maxLength={12}
+              placeholder="关闭按钮文字（默认「知道了」）" />
+            <input style={inputStyle} value={imageUrl} onChange={e => setImageUrl(e.target.value)} maxLength={1000}
+              placeholder="图片 HTTPS 地址（可选）" />
+            <input style={inputStyle} value={actionUrl} onChange={e => setActionUrl(e.target.value)} maxLength={300}
+              placeholder="按钮跳转站内路径，例如 /discover（可选）" />
+            {actionUrl.trim() && <input style={inputStyle} value={actionLabel} onChange={e => setActionLabel(e.target.value)} maxLength={20}
+              placeholder="跳转按钮文字，例如 查看详情" />}
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <OptionSheet value={visualStyle} options={[{value:'standard',label:'标准样式'},{value:'highlight',label:'重点提醒'},{value:'compact',label:'紧凑样式'}]} onChange={setVisualStyle} buttonText={visualStyle==='highlight'?'重点提醒':visualStyle==='compact'?'紧凑样式':'标准样式'} title="弹窗样式" buttonStyle={SHEET_BTN} />
+              <OptionSheet value={maxImpressions} options={[{value:'1',label:'显示 1 次'},{value:'2',label:'最多 2 次'},{value:'3',label:'最多 3 次'},{value:'5',label:'最多 5 次'}]} onChange={setMaxImpressions} buttonText={`最多显示 ${maxImpressions} 次`} title="展示次数" buttonStyle={SHEET_BTN} />
+              <OptionSheet value={repeatIntervalHours} options={[{value:'1',label:'间隔 1 小时'},{value:'6',label:'间隔 6 小时'},{value:'12',label:'间隔 12 小时'},{value:'24',label:'间隔 24 小时'},{value:'72',label:'间隔 3 天'}]} onChange={setRepeatIntervalHours} buttonText={`间隔 ${repeatIntervalHours} 小时`} title="重复间隔" buttonStyle={SHEET_BTN} />
+            </div>
+            <p style={{ ...mut, margin: 0 }}>展示次数从成员实际看到弹窗时计数；跳转仅支持站内路径。默认只展示一次。</p>
+          </div>
         )}
         <div style={rowBtn}>
           <button type="button" className="pri" style={{ width: 'auto', padding: '10px 22px' }} disabled={busy} onClick={() => void publish()}>
@@ -527,6 +714,8 @@ export default function AdminBroadcast({ me, setMsg }: { me: string; setMsg: (s:
             {row.audience === 'selected' && rowTargets(row).length > 0 && (
               <p style={{ ...mut, margin: '4px 0 0' }}>指定 {rowTargets(row).length} 位成员</p>
             )}
+            {row.image_url && <p style={{ ...mut, margin: '4px 0 0' }}>含图片 · {row.visual_style} 样式</p>}
+            {row.action_url && <p style={{ ...mut, margin: '4px 0 0' }}>按钮跳转：{row.action_url}</p>}
             <p style={{ ...mut, margin: '4px 0 0' }}>{countText(row)}</p>
             {row.poke_count > 0 && (
               <p style={{ ...mut, margin: '4px 0 0' }}>已催办 {row.poke_count} 次{pokeTargets(row).length > 0 ? ` · 上次只催了 ${pokeTargets(row).length} 人` : ''}</p>
@@ -587,6 +776,22 @@ export default function AdminBroadcast({ me, setMsg }: { me: string; setMsg: (s:
                     <button type="button" className="mini ghost" onClick={() => void poke(row, pokeableIds(row))}>催办全部未交的人</button>
                   </div>
                 )}
+                {!loadingDetail && deliveryRows.length > 0 && (
+                  <div style={{ margin: '0 0 10px', padding: '8px 10px', border: '1px solid rgba(34,49,74,.12)', borderRadius: 10, background: '#fff' }}>
+                    <strong style={{ display: 'block', fontSize: 13, marginBottom: 6 }}>触达记录 · {deliveryRows.length} 位收件人</strong>
+                    {deliveryRows.map(item => (
+                      <div key={item.user_id} style={{ display: 'flex', gap: 7, flexWrap: 'wrap', alignItems: 'center', padding: '5px 0', borderTop: '1px dashed rgba(34,49,74,.08)', fontSize: 12.5 }}>
+                        <strong>{names[item.user_id] ?? '成员'}</strong>
+                        <span>{item.first_viewed_at ? '已查看' : '尚未查看'}</span>
+                        <span>{item.view_count} 次展示</span>
+                        <span>{item.click_count} 次点击</span>
+                        <span style={{ color: '#817669' }}>送达 {timeAgo(item.created_at)}</span>
+                        {item.first_viewed_at && <span style={{ color: '#817669' }}>查看 {timeAgo(item.first_viewed_at)}</span>}
+                        {item.clicked_at && <span style={{ color: '#817669' }}>点击 {timeAgo(item.clicked_at)}</span>}
+                      </div>
+                    ))}
+                  </div>
+                )}
                 {!loadingDetail && respondents.map(r => (
                   <div key={r.user_id} style={{ display: 'flex', gap: 8, padding: '6px 0', borderTop: '1px dashed rgba(34,49,74,.08)', fontSize: 13, color: '#22314a', flexWrap: 'wrap', alignItems: 'center' }}>
                     <strong>{names[r.user_id] ?? '成员'}</strong>
@@ -612,16 +817,16 @@ export default function AdminBroadcast({ me, setMsg }: { me: string; setMsg: (s:
 
       {preview && (
         <div className="bc-overlay" role="dialog" aria-modal="true" style={{ zIndex: 1400 }} onClick={() => setPreview(false)}>
-          <div className="bc-card" onClick={e => e.stopPropagation()}>
+          <div className={`bc-card bc-card--${visualStyle}`} onClick={e => e.stopPropagation()}>
+            {kind === 'popup' && imageUrl.trim() && <img className="bc-image" src={imageUrl} alt="" />}
             <div className="bc-kicker">{PREVIEW_KICKER[kind] ?? '管理员广播'}</div>
             <h2 className="bc-title">{title.trim() || PREVIEW_DEFAULT_TITLE[kind] || '管理员消息'}</h2>
             {body.trim() && <p className="bc-body">{body}</p>}
 
             {kind === 'popup' && (
               <div className="bc-actions">
-                <button type="button" className="bc-primary" onClick={() => setPreview(false)}>
-                  {buttonLabel.trim() || '知道了'}
-                </button>
+                {actionUrl.trim() && <button type="button" className="bc-primary" onClick={() => setPreview(false)}>{actionLabel.trim() || '查看详情'}</button>}
+                <button type="button" className={actionUrl.trim() ? 'bc-ghost' : 'bc-primary'} onClick={() => setPreview(false)}>{actionUrl.trim() ? '知道了' : (buttonLabel.trim() || '知道了')}</button>
               </div>
             )}
 

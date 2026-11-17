@@ -75,6 +75,12 @@ export default function AdminMemberPopupComposer({ recipient, createdBy, onClose
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
   const [buttonLabel, setButtonLabel] = useState('知道了');
+  const [imageUrl, setImageUrl] = useState('');
+  const [actionUrl, setActionUrl] = useState('');
+  const [actionLabel, setActionLabel] = useState('查看详情');
+  const [visualStyle, setVisualStyle] = useState<'standard' | 'highlight' | 'compact'>('standard');
+  const [maxImpressions, setMaxImpressions] = useState<'1' | '2' | '3' | '5'>('1');
+  const [repeatIntervalHours, setRepeatIntervalHours] = useState<'1' | '6' | '12' | '24' | '72'>('24');
   const [expiryDays, setExpiryDays] = useState<'1' | '3' | '7' | '0'>('7');
   const [busy, setBusy] = useState(false);
 
@@ -87,6 +93,14 @@ export default function AdminMemberPopupComposer({ recipient, createdBy, onClose
     }
     if (!createdBy) {
       setMsg('管理员会话已失效，请重新登录。');
+      return;
+    }
+    if (imageUrl.trim() && !/^https:\/\//i.test(imageUrl.trim())) {
+      setMsg('图片地址必须使用 HTTPS。');
+      return;
+    }
+    if (actionUrl.trim() && (!actionUrl.trim().startsWith('/') || actionUrl.trim().startsWith('//'))) {
+      setMsg('跳转地址只能填写站内路径，例如 /discover。');
       return;
     }
 
@@ -121,6 +135,12 @@ export default function AdminMemberPopupComposer({ recipient, createdBy, onClose
       created_by: createdBy,
       options: [],
       target_ids: [recipient.id],
+      image_url: imageUrl.trim() || null,
+      action_url: actionUrl.trim() || null,
+      action_label: actionLabel.trim() || '查看详情',
+      visual_style: visualStyle,
+      max_impressions: Number(maxImpressions),
+      repeat_interval_hours: Number(repeatIntervalHours),
       starts_at: null,
       expires_at: days > 0 ? new Date(Date.now() + days * 864e5).toISOString() : null,
     });
@@ -194,6 +214,51 @@ export default function AdminMemberPopupComposer({ recipient, createdBy, onClose
             placeholder="知道了"
             style={field}
           />
+          <label htmlFor="admin-member-popup-image" style={muted}>图片 HTTPS 地址（可选）</label>
+          <input id="admin-member-popup-image" value={imageUrl} maxLength={1000}
+            onChange={event => setImageUrl(event.target.value)} placeholder="https://…" style={field} />
+          <label htmlFor="admin-member-popup-link" style={muted}>站内跳转路径（可选）</label>
+          <input id="admin-member-popup-link" value={actionUrl} maxLength={300}
+            onChange={event => setActionUrl(event.target.value)} placeholder="/discover" style={field} />
+          {actionUrl.trim() && <>
+            <label htmlFor="admin-member-popup-action-label" style={muted}>跳转按钮文字</label>
+            <input id="admin-member-popup-action-label" value={actionLabel} maxLength={20}
+              onChange={event => setActionLabel(event.target.value)} style={field} />
+          </>}
+          <div>
+            <div style={muted}>弹窗样式</div>
+            <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap', marginTop: 7 }}>
+              {([{value:'standard',label:'标准'},{value:'highlight',label:'重点提醒'},{value:'compact',label:'紧凑'}] as const).map(option => (
+                <button key={option.value} type="button" aria-pressed={visualStyle===option.value}
+                  onClick={() => setVisualStyle(option.value)} style={{ ...button, fontWeight: visualStyle===option.value ? 700 : 500,
+                    borderColor: visualStyle===option.value ? 'var(--admin-accent, #6479d8)' : 'var(--admin-border, #dbe2ea)' }}>
+                  {option.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <div style={muted}>最多展示次数</div>
+            <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap', marginTop: 7 }}>
+              {(['1','2','3','5'] as const).map(value => (
+                <button key={value} type="button" aria-pressed={maxImpressions===value}
+                  onClick={() => setMaxImpressions(value)} style={{ ...button, fontWeight: maxImpressions===value ? 700 : 500 }}>
+                  {value} 次
+                </button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <div style={muted}>重复展示间隔</div>
+            <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap', marginTop: 7 }}>
+              {([{value:'1',label:'1 小时'},{value:'6',label:'6 小时'},{value:'12',label:'12 小时'},{value:'24',label:'24 小时'},{value:'72',label:'3 天'}] as const).map(option => (
+                <button key={option.value} type="button" aria-pressed={repeatIntervalHours===option.value}
+                  onClick={() => setRepeatIntervalHours(option.value)} style={{ ...button, fontWeight: repeatIntervalHours===option.value ? 700 : 500 }}>
+                  {option.label}
+                </button>
+              ))}
+            </div>
+          </div>
           <div>
             <div style={muted}>弹窗有效期</div>
             <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap', marginTop: 7 }}>

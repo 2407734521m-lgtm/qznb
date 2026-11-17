@@ -27,13 +27,12 @@ import AdminApprovalCenter from '../components/AdminApprovalCenter';
 import AdminLoveWall from '../components/AdminLoveWall';
 import AdminReviewCenter from '../components/AdminReviewCenter';
 import AdminAppCenter from '../components/AdminAppCenter';
-import AdminNotificationCenter from '../components/AdminNotificationCenter';
 import AdminAuthorizedRequests from '../components/AdminAuthorizedRequests';
 import AdminSongWall from '../components/AdminSongWall';
 import AdminMusicDownloads from '../components/AdminMusicDownloads';
 import AdminBulkEmail from '../components/AdminBulkEmail';
-import AdminBroadcast from '../components/AdminBroadcast';
 import AdminAccountManagement from '../components/AdminAccountManagement';
+import AdminCommunicationCenter from '../components/AdminCommunicationCenter';
 import AdminSecondaryPassword from '../components/AdminSecondaryPassword';
 import Logs from './admin/Logs';
 import InviteTab from './admin/InviteTab';
@@ -61,12 +60,11 @@ const TABS_ALL: [string, string, boolean][] = [
   ['moderate', '审核', false],
   ['reviewCenter', '审核中心', false],
   ['loveWall', '表白墙', false],
-  ['notifications', '通知中心', false],
   ['authorizedRequests', '开盒队列', false],
   ['songWall', '歌声墙', false],
   ['musicDownloads', '音乐下载记录', false],
   ['bulkEmail', '批量邮件', false],
-  ['broadcast', '弹窗广播', false],
+  ['communication', '沟通中心', false],
   ['feedback', '反馈', false],
   ['game', '段位', false],
   ['board', '公告', false],
@@ -249,12 +247,12 @@ export default function Admin({ verifiedRole }: { verifiedRole: 'admin' | 'super
           {tab === 'moderate' && <Moderate setMsg={setMsg} />}
           {tab === 'reviewCenter' && <AdminReviewCenter me={me} isSuper={isSuper} setMsg={setMsg} go={switchTab} />}
           {tab === 'loveWall' && <AdminLoveWall setMsg={setMsg} />}
-          {tab === 'notifications' && <AdminNotificationCenter setMsg={setMsg} />}
+          
           {tab === 'authorizedRequests' && <AdminAuthorizedRequests setMsg={setMsg} />}
           {tab === 'songWall' && <AdminSongWall setMsg={setMsg} />}
           {tab === 'musicDownloads' && <AdminMusicDownloads setMsg={setMsg} />}
           {tab === 'bulkEmail' && <AdminBulkEmail setMsg={setMsg} />}
-          {tab === 'broadcast' && <AdminBroadcast me={me} setMsg={setMsg} />}
+          {tab === 'communication' && <AdminCommunicationCenter me={me} isSuper={isSuper} setMsg={setMsg} />}
           {tab === 'board' && <BoardMgr me={me} setMsg={setMsg} />}
           {tab === 'events' && <EventTab me={me} setMsg={setMsg} />}
           {tab === 'logs' && <Logs />}

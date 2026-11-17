@@ -15,11 +15,18 @@ type Broadcast = {
   created_at: string;
   expires_at: string | null;
   options: unknown;
-  target_ids: unknown;
   starts_at: string | null;
   poke_at: string | null;
   poke_count: number;
-  poke_target_ids: unknown;
+  image_url: string | null;
+  action_url: string | null;
+  action_label: string;
+  visual_style: 'standard' | 'highlight' | 'compact';
+  max_impressions: number;
+  repeat_interval_hours: number;
+  delivery_view_count: number;
+  delivery_last_viewed_at: string | null;
+  poke_target_matches: boolean;
 };
 
 const KICKER: Record<BroadcastKind, string> = {
@@ -39,15 +46,6 @@ const DEFAULT_TITLE: Record<BroadcastKind, string> = {
   refresh: '远程刷新',
 };
 
-function targetList(b: Broadcast): string[] {
-  if (!Array.isArray(b.target_ids)) return [];
-  return b.target_ids.filter((o): o is string => typeof o === 'string');
-}
-
-function pokeList(b: Broadcast): string[] {
-  if (!Array.isArray(b.poke_target_ids)) return [];
-  return b.poke_target_ids.filter((o): o is string => typeof o === 'string');
-}
 
 function voteOptions(b: Broadcast): string[] {
   if (!Array.isArray(b.options)) return [];
@@ -55,14 +53,14 @@ function voteOptions(b: Broadcast): string[] {
 }
 
 // 管理员广播弹窗：后台「弹窗广播」发布后，成员端在主站 Shell 里轮询领取。
-// - popup：普通弹窗，点按钮记「已读」，每人只弹一次。
+// - popup：普通弹窗，展示次数和重复间隔由管理员配置，并记录查看、点击与关闭事件。
 // - location：位置征集，必须本人点同意才走定位；只保存城市/地区文字
 //   （坐标在定位工具里先粗化到约 10 公里），拒绝/未授权也会回执给后台统计。
 // - vote：投票征集，选项来自 options，选一项提交，回执 status=voted、answer=选项原文。
 // - form：填写征集，填文字提交，回执 status=submitted、answer=填写内容。
 // - signup：报名征集，参加回执 joined、不参加回执 not_joined。
 // - refresh：远程刷新，不弹窗，领到后先写回执再刷新页面（sessionStorage 防重复刷新）。
-// - 受众 selected：只给 target_ids 里的指定成员，其他人客户端直接跳过。
+// - 受众 selected：服务端只返回当前账号的收件记录，成员端不会接收到其他人的定向广播。
 // - 定时发布：starts_at 在未来的广播对成员不可见，到点自动生效。
 // - 催办重弹：管理员点「催办」后（poke_at 晚于本人 declined 回执），之前选了
 //   「暂不参与」的人会被重新弹一次；其他已有回执的人仍不重复弹。refresh 不参与。
@@ -85,18 +83,12 @@ export default function BroadcastPopup({ uid }: { uid: string }) {
   const poll = useCallback(async () => {
     if (currentRef.current) return;
     try {
-      const now = new Date().toISOString();
-      const audiences = isInApp() ? ['all', 'app', 'selected'] : ['all', 'web', 'selected'];
-      const { data } = await supabase.from('admin_broadcasts')
-        .select('id, kind, title, body, button_label, audience, created_at, expires_at, options, target_ids, starts_at, poke_at, poke_count, poke_target_ids')
-        .eq('revoked', false)
-        .in('audience', audiences)
-        .or(`expires_at.is.null,expires_at.gt.${now}`)
-        .or(`starts_at.is.null,starts_at.lte.${now}`)
-        .order('created_at', { ascending: false })
-        .limit(10);
-      if (!data?.length) return;
-      const visible = (data as Broadcast[]).filter(d => d.audience !== 'selected' || targetList(d).includes(uid));
+      const platform = isInApp() ? 'mobile' : 'web';
+      const { data, error: loadError } = await supabase.rpc('member_active_broadcasts', {
+        p_client_platform: platform,
+      });
+      if (loadError || !data?.length) return;
+      const visible = data as Broadcast[];
       if (!visible.length) return;
       const ids = visible.map(d => d.id);
       const { data: mine } = await supabase.from('broadcast_receipts')
@@ -106,17 +98,19 @@ export default function BroadcastPopup({ uid }: { uid: string }) {
       const mineMap = new Map((mine ?? []).map(r => [r.broadcast_id, r]));
       const next = visible.find(d => {
         const r = mineMap.get(d.id);
-        if (!r) return true;
-        // 催办重弹：管理员催办时刻晚于本人「暂不参与」回执时，这条重新当作未处理。
-        // 重新提交走既有 upsert 覆盖旧回执；其余已有回执（已读/已投等）仍排除。
-        // 定向催办：poke_target_ids 非空时只重弹给名单内的人（空名单=全部）。
-        // 位置征集里系统未授权（denied）也可被催办重弹，改手动填写也能交。
-        const targets = pokeList(d);
-        return d.kind !== 'refresh'
+        const canRepeat = d.kind === 'popup'
+          && d.delivery_view_count < d.max_impressions
+          && (!d.delivery_last_viewed_at
+            || Date.now() - new Date(d.delivery_last_viewed_at).getTime() >= d.repeat_interval_hours * 60 * 60 * 1000);
+        if (!r) return canRepeat || d.kind !== 'popup';
+        // 普通弹窗按后台配置的展示次数和间隔控制重复显示；
+        // 征集类仍按一次提交/暂不参与的回执规则处理。
+        const isPokeDue = d.kind !== 'refresh'
           && (r.status === 'declined' || (d.kind === 'location' && r.status === 'denied'))
           && !!d.poke_at
           && new Date(d.poke_at).getTime() > new Date(r.updated_at).getTime()
-          && (targets.length === 0 || targets.includes(uid));
+          && d.poke_target_matches;
+        return isPokeDue || canRepeat;
       });
       if (next && next.kind === 'refresh') {
         // 远程刷新：不弹窗。先写回执（刷新后靠回执排除），再用 sessionStorage 守卫防循环。
@@ -168,6 +162,15 @@ export default function BroadcastPopup({ uid }: { uid: string }) {
     };
   }, [poll]);
 
+  const currentId = current?.id;
+  useEffect(() => {
+    if (currentId === undefined) return;
+    void supabase.rpc('record_broadcast_delivery_event', {
+      p_broadcast_id: currentId,
+      p_event: 'view',
+    });
+  }, [currentId]);
+
   async function receipt(status: 'seen' | 'declined' | 'shared' | 'denied' | 'voted' | 'submitted' | 'joined' | 'not_joined', region?: string, answer?: string) {
     if (!current) return;
     try {
@@ -183,6 +186,12 @@ export default function BroadcastPopup({ uid }: { uid: string }) {
   }
 
   function close() {
+    if (current) {
+      void supabase.rpc('record_broadcast_delivery_event', {
+        p_broadcast_id: current.id,
+        p_event: 'dismiss',
+      });
+    }
     setCurrent(null);
     setPokeTimes(null);
     setBusy(false);
@@ -193,6 +202,20 @@ export default function BroadcastPopup({ uid }: { uid: string }) {
     setFormText('');
     setAnswered(null);
     window.setTimeout(() => void poll(), 800);
+  }
+
+  async function openPopupAction() {
+    if (!current?.action_url || !current.action_url.startsWith('/') || current.action_url.startsWith('//')) return;
+    const destination = current.action_url;
+    setBusy(true);
+    await supabase.rpc('record_broadcast_delivery_event', {
+      p_broadcast_id: current.id,
+      p_event: 'click',
+    });
+    await receipt('seen');
+    setBusy(false);
+    close();
+    window.location.assign(destination);
   }
 
   async function confirmPopup() {
@@ -277,7 +300,10 @@ export default function BroadcastPopup({ uid }: { uid: string }) {
 
   return (
     <div className="bc-overlay" role="dialog" aria-modal="true" aria-label={title}>
-      <div className="bc-card">
+      <div className={`bc-card bc-card--${current.visual_style || 'standard'}`}>
+        {current.image_url && (
+          <img className="bc-image" src={current.image_url} alt="" loading="lazy" />
+        )}
         <div className="bc-kicker">{KICKER[kind]}</div>
         {pokeTimes !== null && (
           <>
@@ -299,8 +325,13 @@ export default function BroadcastPopup({ uid }: { uid: string }) {
 
         {answered === null && kind === 'popup' && (
           <div className="bc-actions">
-            <button type="button" className="bc-primary" onClick={() => void confirmPopup()}>
-              {current.button_label.trim() || '知道了'}
+            {current.action_url && (
+              <button type="button" className="bc-primary" disabled={busy} onClick={() => void openPopupAction()}>
+                {busy ? '正在打开…' : current.action_label.trim() || '查看详情'}
+              </button>
+            )}
+            <button type="button" className={current.action_url ? 'bc-ghost' : 'bc-primary'} onClick={() => void confirmPopup()}>
+              {current.action_url ? '知道了' : (current.button_label.trim() || '知道了')}
             </button>
           </div>
         )}

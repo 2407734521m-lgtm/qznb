@@ -87,6 +87,8 @@ export type Database = {
       }
       admin_broadcasts: {
         Row: {
+          action_label: string
+          action_url: string | null
           audience: string
           body: string
           button_label: string
@@ -94,17 +96,23 @@ export type Database = {
           created_by: string | null
           expires_at: string | null
           id: number
+          image_url: string | null
           kind: string
+          max_impressions: number
           options: Json
           poke_at: string | null
           poke_count: number
           poke_target_ids: Json
+          repeat_interval_hours: number
           revoked: boolean
           starts_at: string | null
           target_ids: Json
           title: string
+          visual_style: string
         }
         Insert: {
+          action_label?: string
+          action_url?: string | null
           audience?: string
           body?: string
           button_label?: string
@@ -112,17 +120,23 @@ export type Database = {
           created_by?: string | null
           expires_at?: string | null
           id?: never
+          image_url?: string | null
           kind: string
+          max_impressions?: number
           options?: Json
           poke_at?: string | null
           poke_count?: number
           poke_target_ids?: Json
+          repeat_interval_hours?: number
           revoked?: boolean
           starts_at?: string | null
           target_ids?: Json
           title?: string
+          visual_style?: string
         }
         Update: {
+          action_label?: string
+          action_url?: string | null
           audience?: string
           body?: string
           button_label?: string
@@ -130,15 +144,19 @@ export type Database = {
           created_by?: string | null
           expires_at?: string | null
           id?: never
+          image_url?: string | null
           kind?: string
+          max_impressions?: number
           options?: Json
           poke_at?: string | null
           poke_count?: number
           poke_target_ids?: Json
+          repeat_interval_hours?: number
           revoked?: boolean
           starts_at?: string | null
           target_ids?: Json
           title?: string
+          visual_style?: string
         }
         Relationships: [
           {
@@ -148,6 +166,23 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
+        ]
+      }
+      admin_member_groups: {
+        Row: { created_at: string; created_by: string | null; description: string; id: number; name: string; updated_at: string }
+        Insert: { created_at?: string; created_by?: string | null; description?: string; id?: number; name: string; updated_at?: string }
+        Update: { created_at?: string; created_by?: string | null; description?: string; id?: number; name?: string; updated_at?: string }
+        Relationships: [
+          { foreignKeyName: "admin_member_groups_created_by_fkey"; columns: ["created_by"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] },
+        ]
+      }
+      admin_member_group_members: {
+        Row: { added_at: string; group_id: number; user_id: string }
+        Insert: { added_at?: string; group_id: number; user_id: string }
+        Update: { added_at?: string; group_id?: number; user_id?: string }
+        Relationships: [
+          { foreignKeyName: "admin_member_group_members_group_id_fkey"; columns: ["group_id"]; isOneToOne: false; referencedRelation: "admin_member_groups"; referencedColumns: ["id"] },
+          { foreignKeyName: "admin_member_group_members_user_id_fkey"; columns: ["user_id"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] },
         ]
       }
       admin_email_campaign_recipients: {
@@ -685,6 +720,15 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
+        ]
+      }
+      broadcast_deliveries: {
+        Row: { broadcast_id: number; clicked_at: string | null; click_count: number; created_at: string; dismissed_at: string | null; first_viewed_at: string | null; last_viewed_at: string | null; user_id: string; view_count: number }
+        Insert: { broadcast_id: number; clicked_at?: string | null; click_count?: number; created_at?: string; dismissed_at?: string | null; first_viewed_at?: string | null; last_viewed_at?: string | null; user_id: string; view_count?: number }
+        Update: { broadcast_id?: number; clicked_at?: string | null; click_count?: number; created_at?: string; dismissed_at?: string | null; first_viewed_at?: string | null; last_viewed_at?: string | null; user_id?: string; view_count?: number }
+        Relationships: [
+          { foreignKeyName: "broadcast_deliveries_broadcast_id_fkey"; columns: ["broadcast_id"]; isOneToOne: false; referencedRelation: "admin_broadcasts"; referencedColumns: ["id"] },
+          { foreignKeyName: "broadcast_deliveries_user_id_fkey"; columns: ["user_id"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] },
         ]
       }
       broadcast_receipts: {
@@ -3049,6 +3093,16 @@ export type Database = {
         Args: { p_conversation_id?: number }
         Returns: number
       }
+      member_active_broadcasts: {
+        Args: { p_client_platform: string }
+        Returns: {
+          action_label: string; action_url: string | null; audience: string; body: string; button_label: string;
+          created_at: string; delivery_last_viewed_at: string | null; delivery_view_count: number;
+          expires_at: string | null; id: number; image_url: string | null; kind: string; max_impressions: number;
+          options: Json; poke_at: string | null; poke_count: number; poke_target_matches: boolean;
+          repeat_interval_hours: number; starts_at: string | null; title: string; visual_style: string;
+        }[]
+      }
       member_detail: {
         Args: { uid: string }
         Returns: {
@@ -3190,6 +3244,10 @@ export type Database = {
       record_auth_login_failure: {
         Args: { p_failure_class: string; p_method: string }
         Returns: undefined
+      }
+      record_broadcast_delivery_event: {
+        Args: { p_broadcast_id: number; p_event: string }
+        Returns: boolean
       }
       register_love_wall_media_upload: {
         Args: { p_path: string }

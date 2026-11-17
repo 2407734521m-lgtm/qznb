@@ -314,7 +314,7 @@ export default function AdminBroadcast({ me, setMsg }: { me: string; setMsg: (s:
 
   const load = useCallback(async () => {
     const { data } = await supabase.from('admin_broadcasts')
-      .select('id, kind, title, body, button_label, audience, created_at, expires_at, revoked, options, target_ids, starts_at, poke_at, poke_count, poke_target_ids')
+      .select('id, kind, title, body, button_label, audience, created_at, expires_at, revoked, options, target_ids, starts_at, poke_at, poke_count, poke_target_ids, image_url, action_url, action_label, visual_style, max_impressions, repeat_interval_hours')
       .order('created_at', { ascending: false })
       .limit(30);
     const rows = (data ?? []) as BroadcastRow[];
@@ -364,6 +364,8 @@ export default function AdminBroadcast({ me, setMsg }: { me: string; setMsg: (s:
     if (kind === 'form' && !t && !b) { setMsg('填写征集的标题和说明至少填一个'); return; }
     if (kind === 'signup' && !t && !b) { setMsg('报名弹窗的标题和说明至少填一个'); return; }
     if (audience === 'selected' && selectedIds.length === 0) { setMsg('指定成员要先勾选至少一位成员'); return; }
+    if (kind === 'popup' && imageUrl.trim() && !/^https:\/\//i.test(imageUrl.trim())) { setMsg('图片地址必须使用 HTTPS'); return; }
+    if (kind === 'popup' && actionUrl.trim() && (!actionUrl.trim().startsWith('/') || actionUrl.trim().startsWith('//'))) { setMsg('跳转地址只能填写站内路径，例如 /discover'); return; }
     let startsAtIso: string | null = null;
     if (whenMode === 'later') {
       if (!startAt) { setMsg('定时发布要先选发布时间'); return; }
@@ -602,17 +604,34 @@ export default function AdminBroadcast({ me, setMsg }: { me: string; setMsg: (s:
           </div>
         )}
         {audience === 'selected' && (
-          <div style={{ border: '1px solid rgba(34,49,74,.15)', borderRadius: 10, padding: '8px 10px', marginBottom: 10, background: '#fff' }}>
-            <p style={{ ...mut, margin: '0 0 6px' }}>勾选要收到的成员（已选 {selectedIds.length} 人）：</p>
-            {members.length === 0 && <p style={mut}>正在加载成员名单…</p>}
-            <div style={{ maxHeight: 168, overflowY: 'auto' }}>
-              {members.map(m => (
-                <label key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 2px', fontSize: 13.5, color: '#22314a', cursor: 'pointer' }}>
-                  <input type="checkbox" checked={selectedIds.includes(m.id)} onChange={() => toggleTarget(m.id)} />
-                  {m.label}
-                </label>
-              ))}
+          <div style={{ border: '1px solid rgba(34,49,74,.15)', borderRadius: 10, padding: '10px', marginBottom: 10, background: '#fff' }}>
+            <p style={{ ...mut, margin: '0 0 8px' }}>成员定向触达 · 预计接收 {selectedIds.length} 人</p>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginBottom: 8 }}>
+              <OptionSheet value={roleFilter} options={[{value:'member',label:'普通成员'},{value:'admin',label:'管理员'},{value:'all',label:'所有角色'}]} onChange={setRoleFilter} buttonText={roleFilter==='all'?'所有角色':roleFilter==='admin'?'管理员':'普通成员'} title="成员角色" buttonStyle={SHEET_BTN} />
+              <OptionSheet value={registrationFilter} options={[{value:'all',label:'不限注册时间'},{value:'7',label:'近 7 天注册'},{value:'30',label:'近 30 天注册'},{value:'90',label:'近 90 天注册'}]} onChange={setRegistrationFilter} buttonText={registrationFilter==='all'?'不限注册时间':`近 ${registrationFilter} 天注册`} title="注册时间" buttonStyle={SHEET_BTN} />
+              <OptionSheet value={activityFilter} options={[{value:'all',label:'不限活跃状态'},{value:'active30',label:'近 30 天活跃'},{value:'inactive30',label:'超过 30 天未活跃'}]} onChange={setActivityFilter} buttonText={activityFilter==='all'?'不限活跃状态':activityFilter==='active30'?'近 30 天活跃':'超过 30 天未活跃'} title="活跃情况" buttonStyle={SHEET_BTN} />
+              <OptionSheet value={platformFilter} options={[{value:'all',label:'全部端'},{value:'web',label:'网页版'},{value:'mobile',label:'软件版'}]} onChange={setPlatformFilter} buttonText={platformFilter==='all'?'全部端':platformFilter==='mobile'?'软件版':'网页版'} title="使用端" buttonStyle={SHEET_BTN} />
+              <button type="button" className="mini ghost" onClick={applyMemberFilters}>按条件筛选</button>
             </div>
+            {groups.length > 0 && (
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginBottom: 8 }}>
+                <OptionSheet value={selectedGroup} options={[{value:'',label:'选择已保存分组'}, ...groups.map(group => ({value:String(group.id),label:group.name}))]} onChange={applySavedGroup} buttonText={groups.find(group=>String(group.id)===selectedGroup)?.name ?? '载入保存的分组'} title="成员分组" buttonStyle={SHEET_BTN} />
+                <button type="button" className="mini ghost" onClick={() => void saveSelectedGroup()}>将当前名单保存为分组</button>
+              </div>
+            )}
+            {groups.length === 0 && <button type="button" className="mini ghost" style={{ marginBottom: 8 }} onClick={() => void saveSelectedGroup()}>将当前名单保存为分组</button>}
+            {members.length === 0
+              ? <p style={mut}>正在加载成员名单…</p>
+              : <div style={{ maxHeight: 190, overflowY: 'auto', borderTop: '1px solid rgba(34,49,74,.08)' }}>
+                {members.map(m => (
+                  <label key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 2px', fontSize: 13.5, color: '#22314a', cursor: 'pointer' }}>
+                    <input type="checkbox" checked={selectedIds.includes(m.id)} onChange={() => toggleTarget(m.id)} />
+                    <span style={{ flex: 1 }}>{m.label}</span>
+                    <span style={{ color: '#817669', fontSize: 11.5 }}>{m.role==='super_admin'?'超级管理员':m.role==='admin'?'管理员':'成员'}</span>
+                  </label>
+                ))}
+              </div>}
+            <p style={{ ...mut, margin: '7px 0 0' }}>可按角色、注册日期、近 30 天活跃状态与使用端筛选；也可保存或载入手动分组，再逐个调整收件人。</p>
           </div>
         )}
         {kind === 'refresh' && (
@@ -627,8 +646,22 @@ export default function AdminBroadcast({ me, setMsg }: { me: string; setMsg: (s:
             placeholder={'投票选项，一行一个，至少 2 个、最多 6 个\n例如：\n周六\n周日'} />
         )}
         {kind === 'popup' && (
-          <input style={{ ...inputStyle, marginTop: 8 }} value={buttonLabel} onChange={e => setButtonLabel(e.target.value)} maxLength={12}
-            placeholder="按钮文字（默认「知道了」）" />
+          <div style={{ display: 'grid', gap: 8, marginTop: 8 }}>
+            <input style={inputStyle} value={buttonLabel} onChange={e => setButtonLabel(e.target.value)} maxLength={12}
+              placeholder="关闭按钮文字（默认「知道了」）" />
+            <input style={inputStyle} value={imageUrl} onChange={e => setImageUrl(e.target.value)} maxLength={1000}
+              placeholder="图片 HTTPS 地址（可选）" />
+            <input style={inputStyle} value={actionUrl} onChange={e => setActionUrl(e.target.value)} maxLength={300}
+              placeholder="按钮跳转站内路径，例如 /discover（可选）" />
+            {actionUrl.trim() && <input style={inputStyle} value={actionLabel} onChange={e => setActionLabel(e.target.value)} maxLength={20}
+              placeholder="跳转按钮文字，例如 查看详情" />}
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <OptionSheet value={visualStyle} options={[{value:'standard',label:'标准样式'},{value:'highlight',label:'重点提醒'},{value:'compact',label:'紧凑样式'}]} onChange={setVisualStyle} buttonText={visualStyle==='highlight'?'重点提醒':visualStyle==='compact'?'紧凑样式':'标准样式'} title="弹窗样式" buttonStyle={SHEET_BTN} />
+              <OptionSheet value={maxImpressions} options={[{value:'1',label:'显示 1 次'},{value:'2',label:'最多 2 次'},{value:'3',label:'最多 3 次'},{value:'5',label:'最多 5 次'}]} onChange={setMaxImpressions} buttonText={`最多显示 ${maxImpressions} 次`} title="展示次数" buttonStyle={SHEET_BTN} />
+              <OptionSheet value={repeatIntervalHours} options={[{value:'1',label:'间隔 1 小时'},{value:'6',label:'间隔 6 小时'},{value:'12',label:'间隔 12 小时'},{value:'24',label:'间隔 24 小时'},{value:'72',label:'间隔 3 天'}]} onChange={setRepeatIntervalHours} buttonText={`间隔 ${repeatIntervalHours} 小时`} title="重复间隔" buttonStyle={SHEET_BTN} />
+            </div>
+            <p style={{ ...mut, margin: 0 }}>展示次数从成员实际看到弹窗时计数；跳转仅支持站内路径。默认只展示一次。</p>
+          </div>
         )}
         <div style={rowBtn}>
           <button type="button" className="pri" style={{ width: 'auto', padding: '10px 22px' }} disabled={busy} onClick={() => void publish()}>
@@ -769,16 +802,16 @@ export default function AdminBroadcast({ me, setMsg }: { me: string; setMsg: (s:
 
       {preview && (
         <div className="bc-overlay" role="dialog" aria-modal="true" style={{ zIndex: 1400 }} onClick={() => setPreview(false)}>
-          <div className="bc-card" onClick={e => e.stopPropagation()}>
+          <div className={`bc-card bc-card--${visualStyle}`} onClick={e => e.stopPropagation()}>
+            {kind === 'popup' && imageUrl.trim() && <img className="bc-image" src={imageUrl} alt="" />}
             <div className="bc-kicker">{PREVIEW_KICKER[kind] ?? '管理员广播'}</div>
             <h2 className="bc-title">{title.trim() || PREVIEW_DEFAULT_TITLE[kind] || '管理员消息'}</h2>
             {body.trim() && <p className="bc-body">{body}</p>}
 
             {kind === 'popup' && (
               <div className="bc-actions">
-                <button type="button" className="bc-primary" onClick={() => setPreview(false)}>
-                  {buttonLabel.trim() || '知道了'}
-                </button>
+                {actionUrl.trim() && <button type="button" className="bc-primary" onClick={() => setPreview(false)}>{actionLabel.trim() || '查看详情'}</button>}
+                <button type="button" className={actionUrl.trim() ? 'bc-ghost' : 'bc-primary'} onClick={() => setPreview(false)}>{actionUrl.trim() ? '知道了' : (buttonLabel.trim() || '知道了')}</button>
               </div>
             )}
 

@@ -72,6 +72,20 @@ describe('renderRichText', () => {
     expect(out).toContain('千');
   });
 
+  it('跨多行选中的剧透仍作为同一个隐形墨水区域渲染', () => {
+    const out = html('前||第一行\\n第二行||后');
+    expect((out.match(/class="im-ink"/g) ?? [])).toHaveLength(1);
+    expect(out).toContain('第一行');
+    expect(out).toContain('第二行');
+    expect(out).not.toContain('||');
+  });
+
+  it('代码片段里的 || 不应被当成剧透', () => {
+    const out = html('`||代码里的标记||`');
+    expect(out).toContain('<code class="im-code">||代码里的标记||</code>');
+    expect(out).not.toContain('im-ink');
+  });
+
   it('行首 > 是引用块，普通文字原样', () => {
     const out = html('> 引用的一行\n第二行');
     expect(out).toContain('<blockquote class="im-quote">引用的一行</blockquote>');

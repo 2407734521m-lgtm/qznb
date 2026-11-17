@@ -975,18 +975,21 @@ export type Database = {
           created_at: string
           disappearing_mode: string
           disappearing_seconds: number | null
+          disappearing_started_at: string | null
           id: number
         }
         Insert: {
           created_at?: string
           disappearing_mode?: string
           disappearing_seconds?: number | null
+          disappearing_started_at?: string | null
           id?: number
         }
         Update: {
           created_at?: string
           disappearing_mode?: string
           disappearing_seconds?: number | null
+          disappearing_started_at?: string | null
           id?: number
         }
         Relationships: []

@@ -2307,3 +2307,109 @@
 @media (prefers-reduced-motion: reduce) {
   .im-page .im-format-chip { transition: none !important; }
 }
+
+
+/* iMessage-inspired message effects. The persisted marker is data-only; effects animate
+   only on fresh arrivals and optimistic sends, never when old history is scrolled into view. */
+.im-page .im-vrow-fresh .im-bubble[data-im-effect="slam"],
+.im-page .im-row-out .im-bubble[data-im-effect="slam"] {
+  transform-origin: 92% 100%;
+  animation: im-send-effect-slam 640ms cubic-bezier(.2,.88,.22,1) both;
+}
+.im-page .im-vrow-fresh .im-bubble[data-im-effect="loud"],
+.im-page .im-row-out .im-bubble[data-im-effect="loud"] {
+  transform-origin: 90% 90%;
+  animation: im-send-effect-loud 1230ms cubic-bezier(.2,.8,.25,1) both;
+}
+.im-page .im-vrow-fresh .im-bubble[data-im-effect="gentle"],
+.im-page .im-row-out .im-bubble[data-im-effect="gentle"] {
+  transform-origin: 92% 100%;
+  animation: im-send-effect-gentle 520ms cubic-bezier(.2,.85,.25,1) both;
+}
+.im-page .im-vrow-fresh .im-bubble[data-im-effect="invisible-ink"],
+.im-page .im-row-out .im-bubble[data-im-effect="invisible-ink"] {
+  animation: im-send-effect-ink 360ms ease-out both;
+}
+@keyframes im-send-effect-slam {
+  0% { opacity: .1; transform: translate3d(0,-26px,0) scale(1.26); filter: blur(1px); }
+  52% { opacity: 1; transform: translate3d(0,2px,0) scale(.94); filter: blur(0); }
+  72% { transform: translate3d(0,-2px,0) scale(1.025); }
+  100% { transform: translate3d(0,0,0) scale(1); }
+}
+@keyframes im-send-effect-loud {
+  0% { transform: scale(1); }
+  24% { transform: scale(1.17); }
+  46% { transform: scale(1.12); }
+  68% { transform: scale(1.16); }
+  100% { transform: scale(1); }
+}
+@keyframes im-send-effect-gentle {
+  0% { opacity: .4; transform: scale(.78); filter: blur(2px); }
+  72% { opacity: 1; transform: scale(1.035); filter: blur(0); }
+  100% { opacity: 1; transform: scale(1); }
+}
+@keyframes im-send-effect-ink {
+  0% { opacity: .25; transform: scale(.94); filter: blur(2px); }
+  100% { opacity: 1; transform: scale(1); filter: blur(0); }
+}
+
+/* The existing swipe-to-reveal ink stays in place; this sharpens its particle layer. */
+.im-page .im-ink { cursor: crosshair; user-select: none; -webkit-user-select: none; }
+.im-page .im-ink-canvas { filter: drop-shadow(0 0 1.2px rgba(255,255,255,.48)); }
+.im-page .im-bubble.theirs .im-ink-canvas { filter: brightness(.72) saturate(.78) drop-shadow(0 0 1px rgba(54,72,98,.28)); }
+
+/* Compact glass effect picker, opened by long-pressing the send arrow. */
+.im-effects-backdrop {
+  position: fixed; inset: 0; z-index: 180; display: grid; place-items: center; padding: 18px;
+  background: rgba(22,28,38,.28); -webkit-backdrop-filter: blur(13px) saturate(1.12);
+  backdrop-filter: blur(13px) saturate(1.12); animation: im-effects-backdrop-in .18s ease-out both;
+}
+.im-effects-panel {
+  width: min(100%, 430px); max-height: min(84dvh, 690px); overflow: auto; padding: 22px;
+  border: 1px solid rgba(255,255,255,.9); border-radius: 28px; color: #18202b;
+  background: rgba(250,251,253,.96); box-shadow: 0 24px 72px rgba(18,31,48,.22), inset 0 1px 0 #fff;
+  animation: im-effects-panel-in .24s cubic-bezier(.2,.85,.25,1) both;
+}
+.im-effects-header { display:flex; align-items:center; justify-content:space-between; gap:14px; margin-bottom:14px; }
+.im-effects-eyebrow { color:#9aa3af; font-size:9px; font-weight:750; letter-spacing:.16em; }
+.im-effects-header h2 { margin:4px 0 0; color:#18202b; font-size:21px; font-weight:720; letter-spacing:-.035em; }
+.im-effects-close { width:34px; height:34px; border:0; border-radius:50%; color:#66717e; background:#edf0f3; font-size:23px; line-height:1; }
+.im-effects-preview-area { min-height:128px; display:flex; flex-direction:column; align-items:flex-end; justify-content:flex-end; gap:9px; padding:14px; border:1px solid #edf0f3; border-radius:20px; background:linear-gradient(145deg,#f7f9fb,#edf1f5); }
+.im-effects-preview-label { align-self:flex-start; color:#99a2ad; font-size:10px; }
+.im-effects-preview-bubble { max-width:86%; min-width:80px; padding:11px 15px; border-radius:19px 19px 5px 19px; color:#fff; background:#0a84ff; font-size:14px; line-height:1.45; overflow-wrap:anywhere; box-shadow:0 4px 12px rgba(10,132,255,.15); }
+.im-effects-preview-bubble.effect-slam { animation:im-send-effect-slam 640ms both; }
+.im-effects-preview-bubble.effect-loud { animation:im-send-effect-loud 1230ms both; }
+.im-effects-preview-bubble.effect-gentle { animation:im-send-effect-gentle 520ms both; }
+.im-effects-preview-bubble.is-ink { background:#167cf1; }
+.im-effects-ink-sample { letter-spacing:2px; color:rgba(255,255,255,.92); text-shadow:0 0 5px rgba(255,255,255,.6); }
+.im-effects-preview-hint { color:#8792a0; font-size:10px; }
+.im-effects-options { display:flex; flex-direction:column; gap:7px; margin-top:14px; }
+.im-effects-option { display:flex; min-height:62px; align-items:center; gap:12px; padding:9px 12px; border:1px solid #e8ecf1; border-radius:17px; color:#293342; background:rgba(255,255,255,.86); text-align:left; transition:background .18s ease,border-color .18s ease,transform .18s ease; }
+.im-effects-option:active { transform:scale(.985); }
+.im-effects-option.selected { border-color:rgba(10,132,255,.44); background:#f0f7ff; box-shadow:inset 0 0 0 1px rgba(10,132,255,.08); }
+.im-effects-symbol { display:grid; width:38px; height:38px; flex:none; place-items:center; border-radius:13px; color:#0a84ff; background:#edf5ff; font-size:22px; font-weight:750; }
+.im-effects-symbol.effect-slam { animation:im-send-effect-slam 640ms infinite; }
+.im-effects-symbol.effect-loud { animation:im-send-effect-loud 1230ms infinite; }
+.im-effects-symbol.effect-gentle { animation:im-send-effect-gentle 1300ms infinite; }
+.im-effects-symbol.effect-invisible-ink { background:#dceaff; }
+.im-effects-option-copy { display:flex; min-width:0; flex:1; flex-direction:column; gap:3px; }
+.im-effects-option-copy strong { color:#1d2733; font-size:13px; font-weight:680; }
+.im-effects-option-copy small { color:#8792a0; font-size:10px; line-height:1.35; }
+.im-effects-check { width:20px; color:#0a84ff; font-size:17px; font-weight:700; text-align:center; }
+.im-effects-footer { display:flex; gap:9px; margin-top:15px; }
+.im-effects-footer button { min-height:44px; flex:1; border:0; border-radius:14px; font-size:13px; font-weight:650; }
+.im-effects-cancel { color:#576272; background:#eef1f4; }
+.im-effects-send { color:#fff; background:#0a84ff; box-shadow:0 5px 14px rgba(10,132,255,.2); }
+.im-effects-send:disabled { opacity:.38; box-shadow:none; }
+@keyframes im-effects-backdrop-in { from { opacity:0; } to { opacity:1; } }
+@keyframes im-effects-panel-in { from { opacity:0; transform:translateY(14px) scale(.985); } to { opacity:1; transform:translateY(0) scale(1); } }
+@media(max-width:600px) {
+  .im-effects-backdrop { align-items:end; padding:0; }
+  .im-effects-panel { width:100%; max-height:86dvh; padding:20px 18px calc(18px + env(safe-area-inset-bottom)); border-radius:28px 28px 0 0; }
+}
+@media(prefers-reduced-motion:reduce) {
+  .im-effects-backdrop,.im-effects-panel,.im-effects-symbol,.im-effects-preview-bubble,
+  .im-page .im-vrow-fresh .im-bubble[data-im-effect],
+  .im-page .im-row-out .im-bubble[data-im-effect] { animation:none !important; }
+  .im-effects-option { transition:none !important; }
+}

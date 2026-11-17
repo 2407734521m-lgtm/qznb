@@ -111,7 +111,7 @@ function MessageContent({ body, onMentionClick }: { body: string; onMentionClick
   const bubbleEffect = getChatBubbleEffect(body);
   const contentBody = stripChatBubbleEffect(body);
   const renderBody = bubbleEffect === 'invisible-ink' && !contentBody.startsWith('[[')
-    ? `||${contentBody.replace(/\\|\\|/g, '')}||`
+    ? `||${unwrapRichText(contentBody)}||`
     : contentBody;
   const imagePath = contentBody.startsWith('[[im-image:') && contentBody.endsWith(']]') ? contentBody.slice(11, -2) : null;
   const audioPath = contentBody.startsWith('[[im-audio:') && contentBody.endsWith(']]') ? contentBody.slice(11, -2) : null;
@@ -1310,7 +1310,11 @@ export default function Chat() {
     const b = text.trim();
     if (!b || !cid) return;
     notifyTyping('');
-    queueOutgoing(b.slice(0, 2000), effect);
+    const effectLength = effect ? withChatBubbleEffect('', effect).length : 0;
+    const maxBodyLength = 2000 - effectLength;
+    const normalizedBody = Array.from(b).slice(0, maxBodyLength).join('');
+    if (normalizedBody.length < b.length) toast.info('这条特效消息已按 2000 字符上限截短。');
+    queueOutgoing(normalizedBody, effect);
     setText('');
     setComposerSel(null);
     composerSelRef.current = null;
@@ -1338,7 +1342,10 @@ export default function Chat() {
     const body = editingText.trim();
     if (!body) { setError('消息内容不能为空。'); return; }
     const original = msgs.find(message => message.id === messageId);
-    const preservedBody = withChatBubbleEffect(body.slice(0, 2000), original ? getChatBubbleEffect(original.body) : null);
+    const originalEffect = original ? getChatBubbleEffect(original.body) : null;
+    const effectLength = originalEffect ? withChatBubbleEffect('', originalEffect).length : 0;
+    const normalizedBody = Array.from(body).slice(0, 2000 - effectLength).join('');
+    const preservedBody = withChatBubbleEffect(normalizedBody, originalEffect);
     const { error: editError } = await supabase.rpc('edit_chat_message', {
       p_message_id: messageId, p_body: preservedBody,
     });

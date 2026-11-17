@@ -2369,7 +2369,7 @@ export default function Chat() {
                     onTouchEnd={event => finishMessagePress(event, m, true)}
                     onTouchCancel={event => finishMessagePress(event, m, false)}
                     onContextMenu={event => { event.preventDefault(); openMessageActions(m.id, event.currentTarget); }}>
-                    {m.forwarded_from_name && <div className="im-forwarded-label"><span aria-hidden="true">↗</span> 转发自 {m.forwarded_from_name}</div>}
+                    {!deleted && m.forwarded_from_name && <div className="im-forwarded-label"><span aria-hidden="true">↗</span> 转发自 {m.forwarded_from_name}</div>}
                     {m.reply_to_id && <div className="im-reply-quote">回复：{messageSummary(parent)}</div>}
                     {editingId === m.id ? (
                       <>
@@ -2454,7 +2454,7 @@ export default function Chat() {
           {tapbackAnchor && <div className={'im-tapback-preview ' + (mine ? 'mine' : 'theirs')}
             style={{ left: tapbackAnchor.left, top: tapbackAnchor.top, width: tapbackAnchor.width }}
             aria-hidden="true">
-            {message.forwarded_from_name && <div className="im-forwarded-label"><span aria-hidden="true">↗</span> 转发自 {message.forwarded_from_name}</div>}
+            {!deleted && message.forwarded_from_name && <div className="im-forwarded-label"><span aria-hidden="true">↗</span> 转发自 {message.forwarded_from_name}</div>}
             {message.reply_to_id && <div className="im-reply-quote">回复：{messageSummary(msgsById.get(message.reply_to_id))}</div>}
             <MessageContent onMentionClick={openMemberPage} body={deleted ? (mine ? '你撤回了一条消息' : '对方撤回了一条消息') : message.body} />
             <div className="im-tapback-preview-time">{new Date(message.created_at).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}</div>

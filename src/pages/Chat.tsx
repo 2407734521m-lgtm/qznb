@@ -21,7 +21,8 @@ import type { ChatMessage } from '../types/message';
 import { useUserPreferences } from '../lib/userPreferences';
 import { SPRING_SNAPPY } from '../lib/motion';
 import { isSwipeToReply } from '../lib/chatGestures';
-import { isChatVideoFile, resolveChatVideoMime } from '../lib/chatMedia';
+import { createChatVideoPoster, isChatVideoFile, resolveChatVideoMime } from '../lib/chatMedia';
+import ChatAudioWaveform from '../components/ChatAudioWaveform';
 import MessageEffectsPicker from '../components/MessageEffectsPicker';
 import ScreenEffectCanvas from '../components/ScreenEffectCanvas';
 import { getChatBubbleEffect, getScreenEffectKind, stripChatBubbleEffect, withChatBubbleEffect, type ChatBubbleEffect, type ScreenEffectKind } from '../lib/chatMessageEffect';
@@ -116,7 +117,7 @@ function fileExtLabel(name: string) {
 // 隐形消息与富文本：||...|| 仍走自写 InvisibleInk（iMessage 式滑动擦除），
 // 其余格式（**加粗** __斜体__ `等宽` ~~删除线~~ ++下划线++ [链接](url) @[提及](id)
 // 行首 "> " 引用）都在 src/lib/richText.tsx 里解析与剥离；未配对的标记原样显示。
-function MessageContent({ body, onMentionClick }: { body: string; onMentionClick?: (profileId: string) => void }) {
+function MessageContent({ body, onMentionClick, messageId, autoPlayMedia = false, onMediaEnded }: { body: string; onMentionClick?: (profileId: string) => void; messageId?: number; autoPlayMedia?: boolean; onMediaEnded?: (messageId: number) => void }) {
   const bubbleEffect = getChatBubbleEffect(body);
   const contentBody = stripChatBubbleEffect(body);
   const renderBody = bubbleEffect === 'invisible-ink' && !contentBody.startsWith('[[')
@@ -124,12 +125,15 @@ function MessageContent({ body, onMentionClick }: { body: string; onMentionClick
     : contentBody;
   const imagePath = contentBody.startsWith('[[im-image:') && contentBody.endsWith(']]') ? contentBody.slice(11, -2) : null;
   const audioPath = contentBody.startsWith('[[im-audio:') && contentBody.endsWith(']]') ? contentBody.slice(11, -2) : null;
-  const videoPath = contentBody.startsWith('[[im-video:') && contentBody.endsWith(']]') ? contentBody.slice(11, -2) : null;
+  const videoParts = contentBody.startsWith('[[im-video:') && contentBody.endsWith(']]') ? contentBody.slice(11, -2).split('|') : null;
+  const videoPath = videoParts?.[0] ?? null;
+  const posterPath = videoParts?.[1] ?? null;
   const fileParts = contentBody.startsWith('[[im-file:') && contentBody.endsWith(']]') ? contentBody.slice(10, -2).split('|') : null;
   const filePath = fileParts ? fileParts[0] : null;
   const fileName = fileParts && fileParts[1] ? fileParts[1] : '文件';
   const fileSize = fileParts && fileParts[2] ? Number(fileParts[2]) : 0;
   const url = useSignedUrl('chat-media', imagePath ?? audioPath ?? videoPath ?? filePath);
+  const posterUrl = useSignedUrl('chat-media', posterPath);
   const [downloading, setDownloading] = useState(false);
   const handleDownload = async (event: ReactMouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
@@ -148,7 +152,10 @@ function MessageContent({ body, onMentionClick }: { body: string; onMentionClick
   if (imagePath) return url ? <MessageImagePreview url={url} /> : <div className="fx-skel-wrap" role="status" aria-label="图片加载中"><div className="fx-skel" style={{ width: 220, height: 140, maxWidth: '68vw', borderRadius: 14 }} /></div>;
   if (videoPath) return url ? (
     <div className="im-video-card">
-      <video className="im-video" controls playsInline preload="metadata" src={url} aria-label="视频消息播放" />
+      <video className="im-video" controls playsInline preload="metadata" src={url} poster={posterUrl ?? undefined} autoPlay={autoPlayMedia}
+        onPlay={() => window.dispatchEvent(new CustomEvent('qz-chat-media-play', { detail: { id: messageId ?? null } }))}
+        onEnded={() => { if (messageId !== undefined) onMediaEnded?.(messageId); }}
+        aria-label="视频消息播放" />
     </div>
   ) : <div className="fx-skel-wrap" role="status" aria-label="视频加载中"><div className="fx-skel" style={{ width: 260, height: 154, maxWidth: '72vw', borderRadius: 14 }} /></div>;
   if (filePath) return url ? (
@@ -167,7 +174,7 @@ function MessageContent({ body, onMentionClick }: { body: string; onMentionClick
       </button>
     </div>
   ) : <div className="fx-skel-wrap" role="status" aria-label="文件加载中"><div className="fx-skel" style={{ width: 200, height: 44, maxWidth: '68vw', borderRadius: 12 }} /></div>;
-  if (audioPath) return url ? <div className="im-audio-card"><div className="im-audio-symbol">▶</div><div className="im-audio-main"><div className="im-waveform" aria-hidden="true">{Array.from({ length: 34 }, (_, i) => <i key={i} style={{ height: (5 + ((i * 7 + 3) % 17)) + 'px' }} />)}</div><audio controls preload="metadata" src={url} aria-label="语音消息播放" /></div></div> : <div className="fx-skel-wrap" role="status" aria-label="语音加载中"><div className="fx-skel" style={{ width: 240, height: 60, maxWidth: '68vw', borderRadius: 12 }} /></div>;
+  if (audioPath) return url ? <ChatAudioWaveform url={url} messageId={messageId} autoPlay={autoPlayMedia} onEnded={onMediaEnded} /> : <div className="fx-skel-wrap" role="status" aria-label="语音加载中"><div className="fx-skel" style={{ width: 240, height: 60, maxWidth: '68vw', borderRadius: 12 }} /></div>;
   return <>{renderRichText(renderBody, { onMentionClick })}</>;
 }
 
@@ -262,6 +269,7 @@ export default function Chat() {
   const [groupInviteSelectedIds, setGroupInviteSelectedIds] = useState<string[]>([]);
   const [groupInviteBusy, setGroupInviteBusy] = useState(false);
   const [msgs, setMsgs] = useState<ChatMessage[]>([]);
+  const [autoPlayMediaId, setAutoPlayMediaId] = useState<number | null>(null);
   const [loadingMsgs, setLoadingMsgs] = useState(true);
   const showMsgsSkeleton = useDelayedLoading(loadingMsgs);
   const [text, setText] = useState('');
@@ -1079,8 +1087,19 @@ export default function Chat() {
     setUploading(true); setError('');
     try {
       setUpPct(0);
-      const path = await uploadMediaWithProgress('chat-media', uploadFile, Number(cid) + '/' + me, pct => setUpPct(pct));
-      await persistMediaMessage('[[im-video:' + path + ']]', pendingAttachmentEffect);
+      const folder = Number(cid) + '/' + me;
+      const path = await uploadMediaWithProgress('chat-media', uploadFile, folder, pct => setUpPct(pct));
+      let posterPath = '';
+      try {
+        const poster = await createChatVideoPoster(uploadFile);
+        if (poster) {
+          const posterFile = new File([poster], 'video-cover-' + Date.now() + '.jpg', { type: 'image/jpeg' });
+          posterPath = await uploadMediaWithProgress('chat-media', posterFile, folder);
+        }
+      } catch (posterError) {
+        console.info('video poster generation skipped', posterError);
+      }
+      await persistMediaMessage('[[im-video:' + path + (posterPath ? '|' + posterPath : '') + ']]', pendingAttachmentEffect);
     } catch (e) {
       console.error('chat video upload failed', e);
       setError('视频发送失败，请检查视频格式、大小和聊天媒体存储策略后重试。');
@@ -1513,6 +1532,20 @@ export default function Chat() {
   function beginReply(message: ChatMessage) {
     setReplyTarget(message);
     inputRef.current?.focus();
+  }
+
+  function handleMediaEnded(messageId: number) {
+    const mediaMessages = msgs.filter(message => {
+      if (message.deleted_at) return false;
+      const body = stripChatBubbleEffect(message.body);
+      return body.startsWith('[[im-audio:') || body.startsWith('[[im-video:');
+    });
+    const current = mediaMessages.findIndex(message => message.id === messageId);
+    const next = current >= 0 ? mediaMessages[current + 1] : null;
+    if (!next) { setAutoPlayMediaId(null); return; }
+    setAutoPlayMediaId(next.id);
+    const nextIndex = msgs.findIndex(message => message.id === next.id);
+    if (nextIndex >= 0) virtualizer.scrollToIndex(nextIndex, { align: 'center' });
   }
 
   function messageSummary(message?: ChatMessage | null) {
@@ -2027,7 +2060,7 @@ export default function Chat() {
                         </div>
                       </>
                     ) : (
-                      <MessageContent onMentionClick={openMemberPage} body={displayBody} />
+                      <MessageContent onMentionClick={openMemberPage} body={displayBody} messageId={m.id} autoPlayMedia={autoPlayMediaId === m.id} onMediaEnded={handleMediaEnded} />
                     )}
                     {inlineMeta && <span className={'im-inline-meta ' + (mine ? 'mine' : 'theirs')}>{messageTimeLabel(m.created_at)}{receiptLabel ? ' · ' + receiptLabel : ''}</span>}
                     {m.edited_at && !deleted && <div className="im-edited-mark">已编辑</div>}

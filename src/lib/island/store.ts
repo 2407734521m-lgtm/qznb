@@ -74,7 +74,8 @@ export const isShown = (snapshot: Pick<IslandSnapshot, "activities" | "front" | 
   activity.group === null || (snapshot.handoff !== activity.group && shownOf(snapshot, activity.group) === activity.id);
 
 /** Activities that hold the whole capsule on their own: a swipe never demotes them. */
-const LOCKED_PRIMARY_IDS: ReadonlySet<string> = new Set(["qz-route-navigation", "qz-call-session"]);
+const CALL_PRIMARY_IDS: ReadonlySet<string> = new Set(["qz-call-session", "qz-group-call-session"]);
+const LOCKED_PRIMARY_IDS: ReadonlySet<string> = new Set(["qz-route-navigation", ...CALL_PRIMARY_IDS]);
 
 /**
  * Shown activities in display order: the swipe-chosen one first when it still shows, the rest in
@@ -93,9 +94,7 @@ export const deriveScene = (snapshot: IslandSnapshot): IslandScene => {
   const [first, visibleSecond] = orderedVisible(snapshot);
   // Route loading and minimized calls need the full capsule. A concurrent music/task activity
   // must not force a call into its icon-only minimal state; it stays available in the task drawer.
-  const second = first?.id === "qz-route-navigation" || first?.id === "qz-call-session"
-    ? undefined
-    : visibleSecond;
+  const second = first && LOCKED_PRIMARY_IDS.has(first.id) ? undefined : visibleSecond;
   const expanded = snapshot.expanded ? snapshot.activities.find((a) => a.id === snapshot.expanded?.id) : undefined;
   if (expanded) {
     return {
@@ -188,6 +187,8 @@ export const createIslandStore = (options: { clock: IslandClock; motion: () => I
     if (apply) apply();
   };
   let nextOrder = 0;
+  /** Preserve a user-selected activity across a call preemption, if it is still running. */
+  let primaryBeforeCall: { id: string | null; orderFloor: number } | null = null;
   let instant = false;
   /** Timers of the alert under way: its return, and a group's handoff before it expands. */
   let alertTimers: (() => void)[] = [];
@@ -225,11 +226,20 @@ export const createIslandStore = (options: { clock: IslandClock; motion: () => I
    * starts: now, or after the handoff when `id` waits hidden behind another activity of its group.
    */
   const alert = (id: string, fromIdle = false): number => {
-    clearAlert();
-    const m = options.motion();
     const now = clock.now();
     const activity = snapshot.activities.find((a) => a.id === id);
-    const group = activity?.group ?? null;
+    if (!activity) return now;
+    // A call owns the island while it is active. Lower-priority notifications and tasks may
+    // remain in the activity stack, but they cannot expand over either one-to-one or group calls.
+    const activeCall = snapshot.activities.filter((a) => CALL_PRIMARY_IDS.has(a.id)).sort(byPriority)[0];
+    if (
+      activeCall
+      && activeCall.id !== id
+      && (!CALL_PRIMARY_IDS.has(activity.id) || activity.priority < activeCall.priority)
+    ) return now;
+    clearAlert();
+    const m = options.motion();
+    const group = activity.group;
     if (!activity || group === null || isShown(snapshot, activity)) {
       commit({ ...snapshot, expanded: { id, reason: "alert" }, handoff: null });
       // An alert that appears on an idle island returns a little sooner (`alertHoldIdle`).
@@ -277,11 +287,22 @@ export const createIslandStore = (options: { clock: IslandClock; motion: () => I
         task: start.task,
       };
       const idle = snapshot.activities.length === 0;
-      // A new arrival that outranks the swipe-chosen activity takes the front back: the manual
-      // choice was about the activities running then, not about everything that comes later.
+      const activeCalls = snapshot.activities.filter((a) => CALL_PRIMARY_IDS.has(a.id));
+      if (CALL_PRIMARY_IDS.has(activity.id) && activeCalls.length === 0) {
+        primaryBeforeCall = { id: snapshot.manualPrimary, orderFloor: activity.order };
+      }
+      const currentTopCall = activeCalls.sort(byPriority)[0];
+      const becomesTopCall = CALL_PRIMARY_IDS.has(activity.id)
+        && (!currentTopCall || activity.priority > currentTopCall.priority);
+
+      // Calls always reclaim the front, but remember the user's swipe choice so it can return
+      // after the last call ends. Other higher-priority arrivals only clear a stale manual choice.
       const manual = snapshot.manualPrimary === null ? undefined : snapshot.activities.find((a) => a.id === snapshot.manualPrimary);
-      const manualPrimary = manual !== undefined && activity.priority > manual.priority ? null : snapshot.manualPrimary;
-      commit({ ...snapshot, activities: [...snapshot.activities, activity].sort(byPriority), manualPrimary });
+      const manualPrimary = CALL_PRIMARY_IDS.has(activity.id)
+        ? null
+        : manual !== undefined && activity.priority > manual.priority ? null : snapshot.manualPrimary;
+      const expanded = becomesTopCall && snapshot.expanded?.id !== activity.id ? null : snapshot.expanded;
+      commit({ ...snapshot, activities: [...snapshot.activities, activity].sort(byPriority), manualPrimary, expanded });
       if (start.alert) alert(start.id, idle);
       return handle(start.id);
     },
@@ -340,19 +361,36 @@ export const createIslandStore = (options: { clock: IslandClock; motion: () => I
           commit({ ...snapshot, pressed: null, joining: null });
         }
       }
+      const remainingActivities = snapshot.activities.filter((a) => a.id !== id);
       const expanded = snapshot.expanded?.id === id ? null : snapshot.expanded;
       // An activity handed to mid-handoff that ends calls the handoff off.
       const handingTo = ending !== undefined && ending.group !== null && snapshot.handoff === ending.group && snapshot.front[ending.group] === id;
       if (!expanded || handingTo) clearAlert();
       const front = Object.fromEntries(Object.entries(snapshot.front).filter(([, forward]) => forward !== id));
-      const manualPrimary = snapshot.manualPrimary === id ? null : snapshot.manualPrimary;
-      commit({ ...snapshot, activities: snapshot.activities.filter((a) => a.id !== id), expanded, front, manualPrimary, handoff: handingTo ? null : snapshot.handoff });
+      let manualPrimary = snapshot.manualPrimary === id ? null : snapshot.manualPrimary;
+
+      if (CALL_PRIMARY_IDS.has(id) && !remainingActivities.some((a) => CALL_PRIMARY_IDS.has(a.id))) {
+        const previous = primaryBeforeCall;
+        primaryBeforeCall = null;
+        const candidate = previous?.id
+          ? remainingActivities.find((a) => a.id === previous.id)
+          : undefined;
+        // Do not restore over a higher-priority activity that arrived during the call.
+        const newerHigherPriority = candidate && previous
+          ? remainingActivities.some((a) => a.id !== candidate.id && a.order >= previous.orderFloor && a.priority > candidate.priority)
+          : false;
+        if (candidate && !newerHigherPriority) manualPrimary = candidate.id;
+      }
+
+      commit({ ...snapshot, activities: remainingActivities, expanded, front, manualPrimary, handoff: handingTo ? null : snapshot.handoff });
     },
     expand(id) {
       // Default: the primary activity among those on show.
       const target = id ?? snapshot.activities.find((a) => isShown(snapshot, a))?.id;
       const activity = snapshot.activities.find((a) => a.id === target);
       if (!target || !activity) return;
+      const activeCall = snapshot.activities.filter((a) => CALL_PRIMARY_IDS.has(a.id)).sort(byPriority)[0];
+      if (activeCall && (!CALL_PRIMARY_IDS.has(activity.id) || activity.priority < activeCall.priority)) return;
       clearAlert();
       // Expanding a hidden activity of a group brings it forward.
       const front = activity.group === null ? snapshot.front : { ...snapshot.front, [activity.group]: activity.id };
@@ -493,6 +531,8 @@ export const createIslandStore = (options: { clock: IslandClock; motion: () => I
         holding = null;
         for (const apply of [...pendingContent.values()]) apply();
         pendingContent.clear();
+        primaryBeforeCall = null;
+        nextOrder = 0;
         commit({ activities: [], expanded: null, pressed: null, joining: null, front: {}, manualPrimary: null, handoff: null });
       } finally {
         instant = false;

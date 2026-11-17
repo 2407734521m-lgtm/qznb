@@ -9,12 +9,98 @@ import { useEffect, useRef } from 'react';
 // 之前用的是 GitHub 的 spoiled（点按显现），用户 2026-11-17 01:16 令改滑动版，
 // spoiled 的粒子是 paint worklet 画的、没法按区域擦掉，所以改成自写组件。
 
-const WIPE_RADIUS = 28;
+const WIPE_RADIUS = 44;
 const RECOVER_DELAY = 5000;
 const RECOVER_FADE_MS = 900;
 const WIPE_FADE_MS = 180;
 
-type Particle = { x: number; y: number; r: number; color: string };
+type Particle = { x: number; y: number; r: number; color: string; charIndex: number };
+type Point = { x: number; y: number };
+type InkRect = { left: number; top: number; right: number; bottom: number };
+
+const pointToSegmentDistanceSquared = (point: Point, start: Point, end: Point) => {
+  const dx = end.x - start.x;
+  const dy = end.y - start.y;
+  const lengthSquared = dx * dx + dy * dy;
+  if (lengthSquared === 0) {
+    const px = point.x - start.x;
+    const py = point.y - start.y;
+    return px * px + py * py;
+  }
+  const projection = Math.max(
+    0,
+    Math.min(1, ((point.x - start.x) * dx + (point.y - start.y) * dy) / lengthSquared),
+  );
+  const closestX = start.x + projection * dx;
+  const closestY = start.y + projection * dy;
+  const px = point.x - closestX;
+  const py = point.y - closestY;
+  return px * px + py * py;
+};
+
+const segmentsIntersect = (a: Point, b: Point, c: Point, d: Point) => {
+  const cross = (p1: Point, p2: Point, p3: Point) =>
+    (p2.x - p1.x) * (p3.y - p1.y) - (p2.y - p1.y) * (p3.x - p1.x);
+  const onSegment = (p1: Point, p2: Point, point: Point) =>
+    point.x >= Math.min(p1.x, p2.x) - 1e-8 &&
+    point.x <= Math.max(p1.x, p2.x) + 1e-8 &&
+    point.y >= Math.min(p1.y, p2.y) - 1e-8 &&
+    point.y <= Math.max(p1.y, p2.y) + 1e-8;
+
+  const abC = cross(a, b, c);
+  const abD = cross(a, b, d);
+  const cdA = cross(c, d, a);
+  const cdB = cross(c, d, b);
+  const epsilon = 1e-8;
+
+  if (
+    ((abC > epsilon && abD < -epsilon) || (abC < -epsilon && abD > epsilon)) &&
+    ((cdA > epsilon && cdB < -epsilon) || (cdA < -epsilon && cdB > epsilon))
+  ) return true;
+
+  return (
+    (Math.abs(abC) <= epsilon && onSegment(a, b, c)) ||
+    (Math.abs(abD) <= epsilon && onSegment(a, b, d)) ||
+    (Math.abs(cdA) <= epsilon && onSegment(c, d, a)) ||
+    (Math.abs(cdB) <= epsilon && onSegment(c, d, b))
+  );
+};
+
+const segmentToSegmentDistanceSquared = (a: Point, b: Point, c: Point, d: Point) => {
+  if (segmentsIntersect(a, b, c, d)) return 0;
+  return Math.min(
+    pointToSegmentDistanceSquared(a, c, d),
+    pointToSegmentDistanceSquared(b, c, d),
+    pointToSegmentDistanceSquared(c, a, b),
+    pointToSegmentDistanceSquared(d, a, b),
+  );
+};
+
+// 判断整条擦除线段与字符矩形之间的最短距离，命中字符任意边缘即可露出整字。
+const segmentTouchesRect = (start: Point, end: Point, rect: InkRect, radius: number) => {
+  const contains = (point: Point) =>
+    point.x >= rect.left &&
+    point.x <= rect.right &&
+    point.y >= rect.top &&
+    point.y <= rect.bottom;
+  if (contains(start) || contains(end)) return true;
+
+  const topLeft = { x: rect.left, y: rect.top };
+  const topRight = { x: rect.right, y: rect.top };
+  const bottomRight = { x: rect.right, y: rect.bottom };
+  const bottomLeft = { x: rect.left, y: rect.bottom };
+  const edges: Array<[Point, Point]> = [
+    [topLeft, topRight],
+    [topRight, bottomRight],
+    [bottomRight, bottomLeft],
+    [bottomLeft, topLeft],
+  ];
+  const radiusSquared = radius * radius;
+  return edges.some(
+    ([edgeStart, edgeEnd]) =>
+      segmentToSegmentDistanceSquared(start, end, edgeStart, edgeEnd) <= radiusSquared,
+  );
+};
 
 export default function InvisibleInk({ text }: { text: string }) {
   const rootRef = useRef<HTMLSpanElement>(null);
@@ -58,6 +144,7 @@ export default function InvisibleInk({ text }: { text: string }) {
           y: y + Math.random() * h,
           r: 0.8 + Math.random() * 1.1,
           color: `hsl(210 100% ${light.toFixed(0)}%)`,
+          charIndex: i,
         });
       }
     });
@@ -74,6 +161,8 @@ export default function InvisibleInk({ text }: { text: string }) {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, w, h);
     for (const p of particlesRef.current) {
+      // 整个字符被路径命中后，移除该字符对应的全部粒子，避免字已露出却仍被粒子遮挡。
+      if (revealedRef.current[p.charIndex]) continue;
       ctx.fillStyle = p.color;
       ctx.beginPath();
       ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
@@ -88,39 +177,73 @@ export default function InvisibleInk({ text }: { text: string }) {
     el.style.opacity = String(value);
   };
 
-  const eraseMaskAt = (x: number, y: number) => {
+  // 粒子遮罩沿触点线段擦除，圆头线宽与字符命中半径完全一致。
+  const eraseMaskAlongPath = (start: Point, end: Point) => {
     const mask = maskRef.current;
     if (!mask) return;
     const ctx = mask.getContext('2d');
     if (!ctx) return;
     const { dpr } = sizeRef.current;
+    ctx.save();
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.fillStyle = '#fff';
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = WIPE_RADIUS * 2;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
     ctx.beginPath();
-    ctx.arc(x, y, WIPE_RADIUS, 0, Math.PI * 2);
-    ctx.fill();
+    if (start.x === end.x && start.y === end.y) {
+      ctx.arc(start.x, start.y, WIPE_RADIUS, 0, Math.PI * 2);
+      ctx.fill();
+    } else {
+      ctx.moveTo(start.x, start.y);
+      ctx.lineTo(end.x, end.y);
+      ctx.stroke();
+    }
+    ctx.restore();
   };
 
-  const wipeAt = (clientX: number, clientY: number) => {
+  const wipeBetween = (
+    clientStartX: number,
+    clientStartY: number,
+    clientEndX: number,
+    clientEndY: number,
+  ) => {
     const root = rootRef.current;
     if (!root) return;
     const rootRect = root.getBoundingClientRect();
-    const x = clientX - rootRect.left;
-    const y = clientY - rootRect.top;
-    eraseMaskAt(x, y);
+    const start = {
+      x: clientStartX - rootRect.left,
+      y: clientStartY - rootRect.top,
+    };
+    const end = {
+      x: clientEndX - rootRect.left,
+      y: clientEndY - rootRect.top,
+    };
+
+    // 遮罩和字符检测使用同一条线段、同一个 WIPE_RADIUS。
+    eraseMaskAlongPath(start, end);
+    let revealedAny = false;
     chars.forEach((_, i) => {
       if (revealedRef.current[i]) return;
       const el = charRefs.current[i];
       if (!el) return;
       const rect = el.getBoundingClientRect();
-      const cx = rect.left - rootRect.left + rect.width / 2;
-      const cy = rect.top - rootRect.top + rect.height / 2;
-      if (Math.hypot(cx - x, cy - y) <= WIPE_RADIUS) {
+      const localRect = {
+        left: rect.left - rootRect.left,
+        top: rect.top - rootRect.top,
+        right: rect.right - rootRect.left,
+        bottom: rect.bottom - rootRect.top,
+      };
+      if (segmentTouchesRect(start, end, localRect, WIPE_RADIUS)) {
         revealedRef.current[i] = true;
         setCharOpacity(i, 1, WIPE_FADE_MS);
+        revealedAny = true;
       }
     });
-    scheduleRecover();
+
+    // 字符按整字显现，因此同步从粒子底图移除该字符的所有粒子。
+    if (revealedAny) paintField();
   };
 
   const revealAll = () => {
@@ -139,6 +262,7 @@ export default function InvisibleInk({ text }: { text: string }) {
       revealedRef.current[i] = true;
       setCharOpacity(i, 1, WIPE_FADE_MS);
     });
+    paintField();
     scheduleRecover();
   };
 
@@ -152,6 +276,7 @@ export default function InvisibleInk({ text }: { text: string }) {
           revealedRef.current[i] = false;
           setCharOpacity(i, 0, 0);
         });
+        paintField();
         const mask = maskRef.current;
         if (mask) mask.getContext('2d')?.clearRect(0, 0, mask.width, mask.height);
         return;
@@ -162,6 +287,7 @@ export default function InvisibleInk({ text }: { text: string }) {
         revealedRef.current[i] = false;
         setCharOpacity(i, 0, RECOVER_FADE_MS);
       });
+      paintField();
     }, RECOVER_DELAY);
   };
 
@@ -178,7 +304,7 @@ export default function InvisibleInk({ text }: { text: string }) {
     ctx.clearRect(0, 0, w, h);
     const ox = reducedMotionRef.current ? 0 : (Math.random() - 0.5) * 1.4;
     const oy = reducedMotionRef.current ? 0 : (Math.random() - 0.5) * 1.4;
-    ctx.drawImage(field, ox, oy);
+    ctx.drawImage(field, ox, oy, w, h);
     if (regeneratingRef.current) {
       const progress = (now - regenStartRef.current) / RECOVER_FADE_MS;
       if (progress >= 1) {
@@ -196,7 +322,7 @@ export default function InvisibleInk({ text }: { text: string }) {
       }
     }
     ctx.globalCompositeOperation = 'destination-out';
-    ctx.drawImage(mask, 0, 0);
+    ctx.drawImage(mask, 0, 0, w, h);
     ctx.globalCompositeOperation = 'source-over';
   };
 
@@ -262,14 +388,22 @@ export default function InvisibleInk({ text }: { text: string }) {
 
   const onPointerDown = (event: React.PointerEvent<HTMLSpanElement>) => {
     downRef.current = { x: event.clientX, y: event.clientY, t: performance.now() };
-    if (regenTimerRef.current !== null) window.clearTimeout(regenTimerRef.current);
+    if (regenTimerRef.current !== null) {
+      window.clearTimeout(regenTimerRef.current);
+      regenTimerRef.current = null;
+    }
     regeneratingRef.current = false;
+    // 起点也按同一半径擦除，避免轻触后紧接滑动出现起始空隙。
+    wipeBetween(event.clientX, event.clientY, event.clientX, event.clientY);
     try { event.currentTarget.setPointerCapture(event.pointerId); } catch {}
   };
 
   const onPointerMove = (event: React.PointerEvent<HTMLSpanElement>) => {
-    if (!downRef.current) return;
-    wipeAt(event.clientX, event.clientY);
+    const previous = downRef.current;
+    if (!previous) return;
+    wipeBetween(previous.x, previous.y, event.clientX, event.clientY);
+    // 保存上一触点，使下一次采样与它相连，而不是只擦一个孤立圆点。
+    downRef.current = { ...previous, x: event.clientX, y: event.clientY };
   };
 
   const onPointerUp = (event: React.PointerEvent<HTMLSpanElement>) => {

@@ -117,7 +117,15 @@ export default function InvisibleInk({ text }: { text: string }) {
   const regenTimerRef = useRef<number | null>(null);
   const regeneratingRef = useRef(false);
   const regenStartRef = useRef(0);
-  const downRef = useRef<{ x: number; y: number; t: number } | null>(null);
+  const downRef = useRef<{
+    x: number;
+    y: number;
+    startX: number;
+    startY: number;
+    t: number;
+    mode: 'pending' | 'wipe' | 'scroll';
+  } | null>(null);
+  const pendingScrollRecoverRef = useRef(false);
   const reducedMotionRef = useRef(false);
   const inViewRef = useRef(true);
 
@@ -322,7 +330,7 @@ export default function InvisibleInk({ text }: { text: string }) {
       }
     }
     ctx.globalCompositeOperation = 'destination-out';
-    ctx.drawImage(mask, 0, 0, w, h);
+    ctx.drawImage(mask, ox, oy, w, h);
     ctx.globalCompositeOperation = 'source-over';
   };
 
@@ -360,6 +368,13 @@ export default function InvisibleInk({ text }: { text: string }) {
       drawFrame(performance.now());
     };
     resize();
+    const recoverAfterScroll = () => {
+      if (!pendingScrollRecoverRef.current) return;
+      pendingScrollRecoverRef.current = false;
+      scheduleRecover();
+    };
+    // 触摸纵向滚动会收到 pointercancel；等浏览器确认滚动结束后才启动恢复计时。
+    document.addEventListener('scrollend', recoverAfterScroll, true);
     const observer = new ResizeObserver(resize);
     observer.observe(root);
 
@@ -381,41 +396,74 @@ export default function InvisibleInk({ text }: { text: string }) {
       cancelAnimationFrame(rafRef.current);
       observer.disconnect();
       inView.disconnect();
+      document.removeEventListener('scrollend', recoverAfterScroll, true);
       if (regenTimerRef.current !== null) window.clearTimeout(regenTimerRef.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const onPointerDown = (event: React.PointerEvent<HTMLSpanElement>) => {
-    downRef.current = { x: event.clientX, y: event.clientY, t: performance.now() };
+    pendingScrollRecoverRef.current = false;
+    downRef.current = {
+      x: event.clientX,
+      y: event.clientY,
+      startX: event.clientX,
+      startY: event.clientY,
+      t: performance.now(),
+      // 触摸先判断方向；纵向交给页面滚动，横向才启动擦除。
+      mode: event.pointerType === 'touch' ? 'pending' : 'wipe',
+    };
     if (regenTimerRef.current !== null) {
       window.clearTimeout(regenTimerRef.current);
       regenTimerRef.current = null;
     }
     regeneratingRef.current = false;
-    // 起点也按同一半径擦除，避免轻触后紧接滑动出现起始空隙。
-    wipeBetween(event.clientX, event.clientY, event.clientX, event.clientY);
     try { event.currentTarget.setPointerCapture(event.pointerId); } catch {}
   };
 
   const onPointerMove = (event: React.PointerEvent<HTMLSpanElement>) => {
     const previous = downRef.current;
     if (!previous) return;
+    const next = { ...previous, x: event.clientX, y: event.clientY };
+
+    if (previous.mode === 'pending') {
+      const deltaX = event.clientX - previous.startX;
+      const deltaY = event.clientY - previous.startY;
+      if (Math.max(Math.abs(deltaX), Math.abs(deltaY)) < 8) {
+        downRef.current = next;
+        return;
+      }
+      if (Math.abs(deltaY) > Math.abs(deltaX)) {
+        downRef.current = { ...next, mode: 'scroll' };
+        return;
+      }
+      downRef.current = { ...next, mode: 'wipe' };
+      wipeBetween(previous.startX, previous.startY, event.clientX, event.clientY);
+      return;
+    }
+
+    if (previous.mode === 'scroll') {
+      downRef.current = next;
+      return;
+    }
+
     wipeBetween(previous.x, previous.y, event.clientX, event.clientY);
     // 保存上一触点，使下一次采样与它相连，而不是只擦一个孤立圆点。
-    downRef.current = { ...previous, x: event.clientX, y: event.clientY };
+    downRef.current = next;
   };
 
   const onPointerUp = (event: React.PointerEvent<HTMLSpanElement>) => {
     const down = downRef.current;
     downRef.current = null;
+    pendingScrollRecoverRef.current = false;
     if (!down) return;
-    const moved = Math.hypot(event.clientX - down.x, event.clientY - down.y);
+    const moved = Math.hypot(event.clientX - down.startX, event.clientY - down.startY);
     const dt = performance.now() - down.t;
     if (moved < 10 && dt < 400) {
       // 点一下：直接全显（和 iOS 点按隐形墨水一样）。
       revealAll();
     } else {
+      // 包括实际收到 pointerup 的纵向手势，均从触点结束后开始计时。
       scheduleRecover();
     }
   };
@@ -437,7 +485,15 @@ export default function InvisibleInk({ text }: { text: string }) {
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
-      onPointerCancel={() => { downRef.current = null; scheduleRecover(); }}
+      onPointerCancel={(event) => {
+        downRef.current = null;
+        if (event.pointerType === 'touch') {
+          // 浏览器接管纵向滚动时手指仍可能按着屏幕，不能把 pointercancel 当作抬手。
+          pendingScrollRecoverRef.current = true;
+        } else {
+          scheduleRecover();
+        }
+      }}
       onKeyDown={onKeyDown}
     >
       {chars.map((ch, i) => (

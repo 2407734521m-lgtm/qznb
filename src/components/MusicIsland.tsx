@@ -77,6 +77,8 @@ export function shouldShowMainIsland(isMusicPage: boolean, activityIds: readonly
 export type MusicEqualizerMode = 'live' | 'fallback' | 'idle';
 
 export const EQUALIZER_BANDS = ['bass', 'lowMid', 'vocal', 'treble'] as const;
+/** Hide the music activity after five seconds without active playback. */
+export const MUSIC_ISLAND_INACTIVE_HIDE_DELAY_MS = 5000;
 /** Bar level the equalizer rests at while nothing is playing. */
 export const EQUALIZER_REST_LEVEL = '.12';
 
@@ -236,6 +238,9 @@ function MusicIsland() {
   // go away.
   const graceTimerRef = useRef<number | null>(null);
   const graceActiveRef = useRef(false);
+  const pauseHideTimerRef = useRef<number | null>(null);
+  // Once the pause grace period expires, ignore repeated paused STATE pushes until playback resumes.
+  const pausedActivityHiddenRef = useRef(false);
   // Identity of the song whose grace window already elapsed. The bridge keeps
   // pushing that finished song every 700ms; without remembering it, the next
   // push after the window would bring the pill straight back.
@@ -252,6 +257,32 @@ function MusicIsland() {
   const mountForResume = shouldMountMusicFrameForResume(initialResumeSession);
   const shouldMountFrame = openedOnce || isMusicPage || mountForResume;
   const showMainIsland = shouldShowMainIsland(isMusicPage, activityIds);
+
+  // A paused song remains available briefly, then its activity disappears. This also covers
+  // a paused resume-session restored before the music iframe has sent its first STATE.
+  useEffect(() => {
+    if (!track || track.isPlaying || pausedActivityHiddenRef.current || graceActiveRef.current) {
+      if (track?.isPlaying && pauseHideTimerRef.current !== null) {
+        window.clearTimeout(pauseHideTimerRef.current);
+        pauseHideTimerRef.current = null;
+      }
+      if (track?.isPlaying) pausedActivityHiddenRef.current = false;
+      return;
+    }
+    if (pauseHideTimerRef.current !== null) return;
+    pauseHideTimerRef.current = window.setTimeout(() => {
+      pauseHideTimerRef.current = null;
+      if (lastTrackRef.current?.isPlaying) return;
+      pausedActivityHiddenRef.current = true;
+      lastTrackRef.current = null;
+      setTrack(null);
+    }, MUSIC_ISLAND_INACTIVE_HIDE_DELAY_MS);
+  }, [track?.isPlaying, track?.title, track?.artist, track?.coverUrl]);
+
+  useEffect(() => () => {
+    if (pauseHideTimerRef.current !== null) window.clearTimeout(pauseHideTimerRef.current);
+    pauseHideTimerRef.current = null;
+  }, []);
 
   useEffect(() => {
     if (isMusicPage) {
@@ -387,7 +418,8 @@ function MusicIsland() {
           // The queue ran out: nothing is left to resume later.
           clearMusicResumeSession();
           lastSavedResumeRef.current = null;
-        }, 25000);
+          pausedActivityHiddenRef.current = true;
+        }, MUSIC_ISLAND_INACTIVE_HIDE_DELAY_MS);
       };
       if (!message.track || typeof message.track.title !== 'string') {
         restEqualizer();
@@ -416,6 +448,13 @@ function MusicIsland() {
         volume: Number.isFinite(volumeRaw) ? Math.max(0, Math.min(1, volumeRaw)) : null,
         isMuted: incoming.isMuted === true,
       };
+      // Ignore bridge heartbeats for a paused song after its five-second grace period.
+      if (pausedActivityHiddenRef.current && !nextTrack.isPlaying) return;
+      if (nextTrack.isPlaying) {
+        if (pauseHideTimerRef.current !== null) window.clearTimeout(pauseHideTimerRef.current);
+        pauseHideTimerRef.current = null;
+        pausedActivityHiddenRef.current = false;
+      }
       // The station never sends track:null when the queue runs out: it keeps
       // pushing the finished song as paused at its full length. Treat that as
       // the end of the session too, and check it BEFORE clearGraceTimer():
@@ -480,6 +519,8 @@ function MusicIsland() {
       if (graceTimerRef.current !== null) window.clearTimeout(graceTimerRef.current);
       graceTimerRef.current = null;
       graceActiveRef.current = false;
+      if (pauseHideTimerRef.current !== null) window.clearTimeout(pauseHideTimerRef.current);
+      pauseHideTimerRef.current = null;
       endedTrackIdentityRef.current = null;
     };
   }, [shouldMountFrame]);

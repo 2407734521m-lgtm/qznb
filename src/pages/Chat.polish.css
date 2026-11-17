@@ -2354,10 +2354,10 @@
   100% { opacity: 1; transform: scale(1); filter: blur(0); }
 }
 
-/* The existing swipe-to-reveal ink stays in place; this sharpens its particle layer. */
-.im-page .im-ink { cursor: crosshair; user-select: none; -webkit-user-select: none; }
-.im-page .im-ink-canvas { filter: drop-shadow(0 0 1.2px rgba(255,255,255,.48)); }
-.im-page .im-bubble.theirs .im-ink-canvas { filter: brightness(.72) saturate(.78) drop-shadow(0 0 1px rgba(54,72,98,.28)); }
+/* Fine-grain invisible ink: keep particles crisp instead of blooming into blurry clusters. */
+.im-page .im-ink { cursor: pointer; user-select: none; -webkit-user-select: none; }
+.im-page .im-ink-canvas { filter: none !important; image-rendering: auto; }
+.im-page .im-bubble.theirs .im-ink-canvas { filter: none !important; }
 
 /* Compact glass effect picker, opened by long-pressing the send arrow. */
 .im-effects-backdrop {

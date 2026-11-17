@@ -7,6 +7,7 @@ describe('resolveIslandActivityCategory', () => {
     expect(resolveIslandActivityCategory('qz-call-session')).toBe('通话');
     expect(resolveIslandActivityCategory('music-playback')).toBe('音乐');
     expect(resolveIslandActivityCategory('qz-alert-message-1')).toBe('通知');
+    expect(resolveIslandActivityCategory('qz-voice-recording')).toBe('录音');
     expect(resolveIslandActivityCategory('qz-upload-progress')).toBe('文件传输');
   });
 

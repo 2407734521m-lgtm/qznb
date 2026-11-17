@@ -359,7 +359,7 @@ export type ScreenEffectProps = {
 };
 
 /** Absolutely positioned canvas; put it inside the device frame with `inset-0`. */
-export function ScreenEffect({ kind, progress, replay, anchor, anchorMessageId, onDone, className, style }: ScreenEffectProps) {
+export default function ScreenEffectCanvas({ kind, progress, replay, anchor, anchorMessageId, onDone, className, style }: ScreenEffectProps) {
   const canvas = useRef<HTMLCanvasElement>(null);
   const done = useRef(onDone);
   const anchorRef = useRef(anchor);

@@ -47,13 +47,14 @@ export default function AdminCommunicationCenter({
 }) {
   const [section, setSection] = useState<'broadcast' | 'notifications' | 'member-messages'>('broadcast');
   const [members, setMembers] = useState<Member[]>([]);
+  const [membersLoaded, setMembersLoaded] = useState(false);
   const [loadingMembers, setLoadingMembers] = useState(false);
   const [memberQuery, setMemberQuery] = useState('');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [composerOpen, setComposerOpen] = useState(false);
 
   useEffect(() => {
-    if (section !== 'member-messages' || !isSuper || members.length) return;
+    if (section !== 'member-messages' || !isSuper || membersLoaded) return;
     let alive = true;
     setLoadingMembers(true);
     void (async () => {
@@ -70,10 +71,11 @@ export default function AdminCommunicationCenter({
         name: person.display_name || person.username || '成员',
         username: person.username || '',
       })));
+      setMembersLoaded(true);
       setLoadingMembers(false);
     })();
     return () => { alive = false; };
-  }, [section, isSuper, members.length, setMsg]);
+  }, [section, isSuper, membersLoaded, setMsg]);
 
   const shownMembers = useMemo(() => {
     const q = memberQuery.trim().toLocaleLowerCase();
@@ -89,14 +91,15 @@ export default function AdminCommunicationCenter({
   }, [members, selectedIds]);
 
   function toggleMember(id: string) {
-    setSelectedIds(previous => {
-      if (previous.includes(id)) return previous.filter(value => value !== id);
-      if (previous.length >= 100) {
-        setMsg('每次最多选择 100 位成员。');
-        return previous;
-      }
-      return [...previous, id];
-    });
+    if (selectedIds.includes(id)) {
+      setSelectedIds(previous => previous.filter(value => value !== id));
+      return;
+    }
+    if (selectedIds.length >= 100) {
+      setMsg('每次最多选择 100 位成员。');
+      return;
+    }
+    setSelectedIds(previous => [...previous, id]);
   }
 
   return (

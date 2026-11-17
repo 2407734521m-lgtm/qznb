@@ -252,6 +252,7 @@ export default function Chat() {
   // 格式栏钉住：点输入框里的 B 按钮打开后一直开着，不用选中文字也能按；
   // 没钉住时只有选中文字才出栏。发完消息收起来，录音时不显示（在栏的渲染处判断）。
   const [formatPanelPinned, setFormatPanelPinned] = useState(false);
+  const [formatMoreOpen, setFormatMoreOpen] = useState(false);
   const showFormatPanel = !!composerSel || formatPanelPinned;
   // 贴完格式后要恢复的选区（setText 是异步的，靠这个 effect 在渲染完再拨回去）。
   const pendingSelRef = useRef<{ start: number; end: number } | null>(null);
@@ -313,7 +314,7 @@ export default function Chat() {
   const [otherLastReadMessageId, setOtherLastReadMessageId] = useState<number | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const firstRef = useRef(true);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   const pageRef = useRef<HTMLDivElement>(null);
   const mountedRef = useRef(true);
   const loadSequenceRef = useRef(0);
@@ -1112,16 +1113,34 @@ export default function Chat() {
     setShowStickers(false);
   }
 
-  // 贴完格式后把光标/选区拨回去（setText 渲染完才生效，所以放 effect 里）。
+  // 文本改变后自适应高度；同时恢复格式化后的选区，让 Android 选区手柄继续可用。
   useEffect(() => {
+    const el = inputRef.current;
+    if (el) {
+      const maxHeight = 156;
+      el.style.height = 'auto';
+      el.style.height = `${Math.max(48, Math.min(el.scrollHeight, maxHeight))}px`;
+      el.style.overflowY = el.scrollHeight > maxHeight ? 'auto' : 'hidden';
+    }
     const sel = pendingSelRef.current;
     if (!sel) return;
     pendingSelRef.current = null;
-    const el = inputRef.current;
     if (!el) return;
     el.focus({ preventScroll: true });
     try { el.setSelectionRange(sel.start, sel.end); } catch {}
   }, [text]);
+
+  // 格式菜单支持 Esc 收起，不改变选区。
+  useEffect(() => {
+    if (!formatMoreOpen) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      setFormatMoreOpen(false);
+      inputRef.current?.focus({ preventScroll: true });
+    };
+    window.addEventListener('keydown', closeOnEscape);
+    return () => window.removeEventListener('keydown', closeOnEscape);
+  }, [formatMoreOpen]);
 
   // 读输入框当前选区（没有选中文字返回 null）。
   function readComposerSelection() {
@@ -1252,6 +1271,7 @@ export default function Chat() {
     setComposerSel(null);
     composerSelRef.current = null;
     setFormatPanelPinned(false);
+    setFormatMoreOpen(false);
     inputRef.current?.focus();
   }
 
@@ -1964,38 +1984,57 @@ export default function Chat() {
             onPointerDown={e => e.preventDefault()} onClick={() => applyWrap('**', '**')}>加粗</button>
           <button type="button" className="im-format-chip im-format-chip--italic" aria-label="斜体"
             onPointerDown={e => e.preventDefault()} onClick={() => applyWrap('__', '__')}>斜体</button>
-          <button type="button" className="im-format-chip im-format-chip--code" aria-label="等宽"
-            onPointerDown={e => e.preventDefault()} onClick={() => applyWrap('`', '`')}>等宽</button>
-          <button type="button" className="im-format-chip im-format-chip--strike" aria-label="删除线"
-            onPointerDown={e => e.preventDefault()} onClick={() => applyWrap('~~', '~~')}>删除线</button>
-          <button type="button" className="im-format-chip im-format-chip--underline" aria-label="下划线"
-            onPointerDown={e => e.preventDefault()} onClick={() => applyWrap('++', '++')}>下划线</button>
-          <button type="button" className="im-format-chip" aria-label="引用"
-            onPointerDown={e => e.preventDefault()} onClick={applyQuote}>引用</button>
-          <button type="button" className="im-format-chip" aria-label="剧透"
+          <button type="button" className="im-format-chip im-format-chip--spoiler" aria-label="剧透"
             onPointerDown={e => e.preventDefault()} onClick={() => applyWrap('||', '||')}>剧透</button>
-          <button type="button" className="im-format-chip" aria-label="创建链接"
-            onPointerDown={e => e.preventDefault()} onClick={() => {
-              const sel = readComposerSelection() ?? composerSelRef.current;
-              setLinkText(sel ? text.slice(sel.start, sel.end) : '');
-              setLinkDialogOpen(true);
-            }}>链接</button>
-          {mentionOptions.length > 0 && (
-            <OptionSheet
-              value=""
-              title="提到谁"
-              buttonContent="创建@"
-              buttonAriaLabel="创建提及"
-              buttonClassName="im-format-chip"
-              options={mentionOptions}
-              onChange={applyMention}
-            />
+          <button type="button" className="im-format-chip im-format-chip--more" aria-label="更多文字格式"
+            aria-haspopup="menu" aria-expanded={formatMoreOpen}
+            onPointerDown={e => e.preventDefault()}
+            onClick={() => setFormatMoreOpen(value => !value)}>
+            更多 <span aria-hidden="true">⌄</span>
+          </button>
+          {formatMoreOpen && (
+            <div className="im-format-menu" role="menu" aria-label="更多文字格式">
+              <button type="button" className="im-format-menu-item" role="menuitem" aria-label="等宽"
+                onPointerDown={e => e.preventDefault()}
+                onClick={() => { setFormatMoreOpen(false); applyWrap('\x60', '\x60'); }}>等宽</button>
+              <button type="button" className="im-format-menu-item" role="menuitem" aria-label="删除线"
+                onPointerDown={e => e.preventDefault()}
+                onClick={() => { setFormatMoreOpen(false); applyWrap('~~', '~~'); }}>删除线</button>
+              <button type="button" className="im-format-menu-item" role="menuitem" aria-label="下划线"
+                onPointerDown={e => e.preventDefault()}
+                onClick={() => { setFormatMoreOpen(false); applyWrap('++', '++'); }}>下划线</button>
+              <button type="button" className="im-format-menu-item" role="menuitem" aria-label="引用"
+                onPointerDown={e => e.preventDefault()}
+                onClick={() => { setFormatMoreOpen(false); applyQuote(); }}>引用</button>
+              <button type="button" className="im-format-menu-item" role="menuitem" aria-label="创建链接"
+                onPointerDown={e => e.preventDefault()} onClick={() => {
+                  setFormatMoreOpen(false);
+                  const sel = readComposerSelection() ?? composerSelRef.current;
+                  setLinkText(sel ? text.slice(sel.start, sel.end) : '');
+                  setLinkDialogOpen(true);
+                }}>链接</button>
+              {mentionOptions.length > 0 && (
+                <div onPointerDown={e => e.preventDefault()}>
+                  <OptionSheet
+                    value=""
+                    title="提到谁"
+                    buttonContent="创建@"
+                    buttonAriaLabel="创建提及"
+                    buttonClassName="im-format-menu-item"
+                    options={mentionOptions}
+                    onChange={value => { setFormatMoreOpen(false); applyMention(value); }}
+                  />
+                </div>
+              )}
+              <button type="button" className="im-format-menu-item" role="menuitem" aria-label="插入今天的日期"
+                onPointerDown={e => e.preventDefault()}
+                onClick={() => { setFormatMoreOpen(false); applyDate(); }}>日期</button>
+              <button type="button" className="im-format-menu-item" role="menuitem" aria-label="清除格式，只留纯文本"
+                disabled={!composerSel}
+                onPointerDown={e => e.preventDefault()}
+                onClick={() => { setFormatMoreOpen(false); applyPlain(); }}>纯文本</button>
+            </div>
           )}
-          <button type="button" className="im-format-chip" aria-label="插入今天的日期"
-            onPointerDown={e => e.preventDefault()} onClick={applyDate}>日期</button>
-          <button type="button" className="im-format-chip" aria-label="清除格式，只留纯文本"
-            disabled={!composerSel}
-            onPointerDown={e => e.preventDefault()} onClick={applyPlain}>纯文本</button>
         </div>
       )}
       <form className="im-composer" onSubmit={e => { e.preventDefault(); send(); }}>
@@ -2039,6 +2078,7 @@ export default function Chat() {
               if (showFormatPanel) {
                 // 关栏：取消钉住；栏是靠选中文字撑开的，也把选区收掉（光标留在选区末尾、接着打字），栏就收起来了。
                 setFormatPanelPinned(false);
+                setFormatMoreOpen(false);
                 const sel = readComposerSelection() ?? composerSelRef.current;
                 if (sel) {
                   setComposerSel(null);
@@ -2050,14 +2090,21 @@ export default function Chat() {
               }
               inputRef.current?.focus({ preventScroll: true });
             }}>B</button>
-          <input ref={inputRef} className="im-input" value={text} onChange={e => { setText(e.target.value); notifyTyping(e.target.value); }}
+          <textarea ref={inputRef} className="im-input" rows={1} enterKeyHint="send"
+            value={text} onChange={e => { setText(e.target.value); notifyTyping(e.target.value); }}
+            onKeyDown={event => {
+              if (event.key !== 'Enter' || event.shiftKey || event.nativeEvent.isComposing) return;
+              event.preventDefault();
+              send();
+            }}
+            onPointerDown={() => setFormatMoreOpen(false)}
             onSelect={() => {
               const sel = readComposerSelection();
               setComposerSel(sel);
               composerSelRef.current = sel;
             }}
             onFocus={() => setInputFocused(true)} onBlur={() => setInputFocused(false)}
-            placeholder={recording ? '录音中 ' + String(Math.floor(recordSeconds / 60)).padStart(2, '0') + ':' + String(recordSeconds % 60).padStart(2, '0') + ' · 点红色按钮结束' : uploading ? '正在发送媒体…' : '私信'} maxLength={2000} autoComplete="off" aria-label="输入消息" />
+            placeholder={recording ? '录音中 ' + String(Math.floor(recordSeconds / 60)).padStart(2, '0') + ':' + String(recordSeconds % 60).padStart(2, '0') + ' · 点红色按钮结束' : uploading ? '正在发送媒体…' : '私信'} maxLength={2000} autoComplete="off" aria-label="输入消息"></textarea>
           {!text.trim() && <button type="button" className={'im-mic' + (recording ? ' recording' : '')} aria-label={recording ? '结束录音并发送' : '录制语音'} title={recording ? '结束录音并发送' : '录制语音'} disabled={uploading} onClick={recording ? stopRecording : startRecording}>{recording ? '■' : <svg width="15" height="18" viewBox="0 0 18 22" fill="none" aria-hidden="true"><rect x="6" y="1" width="6" height="13" rx="3" stroke="currentColor" strokeWidth="1.7" /><path d="M3 10.5v1a6 6 0 0 0 12 0v-1M9 17.5V21M6 21h6" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" /></svg>}</button>}
           {text.trim() && <button type="submit" className="im-send" aria-label="发送消息" disabled={uploading || recording}>↑</button>}
         </div>

@@ -1318,6 +1318,11 @@ export default function Chat() {
         if (elapsed >= 60) stopRecording();
       }, 1000);
     } catch (e) {
+      const startedAt = recordingStartedAtRef.current;
+      if (startedAt !== null) {
+        emitVoiceRecordingIslandEvent('stop', startedAt);
+        recordingStartedAtRef.current = null;
+      }
       console.error('microphone permission failed', e);
       const recorder = recorderRef.current;
       if (recorder) {

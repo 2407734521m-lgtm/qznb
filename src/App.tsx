@@ -394,6 +394,7 @@ function Shell() {
     // Presence 上报只是统计信息，失败不能阻断版本检查和更新公告。
     if (appInfo && uid) {
       const device = parseDevice(navigator.userAgent || '');
+      // 显式调用 then 触发 Supabase thenable 请求；统计写入失败不影响更新检查。
       void supabase.from('member_presence').upsert({
         profile_id: uid,
         device: device || null,
@@ -401,7 +402,7 @@ function Shell() {
         app_version_name: appInfo.name,
         app_version_code: appInfo.code,
         updated_at: new Date().toISOString(),
-      }, { onConflict: 'profile_id' });
+      }, { onConflict: 'profile_id' }).then(() => undefined, () => undefined);
     }
 
     const [updateResult, announcementResult] = await Promise.all([

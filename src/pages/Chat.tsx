@@ -27,10 +27,18 @@ import MessageEffectsPicker from '../components/MessageEffectsPicker';
 import ScreenEffectCanvas from '../components/ScreenEffectCanvas';
 import { getChatBubbleEffect, getScreenEffectKind, stripChatBubbleEffect, withChatBubbleEffect, type ChatBubbleEffect, type ScreenEffectKind } from '../lib/chatMessageEffect';
 import { formatChatTypingLabel, parseChatTypingPayload } from '../lib/chatTyping';
+import { createChatForwardAttachmentPlan } from '../lib/chatForwarding';
 import './Chat.polish.css';
 
 type ChatReaction = { message_id: number; profile_id: string; reaction: string; created_at: string };
 type ChatPeer = { id: string; username: string; display_name: string | null; avatar_path: string | null };
+type ForwardDestination = {
+  conversationId: number;
+  label: string;
+  isGroup: boolean;
+  memberCount?: number;
+  lastMessageAt: string | null;
+};
 type TapbackAnchor = { left: number; top: number; width: number; dockLeft: number; dockTop: number; menuLeft: number; menuTop: number };
 const QUICK_REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '🙏'];
 const CHAT_EFFECT_LABELS: Record<ChatBubbleEffect, string> = {
@@ -351,6 +359,13 @@ export default function Chat() {
   }, [isGroup, name, groupMembers]);
   const [actionFor, setActionFor] = useState<number | null>(null);
   const [tapbackAnchor, setTapbackAnchor] = useState<TapbackAnchor | null>(null);
+  const [forwardingMessageId, setForwardingMessageId] = useState<number | null>(null);
+  const [forwardTargets, setForwardTargets] = useState<ForwardDestination[]>([]);
+  const [forwardSearch, setForwardSearch] = useState('');
+  const [selectedForwardIds, setSelectedForwardIds] = useState<number[]>([]);
+  const [forwardTargetsLoading, setForwardTargetsLoading] = useState(false);
+  const [forwardBusy, setForwardBusy] = useState(false);
+  const [forwardProgress, setForwardProgress] = useState('');
   const backgroundFileRef = useRef<HTMLInputElement>(null);
   const typingChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const typingStopTimerRef = useRef<number | null>(null);
@@ -1642,6 +1657,188 @@ export default function Chat() {
     }
   }
 
+  async function openForwardPicker(message: ChatMessage) {
+    if (message.deleted_at || (message.expires_at && new Date(message.expires_at).getTime() <= Date.now())) {
+      toast.info('这条消息已撤回或过期，无法转发。');
+      return;
+    }
+    setActionFor(null);
+    setTapbackAnchor(null);
+    setForwardingMessageId(message.id);
+    setForwardTargets([]);
+    setSelectedForwardIds([]);
+    setForwardSearch('');
+    setForwardProgress('');
+    setForwardTargetsLoading(true);
+
+    try {
+      const [directResult, groupResult] = await Promise.all([
+        supabase.rpc('my_conversations'),
+        supabase.rpc('my_group_conversations'),
+      ]);
+      if (directResult.error) throw directResult.error;
+      if (groupResult.error) throw groupResult.error;
+
+      const directTargets = ((directResult.data ?? []) as Array<{
+        conversation_id: number;
+        username: string | null;
+        display_name: string | null;
+        last_message_at: string | null;
+        conversation_created_at: string;
+      }>).map(item => ({
+        conversationId: Number(item.conversation_id),
+        label: item.display_name?.trim() || item.username?.trim() || '私聊',
+        isGroup: false,
+        lastMessageAt: item.last_message_at ?? item.conversation_created_at ?? null,
+      }));
+
+      const groupTargets = ((groupResult.data ?? []) as Array<{
+        conversation_id: number;
+        group_name: string | null;
+        member_count: number;
+        last_message_at: string | null;
+        conversation_created_at: string;
+      }>).map(item => ({
+        conversationId: Number(item.conversation_id),
+        label: item.group_name?.trim() || '群聊',
+        isGroup: true,
+        memberCount: Number(item.member_count) || 0,
+        lastMessageAt: item.last_message_at ?? item.conversation_created_at ?? null,
+      }));
+
+      const targets = [...directTargets, ...groupTargets]
+        .filter(item => Number.isSafeInteger(item.conversationId) && item.conversationId > 0
+          && item.conversationId !== Number(cid))
+        .sort((a, b) => new Date(b.lastMessageAt ?? 0).getTime() - new Date(a.lastMessageAt ?? 0).getTime());
+      setForwardTargets(targets);
+      if (targets.length === 0) toast.info('暂时没有其他可转发的会话。');
+    } catch (loadError) {
+      console.error('load forwarding targets failed', loadError);
+      toast.error('会话列表加载失败，请稍后重试。');
+      setForwardingMessageId(null);
+    } finally {
+      setForwardTargetsLoading(false);
+    }
+  }
+
+  function closeForwardPicker() {
+    if (forwardBusy) return;
+    setForwardingMessageId(null);
+    setForwardSearch('');
+    setSelectedForwardIds([]);
+    setForwardProgress('');
+  }
+
+  function toggleForwardTarget(conversationId: number) {
+    setSelectedForwardIds(current => {
+      if (current.includes(conversationId)) return current.filter(id => id !== conversationId);
+      if (current.length >= 5) {
+        toast.info('一次最多转发到 5 个会话。');
+        return current;
+      }
+      return [...current, conversationId];
+    });
+  }
+
+  async function sendForwardedMessage() {
+    if (forwardBusy || forwardingMessageId === null || selectedForwardIds.length === 0) return;
+    const source = msgsById.get(forwardingMessageId);
+    if (!source || source.deleted_at) {
+      toast.error('原消息已不可用，无法转发。');
+      closeForwardPicker();
+      return;
+    }
+    const targets = selectedForwardIds
+      .map(id => forwardTargets.find(target => target.conversationId === id))
+      .filter((target): target is ForwardDestination => Boolean(target));
+    if (!targets.length) return;
+
+    setForwardBusy(true);
+    setForwardProgress('正在检查原消息…');
+    let attachmentPlan: ReturnType<typeof createChatForwardAttachmentPlan>;
+    const downloadedAssets: Array<{ blob: Blob; fileName: string; mimeType: string }> = [];
+
+    try {
+      attachmentPlan = createChatForwardAttachmentPlan(source.body, source.conversation_id);
+      if (attachmentPlan) {
+        setForwardProgress('正在读取原附件…');
+        for (const path of attachmentPlan.sourcePaths) {
+          const { data, error: downloadError } = await supabase.storage.from('chat-media').download(path);
+          if (downloadError || !data) throw downloadError ?? new Error('原附件暂时无法读取。');
+          const fileName = path.split('/').pop() || 'forwarded-file';
+          downloadedAssets.push({
+            blob: data,
+            fileName,
+            mimeType: data.type || 'application/octet-stream',
+          });
+        }
+      }
+    } catch (prepareError) {
+      console.error('prepare forwarded message failed', prepareError);
+      toast.error(prepareError instanceof Error ? prepareError.message : '原消息准备失败，请重试。');
+      setForwardBusy(false);
+      setForwardProgress('');
+      return;
+    }
+
+    const failures: Array<{ id: number; label: string; reason: string }> = [];
+    let succeeded = 0;
+
+    for (let index = 0; index < targets.length; index += 1) {
+      const target = targets[index];
+      const uploadedPaths: string[] = [];
+      try {
+        let forwardedMediaBody: string | null = null;
+        if (attachmentPlan) {
+          const destinationPaths: string[] = [];
+          for (let assetIndex = 0; assetIndex < downloadedAssets.length; assetIndex += 1) {
+            const asset = downloadedAssets[assetIndex];
+            setForwardProgress(\`正在复制附件：\${target.label}（\${index + 1}/\${targets.length}）\`);
+            const forwardedFile = new File([asset.blob], asset.fileName, { type: asset.mimeType });
+            const newPath = await uploadMediaWithProgress(
+              'chat-media',
+              forwardedFile,
+              \`\${target.conversationId}/\${me}\`,
+            );
+            uploadedPaths.push(newPath);
+            destinationPaths.push(newPath);
+          }
+          forwardedMediaBody = attachmentPlan.buildBody(destinationPaths);
+        }
+
+        setForwardProgress(\`正在发送到：\${target.label}（\${index + 1}/\${targets.length}）\`);
+        const { error: forwardError } = await supabase.rpc('forward_chat_message', {
+          p_source_message_id: source.id,
+          p_target_conversation_id: target.conversationId,
+          p_forwarded_media_body: forwardedMediaBody,
+        });
+        if (forwardError) throw forwardError;
+        succeeded += 1;
+      } catch (forwardError) {
+        console.error('forward message failed', target.conversationId, forwardError);
+        if (uploadedPaths.length) {
+          const { error: cleanupError } = await supabase.storage.from('chat-media').remove(uploadedPaths);
+          if (cleanupError) console.warn('forwarded media cleanup failed', cleanupError);
+        }
+        failures.push({
+          id: target.conversationId,
+          label: target.label,
+          reason: forwardError instanceof Error ? forwardError.message : '发送失败',
+        });
+      }
+    }
+
+    setForwardBusy(false);
+    setForwardProgress('');
+    if (succeeded > 0) toast.success(\`已成功转发到 \${succeeded} 个会话。\`);
+    if (failures.length > 0) {
+      setSelectedForwardIds(failures.map(item => item.id));
+      toast.error(\`有 \${failures.length} 个会话转发失败，请检查后重试。\`);
+      return;
+    }
+    closeForwardPicker();
+  }
+
   function beginReply(message: ChatMessage) {
     setReplyTarget(message);
     inputRef.current?.focus();
@@ -1722,6 +1919,12 @@ export default function Chat() {
   const typingNames = Object.values(typingMembers);
   const typingLabel = formatChatTypingLabel(typingNames, isGroup);
   const typingDisplayLabel = isGroup ? typingLabel : (typingLabel ? `${name} 正在输入…` : '');
+  const forwardSourceMessage = forwardingMessageId === null ? null : msgsById.get(forwardingMessageId) ?? null;
+  const normalizedForwardSearch = forwardSearch.trim().toLocaleLowerCase();
+  const filteredForwardTargets = forwardTargets.filter(target =>
+    target.label.toLocaleLowerCase().includes(normalizedForwardSearch)
+      || (target.isGroup ? '群聊' : '私聊').includes(normalizedForwardSearch),
+  );
 
   return (
     <div ref={pageRef} className="im-page" style={{
@@ -2160,6 +2363,7 @@ export default function Chat() {
                     onTouchEnd={event => finishMessagePress(event, m, true)}
                     onTouchCancel={event => finishMessagePress(event, m, false)}
                     onContextMenu={event => { event.preventDefault(); openMessageActions(m.id, event.currentTarget); }}>
+                    {m.forwarded_from_name && <div className="im-forwarded-label"><span aria-hidden="true">↗</span> 转发自 {m.forwarded_from_name}</div>}
                     {m.reply_to_id && <div className="im-reply-quote">回复：{messageSummary(parent)}</div>}
                     {editingId === m.id ? (
                       <>
@@ -2244,6 +2448,7 @@ export default function Chat() {
           {tapbackAnchor && <div className={'im-tapback-preview ' + (mine ? 'mine' : 'theirs')}
             style={{ left: tapbackAnchor.left, top: tapbackAnchor.top, width: tapbackAnchor.width }}
             aria-hidden="true">
+            {message.forwarded_from_name && <div className="im-forwarded-label"><span aria-hidden="true">↗</span> 转发自 {message.forwarded_from_name}</div>}
             {message.reply_to_id && <div className="im-reply-quote">回复：{messageSummary(msgsById.get(message.reply_to_id))}</div>}
             <MessageContent onMentionClick={openMemberPage} body={deleted ? (mine ? '你撤回了一条消息' : '对方撤回了一条消息') : message.body} />
             <div className="im-tapback-preview-time">{new Date(message.created_at).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}</div>
@@ -2266,6 +2471,9 @@ export default function Chat() {
               {!deleted && <button type="button" onClick={() => { setActionFor(null); setTapbackAnchor(null); beginReply(message); }}>
                 <span className="im-context-action-icon">↩</span><span>回复</span>
               </button>}
+              {!deleted && <button type="button" onClick={() => { void openForwardPicker(message); }}>
+                <span className="im-context-action-icon">↗</span><span>转发</span>
+              </button>}
               {canEdit && <button type="button" onClick={() => { setActionFor(null); setTapbackAnchor(null); setEditingId(message.id); setEditingText(stripChatBubbleEffect(message.body)); }}>
                 <span className="im-context-action-icon">✎</span><span>编辑</span>
               </button>}
@@ -2280,6 +2488,61 @@ export default function Chat() {
         </div>;
       })()}
       {error && <div className="im-error">{error}</div>}
+      {forwardingMessageId !== null && <div className="im-forward-overlay" role="presentation" onClick={closeForwardPicker}>
+        <section className="im-forward-sheet" role="dialog" aria-modal="true" aria-label="转发消息" onClick={event => event.stopPropagation()}>
+          <header className="im-forward-header">
+            <div>
+              <div className="im-forward-title">转发消息</div>
+              <div className="im-forward-subtitle">{forwardSourceMessage ? messageSummary(forwardSourceMessage) : '正在读取消息…'}</div>
+            </div>
+            <button type="button" className="im-forward-close" onClick={closeForwardPicker} disabled={forwardBusy} aria-label="关闭转发窗口">×</button>
+          </header>
+          <div className="im-forward-search-wrap">
+            <input
+              className="im-forward-search"
+              value={forwardSearch}
+              onChange={event => setForwardSearch(event.target.value)}
+              placeholder="搜索私聊或群聊"
+              aria-label="搜索转发目标"
+              autoComplete="off"
+            />
+          </div>
+          <div className="im-forward-target-list" role="listbox" aria-label="选择转发会话" aria-multiselectable="true">
+            {forwardTargetsLoading ? (
+              <div className="im-forward-empty" role="status">正在加载会话…</div>
+            ) : filteredForwardTargets.length === 0 ? (
+              <div className="im-forward-empty">{forwardTargets.length ? '没有匹配的会话。' : '没有其他可转发的会话。'}</div>
+            ) : filteredForwardTargets.map(target => {
+              const selected = selectedForwardIds.includes(target.conversationId);
+              return <button
+                key={target.conversationId}
+                type="button"
+                role="option"
+                aria-selected={selected}
+                className={'im-forward-target' + (selected ? ' selected' : '')}
+                onClick={() => toggleForwardTarget(target.conversationId)}
+                disabled={forwardBusy}
+              >
+                <span className={'im-forward-avatar' + (target.isGroup ? ' group' : '')}>{target.isGroup ? '群' : (target.label.trim().charAt(0) || '友')}</span>
+                <span className="im-forward-target-copy">
+                  <span className="im-forward-target-name">{target.label}</span>
+                  <span className="im-forward-target-meta">{target.isGroup ? '群聊' + (target.memberCount ? ' · ' + target.memberCount + ' 人' : '') : '私聊'}</span>
+                </span>
+                <span className="im-forward-check" aria-hidden="true">{selected ? '✓' : ''}</span>
+              </button>;
+            })}
+          </div>
+          {forwardProgress && <div className="im-forward-progress" role="status" aria-live="polite">{forwardProgress}</div>}
+          <footer className="im-forward-footer">
+            <span>{selectedForwardIds.length}/5 个会话</span>
+            <button type="button" className="im-forward-submit" onClick={() => void sendForwardedMessage()}
+              disabled={forwardBusy || forwardTargetsLoading || selectedForwardIds.length === 0}>
+              {forwardBusy ? '正在转发…' : '转发'}
+            </button>
+          </footer>
+        </section>
+      </div>}
+
       <AnimatePresence initial={false}>
         {showStickers && <motion.div
           ref={attachmentTrayRef}

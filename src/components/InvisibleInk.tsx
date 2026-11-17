@@ -292,6 +292,36 @@ export default function InvisibleInk({ children }: { children: ReactNode }) {
     ctx.fillRect(0, 0, width, height);
   };
 
+  // 遮罩是否已被手动擦干净：采样遮罩画布的透明度，擦掉面积 ≥95% 才算全擦掉——
+  // 只擦掉一半时点链接仍要先揭示。jsdom 里 getContext 为空时返回 false。
+  const maskFullyErased = (): boolean => {
+    const mask = maskRef.current;
+    if (!mask) return false;
+    const ctx = mask.getContext('2d');
+    if (!ctx) return false;
+    const { width, height, dpr } = sizeRef.current;
+    if (!width || !height) return false;
+    let image: ImageData;
+    try {
+      image = ctx.getImageData(0, 0, mask.width, mask.height);
+    } catch {
+      return false;
+    }
+    const data = image.data;
+    const step = 14;
+    let total = 0;
+    let erased = 0;
+    for (let y = step / 2; y < height; y += step) {
+      for (let x = step / 2; x < width; x += step) {
+        const px = Math.min(mask.width - 1, Math.floor(x * dpr));
+        const py = Math.min(mask.height - 1, Math.floor(y * dpr));
+        total += 1;
+        if (data[(py * mask.width + px) * 4 + 3] >= 128) erased += 1;
+      }
+    }
+    return total > 0 && erased / total >= 0.95;
+  };
+
   const setCovered = () => {
     revealedRef.current = false;
     setRevealed(false);
@@ -544,6 +574,10 @@ export default function InvisibleInk({ children }: { children: ReactNode }) {
         suppressClickRef.current = true;
       }
       revealAll();
+    } else if (maskFullyErased()) {
+      // 擦除手势结束时遮罩已经被手动擦干净，直接进入已揭示状态：
+      // 之后点里面的链接/@ 不用再点一下揭示，直接打开。
+      revealAll();
     } else {
       scheduleRecover();
     }
@@ -586,17 +620,27 @@ export default function InvisibleInk({ children }: { children: ReactNode }) {
     }
   };
 
+  // 盖着时外层是可聚焦的 button（读屏只读标签，里面的链接/@ 已 aria-hidden
+  // 且拿出 Tab 顺序，无障碍树里没有嵌套交互元素）；揭示后外层退回普通容器，
+  // role/tabIndex/aria-label 全部去掉，里面的链接/@ 成为普通的顶层可聚焦元素。
+  // 这样读屏与键盘用户揭示后直接 Tab 到链接，不用再经过一层 button。
   return (
     <span
       ref={rootRef}
       className="im-ink"
-      role="button"
-      tabIndex={0}
-      aria-label={revealed ? '隐形消息，已显示' : '隐形消息，滑动擦除或点按显示内容'}
+      role={revealed ? undefined : 'button'}
+      tabIndex={revealed ? undefined : 0}
+      aria-label={revealed ? undefined : '隐形消息，滑动擦除或点按显示内容'}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
       onClickCapture={onClickCapture}
+      onDragStart={(event) => {
+        // 从链接上开始拖动时，浏览器会启动原生链接拖拽（dragstart→pointercancel），
+        // 擦除手势刚开始就被打断、遮罩擦不掉：在剧透里一律拦掉原生拖拽，
+        // 让 pointer 事件继续走擦除。链接本身仍可点开，只是不能拖出去。
+        event.preventDefault();
+      }}
       onPointerCancel={(event) => {
         pointerRef.current = null;
         if (event.pointerType === 'touch') {

@@ -144,12 +144,17 @@ describe('InvisibleInk 读屏保护（盖着时不读原文）', () => {
     const content = container.querySelector('.im-ink-content') as HTMLElement;
     const link = container.querySelector('.im-link') as HTMLAnchorElement;
 
+    expect(root.getAttribute('role')).toBe('button');
+    expect(root.getAttribute('tabindex')).toBe('0');
     expect(root.getAttribute('aria-label')).toBe('隐形消息，滑动擦除或点按显示内容');
     expect(content.getAttribute('aria-hidden')).toBe('true');
     expect(link.getAttribute('tabindex')).toBe('-1');
 
     tap(root);
-    expect(root.getAttribute('aria-label')).toBe('隐形消息，已显示');
+    // 揭示后外层退回普通容器：role/tabIndex/aria-label 都去掉，链接恢复默认可聚焦。
+    expect(root.getAttribute('role')).toBeNull();
+    expect(root.getAttribute('tabindex')).toBeNull();
+    expect(root.getAttribute('aria-label')).toBeNull();
     expect(content.getAttribute('aria-hidden')).toBe('false');
     expect(link.getAttribute('tabindex')).toBeNull();
   });
@@ -162,6 +167,107 @@ describe('InvisibleInk 读屏保护（盖着时不读原文）', () => {
 
     fireEvent.keyDown(root, { key: 'Enter' });
     expect(content.getAttribute('aria-hidden')).toBe('false');
-    expect(root.getAttribute('aria-label')).toBe('隐形消息，已显示');
+    // 揭示后外层不再是 button，读屏直接读原文、不再读“已显示”标签。
+    expect(root.getAttribute('role')).toBeNull();
+    expect(root.getAttribute('aria-label')).toBeNull();
+  });
+});
+
+describe('InvisibleInk 全擦掉遮罩后点链接直接打开', () => {
+  // 画布 2d 上下文的假实现：所有绘图调用都是空操作；getImageData 按
+  // opaqueFraction 返回前若干行不透明（即遮罩被擦掉的部分）。
+  const makeFakeCtx = (w: number, h: number, opaqueFraction: number) => {
+    const data = new Uint8ClampedArray(w * h * 4);
+    const opaquePixels = Math.floor(w * h * opaqueFraction);
+    for (let i = 0; i < opaquePixels; i += 1) data[i * 4 + 3] = 255;
+    return new Proxy(
+      {},
+      {
+        get: (_target, prop) => {
+          if (prop === 'getImageData') return () => ({ data, width: w, height: h });
+          return () => {};
+        },
+        set: () => true,
+      },
+    );
+  };
+
+  const mockLayout = (fakeCtx: unknown) => {
+    vi.mocked(window.HTMLCanvasElement.prototype.getContext).mockReturnValue(
+      fakeCtx as unknown as CanvasRenderingContext2D,
+    );
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({
+      width: 200,
+      height: 60,
+      top: 0,
+      left: 0,
+      bottom: 60,
+      right: 200,
+      x: 0,
+      y: 0,
+      toJSON: () => ({}),
+    } as DOMRect);
+  };
+
+  it('手动拖满整块擦掉遮罩后，点链接不用再揭示一次', () => {
+    mockLayout(makeFakeCtx(200, 60, 1));
+    const { container } = render(
+      <InvisibleInk>
+        <a className="im-link" href="https://example.com" target="_blank" rel="noopener noreferrer">
+          去首页
+        </a>
+      </InvisibleInk>,
+    );
+    const link = container.querySelector('.im-link') as HTMLAnchorElement;
+    const content = container.querySelector('.im-ink-content') as HTMLElement;
+    mockHitTest(link);
+    expect(content.getAttribute('aria-hidden')).toBe('true');
+
+    // 从链接上横向拖满整块：不是点按，松手时遮罩已擦干净 → 直接揭示。
+    fireEvent.pointerDown(link, { button: 0, clientX: 10, clientY: 30, pointerType: 'mouse', pointerId: 1 });
+    fireEvent.pointerMove(link, { button: 0, clientX: 190, clientY: 30, pointerType: 'mouse', pointerId: 1 });
+    fireEvent.pointerUp(link, { button: 0, clientX: 190, clientY: 30, pointerType: 'mouse', pointerId: 1 });
+    expect(content.getAttribute('aria-hidden')).toBe('false');
+
+    // 紧接着点链接：已经是揭示状态，这一下直接放行，不用再揭示一次。
+    tap(link);
+    expect(fireEvent.click(link, { clientX: 10, clientY: 30 })).toBe(true);
+  });
+
+  it('只擦掉一半遮罩时，点链接仍要先揭示', () => {
+    mockLayout(makeFakeCtx(200, 60, 0.5));
+    const { container } = render(
+      <InvisibleInk>
+        <a className="im-link" href="https://example.com" target="_blank" rel="noopener noreferrer">
+          去首页
+        </a>
+      </InvisibleInk>,
+    );
+    const link = container.querySelector('.im-link') as HTMLAnchorElement;
+    const content = container.querySelector('.im-ink-content') as HTMLElement;
+    mockHitTest(link);
+
+    fireEvent.pointerDown(link, { button: 0, clientX: 10, clientY: 30, pointerType: 'mouse', pointerId: 1 });
+    fireEvent.pointerMove(link, { button: 0, clientX: 190, clientY: 30, pointerType: 'mouse', pointerId: 1 });
+    fireEvent.pointerUp(link, { button: 0, clientX: 190, clientY: 30, pointerType: 'mouse', pointerId: 1 });
+    // 只擦掉一半 → 不算全擦掉，仍是盖着的。
+    expect(content.getAttribute('aria-hidden')).toBe('true');
+
+    tap(link);
+    expect(fireEvent.click(link, { clientX: 10, clientY: 30 })).toBe(false);
+    expect(content.getAttribute('aria-hidden')).toBe('false');
+  });
+
+  it('从链接上开始拖动时拦掉原生拖拽，擦除手势不被打断', () => {
+    const { container } = render(
+      <InvisibleInk>
+        <a className="im-link" href="https://example.com" target="_blank" rel="noopener noreferrer">
+          去首页
+        </a>
+      </InvisibleInk>,
+    );
+    const root = container.querySelector('.im-ink') as HTMLElement;
+    // fireEvent 返回 false 说明 preventDefault 被调过、原生拖拽已取消。
+    expect(fireEvent.dragStart(root)).toBe(false);
   });
 });

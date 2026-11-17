@@ -252,7 +252,7 @@ export default function QianzhiIslandTaskDrawer({ docked }: { docked: boolean })
   }, [timerSession?.status, timerSession?.endsAt]);
 
   useEffect(() => {
-    if (docked || activities.length === 0 || expanded) setOpen(false);
+    if (docked || expanded) setOpen(false);
   }, [docked, activities.length, expanded]);
 
   // The pill is wider than its 104px config width (sensor + content: ~200px
@@ -376,7 +376,7 @@ export default function QianzhiIslandTaskDrawer({ docked }: { docked: boolean })
       </div>
 
       <AnimatePresence initial={false}>
-        {open && activities.length > 0 && (
+        {open && (
           <motion.div
             className="qz-island-task-layer"
             initial={reduceMotion ? false : { opacity: 0, y: -8, scale: 0.985 }}

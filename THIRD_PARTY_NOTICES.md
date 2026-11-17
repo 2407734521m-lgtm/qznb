@@ -171,3 +171,33 @@ SOFTWARE.
   - 触摸降级：只在细指针 + 可悬停设备上启用（`(hover: hover) and (pointer: fine)`），且只响应鼠标指针；触摸设备完全不倾斜、不注册触摸处理、不挡点击与滚动。
   - 减弱动效：`prefers-reduced-motion` 时倾斜与光晕全关（组件内 `useReducedMotion` 判断 + CSS 兜底）。
 - License: 无上游代码复制，故不附上游许可全文；效果思路来源见上。
+
+
+## Message UI — iMessage screen effects
+
+- Repository: https://github.com/theswerd/imessage-ui
+- Adapted source: `registry/imessage/screen-effects.tsx` → `src/components/ScreenEffectCanvas.tsx`
+- Adaptation: connected the deterministic canvas renderer to qznb's message DOM anchors and send/receive lifecycle; replaced Tailwind utilities with local CSS, capped the canvas pixel ratio at 2 for mobile performance, and kept the canvas inside the chat viewport with pointer events disabled.
+- License: MIT (full text below)
+
+MIT License
+
+Copyright (c) 2026 Ben Swerdlow and contributors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.

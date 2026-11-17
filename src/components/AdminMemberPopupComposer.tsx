@@ -101,8 +101,9 @@ export default function AdminMemberPopupComposer({ recipient, createdBy, onClose
       return;
     }
 
+    const expiryDescription = days > 0 ? days + ' 天内' : '之后';
     const confirmed = await confirmDialog(
-      '确认只向「' + recipient.name + '」发布这条弹窗？对方在线时会在下一轮页面同步时看到；离线时会在 7 天有效期内下次打开网站或软件版时看到。这不是手机系统推送。',
+      '确认只向「' + recipient.name + '」发布这条弹窗？对方在线时会在下一轮页面同步时看到；离线时会在' + expiryDescription + '下次打开网站或软件版时看到。这不是手机系统推送。',
       { confirmText: '发布给此成员' },
     );
     if (!confirmed) return;

@@ -73,7 +73,7 @@ describe('renderRichText', () => {
   });
 
   it('跨多行选中的剧透仍作为同一个隐形墨水区域渲染', () => {
-    const out = html('前||第一行\\n第二行||后');
+    const out = html('前||第一行\n第二行||后');
     expect((out.match(/class="im-ink"/g) ?? [])).toHaveLength(1);
     expect(out).toContain('第一行');
     expect(out).toContain('第二行');

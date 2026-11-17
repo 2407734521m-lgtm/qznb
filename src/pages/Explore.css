@@ -140,6 +140,7 @@
 .discover-photo--love { object-position: 74% 50%; }
 .discover-photo--questions { object-position: 76% 50%; }
 .discover-photo--music { object-position: 50% 50%; }
+.discover-photo--videos { object-position: 50% 50%; }
 .discover-photo--signature { object-position: 50% 50%; }
 .discover-photo--fate { object-position: 50% 50%; }
 
@@ -221,6 +222,7 @@
 .discover-card--questions { --discover-accent: #647d9d; }
 .discover-card--signature { --discover-accent: #8875a5; }
 .discover-card--music { --discover-accent: #63877f; }
+.discover-card--videos { --discover-accent: #7a6a9d; }
 .discover-card--fate { --discover-accent: #7b8294; }
 
 @media (hover: hover) and (pointer: fine) {

@@ -126,6 +126,9 @@ const [checked, setChecked] = useState<number[]>([]);
 const [busy, setBusy] = useState('');
 const [playingId, setPlayingId] = useState<number | null>(null);
 const [reviewQuery, setReviewQuery] = useState('');
+const [reviewShown, setReviewShown] = useState(10);
+const [publishedShown, setPublishedShown] = useState(10);
+const [thumbFailed, setThumbFailed] = useState<Record<number, boolean>>({});
 // 新增来源表单
 const [sName, setSName] = useState('');
 const [sPlatform, setSPlatform] = useState('youtube');
@@ -179,6 +182,10 @@ void (async () => { if (alive) await loadAll();})();
 return () => { alive = false;};
 // eslint-disable-next-line react-hooks/exhaustive-deps
 }, []);
+
+useEffect(() => {
+setReviewShown(10);
+}, [reviewQuery]);
 
 const failedRuns = useMemo(
 () => runs.filter(r => r.status === 'failed' || r.status === 'partial' || r.failed_count > 0 || r.error),
@@ -465,7 +472,11 @@ onClick={() => setPlayingId(v.id)}
 aria-label={'预览播放 ' + v.title}
 style={{ display: 'block', width: '100%', padding: 0, marginTop: 10, border: 'none', background: 'none', cursor: 'pointer', position: 'relative'}}
 >
-<img src={v.thumbnail_url} alt="" loading="lazy" style={{ width: '100%', maxWidth: 480, borderRadius: 12, display: 'block'}} />
+{thumbFailed[v.id] ? (
+<div style={{ width: '100%', maxWidth: 480, aspectRatio: '16 / 9', borderRadius: 12, background: '#22314a', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13 }}>封面加载不出来，点这里试播</div>
+) : (
+<img src={v.thumbnail_url} alt="" loading="lazy" onError={() => setThumbFailed(cur => ({ ...cur, [v.id]: true }))} style={{ width: '100%', maxWidth: 480, borderRadius: 12, display: 'block'}} />
+)}
 <span style={{
 position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)',
 width: 52, height: 52, borderRadius: '50%', background: 'rgba(20,28,40,.75)', color: '#fff',
@@ -486,6 +497,7 @@ style={{ width: '100%', maxWidth: 640, aspectRatio: '16 / 9', border: 'none', bo
 <div style={{ marginTop: 6}}>
 <button type="button" onClick={() => setPlayingId(null)} style={btnSmall}>收起播放</button>
 </div>
+<p style={{...mut, margin: '6px 0 0', fontSize: 12}}>如果一直转圈，说明当前网络打不开 YouTube，点下面的「看原链接」换能打开 YouTube 的网络再看。</p>
 </div>
 )}
 <div style={{...rowBtn, alignItems: 'center'}}>
@@ -599,20 +611,30 @@ style={inputStyle}
 <button type="button" onClick={() => setChecked([])} style={btnBase}>取消勾选</button>
 )}
 </div>
-<p style={{...mut, margin: '8px 0 0'}}>待审核 {pending.length} 条（最多显示 100 条）。通过即发布到前台，驳回会记一条审核记录。</p>
+<p style={{...mut, margin: '8px 0 0'}}>待审核 {pending.length} 条（最多显示 100 条）。一次只出 10 条，点加载更多继续看；封面和播放都走 YouTube，国内网络可能加载很慢或打不开，卡住时点卡片下的「看原链接」。通过即发布到前台，驳回会记一条审核记录。</p>
 </div>
 {shownPending.length === 0 && <div style={card}><p style={mut}>没有待审核的视频。每天 07:00 自动采集的新视频会先到这里。</p></div>}
-{shownPending.map(v => videoCard(v, 'review'))}
+{shownPending.slice(0, reviewShown).map(v => videoCard(v, 'review'))}
+{shownPending.length > reviewShown && (
+<div style={{ marginTop: 10 }}>
+<button type="button" onClick={() => setReviewShown(n => n + 10)} style={btnBase}>加载更多（还剩 {shownPending.length - reviewShown} 条）</button>
+</div>
+)}
 </div>
 )}
 
 {!loading &&!err && view === 'published' && (
 <div>
 <div style={card}>
-<p style={mut}>已发布 {published.length} 条（最多显示 100 条）。点封面可以预览官方嵌入播放；撤下后回到待审核，前台立即看不到。</p>
+<p style={mut}>已发布 {published.length} 条（最多显示 100 条）。一次只出 10 条；点封面可以预览官方嵌入播放，国内网络打不开 YouTube 时会一直转圈，属已知限制；撤下后回到待审核，前台立即看不到。</p>
 </div>
 {published.length === 0 && <div style={card}><p style={mut}>还没有已发布的视频。去「待审核」通过几条，这里就会出现。</p></div>}
-{published.map(v => videoCard(v, 'published'))}
+{published.slice(0, publishedShown).map(v => videoCard(v, 'published'))}
+{published.length > publishedShown && (
+<div style={{ marginTop: 10 }}>
+<button type="button" onClick={() => setPublishedShown(n => n + 10)} style={btnBase}>加载更多（还剩 {published.length - publishedShown} 条）</button>
+</div>
+)}
 </div>
 )}
 

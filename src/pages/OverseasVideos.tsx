@@ -40,6 +40,12 @@ export default function OverseasVideos() {
   const [catFilter, setCatFilter] = useState('all');
   const [query, setQuery] = useState('');
   const [playingId, setPlayingId] = useState<number | null>(null);
+  const [shownCount, setShownCount] = useState(12);
+  const [thumbFailed, setThumbFailed] = useState<Record<number, boolean>>({});
+
+  useEffect(() => {
+    setShownCount(12);
+  }, [catFilter, query]);
 
   useEffect(() => {
     let alive = true;
@@ -140,7 +146,7 @@ export default function OverseasVideos() {
         </div>
       )}
 
-      {shown.map(v => {
+      {shown.slice(0, shownCount).map(v => {
         const isPlaying = playingId === v.id;
         const embedSrc = v.platform === 'youtube'
           ? `https://www.youtube-nocookie.com/embed/${v.external_video_id}`
@@ -183,7 +189,11 @@ export default function OverseasVideos() {
                 aria-label={'播放 ' + v.title}
                 style={{ display: 'block', width: '100%', padding: 0, border: 'none', background: 'none', cursor: 'pointer', position: 'relative' }}
               >
-                <img src={v.thumbnail_url} alt="" loading="lazy" style={{ width: '100%', borderRadius: 12, display: 'block' }} />
+                {thumbFailed[v.id] ? (
+                  <div style={{ width: '100%', aspectRatio: '16 / 9', borderRadius: 12, background: '#22314a', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13 }}>封面加载不出来，点这里试播</div>
+                ) : (
+                  <img src={v.thumbnail_url} alt="" loading="lazy" onError={() => setThumbFailed(cur => ({ ...cur, [v.id]: true }))} style={{ width: '100%', borderRadius: 12, display: 'block' }} />
+                )}
                 <span style={{
                   position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)',
                   width: 56, height: 56, borderRadius: '50%', background: 'rgba(20,28,40,.75)', color: '#fff',
@@ -209,6 +219,15 @@ export default function OverseasVideos() {
           </article>
         );
       })}
+      {shown.length > shownCount && (
+        <button
+          type="button"
+          onClick={() => setShownCount(n => n + 12)}
+          style={{ width: '100%', padding: '12px', borderRadius: 12, border: '1px solid #d9dee5', background: '#fff', color: '#22314a', fontSize: 14, cursor: 'pointer' }}
+        >
+          加载更多（还剩 {shown.length - shownCount} 条）
+        </button>
+      )}
     </div>
   );
 }

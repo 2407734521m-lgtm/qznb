@@ -22,6 +22,11 @@ describe('stripRichText（收件箱预览 / 回复引用 / 复制）', () => {
     expect(stripRichText('明天||去看电影||吧')).toBe('明天•••吧');
   });
 
+  it('iMessage 隐形墨水预览隐藏全文，其他气泡特效不泄露内部标记', () => {
+    expect(stripRichText('[[im-bubble-effect:invisible-ink]]这是一条秘密消息')).toBe('•••');
+    expect(stripRichText('[[im-bubble-effect:slam]]**撞击消息**')).toBe('撞击消息');
+  });
+
   it('未配对的标记原样留着', () => {
     expect(stripRichText('这条没配对 || 哦')).toBe('这条没配对 || 哦');
     expect(stripRichText('**没闭合')).toBe('**没闭合');
@@ -32,6 +37,10 @@ describe('unwrapRichText（纯文本：拆掉标记、字留下来）', () => {
   it('剧透的字也留下来', () => {
     expect(unwrapRichText('明天||去看电影||吧')).toBe('明天去看电影吧');
     expect(unwrapRichText('**粗**和[点这里](https://qianzhi.pw)')).toBe('粗和点这里');
+  });
+
+  it('特效标记只在纯文本编辑视图中移除，不丢失消息内容', () => {
+    expect(unwrapRichText('[[im-bubble-effect:gentle]]**轻柔消息**')).toBe('轻柔消息');
   });
 });
 

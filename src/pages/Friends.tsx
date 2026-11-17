@@ -11,6 +11,7 @@ import { confirmDialog } from '../lib/dialog';
 import ChatConversationItem from '../components/chatcn/ChatConversationItem';
 import './Friends.chatcn.css';
 import SwipeToDelete, { showUndoToast } from '../components/SwipeToDelete';
+import { getChatBubbleEffect, stripChatBubbleEffect } from '../lib/chatMessageEffect';
 
 type Friend = {
   id: string;
@@ -100,7 +101,9 @@ function formatInboxTime(value: string | null, fallback: string) {
 function previewText(item: ConversationPreview, myId: string) {
   if (!item.last_message_id) return '新的对话，发出第一条消息吧';
   if (item.last_message_deleted) return '消息已撤回';
-  const body = item.last_message_body ?? '';
+  const storedBody = item.last_message_body ?? '';
+  if (getChatBubbleEffect(storedBody) === 'invisible-ink') return '•••';
+  const body = stripChatBubbleEffect(storedBody);
   if (body.startsWith('[[im-image:')) return item.last_message_sender_id === myId ? '你发送了一张图片' : '发送了一张图片';
   if (body.startsWith('[[im-audio:')) return item.last_message_sender_id === myId ? '你发送了一段语音' : '发送了一段语音';
   if (body.startsWith('[[im-file:')) return item.last_message_sender_id === myId ? '你发送了一个文件' : '发送了一个文件';

@@ -20,6 +20,8 @@ import DisappearingCustomDialog, { formatDisappearingDuration } from '../compone
 import type { ChatMessage } from '../types/message';
 import { useUserPreferences } from '../lib/userPreferences';
 import { SPRING_SNAPPY } from '../lib/motion';
+import MessageEffectsPicker from '../components/MessageEffectsPicker';
+import { getChatBubbleEffect, stripChatBubbleEffect, withChatBubbleEffect, type ChatBubbleEffect } from '../lib/chatMessageEffect';
 import './Chat.polish.css';
 
 type ChatReaction = { message_id: number; profile_id: string; reaction: string; created_at: string };
@@ -106,9 +108,14 @@ function fileExtLabel(name: string) {
 // 其余格式（**加粗** __斜体__ `等宽` ~~删除线~~ ++下划线++ [链接](url) @[提及](id)
 // 行首 "> " 引用）都在 src/lib/richText.tsx 里解析与剥离；未配对的标记原样显示。
 function MessageContent({ body, onMentionClick }: { body: string; onMentionClick?: (profileId: string) => void }) {
-  const imagePath = body.startsWith('[[im-image:') && body.endsWith(']]') ? body.slice(11, -2) : null;
-  const audioPath = body.startsWith('[[im-audio:') && body.endsWith(']]') ? body.slice(11, -2) : null;
-  const fileParts = body.startsWith('[[im-file:') && body.endsWith(']]') ? body.slice(10, -2).split('|') : null;
+  const bubbleEffect = getChatBubbleEffect(body);
+  const contentBody = stripChatBubbleEffect(body);
+  const renderBody = bubbleEffect === 'invisible-ink' && !contentBody.startsWith('[[')
+    ? `||${unwrapRichText(contentBody)}||`
+    : contentBody;
+  const imagePath = contentBody.startsWith('[[im-image:') && contentBody.endsWith(']]') ? contentBody.slice(11, -2) : null;
+  const audioPath = contentBody.startsWith('[[im-audio:') && contentBody.endsWith(']]') ? contentBody.slice(11, -2) : null;
+  const fileParts = contentBody.startsWith('[[im-file:') && contentBody.endsWith(']]') ? contentBody.slice(10, -2).split('|') : null;
   const filePath = fileParts ? fileParts[0] : null;
   const fileName = fileParts && fileParts[1] ? fileParts[1] : '文件';
   const fileSize = fileParts && fileParts[2] ? Number(fileParts[2]) : 0;
@@ -146,7 +153,7 @@ function MessageContent({ body, onMentionClick }: { body: string; onMentionClick
     </div>
   ) : <div className="fx-skel-wrap" role="status" aria-label="文件加载中"><div className="fx-skel" style={{ width: 200, height: 44, maxWidth: '68vw', borderRadius: 12 }} /></div>;
   if (audioPath) return url ? <div className="im-audio-card"><div className="im-audio-symbol">▶</div><div className="im-audio-main"><div className="im-waveform" aria-hidden="true">{Array.from({ length: 34 }, (_, i) => <i key={i} style={{ height: (5 + ((i * 7 + 3) % 17)) + 'px' }} />)}</div><audio controls preload="metadata" src={url} aria-label="语音消息播放" /></div></div> : <div className="fx-skel-wrap" role="status" aria-label="语音加载中"><div className="fx-skel" style={{ width: 240, height: 60, maxWidth: '68vw', borderRadius: 12 }} /></div>;
-  return <>{renderRichText(body, { onMentionClick })}</>;
+  return <>{renderRichText(renderBody, { onMentionClick })}</>;
 }
 
 function messageTimeLabel(value: string | number) {
@@ -242,6 +249,10 @@ export default function Chat() {
   const [loadingMsgs, setLoadingMsgs] = useState(true);
   const showMsgsSkeleton = useDelayedLoading(loadingMsgs);
   const [text, setText] = useState('');
+  const [effectsPickerOpen, setEffectsPickerOpen] = useState(false);
+  const [effectsPickerSelection, setEffectsPickerSelection] = useState<ChatBubbleEffect | null>(null);
+  const sendHoldTimerRef = useRef<number | null>(null);
+  const sendHoldTriggeredRef = useRef(false);
   // 输入框是否聚焦：只决定底部语音光晕亮不亮，不改任何发送逻辑。
   const [inputFocused, setInputFocused] = useState(false);
   // 格式栏：输入框里有选中的文字才出现（长按选中、拖蓝柄都算）。
@@ -341,8 +352,10 @@ export default function Chat() {
     [msgs],
   );
   const sharedLinkItems = useMemo(() => msgs.flatMap(message => {
-    if (message.deleted_at || message.body.startsWith('[[')) return [];
-    const urls = message.body.match(/https?:\/\/[^\s<>"']+/g) ?? [];
+    if (message.deleted_at) return [];
+    const body = stripChatBubbleEffect(message.body);
+    if (body.startsWith('[[')) return [];
+    const urls = body.match(/https?:\/\/[^\s<>"']+/g) ?? [];
     return urls.map((url, index) => ({ key: message.id + '-' + index, url }));
   }), [msgs]);
   const sharedMediaCount = sharedImageMessages.length + sharedFileMessages.length + sharedAudioMessages.length + sharedLinkItems.length;
@@ -661,6 +674,8 @@ export default function Chat() {
       if (incomingTimer !== null) window.clearTimeout(incomingTimer);
       if (typingStopTimerRef.current !== null) window.clearTimeout(typingStopTimerRef.current);
       if (longPressTimerRef.current !== null) window.clearTimeout(longPressTimerRef.current);
+      if (sendHoldTimerRef.current !== null) window.clearTimeout(sendHoldTimerRef.current);
+      sendHoldTimerRef.current = null;
       typingStopTimerRef.current = null;
       longPressTimerRef.current = null;
       typingActiveRef.current = false;
@@ -1090,10 +1105,10 @@ export default function Chat() {
     dispatch(entry);
   }
 
-  function queueOutgoing(body: string) {
+  function queueOutgoing(body: string, effect: ChatBubbleEffect | null = null) {
     const entry: OutboxEntry = {
       tempKey: 'tmp-' + (++outboxSeqRef.current),
-      body,
+      body: withChatBubbleEffect(body, effect),
       replyToId: replyTarget?.id ?? null,
       replySummary: replyTarget ? messageSummary(replyTarget) : null,
       createdAtMs: Date.now(),
@@ -1262,11 +1277,45 @@ export default function Chat() {
     replaceComposerRange(range.start, range.end, mention, { start: range.start, end: range.start + mention.length });
   }
 
-  function send() {
+  function openMessageEffectsPicker() {
+    if (effectsPickerOpen || !text.trim() || uploading || recording) return;
+    setEffectsPickerSelection(null);
+    setEffectsPickerOpen(true);
+  }
+
+  function startSendButtonPress(event: React.PointerEvent<HTMLButtonElement>) {
+    if (event.button !== 0) return;
+    sendHoldTriggeredRef.current = false;
+    if (sendHoldTimerRef.current !== null) window.clearTimeout(sendHoldTimerRef.current);
+    sendHoldTimerRef.current = window.setTimeout(() => {
+      sendHoldTimerRef.current = null;
+      sendHoldTriggeredRef.current = true;
+      openMessageEffectsPicker();
+    }, 480);
+  }
+
+  function endSendButtonPress() {
+    if (sendHoldTimerRef.current !== null) window.clearTimeout(sendHoldTimerRef.current);
+    sendHoldTimerRef.current = null;
+  }
+
+  function handleSendButtonClick() {
+    if (sendHoldTriggeredRef.current) {
+      sendHoldTriggeredRef.current = false;
+      return;
+    }
+    send();
+  }
+
+  function send(effect: ChatBubbleEffect | null = null) {
     const b = text.trim();
     if (!b || !cid) return;
     notifyTyping('');
-    queueOutgoing(b.slice(0, 2000));
+    const effectLength = effect ? withChatBubbleEffect('', effect).length : 0;
+    const maxBodyLength = 2000 - effectLength;
+    const normalizedBody = Array.from(b).slice(0, maxBodyLength).join('');
+    if (normalizedBody.length < b.length) toast.info('这条特效消息已按 2000 字符上限截短。');
+    queueOutgoing(normalizedBody, effect);
     setText('');
     setComposerSel(null);
     composerSelRef.current = null;
@@ -1293,8 +1342,13 @@ export default function Chat() {
   async function saveEdit(messageId: number) {
     const body = editingText.trim();
     if (!body) { setError('消息内容不能为空。'); return; }
+    const original = msgs.find(message => message.id === messageId);
+    const originalEffect = original ? getChatBubbleEffect(original.body) : null;
+    const effectLength = originalEffect ? withChatBubbleEffect('', originalEffect).length : 0;
+    const normalizedBody = Array.from(body).slice(0, 2000 - effectLength).join('');
+    const preservedBody = withChatBubbleEffect(normalizedBody, originalEffect);
     const { error: editError } = await supabase.rpc('edit_chat_message', {
-      p_message_id: messageId, p_body: body.slice(0, 2000),
+      p_message_id: messageId, p_body: preservedBody,
     });
     if (editError) { setError('编辑失败：' + editError.message); return; }
     setEditingId(null);
@@ -1802,6 +1856,7 @@ export default function Chat() {
                 <div className={'im-message-column ' + (mine ? 'mine' : 'theirs')}>
                   {isGroup && !mine && !samePrevious && <span className="chatcn-group-sender-name">{groupMembers.find(member => member.id === m.sender_id)?.display_name ?? groupMembers.find(member => member.id === m.sender_id)?.username ?? '群成员'}</span>}
                   <div className={'im-bubble ' + (mine ? 'mine' : 'theirs') + (samePrevious ? ' im-bubble-grouped-prev' : '') + (sameNext ? ' im-bubble-grouped-next' : '')}
+                    data-im-effect={getChatBubbleEffect(m.body) ?? undefined}
                     onTouchStart={event => startMessagePress(m.id, event.currentTarget)}
                     onTouchMove={clearMessagePress}
                     onTouchEnd={clearMessagePress}
@@ -1850,7 +1905,8 @@ export default function Chat() {
             transition={reduceMotion ? { duration: 0.01 } : SPRING_SNAPPY}>
             <div className="im-row mine im-row-out">
               <div className="im-out-col im-message-column mine">
-                <div className={'im-bubble mine' + (e.phase === 'failed' ? ' im-bubble-failed' : '')}>
+                <div className={'im-bubble mine' + (e.phase === 'failed' ? ' im-bubble-failed' : '')}
+                  data-im-effect={getChatBubbleEffect(e.body) ?? undefined}>
                   {e.replyToId !== null && <div className="im-reply-quote">回复：{e.replySummary ?? ''}</div>}
                   <MessageContent onMentionClick={openMemberPage} body={e.body} />
                   {inlineMeta && <span className="im-inline-meta mine">{messageTimeLabel(e.createdAtMs)} · {phaseLabel}</span>}
@@ -1910,7 +1966,7 @@ export default function Chat() {
               {!deleted && <button type="button" onClick={() => { setActionFor(null); setTapbackAnchor(null); beginReply(message); }}>
                 <span className="im-context-action-icon">↩</span><span>回复</span>
               </button>}
-              {canEdit && <button type="button" onClick={() => { setActionFor(null); setTapbackAnchor(null); setEditingId(message.id); setEditingText(message.body); }}>
+              {canEdit && <button type="button" onClick={() => { setActionFor(null); setTapbackAnchor(null); setEditingId(message.id); setEditingText(stripChatBubbleEffect(message.body)); }}>
                 <span className="im-context-action-icon">✎</span><span>编辑</span>
               </button>}
               {mine && !deleted && <button type="button" className="danger" onClick={() => { setActionFor(null); setTapbackAnchor(null); void withdrawMessage(message.id); }}>
@@ -2106,7 +2162,12 @@ export default function Chat() {
             onFocus={() => setInputFocused(true)} onBlur={() => setInputFocused(false)}
             placeholder={recording ? '录音中 ' + String(Math.floor(recordSeconds / 60)).padStart(2, '0') + ':' + String(recordSeconds % 60).padStart(2, '0') + ' · 点红色按钮结束' : uploading ? '正在发送媒体…' : '私信'} maxLength={2000} autoComplete="off" aria-label="输入消息"></textarea>
           {!text.trim() && <button type="button" className={'im-mic' + (recording ? ' recording' : '')} aria-label={recording ? '结束录音并发送' : '录制语音'} title={recording ? '结束录音并发送' : '录制语音'} disabled={uploading} onClick={recording ? stopRecording : startRecording}>{recording ? '■' : <svg width="15" height="18" viewBox="0 0 18 22" fill="none" aria-hidden="true"><rect x="6" y="1" width="6" height="13" rx="3" stroke="currentColor" strokeWidth="1.7" /><path d="M3 10.5v1a6 6 0 0 0 12 0v-1M9 17.5V21M6 21h6" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" /></svg>}</button>}
-          {text.trim() && <button type="submit" className="im-send" aria-label="发送消息" disabled={uploading || recording}>↑</button>}
+          {text.trim() && <button type="button" className="im-send" aria-label="发送消息；长按选择发送特效" title="长按选择发送特效"
+            disabled={uploading || recording}
+            onPointerDown={startSendButtonPress} onPointerUp={endSendButtonPress}
+            onPointerCancel={endSendButtonPress}
+            onContextMenu={event => { event.preventDefault(); openMessageEffectsPicker(); }}
+            onClick={handleSendButtonClick}>↑</button>}
         </div>
         <VoiceGlow state={resolveVoiceGlow({ recording, focused: inputFocused })} />
       </form>
@@ -2121,6 +2182,18 @@ export default function Chat() {
         linkText={linkText}
         onClose={() => setLinkDialogOpen(false)}
         onConfirm={applyLink}
+      />
+      <MessageEffectsPicker
+        open={effectsPickerOpen}
+        previewText={text}
+        selected={effectsPickerSelection}
+        onSelect={setEffectsPickerSelection}
+        onSend={() => {
+          if (!effectsPickerSelection) return;
+          setEffectsPickerOpen(false);
+          send(effectsPickerSelection);
+        }}
+        onClose={() => setEffectsPickerOpen(false)}
       />
     </div>
   );

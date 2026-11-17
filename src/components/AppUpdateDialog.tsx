@@ -18,6 +18,12 @@ export default function AppUpdateDialog({ currentName, info, onIgnore }: {
 }) {
   const force = info.app_force_update === 'true';
   const notes = (info.app_update_notes || '').trim() || '修复了一些问题，体验更流畅了。';
+  // APK 地址来自后台配置，只允许 HTTPS，避免错误或不安全协议触发跳转。
+  let updateUrl = '';
+  try {
+    const parsed = new URL(info.app_apk_url || '', window.location.href);
+    if (parsed.protocol === 'https:') updateUrl = parsed.href;
+  } catch { /* Invalid update URL: keep the action disabled. */ }
   return (
     <div className="qz-update-overlay" role="dialog" aria-modal="true" aria-label="版本更新">
       <div className="qz-update-card">
@@ -31,10 +37,10 @@ export default function AppUpdateDialog({ currentName, info, onIgnore }: {
           <span className="qz-update-title">版本更新</span>
           {!force && <button type="button" className="qz-update-close" aria-label="关闭" onClick={onIgnore}>×</button>}
         </div>
-        <div className="qz-update-versions">{currentName} → {info.app_version_name || ''}</div>
+        <div className="qz-update-versions">{currentName} → {info.app_version_name || '新版本'}{info.app_version_code ? ` · Build ${info.app_version_code}` : ''}</div>
         <div className="qz-update-notes">{notes}</div>
         <div className="qz-update-actions">
-          <button type="button" className="qz-update-go" onClick={() => { window.location.href = info.app_apk_url || ''; }}>更新</button>
+          <button type="button" className="qz-update-go" disabled={!updateUrl} onClick={() => { if (updateUrl) window.location.assign(updateUrl); }}>{updateUrl ? '下载并更新' : '更新链接暂不可用'}</button>
           {!force && <button type="button" className="qz-update-skip" onClick={onIgnore}>忽略</button>}
         </div>
       </div>

@@ -382,24 +382,27 @@ function Shell() {
   const [appAnnouncements, setAppAnnouncements] = useState<Array<{ id: number; title: string; body: string; created_at: string }>>([]);
   const [updateDismissed, setUpdateDismissed] = useState(false);
   const appUpdateCodeRef = useRef('');
+  const appUpdateRequestRef = useRef(0);
   const fetchAppUpdate = async () => {
     // 管理版继续使用独立更新通道；学生版才接收软件专属公告。
     const adminApp = detectInstalledAdminApp();
     const appInfo = detectInstalledApp();
     if (!adminApp && !appInfo) return;
+    const requestId = ++appUpdateRequestRef.current;
     const uid = session?.user.id;
 
+    // Presence 上报只是统计信息，失败不能阻断版本检查和更新公告。
     if (appInfo && uid) {
       const device = parseDevice(navigator.userAgent || '');
-      const { error: presenceError } = await supabase.from('member_presence').upsert({
+      // 显式调用 then 触发 Supabase thenable 请求；统计写入失败不影响更新检查。
+      void supabase.from('member_presence').upsert({
         profile_id: uid,
         device: device || null,
         client_platform: 'mobile',
         app_version_name: appInfo.name,
         app_version_code: appInfo.code,
         updated_at: new Date().toISOString(),
-      }, { onConflict: 'profile_id' });
-      if (presenceError) return;
+      }, { onConflict: 'profile_id' }).then(() => undefined, () => undefined);
     }
 
     const [updateResult, announcementResult] = await Promise.all([
@@ -408,6 +411,8 @@ function Shell() {
         ? supabase.rpc('public_app_announcements')
         : Promise.resolve({ data: [], error: null }),
     ]);
+    // 页面切前后台或账号切换时可能并发触发检查，只应用最后一次结果。
+    if (requestId !== appUpdateRequestRef.current) return;
     if (!updateResult.error && updateResult.data) {
       const code = String((updateResult.data as any).app_version_code || '');
       if (appUpdateCodeRef.current && appUpdateCodeRef.current !== code) setUpdateDismissed(false);

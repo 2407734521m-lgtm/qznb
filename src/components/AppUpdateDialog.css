@@ -97,3 +97,9 @@
 @media (prefers-reduced-motion: reduce) {
   .qz-update-card { animation: none; }
 }
+
+.qz-update-go:disabled {
+  cursor: not-allowed;
+  opacity: .48;
+  background: #8a96a8;
+}

@@ -5,7 +5,8 @@ import { getChatBubbleEffect, stripChatBubbleEffect } from './chatMessageEffect'
 // 聊天富文本：Telegram 式纯文本标记，直接存在 messages.body 里，不改表、不改接口。
 // **加粗** __斜体__ `等宽` ~~删除线~~ ++下划线++ ||剧透|| [文字](https://链接) @[文字](成员id)
 // 行首 "> " 是引用。未配对的标记原样显示；链接只认 http/https。
-// 剧透与等宽里面的内容不再嵌套解析（剧透是逐字 span，等宽是原文）；
+// 剧透里面的内容会再解析一层格式（加粗/斜体/删除线/下划线/链接/@提及/等宽），
+// 剧透里不再套剧透；等宽里面的内容仍是原文；
 // 加粗/斜体/删除线/下划线里面可以再嵌套（比如 **明天 ||去看电影||**）。
 // 渲染只产出我们自己建的元素 + 文本节点，不插原始 HTML；链接 href 只接受 http/https。
 
@@ -21,7 +22,7 @@ const SPOILER_PLACEHOLDER_SUFFIX = '\uE001';
 const INLINE_PATTERN_SOURCE =
   '(\\uE000qznb-spoiler-\\d+\\uE001|\\*\\*[^*]+?\\*\\*|__[^_]+?__|~~[^~]+?~~|\\+\\+[^+]+?\\+\\+|`[^`\\n]+?`|\\[[^\\]\\n]+\\]\\(https?:\\/\\/[^\\s)]+\\)|@\\[[^\\]\\n]+\\]\\([^)\\s]+\\))';
 
-function parseInline(text: string, handlers: RichTextHandlers, keyPrefix: string, spoilers: string[]): ReactNode[] {
+function parseInline(text: string, handlers: RichTextHandlers, keyPrefix: string, spoilers: string[], allowSpoiler = true): ReactNode[] {
   const nodes: ReactNode[] = [];
   let lastIndex = 0;
   let index = 0;
@@ -33,8 +34,17 @@ function parseInline(text: string, handlers: RichTextHandlers, keyPrefix: string
     }
     const key = `${keyPrefix}${index++}`;
     if (token.startsWith(SPOILER_PLACEHOLDER_PREFIX)) {
-      const spoilerIndex = Number(token.slice(SPOILER_PLACEHOLDER_PREFIX.length, -SPOILER_PLACEHOLDER_SUFFIX.length));
-      nodes.push(<InvisibleInk key={key} text={spoilers[spoilerIndex] ?? ''} />);
+      if (!allowSpoiler) {
+        // 剧透里不再套剧透：占位符只当普通文本，避免无界递归。
+        nodes.push(token);
+      } else {
+        const spoilerIndex = Number(token.slice(SPOILER_PLACEHOLDER_PREFIX.length, -SPOILER_PLACEHOLDER_SUFFIX.length));
+        nodes.push(
+          <InvisibleInk key={key}>
+            {parseInline(spoilers[spoilerIndex] ?? '', handlers, `${key}-`, spoilers, false)}
+          </InvisibleInk>,
+        );
+      }
     } else if (token.startsWith('**')) {
       nodes.push(<strong key={key}>{parseInline(token.slice(2, -2), handlers, `${key}-`, spoilers)}</strong>);
     } else if (token.startsWith('__')) {

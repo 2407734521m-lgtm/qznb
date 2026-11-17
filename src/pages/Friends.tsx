@@ -12,6 +12,7 @@ import ChatConversationItem from '../components/chatcn/ChatConversationItem';
 import './Friends.chatcn.css';
 import SwipeToDelete, { showUndoToast } from '../components/SwipeToDelete';
 import { getChatBubbleEffect, stripChatBubbleEffect } from '../lib/chatMessageEffect';
+import { stripRichText } from '../lib/richText';
 
 type Friend = {
   id: string;
@@ -108,7 +109,8 @@ function previewText(item: ConversationPreview, myId: string) {
   if (body.startsWith('[[im-audio:')) return item.last_message_sender_id === myId ? '你发送了一段语音' : '发送了一段语音';
   if (body.startsWith('[[im-video:')) return item.last_message_sender_id === myId ? '你发送了一段视频' : '发送了一段视频';
   if (body.startsWith('[[im-file:')) return item.last_message_sender_id === myId ? '你发送了一个文件' : '发送了一个文件';
-  return body || '消息';
+  // 行内剧透 ||...|| 也要剥掉、只留 •••，不能在列表页泄露原文（回复引用/复制早就在用 stripRichText）。
+  return stripRichText(body) || '消息';
 }
 
 function ChatInboxIcon({ name }: { name: string }) {

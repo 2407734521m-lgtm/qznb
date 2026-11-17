@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import type { KeyboardEvent, PointerEvent } from 'react';
+import type { KeyboardEvent, PointerEvent, ReactNode } from 'react';
 
 // iMessage-style invisible ink: a uniform, fine-grain particle veil covers the whole
 // message area. Dragging a finger removes only the veil beneath the gesture; the
@@ -44,7 +44,7 @@ function isTransparentColor(color: string): boolean {
   return !color || color === 'transparent' || /rgba\([^)]*,\s*0(?:\.0+)?\s*\)/.test(color);
 }
 
-export default function InvisibleInk({ text }: { text: string }) {
+export default function InvisibleInk({ children }: { children: ReactNode }) {
   const rootRef = useRef<HTMLSpanElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fieldRef = useRef<HTMLCanvasElement | null>(null);
@@ -377,11 +377,14 @@ export default function InvisibleInk({ text }: { text: string }) {
         window.clearTimeout(recoveryTimerRef.current);
       }
     };
-    // The text is immutable for a mounted spoiler node; resize observes line wrapping and font changes.
+    // The children are immutable for a mounted spoiler node; resize observes line wrapping and font changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const onPointerDown = (event: PointerEvent<HTMLSpanElement>) => {
+    // 右键/中键不启动擦除与揭示：右键开操作菜单时 pointerup 同样会到这里，
+    // 不拦的话菜单弹出的同时文字就被揭示了。
+    if (event.button !== 0) return;
     pendingScrollRecoverRef.current = false;
     pointerRef.current = {
       x: event.clientX,
@@ -401,39 +404,57 @@ export default function InvisibleInk({ text }: { text: string }) {
     } catch {
       // Pointer capture may be unavailable in embedded webviews; normal pointer events still work.
     }
+    // 鼠标/触控笔按下即进入擦除模式：先在落点擦一个点，快速拖动的第一段才不会丢。
+    // 触屏先保持 pending（等分清是横滑擦除还是竖滑滚动），不在落点先擦。
+    if (pointerRef.current.mode === 'wipe') {
+      wipeBetween(event.clientX, event.clientY, event.clientX, event.clientY);
+    }
   };
 
   const onPointerMove = (event: PointerEvent<HTMLSpanElement>) => {
     const previous = pointerRef.current;
     if (!previous) return;
-    const next = { ...previous, x: event.clientX, y: event.clientY };
+    // 快速拖动时浏览器会把多次移动合并成一个事件：把合并的采样点都擦一遍，
+    // 只擦最后一个点会在两次采样之间留下一段没擦掉的遮罩。
+    const native = event.nativeEvent;
+    const samples: Array<{ clientX: number; clientY: number }> =
+      typeof native.getCoalescedEvents === 'function' && native.getCoalescedEvents().length > 0
+        ? native.getCoalescedEvents()
+        : [native];
+    let current = previous;
+    for (const sample of samples) {
+      const next = { ...current, x: sample.clientX, y: sample.clientY };
 
-    if (previous.mode === 'pending') {
-      const deltaX = event.clientX - previous.startX;
-      const deltaY = event.clientY - previous.startY;
-      if (Math.max(Math.abs(deltaX), Math.abs(deltaY)) < 8) {
-        pointerRef.current = next;
-        return;
+      if (current.mode === 'pending') {
+        const deltaX = sample.clientX - current.startX;
+        const deltaY = sample.clientY - current.startY;
+        if (Math.max(Math.abs(deltaX), Math.abs(deltaY)) < 8) {
+          current = next;
+          continue;
+        }
+        if (Math.abs(deltaY) > Math.abs(deltaX)) {
+          current = { ...next, mode: 'scroll' };
+          continue;
+        }
+        current = { ...next, mode: 'wipe' };
+        wipeBetween(current.startX, current.startY, sample.clientX, sample.clientY);
+        continue;
       }
-      if (Math.abs(deltaY) > Math.abs(deltaX)) {
-        pointerRef.current = { ...next, mode: 'scroll' };
-        return;
+
+      if (current.mode === 'scroll') {
+        current = next;
+        continue;
       }
-      pointerRef.current = { ...next, mode: 'wipe' };
-      wipeBetween(previous.startX, previous.startY, event.clientX, event.clientY);
-      return;
-    }
 
-    if (previous.mode === 'scroll') {
-      pointerRef.current = next;
-      return;
+      wipeBetween(current.x, current.y, sample.clientX, sample.clientY);
+      current = next;
     }
-
-    wipeBetween(previous.x, previous.y, event.clientX, event.clientY);
-    pointerRef.current = next;
+    pointerRef.current = current;
   };
 
   const onPointerUp = (event: PointerEvent<HTMLSpanElement>) => {
+    // 非主按钮的抬起不揭示、也不调度恢复：左键手势还在继续就别打断它。
+    if (event.button !== 0) return;
     const pointer = pointerRef.current;
     pointerRef.current = null;
     pendingScrollRecoverRef.current = false;
@@ -493,7 +514,7 @@ export default function InvisibleInk({ text }: { text: string }) {
       }}
     >
       <span className="im-ink-content" style={{ position: 'relative', zIndex: 0 }}>
-        {text}
+        {children}
       </span>
       <canvas
         ref={canvasRef}

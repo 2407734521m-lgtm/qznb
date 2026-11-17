@@ -1,5 +1,6 @@
 import { Fragment, type ReactNode } from 'react';
 import InvisibleInk from '../components/InvisibleInk';
+import { getChatBubbleEffect, stripChatBubbleEffect } from './chatMessageEffect';
 
 // 聊天富文本：Telegram 式纯文本标记，直接存在 messages.body 里，不改表、不改接口。
 // **加粗** __斜体__ `等宽` ~~删除线~~ ++下划线++ ||剧透|| [文字](https://链接) @[文字](成员id)
@@ -101,7 +102,8 @@ export function renderRichText(text: string, handlers: RichTextHandlers = {}): R
 
 // 收件箱预览 / 回复引用 / 复制：把标记都剥掉，只留干净文字；剧透不泄露原文，显示 •••。
 export function stripRichText(text: string): string {
-  return text
+  if (getChatBubbleEffect(text) === 'invisible-ink') return '•••';
+  return stripChatBubbleEffect(text)
     .replace(/\|\|[\s\S]+?\|\|/g, '•••')
     .replace(/@\[([^\]\n]+)\]\([^)\s]+\)/g, '$1')
     .replace(/\[([^\]\n]+)\]\((?:https?:\/\/[^\s)]+)\)/g, '$1')
@@ -115,7 +117,7 @@ export function stripRichText(text: string): string {
 
 // 「纯文本」：把选区里的标记全拆掉、字留下来（剧透的字也留下来，和 stripRichText 不一样）。
 export function unwrapRichText(text: string): string {
-  return text
+  return stripChatBubbleEffect(text)
     .replace(/\|\|([\s\S]+?)\|\|/g, '$1')
     .replace(/@\[([^\]\n]+)\]\([^)\s]+\)/g, '$1')
     .replace(/\[([^\]\n]+)\]\((?:https?:\/\/[^\s)]+)\)/g, '$1')

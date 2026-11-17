@@ -5,6 +5,7 @@ import { alog } from '../pages/admin/shared';
 import AdminMemberModal from './AdminMemberModal';
 import AdminMemberModeration from './AdminMemberModeration';
 import AdminMemberMessageComposer from './AdminMemberMessageComposer';
+import AdminMemberPopupComposer from './AdminMemberPopupComposer';
 import OptionSheet from './OptionSheet';
 
 const SORT_OPTIONS = [
@@ -64,6 +65,7 @@ export default function AdminAccountManagement({
   const [detailId, setDetailId] = useState<string | null>(null);
   const [moderationId, setModerationId] = useState<string | null>(null);
   const [messageRecipients, setMessageRecipients] = useState<Array<{ id: string; name: string }> | null>(null);
+  const [popupTarget, setPopupTarget] = useState<{ id: string; name: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
@@ -363,6 +365,9 @@ export default function AdminAccountManagement({
       <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap', marginTop: 10 }}>
         {isSuper && r.role === 'member' && r.joined && <button style={{ ...btn, borderColor: '#6abac766', color: '#9de3e2' }}
           onClick={() => setMessageRecipients([{ id: r.id, name: r.display_name || r.username }])}>发送消息</button>}
+        {isSuper && r.role === 'member' && r.joined && <button
+          style={{ ...btn, borderColor: '#d6a24a88', color: '#9a6a1a' }}
+          onClick={() => setPopupTarget({ id: r.id, name: r.display_name || r.username })}>单独弹窗</button>}
         {isSuper && r.role === 'member' && <button style={{ ...btn, borderColor: '#e6a85c66', color: '#f1c37d' }}
           onClick={() => setModerationId(current => current === r.id ? null : r.id)}>纪律管理</button>}
         <button style={btn} onClick={() => setDetailId(r.id)}>成员档案 / 活动记录</button>
@@ -391,6 +396,12 @@ export default function AdminAccountManagement({
     {messageRecipients && <AdminMemberMessageComposer
       recipients={messageRecipients}
       onClose={() => setMessageRecipients(null)}
+      setMsg={setMsg}
+    />}
+    {popupTarget && <AdminMemberPopupComposer
+      recipient={popupTarget}
+      createdBy={me}
+      onClose={() => setPopupTarget(null)}
       setMsg={setMsg}
     />}
     {pageCount > 1 && <div style={{ ...panel, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 12 }}>

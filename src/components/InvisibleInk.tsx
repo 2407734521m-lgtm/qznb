@@ -213,9 +213,8 @@ export default function InvisibleInk({ text }: { text: string }) {
       particlesRef.current = particles;
     }
   };
-  };
 
-  // 把粒子点画到 field 画布上（静态底图，每帧只做整体微移闪一下）。
+  // 把细碎墨点画到 field 画布上；不再整体抖动，保持颗粒边缘清晰。
   const paintField = () => {
     const field = fieldRef.current;
     if (!field) return;

@@ -95,7 +95,7 @@ export function renderRichText(text: string, handlers: RichTextHandlers = {}): R
   // 先把剧透片段替换成内部占位符，再按行解析其他格式。这样一段剧透可跨行，
   // 仍只渲染为一个 InvisibleInk；代码片段中的 || 标记则保持普通代码文本。
   const spoilers: string[] = [];
-  const safeText = text.replace(/`[^`\\n]+?`|\u2063[\\s\\S]+?\u2064|\\|\\|[\\s\\S]+?\\|\\|/g, token => {
+  const safeText = text.replace(/`[^`\n]+?`|\u2063[\s\S]+?\u2064|\|\|[\s\S]+?\|\|/g, token => {
     if (token.startsWith('`')) return token;
     const markerLength = token.startsWith(INVISIBLE_SPOILER_OPEN) ? 1 : 2;
     const index = spoilers.push(token.slice(markerLength, -markerLength)) - 1;
@@ -119,7 +119,7 @@ export function renderRichText(text: string, handlers: RichTextHandlers = {}): R
 export function stripRichText(text: string): string {
   if (getChatBubbleEffect(text) === 'invisible-ink') return '•••';
   return stripChatBubbleEffect(text)
-    .replace(/\u2063[\\s\\S]+?\u2064/g, '•••')
+    .replace(/\u2063[\s\S]+?\u2064/g, '•••')
     .replace(/\|\|[\s\S]+?\|\|/g, '•••')
     .replace(/@\[([^\]\n]+)\]\([^)\s]+\)/g, '$1')
     .replace(/\[([^\]\n]+)\]\((?:https?:\/\/[^\s)]+)\)/g, '$1')
@@ -134,7 +134,7 @@ export function stripRichText(text: string): string {
 // 「纯文本」：把选区里的标记全拆掉、字留下来（剧透的字也留下来，和 stripRichText 不一样）。
 export function unwrapRichText(text: string): string {
   return stripChatBubbleEffect(text)
-    .replace(/\u2063([\\s\\S]+?)\u2064/g, '$1')
+    .replace(/\u2063([\s\S]+?)\u2064/g, '$1')
     .replace(/\|\|([\s\S]+?)\|\|/g, '$1')
     .replace(/@\[([^\]\n]+)\]\([^)\s]+\)/g, '$1')
     .replace(/\[([^\]\n]+)\]\((?:https?:\/\/[^\s)]+)\)/g, '$1')

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { EQUALIZER_BANDS, EQUALIZER_REST_LEVEL, isEndedTrackPush, isMusicTrackFinished, isSameMusicTrack, musicTrackIdentity, resolveMusicEqualizerMode, resolveMusicIslandLabel, shouldCrossfadeMusicTrack, shouldMirrorEqualizerToRoot, shouldShowMainIsland } from './MusicIsland';
+import { EQUALIZER_BANDS, EQUALIZER_REST_LEVEL, MUSIC_ISLAND_INACTIVE_HIDE_DELAY_MS, isEndedTrackPush, isMusicTrackFinished, isSameMusicTrack, musicTrackIdentity, resolveMusicEqualizerMode, resolveMusicIslandLabel, shouldCrossfadeMusicTrack, shouldMirrorEqualizerToRoot, shouldShowMainIsland } from './MusicIsland';
 import { hasNewIslandActivity, resolveIslandDockGesture, resolveIslandGestureSource, shouldCancelPendingIslandDock, shouldEndTracklessMusicActivity, shouldShowIslandHost, shouldShowMusicEmptyState } from './QianzhiMusicIslandActivity';
 import { resolveMetrics } from '../lib/island/config';
 import { createQianzhiIslandMetrics, qianzhiIslandMetrics } from '../lib/island/qianzhi-metrics';
@@ -38,6 +38,12 @@ describe('Qianzhi island geometry profile', () => {
     expect(custom.minimal.height).toBe(38);
   });
 
+});
+
+describe('music island inactivity timeout', () => {
+  it('waits exactly five seconds after playback pauses before hiding the music activity', () => {
+    expect(MUSIC_ISLAND_INACTIVE_HIDE_DELAY_MS).toBe(5000);
+  });
 });
 
 describe('isSameMusicTrack', () => {

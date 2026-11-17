@@ -14,7 +14,7 @@ import { goBackOr } from '../components/BackButton';
 import { confirmDialog } from '../lib/dialog';
 import { toast } from 'sonner';
 import LinkDialog from '../components/LinkDialog';
-import { formatTodayZh, renderRichText, stripRichText, unwrapRichText } from '../lib/richText';
+import { formatTodayZh, renderRichText, stripRichText, unwrapRichText, INVISIBLE_SPOILER_OPEN, INVISIBLE_SPOILER_CLOSE } from '../lib/richText';
 import OptionSheet from '../components/OptionSheet';
 import DisappearingCustomDialog, { formatDisappearingDuration } from '../components/DisappearingCustomDialog';
 import type { ChatMessage } from '../types/message';
@@ -2649,7 +2649,7 @@ export default function Chat() {
           <button type="button" className="im-format-chip im-format-chip--italic" aria-label="斜体"
             onPointerDown={e => e.preventDefault()} onClick={() => applyWrap('__', '__')}>斜体</button>
           <button type="button" className="im-format-chip im-format-chip--spoiler" aria-label="剧透"
-            onPointerDown={e => e.preventDefault()} onClick={() => applyWrap('||', '||')}>剧透</button>
+            onPointerDown={e => { e.preventDefault(); e.stopPropagation(); }} onClick={event => { event.stopPropagation(); applyWrap(INVISIBLE_SPOILER_OPEN, INVISIBLE_SPOILER_CLOSE); }}>剧透</button>
           <button type="button" className="im-format-chip im-format-chip--more" aria-label="更多文字格式"
             aria-haspopup="menu" aria-expanded={formatMoreOpen}
             onPointerDown={e => e.preventDefault()}
@@ -2741,12 +2741,14 @@ export default function Chat() {
         )}
         <div className="im-input-wrap">
           <button type="button" className={'im-format-btn' + (showFormatPanel ? ' im-format-btn--on' : '')}
-            aria-label={showFormatPanel ? '收起格式栏' : '打开格式栏'} aria-expanded={showFormatPanel}
+            aria-label={showFormatPanel ? '收起文字格式' : '打开文字格式'} aria-expanded={showFormatPanel}
             title="文字格式" disabled={uploading || recording}
-            onPointerDown={e => e.preventDefault()}
-            onClick={() => {
+            onPointerDown={event => { event.preventDefault(); event.stopPropagation(); }}
+            onClick={event => {
+              // This control only opens/closes the format toolbar. It never applies
+              // bold/spoiler formatting and must not pass a click into message content.
+              event.stopPropagation();
               if (showFormatPanel) {
-                // 关栏：取消钉住；栏是靠选中文字撑开的，也把选区收掉（光标留在选区末尾、接着打字），栏就收起来了。
                 setFormatPanelPinned(false);
                 setFormatMoreOpen(false);
                 const sel = readComposerSelection() ?? composerSelRef.current;
@@ -2759,7 +2761,7 @@ export default function Chat() {
                 setFormatPanelPinned(true);
               }
               inputRef.current?.focus({ preventScroll: true });
-            }}>B</button>
+            }}>Aa</button>
           <textarea ref={inputRef} className="im-input" rows={1} enterKeyHint="send"
             value={text} onChange={e => { setText(e.target.value); notifyTyping(e.target.value); }}
             onKeyDown={event => {

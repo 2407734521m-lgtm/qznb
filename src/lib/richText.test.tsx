@@ -22,6 +22,7 @@ describe('stripRichText（收件箱预览 / 回复引用 / 复制）', () => {
     expect(stripRichText('明天||去看电影||吧')).toBe('明天•••吧');
     expect(stripRichText('||__**测试**__||')).toBe('•••');
     expect(stripRichText('我：||测试测试测试||')).toBe('我：•••');
+    expect(stripRichText('前\u2063隐藏内容\u2064后')).toBe('前•••后');
   });
 
   it('iMessage 隐形墨水预览隐藏全文，其他气泡特效不泄露内部标记', () => {
@@ -81,6 +82,18 @@ describe('renderRichText', () => {
     expect(out).toContain('<a class="im-link" href="https://qianzhi.pw" target="_blank" rel="noopener noreferrer">官网</a>');
     expect(out).toContain('class="im-mention"');
     expect(out).toContain('千');
+  });
+
+  it('新版零宽剧透标记不显示起止竖线，仍解析内部格式', () => {
+    const markerOpen = '\u2063';
+    const markerClose = '\u2064';
+    const source = `前${markerOpen}**隐藏内容**${markerClose}后`;
+    const out = html(source);
+    expect(out).toContain('im-ink');
+    expect(out).toContain('<strong>隐藏内容</strong>');
+    expect(out).not.toContain(markerOpen);
+    expect(out).not.toContain(markerClose);
+    expect(unwrapRichText(source)).toBe('前隐藏内容后');
   });
 
   it('跨多行选中的剧透仍作为同一个隐形墨水区域渲染', () => {

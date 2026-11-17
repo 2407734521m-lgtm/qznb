@@ -17,6 +17,10 @@ export type RichTextHandlers = {
 // 匹配一整段格式：加粗 / 斜体 / 删除线 / 下划线 / 剧透 / 等宽 / 链接 / @提及。
 // 注意：parseInline 会递归（加粗里可以再嵌套），所以每次调用都 new 一个正则，
 // 不能共用一个带 g 的模块级正则——递归会把 lastIndex 搅乱。
+// 新版输入框使用零宽字符作为剧透边界，不再把可见标记显示在内容前后。
+// 旧消息中的 ||内容|| 仍然兼容读取。
+export const INVISIBLE_SPOILER_OPEN = '\u2063';
+export const INVISIBLE_SPOILER_CLOSE = '\u2064';
 const SPOILER_PLACEHOLDER_PREFIX = '\uE000qznb-spoiler-';
 const SPOILER_PLACEHOLDER_SUFFIX = '\uE001';
 const INLINE_PATTERN_SOURCE =
@@ -91,9 +95,10 @@ export function renderRichText(text: string, handlers: RichTextHandlers = {}): R
   // 先把剧透片段替换成内部占位符，再按行解析其他格式。这样一段剧透可跨行，
   // 仍只渲染为一个 InvisibleInk；代码片段中的 || 标记则保持普通代码文本。
   const spoilers: string[] = [];
-  const safeText = text.replace(/`[^`\n]+?`|\|\|[\s\S]+?\|\|/g, token => {
+  const safeText = text.replace(/`[^`\n]+?`|\u2063[\s\S]+?\u2064|\|\|[\s\S]+?\|\|/g, token => {
     if (token.startsWith('`')) return token;
-    const index = spoilers.push(token.slice(2, -2)) - 1;
+    const markerLength = token.startsWith(INVISIBLE_SPOILER_OPEN) ? 1 : 2;
+    const index = spoilers.push(token.slice(markerLength, -markerLength)) - 1;
     return `${SPOILER_PLACEHOLDER_PREFIX}${index}${SPOILER_PLACEHOLDER_SUFFIX}`;
   });
   // 气泡是 white-space:pre-wrap，\n 直接当文本节点就能换行，不用再插 <br/>。
@@ -114,6 +119,7 @@ export function renderRichText(text: string, handlers: RichTextHandlers = {}): R
 export function stripRichText(text: string): string {
   if (getChatBubbleEffect(text) === 'invisible-ink') return '•••';
   return stripChatBubbleEffect(text)
+    .replace(/\u2063[\s\S]+?\u2064/g, '•••')
     .replace(/\|\|[\s\S]+?\|\|/g, '•••')
     .replace(/@\[([^\]\n]+)\]\([^)\s]+\)/g, '$1')
     .replace(/\[([^\]\n]+)\]\((?:https?:\/\/[^\s)]+)\)/g, '$1')
@@ -128,6 +134,7 @@ export function stripRichText(text: string): string {
 // 「纯文本」：把选区里的标记全拆掉、字留下来（剧透的字也留下来，和 stripRichText 不一样）。
 export function unwrapRichText(text: string): string {
   return stripChatBubbleEffect(text)
+    .replace(/\u2063([\s\S]+?)\u2064/g, '$1')
     .replace(/\|\|([\s\S]+?)\|\|/g, '$1')
     .replace(/@\[([^\]\n]+)\]\([^)\s]+\)/g, '$1')
     .replace(/\[([^\]\n]+)\]\((?:https?:\/\/[^\s)]+)\)/g, '$1')

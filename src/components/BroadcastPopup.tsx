@@ -15,11 +15,9 @@ type Broadcast = {
   created_at: string;
   expires_at: string | null;
   options: unknown;
-  target_ids: unknown;
   starts_at: string | null;
   poke_at: string | null;
   poke_count: number;
-  poke_target_ids: unknown;
   image_url: string | null;
   action_url: string | null;
   action_label: string;
@@ -28,6 +26,7 @@ type Broadcast = {
   repeat_interval_hours: number;
   delivery_view_count: number;
   delivery_last_viewed_at: string | null;
+  poke_target_matches: boolean;
 };
 
 const KICKER: Record<BroadcastKind, string> = {
@@ -47,10 +46,6 @@ const DEFAULT_TITLE: Record<BroadcastKind, string> = {
   refresh: '远程刷新',
 };
 
-function pokeList(b: Broadcast): string[] {
-  if (!Array.isArray(b.poke_target_ids)) return [];
-  return b.poke_target_ids.filter((o): o is string => typeof o === 'string');
-}
 
 function voteOptions(b: Broadcast): string[] {
   if (!Array.isArray(b.options)) return [];
@@ -115,7 +110,7 @@ export default function BroadcastPopup({ uid }: { uid: string }) {
           && (r.status === 'declined' || (d.kind === 'location' && r.status === 'denied'))
           && !!d.poke_at
           && new Date(d.poke_at).getTime() > new Date(r.updated_at).getTime()
-          && (targets.length === 0 || targets.includes(uid));
+          && d.poke_target_matches;
         return isPokeDue || canRepeat;
       });
       if (next && next.kind === 'refresh') {

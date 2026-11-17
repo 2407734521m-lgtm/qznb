@@ -301,8 +301,15 @@ export const createIslandStore = (options: { clock: IslandClock; motion: () => I
       const manualPrimary = CALL_PRIMARY_IDS.has(activity.id)
         ? null
         : manual !== undefined && activity.priority > manual.priority ? null : snapshot.manualPrimary;
+      if (becomesTopCall) clearAlert();
       const expanded = becomesTopCall && snapshot.expanded?.id !== activity.id ? null : snapshot.expanded;
-      commit({ ...snapshot, activities: [...snapshot.activities, activity].sort(byPriority), manualPrimary, expanded });
+      commit({
+        ...snapshot,
+        activities: [...snapshot.activities, activity].sort(byPriority),
+        manualPrimary,
+        expanded,
+        handoff: becomesTopCall ? null : snapshot.handoff,
+      });
       if (start.alert) alert(start.id, idle);
       return handle(start.id);
     },

@@ -3099,8 +3099,8 @@ export type Database = {
           action_label: string; action_url: string | null; audience: string; body: string; button_label: string;
           created_at: string; delivery_last_viewed_at: string | null; delivery_view_count: number;
           expires_at: string | null; id: number; image_url: string | null; kind: string; max_impressions: number;
-          options: Json; poke_at: string | null; poke_count: number; poke_target_ids: Json;
-          repeat_interval_hours: number; starts_at: string | null; target_ids: Json; title: string; visual_style: string;
+          options: Json; poke_at: string | null; poke_count: number; poke_target_matches: boolean;
+          repeat_interval_hours: number; starts_at: string | null; title: string; visual_style: string;
         }[]
       }
       member_detail: {

@@ -134,6 +134,15 @@ function MessageContent({ body, onMentionClick, messageId, autoPlayMedia = false
   const fileSize = fileParts && fileParts[2] ? Number(fileParts[2]) : 0;
   const url = useSignedUrl('chat-media', imagePath ?? audioPath ?? videoPath ?? filePath);
   const posterUrl = useSignedUrl('chat-media', posterPath);
+  const videoElementRef = useRef<HTMLVideoElement | null>(null);
+  useEffect(() => {
+    const pauseOther = (event: Event) => {
+      const detail = (event as CustomEvent<{ id?: number | null }>).detail;
+      if (detail?.id !== messageId) videoElementRef.current?.pause();
+    };
+    window.addEventListener('qz-chat-media-play', pauseOther);
+    return () => window.removeEventListener('qz-chat-media-play', pauseOther);
+  }, [messageId]);
   const [downloading, setDownloading] = useState(false);
   const handleDownload = async (event: ReactMouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
@@ -152,7 +161,7 @@ function MessageContent({ body, onMentionClick, messageId, autoPlayMedia = false
   if (imagePath) return url ? <MessageImagePreview url={url} /> : <div className="fx-skel-wrap" role="status" aria-label="图片加载中"><div className="fx-skel" style={{ width: 220, height: 140, maxWidth: '68vw', borderRadius: 14 }} /></div>;
   if (videoPath) return url ? (
     <div className="im-video-card">
-      <video className="im-video" controls playsInline preload="metadata" src={url} poster={posterUrl ?? undefined} autoPlay={autoPlayMedia}
+      <video ref={videoElementRef} className="im-video" controls playsInline preload="metadata" src={url} poster={posterUrl ?? undefined} autoPlay={autoPlayMedia}
         onPlay={() => window.dispatchEvent(new CustomEvent('qz-chat-media-play', { detail: { id: messageId ?? null } }))}
         onEnded={() => { if (messageId !== undefined) onMediaEnded?.(messageId); }}
         aria-label="视频消息播放" />
@@ -270,6 +279,7 @@ export default function Chat() {
   const [groupInviteBusy, setGroupInviteBusy] = useState(false);
   const [msgs, setMsgs] = useState<ChatMessage[]>([]);
   const [autoPlayMediaId, setAutoPlayMediaId] = useState<number | null>(null);
+  useEffect(() => { setAutoPlayMediaId(null); }, [cid]);
   const [loadingMsgs, setLoadingMsgs] = useState(true);
   const showMsgsSkeleton = useDelayedLoading(loadingMsgs);
   const [text, setText] = useState('');

@@ -15,10 +15,12 @@ export type RichTextHandlers = {
 // 匹配一整段格式：加粗 / 斜体 / 删除线 / 下划线 / 剧透 / 等宽 / 链接 / @提及。
 // 注意：parseInline 会递归（加粗里可以再嵌套），所以每次调用都 new 一个正则，
 // 不能共用一个带 g 的模块级正则——递归会把 lastIndex 搅乱。
+const SPOILER_PLACEHOLDER_PREFIX = '\uE000qznb-spoiler-';
+const SPOILER_PLACEHOLDER_SUFFIX = '\uE001';
 const INLINE_PATTERN_SOURCE =
-  '(\\*\\*[^*]+?\\*\\*|__[^_]+?__|~~[^~]+?~~|\\+\\+[^+]+?\\+\\+|\\|\\|[\\s\\S]+?\\|\\||`[^`\\n]+?`|\\[[^\\]\\n]+\\]\\(https?:\\/\\/[^\\s)]+\\)|@\\[[^\\]\\n]+\\]\\([^)\\s]+\\))';
+  '(\\uE000qznb-spoiler-\\d+\\uE001|\\*\\*[^*]+?\\*\\*|__[^_]+?__|~~[^~]+?~~|\\+\\+[^+]+?\\+\\+|`[^`\\n]+?`|\\[[^\\]\\n]+\\]\\(https?:\\/\\/[^\\s)]+\\)|@\\[[^\\]\\n]+\\]\\([^)\\s]+\\))';
 
-function parseInline(text: string, handlers: RichTextHandlers, keyPrefix: string): ReactNode[] {
+function parseInline(text: string, handlers: RichTextHandlers, keyPrefix: string, spoilers: string[]): ReactNode[] {
   const nodes: ReactNode[] = [];
   let lastIndex = 0;
   let index = 0;
@@ -29,16 +31,17 @@ function parseInline(text: string, handlers: RichTextHandlers, keyPrefix: string
       nodes.push(text.slice(lastIndex, at));
     }
     const key = `${keyPrefix}${index++}`;
-    if (token.startsWith('**')) {
-      nodes.push(<strong key={key}>{parseInline(token.slice(2, -2), handlers, `${key}-`)}</strong>);
+    if (token.startsWith(SPOILER_PLACEHOLDER_PREFIX)) {
+      const spoilerIndex = Number(token.slice(SPOILER_PLACEHOLDER_PREFIX.length, -SPOILER_PLACEHOLDER_SUFFIX.length));
+      nodes.push(<InvisibleInk key={key} text={spoilers[spoilerIndex] ?? ''} />);
+    } else if (token.startsWith('**')) {
+      nodes.push(<strong key={key}>{parseInline(token.slice(2, -2), handlers, `${key}-`, spoilers)}</strong>);
     } else if (token.startsWith('__')) {
-      nodes.push(<em key={key}>{parseInline(token.slice(2, -2), handlers, `${key}-`)}</em>);
+      nodes.push(<em key={key}>{parseInline(token.slice(2, -2), handlers, `${key}-`, spoilers)}</em>);
     } else if (token.startsWith('~~')) {
-      nodes.push(<del key={key}>{parseInline(token.slice(2, -2), handlers, `${key}-`)}</del>);
+      nodes.push(<del key={key}>{parseInline(token.slice(2, -2), handlers, `${key}-`, spoilers)}</del>);
     } else if (token.startsWith('++')) {
-      nodes.push(<u key={key}>{parseInline(token.slice(2, -2), handlers, `${key}-`)}</u>);
-    } else if (token.startsWith('||')) {
-      nodes.push(<InvisibleInk key={key} text={token.slice(2, -2)} />);
+      nodes.push(<u key={key}>{parseInline(token.slice(2, -2), handlers, `${key}-`, spoilers)}</u>);
     } else if (token.startsWith('`')) {
       nodes.push(<code key={key} className="im-code">{token.slice(1, -1)}</code>);
     } else if (token.startsWith('@[')) {
@@ -74,15 +77,23 @@ function parseInline(text: string, handlers: RichTextHandlers, keyPrefix: string
 }
 
 export function renderRichText(text: string, handlers: RichTextHandlers = {}): ReactNode {
+  // 先把剧透片段替换成内部占位符，再按行解析其他格式。这样一段剧透可跨行，
+  // 仍只渲染为一个 InvisibleInk；代码片段中的 || 标记则保持普通代码文本。
+  const spoilers: string[] = [];
+  const safeText = text.replace(/`[^`\n]+?`|\|\|[\s\S]+?\|\|/g, token => {
+    if (token.startsWith('`')) return token;
+    const index = spoilers.push(token.slice(2, -2)) - 1;
+    return `${SPOILER_PLACEHOLDER_PREFIX}${index}${SPOILER_PLACEHOLDER_SUFFIX}`;
+  });
   // 气泡是 white-space:pre-wrap，\n 直接当文本节点就能换行，不用再插 <br/>。
-  const lines = text.split('\n');
+  const lines = safeText.split('\n');
   return lines.map((line, i) => (
     <Fragment key={i}>
       {i > 0 ? '\n' : null}
       {line.startsWith('> ') ? (
-        <blockquote className="im-quote">{parseInline(line.slice(2), handlers, `q${i}-`)}</blockquote>
+        <blockquote className="im-quote">{parseInline(line.slice(2), handlers, `q${i}-`, spoilers)}</blockquote>
       ) : (
-        parseInline(line, handlers, `l${i}-`)
+        parseInline(line, handlers, `l${i}-`, spoilers)
       )}
     </Fragment>
   ));

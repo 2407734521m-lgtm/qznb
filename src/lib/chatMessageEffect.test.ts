@@ -31,6 +31,14 @@ describe('chat bubble effect message markers', () => {
     expect(withChatBubbleEffect('', 'invisible-ink').length).toBe(34);
   });
 
+  it('keeps media message markers intact when adding an effect prefix', () => {
+    const videoBody = '[[im-video:42/user/clip.mp4]]';
+    const decorated = withChatBubbleEffect(videoBody, 'screen-fireworks');
+    expect(getChatBubbleEffect(decorated)).toBe('screen-fireworks');
+    expect(stripChatBubbleEffect(decorated)).toBe(videoBody);
+    expect(stripChatBubbleEffect(withChatBubbleEffect('[[im-audio:voice.webm]]', 'slam'))).toBe('[[im-audio:voice.webm]]');
+  });
+
   it('recognizes all eight screen effects separately from bubble effects', () => {
     const kinds: ScreenEffectKind[] = [
       'echo', 'spotlight', 'balloons', 'confetti',

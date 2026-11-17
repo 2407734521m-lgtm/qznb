@@ -8,6 +8,8 @@ type MessageEffectsPickerProps = {
   onSelect: (effect: ChatBubbleEffect) => void;
   onSend: () => void;
   onClose: () => void;
+  actionLabel?: string;
+  mediaOnly?: boolean;
 };
 
 const BUBBLE_OPTIONS: Array<{
@@ -45,12 +47,15 @@ export default function MessageEffectsPicker({
   onSelect,
   onSend,
   onClose,
+  actionLabel = '发送',
+  mediaOnly = false,
 }: MessageEffectsPickerProps) {
   const [tab, setTab] = useState<'bubble' | 'screen'>('bubble');
   if (!open) return null;
 
   const preview = previewText.trim() || '预览消息效果';
-  const options = tab === 'bubble' ? BUBBLE_OPTIONS : SCREEN_OPTIONS;
+  const bubbleOptions = mediaOnly ? BUBBLE_OPTIONS.filter(option => option.value !== 'invisible-ink') : BUBBLE_OPTIONS;
+  const options = tab === 'bubble' ? bubbleOptions : SCREEN_OPTIONS;
   const selectedForTab = selected !== null && (tab === 'screen'
     ? selected.startsWith('screen-')
     : !selected.startsWith('screen-'));
@@ -94,6 +99,7 @@ export default function MessageEffectsPicker({
                 : preview.slice(0, 72)}
             </div>
             {selected === 'invisible-ink' && selectedForTab && <span className="im-effects-preview-hint">发送后，轻扫墨点即可阅读</span>}
+            {mediaOnly && <span className="im-effects-preview-hint">此特效将应用于下一张图片、GIF、视频、语音或文件</span>}
           </div>
         ) : (
           <div className={'im-effects-screen-preview' + (selectedForTab ? ' selected' : '')}>
@@ -127,7 +133,7 @@ export default function MessageEffectsPicker({
 
         <footer className="im-effects-footer">
           <button type="button" className="im-effects-cancel" onClick={onClose}>取消</button>
-          <button type="button" className="im-effects-send" disabled={!selectedForTab || !previewText.trim()} onClick={onSend}>发送</button>
+          <button type="button" className="im-effects-send" disabled={!selectedForTab || !previewText.trim()} onClick={onSend}>{actionLabel}</button>
         </footer>
       </section>
     </div>

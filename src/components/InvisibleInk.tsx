@@ -15,6 +15,14 @@ const RECOVER_FADE_MS = 900;
 const WIPE_FADE_MS = 180;
 
 type Particle = { x: number; y: number; r: number; color: string; charIndex: number };
+
+// Small deterministic noise avoids random reshuffling when the component is resized.
+function particleRandom(seed: number): number {
+  let value = Math.imul(seed ^ 0x9e3779b9, 0x85ebca6b);
+  value = Math.imul(value ^ (value >>> 16), 0x7feb352d);
+  value = Math.imul(value ^ (value >>> 15), 0x846ca68b);
+  return ((value ^ (value >>> 16)) >>> 0) / 4294967296;
+}
 type Point = { x: number; y: number };
 type InkRect = { left: number; top: number; right: number; bottom: number };
 
@@ -129,13 +137,18 @@ export default function InvisibleInk({ text }: { text: string }) {
   const reducedMotionRef = useRef(false);
   const inViewRef = useRef(true);
 
-  // 按单字位置布粒子点（只盖住字，不铺满气泡空白处）。
+  // 从浏览器真实字形的 alpha 蒙版取样，而不是在每个字符的矩形里撒点。
+  // 旧算法把粒子随机放在字框里，视觉上就会变成每个字一团；模糊阴影又把小点粘在一起。
   const seedParticles = () => {
     const root = rootRef.current;
     if (!root) return;
     const rootRect = root.getBoundingClientRect();
     const particles: Particle[] = [];
-    chars.forEach((_, i) => {
+    const scale = 2;
+    const sampleStep = 3;
+
+    chars.forEach((ch, i) => {
+      if (!ch.trim()) return;
       const el = charRefs.current[i];
       if (!el) return;
       const rect = el.getBoundingClientRect();
@@ -144,19 +157,62 @@ export default function InvisibleInk({ text }: { text: string }) {
       const w = rect.width;
       const h = rect.height;
       if (w <= 0 || h <= 0) return;
-      const count = Math.max(2, Math.round((w * h) / 36));
-      for (let j = 0; j < count; j++) {
-        const light = 88 + Math.random() * 10;
-        particles.push({
-          x: x + Math.random() * w,
-          y: y + Math.random() * h,
-          r: 0.8 + Math.random() * 1.1,
-          color: `hsl(210 100% ${light.toFixed(0)}%)`,
-          charIndex: i,
-        });
+
+      const raster = document.createElement('canvas');
+      raster.width = Math.max(1, Math.ceil(w * scale));
+      raster.height = Math.max(1, Math.ceil(h * scale));
+      const rasterContext = raster.getContext('2d', { willReadFrequently: true });
+      if (!rasterContext) return;
+
+      const style = window.getComputedStyle(el);
+      rasterContext.scale(scale, scale);
+      rasterContext.font = [
+        style.fontStyle,
+        style.fontVariant,
+        style.fontWeight,
+        style.fontSize,
+        style.fontFamily,
+      ].join(' ');
+      rasterContext.textAlign = 'center';
+      rasterContext.textBaseline = 'alphabetic';
+      rasterContext.fillStyle = '#ffffff';
+
+      const metrics = rasterContext.measureText(ch);
+      const ascent = metrics.actualBoundingBoxAscent || parseFloat(style.fontSize) * 0.75;
+      const descent = metrics.actualBoundingBoxDescent || parseFloat(style.fontSize) * 0.25;
+      const glyphHeight = ascent + descent;
+      const baseline = (h - glyphHeight) / 2 + ascent;
+      rasterContext.fillText(ch, w / 2, baseline);
+
+      const pixels = rasterContext.getImageData(0, 0, raster.width, raster.height).data;
+      for (let py = 1; py < raster.height; py += sampleStep) {
+        for (let px = 1; px < raster.width; px += sampleStep) {
+          const alpha = pixels[(py * raster.width + px) * 4 + 3] / 255;
+          if (alpha < 0.28) continue;
+
+          const seed = Math.imul(i + 1, 73856093) ^ Math.imul(px + 1, 19349663) ^ Math.imul(py + 1, 83492791);
+          if (particleRandom(seed) > alpha * 0.88) continue;
+
+          const shade = 78 + Math.round(particleRandom(seed ^ 0x51ed270b) * 16);
+          particles.push({
+            x: x + (px + particleRandom(seed ^ 0x68bc21eb) * sampleStep) / scale,
+            y: y + (py + particleRandom(seed ^ 0x02e5be93) * sampleStep) / scale,
+            r: 0.42 + particleRandom(seed ^ 0x967a889b) * 0.42,
+            color: `hsl(212 76% ${shade}%)`,
+            charIndex: i,
+          });
+        }
       }
     });
-    particlesRef.current = particles.slice(0, 800);
+
+    // Keep the cloud detailed without allowing very long messages to create an excessive canvas workload.
+    if (particles.length > 1800) {
+      const stride = Math.ceil(particles.length / 1800);
+      particlesRef.current = particles.filter((_, index) => index % stride === 0).slice(0, 1800);
+    } else {
+      particlesRef.current = particles;
+    }
+  };
   };
 
   // 把粒子点画到 field 画布上（静态底图，每帧只做整体微移闪一下）。
@@ -310,9 +366,8 @@ export default function InvisibleInk({ text }: { text: string }) {
     if (!ctx) return;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, w, h);
-    const ox = reducedMotionRef.current ? 0 : (Math.random() - 0.5) * 1.4;
-    const oy = reducedMotionRef.current ? 0 : (Math.random() - 0.5) * 1.4;
-    ctx.drawImage(field, ox, oy, w, h);
+    // Keep the micro-particles pixel-sharp; shifting the whole layer every frame made them blur into clumps.
+    ctx.drawImage(field, 0, 0, w, h);
     if (regeneratingRef.current) {
       const progress = (now - regenStartRef.current) / RECOVER_FADE_MS;
       if (progress >= 1) {
@@ -330,7 +385,7 @@ export default function InvisibleInk({ text }: { text: string }) {
       }
     }
     ctx.globalCompositeOperation = 'destination-out';
-    ctx.drawImage(mask, ox, oy, w, h);
+    ctx.drawImage(mask, 0, 0, w, h);
     ctx.globalCompositeOperation = 'source-over';
   };
 

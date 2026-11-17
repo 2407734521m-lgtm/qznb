@@ -167,11 +167,13 @@ $function$;
 revoke all on function public.record_broadcast_delivery_event(bigint,text) from public, anon;
 grant execute on function public.record_broadcast_delivery_event(bigint,text) to authenticated;
 
-create or replace function public.member_active_broadcasts(p_client_platform text)
+drop function if exists public.member_active_broadcasts(text);
+create function public.member_active_broadcasts(p_client_platform text)
 returns table (
   id bigint, kind text, title text, body text, button_label text, audience text,
-  created_at timestamptz, expires_at timestamptz, options jsonb, target_ids jsonb,
-  starts_at timestamptz, poke_at timestamptz, poke_count integer, poke_target_ids jsonb,
+  created_at timestamptz, expires_at timestamptz, options jsonb,
+  starts_at timestamptz, poke_at timestamptz, poke_count integer,
+  poke_target_matches boolean,
   image_url text, action_url text, action_label text, visual_style text,
   max_impressions smallint, repeat_interval_hours integer,
   delivery_view_count smallint, delivery_last_viewed_at timestamptz
@@ -185,8 +187,13 @@ begin
   end if;
   return query
   select b.id, b.kind, b.title, b.body, b.button_label, b.audience, b.created_at,
-         b.expires_at, b.options, b.target_ids, b.starts_at, b.poke_at, b.poke_count,
-         b.poke_target_ids, b.image_url, b.action_url, b.action_label, b.visual_style,
+         b.expires_at, b.options, b.starts_at, b.poke_at, b.poke_count,
+         case
+           when jsonb_typeof(b.poke_target_ids) = 'array' and jsonb_array_length(b.poke_target_ids) > 0
+             then b.poke_target_ids ? auth.uid()::text
+           else true
+         end,
+         b.image_url, b.action_url, b.action_label, b.visual_style,
          b.max_impressions, b.repeat_interval_hours, d.view_count, d.last_viewed_at
     from public.admin_broadcasts b
     join public.broadcast_deliveries d on d.broadcast_id = b.id and d.user_id = auth.uid()
@@ -204,8 +211,4 @@ grant execute on function public.member_active_broadcasts(text) to authenticated
 
 drop policy if exists ab_sel on public.admin_broadcasts;
 create policy ab_sel on public.admin_broadcasts for select to authenticated
-  using (
-    coalesce(public.my_role(), '') in ('admin','super_admin')
-    or exists (select 1 from public.broadcast_deliveries d
-      where d.broadcast_id = admin_broadcasts.id and d.user_id = (select auth.uid()))
-  );
+  using (coalesce(public.my_role(), '') in ('admin','super_admin'));

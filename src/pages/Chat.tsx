@@ -20,7 +20,6 @@ import DisappearingCustomDialog, { formatDisappearingDuration } from '../compone
 import type { ChatMessage } from '../types/message';
 import { useUserPreferences } from '../lib/userPreferences';
 import { SPRING_SNAPPY } from '../lib/motion';
-import { isSwipeToReply } from '../lib/chatGestures';
 import { createChatVideoPoster, isChatVideoFile, resolveChatVideoMime } from '../lib/chatMedia';
 import ChatAudioWaveform from '../components/ChatAudioWaveform';
 import ChatVideoPlayer from '../components/ChatVideoPlayer';
@@ -351,7 +350,16 @@ export default function Chat() {
   const typingStopTimerRef = useRef<number | null>(null);
   const longPressTimerRef = useRef<number | null>(null);
   const longPressTriggeredRef = useRef(false);
-  const messageSwipeRef = useRef<{ messageId: number; startX: number; startY: number; triggered: boolean } | null>(null);
+  const messageTouchRef = useRef<{
+    messageId: number;
+    element: HTMLElement;
+    startX: number;
+    startY: number;
+    currentX: number;
+    mode: 'pending' | 'swipe' | 'scroll' | 'blocked';
+    canSwipe: boolean;
+    mine: boolean;
+  } | null>(null);
   const typingReadyRef = useRef(false);
   const typingActiveRef = useRef(false);
   const [replyTarget, setReplyTarget] = useState<ChatMessage | null>(null);
@@ -419,7 +427,16 @@ export default function Chat() {
 
   useEffect(() => {
     prevMsgsLenRef.current = 0;
-    messageSwipeRef.current = null;
+    const activeTouch = messageTouchRef.current;
+    if (activeTouch) {
+      activeTouch.element.classList.remove('im-swipe-active');
+      activeTouch.element.style.transform = '';
+      activeTouch.element.style.removeProperty('--im-swipe-progress');
+    }
+    messageTouchRef.current = null;
+    if (longPressTimerRef.current !== null) window.clearTimeout(longPressTimerRef.current);
+    longPressTimerRef.current = null;
+    longPressTriggeredRef.current = false;
     setFreshId(null);
     setActiveScreenEffect(null);
     setEffectsPickerOpen(false);
@@ -854,56 +871,100 @@ export default function Chat() {
     setActionFor(messageId);
   }
 
-  function startMessagePress(messageId: number, element: HTMLElement) {
+  function startMessagePress(
+    messageId: number,
+    element: HTMLElement,
+    event: React.TouchEvent<HTMLDivElement>,
+    mine: boolean,
+  ) {
     if (longPressTimerRef.current !== null) window.clearTimeout(longPressTimerRef.current);
     longPressTriggeredRef.current = false;
+    const touch = event.touches.length === 1 ? event.touches[0] : null;
+    const target = event.target instanceof HTMLElement ? event.target : null;
+    const canSwipe = Boolean(touch && !target?.closest(
+      'a,button,input,textarea,select,audio,video,[contenteditable="true"],.im-ink,.im-audio-card,.im-file-card,.im-video-card',
+    ));
+    messageTouchRef.current = touch ? {
+      messageId,
+      element,
+      startX: touch.clientX,
+      startY: touch.clientY,
+      currentX: touch.clientX,
+      mode: canSwipe ? 'pending' : 'blocked',
+      canSwipe,
+      mine,
+    } : null;
+    if (!touch || !canSwipe) return;
     longPressTimerRef.current = window.setTimeout(() => {
+      const state = messageTouchRef.current;
+      if (!state || state.messageId !== messageId || state.mode !== 'pending') return;
+      state.mode = 'blocked';
       longPressTriggeredRef.current = true;
       openMessageActions(messageId, element);
       longPressTimerRef.current = null;
     }, 480);
   }
 
-  function startMessageSwipe(messageId: number, event: React.TouchEvent<HTMLDivElement>) {
+  function moveMessagePress(event: React.TouchEvent<HTMLDivElement>) {
+    const state = messageTouchRef.current;
+    if (!state) return;
     if (event.touches.length !== 1) {
-      messageSwipeRef.current = null;
-      return;
-    }
-    const target = event.target as HTMLElement;
-    if (target.closest('button, a, input, textarea, audio, video, [contenteditable="true"]')) {
-      messageSwipeRef.current = null;
+      state.mode = 'blocked';
+      if (longPressTimerRef.current !== null) window.clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
       return;
     }
     const touch = event.touches[0];
-    messageSwipeRef.current = { messageId, startX: touch.clientX, startY: touch.clientY, triggered: false };
-  }
+    state.currentX = touch.clientX;
+    const dx = touch.clientX - state.startX;
+    const dy = touch.clientY - state.startY;
 
-  function moveMessageSwipe(message: ChatMessage, event: React.TouchEvent<HTMLDivElement>) {
-    const swipe = messageSwipeRef.current;
-    if (!swipe || swipe.messageId !== message.id || swipe.triggered || event.touches.length !== 1) return;
-    const touch = event.touches[0];
-    const deltaX = touch.clientX - swipe.startX;
-    const deltaY = Math.abs(touch.clientY - swipe.startY);
-    // Let the feed own vertical movement. Only a deliberate, mostly horizontal left swipe replies.
-    if (deltaY > 24 && deltaY > Math.abs(deltaX)) {
-      messageSwipeRef.current = null;
-      return;
+    if (state.mode === 'pending') {
+      if (Math.abs(dy) > 9 && Math.abs(dy) > Math.abs(dx) * 1.15) {
+        state.mode = 'scroll';
+      } else {
+        const towardCenter = state.mine ? dx < -9 : dx > 9;
+        if (state.canSwipe && towardCenter && Math.abs(dx) > Math.abs(dy) * 1.15) {
+          state.mode = 'swipe';
+          state.element.classList.add('im-swipe-active');
+        } else if (Math.abs(dx) > 10 || Math.abs(dy) > 10) {
+          state.mode = 'scroll';
+        }
+      }
+      if (state.mode !== 'pending' && longPressTimerRef.current !== null) {
+        window.clearTimeout(longPressTimerRef.current);
+        longPressTimerRef.current = null;
+      }
     }
-    if (isSwipeToReply({ x: swipe.startX, y: swipe.startY }, { x: touch.clientX, y: touch.clientY })) {
-      swipe.triggered = true;
-      beginReply(message);
-    }
+
+    if (state.mode !== 'swipe') return;
+    const inward = state.mine ? Math.min(0, dx) : Math.max(0, dx);
+    const distance = Math.sign(inward) * Math.min(88, Math.abs(inward) * 0.72);
+    const progress = Math.min(1, Math.abs(distance) / 64);
+    state.element.style.transform = `translate3d(${distance}px,0,0)`;
+    state.element.style.setProperty('--im-swipe-progress', String(progress));
   }
 
-  function endMessageSwipe() {
-    messageSwipeRef.current = null;
-  }
-
-  function clearMessagePress(event?: React.TouchEvent<HTMLDivElement>) {
+  function finishMessagePress(
+    event: React.TouchEvent<HTMLDivElement>,
+    message: ChatMessage,
+    allowReply = true,
+  ) {
+    const state = messageTouchRef.current;
     if (longPressTimerRef.current !== null) window.clearTimeout(longPressTimerRef.current);
     longPressTimerRef.current = null;
+    messageTouchRef.current = null;
+
+    if (state?.mode === 'swipe') {
+      const dx = state.currentX - state.startX;
+      state.element.classList.remove('im-swipe-active');
+      state.element.style.transform = '';
+      state.element.style.removeProperty('--im-swipe-progress');
+      if (allowReply && Math.abs(dx) >= 64) beginReply(message);
+      return;
+    }
     if (longPressTriggeredRef.current) {
-      event?.preventDefault();
+      event.preventDefault();
       longPressTriggeredRef.current = false;
     }
   }
@@ -1632,7 +1693,7 @@ export default function Chat() {
         .im-title{font-weight:750;font-size:16px;letter-spacing:.1px;color:#fff;text-shadow:0 1px 12px #0005}.im-sub{font-size:11px;color:rgba(240,250,255,.72);margin-top:3px}
         .im-feed{flex:1;min-height:0;padding:18px 14px 24px;overflow-y:auto;overscroll-behavior:contain;background:transparent}
         .im-day{text-align:center;margin:10px auto 18px;font-size:11px;color:rgba(255,255,255,.9);background:rgba(7,24,34,.34);border:1px solid rgba(255,255,255,.15);backdrop-filter:blur(14px);padding:6px 12px;border-radius:999px;width:max-content;max-width:90%}
-        .im-row{display:flex;margin:9px 0;animation:im-arrive .24s ease-out both}.im-row.mine{justify-content:flex-end}.im-bubble{max-width:min(78%,480px);padding:11px 14px 7px;border-radius:20px;box-shadow:0 8px 24px rgba(0,0,0,.12);overflow-wrap:anywhere;white-space:pre-wrap;font-size:15px;line-height:1.48}
+        .im-row{display:flex;margin:9px 0;animation:im-arrive .24s ease-out both}.im-row.mine{justify-content:flex-end}.im-bubble{position:relative;max-width:min(78%,480px);padding:11px 14px 7px;border-radius:20px;box-shadow:0 8px 24px rgba(0,0,0,.12);overflow-wrap:anywhere;white-space:pre-wrap;font-size:15px;line-height:1.48;touch-action:pan-y;transition:transform .18s cubic-bezier(.2,.8,.2,1)}.im-bubble.im-swipe-active{transition:none}.im-bubble.im-swipe-active:before{content:'↩';position:absolute;top:50%;left:8px;transform:translateY(-50%) scale(calc(.72 + var(--im-swipe-progress,0)*.28));opacity:var(--im-swipe-progress,0);font-size:19px;line-height:1;color:rgba(255,255,255,.88);pointer-events:none}.im-bubble.theirs.im-swipe-active:before{left:auto;right:8px}
         .im-bubble.mine{color:white;background:linear-gradient(135deg,rgba(48,151,255,.98),rgba(15,91,231,.96));border:1px solid rgba(197,229,255,.24);border-bottom-right-radius:7px}.im-bubble.theirs{color:#f4fbff;background:rgba(28,54,91,.62);border:1px solid rgba(203,229,255,.18);border-bottom-left-radius:7px}
         .im-time{font-size:10px;opacity:.68;text-align:right;margin-top:4px}.im-empty{text-align:center;margin:10vh auto 0;max-width:260px;color:rgba(241,250,255,.78)}.im-empty-icon{width:76px;height:76px;border-radius:28px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.2);backdrop-filter:blur(18px);display:grid;place-items:center;font-size:32px;margin:0 auto 16px;box-shadow:0 10px 30px #001a2a40}
         .im-composer{flex:none;padding:10px 12px calc(10px + env(safe-area-inset-bottom));display:flex;align-items:flex-end;gap:9px;background:rgba(8,25,54,.62);-webkit-backdrop-filter:blur(16px) saturate(145%);backdrop-filter:blur(16px) saturate(145%);border-top:1px solid rgba(203,229,255,.18);position:sticky;bottom:0}
@@ -2042,19 +2103,10 @@ export default function Chat() {
                   <div className={'im-bubble ' + (mine ? 'mine' : 'theirs') + (samePrevious ? ' im-bubble-grouped-prev' : '') + (sameNext ? ' im-bubble-grouped-next' : '')}
                     data-im-effect={getChatBubbleEffect(m.body) ?? undefined}
                     data-message-id={m.id}
-                    onTouchStart={event => {
-                      const target = event.target as HTMLElement;
-                      if (target.closest('button, a, input, textarea, audio, video, [contenteditable="true"]')) {
-                        clearMessagePress();
-                        endMessageSwipe();
-                        return;
-                      }
-                      startMessagePress(m.id, event.currentTarget);
-                      startMessageSwipe(m.id, event);
-                    }}
-                    onTouchMove={event => { moveMessageSwipe(m, event); clearMessagePress(event); }}
-                    onTouchEnd={event => { endMessageSwipe(); clearMessagePress(event); }}
-                    onTouchCancel={event => { endMessageSwipe(); clearMessagePress(event); }}
+                    onTouchStart={event => startMessagePress(m.id, event.currentTarget, event, mine)}
+                    onTouchMove={moveMessagePress}
+                    onTouchEnd={event => finishMessagePress(event, m, true)}
+                    onTouchCancel={event => finishMessagePress(event, m, false)}
                     onContextMenu={event => { event.preventDefault(); openMessageActions(m.id, event.currentTarget); }}>
                     {m.reply_to_id && <div className="im-reply-quote">回复：{messageSummary(parent)}</div>}
                     {editingId === m.id ? (

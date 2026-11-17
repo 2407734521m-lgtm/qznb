@@ -84,6 +84,12 @@ type BroadcastRow = {
   poke_at: string | null;
   poke_count: number;
   poke_target_ids: unknown;
+  image_url: string | null;
+  action_url: string | null;
+  action_label: string;
+  visual_style: string;
+  max_impressions: number;
+  repeat_interval_hours: number;
 };
 
 type TemplateRow = {
@@ -105,6 +111,15 @@ function pokeTargets(row: BroadcastRow): string[] {
   return row.poke_target_ids.filter((o): o is string => typeof o === 'string');
 }
 type ReceiptRow = { broadcast_id: number; user_id: string; status: string; region: string | null; answer: string | null; updated_at: string };
+type DeliveryRow = {
+  broadcast_id: number; user_id: string; created_at: string; first_viewed_at: string | null;
+  last_viewed_at: string | null; view_count: number; clicked_at: string | null; click_count: number;
+  dismissed_at: string | null;
+};
+type TargetMember = {
+  id: string; label: string; role: string; created_at: string;
+  lastActive: string | null; platform: string | null;
+};
 
 function rowOptions(row: BroadcastRow): string[] {
   if (!Array.isArray(row.options)) return [];
@@ -118,6 +133,12 @@ export default function AdminBroadcast({ me, setMsg }: { me: string; setMsg: (s:
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
   const [buttonLabel, setButtonLabel] = useState('知道了');
+  const [imageUrl, setImageUrl] = useState('');
+  const [actionUrl, setActionUrl] = useState('');
+  const [actionLabel, setActionLabel] = useState('查看详情');
+  const [visualStyle, setVisualStyle] = useState('standard');
+  const [maxImpressions, setMaxImpressions] = useState('1');
+  const [repeatIntervalHours, setRepeatIntervalHours] = useState('24');
   const [optionsText, setOptionsText] = useState('');
   const [busy, setBusy] = useState(false);
   const [list, setList] = useState<BroadcastRow[]>([]);
@@ -126,8 +147,17 @@ export default function AdminBroadcast({ me, setMsg }: { me: string; setMsg: (s:
   const [respondents, setRespondents] = useState<ReceiptRow[]>([]);
   const [names, setNames] = useState<Record<string, string>>({});
   const [loadingDetail, setLoadingDetail] = useState(false);
-  const [members, setMembers] = useState<{ id: string; label: string }[]>([]);
+  const [members, setMembers] = useState<TargetMember[]>([]);
+  const [membersLoaded, setMembersLoaded] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [groups, setGroups] = useState<{ id: number; name: string }[]>([]);
+  const [selectedGroup, setSelectedGroup] = useState('');
+  const [roleFilter, setRoleFilter] = useState('member');
+  const [registrationFilter, setRegistrationFilter] = useState('all');
+  const [activityFilter, setActivityFilter] = useState('all');
+  const [platformFilter, setPlatformFilter] = useState('all');
+  const [deliveryRows, setDeliveryRows] = useState<DeliveryRow[]>([]);
+  const [deliveryStats, setDeliveryStats] = useState<Record<number, { received: number; viewed: number; clicks: number; pending: number }>>({});
   const [whenMode, setWhenMode] = useState('now');
   const [startAt, setStartAt] = useState('');
   const [preview, setPreview] = useState(false);
@@ -136,23 +166,96 @@ export default function AdminBroadcast({ me, setMsg }: { me: string; setMsg: (s:
   const [templates, setTemplates] = useState<TemplateRow[]>([]);
   const [templatePick, setTemplatePick] = useState('');
 
-  // 指定成员受众：第一次切到「指定成员」时拉一次成员名单供勾选。
+  // 受众与分组只读取已加入成员；活动状态来自成员在线心跳时间。
   useEffect(() => {
-    if (audience !== 'selected' || members.length) return;
+    if (audience !== 'selected' || membersLoaded) return;
     void (async () => {
       const { data } = await supabase.from('profiles')
-        .select('id, display_name, username')
-        .order('created_at', { ascending: true })
-        .limit(200);
-      setMembers((data ?? []).map((p: { id: string; display_name: string | null; username: string | null }) => ({
-        id: p.id,
-        label: p.display_name || p.username || '成员',
-      })));
+        .select('id, display_name, username, role, created_at')
+        .eq('joined', true)
+        .order('created_at', { ascending: false })
+        .limit(1000);
+      const profiles = data ?? [];
+      const ids = profiles.map(p => p.id);
+      const { data: presence } = ids.length
+        ? await supabase.from('member_presence').select('profile_id, updated_at, client_platform').in('profile_id', ids)
+        : { data: [] as { profile_id: string; updated_at: string; client_platform: string }[] };
+      const presenceMap = new Map((presence ?? []).map(p => [p.profile_id, p]));
+      setMembers(profiles.map((p: { id: string; display_name: string | null; username: string | null; role: string; created_at: string }) => {
+        const status = presenceMap.get(p.id);
+        return {
+          id: p.id,
+          label: p.display_name || p.username || '成员',
+          role: p.role,
+          created_at: p.created_at,
+          lastActive: status?.updated_at ?? null,
+          platform: status?.client_platform ?? null,
+        };
+      }));
+      setMembersLoaded(true);
     })();
-  }, [audience, members.length]);
+  }, [audience, membersLoaded]);
+
+  useEffect(() => {
+    void (async () => {
+      const { data } = await supabase.from('admin_member_groups')
+        .select('id, name').order('name', { ascending: true });
+      setGroups((data ?? []) as { id: number; name: string }[]);
+    })();
+  }, []);
 
   function toggleTarget(id: string) {
     setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  }
+
+  function applyMemberFilters() {
+    const cutoffRegistration = registrationFilter === 'all' ? 0
+      : Date.now() - Number(registrationFilter) * 24 * 60 * 60 * 1000;
+    const cutoffActivity = Date.now() - 30 * 24 * 60 * 60 * 1000;
+    const ids = members.filter(member => {
+      if (roleFilter !== 'all' && member.role !== roleFilter) return false;
+      if (cutoffRegistration && new Date(member.created_at).getTime() < cutoffRegistration) return false;
+      if (activityFilter === 'active30' && (!member.lastActive || new Date(member.lastActive).getTime() < cutoffActivity)) return false;
+      if (activityFilter === 'inactive30' && member.lastActive && new Date(member.lastActive).getTime() >= cutoffActivity) return false;
+      if (platformFilter !== 'all' && member.platform !== platformFilter) return false;
+      return true;
+    }).map(member => member.id);
+    setSelectedIds(ids);
+    setMsg(`筛选完成：预计触达 ${ids.length} 位成员。发布前可以继续手动调整名单。`);
+  }
+
+  async function applySavedGroup(id: string) {
+    setSelectedGroup(id);
+    if (!id) return;
+    const { data, error } = await supabase.from('admin_member_group_members')
+      .select('user_id').eq('group_id', Number(id));
+    if (error) { setMsg('成员分组读取失败：' + error.message); return; }
+    const eligible = new Set(members.map(member => member.id));
+    const ids = [...new Set((data ?? []).map(row => row.user_id).filter(id => eligible.has(id)))];
+    setSelectedIds(ids);
+    setMsg(`已载入成员分组，当前 ${ids.length} 位成员符合接收条件。`);
+  }
+
+  async function saveSelectedGroup() {
+    if (!selectedIds.length) { setMsg('先选择成员，再保存为分组。'); return; }
+    const name = await promptDialog('给成员分组命名', { placeholder: '例如：近期活跃成员', confirmText: '保存分组' });
+    if (!name?.trim()) return;
+    const { data, error } = await supabase.from('admin_member_groups')
+      .insert({ name: name.trim(), created_by: me })
+      .select('id, name').single();
+    if (error || !data) { setMsg('分组保存失败：' + (error?.message ?? '未返回分组')); return; }
+    const { error: memberError } = await supabase.from('admin_member_group_members').insert(
+      selectedIds.map(user_id => ({ group_id: data.id, user_id }))
+    );
+    if (memberError) {
+      await supabase.from('admin_member_groups').delete().eq('id', data.id);
+      setMsg('分组成员保存失败：' + memberError.message);
+      return;
+    }
+    setGroups(previous => [...previous, data].sort((a, b) => a.name.localeCompare(b.name)));
+    setSelectedGroup(String(data.id));
+    await alog('broadcast_member_group_create', { group_id: data.id, size: selectedIds.length });
+    setMsg(`已保存成员分组「${data.name}」，共 ${selectedIds.length} 人。`);
   }
 
   const loadTemplates = useCallback(async () => {
@@ -226,8 +329,22 @@ export default function AdminBroadcast({ me, setMsg }: { me: string; setMsg: (s:
         agg[r.broadcast_id][r.status] = (agg[r.broadcast_id][r.status] ?? 0) + 1;
       });
       setCounts(agg);
+      const { data: deliveries } = await supabase.from('broadcast_deliveries')
+        .select('broadcast_id, first_viewed_at, click_count')
+        .in('broadcast_id', rows.map(r => r.id));
+      const stats: Record<number, { received: number; viewed: number; clicks: number; pending: number }> = {};
+      (deliveries ?? []).forEach(d => {
+        const item = stats[d.broadcast_id] ?? { received: 0, viewed: 0, clicks: 0, pending: 0 };
+        item.received += 1;
+        if (d.first_viewed_at) item.viewed += 1;
+        item.clicks += d.click_count ?? 0;
+        stats[d.broadcast_id] = item;
+      });
+      Object.values(stats).forEach(item => { item.pending = item.received - item.viewed; });
+      setDeliveryStats(stats);
     } else {
       setCounts({});
+      setDeliveryStats({});
     }
   }, []);
 
@@ -265,13 +382,20 @@ export default function AdminBroadcast({ me, setMsg }: { me: string; setMsg: (s:
       created_by: me,
       options: voteOpts,
       target_ids: audience === 'selected' ? selectedIds : [],
+      image_url: kind === 'popup' ? (imageUrl.trim() || null) : null,
+      action_url: kind === 'popup' ? (actionUrl.trim() || null) : null,
+      action_label: actionLabel.trim() || '查看详情',
+      visual_style: visualStyle,
+      max_impressions: kind === 'popup' ? Number(maxImpressions) : 1,
+      repeat_interval_hours: Number(repeatIntervalHours),
       starts_at: startsAtIso,
-      expires_at: days > 0 ? new Date(Date.now() + days * 864e5).toISOString() : null,
+      expires_at: days > 0 ? new Date((startsAtIso ? new Date(startsAtIso).getTime() : Date.now()) + days * 864e5).toISOString() : null,
     });
     setBusy(false);
     if (error) { setMsg('发布失败：' + error.message); return; }
     await alog('broadcast_post', { kind, audience, exp_days: days, targets: audience === 'selected' ? selectedIds.length : 0, starts_at: startsAtIso });
     setTitle(''); setBody(''); setButtonLabel('知道了'); setOptionsText(''); setSelectedIds([]); setExp('0');
+    setImageUrl(''); setActionUrl(''); setActionLabel('查看详情'); setVisualStyle('standard'); setMaxImpressions('1'); setRepeatIntervalHours('24');
     setWhenMode('now'); setStartAt('');
     if (startsAtIso) {
       setMsg(`已预约：${fmtStart(startsAtIso)} 自动发布，成员到点打开网站时就会收到`);
@@ -332,12 +456,25 @@ export default function AdminBroadcast({ me, setMsg }: { me: string; setMsg: (s:
       .order('updated_at', { ascending: false });
     const recs = (data ?? []) as ReceiptRow[];
     setRespondents(recs);
+    const { data: deliveryData } = await supabase.from('broadcast_deliveries')
+      .select('broadcast_id, user_id, created_at, first_viewed_at, last_viewed_at, view_count, clicked_at, click_count, dismissed_at')
+      .eq('broadcast_id', row.id)
+      .order('created_at', { ascending: true });
+    const currentDeliveries = (deliveryData ?? []) as DeliveryRow[];
+    setDeliveryRows(currentDeliveries);
+    const stat = {
+      received: currentDeliveries.length,
+      viewed: currentDeliveries.filter(item => !!item.first_viewed_at).length,
+      clicks: currentDeliveries.reduce((sum, item) => sum + item.click_count, 0),
+      pending: currentDeliveries.filter(item => !item.first_viewed_at).length,
+    };
+    setDeliveryStats(previous => ({ ...previous, [row.id]: stat }));
     // 展开名单时顺手用最新回执刷新这一条的计数，避免列表计数还是打开页面时的旧数。
     const agg: Record<string, number> = {};
     recs.forEach(r => { agg[r.status] = (agg[r.status] ?? 0) + 1; });
     setCounts(prev => ({ ...prev, [row.id]: agg }));
-    if (recs.length) {
-      const ids = [...new Set(recs.map(r => r.user_id))];
+    if (recs.length || currentDeliveries.length) {
+      const ids = [...new Set([...recs.map(r => r.user_id), ...currentDeliveries.map(r => r.user_id)])];
       const { data: profs } = await supabase.from('profiles').select('id, display_name, username').in('id', ids);
       const map: Record<string, string> = {};
       (profs ?? []).forEach((p: { id: string; display_name: string | null; username: string | null }) => {
@@ -397,9 +534,11 @@ export default function AdminBroadcast({ me, setMsg }: { me: string; setMsg: (s:
   }
 
   function countText(row: BroadcastRow): string {
+    const delivery = deliveryStats[row.id];
+    if (delivery) return `送达 ${delivery.received} · 已查看 ${delivery.viewed} · 待查看 ${delivery.pending} · 点击 ${delivery.clicks}`;
     const c = counts[row.id] ?? {};
     const total = Object.values(c).reduce((a, b) => a + b, 0);
-    if (!total) return '暂无回执';
+    if (!total) return '暂无收件记录';
     const parts = Object.entries(c).map(([s, n]) => `${statusLabel(row.kind, s)} ${n}`);
     return `回执 ${total}：${parts.join(' · ')}`;
   }
@@ -527,6 +666,8 @@ export default function AdminBroadcast({ me, setMsg }: { me: string; setMsg: (s:
             {row.audience === 'selected' && rowTargets(row).length > 0 && (
               <p style={{ ...mut, margin: '4px 0 0' }}>指定 {rowTargets(row).length} 位成员</p>
             )}
+            {row.image_url && <p style={{ ...mut, margin: '4px 0 0' }}>含图片 · {row.visual_style} 样式</p>}
+            {row.action_url && <p style={{ ...mut, margin: '4px 0 0' }}>按钮跳转：{row.action_url}</p>}
             <p style={{ ...mut, margin: '4px 0 0' }}>{countText(row)}</p>
             {row.poke_count > 0 && (
               <p style={{ ...mut, margin: '4px 0 0' }}>已催办 {row.poke_count} 次{pokeTargets(row).length > 0 ? ` · 上次只催了 ${pokeTargets(row).length} 人` : ''}</p>
@@ -585,6 +726,22 @@ export default function AdminBroadcast({ me, setMsg }: { me: string; setMsg: (s:
                       。催办后弹窗上会写明是第 {(row.poke_count ?? 0) + 1} 次提醒。
                     </p>
                     <button type="button" className="mini ghost" onClick={() => void poke(row, pokeableIds(row))}>催办全部未交的人</button>
+                  </div>
+                )}
+                {!loadingDetail && deliveryRows.length > 0 && (
+                  <div style={{ margin: '0 0 10px', padding: '8px 10px', border: '1px solid rgba(34,49,74,.12)', borderRadius: 10, background: '#fff' }}>
+                    <strong style={{ display: 'block', fontSize: 13, marginBottom: 6 }}>触达记录 · {deliveryRows.length} 位收件人</strong>
+                    {deliveryRows.map(item => (
+                      <div key={item.user_id} style={{ display: 'flex', gap: 7, flexWrap: 'wrap', alignItems: 'center', padding: '5px 0', borderTop: '1px dashed rgba(34,49,74,.08)', fontSize: 12.5 }}>
+                        <strong>{names[item.user_id] ?? '成员'}</strong>
+                        <span>{item.first_viewed_at ? '已查看' : '尚未查看'}</span>
+                        <span>{item.view_count} 次展示</span>
+                        <span>{item.click_count} 次点击</span>
+                        <span style={{ color: '#817669' }}>送达 {timeAgo(item.created_at)}</span>
+                        {item.first_viewed_at && <span style={{ color: '#817669' }}>查看 {timeAgo(item.first_viewed_at)}</span>}
+                        {item.clicked_at && <span style={{ color: '#817669' }}>点击 {timeAgo(item.clicked_at)}</span>}
+                      </div>
+                    ))}
                   </div>
                 )}
                 {!loadingDetail && respondents.map(r => (

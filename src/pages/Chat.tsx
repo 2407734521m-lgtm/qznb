@@ -21,7 +21,8 @@ import type { ChatMessage } from '../types/message';
 import { useUserPreferences } from '../lib/userPreferences';
 import { SPRING_SNAPPY } from '../lib/motion';
 import MessageEffectsPicker from '../components/MessageEffectsPicker';
-import { getChatBubbleEffect, stripChatBubbleEffect, withChatBubbleEffect, type ChatBubbleEffect } from '../lib/chatMessageEffect';
+import ScreenEffectCanvas from '../components/ScreenEffectCanvas';
+import { getChatBubbleEffect, getScreenEffectKind, stripChatBubbleEffect, withChatBubbleEffect, type ChatBubbleEffect, type ScreenEffectKind } from '../lib/chatMessageEffect';
 import './Chat.polish.css';
 
 type ChatReaction = { message_id: number; profile_id: string; reaction: string; created_at: string };
@@ -251,6 +252,8 @@ export default function Chat() {
   const [text, setText] = useState('');
   const [effectsPickerOpen, setEffectsPickerOpen] = useState(false);
   const [effectsPickerSelection, setEffectsPickerSelection] = useState<ChatBubbleEffect | null>(null);
+  const [activeScreenEffect, setActiveScreenEffect] = useState<{ kind: ScreenEffectKind; messageId: string; replay: number } | null>(null);
+  const screenEffectReplayRef = useRef(0);
   const sendHoldTimerRef = useRef<number | null>(null);
   const sendHoldTriggeredRef = useRef(false);
   // 输入框是否聚焦：只决定底部语音光晕亮不亮，不改任何发送逻辑。
@@ -376,6 +379,12 @@ export default function Chat() {
   // 新消息只保留一个透明度淡入（不做位移/缩放，避免影响行高测量与滚动锚点）。
   const prevMsgsLenRef = useRef(0);
   const [freshId, setFreshId] = useState<number | null>(null);
+
+  useEffect(() => {
+    prevMsgsLenRef.current = 0;
+    setFreshId(null);
+    setActiveScreenEffect(null);
+  }, [cid]);
   const stickToBottomRef = useRef(true);
   // 渲染期 O(n²) 查找改为 O(1)：回复父消息与每条消息的回应分组各建一次索引。
   const msgsById = useMemo(() => new Map(msgs.map(m => [m.id, m])), [msgs]);
@@ -699,10 +708,17 @@ export default function Chat() {
   // 只有条数变多且不是首次加载时，才把最后一条记为“新消息”做淡入动画。
   useEffect(() => {
     if (prevMsgsLenRef.current > 0 && msgs.length > prevMsgsLenRef.current) {
-      setFreshId(msgs[msgs.length - 1]?.id ?? null);
+      const newest = msgs[msgs.length - 1];
+      setFreshId(newest?.id ?? null);
+      if (newest && newest.sender_id !== me) {
+        const kind = getScreenEffectKind(newest.body);
+        if (kind) {
+          setActiveScreenEffect({ kind, messageId: String(newest.id), replay: ++screenEffectReplayRef.current });
+        }
+      }
     }
     prevMsgsLenRef.current = msgs.length;
-  }, [msgs]);
+  }, [msgs, me]);
 
   // 底部粘滞：已在底部时，行高实测落地（图片加载、文字换行）导致总高度变化，
   // 跟着把视图补到底部；用户上翻读历史时不动，避免把人拽回底部。
@@ -1088,12 +1104,16 @@ export default function Chat() {
         window.setTimeout(() => {
           if (!mountedRef.current) return;
           setOutbox(prev => prev.map(e => e.tempKey === entry.tempKey ? { ...e, phase: 'sent', realId } : e));
+          setActiveScreenEffect(current => current?.messageId === entry.tempKey
+            ? { ...current, messageId: String(realId) }
+            : current);
           load();
         }, wait);
       } catch (err) {
         console.error('chat send failed', err);
         if (!mountedRef.current) return;
         setOutbox(prev => prev.map(e => e.tempKey === entry.tempKey ? { ...e, phase: 'failed' } : e));
+        setActiveScreenEffect(current => current?.messageId === entry.tempKey ? null : current);
       }
     })();
   }
@@ -1315,7 +1335,10 @@ export default function Chat() {
     const maxBodyLength = 2000 - effectLength;
     const normalizedBody = Array.from(b).slice(0, maxBodyLength).join('');
     if (normalizedBody.length < b.length) toast.info('这条特效消息已按 2000 字符上限截短。');
-    queueOutgoing(normalizedBody, effect);
+    const entry = queueOutgoing(normalizedBody, effect);
+    if (effect?.startsWith('screen-')) {
+      setActiveScreenEffect({ kind: effect.slice(7) as ScreenEffectKind, messageId: entry.tempKey, replay: ++screenEffectReplayRef.current });
+    }
     setText('');
     setComposerSel(null);
     composerSelRef.current = null;
@@ -1857,6 +1880,7 @@ export default function Chat() {
                   {isGroup && !mine && !samePrevious && <span className="chatcn-group-sender-name">{groupMembers.find(member => member.id === m.sender_id)?.display_name ?? groupMembers.find(member => member.id === m.sender_id)?.username ?? '群成员'}</span>}
                   <div className={'im-bubble ' + (mine ? 'mine' : 'theirs') + (samePrevious ? ' im-bubble-grouped-prev' : '') + (sameNext ? ' im-bubble-grouped-next' : '')}
                     data-im-effect={getChatBubbleEffect(m.body) ?? undefined}
+                    data-message-id={m.id}
                     onTouchStart={event => startMessagePress(m.id, event.currentTarget)}
                     onTouchMove={clearMessagePress}
                     onTouchEnd={clearMessagePress}
@@ -1906,7 +1930,8 @@ export default function Chat() {
             <div className="im-row mine im-row-out">
               <div className="im-out-col im-message-column mine">
                 <div className={'im-bubble mine' + (e.phase === 'failed' ? ' im-bubble-failed' : '')}
-                  data-im-effect={getChatBubbleEffect(e.body) ?? undefined}>
+                  data-im-effect={getChatBubbleEffect(e.body) ?? undefined}
+                  data-message-id={e.tempKey}>
                   {e.replyToId !== null && <div className="im-reply-quote">回复：{e.replySummary ?? ''}</div>}
                   <MessageContent onMentionClick={openMemberPage} body={e.body} />
                   {inlineMeta && <span className="im-inline-meta mine">{messageTimeLabel(e.createdAtMs)} · {phaseLabel}</span>}
@@ -2183,6 +2208,10 @@ export default function Chat() {
         onClose={() => setLinkDialogOpen(false)}
         onConfirm={applyLink}
       />
+      {activeScreenEffect && <div className="im-screen-effect-layer" aria-hidden="true">
+        <ScreenEffectCanvas kind={activeScreenEffect.kind} anchorMessageId={activeScreenEffect.messageId}
+          replay={activeScreenEffect.replay} onDone={() => setActiveScreenEffect(null)} />
+      </div>}
       <MessageEffectsPicker
         open={effectsPickerOpen}
         previewText={text}

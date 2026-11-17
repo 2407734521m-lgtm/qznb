@@ -1,3 +1,4 @@
+import { useEffect, useRef, type CSSProperties } from 'react';
 import type { ScreenEffectKind } from '../lib/chatMessageEffect';
 
 export const screenEffectDuration: Record<ScreenEffectKind, number> = {

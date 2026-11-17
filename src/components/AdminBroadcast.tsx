@@ -414,11 +414,11 @@ export default function AdminBroadcast({ me, setMsg }: { me: string; setMsg: (s:
     setImageUrl(''); setActionUrl(''); setActionLabel('查看详情'); setVisualStyle('standard'); setMaxImpressions('1'); setRepeatIntervalHours('24');
     setWhenMode('now'); setStartAt('');
     if (startsAtIso) {
-      setMsg(`已预约：${fmtStart(startsAtIso)} 自动发布，成员到点打开网站时就会收到`);
+      setMsg(`已预约：${fmtStart(startsAtIso)} 自动生效，成员到点后在下一轮页面同步时收到`);
     } else {
       setMsg(kind === 'refresh'
         ? '远程刷新已发布，成员打开或停留在网站时会自动刷新到最新页面'
-        : `${KIND_LABEL[kind]}已发布，成员打开网站时就会弹窗`);
+        : `${KIND_LABEL[kind]}已发布，成员下一轮页面同步时会看到`);
     }
     void load();
   }
@@ -593,7 +593,7 @@ export default function AdminBroadcast({ me, setMsg }: { me: string; setMsg: (s:
       <div style={card}>
         <h3 style={h3}>发布弹窗</h3>
         <p style={mut}>
-          普通弹窗：弹一次，点按钮记已读。位置征集：成员自愿共享城市 / 地区，本人点同意才定位，不存精确位置。投票征集：成员选一项，后台看票数和名单。填写征集：成员填一段文字提交。报名：成员选参加 / 不参加，后台自动统计。远程刷新：不弹窗，成员在网站时会自动刷新到最新页面，专治旧缓存。可见范围可选全部 / 仅软件版 / 仅网页版 / 指定成员（勾谁谁收到），都能设有效期、能撤回，每人只处理一次。还能定时发布（到点自动发出）、发布前先预览效果，发出后可以催办：能只催某个人、或全部还没处理的人，可以催多次，每次弹窗上都会写明是第几次提醒。
+          普通弹窗：可配置图片、站内跳转、重点/紧凑样式、最多展示次数和重复间隔，后台记录查看与点击。位置征集：成员自愿共享城市 / 地区，本人点同意才定位，不存精确位置。投票征集：成员选一项，后台看票数和名单。填写征集：成员填一段文字提交。报名：成员选参加 / 不参加，后台自动统计。远程刷新：不弹窗，成员在网站时会自动刷新到最新页面。可见范围可选全部 / 仅软件版 / 仅网页版 / 指定成员或保存的成员分组，支持有效期和撤回。定时发布按预约时间生效，成员在下一轮页面同步时收到；发布前可以预览，发布后可以催办。
         </p>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '10px 0' }}>
           <OptionSheet value={kind} options={KIND_OPTIONS} onChange={setKind} buttonText={KIND_LABEL[kind]} title="弹窗类型" buttonStyle={SHEET_BTN} />

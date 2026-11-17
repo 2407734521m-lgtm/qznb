@@ -26,6 +26,7 @@ import ChatVideoPlayer from '../components/ChatVideoPlayer';
 import MessageEffectsPicker from '../components/MessageEffectsPicker';
 import ScreenEffectCanvas from '../components/ScreenEffectCanvas';
 import { getChatBubbleEffect, getScreenEffectKind, stripChatBubbleEffect, withChatBubbleEffect, type ChatBubbleEffect, type ScreenEffectKind } from '../lib/chatMessageEffect';
+import { formatChatTypingLabel, parseChatTypingPayload } from '../lib/chatTyping';
 import './Chat.polish.css';
 
 type ChatReaction = { message_id: number; profile_id: string; reaction: string; created_at: string };
@@ -342,7 +343,12 @@ export default function Chat() {
   const [showStickerEmojis, setShowStickerEmojis] = useState(false);
   const [chatBackground, setChatBackground] = useState('default');
   const [backgroundSaving, setBackgroundSaving] = useState(false);
-  const [otherTyping, setOtherTyping] = useState(false);
+  const [typingMembers, setTypingMembers] = useState<Record<string, string>>({});
+  const typingTimersRef = useRef<Map<string, number>>(new Map());
+  const typingContextRef = useRef({ isGroup, name, groupMembers });
+  useEffect(() => {
+    typingContextRef.current = { isGroup, name, groupMembers };
+  }, [isGroup, name, groupMembers]);
   const [actionFor, setActionFor] = useState<number | null>(null);
   const [tapbackAnchor, setTapbackAnchor] = useState<TapbackAnchor | null>(null);
   const backgroundFileRef = useRef<HTMLInputElement>(null);
@@ -367,6 +373,7 @@ export default function Chat() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editingText, setEditingText] = useState('');
   const [otherLastReadMessageId, setOtherLastReadMessageId] = useState<number | null>(null);
+  const [groupReadMemberCount, setGroupReadMemberCount] = useState(0);
   const bottomRef = useRef<HTMLDivElement>(null);
   const firstRef = useRef(true);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -630,8 +637,14 @@ export default function Chat() {
       .select('profile_id,last_receipt_message_id')
       .eq('conversation_id', conversationId);
     if (requestId !== loadSequenceRef.current) return;
-    const otherMember = isGroup ? null : (members ?? []).find(member => member.profile_id !== me);
+    const otherMembers = (members ?? []).filter(member => member.profile_id !== me);
+    const otherMember = isGroup ? null : otherMembers[0];
     setOtherLastReadMessageId(otherMember?.last_receipt_message_id ?? null);
+    const latestOutgoingId = [...(data ?? [])].reverse().find(message => message.sender_id === me)?.id ?? null;
+    const readMemberCount = isGroup && latestOutgoingId !== null
+      ? otherMembers.filter(member => Number(member.last_receipt_message_id ?? 0) >= latestOutgoingId).length
+      : 0;
+    setGroupReadMemberCount(readMemberCount);
 
     const { data: conversationRow } = await supabase.from('conversations').select('disappearing_mode,disappearing_seconds')
       .eq('id', conversationId).maybeSingle();
@@ -719,26 +732,60 @@ export default function Chat() {
 
   useEffect(() => {
     if (!cid || !Number.isFinite(Number(cid))) return;
-    let incomingTimer: number | null = null;
     typingReadyRef.current = false;
     typingActiveRef.current = false;
+
+    const removeTypingMember = (profileId: string) => {
+      const timer = typingTimersRef.current.get(profileId);
+      if (timer !== undefined) window.clearTimeout(timer);
+      typingTimersRef.current.delete(profileId);
+      setTypingMembers(current => {
+        if (!(profileId in current)) return current;
+        const next = { ...current };
+        delete next[profileId];
+        return next;
+      });
+    };
+
     const channel = supabase.channel('chat-typing:' + cid, {
       config: { private: true, broadcast: { ack: false, self: false } },
     }).on('broadcast', { event: 'typing' }, ({ payload }) => {
-      if (!payload) return;
-      if (incomingTimer !== null) window.clearTimeout(incomingTimer);
-      const typing = (payload as { typing?: unknown }).typing === true;
-      setOtherTyping(typing);
-      if (typing) incomingTimer = window.setTimeout(() => setOtherTyping(false), 2400);
+      const signal = parseChatTypingPayload(payload);
+      if (!signal || signal.profileId === me) return;
+      const context = typingContextRef.current;
+      // Older clients sent only { typing }; retain a short-lived fallback entry for them.
+      const senderId = signal.profileId ?? (context.isGroup ? 'legacy-group-member' : 'peer');
+      if (!signal.typing) {
+        removeTypingMember(senderId);
+        return;
+      }
+
+      const member = signal.profileId
+        ? context.groupMembers.find(item => item.id === signal.profileId)
+        : null;
+      const label = context.isGroup
+        ? (member?.display_name ?? member?.username ?? '群成员')
+        : context.name;
+      setTypingMembers(current => ({ ...current, [senderId]: label }));
+
+      const existingTimer = typingTimersRef.current.get(senderId);
+      if (existingTimer !== undefined) window.clearTimeout(existingTimer);
+      const timer = window.setTimeout(() => removeTypingMember(senderId), 2400);
+      typingTimersRef.current.set(senderId, timer);
     }).subscribe(status => {
       typingReadyRef.current = status === 'SUBSCRIBED';
     });
     typingChannelRef.current = channel;
     return () => {
       if (typingActiveRef.current && typingReadyRef.current) {
-        void channel.send({ type: 'broadcast', event: 'typing', payload: { typing: false } });
+        void channel.send({
+          type: 'broadcast',
+          event: 'typing',
+          payload: { typing: false, profileId: me },
+        });
       }
-      if (incomingTimer !== null) window.clearTimeout(incomingTimer);
+      typingTimersRef.current.forEach(timer => window.clearTimeout(timer));
+      typingTimersRef.current.clear();
       if (typingStopTimerRef.current !== null) window.clearTimeout(typingStopTimerRef.current);
       if (longPressTimerRef.current !== null) window.clearTimeout(longPressTimerRef.current);
       if (sendHoldTimerRef.current !== null) window.clearTimeout(sendHoldTimerRef.current);
@@ -748,7 +795,7 @@ export default function Chat() {
       typingActiveRef.current = false;
       typingReadyRef.current = false;
       typingChannelRef.current = null;
-      setOtherTyping(false);
+      setTypingMembers({});
       void supabase.removeChannel(channel);
     };
   }, [cid, me]);
@@ -816,11 +863,11 @@ export default function Chat() {
     const wantsTyping = Boolean(value.trim());
     if (wantsTyping && !typingActiveRef.current) {
       typingActiveRef.current = true;
-      void channel.send({ type: 'broadcast', event: 'typing', payload: { typing: true } });
+      void channel.send({ type: 'broadcast', event: 'typing', payload: { typing: true, profileId: me } });
     }
     if (!wantsTyping && typingActiveRef.current) {
       typingActiveRef.current = false;
-      void channel.send({ type: 'broadcast', event: 'typing', payload: { typing: false } });
+      void channel.send({ type: 'broadcast', event: 'typing', payload: { typing: false, profileId: me } });
       return;
     }
     if (wantsTyping) {
@@ -828,7 +875,7 @@ export default function Chat() {
         typingStopTimerRef.current = null;
         if (typingActiveRef.current && typingChannelRef.current && typingReadyRef.current) {
           typingActiveRef.current = false;
-          void typingChannelRef.current.send({ type: 'broadcast', event: 'typing', payload: { typing: false } });
+          void typingChannelRef.current.send({ type: 'broadcast', event: 'typing', payload: { typing: false, profileId: me } });
         }
       }, 1500);
     }
@@ -1672,6 +1719,9 @@ export default function Chat() {
   }, [showDetails]);
 
   const latestOutgoingMessageId = [...msgs].reverse().find(message => message.sender_id === me)?.id ?? null;
+  const typingNames = Object.values(typingMembers);
+  const typingLabel = formatChatTypingLabel(typingNames, isGroup);
+  const typingDisplayLabel = isGroup ? typingLabel : (typingLabel ? `${name} 正在输入…` : '');
 
   return (
     <div ref={pageRef} className="im-page" style={{
@@ -1749,7 +1799,7 @@ export default function Chat() {
           <span className="im-contact-name-pill">
             <span className="im-title">{name}</span>
           </span>
-          {otherTyping && <span className="im-sub">{isGroup ? '有人正在输入…' : '正在输入…'}</span>}
+          {typingLabel && <span className="im-sub">{typingDisplayLabel}</span>}
         </button>
         <button type="button" className="im-icon im-info-button" aria-label="更多聊天选项" title="更多聊天选项" onClick={() => setShowDetails(true)}>
           <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor" aria-hidden="true">
@@ -2088,8 +2138,10 @@ export default function Chat() {
           // 正在消失的消息即使已被清理打上 deleted_at，也继续显示原文，不中途变成“撤回”。
           const displayBody = deleted && !vanishingIds.has(m.id) ? (mine ? '你撤回了一条消息' : '对方撤回了一条消息') : m.body;
           const inlineMeta = editingId !== m.id && canShowInlineMeta(displayBody, Boolean(m.reply_to_id));
-          const receiptLabel = !isGroup && mine && m.id === latestOutgoingMessageId && userPreferences.chat.showReadReceipts
-            ? (otherLastReadMessageId !== null && otherLastReadMessageId >= m.id ? '已读' : '已送达')
+          const receiptLabel = mine && m.id === latestOutgoingMessageId && userPreferences.chat.showReadReceipts
+            ? (isGroup
+              ? (groupReadMemberCount > 0 ? `已读 ${groupReadMemberCount} 人` : '已送达')
+              : (otherLastReadMessageId !== null && otherLastReadMessageId >= m.id ? '已读' : '已送达'))
             : '';
           return (
             <div key={virtualRow.key} data-index={virtualRow.index} ref={el => { virtualizer.measureElement(el); if (el) rowElsRef.current.set(m.id, el); else rowElsRef.current.delete(m.id); }}
@@ -2175,9 +2227,9 @@ export default function Chat() {
         })}
         </AnimatePresence>
         </>)}
-        {otherTyping && <div className="im-typing" role="status" aria-live="polite">
+        {typingLabel && <div className="im-typing" role="status" aria-live="polite">
           <span className="im-typing-dots"><i /><i /><i /></span>
-          <span>{name} 正在输入</span>
+          <span>{typingDisplayLabel}</span>
         </div>}
         <div ref={bottomRef} />
       </main>

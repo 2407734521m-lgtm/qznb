@@ -427,22 +427,59 @@ export default function ScreenEffectCanvas({ kind, progress, replay, anchor, anc
       context.restore();
     };
 
+    const duration = screenEffectDuration[kind];
+    const repaintForCurrentState = () => {
+      size();
+      const currentProgress = progress !== undefined
+        ? progress
+        : reduced
+          ? stillFrame[kind]
+          : startedAt.current
+            ? (performance.now() - startedAt.current) / duration
+            : 0;
+      paint(currentProgress);
+    };
+    const resizeObserver = typeof ResizeObserver !== "undefined"
+      ? new ResizeObserver(repaintForCurrentState)
+      : null;
+    resizeObserver?.observe(parent);
+    window.addEventListener("resize", repaintForCurrentState, { passive: true });
+    window.addEventListener("orientationchange", repaintForCurrentState);
+    const cleanupResize = () => {
+      resizeObserver?.disconnect();
+      window.removeEventListener("resize", repaintForCurrentState);
+      window.removeEventListener("orientationchange", repaintForCurrentState);
+    };
+
     size();
     // Scrubbed by the harness: one frame, no clock, no callback.
-    if (progress !== undefined) { paint(progress); return; }
+    // Keep the frame fitted if its preview container is resized.
+    if (progress !== undefined) {
+      paint(progress);
+      return cleanupResize;
+    }
 
-    const duration = screenEffectDuration[kind];
     if (reduced) {
       // Static and calm: one representative frame, held. A single timer still retires the effect so
       // the host clears the overlay, and it is cleared on unmount.
       paint(stillFrame[kind]);
-      if (finished.current) return;
+      if (finished.current) {
+        cleanupResize();
+        return;
+      }
       if (!startedAt.current) startedAt.current = performance.now();
       const remaining = Math.max(0, duration - (performance.now() - startedAt.current));
       const timer = window.setTimeout(() => { finished.current = true; done.current?.(); }, remaining);
-      return () => window.clearTimeout(timer);
+      return () => {
+        window.clearTimeout(timer);
+        cleanupResize();
+      };
     }
-    if (finished.current) { paint(1); return; }
+    if (finished.current) {
+      paint(1);
+      cleanupResize();
+      return;
+    }
 
     const step = (now: number) => {
       if (!startedAt.current) startedAt.current = now;
@@ -455,7 +492,10 @@ export default function ScreenEffectCanvas({ kind, progress, replay, anchor, anc
     // Repaint the frame the clock is already on, so a re-run never shows an empty canvas.
     if (startedAt.current) paint((performance.now() - startedAt.current) / duration);
     raf = requestAnimationFrame(step);
-    return () => cancelAnimationFrame(raf);
+    return () => {
+      cancelAnimationFrame(raf);
+      cleanupResize();
+    };
   }, [kind, progress, replay, anchorKey, anchorMessageId]);
 
   return <canvas ref={canvas} aria-hidden="true" data-slot="screen-effect" data-effect={kind} className={["im-screen-effect-canvas", className].filter(Boolean).join(" ")} style={style} />;

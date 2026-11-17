@@ -1676,6 +1676,9 @@ export type Database = {
           deleted_at: string | null
           edited_at: string | null
           expires_at: string | null
+          forwarded_from_message_id: number | null
+          forwarded_from_name: string | null
+          forwarded_from_sender_id: string | null
           id: number
           reply_to_id: number | null
           sender_id: string
@@ -1687,6 +1690,9 @@ export type Database = {
           deleted_at?: string | null
           edited_at?: string | null
           expires_at?: string | null
+          forwarded_from_message_id?: number | null
+          forwarded_from_name?: string | null
+          forwarded_from_sender_id?: string | null
           id?: number
           reply_to_id?: number | null
           sender_id: string
@@ -1698,6 +1704,9 @@ export type Database = {
           deleted_at?: string | null
           edited_at?: string | null
           expires_at?: string | null
+          forwarded_from_message_id?: number | null
+          forwarded_from_name?: string | null
+          forwarded_from_sender_id?: string | null
           id?: number
           reply_to_id?: number | null
           sender_id?: string
@@ -1720,6 +1729,20 @@ export type Database = {
           {
             foreignKeyName: "messages_sender_id_fkey"
             columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_forwarded_from_message_id_fkey"
+            columns: ["forwarded_from_message_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_forwarded_from_sender_id_fkey"
+            columns: ["forwarded_from_sender_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -2924,6 +2947,10 @@ export type Database = {
       edit_chat_message: {
         Args: { p_body: string; p_message_id: number }
         Returns: undefined
+      }
+      forward_chat_message: {
+        Args: { p_forwarded_media_body?: string | null; p_source_message_id: number; p_target_conversation_id: number }
+        Returns: number
       }
       finish_username_login_attempt: {
         Args: { p_success: boolean; p_token: string; p_username_hash: string }

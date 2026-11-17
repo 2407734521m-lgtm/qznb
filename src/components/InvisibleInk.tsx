@@ -14,7 +14,7 @@ const RECOVER_DELAY = 5000;
 const RECOVER_FADE_MS = 900;
 const WIPE_FADE_MS = 180;
 
-type Particle = { x: number; y: number; r: number; color: string; charIndex: number };
+type Particle = { x: number; y: number; r: number; color: string; charIndex: number; phase: number; drift: number; speed: number };
 
 // Small deterministic noise avoids random reshuffling when the component is resized.
 function particleRandom(seed: number): number {
@@ -200,6 +200,9 @@ export default function InvisibleInk({ text }: { text: string }) {
             r: 0.42 + particleRandom(seed ^ 0x967a889b) * 0.42,
             color: `hsl(212 76% ${shade}%)`,
             charIndex: i,
+            phase: particleRandom(seed ^ 0x165667b1) * Math.PI * 2,
+            drift: 0.14 + particleRandom(seed ^ 0x7f4a7c15) * 0.42,
+            speed: 0.65 + particleRandom(seed ^ 0x94d049bb) * 0.55,
           });
         }
       }
@@ -214,8 +217,8 @@ export default function InvisibleInk({ text }: { text: string }) {
     }
   };
 
-  // 把细碎墨点画到 field 画布上，保持颗粒边缘清晰。
-  const paintField = () => {
+  // 每个墨点独立漂浮、轻微闪烁；不再让整张画布抖动造成模糊团块。
+  const paintField = (now = performance.now()) => {
     const field = fieldRef.current;
     if (!field) return;
     const { w, h, dpr } = sizeRef.current;
@@ -223,14 +226,19 @@ export default function InvisibleInk({ text }: { text: string }) {
     if (!ctx) return;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, w, h);
+    const time = now / 1000;
     for (const p of particlesRef.current) {
-      // 整个字符被路径命中后，移除该字符对应的全部粒子，避免字已露出却仍被粒子遮挡。
       if (revealedRef.current[p.charIndex]) continue;
+      const phase = time * p.speed + p.phase;
+      const driftX = reducedMotionRef.current ? 0 : Math.sin(phase) * p.drift;
+      const driftY = reducedMotionRef.current ? 0 : Math.cos(phase * 0.83) * p.drift;
+      ctx.globalAlpha = reducedMotionRef.current ? 0.86 : 0.58 + (Math.sin(phase * 1.8) + 1) * 0.15;
       ctx.fillStyle = p.color;
       ctx.beginPath();
-      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.arc(p.x + driftX, p.y + driftY, p.r, 0, Math.PI * 2);
       ctx.fill();
     }
+    ctx.globalAlpha = 1;
   };
 
   const setCharOpacity = (index: number, value: number, durationMs: number) => {
@@ -365,7 +373,8 @@ export default function InvisibleInk({ text }: { text: string }) {
     if (!ctx) return;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, w, h);
-    // Keep the micro-particles pixel-sharp; shifting the whole layer every frame made them blur into clumps.
+    // Redraw each mote at its own sub-pixel offset; the field itself stays fixed.
+    paintField(now);
     ctx.drawImage(field, 0, 0, w, h);
     if (regeneratingRef.current) {
       const progress = (now - regenStartRef.current) / RECOVER_FADE_MS;

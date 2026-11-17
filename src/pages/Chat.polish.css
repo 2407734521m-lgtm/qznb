@@ -2417,7 +2417,7 @@
 
 /* iMessage-style Screen Effects. The canvas is fixed to the visible device frame and never
    intercepts taps, scrolling, or message gestures. */
-.im-screen-effect-layer { position:fixed; inset:0; z-index:165; overflow:hidden; pointer-events:none; }
+.im-screen-effect-layer { position:absolute; inset:0; z-index:165; overflow:hidden; pointer-events:none; }
 .im-screen-effect-canvas { position:absolute; inset:0; display:block; pointer-events:none; }
 .im-effects-tabs { display:grid; grid-template-columns:1fr 1fr; gap:4px; padding:4px; margin:0 0 12px; border:1px solid #e7ebf0; border-radius:13px; background:#edf0f4; }
 .im-effects-tabs button { min-height:34px; border:0; border-radius:10px; color:#7d8794; background:transparent; font-size:12px; font-weight:650; transition:color .18s ease,background .18s ease,box-shadow .18s ease; }

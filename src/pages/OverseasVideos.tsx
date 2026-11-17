@@ -1,0 +1,214 @@
+import { useEffect, useMemo, useState } from 'react';
+import { supabase } from '../lib/supabase';
+
+// 海外视频前台：只读 status='published' 的视频（匿名可读）。
+// 点封面才加载官方嵌入（youtube-nocookie），不点不加载，省流量；
+// 只存元数据 + 官方嵌入，不下载、不转载。
+
+type Category = { id: number; name: string; slug: string; sort_order: number; enabled: boolean };
+type Video = {
+  id: number; platform: string; external_video_id: string; source_id: number | null;
+  category_id: number | null; title: string; author: string; original_url: string;
+  embed_url: string; thumbnail_url: string; published_at: string | null; language: string;
+  duration_seconds: number | null; description: string;
+};
+
+const PLATFORM_LABEL: Record<string, string> = {
+  youtube: 'YouTube',
+  pexels: 'Pexels',
+  pixabay: 'Pixabay',
+  archive: 'Archive.org',
+  openverse: 'Openverse',
+};
+
+function fmtDate(s: string | null) {
+  if (!s) return '';
+  return new Date(s).toLocaleDateString('zh-CN', { timeZone: 'Asia/Shanghai' });
+}
+function fmtDuration(sec: number | null) {
+  if (sec == null) return '';
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  return m > 0 ? `${m}:${String(s).padStart(2, '0')}` : `0:${String(s).padStart(2, '0')}`;
+}
+
+export default function OverseasVideos() {
+  const [videos, setVideos] = useState<Video[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState('');
+  const [catFilter, setCatFilter] = useState('all');
+  const [query, setQuery] = useState('');
+  const [playingId, setPlayingId] = useState<number | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    setLoading(true);
+    Promise.all([
+      supabase.from('overseas_video_categories').select('id, name, slug, sort_order, enabled').eq('enabled', true).order('sort_order'),
+      supabase.from('overseas_videos').select('id, platform, external_video_id, source_id, category_id, title, author, original_url, embed_url, thumbnail_url, published_at, language, duration_seconds, description').eq('status', 'published').order('published_at', { ascending: false }).limit(100),
+    ]).then(([cats, vids]) => {
+      if (!alive) return;
+      const firstErr = cats.error || vids.error;
+      if (firstErr) {
+        setErr('读取失败：' + firstErr.message);
+        setVideos([]);
+      } else {
+        setErr('');
+        setCategories((cats.data ?? []) as Category[]);
+        setVideos((vids.data ?? []) as Video[]);
+      }
+      setLoading(false);
+    });
+    return () => { alive = false; };
+  }, []);
+
+  const catName = useMemo(() => {
+    const m = new Map<number, string>();
+    categories.forEach(c => m.set(c.id, c.name));
+    return m;
+  }, [categories]);
+
+  const shown = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return videos.filter(v => {
+      if (catFilter !== 'all' && String(v.category_id) !== catFilter) return false;
+      if (q && !(v.title + ' ' + v.author).toLowerCase().includes(q)) return false;
+      return true;
+    });
+  }, [videos, catFilter, query]);
+
+  return (
+    <div>
+      <div className="card" style={{ marginBottom: 12 }}>
+        <h2 style={{ margin: '0 0 6px', fontSize: 18 }}>海外视频</h2>
+        <p style={{ margin: 0, fontSize: 13, color: '#5b6673', lineHeight: 1.7 }}>
+          每天自动发现的海外优质视频，管理员审核后才会在这里出现。只放官方嵌入播放，不下载、不转载。
+          YouTube 在国内不翻墙打不开，点播放后如果一直转圈，可以点「在 YouTube 上观看」用能打开 YouTube 的网络再看。
+        </p>
+        <input
+          type="search"
+          value={query}
+          onChange={e => setQuery(e.target.value)}
+          placeholder="搜标题或作者…"
+          aria-label="搜索视频"
+          style={{
+            width: '100%', boxSizing: 'border-box', marginTop: 12, padding: '10px 12px',
+            borderRadius: 12, border: '1px solid #d9dee5', background: '#fff',
+            color: '#1f2a3a', font: 'inherit', fontSize: 14,
+          }}
+        />
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
+          <button
+            type="button"
+            onClick={() => setCatFilter('all')}
+            style={{
+              border: '1px solid #e2e8f0', borderRadius: 999, padding: '6px 14px', fontSize: 13,
+              background: catFilter === 'all' ? '#22314a' : '#fff', color: catFilter === 'all' ? '#fff' : '#22314a', cursor: 'pointer',
+            }}
+          >
+            全部（{videos.length}）
+          </button>
+          {categories.map(c => {
+            const n = videos.filter(v => v.category_id === c.id).length;
+            return (
+              <button
+                key={c.id}
+                type="button"
+                onClick={() => setCatFilter(String(c.id))}
+                style={{
+                  border: '1px solid #e2e8f0', borderRadius: 999, padding: '6px 14px', fontSize: 13,
+                  background: catFilter === String(c.id) ? '#22314a' : '#fff', color: catFilter === String(c.id) ? '#fff' : '#22314a', cursor: 'pointer',
+                }}
+              >
+                {c.name}（{n}）
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {loading && <div className="card"><p style={{ margin: 0, fontSize: 13, color: '#5b6673' }}>正在读取…</p></div>}
+      {!loading && err && <div className="card"><p style={{ margin: 0, fontSize: 13, color: '#b0404f' }}>{err}</p></div>}
+      {!loading && !err && shown.length === 0 && (
+        <div className="card">
+          <p style={{ margin: 0, fontSize: 13, color: '#5b6673', lineHeight: 1.7 }}>
+            {videos.length === 0
+              ? '还没有已发布的视频，等管理员审核通过后这里会出现。'
+              : '没有符合筛选的视频，换个分类或关键词试试。'}
+          </p>
+        </div>
+      )}
+
+      {shown.map(v => {
+        const isPlaying = playingId === v.id;
+        const embedSrc = v.platform === 'youtube'
+          ? `https://www.youtube-nocookie.com/embed/${v.external_video_id}`
+          : v.embed_url || '';
+        return (
+          <article key={v.id} className="card" style={{ marginBottom: 12 }}>
+            <h3 style={{ margin: '0 0 6px', fontSize: 15, lineHeight: 1.5 }}>{v.title || '（无标题）'}</h3>
+            <p style={{ margin: '0 0 10px', fontSize: 12.5, color: '#5b6673' }}>
+              {v.author || '未知作者'}
+              {fmtDate(v.published_at) ? ' · ' + fmtDate(v.published_at) : ''}
+              {fmtDuration(v.duration_seconds) ? ' · ' + fmtDuration(v.duration_seconds) : ''}
+              {' · '}{v.language || 'en'}
+              {v.category_id != null && catName.get(v.category_id) ? ' · ' + catName.get(v.category_id) : ''}
+              {' · '}{PLATFORM_LABEL[v.platform] || v.platform}
+            </p>
+            {isPlaying && embedSrc ? (
+              <div>
+                <iframe
+                  src={embedSrc}
+                  title={v.title}
+                  loading="lazy"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                  style={{ width: '100%', aspectRatio: '16 / 9', border: 'none', borderRadius: 12, display: 'block' }}
+                />
+                <div style={{ marginTop: 8 }}>
+                  <button
+                    type="button"
+                    onClick={() => setPlayingId(null)}
+                    style={{ border: '1px solid #d9dee5', borderRadius: 999, padding: '6px 13px', fontSize: 13, background: '#fff', color: '#22314a', cursor: 'pointer' }}
+                  >
+                    收起播放
+                  </button>
+                </div>
+              </div>
+            ) : v.thumbnail_url ? (
+              <button
+                type="button"
+                onClick={() => setPlayingId(v.id)}
+                aria-label={'播放 ' + v.title}
+                style={{ display: 'block', width: '100%', padding: 0, border: 'none', background: 'none', cursor: 'pointer', position: 'relative' }}
+              >
+                <img src={v.thumbnail_url} alt="" loading="lazy" style={{ width: '100%', borderRadius: 12, display: 'block' }} />
+                <span style={{
+                  position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)',
+                  width: 56, height: 56, borderRadius: '50%', background: 'rgba(20,28,40,.75)', color: '#fff',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22,
+                }}>▶</span>
+              </button>
+            ) : null}
+            {v.description && (
+              <p style={{
+                margin: '10px 0 0', fontSize: 13, color: '#5b6673', lineHeight: 1.7,
+                display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden',
+              }}>
+                {v.description.slice(0, 200)}
+              </p>
+            )}
+            <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', marginTop: 10 }}>
+              {v.original_url && (
+                <a href={v.original_url} target="_blank" rel="noreferrer" style={{ fontSize: 13, color: '#526b8c' }}>
+                  在 {PLATFORM_LABEL[v.platform] || '原站'} 上观看
+                </a>
+              )}
+            </div>
+          </article>
+        );
+      })}
+    </div>
+  );
+}

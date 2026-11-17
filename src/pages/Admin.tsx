@@ -30,6 +30,7 @@ import AdminAppCenter from '../components/AdminAppCenter';
 import AdminAuthorizedRequests from '../components/AdminAuthorizedRequests';
 import AdminSongWall from '../components/AdminSongWall';
 import AdminMusicDownloads from '../components/AdminMusicDownloads';
+import AdminOverseasVideos from '../components/AdminOverseasVideos';
 import AdminBulkEmail from '../components/AdminBulkEmail';
 import AdminAccountManagement from '../components/AdminAccountManagement';
 import AdminCommunicationCenter from '../components/AdminCommunicationCenter';
@@ -63,6 +64,7 @@ const TABS_ALL: [string, string, boolean][] = [
   ['authorizedRequests', '开盒队列', false],
   ['songWall', '歌声墙', false],
   ['musicDownloads', '音乐下载记录', false],
+  ['overseasVideos', '海外视频', false],
   ['bulkEmail', '批量邮件', false],
   ['communication', '沟通中心', false],
   ['feedback', '反馈', false],
@@ -251,6 +253,7 @@ export default function Admin({ verifiedRole }: { verifiedRole: 'admin' | 'super
           {tab === 'authorizedRequests' && <AdminAuthorizedRequests setMsg={setMsg} />}
           {tab === 'songWall' && <AdminSongWall setMsg={setMsg} />}
           {tab === 'musicDownloads' && <AdminMusicDownloads setMsg={setMsg} />}
+          {tab === 'overseasVideos' && <AdminOverseasVideos me={me} setMsg={setMsg} />}
           {tab === 'bulkEmail' && <AdminBulkEmail setMsg={setMsg} />}
           {tab === 'communication' && <AdminCommunicationCenter me={me} isSuper={isSuper} setMsg={setMsg} />}
           {tab === 'board' && <BoardMgr me={me} setMsg={setMsg} />}

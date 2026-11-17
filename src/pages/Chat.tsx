@@ -2274,7 +2274,6 @@ export default function Chat() {
           aria-label={showStickers ? '关闭附件菜单' : '打开附件菜单'}
           aria-expanded={showStickers}
           aria-controls="chat-attachment-tray"
-          title={showStickers ? '关闭附件菜单' : '打开附件菜单'}
           disabled={uploading || recording}
           onPointerDown={startAttachmentButtonPress}
           onPointerUp={endAttachmentButtonPress}

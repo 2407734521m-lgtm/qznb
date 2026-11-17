@@ -106,6 +106,21 @@ function fileExtLabel(name: string) {
   return ext && ext.length <= 5 ? ext : '文件';
 }
 
+const VIDEO_MIME_BY_EXTENSION: Record<string, string> = {
+  mp4: 'video/mp4', m4v: 'video/mp4', webm: 'video/webm', mov: 'video/quicktime', '3gp': 'video/3gpp',
+};
+
+function resolveChatVideoMime(file: File): string | null {
+  const supported = new Set(['video/mp4', 'video/webm', 'video/quicktime', 'video/3gpp']);
+  if (supported.has(file.type)) return file.type;
+  const extension = file.name.split('.').pop()?.toLowerCase() ?? '';
+  return VIDEO_MIME_BY_EXTENSION[extension] ?? null;
+}
+
+function isChatVideoFile(file: File): boolean {
+  return file.type.startsWith('video/') || Boolean(VIDEO_MIME_BY_EXTENSION[file.name.split('.').pop()?.toLowerCase() ?? '']);
+}
+
 // 隐形消息与富文本：||...|| 仍走自写 InvisibleInk（iMessage 式滑动擦除），
 // 其余格式（**加粗** __斜体__ `等宽` ~~删除线~~ ++下划线++ [链接](url) @[提及](id)
 // 行首 "> " 引用）都在 src/lib/richText.tsx 里解析与剥离；未配对的标记原样显示。
@@ -117,11 +132,12 @@ function MessageContent({ body, onMentionClick }: { body: string; onMentionClick
     : contentBody;
   const imagePath = contentBody.startsWith('[[im-image:') && contentBody.endsWith(']]') ? contentBody.slice(11, -2) : null;
   const audioPath = contentBody.startsWith('[[im-audio:') && contentBody.endsWith(']]') ? contentBody.slice(11, -2) : null;
+  const videoPath = contentBody.startsWith('[[im-video:') && contentBody.endsWith(']]') ? contentBody.slice(11, -2) : null;
   const fileParts = contentBody.startsWith('[[im-file:') && contentBody.endsWith(']]') ? contentBody.slice(10, -2).split('|') : null;
   const filePath = fileParts ? fileParts[0] : null;
   const fileName = fileParts && fileParts[1] ? fileParts[1] : '文件';
   const fileSize = fileParts && fileParts[2] ? Number(fileParts[2]) : 0;
-  const url = useSignedUrl('chat-media', imagePath ?? audioPath ?? filePath);
+  const url = useSignedUrl('chat-media', imagePath ?? audioPath ?? videoPath ?? filePath);
   const [downloading, setDownloading] = useState(false);
   const handleDownload = async (event: ReactMouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
@@ -138,6 +154,11 @@ function MessageContent({ body, onMentionClick }: { body: string; onMentionClick
     }
   };
   if (imagePath) return url ? <MessageImagePreview url={url} /> : <div className="fx-skel-wrap" role="status" aria-label="图片加载中"><div className="fx-skel" style={{ width: 220, height: 140, maxWidth: '68vw', borderRadius: 14 }} /></div>;
+  if (videoPath) return url ? (
+    <div className="im-video-card">
+      <video className="im-video" controls playsInline preload="metadata" src={url} aria-label="视频消息播放" />
+    </div>
+  ) : <div className="fx-skel-wrap" role="status" aria-label="视频加载中"><div className="fx-skel" style={{ width: 260, height: 154, maxWidth: '72vw', borderRadius: 14 }} /></div>;
   if (filePath) return url ? (
     <div className="im-file-download-row">
       <a className="im-file-card" href={url} target="_blank" rel="noreferrer">
@@ -165,11 +186,12 @@ function messageTimeLabel(value: string | number) {
 }
 
 function canShowInlineMeta(body: string, hasReply: boolean) {
-  const content = body.trim();
+  const content = stripChatBubbleEffect(body).trim();
   return Boolean(content)
     && !hasReply
     && !content.startsWith('[[im-image:')
     && !content.startsWith('[[im-audio:')
+    && !content.startsWith('[[im-video:')
     && !content.includes('\n')
     && Array.from(content).length >= 4
     && Array.from(content).length <= 18;
@@ -253,10 +275,13 @@ export default function Chat() {
   const [text, setText] = useState('');
   const [effectsPickerOpen, setEffectsPickerOpen] = useState(false);
   const [effectsPickerSelection, setEffectsPickerSelection] = useState<ChatBubbleEffect | null>(null);
+  const [effectsPickerMode, setEffectsPickerMode] = useState<'text' | 'attachment'>('text');
+  const [pendingAttachmentEffect, setPendingAttachmentEffect] = useState<ChatBubbleEffect | null>(null);
   const [activeScreenEffect, setActiveScreenEffect] = useState<{ kind: ScreenEffectKind; messageId: string; replay: number } | null>(null);
   const screenEffectReplayRef = useRef(0);
   const sendHoldTimerRef = useRef<number | null>(null);
   const sendHoldTriggeredRef = useRef(false);
+  const attachmentHoldTriggeredRef = useRef(false);
   // 输入框是否聚焦：只决定底部语音光晕亮不亮，不改任何发送逻辑。
   const [inputFocused, setInputFocused] = useState(false);
   // 格式栏：输入框里有选中的文字才出现（长按选中、拖蓝柄都算）。
@@ -287,6 +312,7 @@ export default function Chat() {
   const imageRef = useRef<HTMLInputElement>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
   const gifRef = useRef<HTMLInputElement>(null);
+  const videoRef = useRef<HTMLInputElement>(null);
   const attachmentButtonRef = useRef<HTMLButtonElement>(null);
   const attachmentTrayRef = useRef<HTMLDivElement>(null);
   const { startCall, busy: callBusy } = useCall();
@@ -338,7 +364,7 @@ export default function Chat() {
   const wallpaperUrl = useSignedUrl('chat-media', backgroundPath);
   const peerAvatarUrl = useSignedUrl('avatars', peer?.avatar_path);
   const sharedImageMessages = useMemo(
-    () => msgs.filter(message => !message.deleted_at && message.body.startsWith('[[im-image:')),
+    () => msgs.filter(message => !message.deleted_at && stripChatBubbleEffect(message.body).startsWith('[[im-image:')),
     [msgs],
   );
   // 「创建@」的候选人：群聊是全体成员（除掉自己），1:1 只有对方。
@@ -349,11 +375,15 @@ export default function Chat() {
     return members.map(member => ({ value: member.id, label: member.display_name ?? member.username }));
   }, [isGroup, groupMembers, peer, me]);
   const sharedFileMessages = useMemo(
-    () => msgs.filter(message => !message.deleted_at && message.body.startsWith('[[im-file:')),
+    () => msgs.filter(message => !message.deleted_at && stripChatBubbleEffect(message.body).startsWith('[[im-file:')),
     [msgs],
   );
   const sharedAudioMessages = useMemo(
-    () => msgs.filter(message => !message.deleted_at && message.body.startsWith('[[im-audio:')),
+    () => msgs.filter(message => !message.deleted_at && stripChatBubbleEffect(message.body).startsWith('[[im-audio:')),
+    [msgs],
+  );
+  const sharedVideoMessages = useMemo(
+    () => msgs.filter(message => !message.deleted_at && stripChatBubbleEffect(message.body).startsWith('[[im-video:')),
     [msgs],
   );
   const sharedLinkItems = useMemo(() => msgs.flatMap(message => {
@@ -363,7 +393,7 @@ export default function Chat() {
     const urls = body.match(/https?:\/\/[^\s<>"']+/g) ?? [];
     return urls.map((url, index) => ({ key: message.id + '-' + index, url }));
   }), [msgs]);
-  const sharedMediaCount = sharedImageMessages.length + sharedFileMessages.length + sharedAudioMessages.length + sharedLinkItems.length;
+  const sharedMediaCount = sharedImageMessages.length + sharedFileMessages.length + sharedAudioMessages.length + sharedVideoMessages.length + sharedLinkItems.length;
 
   // 第 2 阶段虚拟化：只渲染可视区的消息行（变高行用 measureElement 动态测量）。
   // 滚动容器就是 .im-feed；outbox（秒发本地条目）数量极小，仍直接渲染在列表之后。
@@ -952,6 +982,24 @@ export default function Chat() {
     }
   }
 
+  async function persistMediaMessage(body: string, effect: ChatBubbleEffect | null) {
+    if (!cid) throw new Error('聊天已关闭，无法发送媒体。');
+    const decoratedBody = withChatBubbleEffect(body, effect);
+    const { error: sendError } = await supabase.from('messages').insert({
+      conversation_id: Number(cid), sender_id: me, body: decoratedBody, reply_to_id: replyTarget?.id ?? null,
+    });
+    if (sendError) throw sendError;
+    setReplyTarget(null);
+    setPendingAttachmentEffect(null);
+    setShowStickers(false);
+    setShowStickerEmojis(false);
+    await load();
+    const screenKind = getScreenEffectKind(decoratedBody);
+    if (screenKind) {
+      setActiveScreenEffect({ kind: screenKind, messageId: '', replay: ++screenEffectReplayRef.current });
+    }
+  }
+
   async function sendImage(file?: File) {
     if (!file || uploading || !cid) return;
     if (!file.type.startsWith('image/')) { setError('请选择图片文件。'); return; }
@@ -961,10 +1009,7 @@ export default function Chat() {
       const compact = await downscaleImage(file, 1440, 0.82);
       setUpPct(0);
       const path = await uploadMediaWithProgress('chat-media', compact, Number(cid) + '/' + me, pct => setUpPct(pct));
-      const { error: sendError } = await supabase.from('messages').insert({ conversation_id: Number(cid), sender_id: me, body: '[[im-image:' + path + ']]', reply_to_id: replyTarget?.id ?? null });
-      if (sendError) throw sendError;
-      setReplyTarget(null);
-      await load();
+      await persistMediaMessage('[[im-image:' + path + ']]', pendingAttachmentEffect);
     } catch (e) {
       console.error('chat image upload failed', e);
       setError('图片发送失败。请确认聊天媒体存储策略已启用，然后重试。');
@@ -998,17 +1043,7 @@ export default function Chat() {
             lastModified: file.lastModified,
           });
       const path = await uploadMediaWithProgress('chat-media', uploadFile, Number(cid) + '/' + me, pct => setUpPct(pct));
-      const { error: sendError } = await supabase.from('messages').insert({
-        conversation_id: Number(cid),
-        sender_id: me,
-        body: '[[im-image:' + path + ']]',
-        reply_to_id: replyTarget?.id ?? null,
-      });
-      if (sendError) throw sendError;
-      setReplyTarget(null);
-      setShowStickers(false);
-      setShowStickerEmojis(false);
-      await load();
+      await persistMediaMessage('[[im-image:' + path + ']]', pendingAttachmentEffect);
     } catch (e) {
       console.error('chat GIF upload failed', e);
       setError('GIF 动图发送失败，请重试。');
@@ -1021,6 +1056,7 @@ export default function Chat() {
 
   async function sendFile(file?: File) {
     if (!file || uploading || !cid) return;
+    if (isChatVideoFile(file)) { await sendVideo(file); return; }
     if (file.size > 50 * 1024 * 1024) { setError('文件不能超过 50 MB。'); return; }
     if (/\.(exe|apk|bat|cmd|sh|com|msi|scr)$/i.test(file.name)) { setError('这类程序文件不能发送。'); return; }
     setUploading(true); setError('');
@@ -1029,16 +1065,33 @@ export default function Chat() {
       const path = await uploadMediaWithProgress('chat-media', file, Number(cid) + '/' + me, pct => setUpPct(pct));
       const safeName = file.name.replace(/[|\]]/g, '_').slice(0, 80) || '文件';
       const body = '[[im-file:' + path + '|' + safeName + '|' + file.size + ']]';
-      const { error: sendError } = await supabase.from('messages').insert({ conversation_id: Number(cid), sender_id: me, body, reply_to_id: replyTarget?.id ?? null });
-      if (sendError) throw sendError;
-      setReplyTarget(null);
-      setShowStickers(false);
-      await load();
+      await persistMediaMessage(body, pendingAttachmentEffect);
     } catch (e) {
       console.error('chat file upload failed', e);
       setError('文件发送失败，请重试。');
     } finally {
       setUploading(false); setUpPct(null);
+      if (fileRef.current) fileRef.current.value = '';
+    }
+  }
+
+  async function sendVideo(file?: File) {
+    if (!file || uploading || !cid) return;
+    const mime = resolveChatVideoMime(file);
+    if (!mime) { setError('视频格式暂不支持，请选择 MP4、WebM、MOV 或 3GP。'); return; }
+    if (file.size > 50 * 1024 * 1024) { setError('视频不能超过 50 MB。'); return; }
+    const uploadFile = file.type === mime ? file : new File([file], file.name, { type: mime, lastModified: file.lastModified });
+    setUploading(true); setError('');
+    try {
+      setUpPct(0);
+      const path = await uploadMediaWithProgress('chat-media', uploadFile, Number(cid) + '/' + me, pct => setUpPct(pct));
+      await persistMediaMessage('[[im-video:' + path + ']]', pendingAttachmentEffect);
+    } catch (e) {
+      console.error('chat video upload failed', e);
+      setError('视频发送失败，请检查视频格式、大小和聊天媒体存储策略后重试。');
+    } finally {
+      setUploading(false); setUpPct(null);
+      if (videoRef.current) videoRef.current.value = '';
       if (fileRef.current) fileRef.current.value = '';
     }
   }
@@ -1083,10 +1136,7 @@ export default function Chat() {
           const file = new File([blob], 'voice-' + Date.now() + '.' + ext, { type: mime });
           setUpPct(0);
           const path = await uploadMediaWithProgress('chat-media', file, Number(cid) + '/' + me, pct => setUpPct(pct));
-          const { error: sendError } = await supabase.from('messages').insert({ conversation_id: Number(cid), sender_id: me, body: '[[im-audio:' + path + ']]', reply_to_id: replyTarget?.id ?? null });
-          if (sendError) throw sendError;
-          setReplyTarget(null);
-          await load();
+          await persistMediaMessage('[[im-audio:' + path + ']]', pendingAttachmentEffect);
         } catch (e) {
           console.error('chat voice upload failed', e);
           setError('语音发送失败。请确认聊天媒体存储策略已启用，然后重试。');
@@ -1335,10 +1385,36 @@ export default function Chat() {
     replaceComposerRange(range.start, range.end, mention, { start: range.start, end: range.start + mention.length });
   }
 
-  function openMessageEffectsPicker() {
-    if (effectsPickerOpen || !text.trim() || uploading || recording) return;
+  function openMessageEffectsPicker(mode: 'text' | 'attachment' = 'text') {
+    if (effectsPickerOpen || uploading || recording || (mode === 'text' && !text.trim())) return;
+    setEffectsPickerMode(mode);
     setEffectsPickerSelection(null);
     setEffectsPickerOpen(true);
+  }
+
+  function startAttachmentButtonPress(event: React.PointerEvent<HTMLButtonElement>) {
+    if (event.button !== 0) return;
+    attachmentHoldTriggeredRef.current = false;
+    if (sendHoldTimerRef.current !== null) window.clearTimeout(sendHoldTimerRef.current);
+    sendHoldTimerRef.current = window.setTimeout(() => {
+      sendHoldTimerRef.current = null;
+      attachmentHoldTriggeredRef.current = true;
+      openMessageEffectsPicker('attachment');
+    }, 480);
+  }
+
+  function endAttachmentButtonPress() {
+    if (sendHoldTimerRef.current !== null) window.clearTimeout(sendHoldTimerRef.current);
+    sendHoldTimerRef.current = null;
+  }
+
+  function handleAttachmentButtonClick() {
+    if (attachmentHoldTriggeredRef.current) {
+      attachmentHoldTriggeredRef.current = false;
+      return;
+    }
+    setShowStickers(value => !value);
+    setShowStickerEmojis(false);
   }
 
   function startSendButtonPress(event: React.PointerEvent<HTMLButtonElement>) {
@@ -1445,10 +1521,12 @@ export default function Chat() {
 
   function messageSummary(message?: ChatMessage | null) {
     if (!message || message.deleted_at) return '消息已撤回';
-    if (message.body.startsWith('[[im-image:')) return '图片';
-    if (message.body.startsWith('[[im-audio:')) return '语音';
-    if (message.body.startsWith('[[im-file:')) return '文件';
-    return stripRichText(message.body);
+    const body = stripChatBubbleEffect(message.body);
+    if (body.startsWith('[[im-image:')) return '图片';
+    if (body.startsWith('[[im-audio:')) return '语音';
+    if (body.startsWith('[[im-video:')) return '视频';
+    if (body.startsWith('[[im-file:')) return '文件';
+    return stripRichText(body);
   }
 
   const dateLabel = (value: string, previous?: string) => {
@@ -1834,6 +1912,15 @@ export default function Chat() {
                   ))}
                 </div>
               )}
+              {sharedVideoMessages.length > 0 && (
+                <div className="im-profile-shared-videos">
+                  {sharedVideoMessages.slice(-6).reverse().map(video => (
+                    <div className="im-profile-shared-video-item" key={video.id}>
+                      <MessageContent onMentionClick={openMemberPage} body={video.body} />
+                    </div>
+                  ))}
+                </div>
+              )}
               {sharedAudioMessages.length > 0 && (
                 <div className="im-profile-shared-audio">
                   {sharedAudioMessages.slice(-8).reverse().map(audio => (
@@ -2072,6 +2159,11 @@ export default function Chat() {
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M4 7h3l2-2h6l2 2h3a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2Z"/><circle cx="12" cy="13" r="4"/></svg>
                 </span><span>相机</span>
               </button>
+              <button type="button" className="im-attach-choice" onClick={() => { setShowStickers(false); videoRef.current?.click(); }}>
+                <span className="im-attach-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="5" width="13" height="14" rx="2"/><path d="m16 10 5-3v10l-5-3z"/></svg>
+                </span><span>视频</span>
+              </button>
               <button type="button" className="im-attach-choice" onClick={() => { setShowStickers(false); fileRef.current?.click(); }}>
                 <span className="im-attach-icon" aria-hidden="true">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M6 3h8l5 5v12a1 1 0 0 1-1 1H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z"/><path d="M14 3v6h6"/></svg>
@@ -2161,6 +2253,7 @@ export default function Chat() {
         <input ref={cameraRef} type="file" accept="image/*" capture="environment" hidden onChange={e => sendImage(e.target.files?.[0])} />
         <input ref={fileRef} type="file" hidden onChange={e => sendFile(e.target.files?.[0])} />
         <input ref={gifRef} type="file" accept="image/gif,.gif" hidden onChange={e => sendGif(e.target.files?.[0])} />
+        <input ref={videoRef} type="file" accept="video/mp4,video/webm,video/quicktime,video/3gpp,.mp4,.webm,.mov,.3gp,.m4v" hidden onChange={e => sendVideo(e.target.files?.[0])} />
         <button
           ref={attachmentButtonRef}
           type="button"
@@ -2170,8 +2263,14 @@ export default function Chat() {
           aria-controls="chat-attachment-tray"
           title={showStickers ? '关闭附件菜单' : '打开附件菜单'}
           disabled={uploading || recording}
-          onClick={() => { setShowStickers(v => !v); setShowStickerEmojis(false); }}
-        >{showStickers ? '×' : '＋'}</button>
+          onPointerDown={startAttachmentButtonPress}
+          onPointerUp={endAttachmentButtonPress}
+          onPointerCancel={endAttachmentButtonPress}
+          onPointerLeave={endAttachmentButtonPress}
+          onContextMenu={event => { event.preventDefault(); attachmentHoldTriggeredRef.current = true; openMessageEffectsPicker('attachment'); }}
+          onClick={handleAttachmentButtonClick}
+          title={pendingAttachmentEffect ? `下一条媒体：${({ slam: '撞击', loud: '放大', gentle: '轻柔', 'screen-echo': '回声', 'screen-spotlight': '聚光灯', 'screen-balloons': '气球', 'screen-confetti': '彩纸', 'screen-love': '爱心', 'screen-lasers': '激光', 'screen-fireworks': '烟花', 'screen-celebration': '庆祝' } as Record<string, string>)[pendingAttachmentEffect] ?? '特效'}；长按修改` : '单击打开附件，长按设置媒体特效'}
+        >{showStickers ? '×' : '＋'}{pendingAttachmentEffect && <span className="im-attachment-effect-indicator" aria-hidden="true">✦</span>}</button>
         {!isGroup && (
           <OptionSheet
             value={disappearingOptionValue(disappearingMode, disappearingSeconds)}
@@ -2252,13 +2351,21 @@ export default function Chat() {
       </div>}
       <MessageEffectsPicker
         open={effectsPickerOpen}
-        previewText={text}
+        previewText={effectsPickerMode === 'attachment' ? '下一条媒体消息' : text}
         selected={effectsPickerSelection}
+        mediaOnly={effectsPickerMode === 'attachment'}
+        actionLabel={effectsPickerMode === 'attachment' ? '应用到下一条媒体' : '发送'}
         onSelect={setEffectsPickerSelection}
         onSend={() => {
           if (!effectsPickerSelection) return;
           setEffectsPickerOpen(false);
-          send(effectsPickerSelection);
+          if (effectsPickerMode === 'attachment') {
+            setPendingAttachmentEffect(effectsPickerSelection);
+            setShowStickers(false);
+            toast.success('下一条媒体消息将使用所选特效');
+          } else {
+            send(effectsPickerSelection);
+          }
         }}
         onClose={() => setEffectsPickerOpen(false)}
       />

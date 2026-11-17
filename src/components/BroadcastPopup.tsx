@@ -105,7 +105,6 @@ export default function BroadcastPopup({ uid }: { uid: string }) {
         if (!r) return canRepeat || d.kind !== 'popup';
         // 普通弹窗按后台配置的展示次数和间隔控制重复显示；
         // 征集类仍按一次提交/暂不参与的回执规则处理。
-        const targets = pokeList(d);
         const isPokeDue = d.kind !== 'refresh'
           && (r.status === 'declined' || (d.kind === 'location' && r.status === 'denied'))
           && !!d.poke_at

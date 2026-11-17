@@ -4,6 +4,7 @@ import {
   stripChatBubbleEffect,
   withChatBubbleEffect,
   getScreenEffectKind,
+  type ScreenEffectKind,
 } from './chatMessageEffect';
 
 describe('chat bubble effect message markers', () => {
@@ -30,11 +31,18 @@ describe('chat bubble effect message markers', () => {
     expect(withChatBubbleEffect('', 'invisible-ink').length).toBe(34);
   });
 
-  it('recognizes screen effects separately from bubble effects', () => {
-    const body = withChatBubbleEffect('celebrate', 'screen-fireworks');
-    expect(getChatBubbleEffect(body)).toBe('screen-fireworks');
-    expect(getScreenEffectKind(body)).toBe('fireworks');
-    expect(stripChatBubbleEffect(body)).toBe('celebrate');
+  it('recognizes all eight screen effects separately from bubble effects', () => {
+    const kinds: ScreenEffectKind[] = [
+      'echo', 'spotlight', 'balloons', 'confetti',
+      'love', 'lasers', 'fireworks', 'celebration',
+    ];
+    for (const kind of kinds) {
+      const body = withChatBubbleEffect('celebrate', `screen-${kind}`);
+      expect(getChatBubbleEffect(body)).toBe(`screen-${kind}`);
+      expect(getScreenEffectKind(body)).toBe(kind);
+      expect(stripChatBubbleEffect(body)).toBe('celebrate');
+      expect(withChatBubbleEffect('', `screen-${kind}`).length).toBeLessThan(50);
+    }
     expect(getScreenEffectKind(withChatBubbleEffect('hello', 'slam'))).toBeNull();
   });
 });

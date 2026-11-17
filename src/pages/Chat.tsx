@@ -136,13 +136,14 @@ function MessageContent({ body, onMentionClick, messageId, autoPlayMedia = false
   const posterUrl = useSignedUrl('chat-media', posterPath);
   const videoElementRef = useRef<HTMLVideoElement | null>(null);
   useEffect(() => {
+    if (!videoPath) return;
     const pauseOther = (event: Event) => {
       const detail = (event as CustomEvent<{ id?: number | null }>).detail;
       if (detail?.id !== messageId) videoElementRef.current?.pause();
     };
     window.addEventListener('qz-chat-media-play', pauseOther);
     return () => window.removeEventListener('qz-chat-media-play', pauseOther);
-  }, [messageId]);
+  }, [messageId, videoPath]);
   const [downloading, setDownloading] = useState(false);
   const handleDownload = async (event: ReactMouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
@@ -279,6 +280,8 @@ export default function Chat() {
   const [groupInviteBusy, setGroupInviteBusy] = useState(false);
   const [msgs, setMsgs] = useState<ChatMessage[]>([]);
   const [autoPlayMediaId, setAutoPlayMediaId] = useState<number | null>(null);
+  const msgsRef = useRef(msgs);
+  useEffect(() => { msgsRef.current = msgs; }, [msgs]);
   useEffect(() => { setAutoPlayMediaId(null); }, [cid]);
   const [loadingMsgs, setLoadingMsgs] = useState(true);
   const showMsgsSkeleton = useDelayedLoading(loadingMsgs);
@@ -1545,7 +1548,8 @@ export default function Chat() {
   }
 
   const handleMediaEnded = useCallback((messageId: number) => {
-    const mediaMessages = msgs.filter(message => {
+    const currentMessages = msgsRef.current;
+    const mediaMessages = currentMessages.filter(message => {
       if (message.deleted_at) return false;
       const body = stripChatBubbleEffect(message.body);
       return body.startsWith('[[im-audio:') || body.startsWith('[[im-video:');
@@ -1554,9 +1558,9 @@ export default function Chat() {
     const next = current >= 0 ? mediaMessages[current + 1] : null;
     if (!next) { setAutoPlayMediaId(null); return; }
     setAutoPlayMediaId(next.id);
-    const nextIndex = msgs.findIndex(message => message.id === next.id);
+    const nextIndex = currentMessages.findIndex(message => message.id === next.id);
     if (nextIndex >= 0) virtualizer.scrollToIndex(nextIndex, { align: 'center' });
-  }, [msgs, virtualizer]);
+  }, [virtualizer]);
 
   function messageSummary(message?: ChatMessage | null) {
     if (!message || message.deleted_at) return '消息已撤回';

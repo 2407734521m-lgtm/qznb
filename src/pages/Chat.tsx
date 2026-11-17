@@ -21,6 +21,7 @@ import type { ChatMessage } from '../types/message';
 import { useUserPreferences } from '../lib/userPreferences';
 import { SPRING_SNAPPY } from '../lib/motion';
 import { isSwipeToReply } from '../lib/chatGestures';
+import { isChatVideoFile, resolveChatVideoMime } from '../lib/chatMedia';
 import MessageEffectsPicker from '../components/MessageEffectsPicker';
 import ScreenEffectCanvas from '../components/ScreenEffectCanvas';
 import { getChatBubbleEffect, getScreenEffectKind, stripChatBubbleEffect, withChatBubbleEffect, type ChatBubbleEffect, type ScreenEffectKind } from '../lib/chatMessageEffect';
@@ -110,21 +111,6 @@ function formatFileSize(bytes: number) {
 function fileExtLabel(name: string) {
   const ext = (name.split('.').pop() || '').toUpperCase();
   return ext && ext.length <= 5 ? ext : '文件';
-}
-
-const VIDEO_MIME_BY_EXTENSION: Record<string, string> = {
-  mp4: 'video/mp4', m4v: 'video/mp4', webm: 'video/webm', mov: 'video/quicktime', '3gp': 'video/3gpp',
-};
-
-function resolveChatVideoMime(file: File): string | null {
-  const supported = new Set(['video/mp4', 'video/webm', 'video/quicktime', 'video/3gpp']);
-  if (supported.has(file.type)) return file.type;
-  const extension = file.name.split('.').pop()?.toLowerCase() ?? '';
-  return VIDEO_MIME_BY_EXTENSION[extension] ?? null;
-}
-
-function isChatVideoFile(file: File): boolean {
-  return file.type.startsWith('video/') || Boolean(VIDEO_MIME_BY_EXTENSION[file.name.split('.').pop()?.toLowerCase() ?? '']);
 }
 
 // 隐形消息与富文本：||...|| 仍走自写 InvisibleInk（iMessage 式滑动擦除），

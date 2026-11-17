@@ -3,6 +3,7 @@ import {
   getChatBubbleEffect,
   stripChatBubbleEffect,
   withChatBubbleEffect,
+  getScreenEffectKind,
 } from './chatMessageEffect';
 
 describe('chat bubble effect message markers', () => {
@@ -27,5 +28,13 @@ describe('chat bubble effect message markers', () => {
 
   it('preserves the full effect marker length for database payload limits', () => {
     expect(withChatBubbleEffect('', 'invisible-ink').length).toBe(34);
+  });
+
+  it('recognizes screen effects separately from bubble effects', () => {
+    const body = withChatBubbleEffect('celebrate', 'screen-fireworks');
+    expect(getChatBubbleEffect(body)).toBe('screen-fireworks');
+    expect(getScreenEffectKind(body)).toBe('fireworks');
+    expect(stripChatBubbleEffect(body)).toBe('celebrate');
+    expect(getScreenEffectKind(withChatBubbleEffect('hello', 'slam'))).toBeNull();
   });
 });

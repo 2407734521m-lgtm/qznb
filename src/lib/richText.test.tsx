@@ -20,6 +20,8 @@ describe('stripRichText（收件箱预览 / 回复引用 / 复制）', () => {
 
   it('剧透不泄露原文', () => {
     expect(stripRichText('明天||去看电影||吧')).toBe('明天•••吧');
+    expect(stripRichText('||__**测试**__||')).toBe('•••');
+    expect(stripRichText('我：||测试测试测试||')).toBe('我：•••');
   });
 
   it('iMessage 隐形墨水预览隐藏全文，其他气泡特效不泄露内部标记', () => {
@@ -101,6 +103,30 @@ describe('renderRichText', () => {
     const out = html('> 引用的一行\n第二行');
     expect(out).toContain('<blockquote class="im-quote">引用的一行</blockquote>');
     expect(out).toContain('第二行');
+  });
+
+  it('剧透里的加粗/斜体/删除线/下划线能渲染，不再原样露出标记', () => {
+    const out = html('||__**测试**__||');
+    expect(out).toContain('im-ink');
+    expect(out).toContain('<em>');
+    expect(out).toContain('<strong>测试</strong>');
+    expect(out).not.toContain('__');
+    expect(out).not.toContain('**');
+  });
+
+  it('剧透里的链接、@提及与等宽能渲染', () => {
+    const out = html('||[官网](https://qianzhi.pw) @[千](abc-123) `码`||');
+    expect(out).toContain('im-ink');
+    expect(out).toContain('<a class="im-link" href="https://qianzhi.pw" target="_blank" rel="noopener noreferrer">官网</a>');
+    expect(out).toContain('class="im-mention"');
+    expect(out).toContain('<code class="im-code">码</code>');
+  });
+
+  it('剧透套剧透不死循环：按非贪婪配对拆成两段剧透', () => {
+    const out = html('||a ||b|| c||');
+    expect((out.match(/class="im-ink"/g) ?? [])).toHaveLength(2);
+    expect(out).toContain('a ');
+    expect(out).toContain(' c');
   });
 
   it('加粗里可以再嵌套剧透', () => {

@@ -51,7 +51,7 @@ export function createChatForwardAttachmentPlan(
       sourcePaths: [sourcePath],
       buildBody: paths => {
         requireDestinationPaths(paths, 1);
-        return \`[[im-image:\${paths[0]}]]\`;
+        return `[[im-image:${paths[0]}]]`;
       },
     };
   }
@@ -65,7 +65,7 @@ export function createChatForwardAttachmentPlan(
       sourcePaths: [sourcePath],
       buildBody: paths => {
         requireDestinationPaths(paths, 1);
-        return \`[[im-audio:\${paths[0]}]]\`;
+        return `[[im-audio:${paths[0]}]]`;
       },
     };
   }
@@ -79,7 +79,7 @@ export function createChatForwardAttachmentPlan(
       sourcePaths,
       buildBody: paths => {
         requireDestinationPaths(paths, sourcePaths.length);
-        return \`[[im-video:\${paths[0]}\${paths[1] ? \`|\${paths[1]}\` : ''}]]\`;
+        return `[[im-video:${paths[0]}${paths[1] ? `|${paths[1]}` : ''}]]`;
       },
     };
   }
@@ -97,7 +97,7 @@ export function createChatForwardAttachmentPlan(
       fileSize,
       buildBody: paths => {
         requireDestinationPaths(paths, 1);
-        return \`[[im-file:\${paths[0]}|\${fileName}|\${file[3]}]]\`;
+        return `[[im-file:${paths[0]}|${fileName}|${file[3]}]]`;
       },
     };
   }

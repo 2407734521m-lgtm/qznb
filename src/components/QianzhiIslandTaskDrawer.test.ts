@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Activity } from '../lib/island';
-import { resolveIslandActivityCategory, resolveIslandTaskAccessibleLabel, resolveIslandTaskProgress, resolveIslandTaskStatusLabel } from './QianzhiIslandTaskDrawer';
+import { resolveIslandActivityCategory, resolveIslandTaskAccessibleLabel, resolveIslandTaskProgress, resolveIslandTaskStatusLabel, shouldRenderIslandTaskDrawer } from './QianzhiIslandTaskDrawer';
 
 describe('resolveIslandActivityCategory', () => {
   it('recognizes the existing call, music, notification and transfer activities', () => {
@@ -64,5 +64,19 @@ describe('resolveIslandTaskAccessibleLabel', () => {
 
   it('falls back to a running label when there is no task state', () => {
     expect(resolveIslandTaskAccessibleLabel(activity({}))).toBe('切换到：上传照片，文件传输 · 正在运行');
+  });
+});
+
+
+describe('activity switcher visibility', () => {
+  it('stays available while the island is compact or expanded', () => {
+    // Expansion is intentionally not a hiding condition: the user can open the
+    // activity list beside the expanded capsule and choose another running item.
+    expect(shouldRenderIslandTaskDrawer(false, false)).toBe(true);
+  });
+
+  it('hides while docked or while the keyboard is occupying the screen', () => {
+    expect(shouldRenderIslandTaskDrawer(true, false)).toBe(false);
+    expect(shouldRenderIslandTaskDrawer(false, true)).toBe(false);
   });
 });

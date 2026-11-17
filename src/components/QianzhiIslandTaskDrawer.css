@@ -109,7 +109,7 @@
   display: flex;
   align-items: flex-start;
   justify-content: center;
-  padding: calc(var(--qz-island-anchor-top, max(env(safe-area-inset-top, 0px), 18px)) + 12.5px + var(--qz-island-config-y, 0px) + 42px) 12px 18px;
+  padding: var(--qz-island-task-panel-top, calc(var(--qz-island-anchor-top, max(env(safe-area-inset-top, 0px), 18px)) + 12.5px + var(--qz-island-config-y, 0px) + 42px)) 12px 18px;
   pointer-events: none;
 }
 

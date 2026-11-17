@@ -233,6 +233,81 @@ describe("swipe to cycle activities", () => {
 });
 
 
+describe("multi-activity call coordination", () => {
+  it("locks group calls to the full capsule and prevents lower-priority expansion", () => {
+    const store = makeStore();
+    store.api.start({ id: "music-playback", priority: 0 });
+    store.api.start({ id: "upload-task", priority: 22 });
+    store.api.start({ id: "qz-group-call-session", priority: 116 });
+
+    let scene = deriveScene(store.getSnapshot());
+    expect(scene.presentation.kind).toBe("compact");
+    expect(scene.primary?.id).toBe("qz-group-call-session");
+    expect(scene.detached).toBeNull();
+
+    store.api.cycle("next");
+    store.api.expand("music-playback");
+    expect(store.getSnapshot().manualPrimary).toBeNull();
+    expect(store.getSnapshot().expanded).toBeNull();
+
+    store.api.expand("qz-group-call-session");
+    expect(store.getSnapshot().expanded?.id).toBe("qz-group-call-session");
+
+    // A higher-priority one-to-one call can take over a group call.
+    store.api.start({ id: "qz-call-session", priority: 120, alert: true });
+    scene = deriveScene(store.getSnapshot());
+    expect(scene.presentation.kind).toBe("expanded");
+    expect(scene.primary?.id).toBe("qz-call-session");
+  });
+
+  it("returns to the manually selected activity after the last call ends", () => {
+    const store = makeStore();
+    store.api.start({ id: "music-playback", priority: 40 });
+    store.api.start({ id: "upload-task", priority: 22 });
+    store.api.cycle("next");
+    expect(deriveScene(store.getSnapshot()).primary?.id).toBe("upload-task");
+
+    store.api.start({ id: "qz-call-session", priority: 120, alert: true });
+    expect(store.getSnapshot().expanded?.id).toBe("qz-call-session");
+
+    // A lower-priority notification is retained but cannot expand over the call.
+    store.api.start({ id: "qz-alert-message-1", priority: 10, alert: true });
+    expect(store.getSnapshot().expanded?.id).toBe("qz-call-session");
+
+    store.api.end("qz-call-session");
+    expect(store.getSnapshot().manualPrimary).toBe("upload-task");
+    expect(deriveScene(store.getSnapshot()).primary?.id).toBe("upload-task");
+  });
+
+  it("does not restore an old selection over a higher-priority activity that arrived during the call", () => {
+    const store = makeStore();
+    store.api.start({ id: "music-playback", priority: 40 });
+    store.api.start({ id: "upload-task", priority: 22 });
+    store.api.cycle("next");
+    expect(deriveScene(store.getSnapshot()).primary?.id).toBe("upload-task");
+
+    store.api.start({ id: "qz-call-session", priority: 120 });
+    store.api.start({ id: "qz-alert-security", priority: 100, alert: true });
+    expect(store.getSnapshot().expanded).toBeNull();
+
+    store.api.end("qz-call-session");
+    expect(store.getSnapshot().manualPrimary).toBeNull();
+    expect(deriveScene(store.getSnapshot()).primary?.id).toBe("qz-alert-security");
+  });
+
+  it("collapses a previously expanded non-call activity when a call takes priority", () => {
+    const store = makeStore();
+    store.api.start({ id: "music-playback", priority: 0 });
+    store.api.expand("music-playback");
+    expect(store.getSnapshot().expanded?.id).toBe("music-playback");
+
+    store.api.start({ id: "qz-call-session", priority: 120 });
+    expect(store.getSnapshot().expanded).toBeNull();
+    expect(deriveScene(store.getSnapshot()).primary?.id).toBe("qz-call-session");
+  });
+});
+
+
 describe("press lifecycle", () => {
   it("cancels a pending long-press when its activity ends", () => {
     const { store, advance } = makeTimedStore();

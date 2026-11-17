@@ -409,6 +409,9 @@ export default function Chat() {
     messageSwipeRef.current = null;
     setFreshId(null);
     setActiveScreenEffect(null);
+    setEffectsPickerOpen(false);
+    setEffectsPickerSelection(null);
+    setPendingAttachmentEffect(null);
   }, [cid]);
   const stickToBottomRef = useRef(true);
   // 渲染期 O(n²) 查找改为 O(1)：回复父消息与每条消息的回应分组各建一次索引。

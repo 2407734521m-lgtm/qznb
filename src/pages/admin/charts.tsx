@@ -11,6 +11,20 @@ export function Spark({ data, color }: { data: number[]; color: string }) {
     </svg>
   );
 }
+export function SparkBars({ data, color }: { data: number[]; color: string }) {
+  const w = 100, h = 30;
+  const vs = data.length > 1 ? data : [0, data[0] ?? 0];
+  const max = Math.max(...vs, 1);
+  const bw = w / vs.length;
+  return (
+    <svg viewBox={`0 0 ${w} ${h}`} style={{ width: '100%', height: 26, marginTop: 4, display: 'block' }}>
+      {vs.map((v, i) => {
+        const bh = v > 0 ? Math.max((v / max) * (h - 6), 2) : 0;
+        return <rect key={i} x={(i * bw + 1).toFixed(1)} y={(h - bh).toFixed(1)} width={Math.max(bw - 2, 1)} height={bh} rx="1.5" fill={color} fillOpacity={i === vs.length - 1 ? .9 : .55} />;
+      })}
+    </svg>
+  );
+}
 export function TrendChart({ data }: { data: number[] }) {
   const w = 300, h = 90;
   const max = Math.max(...data, 1);

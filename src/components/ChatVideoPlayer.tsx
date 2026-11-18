@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { isChatAutoplayBlocked } from '../lib/chatPlayback';
 
 type Props = {
   url: string;
@@ -6,6 +7,7 @@ type Props = {
   messageId?: number;
   autoPlay?: boolean;
   onEnded?: (messageId: number) => void;
+  onAutoplayBlocked?: (messageId: number) => void;
 };
 
 function clock(seconds: number) {
@@ -14,8 +16,10 @@ function clock(seconds: number) {
   return Math.floor(value / 60) + ':' + String(value % 60).padStart(2, '0');
 }
 
-export default function ChatVideoPlayer({ url, posterUrl, messageId, autoPlay = false, onEnded }: Props) {
+export default function ChatVideoPlayer({ url, posterUrl, messageId, autoPlay = false, onEnded, onAutoplayBlocked }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const onAutoplayBlockedRef = useRef(onAutoplayBlocked);
+  onAutoplayBlockedRef.current = onAutoplayBlocked;
   const [playing, setPlaying] = useState(false);
   const [duration, setDuration] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
@@ -33,8 +37,13 @@ export default function ChatVideoPlayer({ url, posterUrl, messageId, autoPlay = 
   useEffect(() => {
     if (!autoPlay) return;
     const video = videoRef.current;
-    if (video) void video.play().catch(() => setPlaying(false));
-  }, [autoPlay, url]);
+    if (video) void video.play().catch(error => {
+      setPlaying(false);
+      if (messageId !== undefined && isChatAutoplayBlocked(error)) {
+        onAutoplayBlockedRef.current?.(messageId);
+      }
+    });
+  }, [autoPlay, url, messageId]);
 
   useEffect(() => {
     const pauseOther = (event: Event) => {
@@ -74,7 +83,8 @@ export default function ChatVideoPlayer({ url, posterUrl, messageId, autoPlay = 
   return (
     <div className={'im-video-player' + (playing ? ' is-playing' : '')}
       data-message-id={messageId}
-      data-player="custom">
+      data-player="custom"
+      data-playback-state={failed ? 'failed' : playing ? 'playing' : 'paused'}>
       {!posterUrl && !hasFrame && (
         <div className="im-video-placeholder" aria-hidden="true">
           <span className="im-video-placeholder-icon">▶</span>

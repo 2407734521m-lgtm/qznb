@@ -448,7 +448,7 @@ export default function AdminWorkspace({
         </header>
 
         <main className="admin-workspace-content">
-          <div className="admin-page-heading">
+          <div className={['admin-page-heading', activeTab === 'overview' ? 'is-dashboard-heading' : ''].filter(Boolean).join(' ')}>
             <div className="admin-page-heading-copy">
               <h1>{current?.[1] ?? '工作台'}</h1>
               <p>{descriptionFor(activeTab)}</p>
@@ -472,8 +472,8 @@ export default function AdminWorkspace({
         </main>
 
         <footer className="admin-console-footer">
-          <span>Class Memory · 管理后台</span>
-          <span>版式参考 Ant Design Pro（MIT），仅借版式重写，未引入 antd / Umi</span>
+          <span>{BRAND_NAME} · 管理控制台</span>
+          <span>管理功能与站点数据保持原有权限边界</span>
         </footer>
       </div>
 

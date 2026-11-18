@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 const read = (file) => readFileSync(new URL('../' + file, import.meta.url), 'utf8');
 const supabaseClient = read('src/lib/supabase.ts');
 const login = read('src/pages/AdminLogin.tsx');
+const pinBoxes = read('src/components/PinBoxes.tsx');
 const settings = read('src/components/AdminSecondaryPassword.tsx');
 const admin = read('src/pages/Admin.tsx');
 const pinGate = read('supabase/migrations/20261115030500_admin_secondary_pin_gate.sql');
@@ -27,8 +28,10 @@ assert.ok(login.includes('admin_verify_secondary_password'),
   'admin login must verify the secondary PIN using the server RPC');
 assert.ok(login.includes('password_and_secondary_pin'),
   'successful login must be audited with the new authentication method');
-assert.ok(login.includes("slice(0, 6)"),
-  'the UI must limit secondary PIN entry to six digits');
+assert.ok(login.includes('<PinBoxes'),
+  'admin login must use the shared six-digit PIN input');
+assert.ok(pinBoxes.includes('const BOX_COUNT = 6') && pinBoxes.includes('slice(0, BOX_COUNT)'),
+  'the shared PIN input must limit secondary PIN entry to six digits');
 assert.ok(login.includes('admin_login_is_admin'),
   'the login flow must verify the signed-in account admin role before requesting a PIN');
 

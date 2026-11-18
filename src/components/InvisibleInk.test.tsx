@@ -3,7 +3,25 @@
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render } from '@testing-library/react';
-import InvisibleInk from './InvisibleInk';
+import InvisibleInk, { makeOpaqueCanvasColor } from './InvisibleInk';
+
+describe('InvisibleInk 遮罩不透明度', () => {
+  it('移除半透明气泡底色的 alpha，避免原文字透出', () => {
+    expect(makeOpaqueCanvasColor('rgba(28, 54, 91, 0.62)', 'rgb(233, 233, 235)'))
+      .toBe('rgb(28 54 91)');
+  });
+
+  it('完全透明的气泡底色使用对应方向的安全回退色', () => {
+    expect(makeOpaqueCanvasColor('rgba(0, 0, 0, 0)', 'rgb(233, 233, 235)'))
+      .toBe('rgb(233, 233, 235)');
+  });
+
+  it('支持现代 CSS 的斜线 alpha 写法', () => {
+    expect(makeOpaqueCanvasColor('rgb(10 124 255 / 62%)', 'rgb(233, 233, 235)'))
+      .toBe('rgb(10 124 255)');
+  });
+});
+
 
 // InvisibleInk 的交互断言（jsdom 里没有布局，elementFromPoint 一律返回 null，
 // 所以点按落点用 mock 补上；画布在 jsdom 里没有 2d 上下文，组件的状态翻转

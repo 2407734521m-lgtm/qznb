@@ -1,17 +1,26 @@
 import { useEffect, useRef, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { startSitePresence, type SitePresenceSnapshot } from '../../lib/sitePresence';
-import { card, h3, mut, timeAgo, bucket14 } from './shared';
+import { card, h3, mut, timeAgo, bucket30 } from './shared';
 import AdminNumberTicker from '../../components/admin/AdminNumberTicker';
 import { Spark, SparkBars, TrendChart } from './charts';
 
-/* STEP 3 (Flux rebuild): mini-chart tone is real, never decorative. Compare
-   the last 7 days against the previous 7 (cumulative members: the last
-   value against the value 7 days back). Up = green, down = red, flat = gold. */
-function trendTone(data: number[]): string {
+/* STEP 3 (Flux rebuild): mini-chart tone is real, never decorative.
+   Daily series: last 7 days vs the previous 7. Cumulative members: the
+   last value against the value 7 days back. Up = green, down = red,
+   flat = gold. STEP 5: the window is 30 days now, so the comparison is
+   anchored at the end of the series instead of fixed slice offsets. */
+function trendTone(data: number[], cumulative = false): string {
   if (data.length < 8) return '#b28b3d';
-  const prev = data.slice(0, 7).reduce((a, b) => a + b, 0);
-  const last = data.slice(7).reduce((a, b) => a + b, 0);
+  if (cumulative) {
+    const now = data[data.length - 1];
+    const back = data[data.length - 8];
+    if (now > back) return '#2e9e6b';
+    if (now < back) return '#d05a4e';
+    return '#b28b3d';
+  }
+  const prev = data.slice(-14, -7).reduce((a, b) => a + b, 0);
+  const last = data.slice(-7).reduce((a, b) => a + b, 0);
   if (last > prev) return '#2e9e6b';
   if (last < prev) return '#d05a4e';
   return '#b28b3d';
@@ -242,7 +251,7 @@ export default function Overview({ setMsg, go }: { setMsg: (s: string) => void; 
     let active = true;
     (async () => {
       try {
-        const since14 = new Date(Date.now() - 14 * 864e5).toISOString();
+        const since30 = new Date(Date.now() - 30 * 864e5).toISOString();
         const [m, p, c, ph, r, nm, pr, por, phr, pd, pdr, qLove, qSong, qGame, qReport, qFeedback, qBoard, qAppVer] = await Promise.all([
           supabase.from('profiles').select('id', { count: 'exact', head: true }),
           supabase.from('posts').select('id', { count: 'exact', head: true }).eq('section', 'feed').is('deleted_at', null),
@@ -251,11 +260,11 @@ export default function Overview({ setMsg, go }: { setMsg: (s: string) => void; 
           supabase.from('reports').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
           supabase.from('profiles').select('id, display_name, username, created_at')
             .order('created_at', { ascending: false }).limit(5),
-          supabase.from('profiles').select('created_at').gte('created_at', since14),
-          supabase.from('posts').select('created_at').eq('section', 'feed').gte('created_at', since14).is('deleted_at', null),
-          supabase.from('album_photos').select('created_at').gte('created_at', since14),
+          supabase.from('profiles').select('created_at').gte('created_at', since30),
+          supabase.from('posts').select('created_at').eq('section', 'feed').gte('created_at', since30).is('deleted_at', null),
+          supabase.from('album_photos').select('created_at').gte('created_at', since30),
           supabase.from('posts').select('id', { count: 'exact', head: true }).eq('section', 'daily').is('deleted_at', null),
-          supabase.from('posts').select('created_at').eq('section', 'daily').gte('created_at', since14).is('deleted_at', null),
+          supabase.from('posts').select('created_at').eq('section', 'daily').gte('created_at', since30).is('deleted_at', null),
           // STEP 3: guide-checklist inputs (same five queues TodoCenter reads).
           supabase.from('love_wall_posts').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
           supabase.from('song_posts').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
@@ -288,10 +297,10 @@ export default function Overview({ setMsg, go }: { setMsg: (s: string) => void; 
           .select('id, action, created_at').order('created_at', { ascending: false }).limit(5);
         const t0 = Date.now();
         const { error: pingErr } = await supabase.from('profiles').select('id', { head: true }).limit(1);
-        const dPro = bucket14((pr.data ?? []) as any[]);
-        const dPost = bucket14((por.data ?? []) as any[]);
-        const dPhoto = bucket14((phr.data ?? []) as any[]);
-        const dDailyPost = bucket14((pdr.data ?? []) as any[]);
+        const dPro = bucket30((pr.data ?? []) as any[]);
+        const dPost = bucket30((por.data ?? []) as any[]);
+        const dPhoto = bucket30((phr.data ?? []) as any[]);
+        const dDailyPost = bucket30((pdr.data ?? []) as any[]);
         let acc = (m.count ?? 0) - dPro.reduce((a, b) => a + b, 0);
         const cum = dPro.map(v => (acc += v));
         if (!active) return;
@@ -314,8 +323,10 @@ export default function Overview({ setMsg, go }: { setMsg: (s: string) => void; 
   }, [st, refreshSeq]);
   if (!st && !loadTimedOut) return <div className="admin-overview-loading" role="status"><span className="admin-loading-pulse" />正在整理总览数据…</div>;
   if (!st) return <div className="admin-overview-timeout"><strong>总览数据暂时没有响应</strong><p>后台其他功能仍可使用。请检查网络后重试。</p><button type="button" onClick={() => { setLoadTimedOut(false); setRefreshSeq(value => value + 1); }}>重新加载</button></div>;
-  const dlabels = [0, 3, 6, 10, 13].map(i => {
-    const d = new Date(); d.setDate(d.getDate() - (13 - i));
+  /* STEP 5: 30-day window — six evenly spaced axis labels across the
+     30 buckets (day 1, 7, 13, 19, 25, 30). */
+  const dlabels = [0, 6, 12, 18, 24, 29].map(i => {
+    const d = new Date(); d.setDate(d.getDate() - (29 - i));
     return `${d.getMonth() + 1}-${d.getDate()}`;
   });
   const statSub: Record<string, React.ReactNode> = {
@@ -325,7 +336,7 @@ export default function Overview({ setMsg, go }: { setMsg: (s: string) => void; 
     '相册照片': st.photos === 0 ? <span>暂无新照片</span> : <span>持续更新中</span>,
   };
   const stats: [string, number, number[], string, string, 'bars' | 'area'][] = [
-    ['注册成员', st.members, st.cum, trendTone(st.cum), '人', 'bars'],
+    ['注册成员', st.members, st.cum, trendTone(st.cum, true), '人', 'bars'],
     ['社区动态', st.posts, st.dPost, trendTone(st.dPost), '篇', 'area'],
     ['日常帖子', st.dailyPosts, st.dDailyPost, trendTone(st.dDailyPost), '篇', 'area'],
     ['相册照片', st.photos, st.dPhoto, trendTone(st.dPhoto), '张', 'area'],
@@ -341,6 +352,9 @@ export default function Overview({ setMsg, go }: { setMsg: (s: string) => void; 
   ];
   const guideDone = guideItems.filter(i => i.done).length;
   const recentLogs = (st.recentLogs as any[]).slice(0, 4);
+  /* STEP 5: the trend hero number is the real 30-day new-member count —
+     the sum of the 30 daily registration buckets. */
+  const new30 = (st.dPro as number[]).reduce((a, b) => a + b, 0);
   const sampledOnline = presence && presence.sampledAt ? presence.online : null;
   const lastSample = presence?.sampledAt ? new Date(presence.sampledAt).toLocaleTimeString() : '等待首次采样';
   return (
@@ -434,8 +448,12 @@ export default function Overview({ setMsg, go }: { setMsg: (s: string) => void; 
       <div className="admin-overview-bottom-grid">
         <section className="admin-overview-panel admin-overview-trend-panel">
           <div className="admin-overview-panel-heading">
-            <div><span className="admin-overview-section-kicker">GROWTH</span><h3>近 14 天增长趋势</h3><p>成员注册每日变化</p></div>
-            <span className="admin-overview-range-label">近 14 天</span>
+            <div><span className="admin-overview-section-kicker">GROWTH</span><h3>30天运营趋势</h3><p>成员注册每日变化</p></div>
+            <span className="admin-overview-range-label">近 30 天</span>
+          </div>
+          <div className="admin-overview-trend-hero">
+            <strong>{new30.toLocaleString('zh-CN')}</strong>
+            <span>近 30 天新增成员</span>
           </div>
           <TrendChart data={st.dPro} />
           <div className="admin-overview-chart-labels">

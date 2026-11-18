@@ -535,3 +535,23 @@
   background: #f8f9fa !important;
   color: #818a91 !important;
 }
+
+/* STEP 5 (Flux rebuild): trend hero number — same big dark figure as the
+   metric cards, with a small caption beside it. */
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-trend-hero {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin: 2px 0 10px;
+}
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-trend-hero strong {
+  font-size: 30px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.5px;
+  color: #232a2f !important;
+}
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-trend-hero span {
+  font-size: 12.5px;
+  color: #5d686f !important;
+}

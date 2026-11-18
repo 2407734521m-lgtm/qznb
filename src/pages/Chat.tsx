@@ -30,6 +30,7 @@ import { formatChatTypingLabel, parseChatTypingPayload } from '../lib/chatTyping
 import { IMESSAGE_TAPBACKS } from '../lib/imessageTapbacks';
 import { canLongPressMessage, getSwipeReplyVisual, isSwipeToReply } from '../lib/chatGestures';
 import { createChatForwardAttachmentPlan } from '../lib/chatForwarding';
+import { findNextChatMediaMessageId } from '../lib/chatPlayback';
 import './Chat.polish.css';
 
 type ChatReaction = { message_id: number; profile_id: string; reaction: string; created_at: string };
@@ -127,7 +128,7 @@ function fileExtLabel(name: string) {
 // 隐形消息与富文本：||...|| 仍走自写 InvisibleInk（iMessage 式滑动擦除），
 // 其余格式（**加粗** __斜体__ `等宽` ~~删除线~~ ++下划线++ [链接](url) @[提及](id)
 // 行首 "> " 引用）都在 src/lib/richText.tsx 里解析与剥离；未配对的标记原样显示。
-function MessageContent({ body, onMentionClick, messageId, autoPlayMedia = false, onMediaEnded }: { body: string; onMentionClick?: (profileId: string) => void; messageId?: number; autoPlayMedia?: boolean; onMediaEnded?: (messageId: number) => void }) {
+function MessageContent({ body, onMentionClick, messageId, autoPlayMedia = false, onMediaEnded, onMediaAutoplayBlocked }: { body: string; onMentionClick?: (profileId: string) => void; messageId?: number; autoPlayMedia?: boolean; onMediaEnded?: (messageId: number) => void; onMediaAutoplayBlocked?: (messageId: number) => void }) {
   const bubbleEffect = getChatBubbleEffect(body);
   const contentBody = stripChatBubbleEffect(body);
   const renderBody = bubbleEffect === 'invisible-ink' && !contentBody.startsWith('[[')
@@ -167,6 +168,7 @@ function MessageContent({ body, onMentionClick, messageId, autoPlayMedia = false
       messageId={messageId}
       autoPlay={autoPlayMedia}
       onEnded={onMediaEnded}
+      onAutoplayBlocked={onMediaAutoplayBlocked}
     />
   ) : <div className="fx-skel-wrap" role="status" aria-label="视频加载中"><div className="fx-skel" style={{ width: 260, height: 154, maxWidth: '72vw', borderRadius: 14 }} /></div>;
   if (filePath) return url ? (
@@ -185,7 +187,7 @@ function MessageContent({ body, onMentionClick, messageId, autoPlayMedia = false
       </button>
     </div>
   ) : <div className="fx-skel-wrap" role="status" aria-label="文件加载中"><div className="fx-skel" style={{ width: 200, height: 44, maxWidth: '68vw', borderRadius: 12 }} /></div>;
-  if (audioPath) return url ? <ChatAudioWaveform url={url} messageId={messageId} autoPlay={autoPlayMedia} onEnded={onMediaEnded} /> : <div className="fx-skel-wrap" role="status" aria-label="语音加载中"><div className="fx-skel" style={{ width: 240, height: 60, maxWidth: '68vw', borderRadius: 12 }} /></div>;
+  if (audioPath) return url ? <ChatAudioWaveform url={url} messageId={messageId} autoPlay={autoPlayMedia} onEnded={onMediaEnded} onAutoplayBlocked={onMediaAutoplayBlocked} /> : <div className="fx-skel-wrap" role="status" aria-label="语音加载中"><div className="fx-skel" style={{ width: 240, height: 60, maxWidth: '68vw', borderRadius: 12 }} /></div>;
   return <>{renderRichText(renderBody, { onMentionClick })}</>;
 }
 
@@ -281,9 +283,19 @@ export default function Chat() {
   const [groupInviteBusy, setGroupInviteBusy] = useState(false);
   const [msgs, setMsgs] = useState<ChatMessage[]>([]);
   const [autoPlayMediaId, setAutoPlayMediaId] = useState<number | null>(null);
+  const activeMediaIdRef = useRef<number | null>(null);
   const msgsRef = useRef(msgs);
   useEffect(() => { msgsRef.current = msgs; }, [msgs]);
-  useEffect(() => { setAutoPlayMediaId(null); }, [cid]);
+  useEffect(() => {
+    const onMediaPlay = (event: Event) => {
+      const detail = (event as CustomEvent<{ id?: number | null }>).detail;
+      const id = detail?.id;
+      activeMediaIdRef.current = typeof id === 'number' && Number.isFinite(id) ? id : null;
+    };
+    window.addEventListener('qz-chat-media-play', onMediaPlay);
+    return () => window.removeEventListener('qz-chat-media-play', onMediaPlay);
+  }, []);
+  useEffect(() => { setAutoPlayMediaId(null); activeMediaIdRef.current = null; }, [cid]);
   const [loadingMsgs, setLoadingMsgs] = useState(true);
   const showMsgsSkeleton = useDelayedLoading(loadingMsgs);
   const [text, setText] = useState('');
@@ -1940,19 +1952,25 @@ export default function Chat() {
   }
 
   const handleMediaEnded = useCallback((messageId: number) => {
+    // Ignore delayed ended events from a player that has already been replaced by another.
+    if (activeMediaIdRef.current !== null && activeMediaIdRef.current !== messageId) return;
+    activeMediaIdRef.current = null;
+
     const currentMessages = msgsRef.current;
-    const mediaMessages = currentMessages.filter(message => {
-      if (message.deleted_at) return false;
-      const body = stripChatBubbleEffect(message.body);
-      return body.startsWith('[[im-audio:') || body.startsWith('[[im-video:');
-    });
-    const current = mediaMessages.findIndex(message => message.id === messageId);
-    const next = current >= 0 ? mediaMessages[current + 1] : null;
-    if (!next) { setAutoPlayMediaId(null); return; }
-    setAutoPlayMediaId(next.id);
-    const nextIndex = currentMessages.findIndex(message => message.id === next.id);
+    const nextMessageId = findNextChatMediaMessageId(currentMessages, messageId);
+    if (nextMessageId === null) {
+      setAutoPlayMediaId(null);
+      return;
+    }
+    setAutoPlayMediaId(nextMessageId);
+    const nextIndex = currentMessages.findIndex(message => message.id === nextMessageId);
     if (nextIndex >= 0) virtualizer.scrollToIndex(nextIndex, { align: 'center' });
   }, [virtualizer]);
+
+  const handleMediaAutoplayBlocked = useCallback((messageId: number) => {
+    setAutoPlayMediaId(current => current === messageId ? null : current);
+    toast.info('浏览器限制了自动连续播放，点按播放即可继续。');
+  }, []);
 
   function messageSummary(message?: ChatMessage | null) {
     if (!message || message.deleted_at) return '消息已撤回';
@@ -2475,7 +2493,7 @@ export default function Chat() {
                         </div>
                       </>
                     ) : (
-                      <MessageContent onMentionClick={openMemberPage} body={displayBody} messageId={m.id} autoPlayMedia={autoPlayMediaId === m.id} onMediaEnded={handleMediaEnded} />
+                      <MessageContent onMentionClick={openMemberPage} body={displayBody} messageId={m.id} autoPlayMedia={autoPlayMediaId === m.id} onMediaEnded={handleMediaEnded} onMediaAutoplayBlocked={handleMediaAutoplayBlocked} />
                     )}
                     {inlineMeta && <span className={'im-inline-meta ' + (mine ? 'mine' : 'theirs')}>{messageTimeLabel(m.created_at)}{receiptLabel ? ' · ' + receiptLabel : ''}</span>}
                     {m.edited_at && !deleted && <div className="im-edited-mark">已编辑</div>}

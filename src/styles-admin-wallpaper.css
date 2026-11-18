@@ -6,7 +6,7 @@
 
 /* Shared wallpaper: the image stays behind the workspace while controls and
    data panels retain their own readable surfaces. */
-.admin-shell-v3.has-admin-wallpaper {
+.admin-shell-v3[data-has-admin-wallpaper="true"] {
   min-height: 100vh;
   background-color: #f6f7f8;
   background-image: var(--admin-wallpaper-image) !important;
@@ -16,26 +16,26 @@
   background-attachment: fixed;
 }
 
-.admin-shell-v3.has-admin-wallpaper .admin-workspace,
-.admin-shell-v3.has-admin-wallpaper .admin-workspace-main,
-.admin-shell-v3.has-admin-wallpaper .admin-workspace-content {
+.admin-shell-v3[data-has-admin-wallpaper="true"] .admin-workspace,
+.admin-shell-v3[data-has-admin-wallpaper="true"] .admin-workspace-main,
+.admin-shell-v3[data-has-admin-wallpaper="true"] .admin-workspace-content {
   background: transparent !important;
 }
 
-.admin-shell-v3.has-admin-wallpaper .admin-sidebar {
+.admin-shell-v3[data-has-admin-wallpaper="true"] .admin-sidebar {
   background: rgba(255, 255, 255, .88) !important;
   -webkit-backdrop-filter: blur(16px) saturate(1.05);
   backdrop-filter: blur(16px) saturate(1.05);
 }
 
-.admin-shell-v3.has-admin-wallpaper .admin-console-topbar,
-.admin-shell-v3.has-admin-wallpaper .admin-mobile-quickbar {
+.admin-shell-v3[data-has-admin-wallpaper="true"] .admin-console-topbar,
+.admin-shell-v3[data-has-admin-wallpaper="true"] .admin-mobile-quickbar {
   background: rgba(255, 255, 255, .88) !important;
   -webkit-backdrop-filter: blur(14px) saturate(1.05);
   backdrop-filter: blur(14px) saturate(1.05);
 }
 
-.admin-shell-v3.has-admin-wallpaper .admin-console-footer {
+.admin-shell-v3[data-has-admin-wallpaper="true"] .admin-console-footer {
   background: rgba(255, 255, 255, .84) !important;
 }
 

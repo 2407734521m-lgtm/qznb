@@ -454,18 +454,10 @@
   color: rgba(255,255,255,.8); background: rgba(255,255,255,.08);
   font-size: 20px; cursor: pointer;
 }
-.qz-island-timer-mode-switch { display: flex; gap: 4px; padding: 4px; border-radius: 12px; background: rgba(255,255,255,.07); }
-.qz-island-timer-mode-switch button {
-  flex: 1; min-height: 34px; border: 0; border-radius: 9px;
-  color: rgba(255,255,255,.64); background: transparent; font: inherit; font-size: 11px; cursor: pointer;
-}
-.qz-island-timer-mode-switch button.is-selected { color: #282216; background: #f2c77a; font-weight: 700; }
-.qz-island-timer-preset,
 .qz-island-timer-minutes {
   display: flex; flex-direction: column; gap: 6px;
   padding: 12px; border: 1px solid rgba(255,255,255,.09); border-radius: 13px; background: rgba(255,255,255,.045);
 }
-.qz-island-timer-preset strong { color: #f5d69c; font-size: 17px; }
 .qz-island-timer-minutes span { font-size: 11px; font-weight: 650; }
 .qz-island-timer-minutes input {
   width: 100%; min-height: 42px; padding: 0 12px;

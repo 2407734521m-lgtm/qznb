@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { createIslandTimerActivity, type IslandTimerMode, type IslandTimerSession } from './QianzhiIslandTimerActivity';
+import { createIslandTimerActivity, type IslandTimerSession } from './QianzhiIslandTimerActivity';
 import type { ActivityTaskState } from '../lib/island';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { useIsland, type Activity } from '../lib/island';
@@ -43,7 +43,7 @@ export function resolveIslandTaskAccessibleLabel(activity: Activity): string {
 /** Stable classification for the site's existing activity IDs. */
 export function resolveIslandActivityCategory(id: string): IslandActivityCategory {
   const value = id.toLowerCase();
-  if (value.includes('timer') || value.includes('pomodoro') || value.includes('countdown')) return '计时器';
+  if (value.includes('timer') || value.includes('countdown')) return '计时器';
   if (value.includes('voice-recording') || value.includes('recording')) return '录音';
   if (value.includes('call')) return '通话';
   if (value.includes('music')) return '音乐';
@@ -70,14 +70,18 @@ function readStoredTimerSession(): IslandTimerSession | null {
   try {
     const raw = localStorage.getItem(TIMER_SESSION_STORAGE_KEY);
     if (!raw) return null;
-    const value = JSON.parse(raw) as Partial<IslandTimerSession>;
+    const value = JSON.parse(raw) as Partial<IslandTimerSession> & { mode?: unknown };
     if (
-      (value.mode !== 'pomodoro' && value.mode !== 'countdown' && value.mode !== 'break')
+      (value.mode !== undefined && value.mode !== 'countdown')
       || (value.status !== 'running' && value.status !== 'paused' && value.status !== 'done')
       || !Number.isFinite(value.startedAt)
       || !Number.isFinite(value.durationMs)
       || !Number.isFinite(value.remainingMs)
-    ) return null;
+    ) {
+      // Clear saved sessions from the retired timer mode.
+      localStorage.removeItem(TIMER_SESSION_STORAGE_KEY);
+      return null;
+    }
     const session = value as IslandTimerSession;
     if (session.status === 'running' && (!Number.isFinite(session.endsAt) || session.endsAt === null)) return null;
     if (session.status === 'running' && session.endsAt !== null && session.endsAt <= Date.now()) {
@@ -142,7 +146,6 @@ export default function QianzhiIslandTaskDrawer({ docked }: { docked: boolean })
   const lastAnnouncementRef = useRef('');
   const [announcement, setAnnouncement] = useState('');
   const [timerDialogOpen, setTimerDialogOpen] = useState(false);
-  const [timerMode, setTimerMode] = useState<IslandTimerMode>('pomodoro');
   const [timerMinutes, setTimerMinutes] = useState(15);
   const [timerSession, setTimerSession] = useState<IslandTimerSession | null>(() => readStoredTimerSession());
   const timerSessionRef = useRef<IslandTimerSession | null>(timerSession);
@@ -151,9 +154,8 @@ export default function QianzhiIslandTaskDrawer({ docked }: { docked: boolean })
     pause: () => void;
     resume: () => void;
     stop: () => void;
-    startBreak: () => void;
     complete: () => void;
-  }>({ pause: () => {}, resume: () => {}, stop: () => {}, startBreak: () => {}, complete: () => {} });
+  }>({ pause: () => {}, resume: () => {}, stop: () => {}, complete: () => {} });
 
   const persistTimerSession = (next: IslandTimerSession | null) => {
     timerSessionRef.current = next;
@@ -189,17 +191,16 @@ export default function QianzhiIslandTaskDrawer({ docked }: { docked: boolean })
     persistTimerSession({ ...current, status: 'running', endsAt: Date.now() + current.remainingMs });
   };
 
-  const startTimer = (mode: IslandTimerMode, minutes?: number) => {
-    const durationMinutes = mode === 'pomodoro' ? 25 : mode === 'break' ? 5 : Math.max(1, Math.min(240, Math.floor(minutes ?? 15)));
+  const startTimer = (minutes?: number) => {
+    const durationMinutes = Math.max(1, Math.min(240, Math.floor(minutes ?? 15)));
     const now = Date.now();
     const durationMs = durationMinutes * 60_000;
-    persistTimerSession({ mode, status: 'running', startedAt: now, durationMs, endsAt: now + durationMs, remainingMs: durationMs });
+    persistTimerSession({ status: 'running', startedAt: now, durationMs, endsAt: now + durationMs, remainingMs: durationMs });
     setTimerDialogOpen(false);
     setOpen(false);
   };
 
-  const openTimerSetup = (mode: 'pomodoro' | 'countdown' = 'pomodoro') => {
-    setTimerMode(mode);
+  const openTimerSetup = () => {
     setTimerMinutes(15);
     setTimerDialogOpen(true);
   };
@@ -218,7 +219,6 @@ export default function QianzhiIslandTaskDrawer({ docked }: { docked: boolean })
     pause: pauseTimer,
     resume: resumeTimer,
     stop: stopTimer,
-    startBreak: () => startTimer('break', 5),
     complete: completeTimer,
   };
 
@@ -233,7 +233,6 @@ export default function QianzhiIslandTaskDrawer({ docked }: { docked: boolean })
       onPause: () => timerActionsRef.current.pause(),
       onResume: () => timerActionsRef.current.resume(),
       onStop: () => timerActionsRef.current.stop(),
-      onStartBreak: () => timerActionsRef.current.startBreak(),
       onComplete: () => timerActionsRef.current.complete(),
     }));
   }, [timerSession, island]);
@@ -371,7 +370,7 @@ export default function QianzhiIslandTaskDrawer({ docked }: { docked: boolean })
         <button
           type="button"
           className="qz-island-task-trigger"
-          aria-label={open ? '关闭活动列表' : activities.length ? `查看运行中的 ${activities.length} 项活动` : '打开番茄钟与倒计时'}
+          aria-label={open ? '关闭活动列表' : activities.length ? `查看运行中的 ${activities.length} 项活动` : '打开任务中心'}
           aria-expanded={open}
           aria-haspopup="dialog"
           onClick={() => setOpen(value => !value)}
@@ -408,7 +407,7 @@ export default function QianzhiIslandTaskDrawer({ docked }: { docked: boolean })
                 </div>
                 <div className="qz-island-task-header-actions">
                   <button type="button" className="qz-island-task-timer-button" onClick={handleTimerEntry}>
-                    {timerSession && (timerSession.status === 'running' || timerSession.status === 'paused') ? '查看计时' : '新建计时'}
+                    {timerSession && (timerSession.status === 'running' || timerSession.status === 'paused') ? '查看倒计时' : '新建倒计时'}
                   </button>
                   <button type="button" className="qz-island-task-close" onClick={() => setOpen(false)} aria-label="关闭任务中心">
                     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" /></svg>
@@ -425,10 +424,9 @@ export default function QianzhiIslandTaskDrawer({ docked }: { docked: boolean })
                 <div className="qz-island-task-empty">
                   <span className="qz-island-task-empty-icon">⏱</span>
                   <strong>暂时没有运行中的活动</strong>
-                  <small>启动专注计时，或设置一个自定义倒计时</small>
+                  <small>设置自定义倒计时，活动开始后会显示在灵动岛上</small>
                   <div>
-                    <button type="button" onClick={() => openTimerSetup('pomodoro')}>番茄钟 · 25 分钟</button>
-                    <button type="button" onClick={() => openTimerSetup('countdown')}>自定义倒计时</button>
+                    <button type="button" onClick={openTimerSetup}>自定义倒计时</button>
                   </div>
                 </div>
               )}
@@ -439,30 +437,19 @@ export default function QianzhiIslandTaskDrawer({ docked }: { docked: boolean })
       </AnimatePresence>
       {timerDialogOpen && (
         <div className="qz-island-timer-dialog-backdrop" role="presentation" onClick={() => setTimerDialogOpen(false)}>
-          <section className="qz-island-timer-dialog" role="dialog" aria-modal="true" aria-label="设置计时器" onClick={event => event.stopPropagation()}>
+          <section className="qz-island-timer-dialog" role="dialog" aria-modal="true" aria-label="设置倒计时" onClick={event => event.stopPropagation()}>
             <header>
-              <div><strong>设置计时器</strong><small>计时会显示在灵动岛上</small></div>
-              <button type="button" aria-label="关闭计时器设置" onClick={() => setTimerDialogOpen(false)}>×</button>
+              <div><strong>设置倒计时</strong><small>计时结束后会显示在灵动岛上</small></div>
+              <button type="button" aria-label="关闭倒计时设置" onClick={() => setTimerDialogOpen(false)}>×</button>
             </header>
-            <div className="qz-island-timer-mode-switch">
-              <button type="button" className={timerMode === 'pomodoro' ? 'is-selected' : ''} onClick={() => setTimerMode('pomodoro')}>番茄钟</button>
-              <button type="button" className={timerMode === 'countdown' ? 'is-selected' : ''} onClick={() => setTimerMode('countdown')}>倒计时</button>
-            </div>
-            {timerMode === 'pomodoro' ? (
-              <div className="qz-island-timer-preset">
-                <strong>25 分钟专注</strong>
-                <small>专注结束后，可直接开始 5 分钟休息</small>
-              </div>
-            ) : (
-              <label className="qz-island-timer-minutes">
-                <span>倒计时时长（分钟）</span>
-                <input type="number" inputMode="numeric" min={1} max={240} step={1} value={timerMinutes} onChange={event => setTimerMinutes(Math.max(1, Math.min(240, Number(event.target.value) || 1)))} />
-                <small>可设置 1–240 分钟</small>
-              </label>
-            )}
+            <label className="qz-island-timer-minutes">
+              <span>倒计时时长（分钟）</span>
+              <input type="number" inputMode="numeric" min={1} max={240} step={1} value={timerMinutes} onChange={event => setTimerMinutes(Math.max(1, Math.min(240, Number(event.target.value) || 1)))} />
+              <small>可设置 1–240 分钟</small>
+            </label>
             <footer>
               <button type="button" onClick={() => setTimerDialogOpen(false)}>取消</button>
-              <button type="button" className="is-primary" onClick={() => startTimer(timerMode, timerMinutes)}>开始计时</button>
+              <button type="button" className="is-primary" onClick={() => startTimer(timerMinutes)}>开始计时</button>
             </footer>
           </section>
         </div>

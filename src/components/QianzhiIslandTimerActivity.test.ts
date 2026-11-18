@@ -7,7 +7,6 @@ import {
 } from './QianzhiIslandTimerActivity';
 
 const session = (overrides: Partial<IslandTimerSession> = {}): IslandTimerSession => ({
-  mode: 'pomodoro',
   status: 'running',
   startedAt: 1_000,
   durationMs: 25 * 60_000,
@@ -44,39 +43,36 @@ describe('getIslandTimerRemainingMs', () => {
 });
 
 describe('createIslandTimerActivity', () => {
-  it('creates a running Pomodoro activity with pause, resume, stop and break actions', () => {
+  it('creates a running countdown activity with pause, resume and stop actions', () => {
     const onPause = vi.fn();
     const onResume = vi.fn();
     const onStop = vi.fn();
-    const onStartBreak = vi.fn();
     const activity = createIslandTimerActivity({
       session: session(),
       onPress: vi.fn(),
       onPause,
       onResume,
       onStop,
-      onStartBreak,
       onComplete: vi.fn(),
     });
     expect(activity).toMatchObject({
       id: 'qz-island-timer',
-      label: '番茄钟 · 专注中',
+      label: '倒计时 · 倒计时中',
       priority: 36,
-      task: { status: 'running', detail: '番茄钟 · 25 分钟' },
+      task: { status: 'running', detail: '倒计时 · 25 分钟' },
     });
     expect(activity.compact?.trailing).toBeTruthy();
     expect(activity.expanded?.center).toBeTruthy();
     expect(activity.expanded?.bottom).toBeTruthy();
   });
 
-  it('marks a completed countdown as done without offering an automatic break', () => {
+  it('marks a completed countdown as done', () => {
     const activity = createIslandTimerActivity({
-      session: session({ mode: 'countdown', status: 'done', endsAt: null, remainingMs: 0 }),
+      session: session({ status: 'done', endsAt: null, remainingMs: 0 }),
       onPress: vi.fn(),
       onPause: vi.fn(),
       onResume: vi.fn(),
       onStop: vi.fn(),
-      onStartBreak: vi.fn(),
       onComplete: vi.fn(),
     });
     expect(activity).toMatchObject({

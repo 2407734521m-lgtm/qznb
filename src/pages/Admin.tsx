@@ -232,7 +232,7 @@ export default function Admin({ verifiedRole }: { verifiedRole: 'admin' | 'super
     return <div className="center" style={{ minHeight: '60vh' }}>登录会话已失效，请返回管理员登录页重新登录。</div>;
   }
   return (
-    <div className={["admin-shell-v3", adminWallpaperBackground ? "has-admin-wallpaper" : ""].filter(Boolean).join(" ")} style={adminWallpaperStyle}>
+    <div className="admin-shell-v3" data-has-admin-wallpaper={adminWallpaperBackground ? "true" : undefined} style={adminWallpaperStyle}>
       <AdminWorkspace
         tabs={tabs}
         activeTab={tab}

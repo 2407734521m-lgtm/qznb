@@ -58,7 +58,7 @@ function TodoCenter({ go }: { go: (tab: string) => void }) {
     </div>
     {err && <p style={mut}>待办计数读取失败，点刷新重试。</p>}
     {!counts && !err && <p style={mut}>正在统计…</p>}
-    {counts && total === 0 && !err && <p style={{ fontSize: 13.5, color: '#2e7d4f', margin: '6px 0 2px' }}>全部处理完了，没有积压。</p>}
+    {counts && total === 0 && !err && <p className="admin-overview-todo-done" style={{ fontSize: 13.5, color: '#2e7d4f', margin: '6px 0 2px' }}>全部处理完了，没有积压。</p>}
     {counts && items.map(([k, label, tab]) => (
       <button key={k} onClick={() => go(tab)}
         style={{ display: 'flex', width: '100%', alignItems: 'center', gap: 8, padding: '9px 2px', background: 'transparent', border: 0, borderBottom: '1px solid rgba(31,42,58,.08)', cursor: 'pointer', textAlign: 'left' }}>

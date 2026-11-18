@@ -128,9 +128,206 @@
   border-top-color: rgba(31, 42, 58, .10) !important;
 }
 
-/* ---- Text on glass: deepen the muted grays so copy stays readable.
-   (Previous screenshot showed the welcome title, guide titles and the gauge
-   100% washing out; headings were already dark, the small grays were not.) ---- */
+/* ---- STEP 4 (Flux rebuild): glass + text audit.
+   Diagnosis (local Playwright repro with the shipped Admin CSS, desktop
+   1920px + mobile 390px, computed styles + screenshots):
+   1. All cards are uniform glass already (same .58/.44 gradient, blur
+      18px desktop / 12px mobile, white .72 border, same shadow) and the
+      warm base paints on both the layout container and the workspace
+      content. Nothing opaque except the two items below. No layout or
+      component change here.
+   2. The muted tier was still too pale on warm glass: 9-11px secondary
+      text at #75808a / #768089 / #78818a / #7a838a / #858e96 / #8e979d
+      measures ~3.0-3.6:1 against the glass composite. One step darker
+      (#5d686f family, ~4.6-5.2:1) for everything secondary; headings
+      and numbers were already dark and are untouched.
+   3. Two opaque-white leftovers from the pre-glass contrast hardening:
+      - `.mini.ghost` （刷新 buttons) is solid #fff from pages.css, so
+        every 刷新 reads as a white sticker on the glass.
+      - The todo rows are <button>s inside the inline-styled
+        `var(--admin-surface)` card, so styles-admin-contrast.css forces
+        them to `background: #ffffff !important` — solid white strips.
+      Both are fixed here, scoped to the overview only (glass.css loads
+      last; the selectors below use the same 0,4,0+ shape as the layout
+      rule so they win over contrast.css).
+   4. The todo "全部处理完了" line lost its success green: the same
+      contrast.css rule forces every <p> inside a var(--admin-surface)
+      container to #526176 !important, beating the inline #2e7d4f.
+      Overview.tsx now tags that line .admin-overview-todo-done and this
+      layer restores the green (5.0:1 on glass).
+   5. prefers-reduced-transparency had no fallback anywhere: full blur
+      stayed on. The block at the end makes every glass surface near-
+      opaque and drops the blur when the OS asks for less transparency.
+      prefers-reduced-motion needs nothing: NumberTicker already jumps
+      to its final value (useReducedMotion) and the overview has no other
+      CSS animation. ---- */
+
+/* ---- Muted tier, one step darker (was #75808a / #768089 / #78818a /
+   #7a838a / #858e96, ~3.0-3.6:1 on glass; now #5d686f family). ---- */
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-guide-heading > span:last-child {
+  color: #5d686f !important;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-guide-copy small {
+  color: #5d686f !important;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-client-card .admin-overview-panel-heading p,
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-panel-heading p {
+  color: #5d686f !important;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-client-gauge-inner span {
+  color: #5d686f !important;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-client-total span,
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-client-total small {
+  color: #5d686f !important;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-client-versions {
+  color: #5d686f !important;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-metric-label {
+  color: #525d64 !important;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-metric-hint {
+  color: #5d686f !important;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-runtime-table th {
+  color: #5d686f !important;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-runtime-table td small {
+  color: #5d686f !important;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-runtime-log time {
+  color: #5d686f !important;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-list-row time {
+  color: #5d686f !important;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-status-strip small {
+  color: #5d686f !important;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-eyebrow,
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-section-kicker {
+  color: #7a5f2e !important;
+}
+
+/* ---- Small labels that had no glass override yet (base #858e96 /
+   #8e979d / #9c8a65, ~2.5-3.4:1 on glass). ---- */
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-metric-value small {
+  color: #5d686f !important;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-guide-arrow {
+  color: #7a6a3e !important;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-range-label,
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-count {
+  color: #5d686f !important;
+  background: rgba(255, 255, 255, .55) !important;
+  border-color: rgba(255, 255, 255, .65) !important;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-chart-labels {
+  color: #5d686f !important;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-metric-hint .admin-overview-positive {
+  color: #2e7d4f !important;
+}
+
+/* Metric icon glyphs (9px bold single characters on tinted chips, were
+   3.6-4.1:1): one step darker each. Legend dots are backgrounds and
+   are untouched. */
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-metric-icon.tone-0 {
+  color: #7d5c26 !important;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-metric-icon.tone-1 {
+  color: #96522a !important;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-metric-icon.tone-2 {
+  color: #41704f !important;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-metric-icon.tone-3 {
+  color: #46687d !important;
+}
+
+/* Status strip: the healthy green was the palest live text on the strip
+   (it sits over the strongest amber radial at the top). */
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-status-strip .is-healthy {
+  color: #27603f !important;
+}
+
+/* Todo success line: restore the green that styles-admin-contrast.css
+   forced to #526176 (see the STEP 4 note above). */
+.admin-shell-v3 .admin-content .admin-overview-dashboard.admin-overview-reference-layout .admin-overview-todo-done {
+  color: #2e7d4f !important;
+}
+
+/* ---- Opaque-white leftovers: make the 刷新 ghost buttons translucent
+   glass chips like the pills, and the todo rows transparent again (the
+   contrast layer forced them solid white). The row rule targets only the
+   direct-child row buttons, so the header 刷新 button keeps the chip
+   treatment from the rule above it. ---- */
+.admin-shell-v3 .admin-content .admin-overview-dashboard.admin-overview-reference-layout .mini.ghost {
+  background: rgba(255, 255, 255, .55) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+  backdrop-filter: blur(8px) !important;
+  border-color: rgba(255, 255, 255, .65) !important;
+}
+
+.admin-shell-v3 .admin-content .admin-overview-dashboard.admin-overview-reference-layout .mini.ghost:hover {
+  background: rgba(255, 250, 240, .80) !important;
+  border-color: rgba(233, 219, 187, .9) !important;
+}
+
+.admin-shell-v3 .admin-content .admin-overview-dashboard.admin-overview-reference-layout .admin-overview-todo > div > button {
+  background: transparent !important;
+  border-color: transparent transparent rgba(31, 42, 58, .10) transparent !important;
+}
+
+.admin-shell-v3 .admin-content .admin-overview-dashboard.admin-overview-reference-layout .admin-overview-todo > div > button:hover {
+  background: rgba(255, 250, 240, .65) !important;
+}
+
+/* ---- prefers-reduced-transparency: glass becomes near-opaque and the
+   blur goes away. The warm page gradient itself stays (it is the page
+   background, not a transparency effect on content). ---- */
+@media (prefers-reduced-transparency: reduce) {
+  .admin-shell-v3 .admin-overview-reference-layout .admin-overview-guide-panel,
+  .admin-shell-v3 .admin-overview-reference-layout .admin-overview-client-card,
+  .admin-shell-v3 .admin-overview-reference-layout .admin-overview-panel,
+  .admin-shell-v3 .admin-overview-reference-layout .admin-overview-todo > div,
+  .admin-shell-v3 .admin-overview-reference-layout .admin-overview-recent-members,
+  .admin-shell-v3 .admin-overview-reference-layout .admin-overview-metric-card,
+  .admin-shell-v3 .admin-overview-reference-layout .admin-overview-status-strip,
+  .admin-shell-v3 .admin-overview-reference-layout .admin-overview-welcome-actions button,
+  .admin-shell-v3 .admin-overview-reference-layout .admin-overview-guide-list > button,
+  .admin-shell-v3 .admin-overview-reference-layout .mini.ghost {
+    background: rgba(255, 255, 255, .94) !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+  }
+
+  .admin-shell-v3 .admin-overview-reference-layout .admin-overview-client-gauge::before {
+    background: #ffffff !important;
+  }
+}
 .admin-shell-v3 .admin-overview-reference-layout .admin-overview-title-copy h2 {
   color: #1f262b !important;
 }
@@ -139,67 +336,24 @@
   color: #5d686f !important;
 }
 
-.admin-shell-v3 .admin-overview-reference-layout .admin-overview-eyebrow,
-.admin-shell-v3 .admin-overview-reference-layout .admin-overview-section-kicker {
-  color: #8a6f3c !important;
-}
-
-.admin-shell-v3 .admin-overview-reference-layout .admin-overview-guide-heading > span:last-child {
-  color: #75808a !important;
-}
-
 .admin-shell-v3 .admin-overview-reference-layout .admin-overview-guide-copy strong {
   color: #2c3339 !important;
-}
-
-.admin-shell-v3 .admin-overview-reference-layout .admin-overview-guide-copy small {
-  color: #768089 !important;
-}
-
-.admin-shell-v3 .admin-overview-reference-layout .admin-overview-client-card .admin-overview-panel-heading p,
-.admin-shell-v3 .admin-overview-reference-layout .admin-overview-panel-heading p {
-  color: #78818a !important;
 }
 
 .admin-shell-v3 .admin-overview-reference-layout .admin-overview-client-gauge-inner strong {
   color: #262d32 !important;
 }
 
-.admin-shell-v3 .admin-overview-reference-layout .admin-overview-client-gauge-inner span {
-  color: #6f7880 !important;
-}
-
 .admin-shell-v3 .admin-overview-reference-layout .admin-overview-client-total strong {
   color: #262d32 !important;
-}
-
-.admin-shell-v3 .admin-overview-reference-layout .admin-overview-client-total span,
-.admin-shell-v3 .admin-overview-reference-layout .admin-overview-client-total small {
-  color: #707a80 !important;
 }
 
 .admin-shell-v3 .admin-overview-reference-layout .admin-overview-client-legend-row {
   color: #5f686f !important;
 }
 
-.admin-shell-v3 .admin-overview-reference-layout .admin-overview-client-versions {
-  color: #78818a !important;
-}
-
-.admin-shell-v3 .admin-overview-reference-layout .admin-overview-metric-label {
-  color: #66727a !important;
-}
-
 .admin-shell-v3 .admin-overview-reference-layout .admin-overview-metric-value {
   color: #232a2f !important;
-}
-
-.admin-shell-v3 .admin-overview-reference-layout .admin-overview-metric-hint {
-  color: #7a838a !important;
-}
-
-.admin-shell-v3 .admin-overview-reference-layout .admin-overview-runtime-table th {
-  color: #75808a !important;
 }
 
 .admin-shell-v3 .admin-overview-reference-layout .admin-overview-runtime-table td {
@@ -210,16 +364,8 @@
   color: #333b41 !important;
 }
 
-.admin-shell-v3 .admin-overview-reference-layout .admin-overview-runtime-table td small {
-  color: #7a838a !important;
-}
-
 .admin-shell-v3 .admin-overview-reference-layout .admin-overview-runtime-log {
   color: #5f686f !important;
-}
-
-.admin-shell-v3 .admin-overview-reference-layout .admin-overview-runtime-log time {
-  color: #7a838a !important;
 }
 
 .admin-shell-v3 .admin-overview-reference-layout .admin-overview-runtime-logs-heading strong {
@@ -228,10 +374,6 @@
 
 .admin-shell-v3 .admin-overview-reference-layout .admin-overview-list-row strong {
   color: #333b41 !important;
-}
-
-.admin-shell-v3 .admin-overview-reference-layout .admin-overview-list-row time {
-  color: #76808a !important;
 }
 
 /* ---- Round-2 fix, carried to the step-2 status strip: the two big status
@@ -247,7 +389,7 @@
 }
 
 .admin-shell-v3 .admin-overview-reference-layout .admin-overview-status-strip small {
-  color: #6f787e !important;
+  color: #5d686f !important;
 }
 
 /* ---- Round-2 fix: client-legend counts (网页版 / 未识别客户端) were pale
@@ -367,7 +509,7 @@
 }
 
 .admin-shell-v3 .admin-overview-reference-layout .admin-overview-runtime-table td .is-warning {
-  color: #8a6f3c !important;
+  color: #7a5f2e !important;
   background: rgba(178, 139, 61, .15) !important;
 }
 
@@ -377,7 +519,7 @@
 }
 
 .admin-shell-v3 .admin-overview-reference-layout .admin-overview-runtime-table td .is-waiting {
-  color: #6f7880 !important;
+  color: #5d686f !important;
   background: rgba(111, 120, 128, .12) !important;
 }
 

@@ -22,10 +22,15 @@ const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_BRt1PSH8umGRsfKE-0BDiw_H5IUUWKr
 // ---------------------------------------------------------------- utilities
 
 function json(data, status = 200, extraHeaders = {}) {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store', ...extraHeaders },
+  const headers = new Headers({
+    'content-type': 'application/json; charset=utf-8',
+    'cache-control': 'no-store',
   });
+  for (const [name, value] of Object.entries(extraHeaders || {})) {
+    if (Array.isArray(value)) value.forEach(item => headers.append(name, item));
+    else headers.set(name, value);
+  }
+  return new Response(JSON.stringify(data), { status, headers });
 }
 
 async function readRequestBody(request) {
@@ -78,24 +83,56 @@ async function xeapi(route, params = {}, cookieStr = '', timeoutMs = 9000) {
 
 // ---------------------------------------------------------------- session cookie (browser-held)
 
+const SESSION_PARTS_COOKIE = SESSION_COOKIE + '_parts';
+const SESSION_PART_COOKIE_PREFIX = SESSION_COOKIE + '_';
+const SESSION_PART_SIZE = 2800;
+const SESSION_MAX_PARTS = 8;
+
 function readSession(request) {
+  const jar = {};
   const header = request.headers.get('cookie') || '';
   for (const part of header.split(';')) {
     const idx = part.indexOf('=');
     if (idx <= 0) continue;
-    if (part.slice(0, idx).trim() !== SESSION_COOKIE) continue;
-    const raw = part.slice(idx + 1).trim();
-    try { return decodeURIComponent(raw); } catch (_) { return raw; }
+    jar[part.slice(0, idx).trim()] = part.slice(idx + 1).trim();
   }
-  return '';
+  // Backward compatibility for sessions issued before chunked cookies were enabled.
+  if (jar[SESSION_COOKIE]) {
+    try { return decodeURIComponent(jar[SESSION_COOKIE]); } catch (_) { return jar[SESSION_COOKIE]; }
+  }
+  const count = Number(jar[SESSION_PARTS_COOKIE] || 0);
+  if (!Number.isInteger(count) || count < 1 || count > SESSION_MAX_PARTS) return '';
+  let encoded = '';
+  for (let i = 0; i < count; i++) {
+    const chunk = jar[SESSION_PART_COOKIE_PREFIX + i];
+    if (typeof chunk !== 'string') return '';
+    encoded += chunk;
+  }
+  try { return decodeURIComponent(encoded); } catch (_) { return ''; }
 }
 
 function sessionSetCookie(cookieStr) {
-  return `${SESSION_COOKIE}=${encodeURIComponent(cookieStr)}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=2592000`;
+  const encoded = encodeURIComponent(String(cookieStr || ''));
+  const chunks = encoded.match(new RegExp('[\\s\\S]{1,' + SESSION_PART_SIZE + '}', 'g')) || [''];
+  if (chunks.length > SESSION_MAX_PARTS) {
+    throw new Error('NETEASE_SESSION_TOO_LARGE');
+  }
+  const attributes = 'Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=2592000';
+  return [
+    // Remove the previous single-cookie session so readSession never prefers stale legacy data.
+    `${SESSION_COOKIE}=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0`,
+    `${SESSION_PARTS_COOKIE}=${chunks.length}; ${attributes}`,
+    ...chunks.map((chunk, index) => `${SESSION_PART_COOKIE_PREFIX}${index}=${chunk}; ${attributes}`),
+  ];
 }
 
 function sessionClearCookie() {
-  return `${SESSION_COOKIE}=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0`;
+  const attributes = 'Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0';
+  return [
+    `${SESSION_COOKIE}=; ${attributes}`,
+    `${SESSION_PARTS_COOKIE}=; ${attributes}`,
+    ...Array.from({ length: SESSION_MAX_PARTS }, (_, index) => `${SESSION_PART_COOKIE_PREFIX}${index}=; ${attributes}`),
+  ];
 }
 
 function parseCookieString(cookieText) {
@@ -356,7 +393,7 @@ async function getLoginInfo(cookieStr, { fresh = false } = {}) {
   if (!cookieStr) return notLoggedInfo();
   const key = hashString(cookieStr);
   const cached = loginInfoCache.get(key);
-  if (!fresh && cached && Date.now() - cached.at < 25000) return cached.value;
+  if (!fresh && cached && Date.now() - cached.at < 25000) return cached.info;
   let info = null;
   try {
     const st = await xeapi('/login/status', {}, cookieStr, 6000);

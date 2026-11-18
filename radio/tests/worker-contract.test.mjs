@@ -97,9 +97,11 @@ test('listen totals advertise unsupported sync instead of fabricated counts', as
   });
 });
 
-test('QR login retries 502 with noCookie=true and persists the returned session', async () => {
+test('QR login retries 502 with noCookie=true and persists a long session across requests', async () => {
   const originalFetch = globalThis.fetch;
   const qrRequests = [];
+  const upstreamCookie = 'MUSIC_U=qr-user-cookie; __csrf=qr-csrf; NMTID=' + 'x'.repeat(7200);
+  let statusCookie = '';
   globalThis.fetch = async (input) => {
     const url = new URL(typeof input === 'string' ? input : input.url);
     if (url.pathname === '/api/netease/login/qr/check') {
@@ -113,13 +115,14 @@ test('QR login retries 502 with noCookie=true and persists the returned session'
       return new Response(JSON.stringify({
         code: 803,
         message: '授权登录成功',
-        cookie: 'MUSIC_U=qr-user-cookie; __csrf=qr-csrf',
+        cookie: upstreamCookie,
       }), {
         status: 200,
         headers: { 'content-type': 'application/json' },
       });
     }
     if (url.pathname === '/api/netease/login/status') {
+      statusCookie = url.searchParams.get('cookie') || '';
       return new Response(JSON.stringify({
         data: {
           profile: { userId: '163-user-1', nickname: '测试用户' },
@@ -144,11 +147,20 @@ test('QR login retries 502 with noCookie=true and persists the returned session'
     assert.equal(qrRequests.length, 2);
     assert.equal(qrRequests[0].searchParams.has('noCookie'), false);
     assert.equal(qrRequests[1].searchParams.get('noCookie'), 'true');
-    const setCookie = response.headers.get('set-cookie') || '';
-    assert.match(setCookie, /^mr_session=/);
-    const cookieValue = decodeURIComponent(setCookie.match(/^mr_session=([^;]+)/)[1]);
-    assert.match(cookieValue, /MUSIC_U=qr-user-cookie/);
-    assert.match(cookieValue, /__csrf=qr-csrf/);
+    assert.equal(statusCookie, upstreamCookie);
+
+    const setCookies = response.headers.getSetCookie
+      ? response.headers.getSetCookie()
+      : [response.headers.get('set-cookie') || ''];
+    const cookiePairs = setCookies.map(value => value.split(';', 1)[0]).filter(Boolean);
+    assert.ok(cookiePairs.some(value => value.startsWith('mr_session_parts=')));
+    assert.ok(cookiePairs.length >= 4, 'large sessions are split into multiple browser cookies');
+    const cookieHeader = cookiePairs.join('; ');
+    const restored = await request('/api/login/status', { headers: { cookie: cookieHeader } });
+    const restoredBody = await jsonResponse(restored);
+    assert.equal(restored.status, 200, 'restored session route failed: ' + JSON.stringify(restoredBody));
+    assert.equal(restoredBody.loggedIn, true);
+    assert.equal(statusCookie, upstreamCookie);
   } finally {
     globalThis.fetch = originalFetch;
   }

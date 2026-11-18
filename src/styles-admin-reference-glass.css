@@ -6,7 +6,7 @@
    Visual only: no data, feature, entry or permission change. */
 
 :root {
-  --admin-glass-bg: linear-gradient(180deg, rgba(255, 255, 255, .66), rgba(255, 255, 255, .52));
+  --admin-glass-bg: linear-gradient(180deg, rgba(255, 255, 255, .58), rgba(255, 255, 255, .44));
   --admin-glass-border: 1px solid rgba(255, 255, 255, .72);
   --admin-glass-shadow: 0 10px 28px rgba(98, 73, 32, .10), inset 0 1px 0 rgba(255, 255, 255, .70);
   --admin-glass-blur: blur(18px) saturate(1.25);
@@ -18,18 +18,31 @@
    low-centre wash, so every card below the hero has light to refract.
    (Round-2 fix: the middle cards looked near-opaque white because only
    the hero strip had glow behind it.) ---- */
-.admin-shell-v3 .admin-overview-reference-layout {
-  padding: clamp(14px, 1.8vw, 22px);
-  border: 1px solid rgba(255, 255, 255, .55);
-  border-radius: 26px;
+/* ---- ROOT CAUSE (round 3, verified by local Playwright repro):
+   the plain `.admin-overview-reference-layout` rule above NEVER painted:
+   match.css sets `.admin-shell-v3 .admin-overview-dashboard` to
+   `background: 0 0 !important` (to neutralise the mosaic #f7f8f8 fill),
+   and `!important` beats this rule regardless of order or specificity,
+   so the layout stayed transparent and the mid-page cards sat on uniform
+   light grey. The fix below re-declares the same background on a
+   higher-specificity selector (`.admin-content .admin-overview-dashboard
+   .admin-overview-reference-layout`, 0,4,0) AND with `!important`, in this
+   file which Admin.tsx imports last, so it wins over both the mosaic fill
+   and the transparent override. The glow is also made stronger and the
+   base wash more translucent, so the amber is unmistakable behind the
+   glass cards instead of a faint tint. ---- */
+.admin-shell-v3 .admin-content .admin-overview-dashboard.admin-overview-reference-layout {
+  padding: clamp(14px, 1.8vw, 22px) !important;
+  border: 1px solid rgba(255, 255, 255, .55) !important;
+  border-radius: 26px !important;
   background:
-    radial-gradient(760px 460px at 88% -10%, rgba(255, 202, 88, .50), transparent 60%),
-    radial-gradient(680px 480px at -8% 18%, rgba(255, 224, 160, .45), transparent 62%),
-    radial-gradient(720px 520px at 102% 48%, rgba(255, 196, 110, .38), transparent 62%),
-    radial-gradient(640px 480px at -6% 58%, rgba(255, 228, 178, .40), transparent 62%),
-    radial-gradient(700px 500px at 55% 82%, rgba(255, 190, 130, .30), transparent 62%),
-    radial-gradient(600px 460px at 60% 112%, rgba(255, 178, 110, .30), transparent 60%),
-    linear-gradient(180deg, rgba(253, 248, 236, .82), rgba(251, 243, 226, .82) 50%, rgba(248, 239, 220, .82));
+    radial-gradient(820px 500px at 88% -10%, rgba(255, 198, 80, .68), transparent 60%),
+    radial-gradient(720px 520px at -8% 18%, rgba(255, 222, 150, .60), transparent 62%),
+    radial-gradient(780px 560px at 102% 48%, rgba(255, 192, 100, .58), transparent 62%),
+    radial-gradient(700px 520px at -6% 58%, rgba(255, 226, 170, .55), transparent 62%),
+    radial-gradient(760px 540px at 55% 82%, rgba(255, 188, 120, .48), transparent 62%),
+    radial-gradient(640px 480px at 60% 112%, rgba(255, 176, 105, .45), transparent 60%),
+    linear-gradient(180deg, rgba(255, 242, 205, .62), rgba(255, 236, 200, .62) 50%, rgba(255, 232, 190, .62)) !important;
 }
 
 /* ---- All overview cards become translucent glass. ---- */
@@ -233,8 +246,14 @@
 
 /* ---- Round-2 fix: the two big status numbers washed out to near-white on
    the amber glow in the screenshot. Pin them to the same dark ink the other
-   overview numbers use, so they stay readable on the light. ---- */
-.admin-shell-v3 .admin-overview-reference-layout .admin-overview-welcome-status-grid strong {
+   overview numbers use, so they stay readable on the light.
+   Round 3: local Playwright repro with the shipped CSS computes these to
+   #232a2f (dark) already, so the pale numbers in the cloud screenshots were
+   that long-lived browser window serving cached pre-#744 CSS, not the
+   shipped rules. The selector is still raised to the same 0,4,0 shape as
+   the layout rule as belt-and-braces, so no other `!important` colour rule
+   can ever outrank it. ---- */
+.admin-shell-v3 .admin-content .admin-overview-dashboard.admin-overview-reference-layout .admin-overview-welcome-status-grid strong {
   color: #232a2f !important;
 }
 
@@ -243,8 +262,9 @@
 }
 
 /* ---- Round-2 fix: client-legend counts (网页版 / 未识别客户端) were pale
-   against the glass. Same dark ink as the other legend numbers. ---- */
-.admin-shell-v3 .admin-overview-reference-layout .admin-overview-client-legend-row strong {
+   against the glass. Same dark ink as the other legend numbers.
+   Round 3: same 0,4,0 selector raise as the status numbers. ---- */
+.admin-shell-v3 .admin-content .admin-overview-dashboard.admin-overview-reference-layout .admin-overview-client-legend-row strong {
   color: #262d32 !important;
 }
 
@@ -270,8 +290,8 @@
     --admin-glass-blur: blur(12px) saturate(1.2);
   }
 
-  .admin-shell-v3 .admin-overview-reference-layout {
-    padding: 12px;
-    border-radius: 20px;
+  .admin-shell-v3 .admin-content .admin-overview-dashboard.admin-overview-reference-layout {
+    padding: 12px !important;
+    border-radius: 20px !important;
   }
 }

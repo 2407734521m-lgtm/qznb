@@ -49,6 +49,107 @@
   .gate-card h2 { font-size:17px; margin:0 0 8px; }
   .gate-card p { color:var(--mut); font-size:13px; line-height:1.7; margin:0 0 8px; }
   .gate-card .btn { width:100%; margin-top:8px; }
+
+  /* Mobile-first refresh: clean white surface, clearer hierarchy, compact controls. */
+  :root {
+    color-scheme: light;
+    --paper:#f7f8fa;
+    --ink:#172033;
+    --seal:#2563eb;
+    --mut:#667085;
+    --line:#e6e9ef;
+    --card:#fff;
+  }
+  html { scroll-behavior:smooth; }
+  body { background:var(--paper); letter-spacing:0; -webkit-font-smoothing:antialiased; }
+  .wrap { max-width:720px; padding:calc(22px + env(safe-area-inset-top)) 16px calc(36px + env(safe-area-inset-bottom)); }
+  .page-head { padding:8px 2px 18px; }
+  .eyebrow { display:inline-flex; align-items:center; gap:7px; color:#475467; font-size:11px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; margin-bottom:9px; }
+  .eyebrow:before { content:""; width:7px; height:7px; border-radius:50%; background:#2563eb; box-shadow:0 0 0 4px #eaf1ff; }
+  h1 { font-size:25px; line-height:1.25; letter-spacing:-.04em; margin:0 0 7px; font-weight:750; }
+  .sub { font-size:13px; line-height:1.65; color:#667085; margin:0; }
+  .guide { margin-top:12px; }
+  .guide summary { display:inline-flex; align-items:center; gap:6px; color:#344054; font-size:12px; font-weight:600; cursor:pointer; list-style:none; padding:7px 11px; border:1px solid var(--line); border-radius:999px; background:#fff; }
+  .guide summary::-webkit-details-marker { display:none; }
+  .guide[open] .guide-copy { margin-top:9px; padding:11px 12px; border:1px solid var(--line); border-radius:12px; background:#fff; }
+  .guide-copy { color:#667085; font-size:12px; line-height:1.75; }
+  .card { border:1px solid var(--line); border-radius:18px; padding:17px; margin-bottom:12px; box-shadow:0 2px 8px rgba(16,24,40,.025); }
+  .card h2 { display:flex; align-items:center; gap:9px; font-size:15px; font-weight:700; letter-spacing:-.01em; margin:0 0 13px; }
+  #siteCard h2:before, #loginCard h2:before, .card:has(#plTitle) h2:before { display:inline-grid; place-items:center; width:24px; height:24px; border-radius:8px; background:#eff4ff; color:#2459c5; font-size:11px; font-weight:800; }
+  #siteCard h2:before { content:"01"; }
+  #loginCard h2:before { content:"02"; }
+  .card:has(#plTitle) h2:before { content:"03"; }
+  .mut { color:#667085; font-size:12.5px; line-height:1.65; }
+  .btn { min-height:42px; border-radius:12px; background:#1d2939; padding:10px 16px; font-size:13px; font-weight:650; transition:transform .16s ease,background .16s ease,box-shadow .16s ease; }
+  .btn:active, .dlbtn:active, .plist:active { transform:scale(.985); }
+  .btn.ghost { border:1px solid #d0d5dd; color:#344054; background:#fff; }
+  .btn.seal { background:#2459c5; }
+  .btn:focus-visible, input:focus-visible, .dlbtn:focus-visible, .plist:focus-visible { outline:3px solid rgba(37,99,235,.2); outline-offset:2px; }
+  .row { gap:9px; }
+  input[type=text], input[type=password] { min-height:44px; border:1px solid #d0d5dd; border-radius:12px; padding:11px 13px; background:#fff; }
+  input::placeholder { color:#98a2b3; }
+  .sitefield { gap:9px; }
+  .sitefield input { flex:1 1 100%; width:100%; }
+  #siteLoginBtn { width:100%; }
+  #qrImg { width:min(236px,72vw); height:auto; aspect-ratio:1; padding:7px; margin:15px auto 12px; border:1px solid #eaecf0; border-radius:16px; box-shadow:0 5px 18px rgba(16,24,40,.06); }
+  #qrStat { display:inline-flex; align-items:center; justify-content:center; min-height:32px; padding:6px 12px; margin:0 auto 10px; border-radius:999px; background:#f2f4f7; color:#475467; }
+  #loginBox { text-align:center; }
+  #loginBox .userline { text-align:left; justify-content:flex-start; padding:4px 0; }
+  #loginBox .row { justify-content:center; }
+  .userline img { width:46px; height:46px; border:2px solid #f2f4f7; }
+  .track { gap:12px; padding:13px 0; border-top:1px solid #f0f2f5; }
+  .tname { color:#101828; font-size:13.5px; }
+  .tmeta { color:#667085; font-size:11.5px; line-height:1.5; }
+  .tstat { color:#2459c5; font-size:11.5px; }
+  .prog { background:#eef2f6; }
+  .prog > i { background:#2563eb; }
+  .dlbtn { min-height:36px; padding:7px 11px; border:1px solid #c7d7fe; border-radius:10px; background:#eff4ff; color:#2459c5; font-size:12px; font-weight:700; }
+  .dlbtn:disabled { background:#f2f4f7; border-color:#eaecf0; color:#98a2b3; }
+  .plist { border:1px solid #eaecf0; border-radius:13px; padding:13px; margin-top:8px; }
+  .plist small { display:inline-block; margin-top:3px; color:#667085; }
+  #kw { min-width:0; flex:1 1 100%; }
+  #searchBtn, #favBtn, #savedBtn { flex:1; }
+  #listMeta { margin:12px 0 6px !important; }
+  .notice { margin-top:14px; background:#f2f4f7; border:1px solid #eaecf0; color:#475467; border-radius:14px; padding:13px 14px; font-size:12px; }
+  .confirm-box { background:#f8faff; border-color:#dbe5ff; }
+  .gate-modal { background:rgba(16,24,40,.48); backdrop-filter:blur(5px); }
+  .gate-card { background:#fff; border:1px solid #eaecf0; border-radius:20px; box-shadow:0 20px 60px rgba(16,24,40,.18); }
+  .err { color:#b42318; }
+  @media (min-width:560px) {
+    .wrap { padding-top:34px; }
+    .page-head { padding-bottom:22px; }
+    .sitefield input { flex:1 1 180px; }
+    #kw { flex:1 1 auto; }
+    #searchBtn, #favBtn, #savedBtn { flex:0 0 auto; }
+  }
+  @media (max-width:380px) {
+    .wrap { padding-left:12px; padding-right:12px; }
+    .card { padding:14px; border-radius:16px; }
+    .btn { padding-left:12px; padding-right:12px; }
+    .dlbtn { padding:7px 9px; }
+  }
+  @media (prefers-reduced-motion:reduce) {
+    *,*::before,*::after { scroll-behavior:auto !important; transition:none !important; }
+  }
+
+  .track-actions { display:flex; flex:none; align-items:center; gap:6px; }
+  .previewbtn,.fav-track-btn { min-height:36px; border:1px solid #eaecf0; border-radius:10px; background:#fff; color:#475467; padding:7px 10px; font-size:12px; font-weight:650; cursor:pointer; }
+  .fav-track-btn.active { color:#2459c5; background:#eff4ff; border-color:#c7d7fe; }
+  .history-panel { display:flex; flex-wrap:wrap; align-items:center; gap:7px; margin:12px 0 4px; }
+  .history-panel[hidden],.preview-panel[hidden] { display:none !important; }
+  .history-label { color:#667085; font-size:11px; font-weight:700; }
+  .history-chip { border:1px solid #eaecf0; background:#f8fafc; color:#475467; border-radius:999px; padding:6px 10px; font-size:11px; cursor:pointer; }
+  .history-clear { border:0; background:transparent; color:#98a2b3; font-size:11px; padding:5px; cursor:pointer; }
+  .preview-panel { margin-top:14px; padding:13px; border:1px solid #dbe5ff; border-radius:14px; background:#f8faff; }
+  .preview-head { display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:8px; }
+  .preview-title { min-width:0; color:#344054; font-size:12px; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .preview-countdown { color:#667085; font-size:11px; white-space:nowrap; }
+  #previewAudio { display:block; width:100%; height:38px; }
+  @media (max-width:420px) {
+    .track { align-items:flex-start; }
+    .track-actions { flex-direction:column; align-items:stretch; }
+    .track-actions button { min-width:76px; }
+  }
 </style>
 </head>
 <body>
@@ -62,8 +163,15 @@
   </div>
 </div>
 <div class="wrap">
-  <h1>千栀音乐下载</h1>
-  <p class="sub">隐藏页，仅供本站注册成员使用。先登录本站账号（须在网站注册过），再扫码登录网易云，登录后只读扫码那个账号自己的歌单与搜索结果，可下载的歌存为 MP3。没登录本站账号时这里什么歌都不会出现。付费、VIP、试听、无版权地址的歌一律显示“下不了”，不绕过。</p>
+  <header class="page-head">
+    <div class="eyebrow">QIANZHI MUSIC · MP3</div>
+    <h1>音乐下载</h1>
+    <p class="sub">登录账号，连接网易云，选择歌曲并保存为 MP3。</p>
+    <details class="guide">
+      <summary>使用说明与下载规则 <span aria-hidden="true">⌄</span></summary>
+      <div class="guide-copy">本页面仅供本站注册成员使用。先登录本站账号，再扫码登录网易云；页面只读取扫码账号自己的歌单与搜索结果。仅提供有可下载版权地址的歌曲；付费、VIP、试听或无版权地址的歌曲会显示“下不了”，不会绕过限制。</div>
+    </details>
+  </header>
 
   <div class="card" id="siteCard">
     <h2>本站账号登录</h2>
@@ -80,17 +188,23 @@
     <div class="row">
       <input type="text" id="kw" placeholder="搜歌名 / 歌手" autocomplete="off" disabled>
       <button class="btn" id="searchBtn" type="button" disabled>搜索</button>
-      <button class="btn ghost" id="favBtn" type="button" disabled>我的歌单</button>
+      <button class="btn ghost" id="favBtn" type="button" disabled>我的歌单</button><button class="btn ghost" id="savedBtn" type="button" disabled>我的收藏</button>
     </div>
+    <div class="history-panel" id="searchHistory" hidden></div>
     <p class="mut" id="listMeta" style="margin:10px 0 4px;">请先登录本站账号。</p>
     <div id="playlists"></div>
     <div id="tracks"></div>
+    <section class="preview-panel" id="previewPanel" hidden aria-label="歌曲试听播放器">
+      <div class="preview-head"><span class="preview-title" id="previewTitle">歌曲试听</span><span class="preview-countdown" id="previewCountdown">最多试听 30 秒</span></div>
+      <audio id="previewAudio" controls preload="none"></audio>
+      <div class="row" style="justify-content:flex-end;margin-top:8px;"><button class="btn ghost" id="previewClose" type="button">关闭播放器</button></div>
+    </section>
     <div class="row" style="margin-top:10px;">
       <button class="btn ghost" id="moreBtn" type="button" style="display:none;">加载更多</button>
     </div>
   </div>
 
-  <div class="notice">说明：在「千栀音乐下载」App 里点下载，会弹出系统文件选择器，你自己选保存位置和文件名；直接用浏览器打开本页下载，只能存到浏览器默认下载文件夹。每次下载（成功 / 失败 / 下不了）都会记一条记录，网站后台「音乐下载记录」里能看见，记录会记上本站账号。</div>
+  <div class="notice">下载位置：在「千栀音乐下载」App 内下载，可自行选择保存位置和文件名；浏览器打开时会保存到浏览器默认下载目录。下载结果会记入本站后台的音乐下载记录。</div>
 </div>
 
 <script>
@@ -120,6 +234,8 @@
   var NO_RESTORE_KEY = 'qz_netease_no_restore_v1'; // '1' 本设备点过“退出本设备音乐”，不要自动恢复
   var restoreAttempted = false; // 一次页面加载只尝试自动恢复一次
   var neteaseNickname = '';
+  var previewTimer = null;
+  var previewRemaining = 30;
   var autoLinkKey = ''; // 已对该（本站账号 + 网易云账号）组合尝试过自动绑定，避免重复调 link
 
   function loadSiteSession() {
@@ -449,6 +565,154 @@
   }
   function deviceLabel() { return inApp ? 'QianzhiMusicDL/1.0' : 'web'; }
 
+  // 收藏与搜索历史按网易云账号分开保存在当前设备，不上传到服务端。
+  function localMusicKey(prefix) { return prefix + ':' + (myUserId || 'unknown'); }
+  function loadLocalList(key) {
+    try {
+      var value = JSON.parse(getLocal(key) || '[]');
+      return Array.isArray(value) ? value : [];
+    } catch (_) { return []; }
+  }
+  function getFavorites() { return loadLocalList(localMusicKey('qz_music_favorites_v1')); }
+  function isFavorite(id) {
+    return getFavorites().some(function (t) { return String(t.id) === String(id); });
+  }
+  function toggleFavorite(id) {
+    var t = tracks.find(function (item) { return String(item.id) === String(id); });
+    if (!t) return;
+    var list = getFavorites();
+    var index = list.findIndex(function (item) { return String(item.id) === String(id); });
+    if (index >= 0) list.splice(index, 1);
+    else list.unshift({ id:String(t.id), name:t.name || '', artist:t.artist || '', album:t.album || '', duration:Number(t.duration) || 0 });
+    setLocal(localMusicKey('qz_music_favorites_v1'), JSON.stringify(list.slice(0, 300)));
+    if (mode === 'favorites') renderSavedTracks();
+    else {
+      var btn = document.querySelector('[data-fav="' + String(id) + '"]');
+      if (btn) {
+        var active = isFavorite(id);
+        btn.textContent = active ? '已收藏' : '收藏';
+        btn.classList.toggle('active', active);
+        btn.setAttribute('aria-pressed', active ? 'true' : 'false');
+      }
+    }
+  }
+  function renderSavedTracks() {
+    stopPreview(true);
+    mode = 'favorites';
+    currentPlaylistId = '';
+    tracks = getFavorites();
+    $('playlists').innerHTML = '';
+    $('plTitle').textContent = '我的收藏';
+    $('listMeta').textContent = '已收藏 ' + tracks.length + ' 首 · 仅保存在此设备';
+    $('moreBtn').style.display = 'none';
+    renderTracks(tracks, false);
+  }
+  function loadSearchHistory() {
+    return loadLocalList(localMusicKey('qz_music_search_history_v1')).filter(function (x) { return typeof x === 'string' && x.trim(); });
+  }
+  function saveSearchHistory(keyword) {
+    var history = loadSearchHistory().filter(function (item) { return item !== keyword; });
+    history.unshift(keyword);
+    setLocal(localMusicKey('qz_music_search_history_v1'), JSON.stringify(history.slice(0, 6)));
+    renderSearchHistory();
+  }
+  function renderSearchHistory() {
+    var box = $('searchHistory');
+    if (!box) return;
+    var history = loadSearchHistory();
+    box.innerHTML = '';
+    box.hidden = !history.length;
+    if (!history.length) return;
+    var label = document.createElement('span');
+    label.className = 'history-label';
+    label.textContent = '最近搜索';
+    box.appendChild(label);
+    history.forEach(function (word) {
+      var chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'history-chip';
+      chip.textContent = word;
+      chip.addEventListener('click', function () {
+        $('kw').value = word;
+        doSearch();
+      });
+      box.appendChild(chip);
+    });
+    var clear = document.createElement('button');
+    clear.type = 'button';
+    clear.className = 'history-clear';
+    clear.textContent = '清空';
+    clear.addEventListener('click', function () {
+      removeLocal(localMusicKey('qz_music_search_history_v1'));
+      renderSearchHistory();
+    });
+    box.appendChild(clear);
+  }
+
+  function stopPreview(hidePanel) {
+    if (previewTimer) { clearInterval(previewTimer); previewTimer = null; }
+    var audio = $('previewAudio');
+    if (audio) {
+      audio.pause();
+      if (hidePanel) { audio.removeAttribute('src'); audio.load(); audio.onplay = null; audio.onended = null; }
+    }
+    if (hidePanel && $('previewPanel')) $('previewPanel').hidden = true;
+  }
+  function previewTrack(id, btn) {
+    if (!siteSession || !loggedIn) { setTrackStatus(id, '请先完成登录。'); return; }
+    var t = tracks.find(function (item) { return String(item.id) === String(id); });
+    if (!t) return;
+    if (btn) btn.disabled = true;
+    setTrackStatus(id, '正在检查试听权限…');
+    apiFetch('/song/url?id=' + encodeURIComponent(id) + '&quality=standard&name=' + encodeURIComponent(t.name || '') + '&artist=' + encodeURIComponent(t.artist || ''), { credentials:'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (!d || !d.url || d.playable !== true || d.trial === true) {
+          throw new Error((d && d.message) || '这首歌当前没有可用的试听地址');
+        }
+        stopPreview(true);
+        var audio = $('previewAudio');
+        $('previewTitle').textContent = (t.name || '未知歌曲') + ' · ' + (t.artist || '未知歌手');
+        $('previewCountdown').textContent = '最多试听 30 秒';
+        $('previewPanel').hidden = false;
+        previewRemaining = 30;
+        audio.src = d.url;
+        audio.load();
+        audio.onplay = function () {
+          if (previewTimer) return;
+          previewTimer = setInterval(function () {
+            if (audio.paused) return;
+            previewRemaining -= 1;
+            $('previewCountdown').textContent = '剩余 ' + Math.max(0, previewRemaining) + ' 秒';
+            if (previewRemaining <= 0) {
+              if (previewTimer) { clearInterval(previewTimer); previewTimer = null; }
+              audio.pause();
+              audio.removeAttribute('src');
+              audio.load();
+              $('previewCountdown').textContent = '试听结束';
+              setTrackStatus(id, '试听结束（30 秒）');
+            }
+          }, 1000);
+        };
+        audio.onended = function () {
+          if (previewTimer) { clearInterval(previewTimer); previewTimer = null; }
+          $('previewCountdown').textContent = '播放结束';
+        };
+        var play = audio.play();
+        if (play && typeof play.then === 'function') {
+          play.then(function () {
+            setTrackStatus(id, '正在试听 · 最多 30 秒');
+          }).catch(function () {
+            setTrackStatus(id, '播放失败，请检查浏览器音频权限。');
+          });
+        }
+      })
+      .catch(function (e) {
+        setTrackStatus(id, '无法试听：' + (e && e.message || '网络错误'));
+      })
+      .finally(function () { if (btn) btn.disabled = false; });
+  }
+
   // 下载日志走同源代理 /api/dl/log-download，不直连 supabase.co（手机网络发不出去）。
   // site_user_id / site_username 由 Worker 从验证过的本站 token 取，不再由客户端传；
   // 先续期（快过期时）再记，失败仍静默，不影响下载本身。
@@ -496,15 +760,22 @@
     list.forEach(function (t) {
       var div = document.createElement('div');
       div.className = 'track';
+      var fav = isFavorite(t.id);
       div.innerHTML = '<div class="tinfo"><div class="tname">' + esc(t.name) + '</div>' +
         '<div class="tmeta">' + esc(t.artist || '') + ' · ' + fmtDur(t.duration) + (t.album ? ' · ' + esc(t.album) : '') + '</div>' +
         '<div class="tstat" data-stat="' + esc(t.id) + '"></div>' +
         '<div class="prog" data-prog="' + esc(t.id) + '"><i></i></div></div>' +
-        '<button class="dlbtn" type="button" data-dl="' + esc(t.id) + '">下载 MP3</button>';
+        '<div class="track-actions">' +
+        '<button class="previewbtn" type="button" data-preview="' + esc(t.id) + '">试听 30 秒</button>' +
+        '<button class="fav-track-btn' + (fav ? ' active' : '') + '" type="button" data-fav="' + esc(t.id) + '" aria-pressed="' + (fav ? 'true' : 'false') + '">' + (fav ? '已收藏' : '收藏') + '</button>' +
+        '<button class="dlbtn" type="button" data-dl="' + esc(t.id) + '">下载 MP3</button></div>';
       box.appendChild(div);
-    });
-    box.querySelectorAll('[data-dl]').forEach(function (btn) {
-      btn.addEventListener('click', function () { downloadTrack(btn.getAttribute('data-dl'), btn); });
+      var dl = div.querySelector('[data-dl]');
+      var preview = div.querySelector('[data-preview]');
+      var favBtn = div.querySelector('[data-fav]');
+      dl.addEventListener('click', function () { downloadTrack(String(t.id), dl); });
+      preview.addEventListener('click', function () { previewTrack(String(t.id), preview); });
+      favBtn.addEventListener('click', function () { toggleFavorite(String(t.id)); });
     });
   }
 
@@ -512,22 +783,28 @@
     $('kw').disabled = locked;
     $('searchBtn').disabled = locked;
     $('favBtn').disabled = locked;
+    $('savedBtn').disabled = locked;
     if (locked) { $('moreBtn').style.display = 'none'; }
   }
 
   function clearMusic() {
+    stopPreview(true);
     tracks = []; playlists = []; currentPlaylistId = ''; mode = 'lists'; offset = 0; hasMore = false;
     $('tracks').innerHTML = '';
     $('playlists').innerHTML = '';
     $('plTitle').textContent = '我的歌单';
     $('listMeta').textContent = siteSession ? '未登录，请先扫码登录。' : '请先登录本站账号。';
+    renderSearchHistory();
   }
 
   function renderPlaylists() {
+    stopPreview(true);
+    mode = 'lists';
     var box = $('playlists');
     box.innerHTML = '';
     $('tracks').innerHTML = '';
     $('plTitle').textContent = '我的歌单';
+    tracks = [];
     $('listMeta').textContent = '共 ' + playlists.length + ' 个歌单，点一个打开';
     playlists.forEach(function (p) {
       var b = document.createElement('button');
@@ -565,6 +842,7 @@
 
   function loadPlaylistTracks(id, name, reset) {
     if (!loggedIn) return;
+    if (reset) stopPreview(true);
     mode = 'playlist'; currentPlaylistId = id;
     if (reset) { offset = 0; tracks = []; }
     $('playlists').innerHTML = '';
@@ -589,7 +867,9 @@
     if (!loggedIn) { $('listMeta').textContent = '请先扫码登录，登录后才能搜索。'; return; }
     var kw = $('kw').value.trim();
     if (!kw) { renderPlaylists(); return; }
+    stopPreview(true);
     mode = 'search'; currentKw = kw; offset = 0; tracks = [];
+    saveSearchHistory(kw);
     $('playlists').innerHTML = '';
     $('listMeta').textContent = '正在搜索「' + kw + '」…';
     apiFetch('/search?keywords=' + encodeURIComponent(kw) + '&limit=30', { credentials: 'same-origin' })
@@ -646,6 +926,7 @@
   }
 
   function showLoggedIn(info) {
+    renderSearchHistory();
     var box = $('loginBox');
     var av = info.avatar ? '<img src="' + esc(info.avatar) + '" alt="">' : '';
     box.innerHTML = '<div class="userline">' + av + '<div><div style="font-weight:700;">' + esc(info.nickname || '网易云用户') + '</div>' +
@@ -872,6 +1153,8 @@
   $('searchBtn').addEventListener('click', doSearch);
   $('kw').addEventListener('keydown', function (e) { if (e.key === 'Enter') doSearch(); });
   $('favBtn').addEventListener('click', function () { if (loggedIn) { renderPlaylists(); } });
+  $('savedBtn').addEventListener('click', function () { if (loggedIn) renderSavedTracks(); });
+  $('previewClose').addEventListener('click', function () { stopPreview(true); });
   $('moreBtn').addEventListener('click', function () { if (mode === 'playlist' && currentPlaylistId) loadPlaylistTracks(currentPlaylistId, '', false); });
 
   $('gateRegisterBtn').addEventListener('click', function () { window.location.href = 'https://qianzhi.pw/'; });

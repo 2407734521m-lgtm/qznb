@@ -48,7 +48,6 @@ const MyProfile = lazyWithRetry(() => import('./pages/MyProfile'));
 const Timeline = lazyWithRetry(() => import('./pages/Timeline'));
 const AlbumDetail = lazyWithRetry(() => import('./pages/AlbumDetail'));
 const Discover = lazyWithRetry(() => import('./pages/Discover'));
-const OverseasVideos = lazyWithRetry(() => import('./pages/OverseasVideos'));
 const Friends = lazyWithRetry(() => import('./pages/Friends'));
 const Chat = lazyWithRetry(() => import('./pages/Chat'));
 const Home = lazyWithRetry(() => import('./pages/Home'));
@@ -1512,7 +1511,6 @@ function Shell() {
               />} />
               <Route path="/members/:id" element={<Member />} />
               <Route path="/feed" element={<Discover />} />
-              <Route path="/videos" element={<OverseasVideos />} />
               <Route path="/albums" element={<Navigate to="/feed" replace state={{ openTab: "albums" }} />} />
               <Route path="/albums/:id" element={<AlbumDetail />} />
               <Route path="/friends" element={<Friends />} />

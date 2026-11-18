@@ -1957,14 +1957,14 @@
 }
 
 
-/* Final chat header override: keep the reference's clean white top edge,
-   independent from the glass treatment used by the scrollable message surface. */
+/* Final chat header surface: retain the clean white palette while allowing
+   wallpapers to show through the contact strip as frosted glass. */
 .im-page .im-head {
-  background: #fff !important;
-  border-bottom: 0 !important;
-  box-shadow: none !important;
-  -webkit-backdrop-filter: none !important;
-  backdrop-filter: none !important;
+  background: rgba(255,255,255,.62) !important;
+  border-bottom: 1px solid rgba(135,154,181,.18) !important;
+  box-shadow: 0 8px 24px rgba(42,61,94,.055), inset 0 1px 0 rgba(255,255,255,.78) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(1.45) !important;
+  backdrop-filter: blur(24px) saturate(1.45) !important;
 }
 
 /* Conversation layout: floating vertical attachment panel and lightweight composer. */
@@ -1987,11 +1987,13 @@
   width: 50px !important;
   min-width: 50px !important;
   height: 50px !important;
-  border: 0 !important;
+  border: 1px solid rgba(255,255,255,.82) !important;
   border-radius: 50% !important;
-  color: #151b21 !important;
-  background: #eef0f2 !important;
-  box-shadow: none !important;
+  color: #35465d !important;
+  background: rgba(255,255,255,.58) !important;
+  box-shadow: 0 6px 17px rgba(42,61,94,.07), inset 0 1px 0 rgba(255,255,255,.88) !important;
+  -webkit-backdrop-filter: blur(18px) saturate(1.35) !important;
+  backdrop-filter: blur(18px) saturate(1.35) !important;
   font-size: 30px;
   line-height: 1;
 }
@@ -2438,33 +2440,36 @@
 @media(prefers-reduced-motion:reduce) { .im-effects-tabs button { transition:none !important; } }
 
 
-/* Final iMessage presentation pass: system blue/gray bubbles, connected groups and
-   a tail only on the last message in each sender group. */
+/* Final iMessage presentation pass: connected groups and tails are preserved,
+   while bubble surfaces use translucent, backdrop-filtered glass. */
 .im-page .im-message-column .im-bubble {
   position: relative;
-  -webkit-backdrop-filter: none !important;
-  backdrop-filter: none !important;
-  border: 0 !important;
-  box-shadow: 0 1px 1px rgba(18,34,58,.055) !important;
+  -webkit-backdrop-filter: blur(18px) saturate(1.42) !important;
+  backdrop-filter: blur(18px) saturate(1.42) !important;
+  border: 1px solid rgba(255,255,255,.34) !important;
+  background-clip: padding-box;
+  box-shadow: 0 7px 20px rgba(27,48,78,.075), inset 0 1px 0 rgba(255,255,255,.28) !important;
   isolation: isolate;
   touch-action: pan-y;
 }
 .im-page .im-bubble.mine {
   color: #fff !important;
-  background: #0a84ff !important;
+  background: rgba(10,132,255,.72) !important;
+  border-color: rgba(255,255,255,.42) !important;
   border-radius: 20px 20px 5px 20px !important;
 }
 .im-page .im-bubble.theirs {
   color: #17181b !important;
-  background: #e9e9eb !important;
+  background: rgba(237,241,247,.72) !important;
+  border-color: rgba(255,255,255,.78) !important;
   border-radius: 20px 20px 20px 5px !important;
 }
 .im-page .im-bubble.mine::after,
 .im-page .im-bubble.theirs::after {
   display: block !important;
 }
-.im-page .im-bubble.mine::after { background: #0a84ff !important; }
-.im-page .im-bubble.theirs::after { background: #e9e9eb !important; }
+.im-page .im-bubble.mine::after { background: rgba(10,132,255,.72) !important; }
+.im-page .im-bubble.theirs::after { background: rgba(237,241,247,.72) !important; }
 .im-page .im-bubble.im-bubble-grouped-next::after { display: none !important; }
 .im-page .im-bubble.mine.im-bubble-grouped-prev { border-top-right-radius: 6px !important; }
 .im-page .im-bubble.theirs.im-bubble-grouped-prev { border-top-left-radius: 6px !important; }
@@ -2733,18 +2738,18 @@
   gap: 8px;
   overflow: hidden;
   padding: 0 9px !important;
-  border: 1px solid rgba(103, 120, 139, .14) !important;
+  border: 1px solid rgba(255,255,255,.76) !important;
   border-radius: 28px !important;
-  background: #eef0f2 !important;
-  box-shadow: none !important;
-  -webkit-backdrop-filter: none !important;
-  backdrop-filter: none !important;
+  background: rgba(255,255,255,.60) !important;
+  box-shadow: 0 7px 20px rgba(42,61,94,.065), inset 0 1px 0 rgba(255,255,255,.88) !important;
+  -webkit-backdrop-filter: blur(22px) saturate(1.42) !important;
+  backdrop-filter: blur(22px) saturate(1.42) !important;
 }
 
 .im-page .im-input-wrap:focus-within {
-  border-color: rgba(103, 120, 139, .22) !important;
-  background: #eef0f2 !important;
-  box-shadow: none !important;
+  border-color: rgba(115,157,216,.55) !important;
+  background: rgba(255,255,255,.74) !important;
+  box-shadow: 0 0 0 3px rgba(112,155,218,.10), 0 7px 20px rgba(42,61,94,.065), inset 0 1px 0 rgba(255,255,255,.92) !important;
 }
 
 .im-page .im-format-btn {
@@ -2803,11 +2808,13 @@
   margin: 0 !important;
   padding: 0 !important;
   place-items: center;
-  border: 0 !important;
+  border: 1px solid rgba(255,255,255,.68) !important;
   border-radius: 50% !important;
-  color: #151b21 !important;
-  background: transparent !important;
-  box-shadow: none !important;
+  color: #35465d !important;
+  background: rgba(255,255,255,.48) !important;
+  box-shadow: 0 5px 15px rgba(42,61,94,.06), inset 0 1px 0 rgba(255,255,255,.82) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(1.32) !important;
+  backdrop-filter: blur(16px) saturate(1.32) !important;
 }
 
 .im-page .im-mic svg {

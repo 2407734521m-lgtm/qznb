@@ -40,8 +40,34 @@ function seededRandom(seed: number): number {
   return ((value ^ (value >>> 16)) >>> 0) / 4294967296;
 }
 
-function isTransparentColor(color: string): boolean {
-  return !color || color === 'transparent' || /rgba\([^)]*,\s*0(?:\.0+)?\s*\)/.test(color);
+// The veil must be opaque even when the chat bubble itself is translucent.
+// Otherwise the original message is still visible through an rgba()/alpha background.
+export function makeOpaqueCanvasColor(color: string, fallback: string): string {
+  const value = color.trim();
+  if (!value || value.toLowerCase() === 'transparent') return fallback;
+
+  const rgba = value.match(/^rgba\(\s*([^,]+),\s*([^,]+),\s*([^,]+),\s*([^)]+)\)$/i);
+  if (rgba) {
+    const alpha = Number.parseFloat(rgba[4]);
+    if (Number.isFinite(alpha) && alpha <= 0) return fallback;
+    return `rgb(${rgba[1].trim()} ${rgba[2].trim()} ${rgba[3].trim()})`;
+  }
+
+  // Also support modern CSS color syntax, e.g. rgb(28 54 91 / 62%) or hsl(... / .6).
+  const slashAlpha = value.match(/^([a-z][a-z0-9]*)\((.*)\/\s*([^)]+)\)$/i);
+  if (slashAlpha) {
+    const alpha = Number.parseFloat(slashAlpha[3]);
+    if (Number.isFinite(alpha) && alpha <= 0) return fallback;
+    return `${slashAlpha[1]}(${slashAlpha[2].trim()})`;
+  }
+
+  // CSS 8-digit hex is #RRGGBBAA. Drop its alpha channel for the veil.
+  const hexAlpha = value.match(/^#([0-9a-f]{6})([0-9a-f]{2})$/i);
+  if (hexAlpha) {
+    return Number.parseInt(hexAlpha[2], 16) === 0 ? fallback : `#${hexAlpha[1]}`;
+  }
+
+  return value;
 }
 
 export default function InvisibleInk({ children }: { children: ReactNode }) {
@@ -151,9 +177,10 @@ export default function InvisibleInk({ children }: { children: ReactNode }) {
     const bubble = root.closest<HTMLElement>('.im-bubble');
     const isMine = bubble?.classList.contains('mine') ?? false;
     const computedBackground = bubble ? window.getComputedStyle(bubble).backgroundColor : '';
-    const background = isTransparentColor(computedBackground)
-      ? (isMine ? 'rgb(10, 132, 255)' : 'rgb(233, 233, 235)')
-      : computedBackground;
+    const fallbackBackground = isMine ? 'rgb(10, 132, 255)' : 'rgb(233, 233, 235)';
+    // Keep the bubble's hue, but never its alpha: a translucent canvas would leak
+    // the original text through the invisible-ink veil.
+    const background = makeOpaqueCanvasColor(computedBackground, fallbackBackground);
 
     paletteRef.current = {
       background,
@@ -170,6 +197,8 @@ export default function InvisibleInk({ children }: { children: ReactNode }) {
     if (!ctx) return;
 
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.globalAlpha = 1;
     ctx.clearRect(0, 0, width, height);
     ctx.fillStyle = paletteRef.current.background;
     ctx.fillRect(0, 0, width, height);
@@ -215,6 +244,8 @@ export default function InvisibleInk({ children }: { children: ReactNode }) {
 
     paintField(now);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.globalAlpha = 1;
     ctx.clearRect(0, 0, width, height);
     ctx.drawImage(field, 0, 0, width, height);
 
@@ -687,6 +718,8 @@ export default function InvisibleInk({ children }: { children: ReactNode }) {
           width: '100%',
           height: '100%',
           pointerEvents: 'none',
+          opacity: 1,
+          mixBlendMode: 'normal',
         }}
       />
     </span>

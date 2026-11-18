@@ -2080,6 +2080,7 @@ export type Database = {
           height: number | null
           id: number
           language: string
+          license_name: string
           license_type: string
           license_url: string
           original_url: string
@@ -2116,6 +2117,7 @@ export type Database = {
           height?: number | null
           id?: never
           language?: string
+          license_name?: string
           license_type?: string
           license_url?: string
           original_url?: string
@@ -2152,6 +2154,7 @@ export type Database = {
           height?: number | null
           id?: never
           language?: string
+          license_name?: string
           license_type?: string
           license_url?: string
           original_url?: string

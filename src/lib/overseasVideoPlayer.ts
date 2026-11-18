@@ -113,3 +113,41 @@ export function licenseBlock(v: {
   }
   return { blocked: false, reason: '' };
 }
+
+/**
+ * 「确认授权有效」的白名单：只有真正允许转载的许可才能确认有效。
+ * 明确排除：unknown（授权未知）、youtube_embed / embed_allowed（仅官方嵌入，
+ * 无转载许可）、rejected（授权被拒）。pexels / pixabay / licensed 是平台自有授权，
+ * 由平台条款兜底，同样需要 license_url 与 verified 才能通过。
+ */
+export const LICENSE_CONFIRM_WHITELIST: readonly string[] = [
+  'cc0', 'public_domain', 'cc_by', 'cc_by_sa', 'nasa_public_domain',
+  'licensed', 'pexels', 'pixabay',
+];
+
+export type LicenseConfirmCheck = { ok: boolean; reasons: string[] };
+
+/**
+ * 「确认授权有效」的三项校验，缺一不可：
+ * 1. license_type 在白名单里；2. license_url 非空；3. copyright_status 为 verified。
+ * 返回不通过的原因列表（中文），供面板内展示；校验不通过时不得写审核记录、不得改状态。
+ * 注意：这层校验目前只能做在前端（后台直连 Supabase，没有服务端函数兜底）。
+ */
+export function checkLicenseConfirm(
+  licenseType: string | null | undefined,
+  licenseUrl: string | null | undefined,
+  copyrightStatus: string | null | undefined,
+): LicenseConfirmCheck {
+  const reasons: string[] = [];
+  const t = (licenseType || '').trim();
+  if (!LICENSE_CONFIRM_WHITELIST.includes(t)) {
+    reasons.push(`授权类型为“${licenseLabel(t)}”，不能确认有效`);
+  }
+  if (!(licenseUrl || '').trim()) {
+    reasons.push('缺少授权链接，请先填写真实的许可证链接');
+  }
+  if ((copyrightStatus || '') !== 'verified') {
+    reasons.push('版权状态不是“已核实有效”，请先在面板里选为“已核实有效”');
+  }
+  return { ok: reasons.length === 0, reasons };
+}

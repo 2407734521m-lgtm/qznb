@@ -72,8 +72,8 @@ const stripHtml = (s) => String(s || '')
   .trim();
 
 // 统一数据结构：所有平台分支的原始对象先经过这里，再入库。
-// 字段与 overseas_videos 表一一对应；注意 license_name 没有对应列，不存——
-// 各适配器只用许可证原文做映射（并在日志里留痕），入库只写 license_type / license_url / attribution。
+// license_name 是许可证原文（Wikimedia 的 LicenseShortName、NASA 的 'NASA public domain'），
+// 随 20261117230000 迁移新增的列持久化；YouTube 等没有原文的留空。
 function normalizeVideo(platform, raw) {
   return {
     platform,
@@ -86,6 +86,7 @@ function normalizeVideo(platform, raw) {
     embed_url: raw.embed_url || '',
     file_url: raw.file_url || '',
     license_type: raw.license_type || 'unknown',
+    license_name: raw.license_name || '',
     license_url: raw.license_url || '',
     copyright_status: raw.copyright_status || 'unknown',
     attribution: raw.attribution || '',
@@ -273,6 +274,7 @@ async function harvestWikimediaSearch(source) {
       published_at: null, language: source.language || 'en',
       description: stripHtml(val('ImageDescription')),
       license_type: mapped.license_type,
+      license_name: stripHtml(licenseShort),
       license_url: val('LicenseUrl'),
       copyright_status: mapped.copyright_status,
       attribution: stripHtml(val('Attribution')),
@@ -339,7 +341,9 @@ async function harvestNasaSearch(source) {
       embed_url: '',
       file_url: fileUrl,
       // 无第三方标记的 NASA 原创内容为公共领域；有标记的一律 license_pending。
+      // license_name 存公共领域说明原文（无第三方标记时为 'NASA public domain'），有标记的留空。
       license_type: thirdParty ? 'unknown' : 'nasa_public_domain',
+      license_name: thirdParty ? '' : 'NASA public domain',
       license_url: 'https://www.nasa.gov/nasa-brand-center/images-and-media/',
       copyright_status: thirdParty ? 'unknown' : 'verified',
       attribution: 'NASA',

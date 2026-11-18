@@ -4,6 +4,7 @@ import { card, h3, mut, rowBtn} from '../pages/admin/shared';
 import OptionSheet from './OptionSheet';
 import { alertDialog, confirmDialog, promptDialog} from '../lib/dialog';
 import {
+  checkLicenseConfirm,
   getOverseasPlayback,
   licenseBlock,
   licenseLabel,
@@ -180,6 +181,7 @@ const [cSlug, setCSlug] = useState('');
 const [reviewFilter, setReviewFilter] = useState('all');
 const [verifyVideo, setVerifyVideo] = useState<Video | null>(null);
 const [vLicenseType, setVLicenseType] = useState('unknown');
+const [vLicenseName, setVLicenseName] = useState('');
 const [vLicenseUrl, setVLicenseUrl] = useState('');
 const [vAttribution, setVAttribution] = useState('');
 const [vCopyrightStatus, setVCopyrightStatus] = useState('unknown');
@@ -254,6 +256,9 @@ return c;
 }, [allVideos]);
 const pendingReviewCount = useMemo(() => pending.filter(v => v.status === 'pending_review').length, [pending]);
 const licensePendingCount = useMemo(() => pending.filter(v => v.status === 'license_pending').length, [pending]);
+// 核实面板里“确认授权有效”的实时校验结果：三项缺一不可，
+// 授权类型在白名单里、有真实授权链接、版权状态已选为“已核实有效”。
+const verifyCheck = checkLicenseConfirm(vLicenseType, vLicenseUrl, vCopyrightStatus);
 const shownPending = useMemo(() => {
 const q = reviewQuery.trim().toLowerCase();
 const list = reviewFilter === 'all'? pending: pending.filter(v => v.status === reviewFilter);
@@ -311,6 +316,7 @@ await reviewVideo(v, 'rejected', note.trim());
 function openVerify(v: Video) {
 setVerifyVideo(v);
 setVLicenseType(v.license_type || 'unknown');
+setVLicenseName(v.license_name || '');
 setVLicenseUrl(v.license_url || '');
 setVAttribution(v.attribution || '');
 setVCopyrightStatus(v.copyright_status || 'unknown');
@@ -322,6 +328,7 @@ async function saveLicenseInfo(v: Video, copyrightOverride?: string): Promise<bo
 setBusy('verify-' + v.id);
 const { error} = await supabase.from('overseas_videos').update({
 license_type: vLicenseType,
+license_name: vLicenseName.trim(),
 license_url: vLicenseUrl.trim(),
 attribution: vAttribution.trim(),
 copyright_status: copyrightOverride ?? vCopyrightStatus,
@@ -343,6 +350,7 @@ const ok = await saveLicenseInfo(v);
 if (!ok) return;
 const patch = {
 license_type: vLicenseType,
+license_name: vLicenseName.trim(),
 license_url: vLicenseUrl.trim(),
 attribution: vAttribution.trim(),
 copyright_status: vCopyrightStatus,
@@ -352,15 +360,23 @@ setPending(cur => cur.map(x => (x.id === v.id? { ...x, ...patch}: x)));
 setMsg && setMsg('授权信息已保存，状态仍为授权待确认，请点「确认授权有效」或「确认无法授权」解除待确认。');
 }
 
-// “确认授权有效”：先保存面板里的授权信息（版权状态记为已核实有效），再写一条
-// approved 的审核记录注明核实结果，最后把状态改回 pending_review，回到正常待审核流。
+// “确认授权有效”：先过三项校验（授权类型在白名单里、有真实授权链接、版权状态
+// 已选为“已核实有效”），缺一不可；校验不通过不写审核记录、不改状态。校验通过后
+// 先保存面板里的授权信息（版权状态记为已核实有效），再写一条 approved 的审核记录
+// 注明核实结果，最后把状态改回 pending_review，回到正常待审核流。
+// 注意：这层校验目前只能做在前端（后台直连 Supabase，没有服务端函数兜底）。
 async function verifyLicenseValid() {
 const v = verifyVideo;
 if (!v) return;
+const check = checkLicenseConfirm(vLicenseType, vLicenseUrl, vCopyrightStatus);
+if (!check.ok) {
+setMsg && setMsg('不能确认授权有效：' + check.reasons.join('；'));
+return;
+}
 const ok = await saveLicenseInfo(v, 'verified');
 if (!ok) return;
 setBusy('verify-' + v.id);
-const note = `授权核实通过：${licenseLabel(vLicenseType)}${vLicenseUrl.trim()? '（' + vLicenseUrl.trim() + '）': ''}${vAttribution.trim()? '，署名：' + vAttribution.trim(): ''}，回到待审核`;
+const note = `授权核实通过：${licenseLabel(vLicenseType, vLicenseName.trim())}${vLicenseUrl.trim()? '（' + vLicenseUrl.trim() + '）': ''}${vAttribution.trim()? '，署名：' + vAttribution.trim(): ''}，回到待审核`;
 const { error: rErr} = await supabase.from('overseas_video_reviews').insert({
 video_id: v.id, reviewer: me || null, decision: 'approved', note,
 });
@@ -802,7 +818,7 @@ color: view === k? '#fff': '#22314a',
 <> · <a href={verifyVideo.original_url} target="_blank" rel="noreferrer" style={{ color: '#526b8c'}}>看原链接</a></>
 )}
 <br />
-先核对授权信息，保存只改授权字段、不改状态；点「确认授权有效」后视频回到待审核（可正常发布），点「确认无法授权」则驳回。两项都会写一条审核记录。
+先核对授权信息，保存只改授权字段、不改状态；点「确认授权有效」后视频回到待审核（可正常发布），点「确认无法授权」则驳回。两项都会写一条审核记录。确认有效有三项硬要求，缺一不可：授权类型必须是真正允许转载的许可（CC0 / 公共领域 / CC BY / CC BY-SA / NASA 公共领域 / 已获授权 / Pexels / Pixabay——“授权未知”和“仅官方嵌入”不能确认有效）、必须有真实授权链接、版权状态须选为“已核实有效”。
 </p>
 <div style={{ display: 'grid', gap: 10, marginTop: 10}}>
 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap'}}>
@@ -823,13 +839,14 @@ buttonText={(COPYRIGHT_STATUS_OPTIONS.find(o => o.value === vCopyrightStatus)?? 
 buttonStyle={{...btnBase, minWidth: 130, justifyContent: 'space-between'}}
 />
 </div>
+<input type="text" value={vLicenseName} onChange={e => setVLicenseName(e.target.value)} placeholder="许可证原文，例如 CC BY-SA 4.0" aria-label="许可证原文" style={inputStyle} />
 <input type="text" value={vLicenseUrl} onChange={e => setVLicenseUrl(e.target.value)} placeholder="授权链接，例如 https://creativecommons.org/licenses/by/4.0/" aria-label="授权链接" style={inputStyle} />
 <input type="text" value={vAttribution} onChange={e => setVAttribution(e.target.value)} placeholder="署名要求，例如：© NASA / 作者名" aria-label="署名要求" style={inputStyle} />
 <div style={rowBtn}>
 <button type="button" onClick={() => void saveLicenseInfoOnly()} disabled={busy!== ''} style={btnBase}>
 {busy === 'verify-' + verifyVideo.id? '保存中…': '保存授权信息'}
 </button>
-<button type="button" onClick={() => void verifyLicenseValid()} disabled={busy!== ''} style={btnPrimary}>
+<button type="button" onClick={() => void verifyLicenseValid()} disabled={busy!== '' || !verifyCheck.ok} style={{...btnPrimary, ...(verifyCheck.ok? {}: { opacity: 0.45, cursor: 'not-allowed'})}}>
 {busy === 'verify-' + verifyVideo.id? '处理中…': '确认授权有效'}
 </button>
 <button type="button" onClick={() => void verifyLicenseInvalid()} disabled={busy!== ''} style={btnDanger}>
@@ -838,6 +855,11 @@ buttonStyle={{...btnBase, minWidth: 130, justifyContent: 'space-between'}}
 <button type="button" onClick={() => setVerifyVideo(null)} disabled={busy!== ''} style={btnBase}>取消</button>
 </div>
 <p style={{...mut, margin: '8px 0 0'}}>点「确认授权有效」会同时把版权状态记为已核实有效；点「确认无法授权」会同时把版权状态记为已确认无效并驳回。授权待确认期间发布按钮保持置灰。</p>
+{!verifyCheck.ok && (
+<p style={{ margin: '8px 0 0', fontSize: 13, color: '#b0404f'}}>
+还不能确认授权有效：{verifyCheck.reasons.join('；')}。
+</p>
+)}
 </div>
 </div>
 )}

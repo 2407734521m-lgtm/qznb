@@ -99,3 +99,10 @@ alter table public.overseas_videos
 
 -- 5) 播放检测状态索引（后台按 playback_status 筛选用）
 create index if not exists idx_ov_playback_status on public.overseas_videos (playback_status);
+
+-- 6) 许可证原文持久化：license_name（采集器写回的许可证原文，如 Wikimedia 的
+--    LicenseShortName、NASA 的 'NASA public domain'；YouTube 留空）。
+--    之前 license_name 没有对应列，原文只用于映射、不入库；补上这一列后，
+--    后台核实面板与前台展示才能优先显示原文（没有再回退到 license_type 的中文说明）。
+alter table public.overseas_videos
+  add column if not exists license_name text not null default '';

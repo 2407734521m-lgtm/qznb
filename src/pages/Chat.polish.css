@@ -3550,3 +3550,75 @@
     transition: none !important;
   }
 }
+
+
+/* 2026-11-18: chat is a plain white canvas. Do not reveal stored wallpapers
+   through the header, feed, or safe-area composer; remove all gray backing
+   panels that made the top and bottom look like separate bars. */
+.im-page.im-page {
+  --im-wallpaper: #ffffff !important;
+  color-scheme: light;
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  background-image: none !important;
+}
+.im-page.im-page::before,
+.im-page.im-page::after {
+  content: none !important;
+  display: none !important;
+  background: none !important;
+}
+.im-page .im-head,
+.im-page .im-feed,
+.im-page .im-composer {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  background-image: none !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+.im-page .im-head {
+  border-radius: 0 !important;
+}
+.im-page .im-composer {
+  border-radius: 0 !important;
+}
+.im-page .im-input-wrap,
+.im-page .im-input-wrap:focus-within {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+.im-page .im-day,
+.im-page .im-typing {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+.im-page .im-sticker-tray,
+.im-page .im-reply-banner,
+.im-page .im-details {
+  background: #ffffff !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+.im-page .im-reaction-picker,
+.im-page .im-reaction-chip {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+/* Chat wallpaper controls are removed with the wallpaper itself. */
+.im-page .im-wallpaper-settings {
+  display: none !important;
+}

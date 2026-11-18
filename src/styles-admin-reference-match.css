@@ -296,97 +296,85 @@
   gap: 14px;
 }
 
-.admin-shell-v3 .admin-overview-reference-layout .admin-overview-welcome {
-  position: relative;
-  isolation: isolate;
-  display: grid;
-  grid-template-columns: minmax(0, 1.2fr) minmax(275px, .72fr);
+/* STEP 2 (Flux rebuild): the reference opens with a plain title row, not a
+   hero card — big title left, action pills right. The old welcome hero
+   (card + status aside + decorative blobs) is gone from Overview.tsx;
+   these rules replace it. */
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-title-row {
+  display: flex;
   align-items: center;
-  gap: 28px;
-  min-height: 230px;
-  padding: clamp(22px, 3vw, 36px);
-  overflow: hidden;
-  border: 1px solid #e9e9e5;
-  border-radius: 22px;
-  background:
-    radial-gradient(ellipse at 86% 55%, rgba(252, 204, 72, .66) 0%, rgba(255, 218, 112, .42) 19%, rgba(255, 231, 174, .20) 36%, transparent 58%),
-    radial-gradient(ellipse at 82% 110%, rgba(224, 133, 57, .24), transparent 42%),
-    linear-gradient(112deg, #ffffff 0%, #fbfbf9 49%, #f9f4e9 100%) !important;
-  box-shadow: 0 4px 20px rgba(36, 42, 47, .035);
+  justify-content: space-between;
+  gap: 16px;
+  padding: 6px 6px 0;
 }
 
-.admin-shell-v3 .admin-overview-reference-layout .admin-overview-welcome::before {
-  position: absolute;
-  z-index: -1;
-  top: -160px;
-  right: 10%;
-  width: 490px;
-  height: 490px;
-  border: 1px solid rgba(255, 255, 255, .34);
-  border-radius: 42% 58% 62% 38% / 42% 35% 65% 58%;
-  background:
-    radial-gradient(ellipse at 42% 38%, rgba(255, 255, 255, .62), transparent 31%),
-    radial-gradient(ellipse at 60% 68%, rgba(248, 185, 56, .55), transparent 45%),
-    linear-gradient(138deg, rgba(255, 239, 190, .25), rgba(232, 142, 54, .18));
-  filter: blur(1px);
-  transform: rotate(-21deg);
-  content: "";
-  pointer-events: none;
-}
-
-.admin-shell-v3 .admin-overview-reference-layout .admin-overview-welcome::after {
-  position: absolute;
-  z-index: -1;
-  top: -115px;
-  right: 25%;
-  width: 330px;
-  height: 520px;
-  border: 1px solid rgba(255, 255, 255, .35);
-  border-radius: 50%;
-  background: linear-gradient(135deg, rgba(255, 255, 255, .16), rgba(237, 174, 75, .08));
-  transform: rotate(24deg);
-  content: "";
-  pointer-events: none;
-}
-
-.admin-shell-v3 .admin-overview-reference-layout .admin-overview-welcome-copy {
-  position: relative;
-  z-index: 1;
-  justify-content: center;
-}
-
-.admin-shell-v3 .admin-overview-reference-layout .admin-overview-eyebrow {
-  margin-bottom: 12px;
-  color: #9e8759;
-  font-size: 9px;
-  font-weight: 800;
-  letter-spacing: .17em;
-}
-
-.admin-shell-v3 .admin-overview-reference-layout .admin-overview-welcome-copy h2 {
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-title-copy h2 {
+  margin: 0;
   color: #242a2f;
   font-size: clamp(27px, 3vw, 39px);
   font-weight: 740;
   letter-spacing: -.05em;
 }
 
-.admin-shell-v3 .admin-overview-reference-layout .admin-overview-welcome-copy > p {
-  max-width: 490px;
-  margin-top: 10px;
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-title-copy > p {
+  margin: 8px 0 0;
   color: #737d84;
-  font-size: 13px;
+  font-size: 12px;
 }
 
-.admin-shell-v3 .admin-overview-reference-layout .admin-overview-welcome-meta {
-  gap: 8px 18px;
-  margin-top: 12px;
-  color: #8a9297;
-  font-size: 10.5px;
+/* Compact status strip: the old "系统运行" card's numbers on one line.
+   The same numbers also live in the runtime table below; this strip keeps
+   them visible at a glance without a second card. */
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-status-strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 18px;
+  padding: 9px 14px;
+  border-radius: 12px;
+  color: #5d686f;
+  font-size: 11.5px;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-status-strip > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-status-strip strong {
+  color: #262d32;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-status-strip small {
+  color: #7a838a;
+  font-size: 10px;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-status-strip .is-healthy {
+  color: #39815f;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-status-strip .is-unhealthy {
+  color: #b34e4e;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-status-strip .is-healthy i,
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-status-strip .is-unhealthy i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
 }
 
 .admin-shell-v3 .admin-overview-reference-layout .admin-overview-welcome-actions {
+  flex-shrink: 0;
   gap: 7px;
-  margin-top: 16px;
+  margin-top: 0;
+  padding-bottom: 2px;
 }
 
 .admin-shell-v3 .admin-overview-reference-layout .admin-overview-welcome-actions button {
@@ -405,56 +393,11 @@
   border-color: #e9d29a;
 }
 
-.admin-shell-v3 .admin-overview-reference-layout .admin-overview-welcome-status {
-  position: relative;
-  z-index: 1;
-  width: 100%;
-  max-width: 340px;
-  justify-self: end;
-  padding: 17px 18px;
-  border: 1px solid rgba(231, 229, 220, .92);
-  border-radius: 16px;
-  background: rgba(255, 255, 255, .84);
-  box-shadow: 0 12px 30px rgba(98, 73, 32, .08);
-  -webkit-backdrop-filter: blur(10px);
-  backdrop-filter: blur(10px);
-}
-
-.admin-shell-v3 .admin-overview-reference-layout .admin-overview-welcome-status-heading {
-  color: #5b646a;
-  font-size: 11px;
-}
-
-.admin-shell-v3 .admin-overview-reference-layout .admin-overview-welcome-status-grid {
-  gap: 16px;
-  margin-top: 18px;
-}
-
-.admin-shell-v3 .admin-overview-reference-layout .admin-overview-welcome-status-grid strong {
-  color: #262d32;
-  font-size: clamp(24px, 2.5vw, 32px);
-}
-
-.admin-shell-v3 .admin-overview-welcome-status-foot {
-  display: flex;
-  justify-content: space-between;
-  gap: 8px;
-  margin-top: 14px;
-  padding-top: 10px;
-  border-top: 1px solid #eef0ef;
-  color: #91999e;
-  font-size: 9.5px;
-}
-
-.admin-shell-v3 .admin-overview-welcome-status-foot strong {
-  color: #6d777d;
-  font-weight: 650;
-}
-
-/* Left-side quick-start guide and right-side live usage gauge. */
+/* Left-side quick-start guide and right-side live usage gauge.
+   STEP 2: reference proportions — guide ~60%, gauge ~40%. */
 .admin-shell-v3 .admin-overview-start-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1.08fr) minmax(320px, .92fr);
+  grid-template-columns: minmax(0, 1.5fr) minmax(320px, 1fr);
   gap: 13px;
 }
 
@@ -772,10 +715,11 @@
   color: #478462 !important;
 }
 
-/* Lower pair: clean trend chart and a compact operational table. */
+/* Lower pair: clean trend chart and a compact operational table.
+   STEP 2: reference proportions — trend ~58%, runtime ~42%. */
 .admin-shell-v3 .admin-overview-bottom-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1.12fr) minmax(0, .98fr);
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
   gap: 12px;
   align-items: stretch;
 }
@@ -950,14 +894,15 @@
 }
 
 @media (max-width: 850px) {
-  .admin-shell-v3 .admin-overview-reference-layout .admin-overview-welcome {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 16px;
+  /* STEP 2: title row stacks — title on top, pills below. */
+  .admin-shell-v3 .admin-overview-reference-layout .admin-overview-title-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
   }
 
-  .admin-shell-v3 .admin-overview-reference-layout .admin-overview-welcome-status {
-    max-width: none;
-    justify-self: stretch;
+  .admin-shell-v3 .admin-overview-reference-layout .admin-overview-welcome-actions {
+    padding-bottom: 0;
   }
 
   .admin-shell-v3 .admin-overview-start-grid,
@@ -1054,18 +999,16 @@
     gap: 10px;
   }
 
-  .admin-shell-v3 .admin-overview-reference-layout .admin-overview-welcome {
-    min-height: 0;
-    padding: 19px 16px;
-    border-radius: 17px;
+  .admin-shell-v3 .admin-overview-reference-layout .admin-overview-title-row {
+    padding: 2px 2px 0;
   }
 
-  .admin-shell-v3 .admin-overview-reference-layout .admin-overview-welcome-copy h2 {
+  .admin-shell-v3 .admin-overview-reference-layout .admin-overview-title-copy h2 {
     font-size: 27px;
   }
 
-  .admin-shell-v3 .admin-overview-reference-layout .admin-overview-welcome-status {
-    padding: 14px;
+  .admin-shell-v3 .admin-overview-reference-layout .admin-overview-status-strip {
+    padding: 8px 10px;
   }
 
   .admin-shell-v3 .admin-overview-guide-list {

@@ -69,16 +69,16 @@
   box-shadow: var(--admin-glass-shadow) !important;
 }
 
-/* ---- Welcome hero: keep its warm gradient, but let the stage shine through. ---- */
-.admin-shell-v3 .admin-overview-reference-layout .admin-overview-welcome {
-  background:
-    radial-gradient(ellipse at 86% 55%, rgba(252, 204, 72, .55) 0%, rgba(255, 218, 112, .34) 19%, rgba(255, 231, 174, .16) 36%, transparent 58%),
-    radial-gradient(ellipse at 82% 110%, rgba(224, 133, 57, .20), transparent 42%),
-    linear-gradient(112deg, rgba(255, 255, 255, .68) 0%, rgba(251, 251, 249, .55) 49%, rgba(249, 244, 233, .58) 100%) !important;
-  -webkit-backdrop-filter: var(--admin-glass-blur);
-  backdrop-filter: var(--admin-glass-blur);
-  border: 1px solid rgba(255, 255, 255, .75) !important;
-  box-shadow: 0 12px 32px rgba(98, 73, 32, .12), inset 0 1px 0 rgba(255, 255, 255, .70) !important;
+/* ---- STEP 2 (Flux rebuild): the welcome hero card is gone (Overview.tsx
+   now opens with a plain title row). The status strip carries the old
+   "系统运行" numbers on one line — give it the same light glass so it
+   reads as part of the row, not as another card. ---- */
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-status-strip {
+  background: rgba(255, 255, 255, .55) !important;
+  -webkit-backdrop-filter: blur(14px) saturate(1.2) !important;
+  backdrop-filter: blur(14px) saturate(1.2) !important;
+  border: 1px solid rgba(255, 255, 255, .72) !important;
+  box-shadow: 0 10px 28px rgba(98, 73, 32, .10), inset 0 1px 0 rgba(255, 255, 255, .70) !important;
 }
 
 .admin-shell-v3 .admin-overview-reference-layout .admin-overview-welcome-actions button {
@@ -89,14 +89,6 @@
 
 .admin-shell-v3 .admin-overview-reference-layout .admin-overview-welcome-actions button.is-primary {
   background: rgba(244, 223, 170, .88) !important;
-}
-
-.admin-shell-v3 .admin-overview-reference-layout .admin-overview-welcome-status {
-  background: rgba(255, 255, 255, .60) !important;
-  -webkit-backdrop-filter: blur(14px) saturate(1.2) !important;
-  backdrop-filter: blur(14px) saturate(1.2) !important;
-  border: 1px solid rgba(255, 255, 255, .72) !important;
-  box-shadow: 0 12px 30px rgba(98, 73, 32, .10), inset 0 1px 0 rgba(255, 255, 255, .70) !important;
 }
 
 /* ---- Guide entries stay light on glass. ---- */
@@ -136,23 +128,15 @@
   border-top-color: rgba(31, 42, 58, .10) !important;
 }
 
-.admin-shell-v3 .admin-overview-reference-layout .admin-overview-welcome-status-foot {
-  border-top-color: rgba(31, 42, 58, .10) !important;
-}
-
 /* ---- Text on glass: deepen the muted grays so copy stays readable.
    (Previous screenshot showed the welcome title, guide titles and the gauge
    100% washing out; headings were already dark, the small grays were not.) ---- */
-.admin-shell-v3 .admin-overview-reference-layout .admin-overview-welcome-copy h2 {
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-title-copy h2 {
   color: #1f262b !important;
 }
 
-.admin-shell-v3 .admin-overview-reference-layout .admin-overview-welcome-copy > p {
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-title-copy > p {
   color: #5d686f !important;
-}
-
-.admin-shell-v3 .admin-overview-reference-layout .admin-overview-welcome-meta {
-  color: #6e787e !important;
 }
 
 .admin-shell-v3 .admin-overview-reference-layout .admin-overview-eyebrow,
@@ -250,24 +234,19 @@
   color: #76808a !important;
 }
 
-.admin-shell-v3 .admin-overview-reference-layout .admin-overview-welcome-status-heading {
-  color: #4d565c !important;
-}
-
-/* ---- Round-2 fix: the two big status numbers washed out to near-white on
-   the amber glow in the screenshot. Pin them to the same dark ink the other
-   overview numbers use, so they stay readable on the light.
-   Round 3: local Playwright repro with the shipped CSS computes these to
-   #232a2f (dark) already, so the pale numbers in the cloud screenshots were
-   that long-lived browser window serving cached pre-#744 CSS, not the
-   shipped rules. The selector is still raised to the same 0,4,0 shape as
-   the layout rule as belt-and-braces, so no other `!important` colour rule
-   can ever outrank it. ---- */
-.admin-shell-v3 .admin-content .admin-overview-dashboard.admin-overview-reference-layout .admin-overview-welcome-status-grid strong {
+/* ---- Round-2 fix, carried to the step-2 status strip: the two big status
+   numbers washed out to near-white on the amber glow in the screenshot.
+   Pin them to the same dark ink the other overview numbers use.
+   Round 3 note: local Playwright repro with the shipped CSS computes these
+   to #232a2f (dark) already, so the pale numbers in the cloud screenshots
+   were that long-lived browser window serving cached pre-#744 CSS. The
+   selector is still raised to the same 0,4,0 shape as the layout rule as
+   belt-and-braces. ---- */
+.admin-shell-v3 .admin-content .admin-overview-dashboard.admin-overview-reference-layout .admin-overview-status-strip strong {
   color: #232a2f !important;
 }
 
-.admin-shell-v3 .admin-overview-reference-layout .admin-overview-welcome-status-grid small {
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-status-strip small {
   color: #6f787e !important;
 }
 
@@ -276,18 +255,6 @@
    Round 3: same 0,4,0 selector raise as the status numbers. ---- */
 .admin-shell-v3 .admin-content .admin-overview-dashboard.admin-overview-reference-layout .admin-overview-client-legend-row strong {
   color: #262d32 !important;
-}
-
-.admin-shell-v3 .admin-overview-reference-layout .admin-overview-welcome-status-grid span {
-  color: #5d686f !important;
-}
-
-.admin-shell-v3 .admin-overview-reference-layout .admin-overview-welcome-status-foot {
-  color: #6f787e !important;
-}
-
-.admin-shell-v3 .admin-overview-reference-layout .admin-overview-welcome-status-foot strong {
-  color: #525c62 !important;
 }
 
 .admin-shell-v3 .admin-overview-reference-layout .admin-overview-empty {

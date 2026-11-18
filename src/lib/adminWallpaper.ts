@@ -48,7 +48,7 @@ export function parseAdminWallpaper(value: unknown): AdminWallpaper {
   if (!candidate || typeof candidate !== 'object') return { type: 'none' };
   const data = candidate as Record<string, unknown>;
   if (data.type === 'preset' && ADMIN_WALLPAPER_PRESETS.some(item => item.id === data.id)) {
-    return { type: 'preset', id: data.id as AdminWallpaper & never } as AdminWallpaper;
+    return { type: 'preset', id: data.id as 'warm-light' | 'soft-gray' | 'ivory' };
   }
   if (data.type === 'image' && typeof data.url === 'string') {
     const url = safeHttpsUrl(data.url);

@@ -27,6 +27,7 @@ import MessageEffectsPicker from '../components/MessageEffectsPicker';
 import ScreenEffectCanvas from '../components/ScreenEffectCanvas';
 import { getChatBubbleEffect, getScreenEffectKind, stripChatBubbleEffect, withChatBubbleEffect, type ChatBubbleEffect, type ScreenEffectKind } from '../lib/chatMessageEffect';
 import { formatChatTypingLabel, parseChatTypingPayload } from '../lib/chatTyping';
+import { IMESSAGE_TAPBACKS } from '../lib/imessageTapbacks';
 import { createChatForwardAttachmentPlan } from '../lib/chatForwarding';
 import './Chat.polish.css';
 
@@ -40,7 +41,6 @@ type ForwardDestination = {
   lastMessageAt: string | null;
 };
 type TapbackAnchor = { left: number; top: number; width: number; dockLeft: number; dockTop: number; menuLeft: number; menuTop: number };
-const QUICK_REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '🙏'];
 const CHAT_EFFECT_LABELS: Record<ChatBubbleEffect, string> = {
   slam: '撞击', loud: '放大', gentle: '轻柔', 'invisible-ink': '隐形墨水',
   'screen-echo': '回声', 'screen-spotlight': '聚光灯', 'screen-balloons': '气球',
@@ -473,7 +473,7 @@ export default function Chat() {
     for (const item of reactions) {
       let groups = map.get(item.message_id);
       if (!groups) {
-        groups = QUICK_REACTIONS.map(reaction => ({ reaction, items: [] as ChatReaction[] }));
+        groups = IMESSAGE_TAPBACKS.map(({ reaction }) => ({ reaction, items: [] as ChatReaction[] }));
         map.set(item.message_id, groups);
       }
       groups.find(group => group.reaction === item.reaction)?.items.push(item);
@@ -1633,18 +1633,51 @@ export default function Chat() {
   }
 
   async function toggleReaction(messageId: number, reaction: string) {
-    const existing = reactions.find(item => item.message_id === messageId && item.profile_id === me && item.reaction === reaction);
-    if (existing) {
-      const { error: removeError } = await supabase.from('message_reactions').delete()
-        .eq('message_id', messageId).eq('profile_id', me).eq('reaction', reaction);
-      if (removeError) { setError('取消回应失败，请重试。'); return; }
-    } else {
-      const { error: addError } = await supabase.from('message_reactions').insert({
-        message_id: messageId, profile_id: me, reaction,
+    const matchesCurrent = (item: ChatReaction) =>
+      item.message_id === messageId && item.profile_id === me && item.reaction === reaction;
+    const existing = reactions.find(matchesCurrent);
+    const optimisticRow: ChatReaction = {
+      message_id: messageId,
+      profile_id: me,
+      reaction,
+      created_at: new Date().toISOString(),
+    };
+
+    // Reflect the Tapback immediately instead of reloading the entire conversation first.
+    setReactions(current => {
+      if (existing) return current.filter(item => !matchesCurrent(item));
+      if (current.some(matchesCurrent)) return current;
+      return [...current, optimisticRow];
+    });
+
+    const { error: writeError } = existing
+      ? await supabase.from('message_reactions').delete()
+          .eq('message_id', messageId).eq('profile_id', me).eq('reaction', reaction)
+      : await supabase.from('message_reactions').insert({
+          message_id: messageId, profile_id: me, reaction,
+        });
+
+    if (writeError) {
+      // Roll back only this Tapback; leave unrelated reaction updates untouched.
+      setReactions(current => {
+        if (existing) return current.some(matchesCurrent) ? current : [...current, existing];
+        return current.filter(item => !(matchesCurrent(item) && item.created_at === optimisticRow.created_at));
       });
-      if (addError) { setError('发送回应失败，请重试。'); return; }
+      setError((existing ? '取消回应失败：' : '发送回应失败：') + writeError.message);
+      return;
     }
-    await load();
+
+    // Refresh only this message's reactions, not messages, read receipts and conversation settings.
+    const { data: rows, error: refreshError } = await supabase
+      .from('message_reactions')
+      .select('message_id,profile_id,reaction,created_at')
+      .eq('message_id', messageId);
+    if (!refreshError) {
+      setReactions(current => [
+        ...current.filter(item => item.message_id !== messageId),
+        ...((rows ?? []) as ChatReaction[]),
+      ]);
+    }
   }
 
   async function saveEdit(messageId: number) {
@@ -2490,8 +2523,22 @@ export default function Chat() {
           {!deleted && tapbackAnchor && <div className="im-tapback-dock"
             style={{ left: tapbackAnchor.dockLeft, top: tapbackAnchor.dockTop }}
             role="group" aria-label="快速回应" onClick={event => event.stopPropagation()}>
-            {QUICK_REACTIONS.map(reaction => <button key={reaction} type="button" aria-label={'回应 ' + reaction}
-              onClick={() => { setActionFor(null); setTapbackAnchor(null); void toggleReaction(message.id, reaction); }}>{reaction}</button>)}
+            {IMESSAGE_TAPBACKS.map(({ reaction, label }) => {
+              const selected = reactions.some(item =>
+                item.message_id === message.id && item.profile_id === me && item.reaction === reaction,
+              );
+              return (
+                <button
+                  key={reaction}
+                  type="button"
+                  aria-label={selected ? `取消${label}回应` : `${label}回应`}
+                  aria-pressed={selected}
+                  onClick={() => { setActionFor(null); setTapbackAnchor(null); void toggleReaction(message.id, reaction); }}
+                >
+                  {reaction}
+                </button>
+              );
+            })}
           </div>}
           <section className="im-context-sheet" role="dialog" aria-modal="true" aria-label="消息操作"
             style={tapbackAnchor ? { left: tapbackAnchor.menuLeft, top: tapbackAnchor.menuTop } : undefined}

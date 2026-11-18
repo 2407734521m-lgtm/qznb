@@ -3,6 +3,12 @@ import { supabase} from '../lib/supabase';
 import { card, h3, mut, rowBtn} from '../pages/admin/shared';
 import OptionSheet from './OptionSheet';
 import { alertDialog, confirmDialog, promptDialog} from '../lib/dialog';
+import {
+  getOverseasPlayback,
+  licenseBlock,
+  licenseLabel,
+  playbackStatusLabel,
+} from '../lib/overseasVideoPlayer';
 
 // 海外视频管理后台：9 个子视图，全部走 Supabase（管理员会话）。
 // 通过 / 驳回都会写 overseas_video_reviews 并更新 overseas_videos.status。
@@ -27,6 +33,9 @@ const PLATFORM_OPTIONS = [
 { value: 'pexels', label: 'Pexels'},
 { value: 'pixabay', label: 'Pixabay'},
 { value: 'archive', label: 'Archive.org'},
+{ value: 'wikimedia', label: 'Wikimedia Commons'},
+{ value: 'nasa', label: 'NASA'},
+{ value: 'peertube', label: 'PeerTube'},
 ];
 const PLATFORM_LABEL: Record<string, string> = {
 youtube: 'YouTube',
@@ -34,6 +43,9 @@ pexels: 'Pexels',
 pixabay: 'Pixabay',
 archive: 'Archive.org',
 openverse: 'Openverse',
+wikimedia: 'Wikimedia Commons',
+nasa: 'NASA',
+peertube: 'PeerTube',
 };
 const SOURCE_TYPE_OPTIONS = [
 { value: 'channel', label: '频道'},
@@ -66,6 +78,10 @@ original_url: string; embed_url: string; thumbnail_url: string; published_at: st
 language: string; duration_seconds: number | null; description: string; license_type: string;
 status: string; quality_score: number; content_hash: string; duplicate_of: number | null;
 review_note: string; created_at: string;
+// 以下字段随第二阶段迁移新增；迁移未执行时 select('*') 不返回它们，读到 undefined 即按缺省处理。
+license_name?: string | null; license_url?: string | null; copyright_status?: string | null;
+file_url?: string | null; attribution?: string | null;
+playback_status?: string | null; playback_checked_at?: string | null;
 };
 
 const inputStyle: React.CSSProperties = {
@@ -129,6 +145,7 @@ const [reviewQuery, setReviewQuery] = useState('');
 const [reviewShown, setReviewShown] = useState(10);
 const [publishedShown, setPublishedShown] = useState(10);
 const [thumbFailed, setThumbFailed] = useState<Record<number, boolean>>({});
+const [playFailed, setPlayFailed] = useState<Record<number, boolean>>({});
 // 新增来源表单
 const [sName, setSName] = useState('');
 const [sPlatform, setSPlatform] = useState('youtube');
@@ -242,6 +259,12 @@ await loadAll();
 }
 
 async function approveVideo(v: Video) {
+// 纵深防御：按钮已置灰时正常点不到；万一绕过，服务端仍以这句拦截。
+const block = licenseBlock(v);
+if (block.blocked) {
+setMsg && setMsg(block.reason + '：' + v.title);
+return;
+}
 await reviewVideo(v, 'published', '');
 }
 
@@ -259,6 +282,14 @@ if (checked.length === 0) {
 setMsg && setMsg('请先勾选要处理的视频');
 return;
 }
+// 批量发布自动跳过授权不明确的视频（驳回不受影响）。
+const allTargets = pending.filter(v => checked.includes(v.id));
+const skipped = decision === 'published'? allTargets.filter(v => licenseBlock(v).blocked): [];
+const targets = decision === 'published'? allTargets.filter(v => !licenseBlock(v).blocked): allTargets;
+if (decision === 'published' && targets.length === 0) {
+setMsg && setMsg(`勾选的 ${checked.length} 条都因授权待确认不能发布，已全部跳过`);
+return;
+}
 let note = '';
 if (decision === 'rejected') {
 const r = await promptDialog(`批量驳回 ${checked.length} 条视频的原因`, {
@@ -267,11 +298,12 @@ confirmText: '确认批量驳回',
 });
 if (r === null) return;
 note = r.trim();
-} else if (!(await confirmDialog(`确定把勾选的 ${checked.length} 条视频全部发布吗？`, { confirmText: '全部发布'}))) {
+} else if (!(await confirmDialog(
+`确定把勾选的 ${targets.length} 条视频全部发布吗？` + (skipped.length > 0? `其中 ${skipped.length} 条因授权待确认会自动跳过。`: ''),
+{ confirmText: '全部发布'}))) {
 return;
 }
 setBusy('bulk');
-const targets = pending.filter(v => checked.includes(v.id));
 let ok = 0;
 let fail = 0;
 for (const v of targets) {
@@ -286,7 +318,9 @@ if (uErr) fail++; else ok++;
 }
 setBusy('');
 setChecked([]);
-setMsg && setMsg(decision === 'published'? `批量发布完成：成功 ${ok} 条，失败 ${fail} 条`: `批量驳回完成：成功 ${ok} 条，失败 ${fail} 条`);
+setMsg && setMsg(decision === 'published'
+? `批量发布完成：成功 ${ok} 条，失败 ${fail} 条` + (skipped.length > 0? `，跳过 ${skipped.length} 条（授权待确认）`: '')
+: `批量驳回完成：成功 ${ok} 条，失败 ${fail} 条`);
 await loadAll();
 }
 
@@ -430,9 +464,9 @@ await loadAll();
 
 function videoCard(v: Video, mode: 'review' | 'published') {
 const isPlaying = playingId === v.id;
-const embedSrc = v.platform === 'youtube'
-? `https://www.youtube-nocookie.com/embed/${v.external_video_id}`
-: v.embed_url || '';
+const playback = getOverseasPlayback(v);
+const block = licenseBlock(v);
+const playErr = !!playFailed[v.id];
 return (
 <div key={v.id} style={card}>
 <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', flexWrap: 'wrap'}}>
@@ -463,12 +497,28 @@ style={{ width: 20, height: 20, marginTop: 4, accentColor: '#22314a'}}
 {v.review_note && (
 <p style={{...mut, margin: '6px 0 0', color: '#b0404f'}}>审核备注：{v.review_note}</p>
 )}
+<p style={{...mut, margin: '6px 0 0'}}>
+授权：{licenseLabel(v.license_type, v.license_name)}
+{v.license_url && (
+<> · <a href={v.license_url} target="_blank" rel="noreferrer" style={{ color: '#526b8c'}}>查看授权</a></>
+)}
+</p>
+{v.attribution && (
+<p style={{...mut, margin: '4px 0 0'}}>署名要求：{v.attribution}</p>
+)}
+<p style={{...mut, margin: '4px 0 0'}}>
+播放检测：{playbackStatusLabel(v.playback_status)}
+{v.playback_checked_at? ' · 检测于 ' + fmtTime(v.playback_checked_at): ''}
+{v.playback_status === 'failed' && (
+<span style={{ color: '#b0404f'}}>（播放检测失败，发布前请先点原链接核对）</span>
+)}
+</p>
 </div>
 </div>
 {v.thumbnail_url &&!isPlaying && (
 <button
 type="button"
-onClick={() => setPlayingId(v.id)}
+onClick={() => { setPlayFailed(cur => ({ ...cur, [v.id]: false })); setPlayingId(v.id); }}
 aria-label={'预览播放 ' + v.title}
 style={{ display: 'block', width: '100%', padding: 0, marginTop: 10, border: 'none', background: 'none', cursor: 'pointer', position: 'relative'}}
 >
@@ -484,28 +534,56 @@ display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20,
 }}>▶</span>
 </button>
 )}
-{isPlaying && embedSrc && (
+{isPlaying && (
 <div style={{ marginTop: 10}}>
+{playback.kind === 'native-video' && !playErr && (
+<video
+controls
+preload="metadata"
+src={playback.src}
+onError={() => setPlayFailed(cur => ({ ...cur, [v.id]: true }))}
+style={{ width: '100%', maxWidth: 640, aspectRatio: '16 / 9', border: 'none', borderRadius: 12, background: '#000'}}
+/>
+)}
+{playback.kind === 'native-video' && playErr && (
+<p style={{...mut, margin: 0, color: '#b0404f'}}>视频加载失败，可能是网络或格式问题，可点下面的「看原链接」查看。</p>
+)}
+{playback.kind === 'unsupported' && (
+<p style={{...mut, margin: 0}}>该格式浏览器可能无法直接播放，可点下面的「看原链接」在原站查看。</p>
+)}
+{(playback.kind === 'youtube-iframe' || playback.kind === 'embed-iframe') && (
 <iframe
-src={embedSrc}
+src={playback.src}
 title={v.title}
 loading="lazy"
 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
 allowFullScreen
 style={{ width: '100%', maxWidth: 640, aspectRatio: '16 / 9', border: 'none', borderRadius: 12}}
 />
+)}
+{playback.kind === 'none' && (
+<p style={{...mut, margin: 0}}>暂无可播放的地址，可点下面的「看原链接」查看。</p>
+)}
 <div style={{ marginTop: 6}}>
 <button type="button" onClick={() => setPlayingId(null)} style={btnSmall}>收起播放</button>
 </div>
+{playback.kind === 'youtube-iframe' && (
 <p style={{...mut, margin: '6px 0 0', fontSize: 12}}>如果一直转圈，说明当前网络打不开 YouTube，点下面的「看原链接」换能打开 YouTube 的网络再看。</p>
+)}
+{playback.kind === 'embed-iframe' && (
+<p style={{...mut, margin: '6px 0 0', fontSize: 12}}>如果一直加载不出来，可能是网络或格式问题，可点下面的「看原链接」查看。</p>
+)}
 </div>
 )}
 <div style={{...rowBtn, alignItems: 'center'}}>
 {mode === 'review' && (
 <>
-<button type="button" onClick={() => void approveVideo(v)} disabled={busy!== ''} style={btnPrimary}>
+<button type="button" onClick={() => void approveVideo(v)} disabled={busy!== '' || block.blocked} style={{...btnPrimary, ...(block.blocked? { opacity: 0.45, cursor: 'not-allowed'}: {})}}>
 {busy === 'review-' + v.id? '处理中…': '通过发布'}
 </button>
+{block.blocked && (
+<span style={{ fontSize: 12.5, color: '#b0404f'}}>{block.reason}</span>
+)}
 <button type="button" onClick={() => void rejectVideo(v)} disabled={busy!== ''} style={btnDanger}>
 驳回
 </button>
@@ -611,7 +689,7 @@ style={inputStyle}
 <button type="button" onClick={() => setChecked([])} style={btnBase}>取消勾选</button>
 )}
 </div>
-<p style={{...mut, margin: '8px 0 0'}}>待审核 {pending.length} 条（最多显示 100 条）。一次只出 10 条，点加载更多继续看；封面和播放都走 YouTube，国内网络可能加载很慢或打不开，卡住时点卡片下的「看原链接」。通过即发布到前台，驳回会记一条审核记录。</p>
+<p style={{...mut, margin: '8px 0 0'}}>待审核 {pending.length} 条（最多显示 100 条）。一次只出 10 条，点加载更多继续看；mp4 / webm 直链用原生播放器直接播，YouTube 仍走官方嵌入，国内网络可能加载很慢或打不开，卡住时点卡片下的「看原链接」。授权待确认的视频不能发布，批量发布会自动跳过它们。通过即发布到前台，驳回会记一条审核记录。</p>
 </div>
 {shownPending.length === 0 && <div style={card}><p style={mut}>没有待审核的视频。每天 07:00 自动采集的新视频会先到这里。</p></div>}
 {shownPending.slice(0, reviewShown).map(v => videoCard(v, 'review'))}
@@ -626,7 +704,7 @@ style={inputStyle}
 {!loading &&!err && view === 'published' && (
 <div>
 <div style={card}>
-<p style={mut}>已发布 {published.length} 条（最多显示 100 条）。一次只出 10 条；点封面可以预览官方嵌入播放，国内网络打不开 YouTube 时会一直转圈，属已知限制；撤下后回到待审核，前台立即看不到。</p>
+<p style={mut}>已发布 {published.length} 条（最多显示 100 条）。一次只出 10 条；点封面可以预览：直链视频用原生播放器，YouTube 用官方嵌入，国内网络打不开 YouTube 时会一直转圈，属已知限制；撤下后回到待审核，前台立即看不到。</p>
 </div>
 {published.length === 0 && <div style={card}><p style={mut}>还没有已发布的视频。去「待审核」通过几条，这里就会出现。</p></div>}
 {published.slice(0, publishedShown).map(v => videoCard(v, 'published'))}
@@ -679,7 +757,7 @@ style={inputStyle}
 {g.map((v, vi) => (
 <div key={v.id} style={{ borderTop: vi === 0? 'none': '1px solid #eef1f4', paddingTop: vi === 0? 8: 8, marginTop: 8}}>
 <p style={{...mut, margin: 0}}>
-#{v.id} · {PLATFORM_LABEL[v.platform] || v.platform} · {v.author || '未知作者'} · {fmtDate(v.published_at)} · 状态：{v.status === 'pending_review'? '待审核': v.status === 'published'? '已发布': v.status === 'rejected'? '已驳回': v.status}
+#{v.id} · {PLATFORM_LABEL[v.platform] || v.platform} · {v.author || '未知作者'} · {fmtDate(v.published_at)} · 状态：{v.status === 'pending_review'? '待审核': v.status === 'published'? '已发布': v.status === 'rejected'? '已驳回': v.status === 'license_pending'? '授权待确认': v.status}
 </p>
 <div style={rowBtn}>
 {v.original_url && (

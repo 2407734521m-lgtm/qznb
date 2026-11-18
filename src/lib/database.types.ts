@@ -2064,6 +2064,7 @@ export type Database = {
       }
       overseas_videos: {
         Row: {
+          attribution: string
           author: string
           author_url: string
           category_id: number | null
@@ -2075,6 +2076,7 @@ export type Database = {
           duration_seconds: number | null
           embed_url: string
           external_video_id: string
+          file_url: string
           height: number | null
           id: number
           language: string
@@ -2082,6 +2084,8 @@ export type Database = {
           license_url: string
           original_url: string
           platform: string
+          playback_checked_at: string | null
+          playback_status: string
           published_at: string | null
           quality_score: number
           review_note: string
@@ -2096,6 +2100,7 @@ export type Database = {
           width: number | null
         }
         Insert: {
+          attribution?: string
           author?: string
           author_url?: string
           category_id?: number | null
@@ -2107,6 +2112,7 @@ export type Database = {
           duration_seconds?: number | null
           embed_url?: string
           external_video_id: string
+          file_url?: string
           height?: number | null
           id?: never
           language?: string
@@ -2114,6 +2120,8 @@ export type Database = {
           license_url?: string
           original_url?: string
           platform: string
+          playback_checked_at?: string | null
+          playback_status?: string
           published_at?: string | null
           quality_score?: number
           review_note?: string
@@ -2128,6 +2136,7 @@ export type Database = {
           width?: number | null
         }
         Update: {
+          attribution?: string
           author?: string
           author_url?: string
           category_id?: number | null
@@ -2139,6 +2148,7 @@ export type Database = {
           duration_seconds?: number | null
           embed_url?: string
           external_video_id?: string
+          file_url?: string
           height?: number | null
           id?: never
           language?: string
@@ -2146,6 +2156,8 @@ export type Database = {
           license_url?: string
           original_url?: string
           platform?: string
+          playback_checked_at?: string | null
+          playback_status?: string
           published_at?: string | null
           quality_score?: number
           review_note?: string

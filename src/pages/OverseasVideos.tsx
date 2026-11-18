@@ -1,5 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '../lib/supabase';
+import {
+  getOverseasPlayback,
+  licenseLabel,
+  playbackStatusLabel,
+} from '../lib/overseasVideoPlayer';
 
 // 海外视频前台：只读 status='published' 的视频（匿名可读）。
 // 点封面才加载官方嵌入（youtube-nocookie），不点不加载，省流量；
@@ -11,6 +16,10 @@ type Video = {
   category_id: number | null; title: string; author: string; original_url: string;
   embed_url: string; thumbnail_url: string; published_at: string | null; language: string;
   duration_seconds: number | null; description: string;
+  // 以下字段随第二阶段迁移新增；迁移未执行时读到 undefined 即按缺省处理。
+  license_type?: string | null; license_name?: string | null; license_url?: string | null;
+  copyright_status?: string | null; file_url?: string | null; attribution?: string | null;
+  playback_status?: string | null; playback_checked_at?: string | null;
 };
 
 const PLATFORM_LABEL: Record<string, string> = {
@@ -19,6 +28,9 @@ const PLATFORM_LABEL: Record<string, string> = {
   pixabay: 'Pixabay',
   archive: 'Archive.org',
   openverse: 'Openverse',
+  wikimedia: 'Wikimedia Commons',
+  nasa: 'NASA',
+  peertube: 'PeerTube',
 };
 
 function fmtDate(s: string | null) {
@@ -42,6 +54,7 @@ export default function OverseasVideos() {
   const [playingId, setPlayingId] = useState<number | null>(null);
   const [shownCount, setShownCount] = useState(12);
   const [thumbFailed, setThumbFailed] = useState<Record<number, boolean>>({});
+  const [playFailed, setPlayFailed] = useState<Record<number, boolean>>({});
 
   useEffect(() => {
     setShownCount(12);
@@ -52,7 +65,9 @@ export default function OverseasVideos() {
     setLoading(true);
     Promise.all([
       supabase.from('overseas_video_categories').select('id, name, slug, sort_order, enabled').eq('enabled', true).order('sort_order'),
-      supabase.from('overseas_videos').select('id, platform, external_video_id, source_id, category_id, title, author, original_url, embed_url, thumbnail_url, published_at, language, duration_seconds, description').eq('status', 'published').order('published_at', { ascending: false }).limit(100),
+      // 用 select('*') 而不用逐列点名：第二阶段迁移的新列（file_url 等）还没进库时，
+      // 逐列点名会整条查询报错，select('*') 只会让新字段读到 undefined，前台照常展示旧字段。
+      supabase.from('overseas_videos').select('*').eq('status', 'published').order('published_at', { ascending: false }).limit(100),
     ]).then(([cats, vids]) => {
       if (!alive) return;
       const firstErr = cats.error || vids.error;
@@ -89,8 +104,8 @@ export default function OverseasVideos() {
       <div className="card" style={{ marginBottom: 12 }}>
         <h2 style={{ margin: '0 0 6px', fontSize: 18 }}>海外视频</h2>
         <p style={{ margin: 0, fontSize: 13, color: '#5b6673', lineHeight: 1.7 }}>
-          每天自动发现的海外优质视频，管理员审核后才会在这里出现。只放官方嵌入播放，不下载、不转载。
-          YouTube 在国内不翻墙打不开，点播放后如果一直转圈，可以点「在 YouTube 上观看」用能打开 YouTube 的网络再看。
+          每天自动发现的海外优质视频，管理员审核后才会在这里出现。只放官方嵌入或授权直链播放，不下载、不转载。
+          直链视频用原生播放器直接播；YouTube 在国内不翻墙打不开，点播放后如果一直转圈，可以点「在 YouTube 上观看」用能打开 YouTube 的网络再看。
         </p>
         <input
           type="search"
@@ -148,9 +163,8 @@ export default function OverseasVideos() {
 
       {shown.slice(0, shownCount).map(v => {
         const isPlaying = playingId === v.id;
-        const embedSrc = v.platform === 'youtube'
-          ? `https://www.youtube-nocookie.com/embed/${v.external_video_id}`
-          : v.embed_url || '';
+        const playback = getOverseasPlayback(v);
+        const playErr = !!playFailed[v.id];
         return (
           <article key={v.id} className="card" style={{ marginBottom: 12 }}>
             <h3 style={{ margin: '0 0 6px', fontSize: 15, lineHeight: 1.5 }}>{v.title || '（无标题）'}</h3>
@@ -162,16 +176,54 @@ export default function OverseasVideos() {
               {v.category_id != null && catName.get(v.category_id) ? ' · ' + catName.get(v.category_id) : ''}
               {' · '}{PLATFORM_LABEL[v.platform] || v.platform}
             </p>
-            {isPlaying && embedSrc ? (
+            <p style={{ margin: '0 0 10px', fontSize: 12.5, color: '#5b6673' }}>
+              授权：{licenseLabel(v.license_type, v.license_name)}
+              {v.license_url && (
+                <> · <a href={v.license_url} target="_blank" rel="noreferrer" style={{ color: '#526b8c' }}>查看授权</a></>
+              )}
+              {v.attribution ? ` · 署名：${v.attribution}` : ''}
+            </p>
+            {v.playback_status === 'failed' && (
+              <p style={{ margin: '0 0 10px', fontSize: 12.5, color: '#b0404f' }}>
+                播放检测失败，点播放可能看不了，可直接点下面的原站链接查看。
+              </p>
+            )}
+            {isPlaying ? (
               <div>
-                <iframe
-                  src={embedSrc}
-                  title={v.title}
-                  loading="lazy"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                  style={{ width: '100%', aspectRatio: '16 / 9', border: 'none', borderRadius: 12, display: 'block' }}
-                />
+                {playback.kind === 'native-video' && !playErr && (
+                  <video
+                    controls
+                    preload="metadata"
+                    src={playback.src}
+                    onError={() => setPlayFailed(cur => ({ ...cur, [v.id]: true }))}
+                    style={{ width: '100%', aspectRatio: '16 / 9', border: 'none', borderRadius: 12, display: 'block', background: '#000' }}
+                  />
+                )}
+                {playback.kind === 'native-video' && playErr && (
+                  <p style={{ margin: 0, fontSize: 13, color: '#b0404f', lineHeight: 1.7 }}>
+                    视频加载失败，可能是网络或格式问题，可点下面的原站链接查看。
+                  </p>
+                )}
+                {playback.kind === 'unsupported' && (
+                  <p style={{ margin: 0, fontSize: 13, color: '#5b6673', lineHeight: 1.7 }}>
+                    该格式浏览器可能无法直接播放，可点下面的原站链接在原站查看。
+                  </p>
+                )}
+                {(playback.kind === 'youtube-iframe' || playback.kind === 'embed-iframe') && (
+                  <iframe
+                    src={playback.src}
+                    title={v.title}
+                    loading="lazy"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                    style={{ width: '100%', aspectRatio: '16 / 9', border: 'none', borderRadius: 12, display: 'block' }}
+                  />
+                )}
+                {playback.kind === 'none' && (
+                  <p style={{ margin: 0, fontSize: 13, color: '#5b6673', lineHeight: 1.7 }}>
+                    暂无可播放的地址，可点下面的原站链接查看。
+                  </p>
+                )}
                 <div style={{ marginTop: 8 }}>
                   <button
                     type="button"
@@ -181,11 +233,16 @@ export default function OverseasVideos() {
                     收起播放
                   </button>
                 </div>
+                {playback.kind === 'youtube-iframe' && (
+                  <p style={{ margin: '8px 0 0', fontSize: 12.5, color: '#5b6673' }}>
+                    YouTube 在国内不翻墙打不开，点播放后如果一直转圈，可以点下面的原站链接用能打开 YouTube 的网络再看。
+                  </p>
+                )}
               </div>
             ) : v.thumbnail_url ? (
               <button
                 type="button"
-                onClick={() => setPlayingId(v.id)}
+                onClick={() => { setPlayFailed(cur => ({ ...cur, [v.id]: false })); setPlayingId(v.id); }}
                 aria-label={'播放 ' + v.title}
                 style={{ display: 'block', width: '100%', padding: 0, border: 'none', background: 'none', cursor: 'pointer', position: 'relative' }}
               >

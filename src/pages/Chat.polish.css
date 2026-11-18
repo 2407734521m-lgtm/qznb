@@ -3334,3 +3334,21 @@
     transform: none !important;
   }
 }
+
+
+/* Voice messages expose a restrained active state instead of changing their layout. */
+.im-page .im-audio-card {
+  transition: background .18s ease, box-shadow .18s ease;
+}
+.im-page .im-audio-card[data-playback-state="playing"] .im-audio-symbol {
+  box-shadow: 0 0 0 4px rgba(52,120,212,.12), 0 5px 14px rgba(52,120,212,.22);
+}
+.im-page .im-audio-card[data-playback-state="playing"] .im-waveform {
+  filter: saturate(1.12);
+}
+.im-page .im-audio-card[data-playback-state="loading"] .im-audio-symbol {
+  cursor: wait;
+}
+@media (prefers-reduced-motion: reduce) {
+  .im-page .im-audio-card { transition: none !important; }
+}

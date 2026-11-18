@@ -116,9 +116,6 @@ export default function AdminWorkspace({
   onMemberSearchSubmit,
   children,
 }: AdminWorkspaceProps) {
-  const [collapsed, setCollapsed] = useState(() => {
-    try { return localStorage.getItem('qznb-admin-rail-collapsed') === '1'; } catch { return false; }
-  });
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>(() => {
     try {
@@ -230,10 +227,6 @@ export default function AdminWorkspace({
   }, []);
 
   useEffect(() => {
-    try { localStorage.setItem('qznb-admin-rail-collapsed', collapsed ? '1' : '0'); } catch { /* storage may be disabled */ }
-  }, [collapsed]);
-
-  useEffect(() => {
     try { localStorage.setItem('qznb-admin-collapsed-groups', JSON.stringify(collapsedGroups)); } catch { /* storage may be disabled */ }
   }, [collapsedGroups]);
 
@@ -343,7 +336,7 @@ export default function AdminWorkspace({
   }
 
   return (
-    <div className={['admin-workspace', 'is-reference-dashboard', collapsed ? 'is-collapsed' : '', mobileOpen ? 'is-mobile-open' : ''].filter(Boolean).join(' ')}>
+    <div className={['admin-workspace', 'is-reference-dashboard', mobileOpen ? 'is-mobile-open' : ''].filter(Boolean).join(' ')}>
       {mobileOpen && <button type="button" className="admin-sidebar-scrim" aria-label="关闭导航" onClick={() => setMobileOpen(false)} />}
       <aside className="admin-sidebar" aria-label="管理后台导航">
         <div className="admin-sidebar-brand">
@@ -377,7 +370,7 @@ export default function AdminWorkspace({
                     <button type="button"
                       className={['admin-nav-item', activeTab === item.id ? 'is-active' : ''].join(' ')}
                       aria-current={activeTab === item.id ? 'page' : undefined}
-                      title={collapsed ? item.label : undefined}
+                      title={item.label}
                       onClick={() => choose(item.id)}>
                       <span className="admin-nav-icon"><AdminIcon name={item.id} size={16} /></span>
                       <span className="admin-nav-label">{item.label}</span>
@@ -387,13 +380,13 @@ export default function AdminWorkspace({
                           title={`${todoCountFor(item.id)} 项待处理`}
                           style={{
                             marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                            minWidth: collapsed ? 7 : 18, height: collapsed ? 7 : 18,
-                            padding: collapsed ? 0 : '0 5px', borderRadius: 999,
+                            minWidth: 18, height: 18,
+                            padding: '0 5px', borderRadius: 999,
                             background: '#d94b5b', color: '#fff', fontSize: 10.5, fontWeight: 800,
                             lineHeight: 1, flexShrink: 0, fontVariantNumeric: 'tabular-nums',
                           }}
                         >
-                          {collapsed ? '' : todoCountFor(item.id) > 99 ? '99+' : todoCountFor(item.id)}
+                          {todoCountFor(item.id) > 99 ? '99+' : todoCountFor(item.id)}
                         </span>
                       )}
                     </button>

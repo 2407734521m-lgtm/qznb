@@ -114,7 +114,14 @@ assert.ok(islandRoot.includes('onPointerDown'));
 assert.ok(islandRoot.includes('Escape'));
 assert.ok(islandRoot.includes('addEventListener("pointerdown"'));
 assert.ok(islandRoot.includes('store.api.collapse()'));
-assert.ok(parent.includes('shouldShowMainIsland(isMusicPage, activityIds)'), 'The main island must hide on the music page unless another activity is live.');
+assert.ok(
+  parent.includes('if (!hasTrack || isMusicPage)') && parent.includes("islandApi.end('music-playback')"),
+  'The music playback activity must end on the music page so it does not create an idle island there.',
+);
+assert.ok(
+  activity.includes('shouldShowIslandHost(value.activityIds)'),
+  'The island host must still appear when another live activity exists.',
+);
 assert.ok(parent.includes('hostRef={islandWrapRef}'));
 
 assert.ok(parent.includes('opacity: { duration: isMusicPage ? 0.34 : 0.36'));

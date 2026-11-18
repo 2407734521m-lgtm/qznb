@@ -108,7 +108,7 @@
   .plist { border:1px solid #eaecf0; border-radius:13px; padding:13px; margin-top:8px; }
   .plist small { display:inline-block; margin-top:3px; color:#667085; }
   #kw { min-width:0; flex:1 1 100%; }
-  #searchBtn, #favBtn { flex:1; }
+  #searchBtn, #favBtn, #savedBtn { flex:1; }
   #listMeta { margin:12px 0 6px !important; }
   .notice { margin-top:14px; background:#f2f4f7; border:1px solid #eaecf0; color:#475467; border-radius:14px; padding:13px 14px; font-size:12px; }
   .confirm-box { background:#f8faff; border-color:#dbe5ff; }
@@ -120,7 +120,7 @@
     .page-head { padding-bottom:22px; }
     .sitefield input { flex:1 1 180px; }
     #kw { flex:1 1 auto; }
-    #searchBtn, #favBtn { flex:0 0 auto; }
+    #searchBtn, #favBtn, #savedBtn { flex:0 0 auto; }
   }
   @media (max-width:380px) {
     .wrap { padding-left:12px; padding-right:12px; }
@@ -600,7 +600,6 @@
     stopPreview(true);
     mode = 'favorites';
     currentPlaylistId = '';
-    playlists = [];
     tracks = getFavorites();
     $('playlists').innerHTML = '';
     $('plTitle').textContent = '我的收藏';

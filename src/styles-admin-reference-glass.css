@@ -12,37 +12,47 @@
   --admin-glass-blur: blur(18px) saturate(1.25);
 }
 
-/* ---- Luminous warm stage behind the cards: the glow the glass picks up.
-   The glow must run the whole page, not just the hero: top-right amber,
-   left cream, then mid-page amber (right) + cream (left) + a soft peach
-   low-centre wash, so every card below the hero has light to refract.
-   (Round-2 fix: the middle cards looked near-opaque white because only
-   the hero strip had glow behind it.) ---- */
-/* ---- ROOT CAUSE (round 3, verified by local Playwright repro):
-   the plain `.admin-overview-reference-layout` rule above NEVER painted:
-   match.css sets `.admin-shell-v3 .admin-overview-dashboard` to
-   `background: 0 0 !important` (to neutralise the mosaic #f7f8f8 fill),
-   and `!important` beats this rule regardless of order or specificity,
-   so the layout stayed transparent and the mid-page cards sat on uniform
-   light grey. The fix below re-declares the same background on a
-   higher-specificity selector (`.admin-content .admin-overview-dashboard
-   .admin-overview-reference-layout`, 0,4,0) AND with `!important`, in this
-   file which Admin.tsx imports last, so it wins over both the mosaic fill
-   and the transparent override. The glow is also made stronger and the
-   base wash more translucent, so the amber is unmistakable behind the
-   glass cards instead of a faint tint. ---- */
+/* ---- STEP 1 (Flux rebuild): the whole overview page becomes one warm
+   flowing-light field — cream, amber gold and peach-pink, like the
+   reference. The previous rounds only tinted the page: the radial glows
+   sat over a pale .62-alpha wash, and the grey shell (#f6f7f8) behind it
+   muted everything into "faint warm grey". This step paints a mostly
+   opaque warm gradient as the base, so the colour survives on its own
+   and shows through the card gaps and the translucent glass cards.
+   Only the base changes here: cards, text, layout and behaviour are
+   untouched (steps 2+ will re-lay them out and reshape the components).
+   The same 0,4,0 selector + !important from round 3 is kept, so this
+   still wins over the mosaic #f7f8f8 fill and the `background:
+   transparent !important` override in second.css. ---- */
 .admin-shell-v3 .admin-content .admin-overview-dashboard.admin-overview-reference-layout {
   padding: clamp(14px, 1.8vw, 22px) !important;
   border: 1px solid rgba(255, 255, 255, .55) !important;
   border-radius: 26px !important;
   background:
-    radial-gradient(820px 500px at 88% -10%, rgba(255, 198, 80, .68), transparent 60%),
-    radial-gradient(720px 520px at -8% 18%, rgba(255, 222, 150, .60), transparent 62%),
-    radial-gradient(780px 560px at 102% 48%, rgba(255, 192, 100, .58), transparent 62%),
-    radial-gradient(700px 520px at -6% 58%, rgba(255, 226, 170, .55), transparent 62%),
-    radial-gradient(760px 540px at 55% 82%, rgba(255, 188, 120, .48), transparent 62%),
-    radial-gradient(640px 480px at 60% 112%, rgba(255, 176, 105, .45), transparent 60%),
-    linear-gradient(180deg, rgba(255, 242, 205, .62), rgba(255, 236, 200, .62) 50%, rgba(255, 232, 190, .62)) !important;
+    radial-gradient(900px 560px at 88% -8%, rgba(255, 190, 70, .72), transparent 62%),
+    radial-gradient(700px 500px at -4% 10%, rgba(255, 228, 165, .60), transparent 62%),
+    radial-gradient(820px 560px at 104% 48%, rgba(255, 178, 88, .58), transparent 62%),
+    radial-gradient(760px 560px at -8% 56%, rgba(255, 176, 148, .52), transparent 62%),
+    radial-gradient(780px 540px at 55% 88%, rgba(255, 188, 128, .50), transparent 62%),
+    radial-gradient(620px 460px at 28% 104%, rgba(255, 198, 188, .42), transparent 60%),
+    linear-gradient(155deg, #fff8e7 0%, #ffedd2 30%, #ffe6d3 55%, #ffe9c8 78%, #fff3d9 100%) !important;
+}
+
+/* ---- Same warm field on the content area around the rounded container,
+   so the strip between the container edge and the viewport is warm too
+   instead of shell grey. Scoped with :has() to the overview tab only:
+   Overview mounts only when tab === 'overview', so other tabs keep
+   their own canvas. Sidebar and topbar are outside this element and
+   are untouched. ---- */
+.admin-shell-v3 .admin-workspace.is-reference-dashboard:has(.admin-overview-reference-layout) .admin-workspace-content {
+  background:
+    radial-gradient(900px 560px at 88% -8%, rgba(255, 190, 70, .72), transparent 62%),
+    radial-gradient(700px 500px at -4% 10%, rgba(255, 228, 165, .60), transparent 62%),
+    radial-gradient(820px 560px at 104% 48%, rgba(255, 178, 88, .58), transparent 62%),
+    radial-gradient(760px 560px at -8% 56%, rgba(255, 176, 148, .52), transparent 62%),
+    radial-gradient(780px 540px at 55% 88%, rgba(255, 188, 128, .50), transparent 62%),
+    radial-gradient(620px 460px at 28% 104%, rgba(255, 198, 188, .42), transparent 60%),
+    linear-gradient(155deg, #fff8e7 0%, #ffedd2 30%, #ffe6d3 55%, #ffe9c8 78%, #fff3d9 100%) !important;
 }
 
 /* ---- All overview cards become translucent glass. ---- */

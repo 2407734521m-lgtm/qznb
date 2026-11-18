@@ -120,7 +120,7 @@ export default function AdminLoveWall({ setMsg }: { setMsg: (s: string) => void 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
         <div>
           <h2 style={{ margin: '0 0 6px', fontSize: 18 }}>表白墙管理</h2>
-          <p style={{ color: '#aab5d1', fontSize: 12, lineHeight: 1.65, margin: 0 }}>
+          <p style={{ color: '#667085', fontSize: 12, lineHeight: 1.65, margin: 0 }}>
             匿名只对普通用户隐藏身份。管理员可按授权查看投稿账号，用于审核和处理举报；请勿向无关人员泄露身份信息。
           </p>
         </div>
@@ -130,12 +130,12 @@ export default function AdminLoveWall({ setMsg }: { setMsg: (s: string) => void 
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 8, marginTop: 14 }}>
         {[
-          ['待审核', counts.pending, '#f5c26b'],
-          ['已发布', counts.published, '#7ed9b0'],
-          ['已隐藏', counts.hidden, '#9bb8ff'],
-          ['未通过', counts.rejected, '#ff9ba9'],
+          ['待审核', counts.pending, '#9a6700'],
+          ['已发布', counts.published, '#167a52'],
+          ['已隐藏', counts.hidden, '#667085'],
+          ['未通过', counts.rejected, '#b42318'],
         ].map(([label, value, color]) => <div key={String(label)} style={statCard}>
-          <div style={{ color: '#aab5d1', fontSize: 11 }}>{label}</div>
+          <div style={{ color: '#667085', fontSize: 11 }}>{label}</div>
           <div style={{ color: String(color), fontSize: 22, fontWeight: 800, marginTop: 3 }}>{value}</div>
         </div>)}
       </div>
@@ -152,29 +152,29 @@ export default function AdminLoveWall({ setMsg }: { setMsg: (s: string) => void 
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 10 }}>
         {FILTERS.map(([value, label]) => <button key={value} onClick={() => setFilter(value)}
           aria-pressed={filter === value}
-          style={{ ...filterButton, background: filter === value ? '#687cff' : '#ffffff0d', borderColor: filter === value ? '#8795ff' : '#ffffff18' }}>
+          style={{ ...filterButton, background: filter === value ? '#f2f4f7' : '#f8fafc', borderColor: filter === value ? '#cbd5e1' : '#e4e7ec' }}>
           {label} <span style={{ opacity: .8 }}>{counts[value]}</span>
         </button>)}
       </div>
-      <div style={{ color: '#8491b1', fontSize: 11, marginTop: 10 }}>
+      <div style={{ color: '#98a2b3', fontSize: 11, marginTop: 10 }}>
         当前显示 {shown.length} 条 · 最多读取最近 500 条
       </div>
     </div>
 
-    {loading && rows.length === 0 && <p style={{ color: '#aab5d1', textAlign: 'center', padding: 24 }}>正在加载表白投稿…</p>}
-    {!loading && shown.length === 0 && <p style={{ color: '#9da6c3', textAlign: 'center', padding: 24 }}>没有符合条件的投稿。</p>}
+    {loading && rows.length === 0 && <p style={{ color: '#667085', textAlign: 'center', padding: 24 }}>正在加载表白投稿…</p>}
+    {!loading && shown.length === 0 && <p style={{ color: '#667085', textAlign: 'center', padding: 24 }}>没有符合条件的投稿。</p>}
 
     <div style={{ display: 'grid', gap: 10 }}>
       {shown.map(p => <article key={p.id} style={postCard}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8, flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
             <span style={tag}>{p.category || '未分类'}</span>
-            <span style={{ ...tag, color: p.status === 'published' ? '#8de0b7' : p.status === 'pending' ? '#f5d18a' : '#bac7e7' }}>
+            <span style={{ ...tag, color: p.status === 'published' ? '#167a52' : p.status === 'pending' ? '#9a6700' : '#667085' }}>
               {statusLabel[p.status] || p.status || '未知状态'}
             </span>
-            <span style={{ ...tag, color: p.is_anonymous ? '#c5b4ff' : '#b8d7ff' }}>{p.is_anonymous ? '匿名投稿' : '署名投稿'}</span>
+            <span style={{ ...tag, color: p.is_anonymous ? '#667085' : '#667085' }}>{p.is_anonymous ? '匿名投稿' : '署名投稿'}</span>
           </div>
-          <time style={{ color: '#8491b1', fontSize: 11 }}>{new Date(p.created_at).toLocaleString()}</time>
+          <time style={{ color: '#98a2b3', fontSize: 11 }}>{new Date(p.created_at).toLocaleString()}</time>
         </div>
 
         <p style={{ whiteSpace: 'pre-wrap', lineHeight: 1.75, overflowWrap: 'anywhere', margin: '13px 0' }}>{p.content}</p>
@@ -182,19 +182,19 @@ export default function AdminLoveWall({ setMsg }: { setMsg: (s: string) => void 
         {(mediaByPost[p.id] || []).length > 0 && <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6, margin: '0 0 12px' }}>
           {(mediaByPost[p.id] || []).map(m => m.kind === 'image'
             ? (m.url ? <a key={m.id} href={m.url} target="_blank" rel="noreferrer"><img src={m.url} alt="" loading="lazy" style={{ width: '100%', aspectRatio: '1 / 1', objectFit: 'cover', borderRadius: 10, display: 'block' }} /></a> : null)
-            : (m.url ? <video key={m.id} src={m.url} controls playsInline preload="metadata" style={{ width: '100%', gridColumn: '1 / -1', borderRadius: 10, background: '#000', maxHeight: 320, display: 'block' }} /> : null))}
+            : (m.url ? <video key={m.id} src={m.url} controls playsInline preload="metadata" style={{ width: '100%', gridColumn: '1 / -1', borderRadius: 10, background: '#f2f4f7', maxHeight: 320, display: 'block' }} /> : null))}
         </div>}
 
         <details style={identityBox}>
-          <summary style={{ cursor: 'pointer', color: '#c5d3f5', fontSize: 12, fontWeight: 700, padding: '2px 0' }}>
+          <summary style={{ cursor: 'pointer', color: '#475467', fontSize: 12, fontWeight: 700, padding: '2px 0' }}>
             查看投稿者身份与记录
           </summary>
-          <div style={{ marginTop: 10, fontSize: 12, color: '#b8bfd7', lineHeight: 1.9, overflowWrap: 'anywhere' }}>
-            <div><strong style={{ color: '#edf2ff' }}>投稿者：</strong>{authorLabel(p)}</div>
-            <div><strong style={{ color: '#edf2ff' }}>用户名：</strong>{profiles[p.author_id]?.username || '未设置'}</div>
-            <div><strong style={{ color: '#edf2ff' }}>账号 ID：</strong>{p.author_id || '未知'}</div>
-            <div><strong style={{ color: '#edf2ff' }}>接收对象：</strong>{p.recipient_name || '未填写'}</div>
-            <div><strong style={{ color: '#edf2ff' }}>投稿编号：</strong>{p.id}</div>
+          <div style={{ marginTop: 10, fontSize: 12, color: '#475467', lineHeight: 1.9, overflowWrap: 'anywhere' }}>
+            <div><strong style={{ color: '#1f2937' }}>投稿者：</strong>{authorLabel(p)}</div>
+            <div><strong style={{ color: '#1f2937' }}>用户名：</strong>{profiles[p.author_id]?.username || '未设置'}</div>
+            <div><strong style={{ color: '#1f2937' }}>账号 ID：</strong>{p.author_id || '未知'}</div>
+            <div><strong style={{ color: '#1f2937' }}>接收对象：</strong>{p.recipient_name || '未填写'}</div>
+            <div><strong style={{ color: '#1f2937' }}>投稿编号：</strong>{p.id}</div>
           </div>
         </details>
 
@@ -204,44 +204,44 @@ export default function AdminLoveWall({ setMsg }: { setMsg: (s: string) => void 
           {p.status !== 'rejected' && <button disabled={busy === p.id || !!busy} onClick={() => void setStatus(p, 'rejected')} style={dangerAction}>拒绝投稿</button>}
           {p.status !== 'pending' && <button disabled={busy === p.id || !!busy} onClick={() => void setStatus(p, 'pending')} style={action}>退回待审核</button>}
         </div>
-        {busy === p.id && <div style={{ color: '#aab5d1', fontSize: 11, marginTop: 8 }}>正在保存更改…</div>}
+        {busy === p.id && <div style={{ color: '#667085', fontSize: 11, marginTop: 8 }}>正在保存更改…</div>}
       </article>)}
     </div>
   </section>;
 }
 
 const panel: React.CSSProperties = {
-  background: 'linear-gradient(145deg,#171e33,#0d1222)',
-  border: '1px solid #ffffff18', borderRadius: 16, padding: 15, marginBottom: 12,
+  background: '#ffffff', color: '#1f2937',
+  border: '1px solid #e4e7ec', borderRadius: 16, padding: 15, marginBottom: 12,
 };
 const statCard: React.CSSProperties = {
-  border: '1px solid #ffffff12', borderRadius: 12, padding: '10px 12px',
-  background: '#ffffff06', minWidth: 0,
+  border: '1px solid #e7ebf0', borderRadius: 12, padding: '10px 12px',
+  background: '#f8fafc', minWidth: 0,
 };
 const searchInput: React.CSSProperties = {
   width: '100%', minWidth: 0, boxSizing: 'border-box', padding: '11px 12px',
-  borderRadius: 12, border: '1px solid #ffffff18', background: '#ffffff08',
-  color: '#fff', fontSize: 13, outline: 'none',
+  borderRadius: 12, border: '1px solid #e4e7ec', background: '#ffffff',
+  color: '#1f2937', fontSize: 13, outline: 'none',
 };
 const filterButton: React.CSSProperties = {
-  border: '1px solid #ffffff18', borderRadius: 999, padding: '8px 11px',
-  color: '#fff', fontSize: 12, cursor: 'pointer',
+  border: '1px solid #e4e7ec', borderRadius: 999, padding: '8px 11px',
+  background: '#ffffff', color: '#344054', fontSize: 12, cursor: 'pointer',
 };
 const postCard: React.CSSProperties = {
-  border: '1px solid #ffffff18', borderRadius: 15, background: '#11182b', padding: 14,
-  boxShadow: '0 8px 24px #0003',
+  border: '1px solid #e4e7ec', borderRadius: 15, background: '#ffffff', color: '#1f2937', padding: 14,
+  boxShadow: '0 4px 16px rgba(15,23,42,.04)',
 };
 const identityBox: React.CSSProperties = {
-  border: '1px solid #ffffff12', borderRadius: 12, padding: '10px 11px', background: '#ffffff05',
+  border: '1px solid #e4e7ec', borderRadius: 12, padding: '10px 11px', background: '#f8fafc',
 };
 const tag: React.CSSProperties = {
-  border: '1px solid #ffffff16', background: '#ffffff08', borderRadius: 999,
-  padding: '4px 8px', color: '#c5d3f5', fontSize: 10,
+  border: '1px solid #e4e7ec', background: '#ffffff', borderRadius: 999,
+  padding: '4px 8px', color: '#475467', fontSize: 10,
 };
 const action: React.CSSProperties = {
-  border: '1px solid #ffffff20', borderRadius: 10, padding: '9px 11px',
-  background: '#ffffff0d', color: '#eef0ff', fontSize: 12, cursor: 'pointer',
+  border: '1px solid #d0d5dd', borderRadius: 10, padding: '9px 11px',
+  background: '#f8fafc', color: '#344054', fontSize: 12, cursor: 'pointer',
 };
 const dangerAction: React.CSSProperties = {
-  ...action, borderColor: '#ff879633', background: '#ff879610', color: '#ffb5c1',
+  ...action, borderColor: '#f2c7cd', background: '#fff5f5', color: '#b42318',
 };

@@ -22,6 +22,7 @@ import { useUserPreferences } from '../lib/userPreferences';
 import { SPRING_SNAPPY } from '../lib/motion';
 import { createChatVideoPoster, isChatVideoFile, resolveChatVideoMime } from '../lib/chatMedia';
 import ChatAudioWaveform from '../components/ChatAudioWaveform';
+import ChatVoiceDraftPreview from '../components/ChatVoiceDraftPreview';
 import ChatVideoPlayer from '../components/ChatVideoPlayer';
 import MessageEffectsPicker from '../components/MessageEffectsPicker';
 import ScreenEffectCanvas from '../components/ScreenEffectCanvas';
@@ -31,6 +32,7 @@ import { IMESSAGE_TAPBACKS } from '../lib/imessageTapbacks';
 import { canLongPressMessage, getSwipeReplyVisual, isSwipeToReply } from '../lib/chatGestures';
 import { createChatForwardAttachmentPlan } from '../lib/chatForwarding';
 import { findNextChatMediaMessageId } from '../lib/chatPlayback';
+import { formatVoiceDuration, getVoiceCancelProgress, MAX_VOICE_RECORDING_SECONDS, resolveVoiceRecordingFormat } from '../lib/chatVoiceRecording';
 import './Chat.polish.css';
 
 type ChatReaction = { message_id: number; profile_id: string; reaction: string; created_at: string };
@@ -298,7 +300,13 @@ export default function Chat() {
     window.addEventListener('qz-chat-media-play', onMediaPlay);
     return () => window.removeEventListener('qz-chat-media-play', onMediaPlay);
   }, []);
-  useEffect(() => { setAutoPlayMediaId(null); activeMediaIdRef.current = null; }, [cid]);
+  useEffect(() => {
+    setAutoPlayMediaId(null);
+    activeMediaIdRef.current = null;
+    setVoiceDraft(null);
+    setRecordCancelProgress(0);
+    if (recording || recordStartPendingRef.current) cancelRecording();
+  }, [cid]);
   const [loadingMsgs, setLoadingMsgs] = useState(true);
   const showMsgsSkeleton = useDelayedLoading(loadingMsgs);
   const [text, setText] = useState('');
@@ -334,9 +342,16 @@ export default function Chat() {
   const [upPct, setUpPct] = useState<number | null>(null);
   const [recording, setRecording] = useState(false);
   const [recordSeconds, setRecordSeconds] = useState(0);
+  const [recordCancelProgress, setRecordCancelProgress] = useState(0);
+  const [voiceDraft, setVoiceDraft] = useState<{ blob: Blob; durationMs: number } | null>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const recordingStartedAtRef = useRef<number | null>(null);
+  const recordStartedAtMsRef = useRef<number | null>(null);
+  const recordStartPendingRef = useRef(false);
+  const cancelRecordingRef = useRef(false);
+  const voicePointerRef = useRef<{ pointerId: number; startX: number; cancelled: boolean; released: boolean } | null>(null);
+  const micPointerHandledRef = useRef(false);
   const chunksRef = useRef<Blob[]>([]);
   const recordTimerRef = useRef<number | null>(null);
   const imageRef = useRef<HTMLInputElement>(null);
@@ -1304,31 +1319,157 @@ export default function Chat() {
 
   function stopRecording() {
     const recorder = recorderRef.current;
-    if (!recorder || recorder.state === 'inactive') return;
+    if (!recorder || recorder.state === 'inactive') {
+      if (recordStartPendingRef.current) cancelRecordingRef.current = true;
+      return;
+    }
     setRecording(false);
     const recordingStartedAt = recordingStartedAtRef.current;
     if (recordingStartedAt !== null) {
       emitVoiceRecordingIslandEvent('stop', recordingStartedAt);
       recordingStartedAtRef.current = null;
     }
-    setUploading(true);
     if (recordTimerRef.current !== null) window.clearInterval(recordTimerRef.current);
     recordTimerRef.current = null;
     recorder.stop();
   }
 
+  function cancelRecording() {
+    cancelRecordingRef.current = true;
+    setRecording(false);
+    setRecordCancelProgress(0);
+    const recordingStartedAt = recordingStartedAtRef.current;
+    if (recordingStartedAt !== null) {
+      emitVoiceRecordingIslandEvent('stop', recordingStartedAt);
+      recordingStartedAtRef.current = null;
+    }
+    if (recordTimerRef.current !== null) window.clearInterval(recordTimerRef.current);
+    recordTimerRef.current = null;
+    const recorder = recorderRef.current;
+    if (recorder && recorder.state !== 'inactive') {
+      recorder.stop();
+    } else if (!recordStartPendingRef.current) {
+      cancelRecordingRef.current = false;
+      setRecordSeconds(0);
+      chunksRef.current = [];
+    }
+  }
+
+  function startVoicePointer(event: React.PointerEvent<HTMLButtonElement>) {
+    if (event.button !== 0 && event.pointerType === 'mouse') return;
+    if (uploading || voiceDraft) return;
+    event.preventDefault();
+    micPointerHandledRef.current = true;
+    const session = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      cancelled: false,
+      released: false,
+    };
+    voicePointerRef.current = session;
+    try { event.currentTarget.setPointerCapture(event.pointerId); } catch { /* Pointer capture is optional. */ }
+    if (!recording && !recordStartPendingRef.current) void startRecording();
+  }
+
+  function moveVoicePointer(event: React.PointerEvent<HTMLButtonElement>) {
+    const session = voicePointerRef.current;
+    if (!session || session.pointerId !== event.pointerId) return;
+    const progress = getVoiceCancelProgress(session.startX, event.clientX);
+    session.cancelled = progress >= 1;
+    setRecordCancelProgress(progress);
+  }
+
+  function endVoicePointer(event: React.PointerEvent<HTMLButtonElement>) {
+    const session = voicePointerRef.current;
+    if (!session || session.pointerId !== event.pointerId) return;
+    session.released = true;
+    const shouldCancel = session.cancelled || getVoiceCancelProgress(session.startX, event.clientX) >= 1;
+    voicePointerRef.current = null;
+    setRecordCancelProgress(0);
+    micPointerHandledRef.current = true;
+    if (shouldCancel) cancelRecording();
+    else stopRecording();
+  }
+
+  function cancelVoicePointer(event: React.PointerEvent<HTMLButtonElement>) {
+    const session = voicePointerRef.current;
+    if (!session || session.pointerId !== event.pointerId) return;
+    session.released = true;
+    session.cancelled = true;
+    voicePointerRef.current = null;
+    setRecordCancelProgress(0);
+    micPointerHandledRef.current = false;
+    cancelRecording();
+  }
+
+  function handleVoiceMicClick(event: React.MouseEvent<HTMLButtonElement>) {
+    if (event.detail !== 0 && micPointerHandledRef.current) {
+      micPointerHandledRef.current = false;
+      return;
+    }
+    if (recording || recordStartPendingRef.current) stopRecording();
+    else if (!voiceDraft) void startRecording();
+  }
+
+  function discardVoiceDraft() {
+    setVoiceDraft(null);
+    setRecordSeconds(0);
+    setError('');
+  }
+
+  async function sendVoiceDraft() {
+    const draft = voiceDraft;
+    if (!draft || uploading || !cid) return;
+    setUploading(true);
+    setUpPct(0);
+    setError('');
+    try {
+      const format = resolveVoiceRecordingFormat(draft.blob.type);
+      const file = new File(
+        [draft.blob],
+        'voice-' + Date.now() + '.' + format.extension,
+        { type: format.mime },
+      );
+      const path = await uploadMediaWithProgress(
+        'chat-media',
+        file,
+        Number(cid) + '/' + me,
+        pct => setUpPct(pct),
+      );
+      await persistMediaMessage('[[im-audio:' + path + ']]', pendingAttachmentEffect);
+      setVoiceDraft(null);
+      setRecordSeconds(0);
+    } catch (e) {
+      console.error('chat voice upload failed', e);
+      setError('语音发送失败。试听草稿已保留，请检查网络或媒体存储策略后重试。');
+    } finally {
+      setUploading(false);
+      setUpPct(null);
+    }
+  }
+
   async function startRecording() {
-    if (recording || uploading) return;
+    if (recording || recordStartPendingRef.current || uploading || voiceDraft) return;
     if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') {
       setError('当前浏览器不支持语音录制，请更新浏览器后重试。');
       return;
     }
+    recordStartPendingRef.current = true;
+    cancelRecordingRef.current = false;
+    const pointerSession = voicePointerRef.current;
     try {
       setError('');
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      // Permission prompts may resolve after the user has already left this page.
-      if (!mountedRef.current) {
+      // A fast release/cancel while the permission prompt is open must not leave a
+      // microphone stream running after the gesture has already ended.
+      if (
+        !mountedRef.current ||
+        cancelRecordingRef.current ||
+        (pointerSession && (pointerSession.released || voicePointerRef.current !== pointerSession))
+      ) {
         stream.getTracks().forEach(track => track.stop());
+        recordStartPendingRef.current = false;
+        cancelRecordingRef.current = false;
         return;
       }
       streamRef.current = stream;
@@ -1336,39 +1477,52 @@ export default function Chat() {
       recorderRef.current = recorder;
       chunksRef.current = [];
       recorder.ondataavailable = event => { if (event.data.size) chunksRef.current.push(event.data); };
-      recorder.onstop = async () => {
+      recorder.onstop = () => {
         stream.getTracks().forEach(track => track.stop());
         streamRef.current = null;
+        const endedAt = Date.now();
+        const durationMs = Math.max(0, endedAt - (recordStartedAtMsRef.current ?? endedAt));
+        recordStartedAtMsRef.current = null;
+        const wasCancelled = cancelRecordingRef.current;
+        cancelRecordingRef.current = false;
         try {
+          if (wasCancelled) {
+            setRecordSeconds(0);
+            chunksRef.current = [];
+            return;
+          }
           const blob = new Blob(chunksRef.current, { type: recorder.mimeType || 'audio/webm' });
-          if (blob.size < 1000) { setError('录音时间太短，请重新录制。'); return; }
-          const mime = blob.type.includes('mp4') ? 'audio/mp4' : blob.type.includes('ogg') ? 'audio/ogg' : blob.type.includes('aac') ? 'audio/aac' : blob.type.includes('mpeg') ? 'audio/mpeg' : 'audio/webm';
-          const ext = mime === 'audio/mp4' ? 'm4a' : mime === 'audio/ogg' ? 'ogg' : mime === 'audio/aac' ? 'aac' : mime === 'audio/mpeg' ? 'mp3' : 'webm';
-          const file = new File([blob], 'voice-' + Date.now() + '.' + ext, { type: mime });
-          setUpPct(0);
-          const path = await uploadMediaWithProgress('chat-media', file, Number(cid) + '/' + me, pct => setUpPct(pct));
-          await persistMediaMessage('[[im-audio:' + path + ']]', pendingAttachmentEffect);
-        } catch (e) {
-          console.error('chat voice upload failed', e);
-          setError('语音发送失败。请确认聊天媒体存储策略已启用，然后重试。');
+          if (blob.size < 1000) {
+            setRecordSeconds(0);
+            setError('录音时间太短，请重新录制。');
+            return;
+          }
+          setRecordSeconds(Math.min(MAX_VOICE_RECORDING_SECONDS, Math.max(1, Math.round(durationMs / 1000))));
+          setVoiceDraft({ blob, durationMs });
         } finally {
-          setUploading(false); setUpPct(null);
+          setRecording(false);
+          setRecordCancelProgress(0);
+          recordStartPendingRef.current = false;
           recorderRef.current = null;
+          chunksRef.current = [];
         }
       };
       recorder.start();
+      recordStartPendingRef.current = false;
       const startedAt = Date.now();
+      recordStartedAtMsRef.current = startedAt;
       recordingStartedAtRef.current = startedAt;
       emitVoiceRecordingIslandEvent('start', startedAt);
       setRecordSeconds(0);
       setRecording(true);
-      let elapsed = 0;
       recordTimerRef.current = window.setInterval(() => {
-        elapsed += 1;
+        const elapsedMs = Date.now() - startedAt;
+        const elapsed = Math.min(MAX_VOICE_RECORDING_SECONDS, Math.floor(elapsedMs / 1000));
         setRecordSeconds(elapsed);
-        if (elapsed >= 60) stopRecording();
+        if (elapsedMs >= MAX_VOICE_RECORDING_SECONDS * 1000) stopRecording();
       }, 1000);
     } catch (e) {
+      recordStartPendingRef.current = false;
       const startedAt = recordingStartedAtRef.current;
       if (startedAt !== null) {
         emitVoiceRecordingIslandEvent('stop', startedAt);
@@ -1386,6 +1540,8 @@ export default function Chat() {
       streamRef.current?.getTracks().forEach(track => track.stop());
       streamRef.current = null;
       recorderRef.current = null;
+      recordStartedAtMsRef.current = null;
+      cancelRecordingRef.current = false;
       if (recordTimerRef.current !== null) window.clearInterval(recordTimerRef.current);
       recordTimerRef.current = null;
       if (mountedRef.current) {
@@ -2738,6 +2894,15 @@ export default function Chat() {
           )}
         </motion.div>}
       </AnimatePresence>
+      {voiceDraft && (
+        <ChatVoiceDraftPreview
+          blob={voiceDraft.blob}
+          durationMs={voiceDraft.durationMs}
+          sending={uploading}
+          onSend={() => void sendVoiceDraft()}
+          onDiscard={discardVoiceDraft}
+        />
+      )}
       {replyTarget && <div className="im-reply-banner">
         <span>回复</span>
         <span className="im-reply-banner-main">{messageSummary(replyTarget)}</span>
@@ -2841,6 +3006,16 @@ export default function Chat() {
             onChange={value => void saveDisappearingOption(value)}
           />
         )}
+        {recording && (
+          <div className={'im-voice-recording-status' + (recordCancelProgress >= 1 ? ' cancel-armed' : '')} role="status">
+            <span className="im-voice-record-dot" aria-hidden="true" />
+            <strong>录音中 {formatVoiceDuration(recordSeconds)}</strong>
+            <span className="im-voice-record-hint">{recordCancelProgress >= 1 ? '松开取消录音' : '向左滑动取消'}</span>
+            <span className="im-voice-cancel-track" aria-hidden="true">
+              <span style={{ width: (recordCancelProgress * 100) + '%' }} />
+            </span>
+          </div>
+        )}
         <div className="im-input-wrap">
           <button type="button" className={'im-format-btn' + (showFormatPanel ? ' im-format-btn--on' : '')}
             aria-label={showFormatPanel ? '收起文字格式' : '打开文字格式'} aria-expanded={showFormatPanel}
@@ -2878,8 +3053,21 @@ export default function Chat() {
               composerSelRef.current = sel;
             }}
             onFocus={() => setInputFocused(true)} onBlur={() => setInputFocused(false)}
-            placeholder={recording ? '录音中 ' + String(Math.floor(recordSeconds / 60)).padStart(2, '0') + ':' + String(recordSeconds % 60).padStart(2, '0') + ' · 点红色按钮结束' : uploading ? '正在发送媒体…' : '私信'} maxLength={2000} autoComplete="off" aria-label="输入消息"></textarea>
-          {!text.trim() && <button type="button" className={'im-mic' + (recording ? ' recording' : '')} aria-label={recording ? '结束录音并发送' : '录制语音'} title={recording ? '结束录音并发送' : '录制语音'} disabled={uploading} onClick={recording ? stopRecording : startRecording}>{recording ? '■' : <svg width="15" height="18" viewBox="0 0 18 22" fill="none" aria-hidden="true"><rect x="6" y="1" width="6" height="13" rx="3" stroke="currentColor" strokeWidth="1.7" /><path d="M3 10.5v1a6 6 0 0 0 12 0v-1M9 17.5V21M6 21h6" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" /></svg>}</button>}
+            placeholder={recording ? '正在录音…' : voiceDraft ? '语音已录好，可试听后发送' : uploading ? '正在发送媒体…' : '私信'} disabled={recording || Boolean(voiceDraft) || uploading} maxLength={2000} autoComplete="off" aria-label="输入消息"></textarea>
+          {!text.trim() && !voiceDraft && <button
+            type="button"
+            className={'im-mic' + (recording ? ' recording' : '') + (recordCancelProgress >= 1 ? ' cancel-armed' : '')}
+            aria-label={recording ? '松开发送前试听，向左滑动取消' : '按住录音，松开发送前试听'}
+            title="按住录音，松开发送前试听；向左滑动取消"
+            disabled={uploading}
+            onPointerDown={startVoicePointer}
+            onPointerMove={moveVoicePointer}
+            onPointerUp={endVoicePointer}
+            onPointerCancel={cancelVoicePointer}
+            onClick={handleVoiceMicClick}
+          >
+            {recording ? '■' : <svg width="15" height="18" viewBox="0 0 18 22" fill="none" aria-hidden="true"><rect x="6" y="1" width="6" height="13" rx="3" stroke="currentColor" strokeWidth="1.7" /><path d="M3 10.5v1a6 6 0 0 0 12 0v-1M9 17.5V21M6 21h6" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" /></svg>}
+          </button>}
           {text.trim() && <button type="button" className="im-send" aria-label="发送消息；长按选择发送特效" title="长按选择发送特效"
             disabled={uploading || recording}
             onPointerDown={startSendButtonPress} onPointerUp={endSendButtonPress}

@@ -3088,3 +3088,167 @@
     transition: none;
   }
 }
+
+
+/* Integrated chat surfaces: solid colors, no glass or floating cards.
+   The header and composer inherit the conversation canvas; only controls that
+   need a hit area retain a subtle, fully opaque fill. */
+.im-page .im-head {
+  color: var(--im-ink, #1d293b) !important;
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+.im-page .im-head .im-back,
+.im-page .im-head .im-icon {
+  color: #52627b !important;
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+.im-page .im-message-column .im-bubble {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  background-clip: border-box !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+.im-page .im-message-column .im-bubble.mine {
+  color: #fff !important;
+  background: #0a84ff !important;
+  border-radius: 20px 20px 5px 20px !important;
+}
+
+.im-page .im-message-column .im-bubble.theirs {
+  color: #17181b !important;
+  background: #e9e9eb !important;
+  border-radius: 20px 20px 20px 5px !important;
+}
+
+.im-page .im-message-column .im-bubble.mine::after {
+  background: #0a84ff !important;
+}
+
+.im-page .im-message-column .im-bubble.theirs::after {
+  background: #e9e9eb !important;
+}
+
+.im-page .im-composer {
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+.im-page .im-input-wrap {
+  background: #f1f2f4 !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+.im-page .im-input-wrap:focus-within {
+  background: #e9edf3 !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+.im-page .im-plus,
+.im-page .im-icon,
+.im-page .im-timer,
+.im-page .im-mic {
+  color: #53647b !important;
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+.im-page .im-mic.recording {
+  color: #fff !important;
+  background: #d95f6e !important;
+  box-shadow: none !important;
+}
+
+.im-page .im-day {
+  color: #707b8c !important;
+  background: #f0f1f3 !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+.im-page .im-typing {
+  color: #75839a !important;
+  background: #eef0f3 !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+.im-page .im-sticker-tray,
+.im-page .im-reply-banner,
+.im-page .im-details {
+  color: #53637a !important;
+  background: #f5f6f8 !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+.im-page .im-sticker-choice,
+.im-page .im-reply-banner button,
+.im-page .im-action-btn {
+  background: #e9edf2 !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+.im-page .im-reaction-picker,
+.im-page .im-reaction-chip {
+  background: #eef0f3 !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+.im-page .im-reaction-picker button {
+  background: #fff !important;
+  box-shadow: none !important;
+}
+
+.im-page .im-bubble.mine .im-message-tools .im-action-btn {
+  color: #fff !important;
+  background: #0875df !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .im-page .im-head .im-back:hover,
+  .im-page .im-head .im-icon:hover,
+  .im-page .im-plus:hover,
+  .im-page .im-icon:hover,
+  .im-page .im-timer:hover,
+  .im-page .im-mic:not(:disabled):hover {
+    background: #eef1f5 !important;
+    border: 0 !important;
+    box-shadow: none !important;
+  }
+}
+

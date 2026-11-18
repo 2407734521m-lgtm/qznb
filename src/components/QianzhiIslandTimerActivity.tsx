@@ -95,7 +95,7 @@ function TimerButton({ label, onClick, tone = 'neutral' }: {
   );
 }
 
-function TimerControls({ session, onPause, onResume, onStop, onStartBreak }: {
+function TimerControls({ session, onPause, onResume, onStop }: {
   session: IslandTimerSession;
   onPause: () => void;
   onResume: () => void;
@@ -130,7 +130,6 @@ export function createIslandTimerActivity(input: {
   onPause: () => void;
   onResume: () => void;
   onStop: () => void;
-  onStartBreak: () => void;
   onComplete: () => void;
 }): ActivityOptions {
   const { session } = input;

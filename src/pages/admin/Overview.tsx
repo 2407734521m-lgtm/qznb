@@ -279,49 +279,34 @@ export default function Overview({ setMsg, go }: { setMsg: (s: string) => void; 
   const lastSample = presence?.sampledAt ? new Date(presence.sampledAt).toLocaleTimeString() : '等待首次采样';
   return (
     <div className="admin-overview-dashboard admin-overview-reference-layout">
-      <header className="admin-overview-welcome">
-        <div className="admin-overview-welcome-copy">
-          <span className="admin-overview-eyebrow">ADMIN WORKSPACE · CONTROL CENTER</span>
+      {/* STEP 2 (Flux rebuild): the welcome hero card is gone — the reference
+          opens with a plain title row (title left, action pills right) and
+          the live numbers live in the runtime table below. The old
+          "系统运行" card is folded into one compact status strip under the
+          title so no number is lost: health, online count, DB latency and
+          the last sample time. Pills keep their existing handlers/styles;
+          the pill look itself is step 3. */}
+      <div className="admin-overview-title-row">
+        <div className="admin-overview-title-copy">
           <h2>欢迎回来，管理员</h2>
-          <p>这里汇总站点运行、成员增长与待处理工作。</p>
-          <div className="admin-overview-welcome-meta">
-            <span>{new Intl.DateTimeFormat('zh-CN', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' }).format(new Date())}</span>
-            <span>数据更新于 {new Date(st.loadedAt).toLocaleTimeString()}</span>
-          </div>
-          <div className="admin-overview-welcome-actions">
-            <button type="button" className="is-primary" onClick={() => go('board')}>发布公告</button>
-            <button type="button" onClick={() => go('accounts')}>成员管理</button>
-            <button type="button" className="is-quiet" onClick={() => {
-              setSt(null);
-              setLoadTimedOut(false);
-              setRefreshSeq(value => value + 1);
-            }}>刷新数据</button>
-          </div>
+          <p>{new Intl.DateTimeFormat('zh-CN', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' }).format(new Date())} · 数据更新于 {new Date(st.loadedAt).toLocaleTimeString()}</p>
         </div>
-        <aside className="admin-overview-welcome-status" aria-label="站点运行状态">
-          <div className="admin-overview-welcome-status-heading">
-            <span>系统运行</span>
-            <strong className={st.dbOk ? 'is-healthy' : 'is-unhealthy'}>
-              <i aria-hidden="true" />{st.dbOk ? '运行正常' : '连接异常'}
-            </strong>
-          </div>
-          <div className="admin-overview-welcome-status-grid">
-            <div>
-              <span>当前在线</span>
-              <strong>{sampledOnline === null ? '—' : sampledOnline}</strong>
-              <small>{realtimeReady ? '实时连接' : realtimeFailed ? '备用统计' : '等待连接'}</small>
-            </div>
-            <div>
-              <span>数据库延迟</span>
-              <strong>{st.dbOk ? `${st.dbMs} ms` : '异常'}</strong>
-              <small>最近一次连通性检测</small>
-            </div>
-          </div>
-          <div className="admin-overview-welcome-status-foot">
-            <span>在线数据最近更新</span><strong>{lastSample}</strong>
-          </div>
-        </aside>
-      </header>
+        <div className="admin-overview-welcome-actions">
+          <button type="button" className="is-primary" onClick={() => go('board')}>发布公告</button>
+          <button type="button" onClick={() => go('accounts')}>成员管理</button>
+          <button type="button" className="is-quiet" onClick={() => {
+            setSt(null);
+            setLoadTimedOut(false);
+            setRefreshSeq(value => value + 1);
+          }}>刷新数据</button>
+        </div>
+      </div>
+      <div className="admin-overview-status-strip" role="status" aria-label="站点运行状态">
+        <span className={st.dbOk ? 'is-healthy' : 'is-unhealthy'}><i aria-hidden="true" />{st.dbOk ? '运行正常' : '连接异常'}</span>
+        <span>当前在线 <strong>{sampledOnline === null ? '—' : sampledOnline}</strong><small>{realtimeReady ? '实时连接' : realtimeFailed ? '备用统计' : '等待连接'}</small></span>
+        <span>数据库延迟 <strong>{st.dbOk ? `${st.dbMs} ms` : '异常'}</strong></span>
+        <span>在线数据最近更新 <strong>{lastSample}</strong></span>
+      </div>
 
       <div className="admin-overview-start-grid">
         <section className="admin-overview-guide-panel">

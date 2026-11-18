@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import WaveSurfer from 'wavesurfer.js';
 import { isChatAutoplayBlocked } from '../lib/chatPlayback';
+import { getNextVoicePlaybackRate } from '../lib/chatVoiceRecording';
 
 type Props = {
   url: string;
@@ -39,6 +40,8 @@ export default function ChatAudioWaveform({ url, messageId, autoPlay = false, on
   const [currentTime, setCurrentTime] = useState(0);
   const [ready, setReady] = useState(false);
   const [failed, setFailed] = useState(false);
+  const [playbackRate, setPlaybackRate] = useState(1);
+  const playbackRateRef = useRef(1);
 
   onEndedRef.current = onEnded;
   onAutoplayBlockedRef.current = onAutoplayBlocked;
@@ -97,6 +100,8 @@ export default function ChatAudioWaveform({ url, messageId, autoPlay = false, on
       loaded = true;
       window.clearTimeout(readyTimeout);
       setDuration(value);
+      const media = player.getMediaElement();
+      media.playbackRate = playbackRateRef.current;
       setReady(true);
     });
     player.on('timeupdate', value => { if (alive) setCurrentTime(value); });
@@ -157,6 +162,15 @@ export default function ChatAudioWaveform({ url, messageId, autoPlay = false, on
     return () => window.removeEventListener('qz-chat-media-play', pauseOther);
   }, [messageId]);
 
+  const cyclePlaybackRate = () => {
+    const nextRate = getNextVoicePlaybackRate(playbackRateRef.current);
+    playbackRateRef.current = nextRate;
+    setPlaybackRate(nextRate);
+    const media = playerRef.current?.getMediaElement();
+    if (media) media.playbackRate = nextRate;
+    if (audioRef.current) audioRef.current.playbackRate = nextRate;
+  };
+
   const toggle = () => {
     if (!ready) return;
     if (failed) {
@@ -214,6 +228,7 @@ export default function ChatAudioWaveform({ url, messageId, autoPlay = false, on
               onTimeUpdate={event => setCurrentTime(event.currentTarget.currentTime)}
               onLoadedMetadata={event => {
                 if (Number.isFinite(event.currentTarget.duration)) setDuration(event.currentTarget.duration);
+                event.currentTarget.playbackRate = playbackRateRef.current;
                 setReady(true);
               }}
               onEnded={() => {
@@ -228,6 +243,15 @@ export default function ChatAudioWaveform({ url, messageId, autoPlay = false, on
         <div className="im-audio-meta">
           <span>{clock(currentTime)}</span>
           <span>{duration ? clock(duration) : '语音消息'}</span>
+          <button
+            type="button"
+            className="im-audio-speed"
+            onClick={cyclePlaybackRate}
+            aria-label={`切换语音播放速度，当前 ${playbackRate} 倍速`}
+            title="切换播放速度"
+          >
+            {playbackRate}×
+          </button>
         </div>
       </div>
     </div>

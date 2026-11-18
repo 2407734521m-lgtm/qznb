@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { isCrossSiteMusicApiRequest, normalizeMusicApiCookie } from "../worker/netease-security.mjs";
+import { isCrossSiteMusicApiRequest, normalizeMusicApiCookie, shouldSuppressNeteaseQrCookieHeader } from "../worker/netease-security.mjs";
 
 assert.equal(
   normalizeMusicApiCookie("MUSIC_U=abc; Path=/; SameSite=None; Secure; HttpOnly"),
@@ -36,3 +36,8 @@ const serverToServer = new Request("https://music.qianzhi.pw/api/netease/healthz
 assert.equal(isCrossSiteMusicApiRequest(serverToServer), false);
 
 console.log("NetEase Worker security helper tests passed.");
+
+assert.equal(shouldSuppressNeteaseQrCookieHeader("/login/qr/check", { noCookie: "true" }), true);
+assert.equal(shouldSuppressNeteaseQrCookieHeader("/login/qr/check", { noCookie: true }), true);
+assert.equal(shouldSuppressNeteaseQrCookieHeader("/login/qr/check", { noCookie: "false" }), false);
+assert.equal(shouldSuppressNeteaseQrCookieHeader("/song/detail", { noCookie: "true" }), false);

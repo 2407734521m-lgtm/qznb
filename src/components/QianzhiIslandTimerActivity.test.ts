@@ -66,7 +66,7 @@ describe('createIslandTimerActivity', () => {
     expect(activity.expanded?.bottom).toBeTruthy();
   });
 
-  it('marks a completed countdown as done without offering an automatic break', () => {
+  it('marks a completed countdown as done', () => {
     const activity = createIslandTimerActivity({
       session: session({ status: 'done', endsAt: null, remainingMs: 0 }),
       onPress: vi.fn(),

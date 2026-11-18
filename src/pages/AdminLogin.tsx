@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import PasswordField from '../components/PasswordField';
+import PinBoxes from '../components/PinBoxes';
 import { alog } from './admin/shared';
 
 type Step = 'credentials' | 'pin_setup' | 'pin_verify' | 'success';
@@ -31,6 +32,8 @@ export default function AdminLogin({
   const [busy, setBusy] = useState(false);
   const [success, setSuccess] = useState(false);
   const [step, setStep] = useState<Step>('credentials');
+  // 六格输满自动提交与回车/按钮提交可能同一次触发，用 ref 挡住重复验证。
+  const pinVerifyRef = useRef(false);
 
   useEffect(() => {
     try {
@@ -84,18 +87,21 @@ export default function AdminLogin({
     setStep(configured === true ? 'pin_verify' : 'pin_setup');
   }
 
-  async function verifyPin() {
-    if (!isValidPin(pin)) {
+  // pinValue 显式传值：六格输满自动提交时 state 尚未更新，直接用回调带回的完整值，避免读到旧的 5 位。
+  async function verifyPin(pinValue: string = pin) {
+    if (pinVerifyRef.current) return;
+    if (!isValidPin(pinValue)) {
       setErr('请输入 6 位数字二级密码。');
       return;
     }
 
+    pinVerifyRef.current = true;
     setBusy(true);
     setErr('');
     try {
       const { data: verified, error: verifyError } = await supabase.rpc(
         'admin_verify_secondary_password' as any,
-        { p_pin: pin } as any
+        { p_pin: pinValue } as any
       );
       if (verifyError) throw verifyError;
       if (verified !== true) throw new Error('secondary_pin_invalid_or_locked');
@@ -105,6 +111,7 @@ export default function AdminLogin({
       setPin('');
       setErr('二级密码错误，或验证次数过多已暂时锁定。请检查后重试。');
     } finally {
+      pinVerifyRef.current = false;
       setBusy(false);
     }
   }
@@ -244,25 +251,21 @@ export default function AdminLogin({
         {step === 'pin_setup' && <div style={{ display: 'grid', gap: 12 }}>
           <p className="priv-note">首次登录需要为当前管理员账号设置个人专属的 6 位数字二级密码。以后每次进入后台都需要验证。</p>
           <label htmlFor="admin-pin">设置 6 位二级密码</label>
-          <input id="admin-pin" type="password" value={pin}
-            onChange={(event) => setPin(event.target.value.replace(/\D/g, '').slice(0, 6))}
-            inputMode="numeric" autoComplete="new-password" maxLength={6} placeholder="输入 6 位数字"
-            onKeyDown={(event) => event.key === 'Enter' && submit()} />
+          <PinBoxes id="admin-pin" value={pin} onChange={setPin}
+            autoComplete="new-password" disabled={busy} onEnterKey={submit} />
           <label htmlFor="admin-pin-confirm">再次输入二级密码</label>
-          <input id="admin-pin-confirm" type="password" value={pinConfirm}
-            onChange={(event) => setPinConfirm(event.target.value.replace(/\D/g, '').slice(0, 6))}
-            inputMode="numeric" autoComplete="new-password" maxLength={6} placeholder="再次输入 6 位数字"
-            onKeyDown={(event) => event.key === 'Enter' && submit()} />
+          <PinBoxes id="admin-pin-confirm" value={pinConfirm} onChange={setPinConfirm}
+            autoComplete="new-password" disabled={busy} onEnterKey={submit} />
           <p className="priv-note">请勿使用生日、连续数字或 6 位相同数字。二级密码按账号分别保存，不会在前端或数据库明文存储。</p>
         </div>}
 
         {step === 'pin_verify' && <div style={{ display: 'grid', gap: 12 }}>
           <p className="priv-note">请输入当前管理员账号的 6 位数字二级密码。</p>
           <label htmlFor="admin-pin">二级密码</label>
-          <input id="admin-pin" type="password" value={pin}
-            onChange={(event) => setPin(event.target.value.replace(/\D/g, '').slice(0, 6))}
-            inputMode="numeric" autoComplete="one-time-code" maxLength={6} placeholder="输入 6 位数字"
-            onKeyDown={(event) => event.key === 'Enter' && submit()} />
+          <PinBoxes id="admin-pin" value={pin} onChange={setPin}
+            autoComplete="one-time-code" disabled={busy}
+            onComplete={(completePin) => { void verifyPin(completePin); }}
+            onEnterKey={submit} />
         </div>}
 
         {success && <p className="priv-note" role="status">验证成功，正在进入后台…</p>}

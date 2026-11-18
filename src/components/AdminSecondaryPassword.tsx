@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
+import PinBoxes from './PinBoxes';
 import { alog, card, h3, mut } from '../pages/admin/shared';
 
 export default function AdminSecondaryPassword() {
@@ -88,17 +89,14 @@ export default function AdminSecondaryPassword() {
       </p>}
       {configured === true && <div style={{ display: 'grid', gap: 8, maxWidth: 420 }}>
         <label htmlFor="admin-current-pin" style={{ fontSize: 13, fontWeight: 700 }}>当前二级密码</label>
-        <input id="admin-current-pin" type="password" value={currentPin}
-          onChange={(event) => setCurrentPin(event.target.value.replace(/\D/g, '').slice(0, 6))}
-          inputMode="numeric" autoComplete="current-password" maxLength={6} placeholder="输入当前 6 位密码" />
+        <PinBoxes id="admin-current-pin" value={currentPin} onChange={setCurrentPin}
+          autoComplete="current-password" disabled={busy || loading} />
         <label htmlFor="admin-new-pin" style={{ fontSize: 13, fontWeight: 700 }}>新二级密码</label>
-        <input id="admin-new-pin" type="password" value={newPin}
-          onChange={(event) => setNewPin(event.target.value.replace(/\D/g, '').slice(0, 6))}
-          inputMode="numeric" autoComplete="new-password" maxLength={6} placeholder="输入新的 6 位密码" />
+        <PinBoxes id="admin-new-pin" value={newPin} onChange={setNewPin}
+          autoComplete="new-password" disabled={busy || loading} />
         <label htmlFor="admin-confirm-pin" style={{ fontSize: 13, fontWeight: 700 }}>确认新二级密码</label>
-        <input id="admin-confirm-pin" type="password" value={confirmPin}
-          onChange={(event) => setConfirmPin(event.target.value.replace(/\D/g, '').slice(0, 6))}
-          inputMode="numeric" autoComplete="new-password" maxLength={6} placeholder="再次输入新密码" />
+        <PinBoxes id="admin-confirm-pin" value={confirmPin} onChange={setConfirmPin}
+          autoComplete="new-password" disabled={busy || loading} />
         <button type="button" className="mini" disabled={busy || loading} onClick={() => void changePassword()}>
           {busy ? '正在更新…' : '更新二级密码'}
         </button>

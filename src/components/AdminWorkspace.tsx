@@ -19,7 +19,7 @@ interface AdminWorkspaceProps {
 
 const NAV_GROUPS = [
   { label: '工作台', ids: ['overview', 'analytics'] },
-  { label: '成员与权限', ids: ['accounts', 'invite', 'approvals'] },
+  { label: '成员与权限', ids: ['accounts', 'invite', 'approvals', 'mySecurity'] },
   { label: '内容运营', ids: ['moderate', 'loveWall', 'songWall', 'authorizedRequests', 'board', 'events', 'game'] },
   { label: '消息与反馈', ids: ['notifications', 'bulkEmail', 'broadcast', 'feedback'] },
   { label: '系统管理', ids: ['backups', 'release', 'appCenter', 'logs', 'security', 'system', 'guestAccess', 'settings', 'test'] },
@@ -30,6 +30,7 @@ const ICON_PATHS: Record<string, string> = {
   analytics: 'M4 19V5 M4 19h17 M8 15l3-4 3 2 5-7',
   accounts: 'M16 20v-1.5a4.5 4.5 0 0 0-4.5-4.5h-4A4.5 4.5 0 0 0 3 18.5V20 M9.5 10a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7 M17 4.2a3.5 3.5 0 0 1 0 6.6 M17 14h.5a4.5 4.5 0 0 1 4.5 4.5V20',
   invite: 'M12 5v14 M5 12h14 M4 4h16v16H4z',
+  mySecurity: 'M6 11V7a6 6 0 1 1 12 0v4 M4 11h16v10H4z M12 15v3',
   approvals: 'M5 12l4 4L19 6 M3 3h18v18H3z',
   moderate: 'M4 5h16 M4 12h16 M4 19h10 M7 2v6 M17 9v6',
   loveWall: 'M20.8 8.7c0 5.2-8.8 10.3-8.8 10.3S3.2 13.9 3.2 8.7A4.7 4.7 0 0 1 12 6.2a4.7 4.7 0 0 1 8.8 2.5z',
@@ -78,6 +79,7 @@ function descriptionFor(id: string) {
     analytics: '汇总成员活跃、内容增长与站点运行指标。',
     accounts: '管理成员账号、角色、状态与使用权限。',
     invite: '管理邀请入口与注册邀请码。',
+    mySecurity: '修改当前管理员账号的二级密码。',
     approvals: '集中处理需要超级管理员审批的申请。',
     moderate: '处理举报、违规内容与社区审核任务。',
     loveWall: '管理表白墙内容与发布状态。',

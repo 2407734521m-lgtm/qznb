@@ -119,6 +119,8 @@ function sessionSetCookie(cookieStr) {
   }
   const attributes = 'Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=2592000';
   return [
+    // Remove the previous single-cookie session so readSession never prefers stale legacy data.
+    `${SESSION_COOKIE}=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0`,
     `${SESSION_PARTS_COOKIE}=${chunks.length}; ${attributes}`,
     ...chunks.map((chunk, index) => `${SESSION_PART_COOKIE_PREFIX}${index}=${chunk}; ${attributes}`),
   ];

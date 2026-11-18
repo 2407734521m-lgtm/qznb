@@ -1,8 +1,22 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import worker from '../worker/index.mjs';
+import { readFileSync } from 'node:fs';
 
 const origin = 'https://radio.qianzhi.pw';
+
+test('download page preview waits for an explicit user play gesture on mobile browsers', () => {
+  const html = readFileSync(new URL('../public/download.html', import.meta.url), 'utf8');
+  const start = html.indexOf('function previewTrack(');
+  const end = html.indexOf('// 下载日志走同源代理', start);
+  assert.ok(start >= 0 && end > start, 'previewTrack function exists');
+  const preview = html.slice(start, end);
+  assert.match(preview, /audio\.onplay\s*=\s*function/);
+  assert.match(preview, /试听地址已准备好，请点击播放器的播放键开始/);
+  assert.doesNotMatch(preview, /audio\.play\s*\(/, 'do not autoplay after async URL lookup');
+  assert.match(preview, /audio\.onerror\s*=\s*function/);
+});
+
 
 async function request(path, init, env = {}) {
   return worker.fetch(new Request(new URL(path, origin), init), env);

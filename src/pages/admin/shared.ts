@@ -29,14 +29,22 @@ export async function alog(action: string, detail: unknown): Promise<boolean> {
 
 export { timeAgo } from '../../lib/time';
 
-export function bucket14(rows: { created_at: string }[]) {
-  const days: number[] = Array(14).fill(0);
-  const start = new Date(); start.setHours(0, 0, 0, 0); start.setDate(start.getDate() - 13);
+export function bucketDays(rows: { created_at: string }[], days: number) {
+  const buckets: number[] = Array(days).fill(0);
+  const start = new Date(); start.setHours(0, 0, 0, 0); start.setDate(start.getDate() - (days - 1));
   rows.forEach(r => {
     const d = new Date(r.created_at); d.setHours(0, 0, 0, 0);
     const i = Math.round((d.getTime() - start.getTime()) / 864e5);
-    if (i >= 0 && i < 14) days[i]++;
+    if (i >= 0 && i < days) buckets[i]++;
   });
-  return days;
+  return buckets;
+}
+
+export function bucket14(rows: { created_at: string }[]) {
+  return bucketDays(rows, 14);
+}
+
+export function bucket30(rows: { created_at: string }[]) {
+  return bucketDays(rows, 30);
 }
 

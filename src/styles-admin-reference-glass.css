@@ -1,0 +1,252 @@
+/* Overview glass layer (Flux reference: warm, translucent, breathable).
+   Loaded last from Admin.tsx, so it only tunes the overview page built by
+   styles-admin-reference-second.css / styles-admin-reference-match.css.
+   Every rule stays under .admin-shell-v3 .admin-overview-reference-layout
+   (or .is-reference-dashboard) so no other admin page is touched.
+   Visual only: no data, feature, entry or permission change. */
+
+:root {
+  --admin-glass-bg: linear-gradient(180deg, rgba(255, 255, 255, .66), rgba(255, 255, 255, .52));
+  --admin-glass-border: 1px solid rgba(255, 255, 255, .72);
+  --admin-glass-shadow: 0 10px 28px rgba(98, 73, 32, .10), inset 0 1px 0 rgba(255, 255, 255, .70);
+  --admin-glass-blur: blur(18px) saturate(1.25);
+}
+
+/* ---- Luminous warm stage behind the cards: the glow the glass picks up. ---- */
+.admin-shell-v3 .admin-overview-reference-layout {
+  padding: clamp(14px, 1.8vw, 22px);
+  border: 1px solid rgba(255, 255, 255, .55);
+  border-radius: 26px;
+  background:
+    radial-gradient(760px 460px at 88% -10%, rgba(255, 202, 88, .50), transparent 60%),
+    radial-gradient(680px 480px at -8% 18%, rgba(255, 224, 160, .45), transparent 62%),
+    radial-gradient(600px 460px at 60% 112%, rgba(255, 178, 110, .30), transparent 60%),
+    linear-gradient(180deg, rgba(253, 248, 236, .82), rgba(251, 243, 226, .82) 50%, rgba(248, 239, 220, .82));
+}
+
+/* ---- All overview cards become translucent glass. ---- */
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-guide-panel,
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-client-card,
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-panel,
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-todo > div,
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-recent-members,
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-metric-card {
+  background: var(--admin-glass-bg) !important;
+  -webkit-backdrop-filter: var(--admin-glass-blur) !important;
+  backdrop-filter: var(--admin-glass-blur) !important;
+  border: var(--admin-glass-border) !important;
+  box-shadow: var(--admin-glass-shadow) !important;
+}
+
+/* ---- Welcome hero: keep its warm gradient, but let the stage shine through. ---- */
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-welcome {
+  background:
+    radial-gradient(ellipse at 86% 55%, rgba(252, 204, 72, .55) 0%, rgba(255, 218, 112, .34) 19%, rgba(255, 231, 174, .16) 36%, transparent 58%),
+    radial-gradient(ellipse at 82% 110%, rgba(224, 133, 57, .20), transparent 42%),
+    linear-gradient(112deg, rgba(255, 255, 255, .68) 0%, rgba(251, 251, 249, .55) 49%, rgba(249, 244, 233, .58) 100%) !important;
+  -webkit-backdrop-filter: var(--admin-glass-blur);
+  backdrop-filter: var(--admin-glass-blur);
+  border: 1px solid rgba(255, 255, 255, .75) !important;
+  box-shadow: 0 12px 32px rgba(98, 73, 32, .12), inset 0 1px 0 rgba(255, 255, 255, .70) !important;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-welcome-actions button {
+  background: rgba(255, 255, 255, .66) !important;
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-welcome-actions button.is-primary {
+  background: rgba(244, 223, 170, .88) !important;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-welcome-status {
+  background: rgba(255, 255, 255, .60) !important;
+  -webkit-backdrop-filter: blur(14px) saturate(1.2) !important;
+  backdrop-filter: blur(14px) saturate(1.2) !important;
+  border: 1px solid rgba(255, 255, 255, .72) !important;
+  box-shadow: 0 12px 30px rgba(98, 73, 32, .10), inset 0 1px 0 rgba(255, 255, 255, .70) !important;
+}
+
+/* ---- Guide entries stay light on glass. ---- */
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-guide-list > button {
+  background: rgba(255, 255, 255, .55) !important;
+  border: 1px solid rgba(255, 255, 255, .65) !important;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-guide-list > button:hover {
+  background: rgba(255, 250, 240, .80) !important;
+  border-color: rgba(233, 219, 187, .9) !important;
+}
+
+/* ---- Client gauge: translucent centre so the glow shows through the ring. ---- */
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-client-gauge::before {
+  background: rgba(255, 255, 255, .78) !important;
+}
+
+/* ---- Hairlines inside glass panels: softer than the old solid grays. ---- */
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-todo button {
+  border-bottom-color: rgba(31, 42, 58, .10) !important;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-list-row {
+  border-bottom-color: rgba(31, 42, 58, .10) !important;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-runtime-table th {
+  border-bottom-color: rgba(31, 42, 58, .10) !important;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-runtime-table td {
+  border-bottom-color: rgba(31, 42, 58, .07) !important;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-runtime-logs {
+  border-top-color: rgba(31, 42, 58, .10) !important;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-welcome-status-foot {
+  border-top-color: rgba(31, 42, 58, .10) !important;
+}
+
+/* ---- Text on glass: deepen the muted grays so copy stays readable.
+   (Previous screenshot showed the welcome title, guide titles and the gauge
+   100% washing out; headings were already dark, the small grays were not.) ---- */
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-welcome-copy h2 {
+  color: #1f262b !important;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-welcome-copy > p {
+  color: #5d686f !important;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-welcome-meta {
+  color: #6e787e !important;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-eyebrow,
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-section-kicker {
+  color: #8a6f3c !important;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-guide-heading > span:last-child {
+  color: #75808a !important;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-guide-copy strong {
+  color: #2c3339 !important;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-guide-copy small {
+  color: #768089 !important;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-client-card .admin-overview-panel-heading p,
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-panel-heading p {
+  color: #78818a !important;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-client-gauge-inner strong {
+  color: #262d32 !important;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-client-gauge-inner span {
+  color: #6f7880 !important;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-client-total strong {
+  color: #262d32 !important;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-client-total span,
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-client-total small {
+  color: #707a80 !important;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-client-legend-row {
+  color: #5f686f !important;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-client-versions {
+  color: #78818a !important;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-metric-label {
+  color: #66727a !important;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-metric-value {
+  color: #232a2f !important;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-metric-hint {
+  color: #7a838a !important;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-runtime-table th {
+  color: #75808a !important;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-runtime-table td {
+  color: #5d686f !important;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-runtime-table td strong {
+  color: #333b41 !important;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-runtime-table td small {
+  color: #7a838a !important;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-runtime-log {
+  color: #5f686f !important;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-runtime-log time {
+  color: #7a838a !important;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-runtime-logs-heading strong {
+  color: #454e54 !important;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-list-row strong {
+  color: #333b41 !important;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-list-row time {
+  color: #76808a !important;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-welcome-status-heading {
+  color: #4d565c !important;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-welcome-status-grid span {
+  color: #5d686f !important;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-welcome-status-foot {
+  color: #6f787e !important;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-welcome-status-foot strong {
+  color: #525c62 !important;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-empty {
+  color: #5d686f !important;
+}
+
+/* ---- Small screens: lighter blur keeps the glass cheap to paint. ---- */
+@media (max-width: 600px) {
+  :root {
+    --admin-glass-blur: blur(12px) saturate(1.2);
+  }
+
+  .admin-shell-v3 .admin-overview-reference-layout {
+    padding: 12px;
+    border-radius: 20px;
+  }
+}

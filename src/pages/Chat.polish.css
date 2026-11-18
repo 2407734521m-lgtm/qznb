@@ -3552,15 +3552,14 @@
 }
 
 
-/* 2026-11-18: chat is a plain white canvas. Do not reveal stored wallpapers
-   through the header, feed, or safe-area composer; remove all gray backing
-   panels that made the top and bottom look like separate bars. */
+/* iMessage-style edge-to-edge chat canvas:
+   the wallpaper continues behind the contact header and the bottom composer;
+   the input field itself remains a compact rounded control. */
 .im-page.im-page {
-  --im-wallpaper: #ffffff !important;
-  color-scheme: light;
-  background: #ffffff !important;
-  background-color: #ffffff !important;
-  background-image: none !important;
+  background: var(--im-wallpaper, #ffffff) !important;
+  background-size: cover !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
 }
 .im-page.im-page::before,
 .im-page.im-page::after {
@@ -3568,57 +3567,70 @@
   display: none !important;
   background: none !important;
 }
+
+/* Header, message list and footer share one continuous wallpaper. */
 .im-page .im-head,
 .im-page .im-feed,
 .im-page .im-composer {
-  background: #ffffff !important;
-  background-color: #ffffff !important;
+  background: transparent !important;
+  background-color: transparent !important;
   background-image: none !important;
   border: 0 !important;
   box-shadow: none !important;
   -webkit-backdrop-filter: none !important;
   backdrop-filter: none !important;
 }
-.im-page .im-head {
-  border-radius: 0 !important;
+
+/* iMessage header controls sit directly on the wallpaper, without gray discs. */
+.im-page .im-head .im-back,
+.im-page .im-head .im-icon,
+.im-page .im-contact-stack,
+.im-page .im-contact-stack:active,
+.im-page .im-contact-name-pill,
+.im-page .im-avatar {
+  color: #26344a !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
 }
-.im-page .im-composer {
-  border-radius: 0 !important;
+
+/* The footer itself is transparent; only the actual input capsule is filled. */
+.im-page .im-plus,
+.im-page .im-timer,
+.im-page .im-mic {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
 }
 .im-page .im-input-wrap,
 .im-page .im-input-wrap:focus-within {
-  background: transparent !important;
+  background: #f1f2f4 !important;
   border: 0 !important;
   box-shadow: none !important;
   -webkit-backdrop-filter: none !important;
   backdrop-filter: none !important;
 }
-.im-page .im-day,
+.im-page .im-input-wrap:focus-within {
+  background: #e9edf3 !important;
+}
+
+/* Keep date and typing labels legible over the wallpaper. */
+.im-page .im-day {
+  background: #f0f1f3 !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
 .im-page .im-typing {
-  background: transparent !important;
+  background: #eef0f3 !important;
   border: 0 !important;
   box-shadow: none !important;
   -webkit-backdrop-filter: none !important;
   backdrop-filter: none !important;
-}
-.im-page .im-sticker-tray,
-.im-page .im-reply-banner,
-.im-page .im-details {
-  background: #ffffff !important;
-  border: 0 !important;
-  box-shadow: none !important;
-  -webkit-backdrop-filter: none !important;
-  backdrop-filter: none !important;
-}
-.im-page .im-reaction-picker,
-.im-page .im-reaction-chip {
-  background: transparent !important;
-  border: 0 !important;
-  box-shadow: none !important;
-  -webkit-backdrop-filter: none !important;
-  backdrop-filter: none !important;
-}
-/* Chat wallpaper controls are removed with the wallpaper itself. */
-.im-page .im-wallpaper-settings {
-  display: none !important;
 }

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { supabase, supabaseBaseUrl } from '../../lib/supabase';
 import { card, h3, mut, alog } from './shared';
 import MaintenanceAccessManager from './MaintenanceAccessManager';
+import AdminWallpaperSettings from '../../components/AdminWallpaperSettings';
 import { confirmDialog } from '../../lib/dialog';
 import DateTimeField from '../../components/DateTimeField';
 
@@ -322,6 +323,7 @@ export default function Settings({ me, setMsg }: { me: string; setMsg: (s: strin
   }
 
   return <div className="admin-settings-page">
+    <AdminWallpaperSettings setMsg={setMsg} />
     <div style={card}>
       <h3 style={h3}>全站设置</h3>
       <label style={mut}>网站标题</label>

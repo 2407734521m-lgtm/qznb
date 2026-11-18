@@ -291,6 +291,9 @@ export default function Chat() {
       const detail = (event as CustomEvent<{ id?: number | null }>).detail;
       const id = detail?.id;
       activeMediaIdRef.current = typeof id === 'number' && Number.isFinite(id) ? id : null;
+      // A deliberate tap on another player cancels any pending autoplay target
+      // that has not started loading/playing yet.
+      setAutoPlayMediaId(current => current === id ? current : null);
     };
     window.addEventListener('qz-chat-media-play', onMediaPlay);
     return () => window.removeEventListener('qz-chat-media-play', onMediaPlay);

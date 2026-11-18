@@ -393,7 +393,7 @@ async function getLoginInfo(cookieStr, { fresh = false } = {}) {
   if (!cookieStr) return notLoggedInfo();
   const key = hashString(cookieStr);
   const cached = loginInfoCache.get(key);
-  if (!fresh && cached && Date.now() - cached.at < 25000) return cached.value;
+  if (!fresh && cached && Date.now() - cached.at < 25000) return cached.info;
   let info = null;
   try {
     const st = await xeapi('/login/status', {}, cookieStr, 6000);

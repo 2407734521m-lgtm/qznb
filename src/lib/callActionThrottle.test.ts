@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createCallActionThrottle } from './callActionThrottle';
+import { createCallActionThrottle, isCurrentCallSession } from './callActionThrottle';
 
 describe('createCallActionThrottle', () => {
   it('lets the first phase-changing action through', () => {
@@ -27,5 +27,13 @@ describe('createCallActionThrottle', () => {
     expect(throttle.tryRun(1100)).toBe(false);
     expect(throttle.tryRun(1299)).toBe(false);
     expect(throttle.tryRun(1300)).toBe(true);
+  });
+});
+
+describe('isCurrentCallSession', () => {
+  it('rejects late session events once teardown starts', () => {
+    expect(isCurrentCallSession('call-1', 'call-1', false)).toBe(true);
+    expect(isCurrentCallSession('call-1', 'call-1', true)).toBe(false);
+    expect(isCurrentCallSession('call-1', 'call-2', false)).toBe(false);
   });
 });

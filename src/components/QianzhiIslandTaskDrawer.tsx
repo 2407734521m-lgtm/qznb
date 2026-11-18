@@ -70,7 +70,7 @@ function readStoredTimerSession(): IslandTimerSession | null {
   try {
     const raw = localStorage.getItem(TIMER_SESSION_STORAGE_KEY);
     if (!raw) return null;
-    const value = JSON.parse(raw) as Partial<IslandTimerSession>;
+    const value = JSON.parse(raw) as Partial<IslandTimerSession> & { mode?: unknown };
     if (
       value.mode !== 'countdown'
       || (value.status !== 'running' && value.status !== 'paused' && value.status !== 'done')

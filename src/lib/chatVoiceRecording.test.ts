@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   formatVoiceDuration,
+  getNextVoicePlaybackRate,
   getVoiceCancelProgress,
   MAX_VOICE_RECORDING_SECONDS,
   resolveVoiceRecordingFormat,
@@ -53,5 +54,18 @@ describe('voice recording file format', () => {
     expect(resolveVoiceRecordingFormat('')).toEqual({
       mime: 'audio/webm', extension: 'webm',
     });
+  });
+});
+
+describe('voice playback speed control', () => {
+  it('cycles through familiar voice playback speeds and returns to normal', () => {
+    expect(getNextVoicePlaybackRate(1)).toBe(1.25);
+    expect(getNextVoicePlaybackRate(1.25)).toBe(1.5);
+    expect(getNextVoicePlaybackRate(1.5)).toBe(2);
+    expect(getNextVoicePlaybackRate(2)).toBe(1);
+  });
+
+  it('recovers to the first speed for an unknown current rate', () => {
+    expect(getNextVoicePlaybackRate(1.75)).toBe(1.25);
   });
 });

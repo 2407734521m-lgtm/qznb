@@ -1454,10 +1454,32 @@ async function handleApi(request, url, env) {
   }
   if (pn === '/api/login/qr/check') {
     try {
-      const r = await xeapi('/login/qr/check', { key: q.get('key') || '' }, '', 8000);
-      const body = r.body || {};
+      const key = String(q.get('key') || '').trim();
+      if (!key) return json({ error: 'MISSING_QR_KEY', code: 400, message: '缺少二维码登录 key。' }, 400);
+
+      let r = await xeapi('/login/qr/check', { key }, '', 8000);
+      let body = r.body || {};
+      const firstCode = Number(body.code || 0);
+
+      // NetEase may reject the normal QR confirmation response with HTTP/business
+      // 502 when its cookie set is too large for Set-Cookie headers. Its documented
+      // fallback is the same polling request with noCookie=true, which keeps the
+      // complete cookie string in JSON so this Worker can store its own mr_session.
+      if (r.status === 502 || firstCode === 502) {
+        r = await xeapi('/login/qr/check', { key, noCookie: true }, '', 8000);
+        body = r.body || {};
+      }
+
       const code = Number(body.code || 0);
-      const msg = body.message || '';
+      const msg = body.message || body.msg || '';
+      if (r.status >= 500 || code === 502) {
+        return json({
+          code: 502,
+          message: '网易云暂时无法确认扫码状态，请保持页面并稍后重试。',
+          retryable: true,
+        });
+      }
+
       if (code === 803) {
         const cookie = extractUpstreamCookie(r);
         let info = notLoggedInfo({ hasCookie: !!cookie });

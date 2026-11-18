@@ -1244,7 +1244,6 @@
 
 .im-page .im-row.im-row-out {
   transform-origin: right bottom;
-  animation: im-send-rise .36s cubic-bezier(.22,.82,.2,1) both;
   will-change: transform, opacity;
 }
 
@@ -1257,22 +1256,22 @@
   will-change: auto;
 }
 
-@keyframes im-send-rise {
-  0% {
-    opacity: 0;
-    transform: translate3d(0, 38px, 0) scale(.9);
-  }
-  58% {
-    opacity: 1;
-    transform: translate3d(0, -3px, 0) scale(1.012);
-  }
-  78% {
-    transform: translate3d(0, 1px, 0) scale(.998);
-  }
-  100% {
-    opacity: 1;
-    transform: translate3d(0, 0, 0) scale(1);
-  }
+/* Server-confirmed media sends and incoming messages use one compact arrival transition.
+   Optimistic outgoing text is animated by its Framer Motion wrapper instead. */
+.im-page .im-vrow-fresh .im-row:not(.im-row-out):not(.im-row-static) {
+  animation: im-message-arrive .28s cubic-bezier(.22,.82,.2,1) both;
+}
+@keyframes im-message-arrive {
+  from { opacity: .3; transform: translate3d(0,7px,0) scale(.99); filter: blur(1px); }
+  to { opacity: 1; transform: translate3d(0,0,0) scale(1); filter: blur(0); }
+}
+
+.im-page .im-send-status.sent {
+  animation: im-send-status-confirm .26s cubic-bezier(.2,.85,.25,1.15) both;
+}
+@keyframes im-send-status-confirm {
+  from { opacity: .45; transform: scale(.72); }
+  to { opacity: 1; transform: scale(1); }
 }
 
 .im-page .im-send {
@@ -3351,4 +3350,11 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .im-page .im-audio-card { transition: none !important; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .im-page .im-vrow-fresh .im-row:not(.im-row-out):not(.im-row-static),
+  .im-page .im-send-status.sent {
+    animation: none !important;
+  }
 }

@@ -1,0 +1,760 @@
+/* --------------------------------------------------------------------------
+   Administrator wallpaper controls and legacy dark-surface cleanup.
+   This stylesheet is intentionally last and scoped to .admin-shell-v3.
+   It does not affect the public website or music app.
+   -------------------------------------------------------------------------- */
+
+/* Shared wallpaper: the image stays behind the workspace while controls and
+   data panels retain their own readable surfaces. */
+.admin-shell-v3[data-has-admin-wallpaper="true"] {
+  min-height: 100vh;
+  background-color: #f6f7f8;
+  background-image: var(--admin-wallpaper-image) !important;
+  background-repeat: no-repeat !important;
+  background-position: center center !important;
+  background-size: cover !important;
+  background-attachment: fixed;
+}
+
+.admin-shell-v3[data-has-admin-wallpaper="true"] .admin-workspace,
+.admin-shell-v3[data-has-admin-wallpaper="true"] .admin-workspace-main,
+.admin-shell-v3[data-has-admin-wallpaper="true"] .admin-workspace-content {
+  background: transparent !important;
+}
+
+.admin-shell-v3[data-has-admin-wallpaper="true"] .admin-sidebar {
+  background: rgba(255, 255, 255, .88) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(1.05);
+  backdrop-filter: blur(16px) saturate(1.05);
+}
+
+.admin-shell-v3[data-has-admin-wallpaper="true"] .admin-console-topbar,
+.admin-shell-v3[data-has-admin-wallpaper="true"] .admin-mobile-quickbar {
+  background: rgba(255, 255, 255, .88) !important;
+  -webkit-backdrop-filter: blur(14px) saturate(1.05);
+  backdrop-filter: blur(14px) saturate(1.05);
+}
+
+.admin-shell-v3[data-has-admin-wallpaper="true"] .admin-console-footer {
+  background: rgba(255, 255, 255, .84) !important;
+}
+
+/* Old inline dark gradients remained inside several management pages. Convert
+   those panel-like blocks to the same white surface as the new dashboard. */
+.admin-shell-v3 .admin-content :is(div, section, article)[style*="#171e33"],
+.admin-shell-v3 .admin-content :is(div, section, article)[style*="#17213b"],
+.admin-shell-v3 .admin-content :is(div, section, article)[style*="#1d2b41"],
+.admin-shell-v3 .admin-content :is(div, section, article)[style*="#121d2f"],
+.admin-shell-v3 .admin-content :is(div, section, article)[style*="rgba(29, 43, 65"],
+.admin-shell-v3 .admin-content :is(div, section, article)[style*="rgba(29,43,65"],
+.admin-shell-v3 .admin-content :is(div, section, article)[style*="rgba(18, 29, 47"],
+.admin-shell-v3 .admin-content :is(div, section, article)[style*="rgba(18,29,47"],
+.admin-shell-v3 .admin-content :is(div, section, article)[style*="linear-gradient(150deg, rgba(29"],
+.admin-shell-v3 .admin-content :is(div, section, article)[style*="linear-gradient(145deg, rgba(29"] {
+  color: #293139 !important;
+  background: #ffffff !important;
+  background-image: none !important;
+  border-color: #e7eaee !important;
+  box-shadow: 0 1px 3px rgba(34, 40, 46, .035), 0 8px 22px rgba(34, 40, 46, .025) !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+/* Remove old navy / teal glass panels from the e-mail, modal and mobile
+   management surfaces. The overlay itself may remain dim to frame the dialog. */
+.admin-shell-v3 .admin-content .admin-email-glass,
+.admin-shell-v3 .admin-content .admin-email-glass .admin-email-panel,
+.admin-shell-v3 .admin-content .admin-modal-card,
+.admin-shell-v3 .admin-content .admin-mobile-more {
+  color: #293139 !important;
+  background: #ffffff !important;
+  background-image: none !important;
+  border-color: #e7eaee !important;
+  box-shadow: 0 12px 32px rgba(34, 40, 46, .08) !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+.admin-shell-v3 .admin-content .admin-email-glass :is(label, p, small, strong, span),
+.admin-shell-v3 .admin-content .admin-modal-card :is(label, p, small, strong, span),
+.admin-shell-v3 .admin-content .admin-mobile-more :is(label, p, small, strong, span) {
+  color: #4f5962 !important;
+}
+
+.admin-shell-v3 .admin-content :is(input:not([type="checkbox"]):not([type="radio"]), textarea, select) {
+  color: #293139 !important;
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  border-color: #e2e6e9 !important;
+  box-shadow: none;
+}
+
+.admin-shell-v3 .admin-content :is(input, textarea, select)::placeholder {
+  color: #98a0a7 !important;
+}
+
+.admin-shell-v3 .admin-content :is(input, textarea, select):focus {
+  border-color: #d7bf87 !important;
+  box-shadow: 0 0 0 3px rgba(195, 154, 67, .12) !important;
+}
+
+.admin-shell-v3 .admin-content :is(h1, h2, h3, h4, h5, strong, b) {
+  color: #293139;
+}
+
+.admin-shell-v3 .admin-content :is(p, small, label, dt, dd, th, td, .muted, .hint) {
+  color: #707a83;
+}
+
+.admin-shell-v3 .admin-content :is(.is-success, .is-healthy, .status-success, .text-success) {
+  color: #327b59 !important;
+}
+
+.admin-shell-v3 .admin-content :is(.is-warning, .status-warning, .text-warning) {
+  color: #9a742b !important;
+}
+
+.admin-shell-v3 .admin-content :is(.is-error, .is-unhealthy, .status-error, .text-danger) {
+  color: #b34747 !important;
+}
+
+/* Replace old saturated teal/blue primary fills with the restrained warm accent. */
+.admin-shell-v3 .admin-content button.pri,
+.admin-shell-v3 .admin-content .pri:not(:disabled),
+.admin-shell-v3 .admin-content button[style*="background: linear-gradient"] {
+  color: #45371c !important;
+  background: #f1dfb8 !important;
+  background-image: none !important;
+  border-color: #e8d4a6 !important;
+  box-shadow: 0 2px 5px rgba(154, 119, 48, .08) !important;
+}
+
+.admin-shell-v3 .admin-content button.pri:hover,
+.admin-shell-v3 .admin-content .pri:not(:disabled):hover {
+  background: #ead3a0 !important;
+  border-color: #dec58b !important;
+}
+
+.admin-shell-v3 .admin-content svg text {
+  fill: #77818a !important;
+}
+
+.admin-shell-v3 .admin-content svg circle[stroke="#232b45"] {
+  stroke: #e2e6e9 !important;
+}
+
+/* Wallpaper setting panel */
+.admin-shell-v3 .admin-wallpaper-settings {
+  margin-bottom: 14px;
+  padding: 18px;
+  border: 1px solid #e7eaee;
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(34, 40, 46, .03), 0 8px 22px rgba(34, 40, 46, .025);
+}
+
+.admin-shell-v3 .admin-wallpaper-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.admin-shell-v3 .admin-wallpaper-heading h3 {
+  margin: 0;
+  color: #293139;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.admin-shell-v3 .admin-wallpaper-heading p {
+  margin: 5px 0 0;
+  color: #7d858c;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.admin-shell-v3 .admin-wallpaper-shared-label {
+  flex: 0 0 auto;
+  padding: 5px 9px;
+  border: 1px solid #ece8dc;
+  border-radius: 999px;
+  color: #8f7138;
+  background: #fbf7ed;
+  font-size: 10px;
+  font-weight: 650;
+}
+
+.admin-shell-v3 .admin-wallpaper-preview-wrap {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(190px, .8fr);
+  gap: 14px;
+  align-items: center;
+  padding: 12px;
+  border: 1px solid #edf0f2;
+  border-radius: 13px;
+  background: #f8f9fa;
+}
+
+.admin-shell-v3 .admin-wallpaper-preview {
+  min-height: 148px;
+  padding: 12px;
+  overflow: hidden;
+  border: 1px solid #e5e8eb;
+  border-radius: 11px;
+  background-color: #f3f4f5;
+  background-position: center;
+  background-size: cover;
+}
+
+.admin-shell-v3 .admin-wallpaper-preview-top {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: #59636b;
+  font-size: 10px;
+  font-weight: 650;
+}
+
+.admin-shell-v3 .admin-wallpaper-preview-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 21px;
+  height: 21px;
+  border-radius: 7px;
+  color: #fff;
+  background: #343a40;
+  font-size: 10px;
+  font-weight: 750;
+}
+
+.admin-shell-v3 .admin-wallpaper-preview-pill {
+  margin-left: auto;
+  padding: 3px 7px;
+  border: 1px solid rgba(228, 231, 234, .9);
+  border-radius: 999px;
+  color: #5a6268;
+  background: rgba(255, 255, 255, .82);
+  font-size: 9px;
+}
+
+.admin-shell-v3 .admin-wallpaper-preview-content {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 22px;
+}
+
+.admin-shell-v3 .admin-wallpaper-preview-card {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  max-width: 220px;
+  padding: 10px 12px;
+  border: 1px solid rgba(232, 235, 237, .9);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, .9);
+}
+
+.admin-shell-v3 .admin-wallpaper-preview-card small {
+  color: #879098;
+  font-size: 9px;
+}
+
+.admin-shell-v3 .admin-wallpaper-preview-card strong {
+  color: #30373d;
+  font-size: 13px;
+}
+
+.admin-shell-v3 .admin-wallpaper-preview-card span {
+  color: #929aa1;
+  font-size: 9px;
+}
+
+.admin-shell-v3 .admin-wallpaper-preview-stats {
+  display: flex;
+  gap: 5px;
+  align-items: flex-end;
+  height: 40px;
+  padding: 7px;
+  border: 1px solid rgba(232, 235, 237, .9);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, .76);
+}
+
+.admin-shell-v3 .admin-wallpaper-preview-stats i {
+  width: 7px;
+  height: 20px;
+  border-radius: 3px;
+  background: #c6a45f;
+}
+
+.admin-shell-v3 .admin-wallpaper-preview-stats i:nth-child(2) { height: 31px; }
+.admin-shell-v3 .admin-wallpaper-preview-stats i:nth-child(3) { height: 25px; }
+
+.admin-shell-v3 .admin-wallpaper-preview-note {
+  margin: 0;
+  color: #77818a;
+  font-size: 11px;
+  line-height: 1.7;
+}
+
+.admin-shell-v3 .admin-wallpaper-options {
+  display: grid;
+  gap: 14px;
+  margin-top: 15px;
+}
+
+.admin-shell-v3 .admin-wallpaper-section-label {
+  margin-bottom: 8px;
+  color: #707a83;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.admin-shell-v3 .admin-wallpaper-presets {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 9px;
+}
+
+.admin-shell-v3 .admin-wallpaper-preset {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 8px;
+  text-align: left;
+  border: 1px solid #e7eaee;
+  border-radius: 11px;
+  color: #3c454d;
+  background: #fff;
+  cursor: pointer;
+  transition: border-color .16s ease, box-shadow .16s ease, transform .16s ease;
+}
+
+.admin-shell-v3 .admin-wallpaper-preset:hover {
+  border-color: #d9c89f;
+  transform: translateY(-1px);
+}
+
+.admin-shell-v3 .admin-wallpaper-preset.is-selected {
+  border-color: #c5a45e;
+  box-shadow: 0 0 0 2px rgba(197, 164, 94, .15);
+}
+
+.admin-shell-v3 .admin-wallpaper-preset-swatch {
+  display: block;
+  width: 100%;
+  height: 54px;
+  margin-bottom: 8px;
+  border: 1px solid rgba(50, 57, 63, .08);
+  border-radius: 7px;
+  background-position: center;
+  background-size: cover;
+}
+
+.admin-shell-v3 .admin-wallpaper-preset strong {
+  color: #3c454d;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.admin-shell-v3 .admin-wallpaper-preset small {
+  margin-top: 3px;
+  color: #9098a0;
+  font-size: 9px;
+  line-height: 1.4;
+}
+
+.admin-shell-v3 .admin-wallpaper-upload-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 12px;
+  border: 1px dashed #dce1e5;
+  border-radius: 11px;
+  background: #fafbfb;
+}
+
+.admin-shell-v3 .admin-wallpaper-upload-row strong {
+  color: #3b444c;
+  font-size: 12px;
+}
+
+.admin-shell-v3 .admin-wallpaper-upload-row p {
+  margin: 4px 0 0;
+  color: #89929a;
+  font-size: 10px;
+  line-height: 1.55;
+}
+
+.admin-shell-v3 .admin-wallpaper-upload-button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  min-height: 35px;
+  padding: 0 12px;
+  border: 1px solid #e4d3aa;
+  border-radius: 9px;
+  color: #4c4028 !important;
+  background: #f8edcf;
+  font-size: 11px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.admin-shell-v3 .admin-wallpaper-upload-button input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  opacity: 0;
+}
+
+.admin-shell-v3 .admin-wallpaper-file-name,
+.admin-shell-v3 .admin-wallpaper-status {
+  color: #78828a;
+  font-size: 11px;
+}
+
+.admin-shell-v3 .admin-wallpaper-actions {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.admin-shell-v3 .admin-wallpaper-actions button {
+  min-height: 36px;
+  padding: 0 13px;
+  border-radius: 9px;
+  font-size: 11px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.admin-shell-v3 .admin-wallpaper-save {
+  color: #47391e;
+  border: 1px solid #e5d1a1;
+  background: #f2dfb4;
+}
+
+.admin-shell-v3 .admin-wallpaper-save:disabled {
+  opacity: .45;
+  cursor: not-allowed;
+}
+
+.admin-shell-v3 .admin-wallpaper-reset {
+  color: #68727a;
+  border: 1px solid #e4e8eb;
+  background: #fff;
+}
+
+@media (max-width: 680px) {
+  .admin-shell-v3 .admin-wallpaper-preview-wrap {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .admin-shell-v3 .admin-wallpaper-preview {
+    min-height: 135px;
+  }
+
+  .admin-shell-v3 .admin-wallpaper-presets {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .admin-shell-v3 .admin-wallpaper-preset {
+    display: grid;
+    grid-template-columns: 84px minmax(0, 1fr);
+    column-gap: 10px;
+    align-items: center;
+  }
+
+  .admin-shell-v3 .admin-wallpaper-preset-swatch {
+    grid-row: span 2;
+    height: 48px;
+    margin: 0;
+  }
+
+  .admin-shell-v3 .admin-wallpaper-upload-row {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .admin-shell-v3 .admin-wallpaper-settings {
+    padding: 14px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-shell-v3 .admin-wallpaper-preset {
+    transition: none;
+  }
+}
+
+
+/* Older unified theme layer also styled generic .card and every direct inline
+   gradient panel dark. These overrides intentionally come after it. */
+.admin-shell-v3 .admin-content > div[style*="linear-gradient"],
+.admin-shell-v3 .admin-content .card {
+  color: #293139 !important;
+  background: #ffffff !important;
+  background-image: none !important;
+  border-color: #e7eaee !important;
+  box-shadow: 0 1px 3px rgba(34, 40, 46, .035), 0 8px 22px rgba(34, 40, 46, .025) !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+.admin-shell-v3 .admin-content > div[style*="linear-gradient"] :is(h1, h2, h3, h4, strong, b),
+.admin-shell-v3 .admin-content .card :is(h1, h2, h3, h4, strong, b) {
+  color: #293139 !important;
+}
+
+.admin-shell-v3 .admin-content > div[style*="linear-gradient"] :is(p, small, label),
+.admin-shell-v3 .admin-content .card :is(p, small, label) {
+  color: #707a83 !important;
+}
+
+.admin-shell-v3 .admin-content button:not(.pri):not(.danger):not([aria-current="page"]) {
+  color: #4c565e;
+  border-color: #e2e6e9;
+}
+
+.admin-shell-v3 .admin-content button.danger,
+.admin-shell-v3 .admin-content button[class*="danger"] {
+  color: #a54148 !important;
+  background: #fff5f4 !important;
+  border-color: #efd8d7 !important;
+}
+
+.admin-shell-v3 .admin-content .admin-email-send-button {
+  color: #45371c !important;
+  background: #f1dfb8 !important;
+  border-color: #e8d4a6 !important;
+  box-shadow: 0 2px 5px rgba(154, 119, 48, .08) !important;
+}
+
+.admin-shell-v3 .admin-content .admin-email-send-button.is-confirming {
+  color: #45371c !important;
+  background: #f4e4bd !important;
+  border-color: #e8d4a6 !important;
+}
+
+.admin-shell-v3 .admin-content a {
+  color: #96732f !important;
+}
+
+.admin-shell-v3 .admin-content select option {
+  color: #293139 !important;
+  background: #ffffff !important;
+}
+
+.admin-shell-v3 .admin-member-avatar {
+  color: #6d572a !important;
+  background: #f7eedb !important;
+  box-shadow: none !important;
+}
+
+.admin-shell-v3 .admin-header > div:first-child > div:first-child {
+  color: #4b3c20 !important;
+  background: #f3e4c1 !important;
+  box-shadow: none !important;
+}
+
+.admin-shell-v3 .admin-header > span {
+  color: #7b683f !important;
+  background: #fbf7ed !important;
+  border-color: #eee5d3 !important;
+}
+
+/* Shared in-app confirmation dialogs are rendered beside the app shell. */
+.admin-dialog-card {
+  color: #293139 !important;
+  background: #ffffff !important;
+  background-image: none !important;
+  border: 1px solid #e7eaee !important;
+  box-shadow: 0 24px 64px rgba(34, 40, 46, .18) !important;
+}
+
+.admin-dialog-card :is(label, p, small, strong, span) {
+  color: #59636b !important;
+}
+
+.admin-dialog-card textarea,
+.admin-dialog-card input,
+.admin-dialog-card select {
+  color: #293139 !important;
+  background: #ffffff !important;
+  border-color: #e2e6e9 !important;
+}
+
+.admin-dialog-card .admin-dialog-cancel {
+  color: #59636b !important;
+  background: #ffffff !important;
+  border: 1px solid #e2e6e9 !important;
+}
+
+.admin-dialog-card .admin-dialog-primary {
+  color: #45371c !important;
+  background: #f1dfb8 !important;
+  border: 1px solid #e8d4a6 !important;
+}
+
+.admin-dialog-card .admin-dialog-danger {
+  color: #a54148 !important;
+  background: #fff5f4 !important;
+  border: 1px solid #efd8d7 !important;
+}
+
+/* Older floating navigation is kept light as well, should any legacy panel
+   still render it on a narrow viewport. */
+.admin-shell-v3 .admin-dock,
+.admin-shell-v3 .admin-mobile-dock {
+  color: #4c565e !important;
+  background: rgba(255, 255, 255, .94) !important;
+  border: 1px solid #e5e8eb !important;
+  box-shadow: 0 10px 28px rgba(34, 40, 46, .10) !important;
+  -webkit-backdrop-filter: blur(14px) !important;
+  backdrop-filter: blur(14px) !important;
+}
+
+.admin-shell-v3 .admin-dock button[aria-current="page"],
+.admin-shell-v3 .admin-mobile-dock button[aria-current="page"],
+.admin-shell-v3 .admin-mobile-dock button.active {
+  color: #4b3c20 !important;
+  background: #f5e8c9 !important;
+  border-color: #e9d9b5 !important;
+  box-shadow: none !important;
+}
+
+
+/* Batch-operation bars used by account and moderation pages. */
+.admin-shell-v3 .admin-account-batchbar-active,
+.admin-shell-v3 .admin-moderation-batchbar {
+  color: #354049 !important;
+  background: #ffffff !important;
+  border: 1px solid #e3e7ea !important;
+  box-shadow: 0 4px 14px rgba(34, 40, 46, .07) !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+.admin-shell-v3 .admin-moderation-batchbar-copy strong,
+.admin-shell-v3 .admin-moderation-batchbar-copy span,
+.admin-shell-v3 .admin-moderation-item-select {
+  color: #58636b !important;
+}
+
+.admin-shell-v3 .admin-moderation-item-select input {
+  accent-color: #b28b3d !important;
+}
+
+/* The older compact / ghost buttons were nearly transparent against white. */
+.admin-shell-v3 .admin-content button.mini,
+.admin-shell-v3 .admin-content button.ghost {
+  color: #53606a !important;
+  background: #ffffff !important;
+  border: 1px solid #e4e8eb !important;
+  box-shadow: none !important;
+}
+
+.admin-shell-v3 .admin-content button.mini:hover,
+.admin-shell-v3 .admin-content button.ghost:hover {
+  color: #3d3422 !important;
+  background: #fffaf0 !important;
+  border-color: #e8d7b1 !important;
+}
+
+/* Email composer controls had their own higher-specificity dark input rules. */
+.admin-shell-v3 .admin-content .admin-email-glass input:not([type="checkbox"]),
+.admin-shell-v3 .admin-content .admin-email-glass textarea {
+  color: #293139 !important;
+  background: #ffffff !important;
+  border-color: #e2e6e9 !important;
+  box-shadow: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+.admin-shell-v3 .admin-content .admin-email-glass input::placeholder,
+.admin-shell-v3 .admin-content .admin-email-glass textarea::placeholder {
+  color: #98a0a7 !important;
+}
+
+.admin-shell-v3 .admin-content .admin-email-glass label {
+  color: #68737c !important;
+}
+
+.admin-shell-v3 .admin-content .admin-email-glass .admin-email-panel > div[style*="max-height"] {
+  color: #4b555d !important;
+  background: #f8f9fa !important;
+  border-color: #e7eaee !important;
+  box-shadow: none !important;
+}
+
+.admin-shell-v3 .admin-content .priv-note {
+  color: #6d5a31 !important;
+  background: #fbf7ed !important;
+  border: 1px solid #eee4cf !important;
+}
+
+/* Mobile "More" sheet and legacy overview loading / timeout states. */
+.admin-shell-v3 .admin-mobile-more {
+  color: #293139 !important;
+  background: #ffffff !important;
+  background-image: none !important;
+  border: 1px solid #e7eaee !important;
+  box-shadow: 0 18px 48px rgba(34, 40, 46, .16) !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+.admin-shell-v3 .admin-mobile-more :is(strong, span, button) {
+  color: #4d5860 !important;
+}
+
+.admin-shell-v3 .admin-mobile-more-grid > button {
+  color: #4d5860 !important;
+  background: #ffffff !important;
+  border-color: #e7eaee !important;
+}
+
+.admin-shell-v3 .admin-mobile-more-grid > button.active {
+  color: #5b4720 !important;
+  background: #fbf3df !important;
+  border-color: #e8d9b6 !important;
+}
+
+.admin-shell-v3 .admin-mobile-more-head > button {
+  color: #5b6570 !important;
+  background: #f7f8f9 !important;
+  border-color: #e5e8eb !important;
+}
+
+.admin-shell-v3 .admin-overview-loading {
+  color: #68737c !important;
+}
+
+.admin-shell-v3 .admin-overview-timeout {
+  color: #4c565e !important;
+  background: #fffaf0 !important;
+  border-color: #eee2c8 !important;
+}
+
+.admin-shell-v3 .admin-overview-timeout p {
+  color: #7b8389 !important;
+}
+
+.admin-shell-v3 .admin-overview-timeout button {
+  color: #4b3c20 !important;
+  background: #f2e2bd !important;
+  border-color: #e7d5aa !important;
+}

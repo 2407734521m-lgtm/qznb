@@ -28,6 +28,7 @@ import ScreenEffectCanvas from '../components/ScreenEffectCanvas';
 import { getChatBubbleEffect, getScreenEffectKind, stripChatBubbleEffect, withChatBubbleEffect, type ChatBubbleEffect, type ScreenEffectKind } from '../lib/chatMessageEffect';
 import { formatChatTypingLabel, parseChatTypingPayload } from '../lib/chatTyping';
 import { IMESSAGE_TAPBACKS } from '../lib/imessageTapbacks';
+import { getSwipeReplyVisual, isSwipeToReply } from '../lib/chatGestures';
 import { createChatForwardAttachmentPlan } from '../lib/chatForwarding';
 import './Chat.polish.css';
 
@@ -377,8 +378,10 @@ export default function Chat() {
     startX: number;
     startY: number;
     currentX: number;
+    currentY: number;
     mode: 'pending' | 'swipe' | 'scroll' | 'blocked';
     canSwipe: boolean;
+    canLongPress: boolean;
     mine: boolean;
   } | null>(null);
   const typingReadyRef = useRef(false);
@@ -949,26 +952,52 @@ export default function Chat() {
     if (longPressTimerRef.current !== null) window.clearTimeout(longPressTimerRef.current);
     longPressTriggeredRef.current = false;
     const touch = event.touches.length === 1 ? event.touches[0] : null;
-    const target = event.target instanceof HTMLElement ? event.target : null;
-    const canSwipe = Boolean(touch && !target?.closest(
-      'a,button,input,textarea,select,audio,video,[contenteditable="true"],.im-ink,.im-audio-card,.im-file-card,.im-video-card',
-    ));
+    const target = event.target instanceof Element ? event.target : null;
+    const mediaSurface = target?.closest(
+      '.im-photo-trigger,.im-video-player,.im-audio-card,.im-file-card',
+    );
+    const mediaControl = target?.closest(
+      '.im-audio-symbol,.im-audio-fallback,.im-video-controls,.im-video-big-play,' +
+      '.im-video-play-toggle,.im-video-seek,.im-video-fullscreen,input[type="range"]',
+    );
+    const protectedSurface = target?.closest('.im-ink');
+    const interactive = target?.closest(
+      'a,button,input,textarea,select,audio,video,[contenteditable="true"]',
+    );
+
+    // Media cards participate in long-press actions, but their actual play/seek
+    // controls remain interactive. Invisible ink owns its own swipe-to-reveal gesture.
+    const safeMediaPress = Boolean(
+      mediaSurface && !mediaControl &&
+      (!interactive || mediaSurface === interactive || mediaSurface.contains(interactive)),
+    );
+    const canLongPress = Boolean(
+      touch && !protectedSurface && ((!interactive && !mediaControl) || safeMediaPress),
+    );
+    // Keep reply swipes on plain message content. Swiping a photo/player/control
+    // must never accidentally open or seek the media.
+    const canSwipe = Boolean(touch && !interactive && !mediaSurface && !protectedSurface);
     messageTouchRef.current = touch ? {
       messageId,
       element,
       startX: touch.clientX,
       startY: touch.clientY,
       currentX: touch.clientX,
-      mode: canSwipe ? 'pending' : 'blocked',
+      currentY: touch.clientY,
+      mode: canSwipe || canLongPress ? 'pending' : 'blocked',
       canSwipe,
+      canLongPress,
       mine,
     } : null;
-    if (!touch || !canSwipe) return;
+    if (!touch || !canLongPress) return;
     longPressTimerRef.current = window.setTimeout(() => {
       const state = messageTouchRef.current;
-      if (!state || state.messageId !== messageId || state.mode !== 'pending') return;
+      if (!state || state.messageId !== messageId || state.mode !== 'pending' || !state.canLongPress) return;
       state.mode = 'blocked';
       longPressTriggeredRef.current = true;
+      if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
+        navigator.vibrate(8);
+      }
       openMessageActions(messageId, element);
       longPressTimerRef.current = null;
     }, 480);
@@ -985,6 +1014,7 @@ export default function Chat() {
     }
     const touch = event.touches[0];
     state.currentX = touch.clientX;
+    state.currentY = touch.clientY;
     const dx = touch.clientX - state.startX;
     const dy = touch.clientY - state.startY;
 
@@ -1007,11 +1037,9 @@ export default function Chat() {
     }
 
     if (state.mode !== 'swipe') return;
-    const inward = state.mine ? Math.min(0, dx) : Math.max(0, dx);
-    const distance = Math.sign(inward) * Math.min(88, Math.abs(inward) * 0.72);
-    const progress = Math.min(1, Math.abs(distance) / 64);
-    state.element.style.transform = `translate3d(${distance}px,0,0)`;
-    state.element.style.setProperty('--im-swipe-progress', String(progress));
+    const visual = getSwipeReplyVisual(dx, state.mine ? 'mine' : 'theirs');
+    state.element.style.transform = `translate3d(${visual.offset}px,0,0)`;
+    state.element.style.setProperty('--im-swipe-progress', String(visual.progress));
   }
 
   function finishMessagePress(
@@ -1025,11 +1053,18 @@ export default function Chat() {
     messageTouchRef.current = null;
 
     if (state?.mode === 'swipe') {
-      const dx = state.currentX - state.startX;
+      const shouldReply = allowReply && isSwipeToReply(
+        { x: state.startX, y: state.startY },
+        { x: state.currentX, y: state.currentY },
+        state.mine ? 'mine' : 'theirs',
+      );
       state.element.classList.remove('im-swipe-active');
       state.element.style.transform = '';
       state.element.style.removeProperty('--im-swipe-progress');
-      if (allowReply && Math.abs(dx) >= 64) beginReply(message);
+      if (shouldReply) {
+        event.preventDefault();
+        beginReply(message);
+      }
       return;
     }
     if (longPressTriggeredRef.current) {

@@ -1,0 +1,500 @@
+/* --------------------------------------------------------------------------
+   Administrator wallpaper controls and legacy dark-surface cleanup.
+   This stylesheet is intentionally last and scoped to .admin-shell-v3.
+   It does not affect the public website or music app.
+   -------------------------------------------------------------------------- */
+
+/* Shared wallpaper: the image stays behind the workspace while controls and
+   data panels retain their own readable surfaces. */
+.admin-shell-v3.has-admin-wallpaper {
+  min-height: 100vh;
+  background-color: #f6f7f8;
+  background-image: var(--admin-wallpaper-image) !important;
+  background-repeat: no-repeat !important;
+  background-position: center center !important;
+  background-size: cover !important;
+  background-attachment: fixed;
+}
+
+.admin-shell-v3.has-admin-wallpaper .admin-workspace,
+.admin-shell-v3.has-admin-wallpaper .admin-workspace-main,
+.admin-shell-v3.has-admin-wallpaper .admin-workspace-content {
+  background: transparent !important;
+}
+
+.admin-shell-v3.has-admin-wallpaper .admin-sidebar {
+  background: rgba(255, 255, 255, .88) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(1.05);
+  backdrop-filter: blur(16px) saturate(1.05);
+}
+
+.admin-shell-v3.has-admin-wallpaper .admin-console-topbar,
+.admin-shell-v3.has-admin-wallpaper .admin-mobile-quickbar {
+  background: rgba(255, 255, 255, .88) !important;
+  -webkit-backdrop-filter: blur(14px) saturate(1.05);
+  backdrop-filter: blur(14px) saturate(1.05);
+}
+
+.admin-shell-v3.has-admin-wallpaper .admin-console-footer {
+  background: rgba(255, 255, 255, .84) !important;
+}
+
+/* Old inline dark gradients remained inside several management pages. Convert
+   those panel-like blocks to the same white surface as the new dashboard. */
+.admin-shell-v3 .admin-content :is(div, section, article)[style*="#171e33"],
+.admin-shell-v3 .admin-content :is(div, section, article)[style*="#17213b"],
+.admin-shell-v3 .admin-content :is(div, section, article)[style*="#1d2b41"],
+.admin-shell-v3 .admin-content :is(div, section, article)[style*="#121d2f"],
+.admin-shell-v3 .admin-content :is(div, section, article)[style*="rgba(29, 43, 65"],
+.admin-shell-v3 .admin-content :is(div, section, article)[style*="rgba(29,43,65"],
+.admin-shell-v3 .admin-content :is(div, section, article)[style*="rgba(18, 29, 47"],
+.admin-shell-v3 .admin-content :is(div, section, article)[style*="rgba(18,29,47"],
+.admin-shell-v3 .admin-content :is(div, section, article)[style*="linear-gradient(150deg, rgba(29"],
+.admin-shell-v3 .admin-content :is(div, section, article)[style*="linear-gradient(145deg, rgba(29"] {
+  color: #293139 !important;
+  background: #ffffff !important;
+  background-image: none !important;
+  border-color: #e7eaee !important;
+  box-shadow: 0 1px 3px rgba(34, 40, 46, .035), 0 8px 22px rgba(34, 40, 46, .025) !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+/* Remove old navy / teal glass panels from the e-mail, modal and mobile
+   management surfaces. The overlay itself may remain dim to frame the dialog. */
+.admin-shell-v3 .admin-content .admin-email-glass,
+.admin-shell-v3 .admin-content .admin-email-glass .admin-email-panel,
+.admin-shell-v3 .admin-content .admin-modal-card,
+.admin-shell-v3 .admin-content .admin-mobile-more {
+  color: #293139 !important;
+  background: #ffffff !important;
+  background-image: none !important;
+  border-color: #e7eaee !important;
+  box-shadow: 0 12px 32px rgba(34, 40, 46, .08) !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+.admin-shell-v3 .admin-content .admin-email-glass :is(label, p, small, strong, span),
+.admin-shell-v3 .admin-content .admin-modal-card :is(label, p, small, strong, span),
+.admin-shell-v3 .admin-content .admin-mobile-more :is(label, p, small, strong, span) {
+  color: #4f5962 !important;
+}
+
+.admin-shell-v3 .admin-content :is(input:not([type="checkbox"]):not([type="radio"]), textarea, select) {
+  color: #293139 !important;
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  border-color: #e2e6e9 !important;
+  box-shadow: none;
+}
+
+.admin-shell-v3 .admin-content :is(input, textarea, select)::placeholder {
+  color: #98a0a7 !important;
+}
+
+.admin-shell-v3 .admin-content :is(input, textarea, select):focus {
+  border-color: #d7bf87 !important;
+  box-shadow: 0 0 0 3px rgba(195, 154, 67, .12) !important;
+}
+
+.admin-shell-v3 .admin-content :is(h1, h2, h3, h4, h5, strong, b) {
+  color: #293139;
+}
+
+.admin-shell-v3 .admin-content :is(p, small, label, dt, dd, th, td, .muted, .hint) {
+  color: #707a83;
+}
+
+.admin-shell-v3 .admin-content :is(.is-success, .is-healthy, .status-success, .text-success) {
+  color: #327b59 !important;
+}
+
+.admin-shell-v3 .admin-content :is(.is-warning, .status-warning, .text-warning) {
+  color: #9a742b !important;
+}
+
+.admin-shell-v3 .admin-content :is(.is-error, .is-unhealthy, .status-error, .text-danger) {
+  color: #b34747 !important;
+}
+
+/* Replace old saturated teal/blue primary fills with the restrained warm accent. */
+.admin-shell-v3 .admin-content button.pri,
+.admin-shell-v3 .admin-content .pri:not(:disabled),
+.admin-shell-v3 .admin-content button[style*="background: linear-gradient"] {
+  color: #45371c !important;
+  background: #f1dfb8 !important;
+  background-image: none !important;
+  border-color: #e8d4a6 !important;
+  box-shadow: 0 2px 5px rgba(154, 119, 48, .08) !important;
+}
+
+.admin-shell-v3 .admin-content button.pri:hover,
+.admin-shell-v3 .admin-content .pri:not(:disabled):hover {
+  background: #ead3a0 !important;
+  border-color: #dec58b !important;
+}
+
+.admin-shell-v3 .admin-content svg text {
+  fill: #77818a !important;
+}
+
+.admin-shell-v3 .admin-content svg circle[stroke="#232b45"] {
+  stroke: #e2e6e9 !important;
+}
+
+/* Wallpaper setting panel */
+.admin-shell-v3 .admin-wallpaper-settings {
+  margin-bottom: 14px;
+  padding: 18px;
+  border: 1px solid #e7eaee;
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(34, 40, 46, .03), 0 8px 22px rgba(34, 40, 46, .025);
+}
+
+.admin-shell-v3 .admin-wallpaper-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.admin-shell-v3 .admin-wallpaper-heading h3 {
+  margin: 0;
+  color: #293139;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.admin-shell-v3 .admin-wallpaper-heading p {
+  margin: 5px 0 0;
+  color: #7d858c;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.admin-shell-v3 .admin-wallpaper-shared-label {
+  flex: 0 0 auto;
+  padding: 5px 9px;
+  border: 1px solid #ece8dc;
+  border-radius: 999px;
+  color: #8f7138;
+  background: #fbf7ed;
+  font-size: 10px;
+  font-weight: 650;
+}
+
+.admin-shell-v3 .admin-wallpaper-preview-wrap {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(190px, .8fr);
+  gap: 14px;
+  align-items: center;
+  padding: 12px;
+  border: 1px solid #edf0f2;
+  border-radius: 13px;
+  background: #f8f9fa;
+}
+
+.admin-shell-v3 .admin-wallpaper-preview {
+  min-height: 148px;
+  padding: 12px;
+  overflow: hidden;
+  border: 1px solid #e5e8eb;
+  border-radius: 11px;
+  background-color: #f3f4f5;
+  background-position: center;
+  background-size: cover;
+}
+
+.admin-shell-v3 .admin-wallpaper-preview-top {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: #59636b;
+  font-size: 10px;
+  font-weight: 650;
+}
+
+.admin-shell-v3 .admin-wallpaper-preview-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 21px;
+  height: 21px;
+  border-radius: 7px;
+  color: #fff;
+  background: #343a40;
+  font-size: 10px;
+  font-weight: 750;
+}
+
+.admin-shell-v3 .admin-wallpaper-preview-pill {
+  margin-left: auto;
+  padding: 3px 7px;
+  border: 1px solid rgba(228, 231, 234, .9);
+  border-radius: 999px;
+  color: #5a6268;
+  background: rgba(255, 255, 255, .82);
+  font-size: 9px;
+}
+
+.admin-shell-v3 .admin-wallpaper-preview-content {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 22px;
+}
+
+.admin-shell-v3 .admin-wallpaper-preview-card {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  max-width: 220px;
+  padding: 10px 12px;
+  border: 1px solid rgba(232, 235, 237, .9);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, .9);
+}
+
+.admin-shell-v3 .admin-wallpaper-preview-card small {
+  color: #879098;
+  font-size: 9px;
+}
+
+.admin-shell-v3 .admin-wallpaper-preview-card strong {
+  color: #30373d;
+  font-size: 13px;
+}
+
+.admin-shell-v3 .admin-wallpaper-preview-card span {
+  color: #929aa1;
+  font-size: 9px;
+}
+
+.admin-shell-v3 .admin-wallpaper-preview-stats {
+  display: flex;
+  gap: 5px;
+  align-items: flex-end;
+  height: 40px;
+  padding: 7px;
+  border: 1px solid rgba(232, 235, 237, .9);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, .76);
+}
+
+.admin-shell-v3 .admin-wallpaper-preview-stats i {
+  width: 7px;
+  height: 20px;
+  border-radius: 3px;
+  background: #c6a45f;
+}
+
+.admin-shell-v3 .admin-wallpaper-preview-stats i:nth-child(2) { height: 31px; }
+.admin-shell-v3 .admin-wallpaper-preview-stats i:nth-child(3) { height: 25px; }
+
+.admin-shell-v3 .admin-wallpaper-preview-note {
+  margin: 0;
+  color: #77818a;
+  font-size: 11px;
+  line-height: 1.7;
+}
+
+.admin-shell-v3 .admin-wallpaper-options {
+  display: grid;
+  gap: 14px;
+  margin-top: 15px;
+}
+
+.admin-shell-v3 .admin-wallpaper-section-label {
+  margin-bottom: 8px;
+  color: #707a83;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.admin-shell-v3 .admin-wallpaper-presets {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 9px;
+}
+
+.admin-shell-v3 .admin-wallpaper-preset {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 8px;
+  text-align: left;
+  border: 1px solid #e7eaee;
+  border-radius: 11px;
+  color: #3c454d;
+  background: #fff;
+  cursor: pointer;
+  transition: border-color .16s ease, box-shadow .16s ease, transform .16s ease;
+}
+
+.admin-shell-v3 .admin-wallpaper-preset:hover {
+  border-color: #d9c89f;
+  transform: translateY(-1px);
+}
+
+.admin-shell-v3 .admin-wallpaper-preset.is-selected {
+  border-color: #c5a45e;
+  box-shadow: 0 0 0 2px rgba(197, 164, 94, .15);
+}
+
+.admin-shell-v3 .admin-wallpaper-preset-swatch {
+  display: block;
+  width: 100%;
+  height: 54px;
+  margin-bottom: 8px;
+  border: 1px solid rgba(50, 57, 63, .08);
+  border-radius: 7px;
+  background-position: center;
+  background-size: cover;
+}
+
+.admin-shell-v3 .admin-wallpaper-preset strong {
+  color: #3c454d;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.admin-shell-v3 .admin-wallpaper-preset small {
+  margin-top: 3px;
+  color: #9098a0;
+  font-size: 9px;
+  line-height: 1.4;
+}
+
+.admin-shell-v3 .admin-wallpaper-upload-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 12px;
+  border: 1px dashed #dce1e5;
+  border-radius: 11px;
+  background: #fafbfb;
+}
+
+.admin-shell-v3 .admin-wallpaper-upload-row strong {
+  color: #3b444c;
+  font-size: 12px;
+}
+
+.admin-shell-v3 .admin-wallpaper-upload-row p {
+  margin: 4px 0 0;
+  color: #89929a;
+  font-size: 10px;
+  line-height: 1.55;
+}
+
+.admin-shell-v3 .admin-wallpaper-upload-button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  min-height: 35px;
+  padding: 0 12px;
+  border: 1px solid #e4d3aa;
+  border-radius: 9px;
+  color: #4c4028 !important;
+  background: #f8edcf;
+  font-size: 11px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.admin-shell-v3 .admin-wallpaper-upload-button input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  opacity: 0;
+}
+
+.admin-shell-v3 .admin-wallpaper-file-name,
+.admin-shell-v3 .admin-wallpaper-status {
+  color: #78828a;
+  font-size: 11px;
+}
+
+.admin-shell-v3 .admin-wallpaper-actions {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.admin-shell-v3 .admin-wallpaper-actions button {
+  min-height: 36px;
+  padding: 0 13px;
+  border-radius: 9px;
+  font-size: 11px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.admin-shell-v3 .admin-wallpaper-save {
+  color: #47391e;
+  border: 1px solid #e5d1a1;
+  background: #f2dfb4;
+}
+
+.admin-shell-v3 .admin-wallpaper-save:disabled {
+  opacity: .45;
+  cursor: not-allowed;
+}
+
+.admin-shell-v3 .admin-wallpaper-reset {
+  color: #68727a;
+  border: 1px solid #e4e8eb;
+  background: #fff;
+}
+
+@media (max-width: 680px) {
+  .admin-shell-v3 .admin-wallpaper-preview-wrap {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .admin-shell-v3 .admin-wallpaper-preview {
+    min-height: 135px;
+  }
+
+  .admin-shell-v3 .admin-wallpaper-presets {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .admin-shell-v3 .admin-wallpaper-preset {
+    display: grid;
+    grid-template-columns: 84px minmax(0, 1fr);
+    column-gap: 10px;
+    align-items: center;
+  }
+
+  .admin-shell-v3 .admin-wallpaper-preset-swatch {
+    grid-row: span 2;
+    height: 48px;
+    margin: 0;
+  }
+
+  .admin-shell-v3 .admin-wallpaper-upload-row {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .admin-shell-v3 .admin-wallpaper-settings {
+    padding: 14px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-shell-v3 .admin-wallpaper-preset {
+    transition: none;
+  }
+}

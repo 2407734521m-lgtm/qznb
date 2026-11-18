@@ -122,7 +122,14 @@ assert.ok(
   activity.includes('shouldShowIslandHost(value.activityIds)'),
   'The island host must still appear when another live activity exists.',
 );
-assert.ok(parent.includes('hostRef={islandWrapRef}'));
+assert.ok(
+  parent.includes('<div ref={islandWrapRef} hidden aria-hidden="true" />'),
+  'The music component must retain its hidden equalizer state target without mounting a duplicate island.',
+);
+assert.ok(
+  activity.includes('ref={hostRef}'),
+  'The active island host must use the dedicated host ref in the activity component.',
+);
 
 assert.ok(parent.includes('opacity: { duration: isMusicPage ? 0.34 : 0.36'));
 assert.ok(!parent.includes('scale: isMusicPage ? 1 : 0.985'), 'The music surface fades on opacity only; sliding and scaling the whole page fought the island entrance.');

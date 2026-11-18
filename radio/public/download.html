@@ -49,6 +49,54 @@
   .gate-card h2 { font-size:17px; margin:0 0 8px; }
   .gate-card p { color:var(--mut); font-size:13px; line-height:1.7; margin:0 0 8px; }
   .gate-card .btn { width:100%; margin-top:8px; }
+
+  /* Download page visual refresh: restrained white UI, clearer hierarchy, mobile-first controls. */
+  :root {
+    --paper:#fff; --ink:#20232b; --seal:#d84b55; --mut:#777d88;
+    --line:#e8e9ed; --card:#fff;
+  }
+  body { background:#fff; color:var(--ink); letter-spacing:.01em; }
+  .wrap { max-width:560px; padding:26px 18px calc(48px + env(safe-area-inset-bottom)); }
+  h1 { font-size:23px; line-height:1.25; letter-spacing:-.035em; margin:2px 0 8px; font-weight:750; }
+  .sub { color:#737985; font-size:13px; line-height:1.75; margin:0 0 22px; }
+  .card { border:1px solid #e9eaee; border-radius:18px; padding:18px; margin-bottom:14px; box-shadow:0 3px 14px rgba(25,30,45,.035); }
+  .card h2 { display:flex; align-items:center; gap:8px; font-size:15px; font-weight:700; letter-spacing:-.01em; margin:0 0 14px; }
+  .mut { color:#777d88; font-size:12.5px; line-height:1.7; }
+  .btn { min-height:40px; padding:10px 17px; font-weight:600; font-size:13px; background:#252a35; border-radius:12px; }
+  .btn.ghost { background:#fff; border:1px solid #dfe1e7; color:#333946; }
+  .btn.seal { background:#d84b55; }
+  .btn:focus-visible, input:focus-visible, .dlbtn:focus-visible { outline:3px solid rgba(216,75,85,.22); outline-offset:2px; }
+  .row { gap:9px; }
+  input[type=text], input[type=password] { min-height:42px; border:1px solid #e1e3e8; border-radius:12px; padding:10px 13px; background:#fff; }
+  input::placeholder { color:#a1a5ae; }
+  .sitefield { gap:9px; margin-top:10px; }
+  .sitefield input { flex:1 1 100%; }
+  #qrImg { width:min(220px,72vw); height:auto; aspect-ratio:1; object-fit:contain; padding:8px; margin:14px auto; border:1px solid #eceef1; border-radius:16px; box-shadow:0 5px 20px rgba(20,25,35,.05); }
+  .userline { padding:12px; border:1px solid #eceef1; border-radius:14px; background:#fafbfc; }
+  .userline img { width:46px; height:46px; }
+  .track { gap:12px; padding:13px 2px; border-color:#f0f1f3; }
+  .tname { font-size:14px; }
+  .tmeta,.tstat { font-size:12px; }
+  .dlbtn { min-height:36px; border-color:#dfe1e7; border-radius:10px; padding:8px 12px; font-weight:600; }
+  .notice { background:#fff8f7; border:1px solid #f2dfdc; color:#80545a; border-radius:14px; padding:13px 14px; font-size:12px; line-height:1.8; }
+  .pill { border-color:#e5e6eb; color:#777d88; }
+  .confirm-box { border-color:#e8e9ed; border-radius:14px; padding:14px; background:#fafbfc; }
+  .plist { border-color:#eceef1; border-radius:13px; padding:12px 13px; margin-top:9px; }
+  .plist:active,.dlbtn:active,.btn:active { transform:scale(.985); }
+  .gate-modal { background:rgba(20,24,32,.42); backdrop-filter:blur(8px); }
+  .gate-card { max-width:360px; background:#fff; border:1px solid #eceef1; border-radius:20px; padding:24px 20px; box-shadow:0 18px 55px rgba(0,0,0,.16); }
+  .gate-card h2 { font-size:18px; }
+  .gate-card .btn { min-height:44px; margin-top:9px; }
+  @media (max-width:380px) {
+    .wrap { padding-left:14px; padding-right:14px; }
+    .card { padding:15px; border-radius:16px; }
+    .row > .btn { padding-left:13px; padding-right:13px; }
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .card,.gate-card { animation:page-enter .28s ease-out both; }
+    @keyframes page-enter { from { opacity:0; transform:translateY(5px); } to { opacity:1; transform:translateY(0); } }
+  }
+
 </style>
 </head>
 <body>
@@ -63,7 +111,7 @@
 </div>
 <div class="wrap">
   <h1>千栀音乐下载</h1>
-  <p class="sub">隐藏页，仅供本站注册成员使用。先登录本站账号（须在网站注册过），再扫码登录网易云，登录后只读扫码那个账号自己的歌单与搜索结果，可下载的歌存为 MP3。没登录本站账号时这里什么歌都不会出现。付费、VIP、试听、无版权地址的歌一律显示“下不了”，不绕过。</p>
+  <p class="sub">仅供本站注册成员使用。先登录本站账号，再扫码登录网易云，即可查看该网易云账号的歌单和搜索结果。仅提供可正常下载的 MP3；付费、VIP、试听或无可用版权地址的歌曲不会提供下载。</p>
 
   <div class="card" id="siteCard">
     <h2>本站账号登录</h2>

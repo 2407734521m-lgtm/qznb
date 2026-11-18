@@ -28,7 +28,7 @@ import ScreenEffectCanvas from '../components/ScreenEffectCanvas';
 import { getChatBubbleEffect, getScreenEffectKind, stripChatBubbleEffect, withChatBubbleEffect, type ChatBubbleEffect, type ScreenEffectKind } from '../lib/chatMessageEffect';
 import { formatChatTypingLabel, parseChatTypingPayload } from '../lib/chatTyping';
 import { IMESSAGE_TAPBACKS } from '../lib/imessageTapbacks';
-import { getSwipeReplyVisual, isSwipeToReply } from '../lib/chatGestures';
+import { canLongPressMessage, getSwipeReplyVisual, isSwipeToReply } from '../lib/chatGestures';
 import { createChatForwardAttachmentPlan } from '../lib/chatForwarding';
 import './Chat.polish.css';
 
@@ -967,13 +967,12 @@ export default function Chat() {
 
     // Media cards participate in long-press actions, but their actual play/seek
     // controls remain interactive. Invisible ink owns its own swipe-to-reveal gesture.
-    const safeMediaPress = Boolean(
-      mediaSurface && !mediaControl &&
-      (!interactive || mediaSurface === interactive || mediaSurface.contains(interactive)),
-    );
-    const canLongPress = Boolean(
-      touch && !protectedSurface && ((!interactive && !mediaControl) || safeMediaPress),
-    );
+    const canLongPress = Boolean(touch && canLongPressMessage({
+      interactive: Boolean(interactive),
+      mediaSurface: Boolean(mediaSurface),
+      mediaControl: Boolean(mediaControl),
+      protectedSurface: Boolean(protectedSurface),
+    }));
     // Keep reply swipes on plain message content. Swiping a photo/player/control
     // must never accidentally open or seek the media.
     const canSwipe = Boolean(touch && !interactive && !mediaSurface && !protectedSurface);

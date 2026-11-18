@@ -75,6 +75,7 @@ export default function AdminWallpaperSettings({ setMsg }: { setMsg: (message: s
 
   async function saveWallpaper() {
     setSaving(true);
+    let newlyUploadedPath = '';
     try {
       let next = draft;
       if (draft.type === 'image' && file) {
@@ -88,6 +89,7 @@ export default function AdminWallpaperSettings({ setMsg }: { setMsg: (message: s
             upsert: false,
           });
         if (uploadError) throw new Error('壁纸上传失败：' + uploadError.message);
+        newlyUploadedPath = path;
         const { data } = supabase.storage.from('site-assets').getPublicUrl(path);
         next = parseAdminWallpaper({ type: 'image', url: data.publicUrl, path });
       }
@@ -97,6 +99,11 @@ export default function AdminWallpaperSettings({ setMsg }: { setMsg: (message: s
         { onConflict: 'key' },
       );
       if (error) throw new Error('壁纸设置保存失败：' + error.message);
+
+      if (current.type === 'image' && current.path.startsWith('admin-wallpapers/') && current.path !== (next.type === 'image' ? next.path : '')) {
+        try { await supabase.storage.from('site-assets').remove([current.path]); }
+        catch { /* Old image cleanup is best-effort; the new setting is already saved. */ }
+      }
 
       setCurrent(next);
       setDraft(next);
@@ -111,6 +118,10 @@ export default function AdminWallpaperSettings({ setMsg }: { setMsg: (message: s
       } catch { /* The wallpaper is already saved; audit logging must not undo it. */ }
       setMsg(next.type === 'none' ? '已恢复默认后台背景。' : '管理员后台壁纸已保存并应用。');
     } catch (error) {
+      if (newlyUploadedPath) {
+        try { await supabase.storage.from('site-assets').remove([newlyUploadedPath]); }
+        catch { /* A failed upload cleanup must not hide the original save error. */ }
+      }
       setMsg(error instanceof Error ? error.message : '后台壁纸保存失败，请重试。');
     } finally {
       setSaving(false);
@@ -192,7 +203,7 @@ export default function AdminWallpaperSettings({ setMsg }: { setMsg: (message: s
             <input
               type="file"
               accept="image/jpeg,image/png,image/webp,image/avif"
-              onChange={event => chooseFile(event.target.files?.[0])}
+              onChange={event => { chooseFile(event.currentTarget.files?.[0]); event.currentTarget.value = ''; }}
               disabled={saving}
             />
           </label>

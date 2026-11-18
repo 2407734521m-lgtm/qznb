@@ -116,9 +116,6 @@ export default function AdminWorkspace({
   onMemberSearchSubmit,
   children,
 }: AdminWorkspaceProps) {
-  const [collapsed, setCollapsed] = useState(() => {
-    try { return localStorage.getItem('qznb-admin-rail-collapsed') === '1'; } catch { return false; }
-  });
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>(() => {
     try {
@@ -165,6 +162,11 @@ export default function AdminWorkspace({
     ];
   }, [availableItems, favoriteIds, recentIds, groups]);
   const mobileQuickItems = useMemo(() => availableItems, [availableItems]);
+  const referenceNavItems = useMemo(() => (
+    ['overview', 'analytics', 'accounts', 'moderate', 'board', 'communication', 'appCenter', 'settings']
+      .map(id => availableItems.find(item => item.id === id))
+      .filter((item): item is { id: string; label: string } => Boolean(item))
+  ), [availableItems]);
   const quickbarRef = useRef<HTMLElement>(null);
 
   const matchingItems = useMemo(() => {
@@ -223,10 +225,6 @@ export default function AdminWorkspace({
       document.removeEventListener('visibilitychange', onVisibilityChange);
     };
   }, []);
-
-  useEffect(() => {
-    try { localStorage.setItem('qznb-admin-rail-collapsed', collapsed ? '1' : '0'); } catch { /* storage may be disabled */ }
-  }, [collapsed]);
 
   useEffect(() => {
     try { localStorage.setItem('qznb-admin-collapsed-groups', JSON.stringify(collapsedGroups)); } catch { /* storage may be disabled */ }
@@ -334,12 +332,11 @@ export default function AdminWorkspace({
   }
 
   function toggleNavigation() {
-    if (window.matchMedia('(max-width: 899px)').matches) setMobileOpen(open => !open);
-    else setCollapsed(value => !value);
+    setMobileOpen(open => !open);
   }
 
   return (
-    <div className={['admin-workspace', collapsed ? 'is-collapsed' : '', mobileOpen ? 'is-mobile-open' : ''].filter(Boolean).join(' ')}>
+    <div className={['admin-workspace', 'is-reference-dashboard', mobileOpen ? 'is-mobile-open' : ''].filter(Boolean).join(' ')}>
       {mobileOpen && <button type="button" className="admin-sidebar-scrim" aria-label="关闭导航" onClick={() => setMobileOpen(false)} />}
       <aside className="admin-sidebar" aria-label="管理后台导航">
         <div className="admin-sidebar-brand">
@@ -373,7 +370,7 @@ export default function AdminWorkspace({
                     <button type="button"
                       className={['admin-nav-item', activeTab === item.id ? 'is-active' : ''].join(' ')}
                       aria-current={activeTab === item.id ? 'page' : undefined}
-                      title={collapsed ? item.label : undefined}
+                      title={item.label}
                       onClick={() => choose(item.id)}>
                       <span className="admin-nav-icon"><AdminIcon name={item.id} size={16} /></span>
                       <span className="admin-nav-label">{item.label}</span>
@@ -383,13 +380,13 @@ export default function AdminWorkspace({
                           title={`${todoCountFor(item.id)} 项待处理`}
                           style={{
                             marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                            minWidth: collapsed ? 7 : 18, height: collapsed ? 7 : 18,
-                            padding: collapsed ? 0 : '0 5px', borderRadius: 999,
+                            minWidth: 18, height: 18,
+                            padding: '0 5px', borderRadius: 999,
                             background: '#d94b5b', color: '#fff', fontSize: 10.5, fontWeight: 800,
                             lineHeight: 1, flexShrink: 0, fontVariantNumeric: 'tabular-nums',
                           }}
                         >
-                          {collapsed ? '' : todoCountFor(item.id) > 99 ? '99+' : todoCountFor(item.id)}
+                          {todoCountFor(item.id) > 99 ? '99+' : todoCountFor(item.id)}
                         </span>
                       )}
                     </button>
@@ -422,26 +419,43 @@ export default function AdminWorkspace({
       </aside>
 
       <div className="admin-workspace-main">
-        <header className="admin-console-topbar">
-          <button type="button" className="admin-console-icon-button" aria-label="切换导航" onClick={toggleNavigation}>
-            <AdminIcon name="panel" size={18} />
-          </button>
-          <span className="admin-console-separator" aria-hidden="true" />
-          <div className="admin-console-breadcrumb">
-            <span>管理后台</span>
-            <AdminIcon name="chevron" size={13} />
-            <span>{currentGroup}</span>
-            <AdminIcon name="chevron" size={13} />
-            <strong>{current?.[1] ?? '工作台'}</strong>
+        <header className="admin-console-topbar admin-reference-topbar">
+          <div className="admin-reference-brand">
+            <BrandMark className="admin-reference-brand-mark" size={34} />
+            <div>
+              <strong>{BRAND_NAME}</strong>
+              <small>ADMIN CONSOLE</small>
+            </div>
           </div>
+          <button type="button" className="admin-console-icon-button admin-reference-app-trigger"
+            aria-label={mobileOpen ? '关闭应用菜单' : '打开应用菜单'} aria-expanded={mobileOpen}
+            onClick={toggleNavigation}>
+            <AdminIcon name="menu" size={17} />
+            <span>应用</span>
+          </button>
+          <nav className="admin-reference-topnav" aria-label="常用管理功能">
+            {referenceNavItems.map(item => (
+              <button type="button" key={item.id}
+                className={['admin-reference-topnav-item', activeTab === item.id ? 'is-active' : ''].join(' ')}
+                aria-label={item.label} aria-current={activeTab === item.id ? 'page' : undefined}
+                title={item.label} onClick={() => choose(item.id)}>
+                <AdminIcon name={item.id} size={17} />
+              </button>
+            ))}
+          </nav>
           <div className="admin-console-spacer" />
-          <button ref={commandTrigger} type="button" className="admin-command-trigger" aria-haspopup="dialog" aria-expanded={paletteOpen} onClick={() => { setQuery(''); setPaletteOpen(true); }}>
+          <button ref={commandTrigger} type="button" className="admin-command-trigger admin-reference-search"
+            aria-label="搜索管理功能" aria-haspopup="dialog" aria-expanded={paletteOpen}
+            onClick={() => { setQuery(''); setPaletteOpen(true); }}>
             <AdminIcon name="search" size={16} />
-            <span>搜索管理功能</span>
+            <span>搜索</span>
             <kbd>Ctrl K</kbd>
           </button>
           <span className="admin-console-role">{isSuper ? '超级管理员' : '内容管理员'}</span>
-          <button type="button" className="admin-console-logout" onClick={onLogout}>
+          <span className="admin-reference-avatar" aria-label={isSuper ? '超级管理员' : '内容管理员'}>
+            {isSuper ? '超' : '管'}
+          </span>
+          <button type="button" className="admin-console-logout" onClick={onLogout} aria-label="退出管理员后台">
             <AdminIcon name="logout" size={16} />
             <span>退出</span>
           </button>

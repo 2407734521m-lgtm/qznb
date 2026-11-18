@@ -1,0 +1,1110 @@
+/* Reference-matched administrator workspace.
+   One horizontal navigation bar, warm editorial hero, guide + live client gauge,
+   four metric cards, and a growth / runtime split. All styles are admin-scoped. */
+
+.admin-shell-v3 .admin-workspace.is-reference-dashboard {
+  display: block !important;
+  min-height: 100vh;
+  color: #252b30;
+  background: #f3f5f6;
+}
+
+.admin-shell-v3 .admin-workspace.is-reference-dashboard .admin-workspace-main {
+  min-height: 100vh;
+  min-width: 0;
+  background: transparent !important;
+}
+
+.admin-shell-v3 .admin-workspace.is-reference-dashboard .admin-sidebar {
+  position: fixed !important;
+  z-index: 70 !important;
+  top: 76px !important;
+  bottom: 16px !important;
+  left: 16px !important;
+  display: flex !important;
+  width: min(282px, calc(100vw - 32px)) !important;
+  height: auto !important;
+  padding: 12px 10px !important;
+  border: 1px solid #e5e9eb !important;
+  border-radius: 18px !important;
+  background: rgba(255, 255, 255, .98) !important;
+  box-shadow: 0 20px 55px rgba(31, 39, 46, .16) !important;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateX(calc(-100% - 24px));
+  transition: transform .22s cubic-bezier(.2,.75,.25,1), opacity .18s ease, visibility .18s;
+}
+
+.admin-shell-v3 .admin-workspace.is-reference-dashboard.is-mobile-open .admin-sidebar {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translateX(0);
+}
+
+.admin-shell-v3 .admin-workspace.is-reference-dashboard > .admin-sidebar-scrim {
+  position: fixed !important;
+  z-index: 65 !important;
+  inset: 64px 0 0 !important;
+  display: block !important;
+  background: rgba(35, 42, 48, .18) !important;
+  -webkit-backdrop-filter: blur(3px);
+  backdrop-filter: blur(3px);
+}
+
+.admin-shell-v3 .admin-workspace.is-reference-dashboard .admin-console-topbar {
+  position: sticky !important;
+  top: 0;
+  z-index: 55 !important;
+  display: flex !important;
+  min-height: 66px !important;
+  padding: 0 clamp(14px, 2.7vw, 42px) !important;
+  gap: clamp(8px, 1.25vw, 18px) !important;
+  color: #333a40 !important;
+  background: rgba(255, 255, 255, .96) !important;
+  border: 0 !important;
+  border-bottom: 1px solid #e8ebed !important;
+  box-shadow: 0 2px 12px rgba(35, 42, 48, .025) !important;
+  -webkit-backdrop-filter: blur(14px) saturate(1.05) !important;
+  backdrop-filter: blur(14px) saturate(1.05) !important;
+}
+
+.admin-shell-v3 .admin-reference-brand {
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 auto;
+  gap: 9px;
+  min-width: 112px;
+  margin-right: 4px;
+}
+
+.admin-shell-v3 .admin-reference-brand-mark {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.admin-shell-v3 .admin-reference-brand > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.admin-shell-v3 .admin-reference-brand strong {
+  color: #272e34;
+  font-size: 13px;
+  font-weight: 760;
+  letter-spacing: .01em;
+  line-height: 1.15;
+}
+
+.admin-shell-v3 .admin-reference-brand small {
+  color: #9aa1a7;
+  font-size: 8px;
+  font-weight: 720;
+  letter-spacing: .12em;
+}
+
+.admin-shell-v3 .admin-console-icon-button.admin-reference-app-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: auto !important;
+  min-width: 62px;
+  height: 34px !important;
+  padding: 0 11px !important;
+  gap: 7px;
+  color: #3e464d !important;
+  background: #f4f5f6 !important;
+  border: 1px solid #e8ebed !important;
+  border-radius: 999px !important;
+  box-shadow: none !important;
+  font-size: 11px;
+  font-weight: 680;
+}
+
+.admin-shell-v3 .admin-reference-app-trigger:hover {
+  color: #493a1c !important;
+  background: #fbf3e2 !important;
+  border-color: #eddfbf !important;
+}
+
+.admin-shell-v3 .admin-reference-topnav {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  padding: 0 3px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.admin-shell-v3 .admin-reference-topnav::-webkit-scrollbar {
+  display: none;
+}
+
+.admin-shell-v3 .admin-reference-topnav-item {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 34px;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  color: #7a838b;
+  background: transparent;
+  cursor: pointer;
+  transition: color .16s ease, background .16s ease, border-color .16s ease;
+}
+
+.admin-shell-v3 .admin-reference-topnav-item:hover {
+  color: #3d454b;
+  background: #f5f6f6;
+}
+
+.admin-shell-v3 .admin-reference-topnav-item.is-active {
+  color: #4e3e1f;
+  background: #f8efd9;
+  border-color: #efe2c3;
+}
+
+.admin-shell-v3 .admin-reference-topnav-item.is-active::after {
+  position: absolute;
+  bottom: -16px;
+  left: 50%;
+  width: 14px;
+  height: 2px;
+  border-radius: 2px;
+  background: #c59b48;
+  content: "";
+  transform: translateX(-50%);
+}
+
+.admin-shell-v3 .admin-console-spacer {
+  flex: 1 1 auto;
+  min-width: 8px;
+}
+
+.admin-shell-v3 .admin-console-breadcrumb,
+.admin-shell-v3 .admin-console-separator {
+  display: none !important;
+}
+
+.admin-shell-v3 .admin-reference-search {
+  width: min(180px, 18vw) !important;
+  min-width: 105px;
+  height: 34px !important;
+  padding: 0 10px !important;
+  border: 1px solid #e8ebed !important;
+  border-radius: 999px !important;
+  color: #8a9298 !important;
+  background: #f8f9f9 !important;
+  box-shadow: none !important;
+}
+
+.admin-shell-v3 .admin-reference-search:hover {
+  color: #404950 !important;
+  background: #fff !important;
+  border-color: #dfe4e7 !important;
+}
+
+.admin-shell-v3 .admin-reference-search kbd {
+  padding: 2px 4px;
+  color: #939ba1;
+  background: #fff;
+  border: 1px solid #e9ecee;
+  border-radius: 5px;
+  font-size: 8px;
+}
+
+.admin-shell-v3 .admin-console-role {
+  padding: 5px 9px !important;
+  color: #7d858b !important;
+  background: #f7f8f8 !important;
+  border: 1px solid #eceff0 !important;
+  font-size: 10px !important;
+}
+
+.admin-shell-v3 .admin-reference-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 31px;
+  width: 31px;
+  height: 31px;
+  border: 1px solid #ecdfc4;
+  border-radius: 50%;
+  color: #6a5328;
+  background: #f7edda;
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.admin-shell-v3 .admin-console-logout {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  min-width: 34px;
+  height: 34px;
+  padding: 0 !important;
+  border: 1px solid #e8ebed;
+  border-radius: 50%;
+  color: #68727a;
+  background: #fff;
+}
+
+.admin-shell-v3 .admin-console-logout span {
+  display: none;
+}
+
+.admin-shell-v3 .admin-workspace.is-reference-dashboard .admin-workspace-content {
+  width: 100% !important;
+  max-width: none !important;
+  padding: 20px clamp(14px, 2.8vw, 42px) 40px !important;
+  color: #2b3238 !important;
+  background: transparent !important;
+}
+
+.admin-shell-v3 .admin-workspace.is-reference-dashboard .admin-workspace-inner {
+  width: 100%;
+  max-width: 1440px;
+  margin: 0 auto;
+}
+
+.admin-shell-v3 .admin-page-heading.is-dashboard-heading {
+  display: none !important;
+}
+
+.admin-shell-v3 .admin-console-footer {
+  display: none !important;
+}
+
+.admin-shell-v3 .admin-mobile-quickbar {
+  display: none !important;
+}
+
+/* Large warm hero with a soft orange / yellow focal area at the right. */
+.admin-shell-v3 .admin-overview-reference-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-welcome {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(275px, .72fr);
+  align-items: center;
+  gap: 28px;
+  min-height: 230px;
+  padding: clamp(22px, 3vw, 36px);
+  overflow: hidden;
+  border: 1px solid #e9e9e5;
+  border-radius: 22px;
+  background:
+    radial-gradient(ellipse at 86% 55%, rgba(252, 204, 72, .66) 0%, rgba(255, 218, 112, .42) 19%, rgba(255, 231, 174, .20) 36%, transparent 58%),
+    radial-gradient(ellipse at 82% 110%, rgba(224, 133, 57, .24), transparent 42%),
+    linear-gradient(112deg, #ffffff 0%, #fbfbf9 49%, #f9f4e9 100%) !important;
+  box-shadow: 0 4px 20px rgba(36, 42, 47, .035);
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-welcome::before {
+  position: absolute;
+  z-index: -1;
+  top: -160px;
+  right: 10%;
+  width: 490px;
+  height: 490px;
+  border: 1px solid rgba(255, 255, 255, .34);
+  border-radius: 42% 58% 62% 38% / 42% 35% 65% 58%;
+  background:
+    radial-gradient(ellipse at 42% 38%, rgba(255, 255, 255, .62), transparent 31%),
+    radial-gradient(ellipse at 60% 68%, rgba(248, 185, 56, .55), transparent 45%),
+    linear-gradient(138deg, rgba(255, 239, 190, .25), rgba(232, 142, 54, .18));
+  filter: blur(1px);
+  transform: rotate(-21deg);
+  content: "";
+  pointer-events: none;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-welcome::after {
+  position: absolute;
+  z-index: -1;
+  top: -115px;
+  right: 25%;
+  width: 330px;
+  height: 520px;
+  border: 1px solid rgba(255, 255, 255, .35);
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(255, 255, 255, .16), rgba(237, 174, 75, .08));
+  transform: rotate(24deg);
+  content: "";
+  pointer-events: none;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-welcome-copy {
+  position: relative;
+  z-index: 1;
+  justify-content: center;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-eyebrow {
+  margin-bottom: 12px;
+  color: #9e8759;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .17em;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-welcome-copy h2 {
+  color: #242a2f;
+  font-size: clamp(27px, 3vw, 39px);
+  font-weight: 740;
+  letter-spacing: -.05em;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-welcome-copy > p {
+  max-width: 490px;
+  margin-top: 10px;
+  color: #737d84;
+  font-size: 13px;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-welcome-meta {
+  gap: 8px 18px;
+  margin-top: 12px;
+  color: #8a9297;
+  font-size: 10.5px;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-welcome-actions {
+  gap: 7px;
+  margin-top: 16px;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-welcome-actions button {
+  min-height: 34px;
+  padding: 0 12px;
+  color: #59636a;
+  background: rgba(255, 255, 255, .82);
+  border: 1px solid rgba(224, 225, 220, .9);
+  border-radius: 9px;
+  font-size: 11px;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-welcome-actions button.is-primary {
+  color: #4a3716;
+  background: #f4dfaa;
+  border-color: #e9d29a;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-welcome-status {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 340px;
+  justify-self: end;
+  padding: 17px 18px;
+  border: 1px solid rgba(231, 229, 220, .92);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, .84);
+  box-shadow: 0 12px 30px rgba(98, 73, 32, .08);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-welcome-status-heading {
+  color: #5b646a;
+  font-size: 11px;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-welcome-status-grid {
+  gap: 16px;
+  margin-top: 18px;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-welcome-status-grid strong {
+  color: #262d32;
+  font-size: clamp(24px, 2.5vw, 32px);
+}
+
+.admin-shell-v3 .admin-overview-welcome-status-foot {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 14px;
+  padding-top: 10px;
+  border-top: 1px solid #eef0ef;
+  color: #91999e;
+  font-size: 9.5px;
+}
+
+.admin-shell-v3 .admin-overview-welcome-status-foot strong {
+  color: #6d777d;
+  font-weight: 650;
+}
+
+/* Left-side quick-start guide and right-side live usage gauge. */
+.admin-shell-v3 .admin-overview-start-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.08fr) minmax(320px, .92fr);
+  gap: 13px;
+}
+
+.admin-shell-v3 .admin-overview-guide-panel,
+.admin-shell-v3 .admin-overview-client-card,
+.admin-shell-v3 .admin-overview-panel,
+.admin-shell-v3 .admin-overview-todo > div,
+.admin-shell-v3 .admin-overview-recent-members {
+  min-width: 0;
+  padding: 17px !important;
+  border: 1px solid #e8ebed !important;
+  border-radius: 16px !important;
+  background: #ffffff !important;
+  box-shadow: 0 2px 9px rgba(35, 42, 48, .025) !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+.admin-shell-v3 .admin-overview-guide-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.admin-shell-v3 .admin-overview-section-kicker {
+  display: block;
+  margin-bottom: 4px;
+  color: #a18a5b;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: .14em;
+}
+
+.admin-shell-v3 .admin-overview-guide-heading h3,
+.admin-shell-v3 .admin-overview-client-card h3,
+.admin-shell-v3 .admin-overview-panel h3,
+.admin-shell-v3 .admin-overview-recent-members h3 {
+  margin: 0;
+  color: #30373d !important;
+  font-size: 14px;
+  font-weight: 720;
+}
+
+.admin-shell-v3 .admin-overview-guide-heading > span:last-child {
+  color: #929aa0;
+  font-size: 10px;
+}
+
+.admin-shell-v3 .admin-overview-guide-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.admin-shell-v3 .admin-overview-guide-list > button {
+  display: grid;
+  grid-template-columns: 27px minmax(0, 1fr) 16px;
+  align-items: center;
+  min-height: 55px;
+  gap: 8px;
+  padding: 8px 9px;
+  text-align: left;
+  color: #3d464d;
+  background: #fafbfb;
+  border: 1px solid #eef0f1;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background .15s ease, border-color .15s ease, transform .15s ease;
+}
+
+.admin-shell-v3 .admin-overview-guide-list > button:hover {
+  background: #fffaf0;
+  border-color: #e9dbbb;
+  transform: translateY(-1px);
+}
+
+.admin-shell-v3 .admin-overview-guide-index {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 25px;
+  height: 25px;
+  border-radius: 8px;
+  color: #8f7138;
+  background: #f7efdE;
+  font-size: 9px;
+  font-weight: 760;
+}
+
+.admin-shell-v3 .admin-overview-guide-copy {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 3px;
+}
+
+.admin-shell-v3 .admin-overview-guide-copy strong {
+  overflow: hidden;
+  color: #343c42;
+  font-size: 10.5px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-shell-v3 .admin-overview-guide-copy small {
+  overflow: hidden;
+  color: #92999f;
+  font-size: 9px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-shell-v3 .admin-overview-guide-arrow {
+  color: #9c8a65;
+  font-size: 13px;
+}
+
+.admin-shell-v3 .admin-overview-client-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 178px;
+}
+
+.admin-shell-v3 .admin-overview-client-card .admin-overview-panel-heading {
+  margin-bottom: 2px;
+}
+
+.admin-shell-v3 .admin-overview-client-card .admin-overview-panel-heading p,
+.admin-shell-v3 .admin-overview-panel-heading p {
+  margin-top: 4px;
+  color: #949ca2 !important;
+  font-size: 10px;
+}
+
+.admin-shell-v3 .admin-overview-client-summary {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 4px 4px 1px;
+}
+
+.admin-shell-v3 .admin-overview-client-gauge {
+  display: grid;
+  place-items: center;
+  flex: 0 0 98px;
+  width: 98px;
+  height: 98px;
+  border-radius: 50%;
+  background: conic-gradient(#c39a43 0 var(--client-ratio), #e4e8ea var(--client-ratio) 100%);
+  position: relative;
+}
+
+.admin-shell-v3 .admin-overview-client-gauge::before {
+  position: absolute;
+  inset: 9px;
+  border-radius: 50%;
+  background: #fff;
+  content: "";
+}
+
+.admin-shell-v3 .admin-overview-client-gauge-inner {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+}
+
+.admin-shell-v3 .admin-overview-client-gauge-inner strong {
+  color: #30383e;
+  font-size: 22px;
+  font-weight: 760;
+  letter-spacing: -.04em;
+}
+
+.admin-shell-v3 .admin-overview-client-gauge-inner span {
+  color: #929a9f;
+  font-size: 9px;
+}
+
+.admin-shell-v3 .admin-overview-client-total {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.admin-shell-v3 .admin-overview-client-total strong {
+  color: #30383e;
+  font-size: 24px;
+  font-weight: 740;
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-shell-v3 .admin-overview-client-total span,
+.admin-shell-v3 .admin-overview-client-total small {
+  color: #8c959b;
+  font-size: 9px;
+}
+
+.admin-shell-v3 .admin-overview-client-legend {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 12px;
+  row-gap: 6px;
+  margin-top: auto;
+}
+
+.admin-shell-v3 .admin-overview-client-legend-row {
+  display: grid;
+  grid-template-columns: 7px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 6px;
+  color: #778188;
+  font-size: 9px;
+}
+
+.admin-shell-v3 .admin-overview-client-legend-row i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #d97831;
+}
+
+.admin-shell-v3 .admin-overview-client-legend-row i.tone-1 { background: #429a65; }
+.admin-shell-v3 .admin-overview-client-legend-row i.tone-2 { background: #438fc0; }
+.admin-shell-v3 .admin-overview-client-legend-row i.tone-3 { background: #c5ccd0; }
+
+.admin-shell-v3 .admin-overview-client-legend-row strong {
+  color: #454e54;
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.admin-shell-v3 .admin-overview-client-versions {
+  margin: 2px 0 0;
+  color: #9aa1a6;
+  font-size: 8.5px;
+}
+
+/* Four consistent metric cards, closer to the reference proportions. */
+.admin-shell-v3 .admin-overview-primary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-metric-card {
+  min-height: 135px;
+  padding: 14px 15px 10px !important;
+  border: 1px solid #e8ebed !important;
+  border-radius: 14px !important;
+  background: #fff !important;
+  box-shadow: 0 2px 9px rgba(35, 42, 48, .025) !important;
+}
+
+.admin-shell-v3 .admin-overview-metric-topline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-metric-label {
+  color: #7f8990 !important;
+  font-size: 10.5px;
+  font-weight: 620;
+}
+
+.admin-shell-v3 .admin-overview-metric-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 8px;
+  color: #956f30;
+  background: #f8f1e2;
+  font-size: 9px;
+  font-weight: 760;
+}
+
+.admin-shell-v3 .admin-overview-metric-icon.tone-1 { color: #b56a39; background: #fbefe5; }
+.admin-shell-v3 .admin-overview-metric-icon.tone-2 { color: #56896b; background: #edf5ef; }
+.admin-shell-v3 .admin-overview-metric-icon.tone-3 { color: #5b83a0; background: #edf3f7; }
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-metric-value {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  margin-top: 7px;
+  color: #292f34 !important;
+  font-size: clamp(24px, 2.4vw, 31px);
+  font-weight: 740;
+  letter-spacing: -.045em;
+}
+
+.admin-shell-v3 .admin-overview-metric-value small {
+  color: #8e979d;
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-metric-hint {
+  min-height: 16px;
+  margin-top: 1px;
+  color: #9aa2a7 !important;
+  font-size: 9px;
+}
+
+.admin-shell-v3 .admin-overview-metric-hint .admin-overview-positive {
+  color: #478462 !important;
+}
+
+/* Lower pair: clean trend chart and a compact operational table. */
+.admin-shell-v3 .admin-overview-bottom-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.12fr) minmax(0, .98fr);
+  gap: 12px;
+  align-items: stretch;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-panel {
+  min-width: 0;
+  padding: 16px !important;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-panel-heading {
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.admin-shell-v3 .admin-overview-runtime-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.admin-shell-v3 .admin-overview-runtime-table {
+  width: 100%;
+  min-width: 390px;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.admin-shell-v3 .admin-overview-runtime-table th {
+  padding: 8px 7px;
+  color: #969ea4;
+  border-bottom: 1px solid #edf0f1;
+  font-size: 9px;
+  font-weight: 600;
+}
+
+.admin-shell-v3 .admin-overview-runtime-table td {
+  padding: 9px 7px;
+  color: #727d84;
+  border-bottom: 1px solid #f0f2f3;
+  font-size: 9px;
+  white-space: nowrap;
+}
+
+.admin-shell-v3 .admin-overview-runtime-table td:first-child {
+  white-space: normal;
+}
+
+.admin-shell-v3 .admin-overview-runtime-table td strong,
+.admin-shell-v3 .admin-overview-runtime-table td small {
+  display: block;
+}
+
+.admin-shell-v3 .admin-overview-runtime-table td strong {
+  color: #424b51;
+  font-size: 9.5px;
+  font-weight: 680;
+}
+
+.admin-shell-v3 .admin-overview-runtime-table td small {
+  margin-top: 2px;
+  color: #a0a7ac;
+  font-size: 8px;
+}
+
+.admin-shell-v3 .admin-overview-runtime-table td .is-healthy { color: #39815f !important; }
+.admin-shell-v3 .admin-overview-runtime-table td .is-warning { color: #a27b31 !important; }
+.admin-shell-v3 .admin-overview-runtime-table td .is-unhealthy { color: #b34e4e !important; }
+
+.admin-shell-v3 .admin-overview-runtime-logs {
+  margin-top: 10px;
+  padding-top: 9px;
+  border-top: 1px solid #edf0f1;
+}
+
+.admin-shell-v3 .admin-overview-runtime-logs-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 5px;
+}
+
+.admin-shell-v3 .admin-overview-runtime-logs-heading strong {
+  color: #576168;
+  font-size: 9.5px;
+}
+
+.admin-shell-v3 .admin-overview-runtime-logs-heading button {
+  padding: 3px 0;
+  color: #9b793b;
+  background: transparent;
+  border: 0;
+  font-size: 9px;
+  cursor: pointer;
+}
+
+.admin-shell-v3 .admin-overview-runtime-log {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 5px 0;
+  color: #79838a;
+  font-size: 9px;
+}
+
+.admin-shell-v3 .admin-overview-runtime-log time {
+  flex: 0 0 auto;
+  color: #a0a7ac;
+  font-size: 8px;
+}
+
+.admin-shell-v3 .admin-overview-followup-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 12px;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-todo > div {
+  height: 100%;
+  margin: 0;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-todo h3 {
+  color: #30373d !important;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-todo button {
+  border-bottom-color: #edf0f1 !important;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-todo button:hover {
+  background: #fffaf0 !important;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-list-row {
+  min-height: 35px;
+  border-bottom-color: #edf0f1 !important;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-list-row strong {
+  color: #424b51 !important;
+  font-size: 10px;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-list-row time {
+  color: #969fa5 !important;
+  font-size: 9px;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-member-avatar {
+  color: #6d572a !important;
+  background: #f7eedb !important;
+}
+
+@media (max-width: 1100px) {
+  .admin-shell-v3 .admin-overview-start-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(275px, .9fr);
+  }
+
+  .admin-shell-v3 .admin-reference-topnav {
+    gap: 1px;
+  }
+
+  .admin-shell-v3 .admin-reference-topnav-item {
+    flex-basis: 31px;
+    width: 31px;
+  }
+
+  .admin-shell-v3 .admin-console-role {
+    display: none !important;
+  }
+}
+
+@media (max-width: 850px) {
+  .admin-shell-v3 .admin-overview-reference-layout .admin-overview-welcome {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+  }
+
+  .admin-shell-v3 .admin-overview-reference-layout .admin-overview-welcome-status {
+    max-width: none;
+    justify-self: stretch;
+  }
+
+  .admin-shell-v3 .admin-overview-start-grid,
+  .admin-shell-v3 .admin-overview-bottom-grid,
+  .admin-shell-v3 .admin-overview-followup-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .admin-shell-v3 .admin-overview-primary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-shell-v3 .admin-reference-topnav {
+    flex: 1 1 auto;
+  }
+
+  .admin-shell-v3 .admin-reference-topnav-item:nth-child(n+7) {
+    display: none;
+  }
+}
+
+@media (max-width: 600px) {
+  .admin-shell-v3 .admin-workspace.is-reference-dashboard .admin-console-topbar {
+    min-height: 58px !important;
+    padding: 0 10px !important;
+    gap: 6px !important;
+  }
+
+  .admin-shell-v3 .admin-reference-brand {
+    min-width: 0;
+    gap: 6px;
+  }
+
+  .admin-shell-v3 .admin-reference-brand-mark {
+    width: 29px;
+    height: 29px;
+  }
+
+  .admin-shell-v3 .admin-reference-brand strong {
+    max-width: 52px;
+    overflow: hidden;
+    font-size: 11px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .admin-shell-v3 .admin-reference-brand small {
+    display: none;
+  }
+
+  .admin-shell-v3 .admin-console-icon-button.admin-reference-app-trigger {
+    min-width: 34px;
+    width: 34px !important;
+    padding: 0 !important;
+  }
+
+  .admin-shell-v3 .admin-reference-app-trigger span {
+    display: none;
+  }
+
+  .admin-shell-v3 .admin-reference-topnav {
+    min-width: 0;
+    gap: 0;
+  }
+
+  .admin-shell-v3 .admin-reference-topnav-item {
+    flex-basis: 29px;
+    width: 29px;
+    height: 32px;
+  }
+
+  .admin-shell-v3 .admin-reference-topnav-item:nth-child(n+5) {
+    display: none;
+  }
+
+  .admin-shell-v3 .admin-reference-search {
+    min-width: 32px;
+    width: 32px !important;
+    padding: 0 !important;
+    justify-content: center;
+  }
+
+  .admin-shell-v3 .admin-reference-search span,
+  .admin-shell-v3 .admin-reference-search kbd,
+  .admin-shell-v3 .admin-reference-avatar {
+    display: none !important;
+  }
+
+  .admin-shell-v3 .admin-workspace.is-reference-dashboard .admin-workspace-content {
+    padding: 13px 11px 26px !important;
+  }
+
+  .admin-shell-v3 .admin-overview-reference-layout {
+    gap: 10px;
+  }
+
+  .admin-shell-v3 .admin-overview-reference-layout .admin-overview-welcome {
+    min-height: 0;
+    padding: 19px 16px;
+    border-radius: 17px;
+  }
+
+  .admin-shell-v3 .admin-overview-reference-layout .admin-overview-welcome-copy h2 {
+    font-size: 27px;
+  }
+
+  .admin-shell-v3 .admin-overview-reference-layout .admin-overview-welcome-status {
+    padding: 14px;
+  }
+
+  .admin-shell-v3 .admin-overview-guide-list {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .admin-shell-v3 .admin-overview-client-card,
+  .admin-shell-v3 .admin-overview-guide-panel,
+  .admin-shell-v3 .admin-overview-reference-layout .admin-overview-panel,
+  .admin-shell-v3 .admin-overview-reference-layout .admin-overview-todo > div {
+    padding: 14px !important;
+  }
+
+  .admin-shell-v3 .admin-overview-primary-grid {
+    gap: 8px;
+  }
+
+  .admin-shell-v3 .admin-overview-reference-layout .admin-overview-metric-card {
+    min-height: 122px;
+    padding: 11px 11px 8px !important;
+  }
+
+  .admin-shell-v3 .admin-overview-reference-layout .admin-overview-metric-value {
+    font-size: 25px;
+  }
+
+  .admin-shell-v3 .admin-overview-runtime-table {
+    min-width: 370px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-shell-v3 .admin-workspace.is-reference-dashboard .admin-sidebar,
+  .admin-shell-v3 .admin-reference-topnav-item,
+  .admin-shell-v3 .admin-overview-guide-list > button {
+    transition: none !important;
+  }
+
+  .admin-shell-v3 .admin-overview-guide-list > button:hover {
+    transform: none;
+  }
+}

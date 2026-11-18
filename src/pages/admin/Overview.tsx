@@ -50,11 +50,11 @@ function TodoCenter({ go }: { go: (tab: string) => void }) {
     {counts && items.map(([k, label, tab]) => (
       <button key={k} onClick={() => go(tab)}
         style={{ display: 'flex', width: '100%', alignItems: 'center', gap: 8, padding: '9px 2px', background: 'transparent', border: 0, borderBottom: '1px solid rgba(31,42,58,.08)', cursor: 'pointer', textAlign: 'left' }}>
-        <span style={{ flex: 1, fontSize: 13.5, color: (counts[k] || 0) === 0 ? '#7a8894' : '#1f2a3a' }}>{label}</span>
+        <span style={{ flex: 1, fontSize: 13.5, color: (counts[k] || 0) === 0 ? '#5d686f' : '#1f2a3a' }}>{label}</span>
         {(counts[k] || 0) > 0
           ? <span style={{ background: '#b0404f', color: '#fff', fontWeight: 800, fontSize: 12, borderRadius: 999, padding: '2px 9px' }}>{counts[k]}</span>
-          : <span style={{ fontSize: 12, color: '#7a8894' }}>无</span>}
-        <span style={{ color: '#7a8894', fontSize: 13 }}>›</span>
+          : <span style={{ fontSize: 12, color: '#5d686f' }}>无</span>}
+        <span style={{ color: '#5d686f', fontSize: 13 }}>›</span>
       </button>
     ))}
   </div>;

@@ -2224,8 +2224,20 @@ export default function Chat() {
       || (target.isGroup ? '群聊' : '私聊').includes(normalizedForwardSearch),
   );
 
+  const wallpaperUrl = useSignedUrl('chat-media', backgroundPath);
+
   return (
-    <div ref={pageRef} className="im-page">
+    <div ref={pageRef} className="im-page" style={{
+      '--im-wallpaper': backgroundPath && wallpaperUrl
+        ? `linear-gradient(rgba(255,255,255,.38),rgba(255,255,255,.48)), url("${wallpaperUrl}") center / cover no-repeat`
+        : ({
+            default: '#ffffff',
+            sky: 'linear-gradient(155deg,#f5faff 0%,#eaf3ff 52%,#f9fbff 100%)',
+            lavender: 'radial-gradient(ellipse at 78% 18%,rgba(207,195,245,.34),transparent 42%),linear-gradient(145deg,#fff 0%,#f5f1ff 100%)',
+            mint: 'radial-gradient(ellipse at 18% 80%,rgba(181,225,211,.28),transparent 42%),linear-gradient(145deg,#fff 0%,#eef9f5 100%)',
+            sunset: 'radial-gradient(ellipse at 88% 16%,rgba(255,211,190,.28),transparent 42%),linear-gradient(145deg,#fff 0%,#fff3ed 100%)',
+          } as Record<string, string>)[chatBackground] ?? '#ffffff',
+    } as React.CSSProperties}>
       <style>{`
         .im-page{height:100vh;height:var(--im-viewport-height,100dvh);min-height:0;width:100%;max-width:none;margin:0;box-sizing:border-box;display:flex;flex-direction:column;position:relative;overflow:hidden;border-radius:0;background:#102a36;color:#f6fbff;border:0;box-shadow:none;isolation:isolate}.im-page:before{content:'';position:absolute;inset:0;z-index:-1;background:radial-gradient(ellipse at 50% -8%,rgba(76,158,255,.72),transparent 43%),radial-gradient(ellipse at 8% 18%,rgba(29,190,226,.16),transparent 38%),radial-gradient(ellipse at 95% 44%,rgba(31,91,222,.18),transparent 38%),linear-gradient(180deg,#09254d 0%,#06152f 42%,#030a19 100%)}.im-page:after{content:'';position:absolute;inset:0;z-index:-1;pointer-events:none;background:radial-gradient(ellipse at 15% 8%,rgba(114,196,213,.18),transparent 45%),linear-gradient(180deg,rgba(7,25,34,.1),rgba(7,25,34,.18))}
         .im-head{display:flex;align-items:center;gap:12px;padding:calc(10px + env(safe-area-inset-top)) 14px 10px;flex:none;background:rgba(25,70,133,.32);-webkit-backdrop-filter:blur(14px) saturate(145%);backdrop-filter:blur(14px) saturate(145%);border-bottom:1px solid rgba(203,229,255,.18);position:sticky;top:0;z-index:2}

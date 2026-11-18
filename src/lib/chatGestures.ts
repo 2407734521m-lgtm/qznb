@@ -29,3 +29,16 @@ export function getSwipeReplyVisual(deltaX: number, side: SwipeReplySide): Swipe
     progress: Math.min(1, directedDistance / SWIPE_REPLY_DISTANCE),
   };
 }
+
+export type MessagePressTarget = {
+  interactive: boolean;
+  mediaSurface: boolean;
+  mediaControl: boolean;
+  protectedSurface: boolean;
+};
+
+/** Allow long-press on message content and media surfaces, but never steal controls or ink reveal. */
+export function canLongPressMessage(target: MessagePressTarget): boolean {
+  if (target.protectedSurface || target.mediaControl) return false;
+  return target.mediaSurface || !target.interactive;
+}

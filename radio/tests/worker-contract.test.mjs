@@ -97,6 +97,63 @@ test('listen totals advertise unsupported sync instead of fabricated counts', as
   });
 });
 
+test('QR login retries 502 with noCookie=true and persists the returned session', async () => {
+  const originalFetch = globalThis.fetch;
+  const qrRequests = [];
+  globalThis.fetch = async (input) => {
+    const url = new URL(typeof input === 'string' ? input : input.url);
+    if (url.pathname === '/api/netease/login/qr/check') {
+      qrRequests.push(url);
+      if (url.searchParams.get('noCookie') !== 'true') {
+        return new Response(JSON.stringify({ code: 502, message: 'cookie headers too large' }), {
+          status: 502,
+          headers: { 'content-type': 'application/json' },
+        });
+      }
+      return new Response(JSON.stringify({
+        code: 803,
+        message: '授权登录成功',
+        cookie: 'MUSIC_U=qr-user-cookie; __csrf=qr-csrf',
+      }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      });
+    }
+    if (url.pathname === '/api/netease/login/status') {
+      return new Response(JSON.stringify({
+        data: {
+          profile: { userId: '163-user-1', nickname: '测试用户' },
+          account: { id: '163-user-1' },
+        },
+      }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      });
+    }
+    throw new Error('Unexpected upstream request: ' + url.pathname);
+  };
+
+  try {
+    const response = await request('/api/login/qr/check?key=qr-test-key');
+    const body = await jsonResponse(response);
+    assert.equal(response.status, 200);
+    assert.equal(body.code, 803);
+    assert.equal(body.loggedIn, true);
+    assert.equal(body.hasCookie, true);
+    assert.equal(body.userId, '163-user-1');
+    assert.equal(qrRequests.length, 2);
+    assert.equal(qrRequests[0].searchParams.has('noCookie'), false);
+    assert.equal(qrRequests[1].searchParams.get('noCookie'), 'true');
+    const setCookie = response.headers.get('set-cookie') || '';
+    assert.match(setCookie, /^mr_session=/);
+    const cookieValue = decodeURIComponent(setCookie.match(/^mr_session=([^;]+)/)[1]);
+    assert.match(cookieValue, /MUSIC_U=qr-user-cookie/);
+    assert.match(cookieValue, /__csrf=qr-csrf/);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test('unknown API routes return a JSON 404 with the requested path', async () => {
   const response = await request('/api/__unknown_contract_test__');
   assert.equal(response.status, 404);

@@ -4,7 +4,7 @@ import express from "../folia/node_modules/express/index.js";
 import { handleAsNodeRequest } from "cloudflare:node";
 import createNeteaseRequest from "../folia/node_modules/@neteasecloudmusicapienhanced/api/util/request.js";
 import { NCM_MODULES } from "../folia/worker/netease-modules.generated.ts";
-import { isCrossSiteMusicApiRequest, normalizeMusicApiCookie } from "./netease-security.mjs";
+import { isCrossSiteMusicApiRequest, normalizeMusicApiCookie, shouldSuppressNeteaseQrCookieHeader } from "./netease-security.mjs";
 
 const PREFIX = "/api/netease";
 const PORT = 3918;
@@ -80,6 +80,7 @@ app.all("/{*splat}", async (request, response) => {
     ...(request.query || {}),
     ...(request.body && typeof request.body === "object" ? request.body : {}),
   };
+  const suppressQrCookieHeaders = shouldSuppressNeteaseQrCookieHeader(route, query);
   if (typeof query.cookie === "string") query.cookie = parseCookies(query.cookie);
 
   // Do not turn this endpoint into a proxy or let a caller spoof upstream client IPs.
@@ -93,13 +94,13 @@ app.all("/{*splat}", async (request, response) => {
       response.status(502).json({ code: 502, msg: "Invalid NetEase API response" });
       return;
     }
-    sendCookies(response, result.cookie);
+    if (!suppressQrCookieHeaders) sendCookies(response, result.cookie);
     response.status(Number(result.status) || 200).send(result.body ?? result);
   } catch (error) {
     const status = Number(error && error.status);
     const body = error && error.body;
     if (body && typeof body === "object") {
-      sendCookies(response, error.cookie);
+      if (!suppressQrCookieHeaders) sendCookies(response, error.cookie);
       response.status(status >= 400 && status < 600 ? status : 502).send(body);
       return;
     }

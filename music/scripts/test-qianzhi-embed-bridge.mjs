@@ -114,8 +114,22 @@ assert.ok(islandRoot.includes('onPointerDown'));
 assert.ok(islandRoot.includes('Escape'));
 assert.ok(islandRoot.includes('addEventListener("pointerdown"'));
 assert.ok(islandRoot.includes('store.api.collapse()'));
-assert.ok(parent.includes('shouldShowMainIsland(isMusicPage, activityIds)'), 'The main island must hide on the music page unless another activity is live.');
-assert.ok(parent.includes('hostRef={islandWrapRef}'));
+assert.ok(
+  parent.includes('if (!hasTrack || isMusicPage)') && parent.includes("islandApi.end('music-playback')"),
+  'The music playback activity must end on the music page so it does not create an idle island there.',
+);
+assert.ok(
+  activity.includes('shouldShowIslandHost(value.activityIds)'),
+  'The island host must still appear when another live activity exists.',
+);
+assert.ok(
+  parent.includes('<div ref={islandWrapRef} hidden aria-hidden="true" />'),
+  'The music component must retain its hidden equalizer state target without mounting a duplicate island.',
+);
+assert.ok(
+  activity.includes('ref={hostRef}'),
+  'The active island host must use the dedicated host ref in the activity component.',
+);
 
 assert.ok(parent.includes('opacity: { duration: isMusicPage ? 0.34 : 0.36'));
 assert.ok(!parent.includes('scale: isMusicPage ? 1 : 0.985'), 'The music surface fades on opacity only; sliding and scaling the whole page fought the island entrance.');

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useIslandActions, useIslandActivityIds, useIslandReducedMotion } from '../lib/island';
-import { createMusicIslandActivity, MusicIslandView } from './QianzhiMusicIslandActivity';
+import { createMusicIslandActivity } from './QianzhiMusicIslandActivity';
 import MusicFullscreenPlayer from './MusicFullscreenPlayer';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { haptic } from '../lib/haptics';
@@ -256,7 +256,6 @@ function MusicIsland() {
   const lastSavedResumeRef = useRef<MusicResumeSession | null>(initialResumeSession);
   const mountForResume = shouldMountMusicFrameForResume(initialResumeSession);
   const shouldMountFrame = openedOnce || isMusicPage || mountForResume;
-  const showMainIsland = shouldShowMainIsland(isMusicPage, activityIds);
 
   // A paused song remains available briefly, then its activity disappears. This also covers
   // a paused resume-session restored before the music iframe has sent its first STATE.
@@ -748,25 +747,9 @@ function MusicIsland() {
         )}
       </AnimatePresence>
 
-      {showMainIsland && (
-        <MusicIslandView
-          hostRef={islandWrapRef}
-          value={{
-            track,
-            connected,
-            sendCommand,
-            openMusic: () => navigate('/music'),
-            openFullscreenPlayer,
-            seekDraft,
-            setSeekDraft: updateSeekDraft,
-            commitSeekDraft,
-            cancelSeekDraft,
-            collapse: () => islandApi.collapse(),
-            isExpanded: () => islandApi.presentation === 'expanded',
-            activityIds,
-          }}
-        />
-      )}
+      {/* Keep the hidden equalizer state target so fullscreen music retains its live bars.
+          The global floating island, task drawer, stopwatch trigger and dock affordance are removed. */}
+      <div ref={islandWrapRef} hidden aria-hidden="true" />
     </>
   );
 }

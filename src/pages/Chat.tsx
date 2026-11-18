@@ -1354,8 +1354,9 @@ export default function Chat() {
     setRecordCancelProgress(0);
     const recordingStartedAt = recordingStartedAtRef.current;
     if (recordingStartedAt !== null) {
-      emitVoiceRecordingIslandEvent('stop', recordingStartedAt);
+      emitVoiceRecordingIslandEvent('stop', recordingStartedAt, recordingConversationIdRef.current ?? Number(cid));
       recordingStartedAtRef.current = null;
+      recordingConversationIdRef.current = null;
     }
     if (recordTimerRef.current !== null) window.clearInterval(recordTimerRef.current);
     recordTimerRef.current = null;
@@ -1526,8 +1527,9 @@ export default function Chat() {
       const startedAt = Date.now();
       recordStartedAtMsRef.current = startedAt;
       recordingStartedAtRef.current = startedAt;
-      recordingConversationIdRef.current = Number(cid);
-      emitVoiceRecordingIslandEvent('start', startedAt, recordingConversationIdRef.current);
+      const recordingConversationId = Number(cid);
+      recordingConversationIdRef.current = recordingConversationId;
+      emitVoiceRecordingIslandEvent('start', startedAt, recordingConversationId);
       setRecordSeconds(0);
       setRecording(true);
       recordTimerRef.current = window.setInterval(() => {

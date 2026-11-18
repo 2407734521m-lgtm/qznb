@@ -305,7 +305,7 @@ export default function Chat() {
     activeMediaIdRef.current = null;
     setVoiceDraft(null);
     setRecordCancelProgress(0);
-    if (recording || recordStartPendingRef.current) cancelRecording();
+    if (recorderRef.current || recordStartPendingRef.current) cancelRecording();
   }, [cid]);
   const [loadingMsgs, setLoadingMsgs] = useState(true);
   const showMsgsSkeleton = useDelayedLoading(loadingMsgs);
@@ -628,6 +628,9 @@ export default function Chat() {
     mountedRef.current = true;
     return () => {
       mountedRef.current = false;
+      cancelRecordingRef.current = true;
+      recordStartPendingRef.current = false;
+      recordStartedAtMsRef.current = null;
       if (recordingStartedAtRef.current !== null) {
         emitVoiceRecordingIslandEvent('stop', recordingStartedAtRef.current);
         recordingStartedAtRef.current = null;
@@ -1522,6 +1525,7 @@ export default function Chat() {
         if (elapsedMs >= MAX_VOICE_RECORDING_SECONDS * 1000) stopRecording();
       }, 1000);
     } catch (e) {
+      const cancelledBeforePermission = cancelRecordingRef.current;
       recordStartPendingRef.current = false;
       const startedAt = recordingStartedAtRef.current;
       if (startedAt !== null) {
@@ -1546,7 +1550,9 @@ export default function Chat() {
       recordTimerRef.current = null;
       if (mountedRef.current) {
         setRecording(false);
-        setError('无法使用麦克风。请允许浏览器访问麦克风后重试。');
+        if (!cancelledBeforePermission) {
+          setError('无法使用麦克风。请允许浏览器访问麦克风后重试。');
+        }
       }
     }
   }

@@ -22,6 +22,7 @@ import '../styles-admin-reference-second.css'; // 第二张参考图：浅色工
 import '../styles-admin-wallpaper.css'; // 后台壁纸承载与旧深色背景最终清理，必须最后加载
 import '../styles-admin-reference-match.css'; // 按用户参考图重做顶部导航与总览结构，最终样式层
 import '../styles-admin-reference-glass.css'; // 总览毛玻璃通透层：只覆盖总览页，必须最后引入
+import '../styles-admin-reference-polish.css'; // 第 6 步收尾打磨：动效与按压反馈层，只覆盖总览页 + 后台小按钮，必须最后引入
 import AdminWorkspace from '../components/AdminWorkspace';
 import AdminGuestAccess from '../components/AdminGuestAccess';
 import AdminSystemCenter from '../components/AdminSystemCenter';

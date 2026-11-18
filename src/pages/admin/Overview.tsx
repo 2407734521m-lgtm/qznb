@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { motion, useReducedMotion, type MotionProps } from 'framer-motion';
 import { supabase } from '../../lib/supabase';
 import { startSitePresence, type SitePresenceSnapshot } from '../../lib/sitePresence';
 import { card, h3, mut, timeAgo, bucket30 } from './shared';
@@ -26,9 +27,30 @@ function trendTone(data: number[], cumulative = false): string {
   return '#b28b3d';
 }
 
+/* STEP 6 (Flux rebuild polish): one shared rise-in for the overview
+   sections — 0.28s easeOut, small stagger, no overshoot (DESIGN.md §6:
+   page / panel transitions 200–320ms). Reduced motion renders
+   everything in its final state; the caller passes useReducedMotion. */
+function riseProps(reduce: boolean | null, delay: number): MotionProps {
+  if (reduce) return {};
+  return {
+    initial: { opacity: 0, y: 10 },
+    animate: { opacity: 1, y: 0 },
+    transition: { duration: 0.28, delay, ease: 'easeOut' },
+  };
+}
+
+/* STEP 6: press feedback shared by the overview's own buttons — a
+   0.04 shrink on tap. Reduced motion disables it. */
+function tapProps(reduce: boolean | null): MotionProps {
+  if (reduce) return {};
+  return { whileTap: { scale: 0.97 } };
+}
+
 /* ---------------- 总览（仪表盘） ---------------- */
 // 总览顶部待办中心：五个待处理队列的计数汇总在一处，点一行直达对应页签处理。
 function TodoCenter({ go }: { go: (tab: string) => void }) {
+  const reduce = useReducedMotion();
   const [counts, setCounts] = useState<Record<string, number> | null>(null);
   const [err, setErr] = useState(false);
 
@@ -69,14 +91,14 @@ function TodoCenter({ go }: { go: (tab: string) => void }) {
     {!counts && !err && <p style={mut}>正在统计…</p>}
     {counts && total === 0 && !err && <p className="admin-overview-todo-done" style={{ fontSize: 13.5, color: '#2e7d4f', margin: '6px 0 2px' }}>全部处理完了，没有积压。</p>}
     {counts && items.map(([k, label, tab]) => (
-      <button key={k} onClick={() => go(tab)}
+      <motion.button key={k} onClick={() => go(tab)} {...tapProps(reduce)}
         style={{ display: 'flex', width: '100%', alignItems: 'center', gap: 8, padding: '9px 2px', background: 'transparent', border: 0, borderBottom: '1px solid rgba(31,42,58,.08)', cursor: 'pointer', textAlign: 'left' }}>
         <span style={{ flex: 1, fontSize: 13.5, color: (counts[k] || 0) === 0 ? '#5d686f' : '#1f2a3a' }}>{label}</span>
         {(counts[k] || 0) > 0
           ? <span style={{ background: '#b0404f', color: '#fff', fontWeight: 800, fontSize: 12, borderRadius: 999, padding: '2px 9px' }}>{counts[k]}</span>
           : <span style={{ fontSize: 12, color: '#5d686f' }}>无</span>}
         <span style={{ color: '#5d686f', fontSize: 13 }}>›</span>
-      </button>
+      </motion.button>
     ))}
   </div>;
 }
@@ -89,6 +111,7 @@ type ClientStats = {
   versions: { kind: string; version: string; count: number }[];
 };
 function ClientStatsCard() {
+  const reduce = useReducedMotion();
   const [stats, setStats] = useState<ClientStats | null>(null);
   const [err, setErr] = useState(false);
 
@@ -132,7 +155,7 @@ function ClientStatsCard() {
       gaugeBackground = 'conic-gradient(#e4e8ea 0 100%)';
     }
   }
-  return <section className="admin-overview-client-card">
+  return <motion.section className="admin-overview-client-card" {...riseProps(reduce, 0.15)}>
     <div className="admin-overview-panel-heading">
       <div><h3>客户端分布</h3><p>依据成员最近一次客户端上报汇总</p></div>
       <button className="mini ghost" type="button" onClick={() => void load()}>刷新</button>
@@ -142,12 +165,16 @@ function ClientStatsCard() {
     {stats && (
       <>
         <div className="admin-overview-client-summary">
-          <div className="admin-overview-client-gauge" style={gaugeBackground ? { background: gaugeBackground } : undefined}>
+          {/* STEP 6: the ring fades in (its conic-gradient can't sweep),
+              the centre ratio counts up with the shared NumberTicker. */}
+          <motion.div className="admin-overview-client-gauge" style={gaugeBackground ? { background: gaugeBackground } : undefined}
+            initial={reduce ? false : { opacity: 0, scale: 0.94 }} animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.35, delay: 0.2, ease: 'easeOut' }}>
             <div className="admin-overview-client-gauge-inner">
-              <strong>{ratio === null ? '—' : `${ratio}%`}</strong>
+              <strong>{ratio === null ? '—' : <><AdminNumberTicker value={ratio} delay={0.2} />%</>}</strong>
               <span>已识别</span>
             </div>
-          </div>
+          </motion.div>
           <div className="admin-overview-client-total">
             <strong>{stats.total.toLocaleString('zh-CN')}</strong>
             <span>条客户端记录</span>
@@ -156,11 +183,13 @@ function ClientStatsCard() {
         </div>
         <div className="admin-overview-client-legend">
           {rows.map(([label, count], index) => (
-            <div className="admin-overview-client-legend-row" key={label}>
+            <motion.div className="admin-overview-client-legend-row" key={label}
+              initial={reduce ? false : { opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.25, delay: 0.25 + index * 0.05, ease: 'easeOut' }}>
               <i className={`tone-${index}`} aria-hidden="true" />
               <span>{label}</span>
               <strong>{count.toLocaleString('zh-CN')}</strong>
-            </div>
+            </motion.div>
           ))}
         </div>
         {stats.versions.length > 0 && (
@@ -170,10 +199,11 @@ function ClientStatsCard() {
         )}
       </>
     )}
-  </section>;
+  </motion.section>;
 }
 
 export default function Overview({ setMsg, go }: { setMsg: (s: string) => void; go: (tab: string) => void }) {
+  const reduce = useReducedMotion();
   const [st, setSt] = useState<any>(null);
   const [presence, setPresence] = useState<{ online: number; active: number; sampledAt: string; error: boolean } | null>(null);
   const [realtimeReady, setRealtimeReady] = useState(false);
@@ -366,7 +396,7 @@ export default function Overview({ setMsg, go }: { setMsg: (s: string) => void; 
           title so no number is lost: health, online count, DB latency and
           the last sample time. Pills keep their existing handlers/styles;
           the pill look itself is step 3. */}
-      <div className="admin-overview-title-row">
+      <motion.div className="admin-overview-title-row" {...riseProps(reduce, 0)}>
         <div className="admin-overview-title-copy">
           <h2>欢迎回来，管理员</h2>
           <p>{new Intl.DateTimeFormat('zh-CN', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' }).format(new Date())} · 数据更新于 {new Date(st.loadedAt).toLocaleTimeString()}</p>
@@ -392,11 +422,11 @@ export default function Overview({ setMsg, go }: { setMsg: (s: string) => void; 
             ['文件管理', 'settings'],
             ['视频管理', 'board'],
           ] as [string, string][]).map(([label, tab], i, arr) => (
-            <button key={label} type="button" className={i === arr.length - 1 ? 'is-amber' : undefined} onClick={() => go(tab)}>{label}</button>
+            <motion.button key={label} type="button" className={i === arr.length - 1 ? 'is-amber' : undefined} onClick={() => go(tab)} {...tapProps(reduce)}>{label}</motion.button>
           ))}
         </div>
-      </div>
-      <div className="admin-overview-status-strip" role="status" aria-label="站点运行状态">
+      </motion.div>
+      <motion.div className="admin-overview-status-strip" role="status" aria-label="站点运行状态" {...riseProps(reduce, 0.05)}>
         <span className={st.dbOk ? 'is-healthy' : 'is-unhealthy'}><i aria-hidden="true" />{st.dbOk ? '运行正常' : '连接异常'}</span>
         <span>当前在线 <strong>{sampledOnline === null ? '—' : sampledOnline}</strong><small>{realtimeReady ? '实时连接' : realtimeFailed ? '备用统计' : '等待连接'}</small></span>
         <span>数据库延迟 <strong>{st.dbOk ? `${st.dbMs} ms` : '异常'}</strong></span>
@@ -406,62 +436,70 @@ export default function Overview({ setMsg, go }: { setMsg: (s: string) => void; 
           setLoadTimedOut(false);
           setRefreshSeq(value => value + 1);
         }}>刷新</button>
-      </div>
+      </motion.div>
 
       <div className="admin-overview-start-grid">
-        <section className="admin-overview-guide-panel">
+        <motion.section className="admin-overview-guide-panel" {...riseProps(reduce, 0.1)}>
           <div className="admin-overview-guide-heading">
             <div><span className="admin-overview-section-kicker">QUICK START</span><h3>入门指南</h3></div>
             <span>常用管理入口</span>
           </div>
           <div className="admin-overview-guide-progress">
-            <div className="admin-overview-guide-progress-track"><i style={{ width: `${(guideDone / guideItems.length) * 100}%` }} /></div>
+            {/* STEP 6: the bar fills with a 0.5s easeOut instead of jumping
+                to its width; the check circles pop when their item is done. */}
+            <div className="admin-overview-guide-progress-track"><motion.i
+              initial={reduce ? false : { width: 0 }} animate={{ width: `${(guideDone / guideItems.length) * 100}%` }}
+              transition={{ duration: 0.5, ease: 'easeOut' }} /></div>
             <span>已完成 {guideDone}/{guideItems.length}</span>
           </div>
           <div className="admin-overview-guide-list">
             {guideItems.map(item => (
-              <button key={item.key} type="button" onClick={() => go(item.tab)}>
-                <span className={['admin-overview-guide-check', item.done ? 'is-done' : ''].join(' ')} aria-hidden="true">{item.done ? '✓' : ''}</span>
+              <motion.button key={item.key} type="button" onClick={() => go(item.tab)} {...tapProps(reduce)}>
+                <motion.span className={['admin-overview-guide-check', item.done ? 'is-done' : ''].join(' ')} aria-hidden="true"
+                  initial={reduce || !item.done ? false : { scale: 0 }} animate={{ scale: 1 }}
+                  transition={{ type: 'spring', stiffness: 480, damping: 24 }}>{item.done ? '✓' : ''}</motion.span>
                 <span className="admin-overview-guide-copy"><strong>{item.title}</strong><small>{item.desc}</small></span>
                 <span className="admin-overview-guide-arrow">↗</span>
-              </button>
+              </motion.button>
             ))}
           </div>
-        </section>
+        </motion.section>
         <ClientStatsCard />
       </div>
 
       <section className="admin-overview-primary-grid" aria-label="核心数据">
         {stats.map(([label, value, trend, color, unit, kind], index) => (
-          <article key={label} className="admin-overview-metric-card">
+          <motion.article key={label} className="admin-overview-metric-card" {...riseProps(reduce, 0.16 + index * 0.05)}
+            whileHover={reduce ? undefined : { y: -2 }}>
             <div className="admin-overview-metric-topline">
               <span className="admin-overview-metric-label">{label}</span>
               <span className={`admin-overview-metric-icon tone-${index}`}>{['人', '动', '日', '图'][index]}</span>
             </div>
-            <div className="admin-overview-metric-value"><AdminNumberTicker value={value} /><small>{unit}</small></div>
+            <div className="admin-overview-metric-value"><AdminNumberTicker value={value} delay={0.16 + index * 0.05} /><small>{unit}</small></div>
             <div className="admin-overview-metric-hint">{statSub[label]}</div>
             {kind === 'bars' ? <SparkBars data={trend} color={color} /> : <Spark data={trend} color={color} />}
-          </article>
+          </motion.article>
         ))}
       </section>
 
       <div className="admin-overview-bottom-grid">
-        <section className="admin-overview-panel admin-overview-trend-panel">
+        <motion.section className="admin-overview-panel admin-overview-trend-panel" {...riseProps(reduce, 0.26)}>
           <div className="admin-overview-panel-heading">
             <div><span className="admin-overview-section-kicker">GROWTH</span><h3>30天运营趋势</h3><p>成员注册每日变化</p></div>
             <span className="admin-overview-range-label">近 30 天</span>
           </div>
           <div className="admin-overview-trend-hero">
-            <strong>{new30.toLocaleString('zh-CN')}</strong>
+            {/* STEP 6: the hero number counts up like the metric cards. */}
+            <strong><AdminNumberTicker value={new30} delay={0.26} /></strong>
             <span>近 30 天新增成员</span>
           </div>
           <TrendChart data={st.dPro} />
           <div className="admin-overview-chart-labels">
             {dlabels.map(label => <span key={label}>{label}</span>)}
           </div>
-        </section>
+        </motion.section>
 
-        <section className="admin-overview-panel admin-overview-runtime-panel">
+        <motion.section className="admin-overview-panel admin-overview-runtime-panel" {...riseProps(reduce, 0.31)}>
           <div className="admin-overview-panel-heading">
             <div><span className="admin-overview-section-kicker">LIVE STATUS</span><h3>实时运行</h3><p>站点关键服务与最近操作</p></div>
             <span className={['admin-overview-live-status', realtimeReady ? 'is-live' : (presence?.error || realtimeFailed ? 'is-error' : 'is-waiting')].join(' ')}>
@@ -505,14 +543,14 @@ export default function Overview({ setMsg, go }: { setMsg: (s: string) => void; 
                 ))
                 : <p className="admin-overview-empty">暂无管理操作记录</p>}
           </div>
-        </section>
+        </motion.section>
       </div>
 
       <div className="admin-overview-followup-grid">
-        <section className="admin-overview-todo" aria-label="待处理任务">
+        <motion.section className="admin-overview-todo" aria-label="待处理任务" {...riseProps(reduce, 0.36)}>
           <TodoCenter go={go} />
-        </section>
-        <section className="admin-overview-panel admin-overview-recent-members">
+        </motion.section>
+        <motion.section className="admin-overview-panel admin-overview-recent-members" {...riseProps(reduce, 0.41)}>
           <div className="admin-overview-panel-heading">
             <div><span className="admin-overview-section-kicker">NEW MEMBERS</span><h3>最近加入</h3><p>最新注册的成员</p></div>
             <span className="admin-overview-count">{st.newMembers.length} 人</span>
@@ -527,7 +565,7 @@ export default function Overview({ setMsg, go }: { setMsg: (s: string) => void; 
             ))}
             {st.newMembers.length === 0 && <p className="admin-overview-empty">暂时还没有新成员</p>}
           </div>
-        </section>
+        </motion.section>
       </div>
     </div>
   );

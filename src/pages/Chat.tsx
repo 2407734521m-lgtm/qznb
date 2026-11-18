@@ -347,6 +347,7 @@ export default function Chat() {
   const recorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const recordingStartedAtRef = useRef<number | null>(null);
+  const recordingConversationIdRef = useRef<number | null>(null);
   const recordStartedAtMsRef = useRef<number | null>(null);
   const recordStartPendingRef = useRef(false);
   const cancelRecordingRef = useRef(false);
@@ -632,8 +633,13 @@ export default function Chat() {
       recordStartPendingRef.current = false;
       recordStartedAtMsRef.current = null;
       if (recordingStartedAtRef.current !== null) {
-        emitVoiceRecordingIslandEvent('stop', recordingStartedAtRef.current);
+        emitVoiceRecordingIslandEvent(
+          'stop',
+          recordingStartedAtRef.current,
+          recordingConversationIdRef.current ?? Number(cid),
+        );
         recordingStartedAtRef.current = null;
+        recordingConversationIdRef.current = null;
       }
       if (recordTimerRef.current !== null) {
         window.clearInterval(recordTimerRef.current);
@@ -1312,8 +1318,12 @@ export default function Chat() {
     }
   }
 
-  function emitVoiceRecordingIslandEvent(phase: 'start' | 'stop', startedAt: number) {
-    const conversationId = Number(cid);
+  function emitVoiceRecordingIslandEvent(
+    phase: 'start' | 'stop',
+    startedAt: number,
+    conversationIdOverride?: number,
+  ) {
+    const conversationId = conversationIdOverride === undefined ? Number(cid) : conversationIdOverride;
     if (!Number.isFinite(conversationId) || conversationId <= 0) return;
     window.dispatchEvent(new CustomEvent('qz-island-voice-recording', {
       detail: { phase, conversationId, startedAt },
@@ -1329,8 +1339,9 @@ export default function Chat() {
     setRecording(false);
     const recordingStartedAt = recordingStartedAtRef.current;
     if (recordingStartedAt !== null) {
-      emitVoiceRecordingIslandEvent('stop', recordingStartedAt);
+      emitVoiceRecordingIslandEvent('stop', recordingStartedAt, recordingConversationIdRef.current ?? Number(cid));
       recordingStartedAtRef.current = null;
+      recordingConversationIdRef.current = null;
     }
     if (recordTimerRef.current !== null) window.clearInterval(recordTimerRef.current);
     recordTimerRef.current = null;
@@ -1515,7 +1526,8 @@ export default function Chat() {
       const startedAt = Date.now();
       recordStartedAtMsRef.current = startedAt;
       recordingStartedAtRef.current = startedAt;
-      emitVoiceRecordingIslandEvent('start', startedAt);
+      recordingConversationIdRef.current = Number(cid);
+      emitVoiceRecordingIslandEvent('start', startedAt, recordingConversationIdRef.current);
       setRecordSeconds(0);
       setRecording(true);
       recordTimerRef.current = window.setInterval(() => {
@@ -1529,8 +1541,9 @@ export default function Chat() {
       recordStartPendingRef.current = false;
       const startedAt = recordingStartedAtRef.current;
       if (startedAt !== null) {
-        emitVoiceRecordingIslandEvent('stop', startedAt);
+        emitVoiceRecordingIslandEvent('stop', startedAt, recordingConversationIdRef.current ?? Number(cid));
         recordingStartedAtRef.current = null;
+        recordingConversationIdRef.current = null;
       }
       console.error('microphone permission failed', e);
       const recorder = recorderRef.current;

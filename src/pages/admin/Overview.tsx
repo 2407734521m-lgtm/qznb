@@ -80,10 +80,10 @@ function ClientStatsCard() {
   useEffect(() => { void load(); }, []);
 
   const rows: [string, number][] = stats ? [
-    ['软件版（Class Memory）', stats.app],
+    ['用户端应用', stats.app],
     ['网页版', stats.web],
-    ['管理版（青春管理）', stats.admin],
-    ['未上报客户端', stats.unknown],
+    ['管理端应用', stats.admin],
+    ['未知客户端', stats.unknown],
   ] : [];
   return <section className="admin-overview-panel" style={card}>
     <div className="admin-overview-panel-heading">
@@ -236,7 +236,7 @@ export default function Overview({ setMsg, go }: { setMsg: (s: string) => void; 
   if (!st && !loadTimedOut) return <div className="admin-overview-loading" role="status"><span className="admin-loading-pulse" />正在整理总览数据…</div>;
   if (!st) return <div className="admin-overview-timeout"><strong>总览数据暂时没有响应</strong><p>后台其他功能仍可使用。请检查网络后重试。</p><button type="button" onClick={() => { setLoadTimedOut(false); setRefreshSeq(value => value + 1); }}>重新加载</button></div>;
   const categories: [string, number][] = [
-    ['注册成员', st.members], ['班级动态', st.posts], ['日常帖子', st.dailyPosts],
+    ['注册成员', st.members], ['社区动态', st.posts], ['日常帖子', st.dailyPosts],
     ['相册照片', st.photos], ['评论', st.comments],
   ];
   const dlabels = [0, 3, 6, 10, 13].map(i => {
@@ -244,31 +244,61 @@ export default function Overview({ setMsg, go }: { setMsg: (s: string) => void; 
     return `${d.getMonth() + 1}-${d.getDate()}`;
   });
   const statSub: Record<string, React.ReactNode> = {
-    '注册成员': <span style={{ color: '#5f7350' }}>较7天前 +{st.new7}</span>,
-    '近7天新增': <span style={{ color: '#5f7350' }}>新增注册</span>,
-    '班级动态': st.posts === 0 ? <span style={{ color: '#8b93b0' }}>暂无新动态</span> : <span style={{ color: '#5f7350' }}>持续更新中</span>,
-    '日常帖子': st.dailyPosts === 0 ? <span style={{ color: '#8b93b0' }}>暂无日常</span> : <span style={{ color: '#5f7350' }}>持续更新中</span>,
-    '班级照片': st.photos === 0 ? <span style={{ color: '#8b93b0' }}>暂无新照片</span> : <span style={{ color: '#5f7350' }}>持续更新中</span>,
+    '注册成员': <span style={{ color: '#9a762b' }}>较 7 天前 +{st.new7}</span>,
+    '近7天新增': <span style={{ color: '#9a762b' }}>新增注册</span>,
+    '社区动态': st.posts === 0 ? <span>暂无新动态</span> : <span style={{ color: '#9a762b' }}>持续更新中</span>,
+    '日常帖子': st.dailyPosts === 0 ? <span>暂无日常</span> : <span style={{ color: '#9a762b' }}>持续更新中</span>,
+    '相册照片': st.photos === 0 ? <span>暂无新照片</span> : <span style={{ color: '#9a762b' }}>持续更新中</span>,
   };
+  const dashboardAccent = '#b28b3d';
   const stats: [string, number, number[], string][] = [
-    ['注册成员', st.members, st.cum, '#1f2a3a'],
-    ['近7天新增', st.new7, st.dPro.slice(-7), '#54687f'],
-    ['班级动态', st.posts, st.dPost, '#5f7350'],
-    ['日常帖子', st.dailyPosts, st.dDailyPost, '#a67c3d'],
-    ['班级照片', st.photos, st.dPhoto, '#9c5a44'],
+    ['注册成员', st.members, st.cum, dashboardAccent],
+    ['近7天新增', st.new7, st.dPro.slice(-7), dashboardAccent],
+    ['社区动态', st.posts, st.dPost, dashboardAccent],
+    ['日常帖子', st.dailyPosts, st.dDailyPost, dashboardAccent],
+    ['相册照片', st.photos, st.dPhoto, dashboardAccent],
   ];
   return (
     <div className="admin-overview-dashboard">
-      <header className="admin-overview-header">
-        <div>
-          <h2>运营总览</h2>
-          <p>数据更新于 {new Date(st.loadedAt).toLocaleString()}</p>
+      <header className="admin-overview-welcome">
+        <div className="admin-overview-welcome-copy">
+          <span className="admin-overview-eyebrow">ADMIN WORKSPACE</span>
+          <h2>欢迎回来，管理员</h2>
+          <p>站点概况、日常待办和近期活动，都已汇总在这个工作台。</p>
+          <div className="admin-overview-welcome-meta">
+            <span>{new Intl.DateTimeFormat('zh-CN', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' }).format(new Date())}</span>
+            <span>更新于 {new Date(st.loadedAt).toLocaleTimeString()}</span>
+          </div>
+          <div className="admin-overview-welcome-actions">
+            <button type="button" className="is-primary" onClick={() => go('board')}>发布公告</button>
+            <button type="button" onClick={() => go('communication')}>成员沟通</button>
+            <button type="button" className="is-quiet" onClick={() => {
+              setSt(null);
+              setLoadTimedOut(false);
+              setRefreshSeq(value => value + 1);
+            }}>刷新数据</button>
+          </div>
         </div>
-        <button className="mini ghost" type="button" onClick={() => {
-          setSt(null);
-          setLoadTimedOut(false);
-          setRefreshSeq(value => value + 1);
-        }}>刷新数据</button>
+        <aside className="admin-overview-welcome-status" aria-label="站点运行状态">
+          <div className="admin-overview-welcome-status-heading">
+            <span>运行状态</span>
+            <strong className={st.dbOk ? 'is-healthy' : 'is-unhealthy'}>
+              <i aria-hidden="true" />{st.dbOk ? '系统正常' : '连接异常'}
+            </strong>
+          </div>
+          <div className="admin-overview-welcome-status-grid">
+            <div>
+              <span>当前在线</span>
+              <strong>{presence?.sampledAt ? presence.online : '—'}</strong>
+              <small>{realtimeReady ? '实时连接' : realtimeFailed ? '备用统计' : '等待连接'}</small>
+            </div>
+            <div>
+              <span>数据库响应</span>
+              <strong>{st.dbOk ? `${st.dbMs} ms` : '异常'}</strong>
+              <small>最近一次连通性检测</small>
+            </div>
+          </div>
+        </aside>
       </header>
 
       {/* Mosaic 层级：统计卡在上、图表居中、待办与快捷入口并列成操作区、列表与状态在下。只调排布，数据逻辑不动。 */}
@@ -320,9 +350,9 @@ export default function Overview({ setMsg, go }: { setMsg: (s: string) => void; 
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 19V5h14v14H5Z"/><path d="M8 9h8M8 13h5M8 17h8"/></svg>
             <span><strong>发布公告</strong><small>更新首页与社区公告</small></span>
           </button>
-          <button type="button" onClick={() => go('notifications')}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9ZM10 21h4"/></svg>
-            <span><strong>发送通知</strong><small>向成员发送站内消息</small></span>
+          <button type="button" onClick={() => go('communication')}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 5h16v11H8l-4 4z"/><path d="M8 9h8M8 12h5"/></svg>
+            <span><strong>成员沟通</strong><small>管理广播与定向消息</small></span>
           </button>
           <button type="button" onClick={() => go('feedback')}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 5h16v11H8l-4 4V5Z"/><path d="M8 9h8M8 13h5"/></svg>

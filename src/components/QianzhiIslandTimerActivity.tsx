@@ -2,11 +2,9 @@ import { useEffect, useRef, useState } from 'react';
 import type { ActivityOptions } from '../lib/island';
 import './QianzhiIslandTimerActivity.css';
 
-export type IslandTimerMode = 'pomodoro' | 'countdown' | 'break';
 export type IslandTimerStatus = 'running' | 'paused' | 'done';
 
 export interface IslandTimerSession {
-  mode: IslandTimerMode;
   status: IslandTimerStatus;
   startedAt: number;
   durationMs: number;
@@ -102,12 +100,10 @@ function TimerControls({ session, onPause, onResume, onStop, onStartBreak }: {
   onPause: () => void;
   onResume: () => void;
   onStop: () => void;
-  onStartBreak: () => void;
 }) {
   if (session.status === 'done') {
     return (
       <div className="qz-island-timer-actions">
-        {session.mode === 'pomodoro' && <TimerButton label="休息 5 分钟" onClick={onStartBreak} tone="primary" />}
         <TimerButton label="关闭" onClick={onStop} />
       </div>
     );
@@ -122,17 +118,9 @@ function TimerControls({ session, onPause, onResume, onStop, onStartBreak }: {
   );
 }
 
-function timerTitle(mode: IslandTimerMode): string {
-  if (mode === 'pomodoro') return '番茄钟';
-  if (mode === 'break') return '休息时间';
-  return '倒计时';
-}
-
-function timerStatus(mode: IslandTimerMode, status: IslandTimerStatus): string {
+function timerStatus(status: IslandTimerStatus): string {
   if (status === 'done') return '已完成';
   if (status === 'paused') return '已暂停';
-  if (mode === 'pomodoro') return '专注中';
-  if (mode === 'break') return '休息中';
   return '倒计时中';
 }
 
@@ -146,8 +134,8 @@ export function createIslandTimerActivity(input: {
   onComplete: () => void;
 }): ActivityOptions {
   const { session } = input;
-  const title = timerTitle(session.mode);
-  const status = timerStatus(session.mode, session.status);
+  const title = '倒计时';
+  const status = timerStatus(session.status);
   const label = title + ' · ' + status;
   const durationMinutes = Math.max(1, Math.round(session.durationMs / 60000));
 
@@ -169,7 +157,7 @@ export function createIslandTimerActivity(input: {
       leading: (
         <span className={'qz-island-timer-compact' + (session.status === 'done' ? ' is-done' : '')}>
           <span className="qz-island-timer-icon"><TimerIcon /></span>
-          <span>{session.status === 'done' ? '时间到' : session.mode === 'pomodoro' ? '专注' : session.mode === 'break' ? '休息' : '倒计时'}</span>
+          <span>{session.status === 'done' ? '时间到' : '倒计时'}</span>
         </span>
       ),
       trailing: <TimerClock session={session} onComplete={input.onComplete} />,
@@ -192,7 +180,6 @@ export function createIslandTimerActivity(input: {
           onPause={input.onPause}
           onResume={input.onResume}
           onStop={input.onStop}
-          onStartBreak={input.onStartBreak}
         />
       ),
     },

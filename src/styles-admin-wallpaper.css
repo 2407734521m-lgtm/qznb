@@ -498,3 +498,139 @@
     transition: none;
   }
 }
+
+
+/* Older unified theme layer also styled generic .card and every direct inline
+   gradient panel dark. These overrides intentionally come after it. */
+.admin-shell-v3 .admin-content > div[style*="linear-gradient"],
+.admin-shell-v3 .admin-content .card {
+  color: #293139 !important;
+  background: #ffffff !important;
+  background-image: none !important;
+  border-color: #e7eaee !important;
+  box-shadow: 0 1px 3px rgba(34, 40, 46, .035), 0 8px 22px rgba(34, 40, 46, .025) !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+.admin-shell-v3 .admin-content > div[style*="linear-gradient"] :is(h1, h2, h3, h4, strong, b),
+.admin-shell-v3 .admin-content .card :is(h1, h2, h3, h4, strong, b) {
+  color: #293139 !important;
+}
+
+.admin-shell-v3 .admin-content > div[style*="linear-gradient"] :is(p, small, label),
+.admin-shell-v3 .admin-content .card :is(p, small, label) {
+  color: #707a83 !important;
+}
+
+.admin-shell-v3 .admin-content button:not(.pri):not(.danger):not([aria-current="page"]) {
+  color: #4c565e;
+  border-color: #e2e6e9;
+}
+
+.admin-shell-v3 .admin-content button.danger,
+.admin-shell-v3 .admin-content button[class*="danger"] {
+  color: #a54148 !important;
+  background: #fff5f4 !important;
+  border-color: #efd8d7 !important;
+}
+
+.admin-shell-v3 .admin-content .admin-email-send-button {
+  color: #45371c !important;
+  background: #f1dfb8 !important;
+  border-color: #e8d4a6 !important;
+  box-shadow: 0 2px 5px rgba(154, 119, 48, .08) !important;
+}
+
+.admin-shell-v3 .admin-content .admin-email-send-button.is-confirming {
+  color: #45371c !important;
+  background: #f4e4bd !important;
+  border-color: #e8d4a6 !important;
+}
+
+.admin-shell-v3 .admin-content a {
+  color: #96732f !important;
+}
+
+.admin-shell-v3 .admin-content select option {
+  color: #293139 !important;
+  background: #ffffff !important;
+}
+
+.admin-shell-v3 .admin-member-avatar {
+  color: #6d572a !important;
+  background: #f7eedb !important;
+  box-shadow: none !important;
+}
+
+.admin-shell-v3 .admin-header > div:first-child > div:first-child {
+  color: #4b3c20 !important;
+  background: #f3e4c1 !important;
+  box-shadow: none !important;
+}
+
+.admin-shell-v3 .admin-header > span {
+  color: #7b683f !important;
+  background: #fbf7ed !important;
+  border-color: #eee5d3 !important;
+}
+
+/* Shared in-app confirmation dialogs are rendered beside the app shell. */
+.admin-dialog-card {
+  color: #293139 !important;
+  background: #ffffff !important;
+  background-image: none !important;
+  border: 1px solid #e7eaee !important;
+  box-shadow: 0 24px 64px rgba(34, 40, 46, .18) !important;
+}
+
+.admin-dialog-card :is(label, p, small, strong, span) {
+  color: #59636b !important;
+}
+
+.admin-dialog-card textarea,
+.admin-dialog-card input,
+.admin-dialog-card select {
+  color: #293139 !important;
+  background: #ffffff !important;
+  border-color: #e2e6e9 !important;
+}
+
+.admin-dialog-card .admin-dialog-cancel {
+  color: #59636b !important;
+  background: #ffffff !important;
+  border: 1px solid #e2e6e9 !important;
+}
+
+.admin-dialog-card .admin-dialog-primary {
+  color: #45371c !important;
+  background: #f1dfb8 !important;
+  border: 1px solid #e8d4a6 !important;
+}
+
+.admin-dialog-card .admin-dialog-danger {
+  color: #a54148 !important;
+  background: #fff5f4 !important;
+  border: 1px solid #efd8d7 !important;
+}
+
+/* Older floating navigation is kept light as well, should any legacy panel
+   still render it on a narrow viewport. */
+.admin-shell-v3 .admin-dock,
+.admin-shell-v3 .admin-mobile-dock {
+  color: #4c565e !important;
+  background: rgba(255, 255, 255, .94) !important;
+  border: 1px solid #e5e8eb !important;
+  box-shadow: 0 10px 28px rgba(34, 40, 46, .10) !important;
+  -webkit-backdrop-filter: blur(14px) !important;
+  backdrop-filter: blur(14px) !important;
+}
+
+.admin-shell-v3 .admin-dock button[aria-current="page"],
+.admin-shell-v3 .admin-mobile-dock button[aria-current="page"],
+.admin-shell-v3 .admin-mobile-dock button.active {
+  color: #4b3c20 !important;
+  background: #f5e8c9 !important;
+  border-color: #e9d9b5 !important;
+  box-shadow: none !important;
+}

@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import WaveSurfer from 'wavesurfer.js';
+import { isChatAutoplayBlocked } from '../lib/chatPlayback';
 
 type Props = {
   url: string;
   messageId?: number;
   autoPlay?: boolean;
   onEnded?: (messageId: number) => void;
+  onAutoplayBlocked?: (messageId: number) => void;
 };
 
 const autoPlayedMessageIds = new Set<number>();
@@ -25,11 +27,12 @@ function clock(seconds: number) {
   return Math.floor(value / 60) + ':' + String(value % 60).padStart(2, '0');
 }
 
-export default function ChatAudioWaveform({ url, messageId, autoPlay = false, onEnded }: Props) {
+export default function ChatAudioWaveform({ url, messageId, autoPlay = false, onEnded, onAutoplayBlocked }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<WaveSurfer | null>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
   const onEndedRef = useRef(onEnded);
+  const onAutoplayBlockedRef = useRef(onAutoplayBlocked);
   const autoPlayRef = useRef(autoPlay);
   const [playing, setPlaying] = useState(false);
   const [duration, setDuration] = useState(0);
@@ -38,6 +41,7 @@ export default function ChatAudioWaveform({ url, messageId, autoPlay = false, on
   const [failed, setFailed] = useState(false);
 
   onEndedRef.current = onEnded;
+  onAutoplayBlockedRef.current = onAutoplayBlocked;
   autoPlayRef.current = autoPlay;
 
   useEffect(() => {
@@ -125,11 +129,21 @@ export default function ChatAudioWaveform({ url, messageId, autoPlay = false, on
       if (!audio) return;
       void audio.play().then(() => {
         if (messageId !== undefined) rememberAutoPlay(messageId);
-      }).catch(() => setPlaying(false));
+      }).catch(error => {
+        setPlaying(false);
+        if (messageId !== undefined && isChatAutoplayBlocked(error)) {
+          onAutoplayBlockedRef.current?.(messageId);
+        }
+      });
       return;
     }
     const player = playerRef.current;
-    if (player) void player.play().catch(() => setPlaying(false));
+    if (player) void player.play().catch(error => {
+      setPlaying(false);
+      if (messageId !== undefined && isChatAutoplayBlocked(error)) {
+        onAutoplayBlockedRef.current?.(messageId);
+      }
+    });
   }, [autoPlay, ready, failed, messageId]);
 
   useEffect(() => {
@@ -166,7 +180,7 @@ export default function ChatAudioWaveform({ url, messageId, autoPlay = false, on
   const progress = duration > 0 ? Math.min(100, Math.max(0, currentTime / duration * 100)) : 0;
 
   return (
-    <div className="im-audio-card" data-message-id={messageId} data-player="custom">
+    <div className={"im-audio-card" + (playing ? " is-playing" : "")} data-message-id={messageId} data-player="custom" data-playback-state={!ready ? "loading" : playing ? "playing" : "paused"} role="group" aria-label="语音消息">
       <button type="button" className="im-audio-symbol" onClick={toggle}
         aria-label={playing ? '暂停语音' : '播放语音'} disabled={!ready}>
         {!ready ? '…' : playing ? 'Ⅱ' : '▶'}

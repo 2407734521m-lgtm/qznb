@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { getSwipeReplyVisual, isSwipeToReply } from './chatGestures';
+import { canLongPressMessage, getSwipeReplyVisual, isSwipeToReply } from './chatGestures';
 
 describe('iMessage swipe-to-reply gesture', () => {
   it('accepts a deliberate inward swipe on a sent message', () => {
@@ -33,5 +33,39 @@ describe('iMessage swipe-to-reply gesture', () => {
 
   it('does not move in the wrong direction', () => {
     expect(getSwipeReplyVisual(40, 'mine')).toEqual({ offset: 0, progress: 0 });
+  });
+});
+
+describe('iMessage long-press targets', () => {
+  it('allows plain message text', () => {
+    expect(canLongPressMessage({
+      interactive: false, mediaSurface: false, mediaControl: false, protectedSurface: false,
+    })).toBe(true);
+  });
+
+  it('allows long-press on image, video and audio surfaces', () => {
+    for (const mediaSurface of [true]) {
+      expect(canLongPressMessage({
+        interactive: true, mediaSurface, mediaControl: false, protectedSurface: false,
+      })).toBe(true);
+    }
+  });
+
+  it('does not steal media playback or seek controls', () => {
+    expect(canLongPressMessage({
+      interactive: true, mediaSurface: true, mediaControl: true, protectedSurface: false,
+    })).toBe(false);
+  });
+
+  it('does not interfere with invisible-ink reveal gestures', () => {
+    expect(canLongPressMessage({
+      interactive: false, mediaSurface: false, mediaControl: false, protectedSurface: true,
+    })).toBe(false);
+  });
+
+  it('does not long-press normal links or buttons', () => {
+    expect(canLongPressMessage({
+      interactive: true, mediaSurface: false, mediaControl: false, protectedSurface: false,
+    })).toBe(false);
   });
 });

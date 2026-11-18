@@ -131,6 +131,25 @@
   @media (prefers-reduced-motion:reduce) {
     *,*::before,*::after { scroll-behavior:auto !important; transition:none !important; }
   }
+
+  .track-actions { display:flex; flex:none; align-items:center; gap:6px; }
+  .previewbtn,.fav-track-btn { min-height:36px; border:1px solid #eaecf0; border-radius:10px; background:#fff; color:#475467; padding:7px 10px; font-size:12px; font-weight:650; cursor:pointer; }
+  .fav-track-btn.active { color:#2459c5; background:#eff4ff; border-color:#c7d7fe; }
+  .history-panel { display:flex; flex-wrap:wrap; align-items:center; gap:7px; margin:12px 0 4px; }
+  .history-panel[hidden],.preview-panel[hidden] { display:none !important; }
+  .history-label { color:#667085; font-size:11px; font-weight:700; }
+  .history-chip { border:1px solid #eaecf0; background:#f8fafc; color:#475467; border-radius:999px; padding:6px 10px; font-size:11px; cursor:pointer; }
+  .history-clear { border:0; background:transparent; color:#98a2b3; font-size:11px; padding:5px; cursor:pointer; }
+  .preview-panel { margin-top:14px; padding:13px; border:1px solid #dbe5ff; border-radius:14px; background:#f8faff; }
+  .preview-head { display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:8px; }
+  .preview-title { min-width:0; color:#344054; font-size:12px; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .preview-countdown { color:#667085; font-size:11px; white-space:nowrap; }
+  #previewAudio { display:block; width:100%; height:38px; }
+  @media (max-width:420px) {
+    .track { align-items:flex-start; }
+    .track-actions { flex-direction:column; align-items:stretch; }
+    .track-actions button { min-width:76px; }
+  }
 </style>
 </head>
 <body>
@@ -169,11 +188,17 @@
     <div class="row">
       <input type="text" id="kw" placeholder="搜歌名 / 歌手" autocomplete="off" disabled>
       <button class="btn" id="searchBtn" type="button" disabled>搜索</button>
-      <button class="btn ghost" id="favBtn" type="button" disabled>我的歌单</button>
+      <button class="btn ghost" id="favBtn" type="button" disabled>我的歌单</button><button class="btn ghost" id="savedBtn" type="button" disabled>我的收藏</button>
     </div>
+    <div class="history-panel" id="searchHistory" hidden></div>
     <p class="mut" id="listMeta" style="margin:10px 0 4px;">请先登录本站账号。</p>
     <div id="playlists"></div>
     <div id="tracks"></div>
+    <section class="preview-panel" id="previewPanel" hidden aria-label="歌曲试听播放器">
+      <div class="preview-head"><span class="preview-title" id="previewTitle">歌曲试听</span><span class="preview-countdown" id="previewCountdown">最多试听 30 秒</span></div>
+      <audio id="previewAudio" controls preload="none"></audio>
+      <div class="row" style="justify-content:flex-end;margin-top:8px;"><button class="btn ghost" id="previewClose" type="button">关闭播放器</button></div>
+    </section>
     <div class="row" style="margin-top:10px;">
       <button class="btn ghost" id="moreBtn" type="button" style="display:none;">加载更多</button>
     </div>
@@ -209,6 +234,8 @@
   var NO_RESTORE_KEY = 'qz_netease_no_restore_v1'; // '1' 本设备点过“退出本设备音乐”，不要自动恢复
   var restoreAttempted = false; // 一次页面加载只尝试自动恢复一次
   var neteaseNickname = '';
+  var previewTimer = null;
+  var previewRemaining = 30;
   var autoLinkKey = ''; // 已对该（本站账号 + 网易云账号）组合尝试过自动绑定，避免重复调 link
 
   function loadSiteSession() {
@@ -538,6 +565,150 @@
   }
   function deviceLabel() { return inApp ? 'QianzhiMusicDL/1.0' : 'web'; }
 
+  // 收藏与搜索历史按网易云账号分开保存在当前设备，不上传到服务端。
+  function localMusicKey(prefix) { return prefix + ':' + (myUserId || 'unknown'); }
+  function loadLocalList(key) {
+    try {
+      var value = JSON.parse(getLocal(key) || '[]');
+      return Array.isArray(value) ? value : [];
+    } catch (_) { return []; }
+  }
+  function getFavorites() { return loadLocalList(localMusicKey('qz_music_favorites_v1')); }
+  function isFavorite(id) {
+    return getFavorites().some(function (t) { return String(t.id) === String(id); });
+  }
+  function toggleFavorite(id) {
+    var t = tracks.find(function (item) { return String(item.id) === String(id); });
+    if (!t) return;
+    var list = getFavorites();
+    var index = list.findIndex(function (item) { return String(item.id) === String(id); });
+    if (index >= 0) list.splice(index, 1);
+    else list.unshift({ id:String(t.id), name:t.name || '', artist:t.artist || '', album:t.album || '', duration:Number(t.duration) || 0 });
+    setLocal(localMusicKey('qz_music_favorites_v1'), JSON.stringify(list.slice(0, 300)));
+    if (mode === 'favorites') renderSavedTracks();
+    else {
+      var btn = document.querySelector('[data-fav="' + String(id) + '"]');
+      if (btn) {
+        var active = isFavorite(id);
+        btn.textContent = active ? '已收藏' : '收藏';
+        btn.classList.toggle('active', active);
+        btn.setAttribute('aria-pressed', active ? 'true' : 'false');
+      }
+    }
+  }
+  function renderSavedTracks() {
+    mode = 'favorites';
+    currentPlaylistId = '';
+    playlists = [];
+    tracks = getFavorites();
+    $('playlists').innerHTML = '';
+    $('plTitle').textContent = '我的收藏';
+    $('listMeta').textContent = '已收藏 ' + tracks.length + ' 首 · 仅保存在此设备';
+    $('moreBtn').style.display = 'none';
+    renderTracks(tracks, false);
+  }
+  function loadSearchHistory() {
+    return loadLocalList(localMusicKey('qz_music_search_history_v1')).filter(function (x) { return typeof x === 'string' && x.trim(); });
+  }
+  function saveSearchHistory(keyword) {
+    var history = loadSearchHistory().filter(function (item) { return item !== keyword; });
+    history.unshift(keyword);
+    setLocal(localMusicKey('qz_music_search_history_v1'), JSON.stringify(history.slice(0, 6)));
+    renderSearchHistory();
+  }
+  function renderSearchHistory() {
+    var box = $('searchHistory');
+    if (!box) return;
+    var history = loadSearchHistory();
+    box.innerHTML = '';
+    box.hidden = !history.length;
+    if (!history.length) return;
+    var label = document.createElement('span');
+    label.className = 'history-label';
+    label.textContent = '最近搜索';
+    box.appendChild(label);
+    history.forEach(function (word) {
+      var chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'history-chip';
+      chip.textContent = word;
+      chip.addEventListener('click', function () {
+        $('kw').value = word;
+        doSearch();
+      });
+      box.appendChild(chip);
+    });
+    var clear = document.createElement('button');
+    clear.type = 'button';
+    clear.className = 'history-clear';
+    clear.textContent = '清空';
+    clear.addEventListener('click', function () {
+      removeLocal(localMusicKey('qz_music_search_history_v1'));
+      renderSearchHistory();
+    });
+    box.appendChild(clear);
+  }
+
+  function stopPreview(hidePanel) {
+    if (previewTimer) { clearInterval(previewTimer); previewTimer = null; }
+    var audio = $('previewAudio');
+    if (audio) {
+      audio.pause();
+      if (hidePanel) { audio.removeAttribute('src'); audio.load(); }
+    }
+    if (hidePanel && $('previewPanel')) $('previewPanel').hidden = true;
+  }
+  function previewTrack(id, btn) {
+    if (!siteSession || !loggedIn) { setTrackStatus(id, '请先完成登录。'); return; }
+    var t = tracks.find(function (item) { return String(item.id) === String(id); });
+    if (!t) return;
+    if (btn) btn.disabled = true;
+    setTrackStatus(id, '正在检查试听权限…');
+    apiFetch('/song/url?id=' + encodeURIComponent(id) + '&quality=standard&name=' + encodeURIComponent(t.name || '') + '&artist=' + encodeURIComponent(t.artist || ''), { credentials:'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (!d || !d.url || d.playable !== true || d.trial === true) {
+          throw new Error((d && d.message) || '这首歌当前没有可用的试听地址');
+        }
+        stopPreview(true);
+        var audio = $('previewAudio');
+        $('previewTitle').textContent = (t.name || '未知歌曲') + ' · ' + (t.artist || '未知歌手');
+        $('previewCountdown').textContent = '最多试听 30 秒';
+        $('previewPanel').hidden = false;
+        previewRemaining = 30;
+        audio.src = d.url;
+        audio.load();
+        var play = audio.play();
+        if (play && typeof play.then === 'function') {
+          play.then(function () {
+            setTrackStatus(id, '正在试听 · 最多 30 秒');
+            previewTimer = setInterval(function () {
+              if (audio.paused) return;
+              previewRemaining -= 1;
+              $('previewCountdown').textContent = '剩余 ' + Math.max(0, previewRemaining) + ' 秒';
+              if (previewRemaining <= 0) {
+                stopPreview(false);
+                $('previewCountdown').textContent = '试听结束';
+                setTrackStatus(id, '试听结束（30 秒）');
+              }
+            }, 1000);
+          }).catch(function () {
+            setTrackStatus(id, '播放失败，请检查浏览器音频权限。');
+          });
+        } else {
+          setTrackStatus(id, '浏览器不支持播放此音频。');
+        }
+        audio.onended = function () {
+          if (previewTimer) { clearInterval(previewTimer); previewTimer = null; }
+          $('previewCountdown').textContent = '播放结束';
+        };
+      })
+      .catch(function (e) {
+        setTrackStatus(id, '无法试听：' + (e && e.message || '网络错误'));
+      })
+      .finally(function () { if (btn) btn.disabled = false; });
+  }
+
   // 下载日志走同源代理 /api/dl/log-download，不直连 supabase.co（手机网络发不出去）。
   // site_user_id / site_username 由 Worker 从验证过的本站 token 取，不再由客户端传；
   // 先续期（快过期时）再记，失败仍静默，不影响下载本身。
@@ -585,15 +756,22 @@
     list.forEach(function (t) {
       var div = document.createElement('div');
       div.className = 'track';
+      var fav = isFavorite(t.id);
       div.innerHTML = '<div class="tinfo"><div class="tname">' + esc(t.name) + '</div>' +
         '<div class="tmeta">' + esc(t.artist || '') + ' · ' + fmtDur(t.duration) + (t.album ? ' · ' + esc(t.album) : '') + '</div>' +
         '<div class="tstat" data-stat="' + esc(t.id) + '"></div>' +
         '<div class="prog" data-prog="' + esc(t.id) + '"><i></i></div></div>' +
-        '<button class="dlbtn" type="button" data-dl="' + esc(t.id) + '">下载 MP3</button>';
+        '<div class="track-actions">' +
+        '<button class="previewbtn" type="button" data-preview="' + esc(t.id) + '">试听 30 秒</button>' +
+        '<button class="fav-track-btn' + (fav ? ' active' : '') + '" type="button" data-fav="' + esc(t.id) + '" aria-pressed="' + (fav ? 'true' : 'false') + '">' + (fav ? '已收藏' : '收藏') + '</button>' +
+        '<button class="dlbtn" type="button" data-dl="' + esc(t.id) + '">下载 MP3</button></div>';
       box.appendChild(div);
-    });
-    box.querySelectorAll('[data-dl]').forEach(function (btn) {
-      btn.addEventListener('click', function () { downloadTrack(btn.getAttribute('data-dl'), btn); });
+      var dl = div.querySelector('[data-dl]');
+      var preview = div.querySelector('[data-preview]');
+      var favBtn = div.querySelector('[data-fav]');
+      dl.addEventListener('click', function () { downloadTrack(String(t.id), dl); });
+      preview.addEventListener('click', function () { previewTrack(String(t.id), preview); });
+      favBtn.addEventListener('click', function () { toggleFavorite(String(t.id)); });
     });
   }
 
@@ -601,22 +779,27 @@
     $('kw').disabled = locked;
     $('searchBtn').disabled = locked;
     $('favBtn').disabled = locked;
+    $('savedBtn').disabled = locked;
     if (locked) { $('moreBtn').style.display = 'none'; }
   }
 
   function clearMusic() {
+    stopPreview(true);
     tracks = []; playlists = []; currentPlaylistId = ''; mode = 'lists'; offset = 0; hasMore = false;
     $('tracks').innerHTML = '';
     $('playlists').innerHTML = '';
     $('plTitle').textContent = '我的歌单';
     $('listMeta').textContent = siteSession ? '未登录，请先扫码登录。' : '请先登录本站账号。';
+    renderSearchHistory();
   }
 
   function renderPlaylists() {
+    mode = 'lists';
     var box = $('playlists');
     box.innerHTML = '';
     $('tracks').innerHTML = '';
     $('plTitle').textContent = '我的歌单';
+    tracks = [];
     $('listMeta').textContent = '共 ' + playlists.length + ' 个歌单，点一个打开';
     playlists.forEach(function (p) {
       var b = document.createElement('button');
@@ -679,6 +862,7 @@
     var kw = $('kw').value.trim();
     if (!kw) { renderPlaylists(); return; }
     mode = 'search'; currentKw = kw; offset = 0; tracks = [];
+    saveSearchHistory(kw);
     $('playlists').innerHTML = '';
     $('listMeta').textContent = '正在搜索「' + kw + '」…';
     apiFetch('/search?keywords=' + encodeURIComponent(kw) + '&limit=30', { credentials: 'same-origin' })
@@ -735,6 +919,7 @@
   }
 
   function showLoggedIn(info) {
+    renderSearchHistory();
     var box = $('loginBox');
     var av = info.avatar ? '<img src="' + esc(info.avatar) + '" alt="">' : '';
     box.innerHTML = '<div class="userline">' + av + '<div><div style="font-weight:700;">' + esc(info.nickname || '网易云用户') + '</div>' +
@@ -961,6 +1146,8 @@
   $('searchBtn').addEventListener('click', doSearch);
   $('kw').addEventListener('keydown', function (e) { if (e.key === 'Enter') doSearch(); });
   $('favBtn').addEventListener('click', function () { if (loggedIn) { renderPlaylists(); } });
+  $('savedBtn').addEventListener('click', function () { if (loggedIn) renderSavedTracks(); });
+  $('previewClose').addEventListener('click', function () { stopPreview(true); });
   $('moreBtn').addEventListener('click', function () { if (mode === 'playlist' && currentPlaylistId) loadPlaylistTracks(currentPlaylistId, '', false); });
 
   $('gateRegisterBtn').addEventListener('click', function () { window.location.href = 'https://qianzhi.pw/'; });

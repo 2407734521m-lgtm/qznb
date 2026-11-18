@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import Feed from './Feed';
 import Album from './Album';
-import OverseasVideos from './OverseasVideos';
 import PullToRefresh from '../components/PullToRefresh';
 
 // 动态 + 相册合并为一页，内部切换
@@ -12,7 +11,7 @@ export default function Discover() {
   const searchQuery = typeof routeState?.searchQuery === 'string' ? routeState.searchQuery : '';
   const focusPostId = typeof routeState?.focusPostId === 'number' && Number.isInteger(routeState.focusPostId)
     ? routeState.focusPostId : null;
-  const [tab, setTab] = useState<'feed' | 'albums' | 'videos'>(() => routeState?.openTab === 'albums' && !searchQuery ? 'albums' : 'feed');
+  const [tab, setTab] = useState<'feed' | 'albums'>(() => routeState?.openTab === 'albums' && !searchQuery ? 'albums' : 'feed');
   // 下拉刷新：PostList / Album 的拉取只在挂载时跑，文件范围不改它们，
   // 这里用 key 换掉当前子页强制重挂载重拉。PostList 内部没有共享的
   // loading 状态可等，指示条至少停留 700ms 再回弹。
@@ -31,9 +30,8 @@ export default function Discover() {
       <div className="seg" style={{ margin: '2px 0 2px' }}>
         <button type="button" className={tab === 'feed' ? 'on' : ''} onClick={() => setTab('feed')}>动态</button>
         <button type="button" className={tab === 'albums' ? 'on' : ''} onClick={() => setTab('albums')}>相册</button>
-        <button type="button" className={tab === 'videos' ? 'on' : ''} onClick={() => setTab('videos')}>视频</button>
       </div>
-      {tab === 'feed' ? <Feed key={`feed-${refreshKey}`} searchQuery={searchQuery} focusPostId={focusPostId} /> : tab === 'albums' ? <Album key={`album-${refreshKey}`} /> : <OverseasVideos key={`videos-${refreshKey}`} />}
+      {tab === 'feed' ? <Feed key={`feed-${refreshKey}`} searchQuery={searchQuery} focusPostId={focusPostId} /> : <Album key={`album-${refreshKey}`} />}
     </div>
     </PullToRefresh>
   );

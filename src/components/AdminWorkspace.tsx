@@ -20,7 +20,7 @@ interface AdminWorkspaceProps {
 const NAV_GROUPS = [
   { label: '工作台', ids: ['overview', 'analytics'] },
   { label: '成员与权限', ids: ['accounts', 'invite', 'approvals'] },
-  { label: '内容运营', ids: ['moderate', 'loveWall', 'songWall', 'overseasVideos', 'authorizedRequests', 'board', 'events', 'game'] },
+  { label: '内容运营', ids: ['moderate', 'loveWall', 'songWall', 'authorizedRequests', 'board', 'events', 'game'] },
   { label: '消息与反馈', ids: ['notifications', 'bulkEmail', 'broadcast', 'feedback'] },
   { label: '系统管理', ids: ['backups', 'release', 'appCenter', 'logs', 'security', 'system', 'guestAccess', 'settings', 'test'] },
 ] as const;
@@ -34,7 +34,6 @@ const ICON_PATHS: Record<string, string> = {
   moderate: 'M4 5h16 M4 12h16 M4 19h10 M7 2v6 M17 9v6',
   loveWall: 'M20.8 8.7c0 5.2-8.8 10.3-8.8 10.3S3.2 13.9 3.2 8.7A4.7 4.7 0 0 1 12 6.2a4.7 4.7 0 0 1 8.8 2.5z',
   songWall: 'M9 18V5l12-2v13 M9 18a3 3 0 1 1-3-3c1.7 0 3 1.3 3 3z M21 16a3 3 0 1 1-3-3c1.7 0 3 1.3 3 3z',
-  overseasVideos: 'M4 5h16v14H4z M10 9.5v5l4.5-2.5z',
   authorizedRequests: 'M12 3v18 M3 12h18 M5 5l14 14 M19 5L5 19',
   board: 'M4 4h16v12H7l-3 3z M8 8h8 M8 12h5',
   events: 'M4 5h16v16H4z M8 3v4 M16 3v4 M4 10h16',
@@ -83,7 +82,6 @@ function descriptionFor(id: string) {
     moderate: '处理举报、违规内容与社区审核任务。',
     loveWall: '管理表白墙内容与发布状态。',
     songWall: '管理匿名歌声投稿与审核状态。',
-    overseasVideos: '审核海外采集视频、管理来源与采集记录。',
     authorizedRequests: '查看并处理经过授权的申请队列。',
     board: '发布和维护站点公告与首页内容。',
     events: '管理社区活动与活动参与情况。',

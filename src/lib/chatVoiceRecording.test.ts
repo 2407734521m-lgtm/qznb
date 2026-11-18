@@ -65,7 +65,7 @@ describe('voice playback speed control', () => {
     expect(getNextVoicePlaybackRate(2)).toBe(1);
   });
 
-  it('recovers to the first speed for an unknown current rate', () => {
-    expect(getNextVoicePlaybackRate(1.75)).toBe(1.25);
+  it('resets to normal speed for an unknown current rate', () => {
+    expect(getNextVoicePlaybackRate(1.75)).toBe(1);
   });
 });

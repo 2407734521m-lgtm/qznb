@@ -53,6 +53,26 @@ const SOURCE_TYPE_OPTIONS = [
 { value: 'playlist', label: '播放列表'},
 ];
 const SOURCE_TYPE_LABEL: Record<string, string> = { channel: '频道', search: '搜索', playlist: '播放列表'};
+const REVIEW_FILTERS: [string, string][] = [
+['all', '全部'],
+['pending_review', '待审核'],
+['license_pending', '授权待确认'],
+];
+const LICENSE_TYPE_OPTIONS = [
+{ value: 'cc0', label: 'CC0（公共领域）'},
+{ value: 'public_domain', label: '公共领域'},
+{ value: 'cc_by', label: 'CC BY（署名后可使用）'},
+{ value: 'cc_by_sa', label: 'CC BY-SA（署名-相同方式共享）'},
+{ value: 'nasa_public_domain', label: 'NASA 公共领域'},
+{ value: 'licensed', label: '已获授权'},
+{ value: 'youtube_embed', label: '仅官方嵌入，无转载许可'},
+{ value: 'unknown', label: '授权未知'},
+];
+const COPYRIGHT_STATUS_OPTIONS = [
+{ value: 'unknown', label: '未核实'},
+{ value: 'verified', label: '已核实有效'},
+{ value: 'rejected', label: '已确认无效'},
+];
 const RUN_STATUS_LABEL: Record<string, string> = {
 running: '进行中',
 success: '成功',
@@ -156,6 +176,13 @@ const [sCategory, setSCategory] = useState('');
 // 新增分类表单
 const [cName, setCName] = useState('');
 const [cSlug, setCSlug] = useState('');
+// 待审核筛选与授权核实面板（全部放在组件顶部，任何提前返回之前）
+const [reviewFilter, setReviewFilter] = useState('all');
+const [verifyVideo, setVerifyVideo] = useState<Video | null>(null);
+const [vLicenseType, setVLicenseType] = useState('unknown');
+const [vLicenseUrl, setVLicenseUrl] = useState('');
+const [vAttribution, setVAttribution] = useState('');
+const [vCopyrightStatus, setVCopyrightStatus] = useState('unknown');
 
 const catName = useMemo(() => {
 const m = new Map<number, string>();
@@ -175,7 +202,7 @@ const [cats, srcs, rns, pend, pub, all] = await Promise.all([
 supabase.from('overseas_video_categories').select('id, name, slug, sort_order, enabled').order('sort_order'),
 supabase.from('overseas_video_sources').select('*').order('id'),
 supabase.from('overseas_harvest_runs').select('*').order('started_at', { ascending: false}).limit(30),
-supabase.from('overseas_videos').select('*').eq('status', 'pending_review').order('published_at', { ascending: false}).limit(100),
+supabase.from('overseas_videos').select('*').in('status', ['pending_review', 'license_pending']).order('published_at', { ascending: false}).limit(100),
 supabase.from('overseas_videos').select('*').eq('status', 'published').order('published_at', { ascending: false}).limit(100),
 supabase.from('overseas_videos').select('*').order('created_at', { ascending: false}).limit(500),
 ]);
@@ -202,7 +229,7 @@ return () => { alive = false;};
 
 useEffect(() => {
 setReviewShown(10);
-}, [reviewQuery]);
+}, [reviewQuery, reviewFilter]);
 
 const failedRuns = useMemo(
 () => runs.filter(r => r.status === 'failed' || r.status === 'partial' || r.failed_count > 0 || r.error),
@@ -225,11 +252,14 @@ const c = new Map<number, number>();
 allVideos.forEach(v => { if (v.category_id!= null) c.set(v.category_id, (c.get(v.category_id)?? 0) + 1);});
 return c;
 }, [allVideos]);
+const pendingReviewCount = useMemo(() => pending.filter(v => v.status === 'pending_review').length, [pending]);
+const licensePendingCount = useMemo(() => pending.filter(v => v.status === 'license_pending').length, [pending]);
 const shownPending = useMemo(() => {
 const q = reviewQuery.trim().toLowerCase();
-if (!q) return pending;
-return pending.filter(v => (v.title + ' ' + v.author).toLowerCase().includes(q));
-}, [pending, reviewQuery]);
+const list = reviewFilter === 'all'? pending: pending.filter(v => v.status === reviewFilter);
+if (!q) return list;
+return list.filter(v => (v.title + ' ' + v.author).toLowerCase().includes(q));
+}, [pending, reviewQuery, reviewFilter]);
 
 function toggleChecked(id: number) {
 setChecked(cur => (cur.includes(id)? cur.filter(x => x!== id): [...cur, id]));
@@ -275,6 +305,92 @@ confirmText: '确认驳回',
 });
 if (note === null) return;
 await reviewVideo(v, 'rejected', note.trim());
+}
+
+// 授权核实：打开 license_pending 视频的核实面板，带入当前授权信息。
+function openVerify(v: Video) {
+setVerifyVideo(v);
+setVLicenseType(v.license_type || 'unknown');
+setVLicenseUrl(v.license_url || '');
+setVAttribution(v.attribution || '');
+setVCopyrightStatus(v.copyright_status || 'unknown');
+}
+
+// 只保存授权信息，不改状态：核实面板里的“保存授权信息”用。copyrightOverride
+// 用于“确认授权有效/无法授权”时顺带把版权状态记为 verified / rejected。
+async function saveLicenseInfo(v: Video, copyrightOverride?: string): Promise<boolean> {
+setBusy('verify-' + v.id);
+const { error} = await supabase.from('overseas_videos').update({
+license_type: vLicenseType,
+license_url: vLicenseUrl.trim(),
+attribution: vAttribution.trim(),
+copyright_status: copyrightOverride ?? vCopyrightStatus,
+}).eq('id', v.id);
+setBusy('');
+if (error) {
+setMsg && setMsg('保存授权信息失败：' + error.message);
+return false;
+}
+return true;
+}
+
+// 面板里的“保存授权信息”：只改授权字段，状态仍为授权待确认，面板保持打开，
+// 管理员仍需点“确认授权有效”或“确认无法授权”才能解除待确认。
+async function saveLicenseInfoOnly() {
+const v = verifyVideo;
+if (!v) return;
+const ok = await saveLicenseInfo(v);
+if (!ok) return;
+const patch = {
+license_type: vLicenseType,
+license_url: vLicenseUrl.trim(),
+attribution: vAttribution.trim(),
+copyright_status: vCopyrightStatus,
+};
+setVerifyVideo({ ...v, ...patch});
+setPending(cur => cur.map(x => (x.id === v.id? { ...x, ...patch}: x)));
+setMsg && setMsg('授权信息已保存，状态仍为授权待确认，请点「确认授权有效」或「确认无法授权」解除待确认。');
+}
+
+// “确认授权有效”：先保存面板里的授权信息（版权状态记为已核实有效），再写一条
+// approved 的审核记录注明核实结果，最后把状态改回 pending_review，回到正常待审核流。
+async function verifyLicenseValid() {
+const v = verifyVideo;
+if (!v) return;
+const ok = await saveLicenseInfo(v, 'verified');
+if (!ok) return;
+setBusy('verify-' + v.id);
+const note = `授权核实通过：${licenseLabel(vLicenseType)}${vLicenseUrl.trim()? '（' + vLicenseUrl.trim() + '）': ''}${vAttribution.trim()? '，署名：' + vAttribution.trim(): ''}，回到待审核`;
+const { error: rErr} = await supabase.from('overseas_video_reviews').insert({
+video_id: v.id, reviewer: me || null, decision: 'approved', note,
+});
+if (rErr) {
+setBusy('');
+setMsg && setMsg('写入审核记录失败：' + rErr.message);
+return;
+}
+const { error: uErr} = await supabase.from('overseas_videos').update({
+status: 'pending_review', reviewed_by: me || null, reviewed_at: new Date().toISOString(), review_note: note,
+}).eq('id', v.id);
+setBusy('');
+if (uErr) {
+setMsg && setMsg('更新视频状态失败：' + uErr.message);
+return;
+}
+setMsg && setMsg('授权已核实，回到待审核：' + v.title);
+setVerifyVideo(null);
+setChecked(cur => cur.filter(x => x!== v.id));
+await loadAll();
+}
+
+// “确认无法授权”：先保存面板里的授权信息（版权状态记为已确认无效），再按驳回处理。
+async function verifyLicenseInvalid() {
+const v = verifyVideo;
+if (!v) return;
+const ok = await saveLicenseInfo(v, 'rejected');
+if (!ok) return;
+setVerifyVideo(null);
+await reviewVideo(v, 'rejected', '授权核实：无法确认有效授权，已驳回');
 }
 
 async function bulkReview(decision: 'published' | 'rejected') {
@@ -481,6 +597,9 @@ style={{ width: 20, height: 20, marginTop: 4, accentColor: '#22314a'}}
 )}
 <div style={{ flex: 1, minWidth: 220}}>
 <strong style={{ fontSize: 14, lineHeight: 1.5}}>{v.title || '（无标题）'}</strong>
+{v.status === 'license_pending' && (
+<span style={{ display: 'inline-block', marginLeft: 8, padding: '2px 9px', borderRadius: 999, background: '#b0404f', color: '#fff', fontSize: 12, fontWeight: 600, verticalAlign: '2px'}}>授权待确认</span>
+)}
 <p style={{...mut, margin: '6px 0 0'}}>
 {v.author || '未知作者'} · {fmtDate(v.published_at)}
 {fmtDuration(v.duration_seconds)? ' · ' + fmtDuration(v.duration_seconds): ''}
@@ -587,6 +706,11 @@ style={{ width: '100%', maxWidth: 640, aspectRatio: '16 / 9', border: 'none', bo
 <button type="button" onClick={() => void rejectVideo(v)} disabled={busy!== ''} style={btnDanger}>
 驳回
 </button>
+{v.status === 'license_pending' && (
+<button type="button" onClick={() => openVerify(v)} disabled={busy!== ''} style={btnBase}>
+核实授权
+</button>
+)}
 </>
 )}
 {mode === 'published' && (
@@ -613,7 +737,7 @@ return (
 <h3 style={h3}>海外视频</h3>
 <p style={mut}>
 每天 07:00（北京时间）自动采集海外优质视频，只存标题、作者、原链接、封面、发布时间、语言、简介等元数据，不下载、不转载视频文件。
-所有视频默认进待审核，通过后才对外展示。
+所有视频默认进待审核，通过后才对外展示；授权不明的先进「授权待确认」，核实后才能进待审核。
 </p>
 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10}}>
 {VIEWS.map(([k, label]) => {
@@ -669,6 +793,54 @@ color: view === k? '#fff': '#22314a',
 
 {!loading &&!err && view === 'review' && (
 <div>
+{verifyVideo && (
+<div style={card}>
+<h3 style={h3}>核实授权：{verifyVideo.title || '（无标题）'}</h3>
+<p style={mut}>
+来源：{PLATFORM_LABEL[verifyVideo.platform] || verifyVideo.platform} · 作者：{verifyVideo.author || '未知作者'}
+{verifyVideo.original_url && (
+<> · <a href={verifyVideo.original_url} target="_blank" rel="noreferrer" style={{ color: '#526b8c'}}>看原链接</a></>
+)}
+<br />
+先核对授权信息，保存只改授权字段、不改状态；点「确认授权有效」后视频回到待审核（可正常发布），点「确认无法授权」则驳回。两项都会写一条审核记录。
+</p>
+<div style={{ display: 'grid', gap: 10, marginTop: 10}}>
+<div style={{ display: 'flex', gap: 8, flexWrap: 'wrap'}}>
+<OptionSheet
+value={vLicenseType}
+options={LICENSE_TYPE_OPTIONS}
+onChange={setVLicenseType}
+title="选择授权类型"
+buttonText={licenseLabel(vLicenseType)}
+buttonStyle={{...btnBase, minWidth: 200, justifyContent: 'space-between'}}
+/>
+<OptionSheet
+value={vCopyrightStatus}
+options={COPYRIGHT_STATUS_OPTIONS}
+onChange={setVCopyrightStatus}
+title="选择版权状态"
+buttonText={(COPYRIGHT_STATUS_OPTIONS.find(o => o.value === vCopyrightStatus)?? COPYRIGHT_STATUS_OPTIONS[0]).label}
+buttonStyle={{...btnBase, minWidth: 130, justifyContent: 'space-between'}}
+/>
+</div>
+<input type="text" value={vLicenseUrl} onChange={e => setVLicenseUrl(e.target.value)} placeholder="授权链接，例如 https://creativecommons.org/licenses/by/4.0/" aria-label="授权链接" style={inputStyle} />
+<input type="text" value={vAttribution} onChange={e => setVAttribution(e.target.value)} placeholder="署名要求，例如：© NASA / 作者名" aria-label="署名要求" style={inputStyle} />
+<div style={rowBtn}>
+<button type="button" onClick={() => void saveLicenseInfoOnly()} disabled={busy!== ''} style={btnBase}>
+{busy === 'verify-' + verifyVideo.id? '保存中…': '保存授权信息'}
+</button>
+<button type="button" onClick={() => void verifyLicenseValid()} disabled={busy!== ''} style={btnPrimary}>
+{busy === 'verify-' + verifyVideo.id? '处理中…': '确认授权有效'}
+</button>
+<button type="button" onClick={() => void verifyLicenseInvalid()} disabled={busy!== ''} style={btnDanger}>
+{busy === 'verify-' + verifyVideo.id? '处理中…': '确认无法授权'}
+</button>
+<button type="button" onClick={() => setVerifyVideo(null)} disabled={busy!== ''} style={btnBase}>取消</button>
+</div>
+<p style={{...mut, margin: '8px 0 0'}}>点「确认授权有效」会同时把版权状态记为已核实有效；点「确认无法授权」会同时把版权状态记为已确认无效并驳回。授权待确认期间发布按钮保持置灰。</p>
+</div>
+</div>
+)}
 <div style={card}>
 <input
 type="search"
@@ -678,6 +850,25 @@ placeholder="按标题或作者搜索待审核视频…"
 aria-label="搜索待审核视频"
 style={inputStyle}
 />
+<div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10}}>
+{REVIEW_FILTERS.map(([k, label]) => {
+const count = k === 'all'? pending.length: k === 'pending_review'? pendingReviewCount: licensePendingCount;
+return (
+<button
+key={k}
+type="button"
+onClick={() => setReviewFilter(k)}
+style={{
+...chipStyle,
+background: reviewFilter === k? '#22314a': '#fff',
+color: reviewFilter === k? '#fff': '#22314a',
+}}
+>
+{label}（{count}）
+</button>
+);
+})}
+</div>
 <div style={rowBtn}>
 <button type="button" onClick={() => void bulkReview('published')} disabled={checked.length === 0 || busy!== ''} style={btnPrimary}>
 批量发布（{checked.length}）
@@ -689,9 +880,9 @@ style={inputStyle}
 <button type="button" onClick={() => setChecked([])} style={btnBase}>取消勾选</button>
 )}
 </div>
-<p style={{...mut, margin: '8px 0 0'}}>待审核 {pending.length} 条（最多显示 100 条）。一次只出 10 条，点加载更多继续看；mp4 / webm 直链用原生播放器直接播，YouTube 仍走官方嵌入，国内网络可能加载很慢或打不开，卡住时点卡片下的「看原链接」。授权待确认的视频不能发布，批量发布会自动跳过它们。通过即发布到前台，驳回会记一条审核记录。</p>
+<p style={{...mut, margin: '8px 0 0'}}>待审核 {pendingReviewCount} 条 + 授权待确认 {licensePendingCount} 条（最多显示 100 条）。一次只出 10 条，点加载更多继续看；mp4 / webm 直链用原生播放器直接播，YouTube 仍走官方嵌入，国内网络可能加载很慢或打不开，卡住时点卡片下的「看原链接」。授权待确认的视频不能发布，卡片上有「授权待确认」角标和「核实授权」按钮，核实通过后回到待审核才能发布；批量发布会自动跳过它们并汇报跳过条数。通过即发布到前台，驳回会记一条审核记录。</p>
 </div>
-{shownPending.length === 0 && <div style={card}><p style={mut}>没有待审核的视频。每天 07:00 自动采集的新视频会先到这里。</p></div>}
+{shownPending.length === 0 && <div style={card}><p style={mut}>{reviewFilter === 'license_pending'? '没有授权待确认的视频。': '没有符合条件的视频。每天 07:00 自动采集的新视频会先到这里。'}</p></div>}
 {shownPending.slice(0, reviewShown).map(v => videoCard(v, 'review'))}
 {shownPending.length > reviewShown && (
 <div style={{ marginTop: 10 }}>

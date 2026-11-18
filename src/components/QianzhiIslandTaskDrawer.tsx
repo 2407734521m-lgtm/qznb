@@ -72,7 +72,7 @@ function readStoredTimerSession(): IslandTimerSession | null {
     if (!raw) return null;
     const value = JSON.parse(raw) as Partial<IslandTimerSession> & { mode?: unknown };
     if (
-      value.mode !== 'countdown'
+      (value.mode !== undefined && value.mode !== 'countdown')
       || (value.status !== 'running' && value.status !== 'paused' && value.status !== 'done')
       || !Number.isFinite(value.startedAt)
       || !Number.isFinite(value.durationMs)

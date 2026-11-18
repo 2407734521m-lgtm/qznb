@@ -155,7 +155,7 @@ export default function QianzhiIslandTaskDrawer({ docked }: { docked: boolean })
     resume: () => void;
     stop: () => void;
     complete: () => void;
-  }>({ pause: () => {}, resume: () => {}, stop: () => {}, startBreak: () => {}, complete: () => {} });
+  }>({ pause: () => {}, resume: () => {}, stop: () => {}, complete: () => {} });
 
   const persistTimerSession = (next: IslandTimerSession | null) => {
     timerSessionRef.current = next;

@@ -3252,3 +3252,25 @@
   }
 }
 
+
+
+/* Native-style Tapback: selected reactions stay visibly latched while the picker is open. */
+.im-page .im-tapback-dock button[aria-pressed="true"] {
+  color: #075fc4;
+  background: linear-gradient(145deg, #e9f3ff, #d8eaff);
+  box-shadow: 0 3px 10px rgba(10, 92, 190, .14), inset 0 1px 0 rgba(255,255,255,.98);
+  transform: translateY(-2px) scale(1.06);
+}
+.im-page .im-tapback-dock button[aria-pressed="true"]:active {
+  transform: translateY(-2px) scale(1.12);
+  background: #cfe4ff;
+}
+.im-page .im-tapback-dock button:focus-visible {
+  outline: 2px solid rgba(10,124,255,.72);
+  outline-offset: 2px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .im-page .im-tapback-dock button {
+    transition: none !important;
+  }
+}

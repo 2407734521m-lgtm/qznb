@@ -3,7 +3,19 @@ import { supabase } from '../../lib/supabase';
 import { startSitePresence, type SitePresenceSnapshot } from '../../lib/sitePresence';
 import { card, h3, mut, timeAgo, bucket14 } from './shared';
 import AdminNumberTicker from '../../components/admin/AdminNumberTicker';
-import { Spark, TrendChart } from './charts';
+import { Spark, SparkBars, TrendChart } from './charts';
+
+/* STEP 3 (Flux rebuild): mini-chart tone is real, never decorative. Compare
+   the last 7 days against the previous 7 (cumulative members: the last
+   value against the value 7 days back). Up = green, down = red, flat = gold. */
+function trendTone(data: number[]): string {
+  if (data.length < 8) return '#b28b3d';
+  const prev = data.slice(0, 7).reduce((a, b) => a + b, 0);
+  const last = data.slice(7).reduce((a, b) => a + b, 0);
+  if (last > prev) return '#2e9e6b';
+  if (last < prev) return '#d05a4e';
+  return '#b28b3d';
+}
 
 /* ---------------- 总览（仪表盘） ---------------- */
 // 总览顶部待办中心：五个待处理队列的计数汇总在一处，点一行直达对应页签处理。
@@ -87,6 +99,30 @@ function ClientStatsCard() {
   ] : [];
   const identified = stats ? stats.app + stats.web + stats.admin : 0;
   const ratio = stats && stats.total > 0 ? Math.round(identified / stats.total * 100) : null;
+  /* STEP 3 (Flux rebuild): the ring is a three-segment arc like the
+     reference (orange / green / blue = 用户端应用 / 网页版 / 管理端应用).
+     Segment shares are the real counts over the identified total; the
+     unidentified share stays the grey track. The centre stays the
+     identified ratio. Segment colours match the legend dots exactly. */
+  const gaugeColors = ['#d97831', '#429a65', '#438fc0'];
+  let gaugeBackground: string | undefined;
+  if (stats && stats.total > 0) {
+    if (identified > 0) {
+      const identifiedShare = (identified / stats.total) * 100;
+      const parts: string[] = [];
+      let acc = 0;
+      [stats.app, stats.web, stats.admin].forEach((v, i) => {
+        if (v <= 0) return;
+        const len = (v / identified) * identifiedShare;
+        const end = acc + len;
+        parts.push(`${gaugeColors[i]} ${acc.toFixed(2)}% ${Math.max(end - 1.2, acc).toFixed(2)}%`);
+        acc = end;
+      });
+      gaugeBackground = `conic-gradient(${parts.join(', ')}, #e4e8ea ${acc.toFixed(2)}% 100%)`;
+    } else {
+      gaugeBackground = 'conic-gradient(#e4e8ea 0 100%)';
+    }
+  }
   return <section className="admin-overview-client-card">
     <div className="admin-overview-panel-heading">
       <div><h3>客户端分布</h3><p>依据成员最近一次客户端上报汇总</p></div>
@@ -97,7 +133,7 @@ function ClientStatsCard() {
     {stats && (
       <>
         <div className="admin-overview-client-summary">
-          <div className="admin-overview-client-gauge" style={{ '--client-ratio': `${ratio ?? 0}%` } as React.CSSProperties}>
+          <div className="admin-overview-client-gauge" style={gaugeBackground ? { background: gaugeBackground } : undefined}>
             <div className="admin-overview-client-gauge-inner">
               <strong>{ratio === null ? '—' : `${ratio}%`}</strong>
               <span>已识别</span>
@@ -207,7 +243,7 @@ export default function Overview({ setMsg, go }: { setMsg: (s: string) => void; 
     (async () => {
       try {
         const since14 = new Date(Date.now() - 14 * 864e5).toISOString();
-        const [m, p, c, ph, r, nm, pr, por, phr, pd, pdr] = await Promise.all([
+        const [m, p, c, ph, r, nm, pr, por, phr, pd, pdr, qLove, qSong, qGame, qReport, qFeedback, qBoard, qAppVer] = await Promise.all([
           supabase.from('profiles').select('id', { count: 'exact', head: true }),
           supabase.from('posts').select('id', { count: 'exact', head: true }).eq('section', 'feed').is('deleted_at', null),
           supabase.from('comments').select('id', { count: 'exact', head: true }).is('deleted_at', null),
@@ -220,9 +256,30 @@ export default function Overview({ setMsg, go }: { setMsg: (s: string) => void; 
           supabase.from('album_photos').select('created_at').gte('created_at', since14),
           supabase.from('posts').select('id', { count: 'exact', head: true }).eq('section', 'daily').is('deleted_at', null),
           supabase.from('posts').select('created_at').eq('section', 'daily').gte('created_at', since14).is('deleted_at', null),
+          // STEP 3: guide-checklist inputs (same five queues TodoCenter reads).
+          supabase.from('love_wall_posts').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+          supabase.from('song_posts').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+          supabase.from('game_profiles').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+          supabase.from('reports').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+          supabase.from('feedbacks').select('id', { count: 'exact', head: true }).eq('status', 'open'),
+          supabase.from('board_messages').select('id', { count: 'exact', head: true }).eq('is_admin_msg', true).is('deleted_at', null),
+          supabase.from('site_settings').select('value').eq('key', 'admin_app_version_name').maybeSingle(),
         ]);
         const critical = [m, p, c, ph, r, nm, pr, por, phr, pd, pdr];
         if (critical.some(result => result.error)) throw new Error('部分核心统计读取失败，请检查权限或网络后重试。');
+        /* STEP 3: guide "done" is computed from live data, never hard-coded.
+           - 成员与权限： at least one member has joined (members ≥ 1, checked at render)
+           - 内容审核： all five moderation queues are empty (0 pending/open)
+           - 发布公告： at least one admin announcement exists (board_messages,
+             is_admin_msg, not deleted)
+           - 应用管理： the admin-app version is configured (site_settings
+             admin_app_version_name non-empty — the same key appCenter reads)
+           A failed guide query counts as not done; it never fails the page. */
+        const guide = {
+          queuesClear: [qLove, qSong, qGame, qReport, qFeedback].every(q => !q.error && (q.count ?? 0) === 0),
+          board: !qBoard.error && (qBoard.count ?? 0) > 0,
+          appVersion: !qAppVer.error && Boolean((qAppVer.data as any)?.value?.trim()),
+        };
         const week = new Date(Date.now() - 7 * 864e5).toISOString();
         const { count: new7, error: new7Error } = await supabase.from('profiles')
           .select('id', { count: 'exact', head: true }).gte('created_at', week);
@@ -244,7 +301,7 @@ export default function Overview({ setMsg, go }: { setMsg: (s: string) => void; 
           photos: ph.count ?? 0, pendingReports: r.count ?? 0, new7: new7 ?? 0,
           newMembers: nm.data ?? [], recentLogs: logs ?? [], logsError: Boolean(logsError),
           dbOk: !pingErr, dbMs: Date.now() - t0,
-          dPro, dPost, dDailyPost, dPhoto, cum,
+          dPro, dPost, dDailyPost, dPhoto, cum, guide,
         });
       } catch (e: any) { if (active) setMsg('总览加载失败：' + (e.message || '')); }
     })();
@@ -267,13 +324,22 @@ export default function Overview({ setMsg, go }: { setMsg: (s: string) => void; 
     '日常帖子': st.dailyPosts === 0 ? <span>暂无日常</span> : <span>持续更新中</span>,
     '相册照片': st.photos === 0 ? <span>暂无新照片</span> : <span>持续更新中</span>,
   };
-  const dashboardAccent = '#b28b3d';
-  const stats: [string, number, number[], string, string][] = [
-    ['注册成员', st.members, st.cum, dashboardAccent, '人'],
-    ['社区动态', st.posts, st.dPost, dashboardAccent, '篇'],
-    ['日常帖子', st.dailyPosts, st.dDailyPost, dashboardAccent, '篇'],
-    ['相册照片', st.photos, st.dPhoto, dashboardAccent, '张'],
+  const stats: [string, number, number[], string, string, 'bars' | 'area'][] = [
+    ['注册成员', st.members, st.cum, trendTone(st.cum), '人', 'bars'],
+    ['社区动态', st.posts, st.dPost, trendTone(st.dPost), '篇', 'area'],
+    ['日常帖子', st.dailyPosts, st.dDailyPost, trendTone(st.dDailyPost), '篇', 'area'],
+    ['相册照片', st.photos, st.dPhoto, trendTone(st.dPhoto), '张', 'area'],
   ];
+  /* STEP 3: guide checklist — same four entries, now with a real completion
+     circle each and a progress bar on top. Progress = done / 4. */
+  const guide = st.guide as { queuesClear: boolean; board: boolean; appVersion: boolean } | undefined;
+  const guideItems: { key: string; title: string; desc: string; tab: string; done: boolean }[] = [
+    { key: 'members', title: '成员与权限', desc: '查看成员账号、角色及状态', tab: 'accounts', done: st.members >= 1 },
+    { key: 'moderate', title: '内容审核', desc: '处理举报与待审核内容', tab: 'moderate', done: guide?.queuesClear ?? false },
+    { key: 'board', title: '发布公告', desc: '更新站点公告与通知', tab: 'board', done: guide?.board ?? false },
+    { key: 'app', title: '应用管理', desc: '查看软件版本和更新说明', tab: 'appCenter', done: guide?.appVersion ?? false },
+  ];
+  const guideDone = guideItems.filter(i => i.done).length;
   const recentLogs = (st.recentLogs as any[]).slice(0, 4);
   const sampledOnline = presence && presence.sampledAt ? presence.online : null;
   const lastSample = presence?.sampledAt ? new Date(presence.sampledAt).toLocaleTimeString() : '等待首次采样';
@@ -291,14 +357,29 @@ export default function Overview({ setMsg, go }: { setMsg: (s: string) => void; 
           <h2>欢迎回来，管理员</h2>
           <p>{new Intl.DateTimeFormat('zh-CN', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' }).format(new Date())} · 数据更新于 {new Date(st.loadedAt).toLocaleTimeString()}</p>
         </div>
+        {/* STEP 3 (Flux rebuild): five action pills like the reference.
+            Destinations are real tabs only — no dead buttons. Two honest
+            approximations, because the admin has no dedicated page for
+            them (the overseas-video system was removed, and there is no
+            file-manager tab):
+            - 文件管理 → 设置页 (settings): the media-upload switches live
+              there (相册照片上传 / 共享媒体上传).
+            - 视频管理 → 公告页 (board): the homepage banner media is
+              managed there (home_banner_text/url) — the only
+              admin-managed homepage media.
+            The old 刷新数据 button moves to the status strip below so its
+            function is not lost. The amber fill on the last pill matches
+            the reference. */}
         <div className="admin-overview-welcome-actions">
-          <button type="button" className="is-primary" onClick={() => go('board')}>发布公告</button>
-          <button type="button" onClick={() => go('accounts')}>成员管理</button>
-          <button type="button" className="is-quiet" onClick={() => {
-            setSt(null);
-            setLoadTimedOut(false);
-            setRefreshSeq(value => value + 1);
-          }}>刷新数据</button>
+          {([
+            ['新任务', 'board'],
+            ['数据分析', 'analytics'],
+            ['报表分析', 'logs'],
+            ['文件管理', 'settings'],
+            ['视频管理', 'board'],
+          ] as [string, string][]).map(([label, tab], i, arr) => (
+            <button key={label} type="button" className={i === arr.length - 1 ? 'is-amber' : undefined} onClick={() => go(tab)}>{label}</button>
+          ))}
         </div>
       </div>
       <div className="admin-overview-status-strip" role="status" aria-label="站点运行状态">
@@ -306,6 +387,11 @@ export default function Overview({ setMsg, go }: { setMsg: (s: string) => void; 
         <span>当前在线 <strong>{sampledOnline === null ? '—' : sampledOnline}</strong><small>{realtimeReady ? '实时连接' : realtimeFailed ? '备用统计' : '等待连接'}</small></span>
         <span>数据库延迟 <strong>{st.dbOk ? `${st.dbMs} ms` : '异常'}</strong></span>
         <span>在线数据最近更新 <strong>{lastSample}</strong></span>
+        <button className="mini ghost" type="button" style={{ marginLeft: 'auto' }} onClick={() => {
+          setSt(null);
+          setLoadTimedOut(false);
+          setRefreshSeq(value => value + 1);
+        }}>刷新</button>
       </div>
 
       <div className="admin-overview-start-grid">
@@ -314,34 +400,25 @@ export default function Overview({ setMsg, go }: { setMsg: (s: string) => void; 
             <div><span className="admin-overview-section-kicker">QUICK START</span><h3>入门指南</h3></div>
             <span>常用管理入口</span>
           </div>
+          <div className="admin-overview-guide-progress">
+            <div className="admin-overview-guide-progress-track"><i style={{ width: `${(guideDone / guideItems.length) * 100}%` }} /></div>
+            <span>已完成 {guideDone}/{guideItems.length}</span>
+          </div>
           <div className="admin-overview-guide-list">
-            <button type="button" onClick={() => go('accounts')}>
-              <span className="admin-overview-guide-index">01</span>
-              <span className="admin-overview-guide-copy"><strong>成员与权限</strong><small>查看成员账号、角色及状态</small></span>
-              <span className="admin-overview-guide-arrow">↗</span>
-            </button>
-            <button type="button" onClick={() => go('moderate')}>
-              <span className="admin-overview-guide-index">02</span>
-              <span className="admin-overview-guide-copy"><strong>内容审核</strong><small>处理举报与待审核内容</small></span>
-              <span className="admin-overview-guide-arrow">↗</span>
-            </button>
-            <button type="button" onClick={() => go('board')}>
-              <span className="admin-overview-guide-index">03</span>
-              <span className="admin-overview-guide-copy"><strong>发布公告</strong><small>更新站点公告与通知</small></span>
-              <span className="admin-overview-guide-arrow">↗</span>
-            </button>
-            <button type="button" onClick={() => go('appCenter')}>
-              <span className="admin-overview-guide-index">04</span>
-              <span className="admin-overview-guide-copy"><strong>应用管理</strong><small>查看软件版本和更新说明</small></span>
-              <span className="admin-overview-guide-arrow">↗</span>
-            </button>
+            {guideItems.map(item => (
+              <button key={item.key} type="button" onClick={() => go(item.tab)}>
+                <span className={['admin-overview-guide-check', item.done ? 'is-done' : ''].join(' ')} aria-hidden="true">{item.done ? '✓' : ''}</span>
+                <span className="admin-overview-guide-copy"><strong>{item.title}</strong><small>{item.desc}</small></span>
+                <span className="admin-overview-guide-arrow">↗</span>
+              </button>
+            ))}
           </div>
         </section>
         <ClientStatsCard />
       </div>
 
       <section className="admin-overview-primary-grid" aria-label="核心数据">
-        {stats.map(([label, value, trend, color, unit], index) => (
+        {stats.map(([label, value, trend, color, unit, kind], index) => (
           <article key={label} className="admin-overview-metric-card">
             <div className="admin-overview-metric-topline">
               <span className="admin-overview-metric-label">{label}</span>
@@ -349,7 +426,7 @@ export default function Overview({ setMsg, go }: { setMsg: (s: string) => void; 
             </div>
             <div className="admin-overview-metric-value"><AdminNumberTicker value={value} /><small>{unit}</small></div>
             <div className="admin-overview-metric-hint">{statSub[label]}</div>
-            <Spark data={trend} color={color} />
+            {kind === 'bars' ? <SparkBars data={trend} color={color} /> : <Spark data={trend} color={color} />}
           </article>
         ))}
       </section>
@@ -387,7 +464,7 @@ export default function Overview({ setMsg, go }: { setMsg: (s: string) => void; 
                   <td><strong>在线服务</strong><small>Presence</small></td>
                   <td>{lastSample}</td>
                   <td>{sampledOnline === null ? '—' : `${sampledOnline} 人`}</td>
-                  <td><span className={realtimeReady ? 'is-healthy' : realtimeFailed ? 'is-warning' : ''}>{realtimeReady ? '在线' : realtimeFailed ? '降级' : '连接中'}</span></td>
+                  <td><span className={realtimeReady ? 'is-healthy' : realtimeFailed ? 'is-warning' : 'is-waiting'}>{realtimeReady ? '在线' : realtimeFailed ? '降级' : '连接中'}</span></td>
                 </tr>
                 <tr>
                   <td><strong>举报队列</strong><small>内容审核</small></td>

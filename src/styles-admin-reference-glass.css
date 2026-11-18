@@ -272,3 +272,124 @@
     border-radius: 20px !important;
   }
 }
+
+/* ---- STEP 3 (Flux rebuild): component forms. ---- */
+
+/* Action pills: glass pills like the reference; the last one (视频管理) is
+   amber-filled. The old is-primary button is gone from the title row. */
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-welcome-actions button {
+  border-radius: 999px !important;
+  padding: 0 15px !important;
+  border-color: rgba(255, 255, 255, .85) !important;
+  box-shadow: 0 4px 14px rgba(98, 73, 32, .08), inset 0 1px 0 rgba(255, 255, 255, .70) !important;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-welcome-actions button.is-amber {
+  color: #4a3716 !important;
+  background: #f6c453 !important;
+  border-color: rgba(233, 201, 90, .9) !important;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-welcome-actions button.is-amber:hover {
+  background: #f2bd3d !important;
+}
+
+/* Guide checklist: a completion circle per row (green check when the item's
+   live condition is met, hollow circle otherwise) and a progress bar on top. */
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-guide-progress {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 10px 2px 12px;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-guide-progress-track {
+  flex: 1;
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(31, 42, 58, .10);
+  overflow: hidden;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-guide-progress-track i {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #e8a13a, #43a06a);
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-guide-progress > span {
+  color: #5d686f !important;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-guide-check {
+  flex: 0 0 22px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(31, 42, 58, .28);
+  display: grid;
+  place-items: center;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-guide-check.is-done {
+  background: #43a06a;
+  border-color: #43a06a;
+}
+
+/* Runtime table: status reads as a small coloured pill (green normal,
+   amber degraded, red abnormal, grey connecting). match.css pins the text
+   colours with !important, so these carry it too. The live badge in the
+   panel heading gets the same pill treatment (its base colours live in
+   second.css with !important). */
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-runtime-table td .is-healthy,
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-runtime-table td .is-warning,
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-runtime-table td .is-unhealthy,
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-runtime-table td .is-waiting {
+  display: inline-block;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 700;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-runtime-table td .is-healthy {
+  color: #2e7d4f !important;
+  background: rgba(46, 125, 79, .12) !important;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-runtime-table td .is-warning {
+  color: #8a6f3c !important;
+  background: rgba(178, 139, 61, .15) !important;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-runtime-table td .is-unhealthy {
+  color: #b0404f !important;
+  background: rgba(176, 64, 79, .12) !important;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-runtime-table td .is-waiting {
+  color: #6f7880 !important;
+  background: rgba(111, 120, 128, .12) !important;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-live-status {
+  border-radius: 999px !important;
+  padding: 3px 10px !important;
+  font-size: 10.5px !important;
+  font-weight: 700 !important;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-live-status.is-waiting {
+  border-color: #e8ecee !important;
+  background: #f8f9fa !important;
+  color: #818a91 !important;
+}

@@ -14,3 +14,12 @@ export function isCrossSiteMusicApiRequest(request) {
   const fetchSite = request.headers.get("sec-fetch-site");
   return Boolean((origin && origin !== url.origin) || fetchSite === "cross-site");
 }
+
+// NetEase QR login may return a large cookie set. When the QR checker explicitly
+// requests noCookie=true, the adapter must keep those cookies in the JSON body
+// instead of emitting multiple Set-Cookie response headers.
+export function shouldSuppressNeteaseQrCookieHeader(route, query = {}) {
+  if (route !== "/login/qr/check") return false;
+  const value = query && query.noCookie;
+  return value === true || value === 1 || /^(true|1)$/i.test(String(value ?? "").trim());
+}

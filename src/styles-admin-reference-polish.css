@@ -1,0 +1,77 @@
+/* STEP 6 (Flux rebuild polish): motion + press-feedback layer.
+   Loaded last from Admin.tsx, after the glass layer. Two scopes:
+   (a) overview-only: live-dot pulse, metric-card hover shadow;
+   (b) all admin pages: shared .mini / .pri / .ghost / .danger press
+   feedback, so every small admin button answers a tap.
+   Visual only: no data, feature, entry or permission change.
+   Durations follow DESIGN.md §6 (button press 120–180ms, panel
+   transitions 200–320ms, no overshoot). The framer-motion half of this
+   step (entrance stagger, chart draw-in, progress fill, check pop,
+   pill/row whileTap) lives in src/pages/admin/Overview.tsx and
+   src/pages/admin/charts.tsx and is guarded by useReducedMotion; this
+   file covers the CSS half and its reduced-motion kill-switch. */
+
+/* ---- Shared press feedback: every small admin button gets a short
+   press scale + smooth colour transitions. The overview's own pills,
+   guide rows and todo rows are plain <button>s with framer-motion
+   whileTap, so they are not in this list — no double transform. ---- */
+.admin-shell-v3 .admin-content button.mini:not(:disabled),
+.admin-shell-v3 .admin-content button.pri:not(:disabled),
+.admin-shell-v3 .admin-content button.ghost:not(:disabled),
+.admin-shell-v3 .admin-content button.danger:not(:disabled) {
+  transition: transform .12s ease, background-color .15s ease, border-color .15s ease, color .15s ease;
+}
+
+.admin-shell-v3 .admin-content button.mini:not(:disabled):active,
+.admin-shell-v3 .admin-content button.pri:not(:disabled):active,
+.admin-shell-v3 .admin-content button.ghost:not(:disabled):active,
+.admin-shell-v3 .admin-content button.danger:not(:disabled):active {
+  transform: scale(.97);
+}
+
+/* ---- Live dots breathe: the status strip's healthy dot and the live
+   badge's dot get a soft ring pulse. The dot itself never moves, so
+   there is no layout shift — only the ring fades out. ---- */
+@keyframes admin-polish-live-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(46, 125, 79, .45); }
+  70% { box-shadow: 0 0 0 6px rgba(46, 125, 79, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(46, 125, 79, 0); }
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-status-strip .is-healthy i,
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-live-status.is-live i {
+  animation: admin-polish-live-pulse 2s ease-out infinite;
+}
+
+/* ---- Metric cards: a touch deeper glass shadow on hover (desktop
+   pointers only). The lift itself is framer-motion whileHover on the
+   card element, so it composes with the entrance animation instead of
+   fighting its inline transform. ---- */
+@media (hover: hover) {
+  .admin-shell-v3 .admin-overview-reference-layout .admin-overview-metric-card:hover {
+    box-shadow: 0 16px 34px rgba(98, 73, 32, .14), inset 0 1px 0 rgba(255, 255, 255, .75) !important;
+  }
+}
+
+/* ---- Reduced motion: everything new goes still. The JS half is
+   already guarded by useReducedMotion; this covers the CSS half. ---- */
+@media (prefers-reduced-motion: reduce) {
+  .admin-shell-v3 .admin-content button.mini,
+  .admin-shell-v3 .admin-content button.pri,
+  .admin-shell-v3 .admin-content button.ghost,
+  .admin-shell-v3 .admin-content button.danger {
+    transition: none !important;
+  }
+
+  .admin-shell-v3 .admin-content button.mini:active,
+  .admin-shell-v3 .admin-content button.pri:active,
+  .admin-shell-v3 .admin-content button.ghost:active,
+  .admin-shell-v3 .admin-content button.danger:active {
+    transform: none !important;
+  }
+
+  .admin-shell-v3 .admin-overview-reference-layout .admin-overview-status-strip .is-healthy i,
+  .admin-shell-v3 .admin-overview-reference-layout .admin-overview-live-status.is-live i {
+    animation: none !important;
+  }
+}

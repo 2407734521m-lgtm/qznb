@@ -21,3 +21,10 @@ export function resolveVoiceRecordingFormat(blobType: string): { mime: string; e
   if (normalized.includes('mpeg') || normalized.includes('mp3')) return { mime: 'audio/mpeg', extension: 'mp3' };
   return { mime: 'audio/webm', extension: 'webm' };
 }
+
+export const VOICE_PLAYBACK_RATES = [1, 1.25, 1.5, 2] as const;
+
+export function getNextVoicePlaybackRate(currentRate: number): number {
+  const index = VOICE_PLAYBACK_RATES.indexOf(currentRate as (typeof VOICE_PLAYBACK_RATES)[number]);
+  return VOICE_PLAYBACK_RATES[(index + 1) % VOICE_PLAYBACK_RATES.length];
+}

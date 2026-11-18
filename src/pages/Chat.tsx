@@ -2520,8 +2520,8 @@ export default function Chat() {
           const phaseLabel = e.phase === 'sending' ? '发送中' : e.phase === 'failed' ? '发送失败' : '已送达';
           return (
           <motion.div key={e.tempKey}
-            initial={reduceMotion ? false : { opacity: 0, y: 8, scale: 0.985 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
+            initial={reduceMotion ? false : { opacity: 0, y: 15, scale: 0.94, filter: 'blur(2px)' }}
+            animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
             exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 5, scale: 0.99 }}
             transition={reduceMotion ? { duration: 0.01 } : SPRING_SNAPPY}>
             <div className="im-row mine im-row-out">

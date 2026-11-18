@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
+import type { CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
 import { supabase } from '../lib/supabase';
+import { ADMIN_WALLPAPER_KEY, getAdminWallpaperBackground, parseAdminWallpaper, type AdminWallpaper } from '../lib/adminWallpaper';
 import { startSitePresence } from '../lib/sitePresence';
 import { detectInstalledAdminApp } from '../lib/installedApp';
 import { useAuth } from '../auth';
@@ -16,7 +18,8 @@ import '../styles-admin-paper.css';
 import '../styles-admin-overview-mosaic.css'; // 总览 Mosaic 版式：只覆盖总览页，最后引入
 import '../styles-admin-shadcn-shell.css'; // 后台整套壳 shadcn-admin 版式移植（冷白纸面）：只覆盖壳层，最后引入
 import '../styles-admin-antd-pro.css'; // 后台整套壳 Ant Design Pro 版式移植：保留作为基础层
-import '../styles-admin-reference-second.css'; // 第二张参考图：浅色工作台、暖黄重点与真实数据面板，最后覆盖
+import '../styles-admin-reference-second.css'; // 第二张参考图：浅色工作台、暖黄重点与真实数据面板
+import '../styles-admin-wallpaper.css'; // 后台壁纸承载与旧深色背景最终清理，必须最后加载
 import AdminWorkspace from '../components/AdminWorkspace';
 import AdminGuestAccess from '../components/AdminGuestAccess';
 import AdminSystemCenter from '../components/AdminSystemCenter';
@@ -177,7 +180,36 @@ export default function Admin({ verifiedRole }: { verifiedRole: 'admin' | 'super
     if (toastTimer.current !== null) window.clearTimeout(toastTimer.current);
   }, []);
   const [q0, setQ0] = useState('');
+  const [adminWallpaper, setAdminWallpaper] = useState<AdminWallpaper>({ type: 'none' });
   const isSuper = verifiedRole === 'super_admin';
+
+  useEffect(() => {
+    let alive = true;
+    const loadWallpaper = async () => {
+      const { data, error } = await supabase
+        .from('site_settings')
+        .select('value')
+        .eq('key', ADMIN_WALLPAPER_KEY)
+        .maybeSingle();
+      if (!alive || error) return;
+      setAdminWallpaper(parseAdminWallpaper(data?.value));
+    };
+    void loadWallpaper();
+    const onWallpaperChanged = (event: Event) => {
+      const detail = (event as CustomEvent<unknown>).detail;
+      setAdminWallpaper(parseAdminWallpaper(detail));
+    };
+    window.addEventListener('qz:admin-wallpaper-changed', onWallpaperChanged);
+    return () => {
+      alive = false;
+      window.removeEventListener('qz:admin-wallpaper-changed', onWallpaperChanged);
+    };
+  }, []);
+
+  const adminWallpaperBackground = getAdminWallpaperBackground(adminWallpaper);
+  const adminWallpaperStyle = adminWallpaperBackground
+    ? ({ '--admin-wallpaper-image': adminWallpaperBackground } as CSSProperties)
+    : undefined;
   const tabs = TABS_ALL.filter(([, , sup]) => !sup || isSuper);
 
 
@@ -200,7 +232,7 @@ export default function Admin({ verifiedRole }: { verifiedRole: 'admin' | 'super
     return <div className="center" style={{ minHeight: '60vh' }}>登录会话已失效，请返回管理员登录页重新登录。</div>;
   }
   return (
-    <div className="admin-shell-v3">
+    <div className={["admin-shell-v3", adminWallpaperBackground ? "has-admin-wallpaper" : ""].filter(Boolean).join(" ")} style={adminWallpaperStyle}>
       <AdminWorkspace
         tabs={tabs}
         activeTab={tab}

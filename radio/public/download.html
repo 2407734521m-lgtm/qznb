@@ -654,7 +654,11 @@
     var audio = $('previewAudio');
     if (audio) {
       audio.pause();
-      if (hidePanel) { audio.removeAttribute('src'); audio.load(); audio.onplay = null; audio.onended = null; }
+      if (hidePanel) {
+        audio.removeAttribute('src'); audio.load();
+        audio.onplay = null; audio.onpause = null; audio.onended = null;
+        audio.onerror = null; audio.onwaiting = null; audio.oncanplay = null;
+      }
     }
     if (hidePanel && $('previewPanel')) $('previewPanel').hidden = true;
   }
@@ -676,10 +680,9 @@
         $('previewCountdown').textContent = '最多试听 30 秒';
         $('previewPanel').hidden = false;
         previewRemaining = 30;
-        audio.src = d.url;
-        audio.load();
         audio.onplay = function () {
           if (previewTimer) return;
+          setTrackStatus(id, '正在试听 · 最多 30 秒');
           previewTimer = setInterval(function () {
             if (audio.paused) return;
             previewRemaining -= 1;
@@ -694,18 +697,32 @@
             }
           }, 1000);
         };
+        audio.onpause = function () {
+          if (previewTimer && !audio.ended && previewRemaining > 0) {
+            clearInterval(previewTimer);
+            previewTimer = null;
+          }
+        };
         audio.onended = function () {
           if (previewTimer) { clearInterval(previewTimer); previewTimer = null; }
           $('previewCountdown').textContent = '播放结束';
+          setTrackStatus(id, '试听播放结束');
         };
-        var play = audio.play();
-        if (play && typeof play.then === 'function') {
-          play.then(function () {
-            setTrackStatus(id, '正在试听 · 最多 30 秒');
-          }).catch(function () {
-            setTrackStatus(id, '播放失败，请检查浏览器音频权限。');
-          });
-        }
+        audio.onerror = function () {
+          if (previewTimer) { clearInterval(previewTimer); previewTimer = null; }
+          $('previewCountdown').textContent = '音频加载失败';
+          setTrackStatus(id, '音频地址无法播放，可能已失效或当前网络无法访问。');
+        };
+        audio.onwaiting = function () {
+          $('previewCountdown').textContent = '正在缓冲…';
+        };
+        audio.oncanplay = function () {
+          if (!previewTimer && !audio.paused) $('previewCountdown').textContent = '最多试听 30 秒';
+        };
+        audio.src = d.url;
+        audio.load();
+        $('previewCountdown').textContent = '已就绪 · 点击播放器播放键';
+        setTrackStatus(id, '试听地址已准备好，请点击播放器的播放键开始。');
       })
       .catch(function (e) {
         setTrackStatus(id, '无法试听：' + (e && e.message || '网络错误'));

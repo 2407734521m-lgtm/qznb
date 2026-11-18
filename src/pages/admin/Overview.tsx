@@ -83,25 +83,47 @@ function ClientStatsCard() {
     ['用户端应用', stats.app],
     ['网页版', stats.web],
     ['管理端应用', stats.admin],
-    ['未知客户端', stats.unknown],
+    ['未识别客户端', stats.unknown],
   ] : [];
-  return <section className="admin-overview-panel" style={card}>
+  const identified = stats ? stats.app + stats.web + stats.admin : 0;
+  const ratio = stats && stats.total > 0 ? Math.round(identified / stats.total * 100) : null;
+  return <section className="admin-overview-client-card">
     <div className="admin-overview-panel-heading">
-      <div><h3>客户端构成</h3><p>按每位成员最近一次打开网站 / 应用时上报的客户端统计，共 {stats ? stats.total : '—'} 人有记录</p></div>
+      <div><h3>客户端分布</h3><p>依据成员最近一次客户端上报汇总</p></div>
       <button className="mini ghost" type="button" onClick={() => void load()}>刷新</button>
     </div>
     {err && <p className="admin-overview-empty">客户端统计读取失败，点刷新重试。</p>}
     {!stats && !err && <p className="admin-overview-empty">正在统计…</p>}
-    {stats && rows.map(([label, n]) => (
-      <div key={label} className="admin-overview-system-row">
-        <span>{label}</span>
-        <strong>{n} 人</strong>
-      </div>
-    ))}
-    {stats && stats.versions.length > 0 && (
-      <p style={{ ...mut, margin: '8px 0 0' }}>
-        版本分布：{stats.versions.map(v => `${v.kind === 'admin' ? '管理版' : '软件版'} ${v.version}：${v.count} 人`).join(' · ')}
-      </p>
+    {stats && (
+      <>
+        <div className="admin-overview-client-summary">
+          <div className="admin-overview-client-gauge" style={{ '--client-ratio': `${ratio ?? 0}%` } as React.CSSProperties}>
+            <div className="admin-overview-client-gauge-inner">
+              <strong>{ratio === null ? '—' : `${ratio}%`}</strong>
+              <span>已识别</span>
+            </div>
+          </div>
+          <div className="admin-overview-client-total">
+            <strong>{stats.total.toLocaleString('zh-CN')}</strong>
+            <span>条客户端记录</span>
+            <small>{identified.toLocaleString('zh-CN')} 条已识别类型</small>
+          </div>
+        </div>
+        <div className="admin-overview-client-legend">
+          {rows.map(([label, count], index) => (
+            <div className="admin-overview-client-legend-row" key={label}>
+              <i className={`tone-${index}`} aria-hidden="true" />
+              <span>{label}</span>
+              <strong>{count.toLocaleString('zh-CN')}</strong>
+            </div>
+          ))}
+        </div>
+        {stats.versions.length > 0 && (
+          <p className="admin-overview-client-versions">
+            版本：{stats.versions.map(v => `${v.kind === 'admin' ? '管理端' : '用户端'} ${v.version}（${v.count}）`).join(' · ')}
+          </p>
+        )}
+      </>
     )}
   </section>;
 }
@@ -235,43 +257,40 @@ export default function Overview({ setMsg, go }: { setMsg: (s: string) => void; 
   }, [st, refreshSeq]);
   if (!st && !loadTimedOut) return <div className="admin-overview-loading" role="status"><span className="admin-loading-pulse" />正在整理总览数据…</div>;
   if (!st) return <div className="admin-overview-timeout"><strong>总览数据暂时没有响应</strong><p>后台其他功能仍可使用。请检查网络后重试。</p><button type="button" onClick={() => { setLoadTimedOut(false); setRefreshSeq(value => value + 1); }}>重新加载</button></div>;
-  const categories: [string, number][] = [
-    ['注册成员', st.members], ['社区动态', st.posts], ['日常帖子', st.dailyPosts],
-    ['相册照片', st.photos], ['评论', st.comments],
-  ];
   const dlabels = [0, 3, 6, 10, 13].map(i => {
     const d = new Date(); d.setDate(d.getDate() - (13 - i));
     return `${d.getMonth() + 1}-${d.getDate()}`;
   });
   const statSub: Record<string, React.ReactNode> = {
-    '注册成员': <span style={{ color: '#9a762b' }}>较 7 天前 +{st.new7}</span>,
-    '近7天新增': <span style={{ color: '#9a762b' }}>新增注册</span>,
-    '社区动态': st.posts === 0 ? <span>暂无新动态</span> : <span style={{ color: '#9a762b' }}>持续更新中</span>,
-    '日常帖子': st.dailyPosts === 0 ? <span>暂无日常</span> : <span style={{ color: '#9a762b' }}>持续更新中</span>,
-    '相册照片': st.photos === 0 ? <span>暂无新照片</span> : <span style={{ color: '#9a762b' }}>持续更新中</span>,
+    '注册成员': <span className="admin-overview-positive">近 7 天新增 +{st.new7}</span>,
+    '社区动态': st.posts === 0 ? <span>暂无新动态</span> : <span>持续更新中</span>,
+    '日常帖子': st.dailyPosts === 0 ? <span>暂无日常</span> : <span>持续更新中</span>,
+    '相册照片': st.photos === 0 ? <span>暂无新照片</span> : <span>持续更新中</span>,
   };
   const dashboardAccent = '#b28b3d';
-  const stats: [string, number, number[], string][] = [
-    ['注册成员', st.members, st.cum, dashboardAccent],
-    ['近7天新增', st.new7, st.dPro.slice(-7), dashboardAccent],
-    ['社区动态', st.posts, st.dPost, dashboardAccent],
-    ['日常帖子', st.dailyPosts, st.dDailyPost, dashboardAccent],
-    ['相册照片', st.photos, st.dPhoto, dashboardAccent],
+  const stats: [string, number, number[], string, string][] = [
+    ['注册成员', st.members, st.cum, dashboardAccent, '人'],
+    ['社区动态', st.posts, st.dPost, dashboardAccent, '篇'],
+    ['日常帖子', st.dailyPosts, st.dDailyPost, dashboardAccent, '篇'],
+    ['相册照片', st.photos, st.dPhoto, dashboardAccent, '张'],
   ];
+  const recentLogs = (st.recentLogs as any[]).slice(0, 4);
+  const sampledOnline = presence && presence.sampledAt ? presence.online : null;
+  const lastSample = presence?.sampledAt ? new Date(presence.sampledAt).toLocaleTimeString() : '等待首次采样';
   return (
-    <div className="admin-overview-dashboard">
+    <div className="admin-overview-dashboard admin-overview-reference-layout">
       <header className="admin-overview-welcome">
         <div className="admin-overview-welcome-copy">
-          <span className="admin-overview-eyebrow">ADMIN WORKSPACE</span>
+          <span className="admin-overview-eyebrow">ADMIN WORKSPACE · CONTROL CENTER</span>
           <h2>欢迎回来，管理员</h2>
-          <p>站点概况、日常待办和近期活动，都已汇总在这个工作台。</p>
+          <p>这里汇总站点运行、成员增长与待处理工作。</p>
           <div className="admin-overview-welcome-meta">
             <span>{new Intl.DateTimeFormat('zh-CN', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' }).format(new Date())}</span>
-            <span>更新于 {new Date(st.loadedAt).toLocaleTimeString()}</span>
+            <span>数据更新于 {new Date(st.loadedAt).toLocaleTimeString()}</span>
           </div>
           <div className="admin-overview-welcome-actions">
             <button type="button" className="is-primary" onClick={() => go('board')}>发布公告</button>
-            <button type="button" onClick={() => go('communication')}>成员沟通</button>
+            <button type="button" onClick={() => go('accounts')}>成员管理</button>
             <button type="button" className="is-quiet" onClick={() => {
               setSt(null);
               setLoadTimedOut(false);
@@ -281,172 +300,155 @@ export default function Overview({ setMsg, go }: { setMsg: (s: string) => void; 
         </div>
         <aside className="admin-overview-welcome-status" aria-label="站点运行状态">
           <div className="admin-overview-welcome-status-heading">
-            <span>运行状态</span>
+            <span>系统运行</span>
             <strong className={st.dbOk ? 'is-healthy' : 'is-unhealthy'}>
-              <i aria-hidden="true" />{st.dbOk ? '系统正常' : '连接异常'}
+              <i aria-hidden="true" />{st.dbOk ? '运行正常' : '连接异常'}
             </strong>
           </div>
           <div className="admin-overview-welcome-status-grid">
             <div>
               <span>当前在线</span>
-              <strong>{presence?.sampledAt ? presence.online : '—'}</strong>
+              <strong>{sampledOnline === null ? '—' : sampledOnline}</strong>
               <small>{realtimeReady ? '实时连接' : realtimeFailed ? '备用统计' : '等待连接'}</small>
             </div>
             <div>
-              <span>数据库响应</span>
+              <span>数据库延迟</span>
               <strong>{st.dbOk ? `${st.dbMs} ms` : '异常'}</strong>
               <small>最近一次连通性检测</small>
             </div>
           </div>
+          <div className="admin-overview-welcome-status-foot">
+            <span>在线数据最近更新</span><strong>{lastSample}</strong>
+          </div>
         </aside>
       </header>
 
-      {/* Mosaic 层级：统计卡在上、图表居中、待办与快捷入口并列成操作区、列表与状态在下。只调排布，数据逻辑不动。 */}
+      <div className="admin-overview-start-grid">
+        <section className="admin-overview-guide-panel">
+          <div className="admin-overview-guide-heading">
+            <div><span className="admin-overview-section-kicker">QUICK START</span><h3>入门指南</h3></div>
+            <span>常用管理入口</span>
+          </div>
+          <div className="admin-overview-guide-list">
+            <button type="button" onClick={() => go('accounts')}>
+              <span className="admin-overview-guide-index">01</span>
+              <span className="admin-overview-guide-copy"><strong>成员与权限</strong><small>查看成员账号、角色及状态</small></span>
+              <span className="admin-overview-guide-arrow">↗</span>
+            </button>
+            <button type="button" onClick={() => go('moderate')}>
+              <span className="admin-overview-guide-index">02</span>
+              <span className="admin-overview-guide-copy"><strong>内容审核</strong><small>处理举报与待审核内容</small></span>
+              <span className="admin-overview-guide-arrow">↗</span>
+            </button>
+            <button type="button" onClick={() => go('board')}>
+              <span className="admin-overview-guide-index">03</span>
+              <span className="admin-overview-guide-copy"><strong>发布公告</strong><small>更新站点公告与通知</small></span>
+              <span className="admin-overview-guide-arrow">↗</span>
+            </button>
+            <button type="button" onClick={() => go('appCenter')}>
+              <span className="admin-overview-guide-index">04</span>
+              <span className="admin-overview-guide-copy"><strong>应用管理</strong><small>查看软件版本和更新说明</small></span>
+              <span className="admin-overview-guide-arrow">↗</span>
+            </button>
+          </div>
+        </section>
+        <ClientStatsCard />
+      </div>
+
       <section className="admin-overview-primary-grid" aria-label="核心数据">
-        {stats.map(([k, v, d, col]) => (
-          <article key={k} className="admin-overview-metric-card" style={card}>
-            <div className="admin-overview-metric-label">{k}</div>
-            <div className="admin-overview-metric-value"><AdminNumberTicker value={v} /></div>
-            <div className="admin-overview-metric-hint">{statSub[k]}</div>
-            <Spark data={d} color={col} />
+        {stats.map(([label, value, trend, color, unit], index) => (
+          <article key={label} className="admin-overview-metric-card">
+            <div className="admin-overview-metric-topline">
+              <span className="admin-overview-metric-label">{label}</span>
+              <span className={`admin-overview-metric-icon tone-${index}`}>{['人', '动', '日', '图'][index]}</span>
+            </div>
+            <div className="admin-overview-metric-value"><AdminNumberTicker value={value} /><small>{unit}</small></div>
+            <div className="admin-overview-metric-hint">{statSub[label]}</div>
+            <Spark data={trend} color={color} />
           </article>
         ))}
       </section>
 
-      <div className="admin-overview-insights-grid">
-        <section className="admin-overview-panel admin-overview-trend-panel" style={card}>
+      <div className="admin-overview-bottom-grid">
+        <section className="admin-overview-panel admin-overview-trend-panel">
           <div className="admin-overview-panel-heading">
-            <div><h3>近 14 天注册趋势</h3><p>每日新增成员数量</p></div>
+            <div><span className="admin-overview-section-kicker">GROWTH</span><h3>近 14 天增长趋势</h3><p>成员注册每日变化</p></div>
             <span className="admin-overview-range-label">近 14 天</span>
           </div>
           <TrendChart data={st.dPro} />
           <div className="admin-overview-chart-labels">
-            {dlabels.map(l => <span key={l}>{l}</span>)}
+            {dlabels.map(label => <span key={label}>{label}</span>)}
           </div>
         </section>
 
-        <section className="admin-overview-panel admin-overview-mix-panel" style={card}>
+        <section className="admin-overview-panel admin-overview-runtime-panel">
           <div className="admin-overview-panel-heading">
-            <div><h3>分类数量</h3><p>各类数据独立统计，不混合计算占比</p></div>
+            <div><span className="admin-overview-section-kicker">LIVE STATUS</span><h3>实时运行</h3><p>站点关键服务与最近操作</p></div>
+            <span className={['admin-overview-live-status', realtimeReady ? 'is-live' : (presence?.error || realtimeFailed ? 'is-error' : 'is-waiting')].join(' ')}>
+              <i aria-hidden="true" />{realtimeReady ? '实时推送' : realtimeFailed ? '备用统计' : '连接中'}
+            </span>
           </div>
-          <div className="admin-overview-category-list">
-            {categories.map(([label, value]) => (
-              <div key={label}>
-                <span>{label}</span>
-                <strong>{Number(value).toLocaleString('zh-CN')}</strong>
-              </div>
-            ))}
+          <div className="admin-overview-runtime-table-wrap">
+            <table className="admin-overview-runtime-table">
+              <thead><tr><th>名称</th><th>最近更新</th><th>响应</th><th>状态</th></tr></thead>
+              <tbody>
+                <tr>
+                  <td><strong>数据库连接</strong><small>Supabase</small></td>
+                  <td>{new Date(st.loadedAt).toLocaleTimeString()}</td>
+                  <td>{st.dbOk ? `${st.dbMs} ms` : '—'}</td>
+                  <td><span className={st.dbOk ? 'is-healthy' : 'is-unhealthy'}>{st.dbOk ? '正常' : '异常'}</span></td>
+                </tr>
+                <tr>
+                  <td><strong>在线服务</strong><small>Presence</small></td>
+                  <td>{lastSample}</td>
+                  <td>{sampledOnline === null ? '—' : `${sampledOnline} 人`}</td>
+                  <td><span className={realtimeReady ? 'is-healthy' : realtimeFailed ? 'is-warning' : ''}>{realtimeReady ? '在线' : realtimeFailed ? '降级' : '连接中'}</span></td>
+                </tr>
+                <tr>
+                  <td><strong>举报队列</strong><small>内容审核</small></td>
+                  <td>{new Date(st.loadedAt).toLocaleTimeString()}</td>
+                  <td>{st.pendingReports} 条</td>
+                  <td><span className={st.pendingReports > 0 ? 'is-warning' : 'is-healthy'}>{st.pendingReports > 0 ? '待处理' : '正常'}</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div className="admin-overview-runtime-logs">
+            <div className="admin-overview-runtime-logs-heading"><strong>最近管理操作</strong><button type="button" onClick={() => go('logs')}>查看全部</button></div>
+            {st.logsError
+              ? <p className="admin-overview-empty">审计记录读取失败</p>
+              : recentLogs.length
+                ? recentLogs.slice(0, 2).map((log: any) => (
+                  <div className="admin-overview-runtime-log" key={log.id}>
+                    <span>{log.action}</span><time>{timeAgo(log.created_at)}</time>
+                  </div>
+                ))
+                : <p className="admin-overview-empty">暂无管理操作记录</p>}
           </div>
         </section>
       </div>
 
-      <div className="admin-overview-ops-grid">
+      <div className="admin-overview-followup-grid">
         <section className="admin-overview-todo" aria-label="待处理任务">
           <TodoCenter go={go} />
         </section>
-
-        <nav className="admin-overview-shortcuts" aria-label="常用管理入口">
-          <button type="button" onClick={() => go('board')}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 19V5h14v14H5Z"/><path d="M8 9h8M8 13h5M8 17h8"/></svg>
-            <span><strong>发布公告</strong><small>更新首页与社区公告</small></span>
-          </button>
-          <button type="button" onClick={() => go('communication')}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 5h16v11H8l-4 4z"/><path d="M8 9h8M8 12h5"/></svg>
-            <span><strong>成员沟通</strong><small>管理广播与定向消息</small></span>
-          </button>
-          <button type="button" onClick={() => go('feedback')}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 5h16v11H8l-4 4V5Z"/><path d="M8 9h8M8 13h5"/></svg>
-            <span><strong>查看反馈</strong><small>跟进建议与问题报告</small></span>
-          </button>
-        </nav>
-      </div>
-
-      <div className="admin-overview-activity-grid">
-        <section className="admin-overview-panel" style={card}>
+        <section className="admin-overview-panel admin-overview-recent-members">
           <div className="admin-overview-panel-heading">
-            <div><h3>最近管理操作</h3><p>后台最近写入的审计记录</p></div>
-            <span className="admin-overview-count">{st.logsError ? "暂不可用" : `${st.recentLogs.length} 条`}</span>
-          </div>
-          <div className="admin-overview-list">
-            {st.logsError ? <p className="admin-overview-empty">审计记录读取失败，其他统计不受影响</p> : (st.recentLogs as any[]).map((l: any) => (
-              <div key={l.id} className="admin-overview-list-row">
-                <span className="admin-overview-list-marker" />
-                <strong>{l.action}</strong>
-                <time>{(l.created_at || '').slice(5, 16).replace('T', ' ')}</time>
-              </div>
-            ))}
-            {!st.logsError && st.recentLogs.length === 0 && <p className="admin-overview-empty">暂无管理操作记录</p>}
-          </div>
-        </section>
-
-        <section className="admin-overview-panel" style={card}>
-          <div className="admin-overview-panel-heading">
-            <div><h3>最近加入</h3><p>最新注册的成员</p></div>
+            <div><span className="admin-overview-section-kicker">NEW MEMBERS</span><h3>最近加入</h3><p>最新注册的成员</p></div>
             <span className="admin-overview-count">{st.newMembers.length} 人</span>
           </div>
           <div className="admin-overview-list">
-            {(st.newMembers as any[]).map((m: any) => (
-              <div key={m.id} className="admin-overview-list-row">
-                <span className="admin-overview-member-avatar">{(m.display_name || m.username || '用').slice(0, 1)}</span>
-                <strong>{m.display_name || m.username}</strong>
-                <time>{timeAgo(m.created_at)}</time>
+            {(st.newMembers as any[]).map((member: any) => (
+              <div key={member.id} className="admin-overview-list-row">
+                <span className="admin-overview-member-avatar">{(member.display_name || member.username || '用').slice(0, 1)}</span>
+                <strong>{member.display_name || member.username}</strong>
+                <time>{timeAgo(member.created_at)}</time>
               </div>
             ))}
             {st.newMembers.length === 0 && <p className="admin-overview-empty">暂时还没有新成员</p>}
           </div>
         </section>
       </div>
-
-      <div className="admin-overview-health-grid">
-        <section className="admin-overview-panel admin-overview-online-panel" style={card}>
-          <div className="admin-overview-panel-heading">
-            <div><h3>在线统计</h3><p>只展示聚合人数，不展示成员身份</p></div>
-            <span className={['admin-overview-live-status', realtimeReady ? 'is-live' : (presence?.error || realtimeFailed ? 'is-error' : 'is-waiting')].join(' ')}>
-              <i aria-hidden="true" />
-              {realtimeReady ? '实时推送' : realtimeFailed ? '活动统计回退' : presence?.error ? '刷新失败' : '连接中'}
-            </span>
-          </div>
-          <div className="admin-overview-online-metrics">
-            <div>
-              <span>{realtimeReady ? '实时在线连接（已登录）' : '近 5 分钟活跃账号'}</span>
-              <strong>{presence && presence.sampledAt ? presence.online : '—'}</strong>
-              <small>{realtimeReady ? '连接变化即时推送' : '5 分钟内有活动即计入'}</small>
-            </div>
-            <div>
-              <span>近 30 分钟活跃账号</span>
-              <strong>{presence && presence.sampledAt ? presence.active : '—'}</strong>
-              <small>30 分钟内有活动即计入</small>
-            </div>
-          </div>
-          <p className="admin-overview-privacy-note">
-            {realtimeReady
-              ? '实时模式只发布匿名在线标记，不传递账号 ID、昵称或邮箱；同一账号的多个标签页或设备会分别计数。'
-              : '备用模式由服务器按活动窗口统计账号：近 5 分钟有活动计入在线，超过窗口后自动移出；同一账号去重。'}
-            {presence?.sampledAt ? ` 最近更新：${new Date(presence.sampledAt).toLocaleTimeString()}` : ' 等待首次采样…'}
-          </p>
-        </section>
-
-        <section className="admin-overview-panel admin-overview-system-panel" style={card}>
-          <div className="admin-overview-panel-heading">
-            <div><h3>系统状态</h3><p>基础服务连通性</p></div>
-          </div>
-          <div className="admin-overview-system-row">
-            <span>数据库连接</span>
-            {st.dbOk
-              ? <strong className="is-healthy">正常 · {st.dbMs} ms</strong>
-              : <strong className="is-unhealthy">连接异常</strong>}
-          </div>
-          <div className="admin-overview-system-row">
-            <span>待处理举报</span>
-            <strong className={st.pendingReports > 0 ? 'is-warning' : 'is-healthy'}>{st.pendingReports} 条</strong>
-          </div>
-        </section>
-      </div>
-
-      <div style={{ marginTop: 16 }}>
-        <ClientStatsCard />
-      </div>
     </div>
   );
 }
-

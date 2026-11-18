@@ -25,7 +25,7 @@ export function getSwipeReplyVisual(deltaX: number, side: SwipeReplySide): Swipe
   const directedDistance = Math.max(0, side === 'mine' ? -deltaX : deltaX);
   const distance = Math.min(SWIPE_REPLY_MAX_OFFSET, directedDistance * 0.72);
   return {
-    offset: side === 'mine' ? -distance : distance,
+    offset: distance === 0 ? 0 : side === 'mine' ? -distance : distance,
     progress: Math.min(1, directedDistance / SWIPE_REPLY_DISTANCE),
   };
 }

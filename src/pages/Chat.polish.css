@@ -3274,3 +3274,63 @@
     transition: none !important;
   }
 }
+
+
+/* Native iMessage gesture feedback: the bubble tracks the finger, then springs home. */
+.im-page .im-message-column .im-bubble {
+  transition: transform .24s cubic-bezier(.2,.86,.22,1);
+}
+.im-page .im-message-column .im-bubble.im-swipe-active {
+  z-index: 2;
+  will-change: transform;
+  transition: none !important;
+}
+.im-page .im-message-column .im-bubble.im-swipe-active::before {
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+  width: 30px;
+  height: 30px;
+  border: 1px solid rgba(255,255,255,.92);
+  border-radius: 50%;
+  color: #0876eb;
+  background: #ffffff;
+  box-shadow: 0 3px 10px rgba(24, 59, 110, .18), inset 0 1px 0 #fff;
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1;
+  opacity: var(--im-swipe-progress, 0);
+  transform: translateY(-50%) scale(calc(.72 + var(--im-swipe-progress, 0) * .28));
+}
+.im-page .im-message-column .im-bubble.theirs.im-swipe-active::before {
+  color: #526174;
+  background: #ffffff;
+}
+
+/* The lifted copy used by the Tapback sheet should read as a raised native bubble. */
+.im-page .im-tapback-preview {
+  transform-origin: center center;
+  border: 1px solid rgba(255,255,255,.92);
+  box-shadow:
+    0 18px 44px rgba(18, 33, 58, .24),
+    0 3px 8px rgba(18, 33, 58, .10),
+    0 0 0 1px rgba(255,255,255,.42);
+  will-change: transform, opacity;
+}
+.im-page .im-tapback-preview.mine {
+  background: #0a7cff;
+}
+.im-page .im-tapback-preview.theirs {
+  background: #e9e9eb;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .im-page .im-message-column .im-bubble,
+  .im-page .im-message-column .im-bubble.im-swipe-active {
+    transition: none !important;
+  }
+  .im-page .im-tapback-preview {
+    animation: none !important;
+    transform: none !important;
+  }
+}

@@ -158,7 +158,7 @@ test('QR login retries 502 with noCookie=true and persists a long session across
     const cookieHeader = cookiePairs.join('; ');
     const restored = await request('/api/login/status', { headers: { cookie: cookieHeader } });
     const restoredBody = await jsonResponse(restored);
-    assert.equal(restored.status, 200);
+    assert.equal(restored.status, 200, 'restored session route failed: ' + JSON.stringify(restoredBody));
     assert.equal(restoredBody.loggedIn, true);
     assert.equal(statusCookie, upstreamCookie);
   } finally {

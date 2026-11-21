@@ -114,7 +114,7 @@ assert.ok(memberModal.includes("if (!isSuper && f?.role !== 'member')"),
 
 const nullRoleAdminGuard = read('supabase/migrations/20261121120000_guard_null_admin_role_checks.sql');
 for (const functionName of ['admin_analytics_overview', 'admin_backup_overview', 'admin_record_manual_backup']) {
-  assert.ok(nullRoleAdminGuard.includes(`function public.${functionName}`),
+  assert.ok(nullRoleAdminGuard.toLowerCase().includes(`function public.${functionName}`),
     `${functionName} must remain covered by the NULL-role hardening migration`);
 }
 const nullRoleGuardText = "coalesce(public.my_role(), '') <> 'super_admin'";

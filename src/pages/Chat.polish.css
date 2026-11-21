@@ -4160,3 +4160,201 @@
   }
   .im-page .im-encryption-meta { margin-top: 6px !important; }
 }
+
+/* Screenshot fixes (2026-11-21, fix/chat-imessage-screenshot-issues).
+   对照用户 09:15 截图 + 两张参考图（夜间海滩 / 森林湖水）逐项修。
+   样式参考了 GitHub 项目 sashenjayathilaka/imessage-clone（该仓库无 LICENSE，
+   这里一行代码都没抄，只借了版式思路并按壁纸场景重写）：
+   - 气泡实心蓝：它用 solid #3D84F7；我们用 #0a84ff（与 InvisibleInk 的
+     fallback rgb(10,132,255) 一致，隐形墨水画布与气泡同色才没有内框）。
+   - 相对日期文案：它用 today→时间、yesterday→Yesterday、lastWeek→星期；
+     我们用 toLocaleDateString 重写为“今天/昨天/11月18日周三”。
+   - 输入框：它就是一个整段输入框，没有分段；我们把 Aa/麦克风/输入区合成一个胶囊。
+   没借的：它的圆角 12 / 最大宽 65%（参考图是真 iMessage 的大圆角宽气泡）、
+   无小尾巴无分组（参考图有尾巴）、顶栏只有“To: 名字”（参考图是壁纸顶栏）、
+   会话列表（这条线只改私聊页，不动 /friends）、已读回执（它没有，我们保留）。
+   本块放在文件最后，同等优先级下后来居上，覆盖前面多层叠加的旧规则。 */
+
+/* 1. 顶栏：Android WebView 里 env(safe-area-inset-top) 常为 0，状态栏会直接盖住
+   头像和左右按钮——给顶部留一个 32px 的下限。名字药丸的深色玻璃底是 #763
+   撤掉的，这里按参考图的样子恢复；“私信信息 / 安全连接”也加一层淡玻璃底，
+   白字在浅色壁纸上才看得见。 */
+.im-page .im-contact-stack {
+  top: calc(max(env(safe-area-inset-top, 0px), 32px) + 8px) !important;
+}
+.im-page .im-head .im-back,
+.im-page .im-head .im-video-call {
+  top: calc(max(env(safe-area-inset-top, 0px), 32px) + 14px) !important;
+}
+.im-page .im-contact-name-pill {
+  min-height: 36px !important;
+  padding: 6px 16px !important;
+  color: #fff !important;
+  border: 1px solid rgba(255,255,255,.2) !important;
+  border-radius: 999px !important;
+  background: rgba(8,24,34,.42) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.12) !important;
+  -webkit-backdrop-filter: blur(18px) saturate(1.25) !important;
+  backdrop-filter: blur(18px) saturate(1.25) !important;
+}
+.im-page .im-encryption-meta {
+  padding: 5px 12px !important;
+  border: 1px solid rgba(255,255,255,.16) !important;
+  border-radius: 999px !important;
+  background: rgba(8,24,34,.34) !important;
+  -webkit-backdrop-filter: blur(14px) saturate(1.25) !important;
+  backdrop-filter: blur(14px) saturate(1.25) !important;
+}
+.im-page .im-feed {
+  padding-top: 12px !important;
+}
+
+/* 2. 日期分隔：保留深色玻璃药丸（参考图是白字无底，但本站有清透白这类浅色
+   壁纸，白字无底会看不见；截图里这条药丸本身就是少数没坏的元素）。
+   文案改在 Chat.tsx 的 dayLabelWithTime：今天/昨天直接说，不再写完整日期。 */
+.im-page .im-day {
+  margin: 8px auto 10px !important;
+}
+
+/* 3. 隐形消息：气泡改实心蓝（和墨水画布同色，内层小矩形消失）；对方的隐形
+   消息气泡也改实心深色；墨水圆角加大，贴合气泡弧度；盖着时在气泡内补一行
+   “滑动显示”提示（:has 认到已揭示就不再显示）。 */
+.im-page .im-message-column .im-bubble.mine {
+  background: #0a84ff !important;
+  border-color: rgba(255,255,255,.22) !important;
+}
+.im-page .im-message-column .im-bubble.mine::after {
+  background: #0a84ff !important;
+}
+.im-page .im-message-column .im-bubble.theirs[data-im-effect="invisible-ink"] {
+  background: rgb(28, 39, 45) !important;
+}
+.im-page .im-message-column .im-bubble.theirs[data-im-effect="invisible-ink"]::after {
+  background: rgb(28, 39, 45) !important;
+}
+.im-page .im-ink {
+  border-radius: 14px !important;
+}
+/* 盖着时在气泡内补一行“滑动显示”提示（揭示后由 :has 规则藏起来；
+   不用 ::after 写提示——::after 已经被小尾巴占了）。 */
+.im-page .im-ink-hint {
+  display: block;
+  margin-top: 7px;
+  color: rgba(255,255,255,.78);
+  font-size: 11px;
+  font-weight: 550;
+  line-height: 1.3;
+  text-align: center;
+  letter-spacing: .02em;
+}
+.im-page .im-bubble[data-im-effect="invisible-ink"]:has(.im-ink:not([role="button"])) .im-ink-hint {
+  display: none;
+}
+
+/* 4. 时间只显示一次：同一天内不再插时间药丸（见 Chat.tsx dateLabel）。
+   气泡下那行时间/已送达改成深色小药丸，浅色壁纸上也看得见；已送达本来就
+   只在最后一条发出消息上显示，不动。 */
+.im-page .im-message-footer {
+  width: max-content !important;
+  max-width: 100% !important;
+  margin-top: 5px !important;
+  padding: 3px 9px !important;
+  color: rgba(255,255,255,.88) !important;
+  border: 1px solid rgba(255,255,255,.16) !important;
+  border-radius: 999px !important;
+  background: rgba(8,23,31,.42) !important;
+  box-shadow: 0 3px 10px rgba(0,0,0,.12) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(1.2) !important;
+  backdrop-filter: blur(12px) saturate(1.2) !important;
+  text-shadow: 0 1px 6px rgba(0,0,0,.3) !important;
+}
+
+/* 5. 转发标识：深灰蓝字在蓝气泡上看不清，改成白字加阴影。 */
+.im-page .im-forwarded-label {
+  color: rgba(255,255,255,.85) !important;
+  text-shadow: 0 1px 6px rgba(0,0,0,.28) !important;
+}
+
+/* 6. 短消息不成圆：给气泡一个最小宽度，单字也保持胶囊形。
+   （“1”下面的下划线查过了：没有任何 CSS 给气泡加下划线，那是消息内容自带
+   的 ++下划线++ 格式，富文本本就该这样渲染，不动。） */
+.im-page .im-bubble {
+  min-width: 56px !important;
+}
+
+/* 7. 输入框合成一个胶囊：Aa 和麦克风不再有自己的浅色底，和输入区同一种
+   深色玻璃；占位字保持参考图的“iMessage 信息”。 */
+.im-page .im-input-wrap,
+.im-page .im-input-wrap:focus-within {
+  background: rgba(10,34,40,.42) !important;
+  border: 1px solid rgba(255,255,255,.26) !important;
+  box-shadow: 0 5px 20px rgba(0,0,0,.12), inset 0 1px 0 rgba(255,255,255,.14) !important;
+}
+.im-page .im-format-btn {
+  color: rgba(255,255,255,.82) !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+.im-page .im-format-btn--on {
+  color: #bfe6ff !important;
+  background: rgba(158,215,255,.22) !important;
+}
+.im-page .im-mic {
+  color: rgba(255,255,255,.86) !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+.im-page .im-input::placeholder {
+  color: rgba(255,255,255,.72) !important;
+  opacity: 1;
+}
+
+/* 8. 收紧间距：行间距 9px → 4px，日期药丸上下边距收小，聊天流不再一截截断开。 */
+.im-page .im-row {
+  margin: 4px 0 !important;
+}
+
+/* 会话资料里的“我的头像”区（资料面板是浅色主题，这里用深色字）。 */
+.im-page .im-my-avatar-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.im-page .im-my-avatar {
+  display: grid;
+  flex: none;
+  width: 52px;
+  height: 52px;
+  place-items: center;
+  overflow: hidden;
+  color: #fff;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #8eb7ff, #c6a5ff);
+  font-size: 20px;
+  font-weight: 800;
+}
+.im-page .im-my-avatar img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.im-page .im-my-avatar-copy {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.im-page .im-my-avatar-title {
+  color: #26344a;
+  font-size: 14px;
+  font-weight: 650;
+}
+.im-page .im-my-avatar-hint {
+  color: #7d899b;
+  font-size: 11px;
+  line-height: 1.4;
+}

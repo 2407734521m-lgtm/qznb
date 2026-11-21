@@ -9,6 +9,9 @@ const RECOVER_DELAY = 5000;
 const RECOVER_FADE_MS = 900;
 const FRAME_INTERVAL_MS = 30;
 const MAX_PARTICLES = 2200;
+// 遮罩底色不完全 opaque：留 12% 让字形淡淡透出来（看得出是文字、读不出内容，
+// 和 iMessage 隐形墨水一样），擦掉和 5 秒盖回的行为不动。
+const INK_FIELD_ALPHA = 0.88;
 
 type Particle = {
   x: number;
@@ -200,8 +203,10 @@ export default function InvisibleInk({ children }: { children: ReactNode }) {
     ctx.globalCompositeOperation = 'source-over';
     ctx.globalAlpha = 1;
     ctx.clearRect(0, 0, width, height);
+    ctx.globalAlpha = INK_FIELD_ALPHA;
     ctx.fillStyle = paletteRef.current.background;
     ctx.fillRect(0, 0, width, height);
+    ctx.globalAlpha = 1;
 
     const time = now / 1000;
     for (const particle of particlesRef.current) {

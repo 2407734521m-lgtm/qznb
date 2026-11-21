@@ -25,6 +25,7 @@ import { createChatVideoPoster, isChatVideoFile, resolveChatVideoMime } from '..
 import ChatAudioWaveform from '../components/ChatAudioWaveform';
 import ChatVoiceDraftPreview from '../components/ChatVoiceDraftPreview';
 import ChatVideoPlayer from '../components/ChatVideoPlayer';
+import AvatarCropper from '../components/AvatarCropper';
 import MessageEffectsPicker from '../components/MessageEffectsPicker';
 import ScreenEffectCanvas from '../components/ScreenEffectCanvas';
 import { getChatBubbleEffect, getScreenEffectKind, stripChatBubbleEffect, withChatBubbleEffect, type ChatBubbleEffect, type ScreenEffectKind } from '../lib/chatMessageEffect';
@@ -198,6 +199,19 @@ function messageTimeLabel(value: string | number) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return '';
   return date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+}
+
+// 日期分隔文案（对标参考图的“今天 22:07”）：今天/昨天直接说今天/昨天，
+// 更早的才写“11月18日周三 · 11:30”——2026-11-18 确实是周三。
+function dayLabelWithTime(date: Date, time: string) {
+  if (Number.isNaN(date.getTime())) return time;
+  const now = new Date();
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const startOfDay = new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+  const daysAgo = Math.round((startOfToday - startOfDay) / 86400000);
+  if (daysAgo === 0) return '今天 ' + time;
+  if (daysAgo === 1) return '昨天 ' + time;
+  return date.toLocaleDateString('zh-CN', { month: 'long', day: 'numeric', weekday: 'short' }) + ' · ' + time;
 }
 
 function canShowInlineMeta(body: string, hasReply: boolean) {
@@ -409,6 +423,12 @@ export default function Chat() {
   const [forwardBusy, setForwardBusy] = useState(false);
   const [forwardProgress, setForwardProgress] = useState('');
   const backgroundFileRef = useRef<HTMLInputElement>(null);
+  const wallpaperSectionRef = useRef<HTMLElement | null>(null);
+  // 我的头像（只换自己的）：复用个人中心同一套 AvatarCropper + avatars 桶。
+  const [myAvatarPath, setMyAvatarPath] = useState<string | null>(null);
+  const [cropSrc, setCropSrc] = useState<string | null>(null);
+  const [avatarSaving, setAvatarSaving] = useState(false);
+  const myAvatarFileRef = useRef<HTMLInputElement>(null);
   const typingChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const typingStopTimerRef = useRef<number | null>(null);
   const longPressTimerRef = useRef<number | null>(null);
@@ -441,6 +461,7 @@ export default function Chat() {
   const loadSequenceRef = useRef(0);
   const backgroundPath = chatBackground.startsWith('image:') ? chatBackground.slice(6) : null;
   const peerAvatarUrl = useSignedUrl('avatars', peer?.avatar_path);
+  const myAvatarUrl = useSignedUrl('avatars', myAvatarPath);
   const sharedImageMessages = useMemo(
     () => msgs.filter(message => !message.deleted_at && stripChatBubbleEffect(message.body).startsWith('[[im-image:')),
     [msgs],
@@ -802,6 +823,16 @@ export default function Chat() {
       });
     return () => { active = false; };
   }, [cid, me]);
+
+  // 我的头像路径（只读自己的，供会话资料里“我的头像”更换入口回显）。
+  useEffect(() => {
+    let active = true;
+    supabase.from('profiles').select('avatar_path').eq('id', me).maybeSingle()
+      .then(({ data }) => {
+        if (active) setMyAvatarPath(data?.avatar_path ?? null);
+      });
+    return () => { active = false; };
+  }, [me]);
 
   useEffect(() => {
     if (!cid || !Number.isFinite(Number(cid))) return;
@@ -1199,6 +1230,53 @@ export default function Chat() {
     } finally {
       setBackgroundSaving(false);
       if (backgroundFileRef.current) backgroundFileRef.current.value = '';
+    }
+  }
+
+  // + 号菜单里的“聊天背景”快捷入口：直接打开会话资料并滚到壁纸区。
+  // 换壁纸本身复用已有的 saveChatBackground / uploadChatBackground，
+  // 存在 conversation_members.chat_background，仅对自己生效，不通知对方。
+  function openWallpaperSettings() {
+    setShowStickers(false);
+    setShowDetails(true);
+    window.setTimeout(() => {
+      wallpaperSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 150);
+  }
+
+  // 换自己的头像：选图 → AvatarCropper 裁剪（和个人中心同一套）→ 上传 avatars 桶
+  // → profiles.avatar_path。只改自己的，不动对方头像。
+  function pickMyAvatar(file?: File) {
+    if (!file) return;
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) { toast.error('头像仅支持 JPG / PNG / WebP'); return; }
+    if (file.size > 2 * 1024 * 1024) { toast.error('头像图片不能超过 2MB'); return; }
+    if (cropSrc) URL.revokeObjectURL(cropSrc);
+    setCropSrc(URL.createObjectURL(file));
+  }
+  function closeCrop() {
+    if (cropSrc) URL.revokeObjectURL(cropSrc);
+    setCropSrc(null);
+  }
+  async function uploadCroppedAvatar(blob: Blob) {
+    closeCrop();
+    if (avatarSaving) return;
+    setAvatarSaving(true);
+    try {
+      const path = me + '/' + crypto.randomUUID() + '.jpg';
+      const { error: uploadError } = await supabase.storage.from('avatars').upload(path, blob, { contentType: 'image/jpeg' });
+      if (uploadError) throw uploadError;
+      const { error: saveError } = await supabase.from('profiles').update({ avatar_path: path }).eq('id', me);
+      if (saveError) throw saveError;
+      const previous = myAvatarPath;
+      setMyAvatarPath(path);
+      if (previous) await supabase.storage.from('avatars').remove([previous]);
+      toast.success('头像已更新');
+    } catch (error) {
+      console.error('avatar upload failed', error);
+      toast.error('头像上传失败，请重试。');
+    } finally {
+      setAvatarSaving(false);
+      if (myAvatarFileRef.current) myAvatarFileRef.current.value = '';
     }
   }
 
@@ -2174,11 +2252,12 @@ export default function Chat() {
   const dateLabel = (value: string, previous?: string) => {
     const current = new Date(value);
     const time = current.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
-    const date = current.toLocaleDateString('zh-CN', { month: 'long', day: 'numeric', weekday: 'short' });
-    if (!previous) return date + ' · ' + time;
+    if (!previous) return dayLabelWithTime(current, time);
     const prior = new Date(previous);
-    if (prior.toDateString() !== current.toDateString()) return date + ' · ' + time;
-    return current.getTime() - prior.getTime() > 5 * 60 * 1000 ? time : '';
+    if (prior.toDateString() !== current.toDateString()) return dayLabelWithTime(current, time);
+    // 同一天内的消息不再单独插时间药丸：时间只在气泡内/气泡下显示一次，
+    // 避免时间药丸和气泡时间重复出现、把对话撑散。
+    return '';
   };
 
   useEffect(() => {
@@ -2243,6 +2322,7 @@ export default function Chat() {
         lavender: 'radial-gradient(ellipse at 78% 18%,rgba(207,195,245,.34),transparent 42%),linear-gradient(145deg,#fff 0%,#f5f1ff 100%)',
         mint: 'radial-gradient(ellipse at 18% 80%,rgba(181,225,211,.28),transparent 42%),linear-gradient(145deg,#fff 0%,#eef9f5 100%)',
         sunset: 'radial-gradient(ellipse at 88% 16%,rgba(255,211,190,.28),transparent 42%),linear-gradient(145deg,#fff 0%,#fff3ed 100%)',
+        night: 'radial-gradient(ellipse at 50% -6%,rgba(64,156,255,.5),transparent 46%),radial-gradient(ellipse at 88% 34%,rgba(38,190,190,.22),transparent 40%),linear-gradient(180deg,#0a2a4a 0%,#06182e 55%,#030a19 100%)',
       } as Record<string, string>)[chatBackground] ?? '#ffffff';
 
   // Paint the active conversation wallpaper on the full-screen shell as well as
@@ -2581,11 +2661,30 @@ export default function Chat() {
               </button>
             </div>}
             {!isGroup && <div className="im-profile-settings-note">开启后，对方在消息消失前截屏或复制走的内容无法收回。</div>}
-            <section className="im-profile-section im-wallpaper-settings">
+            <section className="im-profile-section im-my-avatar-settings">
+              <div className="im-profile-section-heading">我的头像</div>
+              <div className="im-my-avatar-row">
+                <span className="im-my-avatar">
+                  {myAvatarUrl ? <img src={myAvatarUrl} alt="我的头像" /> : <span>{'我'}</span>}
+                </span>
+                <span className="im-my-avatar-copy">
+                  <span className="im-my-avatar-title">只会换你自己的头像</span>
+                  <span className="im-my-avatar-hint">换完在个人主页、收件箱等处都会更新</span>
+                </span>
+                <input ref={myAvatarFileRef} type="file" accept="image/jpeg,image/png,image/webp" hidden
+                  onChange={event => pickMyAvatar(event.target.files?.[0])} />
+                <button type="button" className="im-background-upload" disabled={avatarSaving}
+                  onClick={() => myAvatarFileRef.current?.click()}>
+                  {avatarSaving ? '正在保存…' : '更换头像'}
+                </button>
+              </div>
+            </section>
+            <section className="im-profile-section im-wallpaper-settings" ref={wallpaperSectionRef}>
               <div className="im-profile-section-heading">聊天背景</div>
               <div className="im-wallpaper-grid">
                 {[
                   { id: 'default', label: '清透白', preview: 'radial-gradient(ellipse at 16% 8%,rgba(187,211,250,.35),transparent 50%),#fff' },
+                  { id: 'night', label: '夜海', preview: 'linear-gradient(160deg,#0d2f52,#04101f)' },
                   { id: 'sky', label: '晴空', preview: 'linear-gradient(155deg,#f5faff,#e3efff)' },
                   { id: 'lavender', label: '薰衣草', preview: 'linear-gradient(145deg,#fff,#ece5ff)' },
                   { id: 'mint', label: '薄荷', preview: 'linear-gradient(145deg,#fff,#e4f5ee)' },
@@ -2656,6 +2755,7 @@ export default function Chat() {
           </div>
         </section>
       </div>}
+      {cropSrc && <AvatarCropper src={cropSrc} onCancel={closeCrop} onDone={blob => void uploadCroppedAvatar(blob)} />}
       {disappearingMode !== 'off' && (
         <div className="im-disappearing-banner" role="status">
           消失的私信已开启：{disappearingMode === 'after_read' ? '对方看完 30 秒后消息消失' : `消息在发送 ${formatDisappearingDuration(disappearingSeconds ?? 0)} 后消失`}
@@ -2733,6 +2833,7 @@ export default function Chat() {
                     ) : (
                       <MessageContent onMentionClick={openMemberPage} body={displayBody} messageId={m.id} autoPlayMedia={autoPlayMediaId === m.id} onMediaEnded={handleMediaEnded} onMediaAutoplayBlocked={handleMediaAutoplayBlocked} />
                     )}
+                    {!deleted && editingId !== m.id && getChatBubbleEffect(m.body) === 'invisible-ink' && <span className="im-ink-hint">滑动显示</span>}
                     {inlineMeta && <span className={'im-inline-meta ' + (mine ? 'mine' : 'theirs')}>{messageTimeLabel(m.created_at)}{receiptLabel ? ' · ' + receiptLabel : ''}</span>}
                     {m.edited_at && !deleted && <div className="im-edited-mark">已编辑</div>}
                     {groups.length > 0 && <div className="im-reaction-groups">
@@ -2769,6 +2870,7 @@ export default function Chat() {
                   data-message-id={e.tempKey}>
                   {e.replyToId !== null && <div className="im-reply-quote">回复：{e.replySummary ?? ''}</div>}
                   <MessageContent onMentionClick={openMemberPage} body={e.body} />
+                  {getChatBubbleEffect(e.body) === 'invisible-ink' && <span className="im-ink-hint">滑动显示</span>}
                   {inlineMeta && <span className="im-inline-meta mine">{messageTimeLabel(e.createdAtMs)} · {phaseLabel}</span>}
                 </div>
                 {!inlineMeta && <div className="im-message-footer mine">
@@ -2960,6 +3062,11 @@ export default function Chat() {
               </button>
               <button type="button" className="im-attach-choice" onClick={() => { setShowStickers(false); gifRef.current?.click(); }}>
                 <span className="im-attach-icon im-gif-icon" aria-hidden="true">GIF</span><span>GIF</span>
+              </button>
+              <button type="button" className="im-attach-choice" onClick={openWallpaperSettings}>
+                <span className="im-attach-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="2"/><path d="m4 17 5-4 3 2 3-4 5 5"/></svg>
+                </span><span>聊天背景</span>
               </button>
             </div>
             </>

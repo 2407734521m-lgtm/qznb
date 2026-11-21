@@ -443,7 +443,7 @@ async function requireSiteAuth(request) {
     if (res.status !== 200) return null;
     const user = await res.json();
     if (!user || !user.id) return null;
-    return { id: user.id, email: user.email || '' };
+    return { id: user.id, email: user.email || '', accessToken: token };
   } catch (_) {
     return null;
   }
@@ -513,7 +513,7 @@ async function proxyLogDownload(site, request) {
   try {
     const res = await fetch(SUPABASE_URL + '/rest/v1/rpc/log_music_download', {
       method: 'POST',
-      headers: { apikey: SUPABASE_PUBLISHABLE_KEY, Authorization: 'Bearer ' + SUPABASE_PUBLISHABLE_KEY, 'Content-Type': 'application/json' },
+      headers: { apikey: SUPABASE_PUBLISHABLE_KEY, Authorization: 'Bearer ' + site.accessToken, 'Content-Type': 'application/json' },
       body: JSON.stringify(rpcBody),
       signal: AbortSignal.timeout(10000),
     });

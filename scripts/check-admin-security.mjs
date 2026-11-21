@@ -132,6 +132,12 @@ assert.ok(defaultPrivilegesGuard.includes('revoke all on sequences from anon, au
 assert.ok(defaultPrivilegesGuard.includes('revoke execute on functions from anon, authenticated, public'),
   'new public RPCs must require explicit execution grants');
 
+const friendRequestWithdrawalGuard = read('supabase/migrations/20261121124000_revoke_anon_withdraw_friend_request.sql');
+assert.ok(friendRequestWithdrawalGuard.includes('revoke all on function public.withdraw_friend_request(uuid) from public, anon'),
+  'friend request withdrawal must not be callable by anonymous users');
+assert.ok(friendRequestWithdrawalGuard.includes('grant execute on function public.withdraw_friend_request(uuid) to authenticated'),
+  'signed-in users must retain friend request withdrawal');
+
 const globalFunctionAclGuard = read('supabase/migrations/20261121124500_revoke_global_public_function_execute.sql');
 assert.ok(globalFunctionAclGuard.includes('alter default privileges for role postgres'),
   'future postgres-created functions must have hardened global defaults');

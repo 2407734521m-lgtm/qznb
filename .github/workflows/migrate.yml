@@ -30,7 +30,7 @@ jobs:
       PGDATABASE: ${{ secrets.SUPABASE_DB_NAME }}
       PGPASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - name: Validate target connection and migration path
         env:
           MIGRATION_FILE: ${{ inputs.migration_file }}

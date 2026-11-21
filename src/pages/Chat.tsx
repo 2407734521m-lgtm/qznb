@@ -2785,11 +2785,19 @@ export default function Chat() {
           const mine = m.sender_id === me;
           const previousMessage = msgs[i - 1];
           const nextMessage = msgs[i + 1];
+          const previousIsDateOnly = previousMessage
+            ? parseChatDateOnlyLabel(previousMessage.body, previousMessage.created_at) !== null
+            : false;
+          const nextIsDateOnly = nextMessage
+            ? parseChatDateOnlyLabel(nextMessage.body, nextMessage.created_at) !== null
+            : false;
           const samePrevious = Boolean(previousMessage
+            && !previousIsDateOnly
             && previousMessage.sender_id === m.sender_id
             && !dateLabel(m.created_at, previousMessage.created_at)
             && new Date(m.created_at).getTime() - new Date(previousMessage.created_at).getTime() <= 300000);
           const sameNext = Boolean(nextMessage
+            && !nextIsDateOnly
             && nextMessage.sender_id === m.sender_id
             && !dateLabel(nextMessage.created_at, m.created_at)
             && new Date(nextMessage.created_at).getTime() - new Date(m.created_at).getTime() <= 300000);

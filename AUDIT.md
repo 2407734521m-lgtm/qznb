@@ -17,7 +17,7 @@
 | 第 2 阶段 | 用户账号与社交功能 | 已完成（FIX-2 12 项已修复，登录态 106 项待验证） | `AUDIT_PHASE_2.md` |
 | 第 3 阶段 | 个人中心与扩展功能 | 已完成（FIX-3 11 项已修复，登录态 152 项待验证） | `AUDIT_PHASE_3.md` |
 | 第 4 阶段 | 管理员后台 | 已完成（FIX-4 7 项已修复，登录态 175 项待验证） | `AUDIT_PHASE_4.md` |
-| 第 5 阶段 | 独立服务、移动应用与部署链路 | NOT_TESTED（尚未开始） | — |
+| 第 5 阶段 | 独立服务、移动应用与部署链路 | 已完成（FIX-5 10 项已修复，登录态/真机 40 项待验证） | `AUDIT_PHASE_5.md` |
 
 > 注意：2026-11-21 写报告时，`origin/main` 已比基线多 1 个提交（后台总览暖光修复 PR #754，属后台样式，不在第 1 阶段范围内）。本阶段结论以基线 `54d3dd4` 为准，没有把该提交算进去；后续阶段开始前应先确认新基线。
 
@@ -206,6 +206,37 @@
 
 未修项（产品决策待定或需真机验证）：邀请码权限口径、公告横幅保存口径、admin_update_profile 禁改超管目标、ss_sel=true 收紧、nt_sel 全站通知、定向消息超管门、健康检查探针 key 归属、审核中心「退回待审核/重新打开」与回收站「彻底清理」是否补。详见 `AUDIT_PHASE_4.md` §5。
 
+## 第 5 阶段计数（逐项表共 134 行，数字与 `AUDIT_PHASE_5.md` 逐项表对得上）
+
+| 状态 | 数量 |
+|---|---|
+| PASS | 25 |
+| PARTIAL | 58 |
+| FAIL | 2 |
+| BLOCKED | 40 |
+| NOT_IMPLEMENTED | 8 |
+| NOT_TESTED | 1 |
+| 合计 | 134 |
+
+分线：A 线音乐站 59 项（PARTIAL 42、BLOCKED 13、NOT_IMPLEMENTED 4）；B 线动态签名 33 项（PASS 24、PARTIAL 3、FAIL 2、BLOCKED 1、NOT_IMPLEMENTED 2、NOT_TESTED 1）；C 线移动应用与部署链路 42 项（PASS 1、PARTIAL 13、BLOCKED 26、NOT_IMPLEMENTED 2）。本阶段 2 项 FAIL 均为签名页代码层面已证明的真毛病（轻音乐关不掉铺底音、固定 6/10 秒导出截掉纸屑与淡出），已全部由 FIX-5 修复。
+
+## 第 5 阶段修复清单（FIX-5，10 项）
+
+| 编号 | 问题 | 严重程度 | 修复内容 | 状态 |
+|---|---|---|---|---|
+| FIX-5-1 | 签名页轻音乐关不掉铺底音 | 高 | 铺底振荡器抽成 `startPad()`/`stopPad()`，`stopMusic()` 现在停旋律的同时停铺底（stop + disconnect），再打开时重建；音色与音量未改 | 已修复，真机听觉待验证 |
+| FIX-5-2 | 固定 6/10 秒导出截掉纸屑与淡出 | 高 | 书写按 `target − 3` 秒拉伸（`OUTRO_MS = 3000`），outro 落在固定时长窗口内；停录定时器改为 `target + OUTRO_MS` 兜底。导出仍是标称 6/10 秒、结尾完整 | 已修复，真机导出待验证 |
+| FIX-5-3 | 千栀账号 overlay 里「堯」品牌残留 | 中 | 解开 gzip+base64 blob，三处文案改 Class Memory 口径，重新编码写回；round-trip 解码验证无「堯」 | 已修复，音乐站登录态待验证 |
+| FIX-5-4 | 文档滞后 + fee=8 未单列 | 低 | `FOLIA_UPSTREAM.md` 改成 v0.7.28 / pin a44758b；新增 overlay 脚本把 fee 8 补进 `NO_RIGHT_CASES`（`8: 'subscription-required'`），`deploy-music.yml` 加调用步骤；worktree 子模块实测幂等 | 已修复，下次音乐站部署后生效 |
+| FIX-5-5 | AdminAppCenter 两处过时文案 | 低 | 「手动装一次 1.1」改为动态读 `saved.app_version_name`；「验完改回来」改为如实文案（发布后立即生效并写入版本历史，序号改不回旧值） | 已修复，管理员登录态待验证 |
+| FIX-5-6 | 导出带音乐无说明 | 低 | 注意段落追加一句：导出视频有没有音乐，看上面「轻音乐」开关 | 已修复 |
+| FIX-5-7 | public_app_update 首次启动竞态 | 中 | `fetchAppUpdate()` 里 `member_presence` upsert 由 fire-and-forget 改为 `await`（try/catch 包住，统计失败仍不阻断更新检查），等这一行写完再调 RPC | 已修复，真机首启待验证 |
+| FIX-5-8 | Jamendo secret 有无核对 | — | 经 Cloudflare API 只列 secret 名（未读值）：生产 Worker `qianzhi-music` 与预览 `qianzhi-music-preview` 均有 `JAMENDO_CLIENT_ID`；无需用户再配 | 已确认，无需修 |
+| FIX-5-9 | 队尾宽限 25 秒 vs 5 秒 | — | git 历史查清：2026-11-16 bb6b870 引入时是 25000 毫秒；2026-11-17 69dffd2（PR #703）有意改成 5000 并加了断言单测。**代码与 MEMORY 均未改**，等用户定夺接受 5 秒还是恢复 25 秒 | 待用户定夺 |
+| FIX-5-10 | 仓库与生产库漂移收敛（part 4） | 中 | 新增幂等迁移 `20261121095000_audit_phase5_drift_convergence.sql`：`musicdl_app_releases` 表 + 四个函数原文（实测多出 `admin_list_musicdl_app_releases`，一并收敛）+ 按生产 proacl 的授权语句；**未给两个 public_* RPC 加任何门控** | 已应用到生产并回读核对（schema_migrations version `20261121014547`；函数定义与 proacl 与应用前逐字一致，表 RLS 仍开启、策略数仍 0，`musicdl_app_releases` 仍恰好 1 行，生产无变化） |
+
+未修项（产品决策待定或需真机验证）：音乐下载版 1.2 三方版本不一致（删种子还是真发 1.2）、管理版发布历史缺 1.1（是否补录）、两个 public_* 更新 RPC 无门控（是否加门）、酷狗「在但点不了」（补配后端还是隐藏该行）、音乐站登录同源代理（是否现在就做）、音乐下载版后台发布区（是否加）、MP4 导出与孟加拉文。详见 `AUDIT_PHASE_5.md` §5。
+
 ## 工作底稿（审计过程文件，不计入交付计数）
 
 - `audit-phase1-work/route-audit.md`（A 线：47 条路由、访客、404、错误边界）
@@ -219,4 +250,5 @@
 - 第 2 阶段：三条代码审计线全程只读，未登录任何账号，未向真实用户发任何消息，未发测试邮件，未删真实用户数据，未清理生产 Storage；唯一生产写入是幂等收敛迁移 FIX-2-12（已回读核对，生产无变化）；代码修复 11 项在独立 worktree 的 `fix/audit-phase2-code` 分支上，`npm run typecheck` / `npm run build` / `npm run check:styles` / `npm run check:admin-styles` 全部通过；登录态 106 项因无可登录测试账号记 BLOCKED，未猜测为可用。
 - 第 3 阶段：三条代码审计线全程只读，未登录任何账号，未向真实用户发任何消息，未发测试邮件，未删真实用户数据，未清理生产 Storage；唯一生产写入是幂等收敛迁移 FIX-3-11（已回读核对，策略仍 30 条、`tc_sel` 仍为原表达式，生产无变化）；代码修复 10 项在独立 worktree 的 `fix/audit-phase3-code` 分支上，`npm run typecheck` / `npm run build` / `npm run check:styles` / `npm run check:admin-styles` 全部通过（主代理独立复跑 typecheck + build 通过）；登录态 152 项因无可登录测试账号记 BLOCKED，未猜测为可用；时光胶囊隐私缺口与灵动岛去留未擅自改，等用户定夺。
 - 第 4 阶段：三条代码审计线全程只读，未登录任何账号，未向真实用户发任何消息，未发测试邮件，未删真实用户数据，未清理生产 Storage；备份/恢复、版本发布、应用发布、批量邮件、批量通知等生产写操作只核对入口与调用链，未实际执行；唯一生产写入是两处幂等迁移 FIX-4-5（NULL-role 守卫，每函数恰好只改 1 行）与 FIX-4-7（漂移收敛，策略仍 5 条），均已回读核对、生产无非预期变化；代码修复 6 项在独立 worktree 的 `fix/audit-phase4-code` 分支上，`npm run typecheck` / `npm run build` / `npm run check:styles` / `npm run check:admin-styles` 全部通过（主代理独立复跑 typecheck + build 通过）；登录态 175 项因无可登录管理员测试账号记 BLOCKED，未猜测为可用；邀请码/横幅/改资料等权限口径未擅自改，等用户定夺。
+- 第 5 阶段：三条代码审计线全程只读，未登录任何账号，未播放任何歌曲，未下载任何音频或安装包，未向真实用户发任何消息，未发测试邮件，未删真实用户数据，未清理生产 Storage；未发布任何版本、未替换任何安装包文件、未触发任何部署；密钥文件只核对存在性与引用关系，未读内容；唯一生产写入是幂等收敛迁移 FIX-5-10（已回读核对，函数定义与 proacl 与应用前逐字一致，`musicdl_app_releases` 仍恰好 1 行，生产无变化）；代码修复 8 项在独立 worktree 的 `fix/audit-phase5-code` 分支上，`npm run typecheck` / `npm run build` / `npm run check:styles` / `npm run check:admin-styles` 全部通过（主代理独立复跑 typecheck + build 通过；签名页 7 个 `<script>` 块 `node --check` 全过）；登录态/真机 40 项因无可登录测试账号与测试手机记 BLOCKED，未猜测为可用；音乐下载版 1.2 版本不一致、酷狗、两个 public_* RPC 门控等未擅自改，等用户定夺。
 - 未把“组件存在 / 接口 200 / 构建通过”当成可用；代码已确认、线上未验证的不算 PASS。

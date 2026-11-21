@@ -145,7 +145,7 @@
     <div class="status" id="status"></div>
     <div class="note">
       <b>玩法：</b>改好名字和颜色，点「播放签名」，名字会一笔一笔写出来，写完纸屑一炸、慢慢淡出。想换效果直接改，改完会自动重播一遍。<br>
-      <b>注意：</b>中文、英文都能写：中文按笔画一笔一笔写出来，还能换字体（霞鹜文楷、志莽行书）；英文有 4 种手写字体。上面「语言」切到韩文/日文/阿拉伯文，中文名字会按读音翻译成对应文字再写出来（只认常用的 303 个汉字，生僻字留中文原字）。导出的是 <b>WebM 视频</b>，手机浏览器录出来就是这个格式，大多数播放器都能直接看，MP4 需要转码所以这次没做。
+      <b>注意：</b>中文、英文都能写：中文按笔画一笔一笔写出来，还能换字体（霞鹜文楷、志莽行书）；英文有 4 种手写字体。上面「语言」切到韩文/日文/阿拉伯文，中文名字会按读音翻译成对应文字再写出来（只认常用的 303 个汉字，生僻字留中文原字）。导出的是 <b>WebM 视频</b>，手机浏览器录出来就是这个格式，大多数播放器都能直接看，MP4 需要转码所以这次没做。导出视频有没有音乐，看上面「轻音乐」开关：开着导出带音乐，关着导出就是静音的。
     </div>
   </section>
 </main>
@@ -613,6 +613,7 @@ function mulberry(a){ return function(){ a|=0; a=a+0x6D2B79F5|0; var t=Math.imul
 
 /* ================= 音乐（WebAudio 八音盒） ================= */
 var audioCtx = null, musicGain = null, musicDest = null, musicTimer = null, musicStep = 0;
+var padNodes = null; // 铺底振荡器 [osc1, osc2, gain]：停音乐时要一起停掉，否则关开关后低音一直响（审计 FIX-5-1）
 var MELODY = [72,0,76,0,79,0,76,0, 81,0,79,0,76,0,72,0, 74,0,77,0,81,0,77,0, 79,0,76,0,74,0,71,0];
 function ensureAudio(){
   if(audioCtx) return;
@@ -621,12 +622,23 @@ function ensureAudio(){
   musicGain.connect(audioCtx.destination);
   musicDest = audioCtx.createMediaStreamDestination();
   musicGain.connect(musicDest);
+}
+function startPad(){
+  if(!audioCtx || padNodes) return;
   // 低音铺底
   var pad = audioCtx.createOscillator(), pad2 = audioCtx.createOscillator(), pg = audioCtx.createGain();
   pad.type = "triangle"; pad.frequency.value = 130.81;
   pad2.type = "sine"; pad2.frequency.value = 196.00;
   pg.gain.value = 0.05; pad.connect(pg); pad2.connect(pg); pg.connect(musicGain);
   pad.start(); pad2.start();
+  padNodes = [pad, pad2, pg];
+}
+function stopPad(){
+  if(!padNodes) return;
+  var nodes = padNodes; padNodes = null;
+  try{ nodes[0].stop(); }catch(e){}
+  try{ nodes[1].stop(); }catch(e){}
+  try{ nodes[2].disconnect(); }catch(e){}
 }
 function midiHz(m){ return 440*Math.pow(2,(m-69)/12); }
 function pluck(midi){
@@ -644,13 +656,14 @@ function pluck(midi){
 function startMusic(){
   ensureAudio();
   if(audioCtx.state === "suspended") audioCtx.resume();
+  startPad();
   if(musicTimer) return;
   musicTimer = setInterval(function(){
     var n = MELODY[musicStep % MELODY.length]; musicStep++;
     if(n) pluck(n);
   }, 300);
 }
-function stopMusic(){ if(musicTimer){ clearInterval(musicTimer); musicTimer = null; } }
+function stopMusic(){ if(musicTimer){ clearInterval(musicTimer); musicTimer = null; } stopPad(); }
 
 /* ================= 纸屑 ================= */
 var confettiParts = [], confettiRAF = 0;
@@ -728,6 +741,10 @@ function measureVaraSeg(varaEl, row, fontSize){
 /* 建一个名字：按「连续中文段 / 连续拉丁段」分段串行写——中文段用 Tegaki（canvas），
    拉丁段用 Vara（svg）。固定时长时，整名自然时长折算成统一缩放比，各段按比例拉伸/压缩。
    英文段建完立即实测排版，换行或溢出就缩小 0.8 倍重建，最多 4 次；测不到就按原样播。 */
+/* 结尾 outro 耗时：纸屑在 outro 后 +500ms、淡出在 +2100ms、淡出开始后 +900ms 停录，
+   合计约 3000ms。固定时长导出要在 target 秒整停录，书写须在 target-3 秒内写完，
+   否则纸屑与淡出会被截掉（审计 FIX-5-2）。 */
+var OUTRO_MS = 3000;
 function createName(token, i, fontSize, attempt, onDone){
   var gen = ++nameGen[i];
   var n = state.names[i];
@@ -741,7 +758,9 @@ function createName(token, i, fontSize, attempt, onDone){
     natural += seg.kind === "teg" ? tegakiSegSeconds(seg.text, seg.fontKey) : animDuration(seg.text)/1000;
   });
   var target = state.duration === "auto" ? 0 : parseFloat(state.duration);
-  var scale = (target > 0 && natural > 0) ? target / natural : 1;
+  // 固定时长：书写按 target-OUTRO 秒拉伸，outro 落在固定时长窗口内，导出仍是标称时长且结尾完整。
+  var writeTarget = target > 0 ? Math.max(1, target - OUTRO_MS / 1000) : 0;
+  var scale = (writeTarget > 0 && natural > 0) ? writeTarget / natural : 1;
   if(scale < 0.25) scale = 0.25;
   if(scale > 4) scale = 4;
   var rowW = row.clientWidth || 300;
@@ -973,7 +992,9 @@ function exportVideo(){
   play();
   setStatus("正在录制签名动画…");
   if(state.duration !== "auto"){
-    setTimeout(function(){ if(recording) stopRecording(); }, parseInt(state.duration,10)*1000);
+    // 停录以 outro 为准（写完 + 纸屑 + 淡出，约 target 秒整）；这里只留一个 target+3 秒的
+    // 兜底，防止超长名字（缩放比钳制在 0.25）导致录制停不下来。
+    setTimeout(function(){ if(recording) stopRecording(); }, parseInt(state.duration,10)*1000 + OUTRO_MS);
   }
 }
 function stopRecording(){

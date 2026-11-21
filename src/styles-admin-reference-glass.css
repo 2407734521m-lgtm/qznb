@@ -6,7 +6,7 @@
    Visual only: no data, feature, entry or permission change. */
 
 :root {
-  --admin-glass-bg: linear-gradient(180deg, rgba(255, 255, 255, .58), rgba(255, 255, 255, .44));
+  --admin-glass-bg: linear-gradient(180deg, rgba(255, 255, 255, .46), rgba(255, 255, 255, .32));
   --admin-glass-border: 1px solid rgba(255, 255, 255, .72);
   --admin-glass-shadow: 0 10px 28px rgba(98, 73, 32, .10), inset 0 1px 0 rgba(255, 255, 255, .70);
   --admin-glass-blur: blur(18px) saturate(1.25);
@@ -57,17 +57,26 @@
     linear-gradient(155deg, #fff8e7 0%, #ffedd2 30%, #ffe6d3 55%, #ffe9c8 78%, #fff3d9 100%) !important;
 }
 
-/* ---- Same warm field on the content area around the rounded container,
-   so the strip between the container edge and the viewport is warm too
-   instead of shell grey. Scoped with :has() to the overview tab only:
-   Overview mounts only when tab === 'overview', so other tabs keep
-   their own canvas. Sidebar and topbar are outside this element and
-   are untouched. ---- */
-.admin-shell-v3 .admin-workspace.is-reference-dashboard:has(.admin-overview-reference-layout) .admin-workspace-content {
+/* ---- FLUX GOES GLOBAL (user 2026-11-21: every tab must have this
+   background, topbar glassy, more see-through, welcome on every page).
+   The wash used to live on the overview only (the :has() rule below).
+   Now it is painted once on .admin-workspace-main — the whole column
+   that holds the topbar, the content and the footer — so every tab
+   shares one continuous photo, and the translucent topbar shows the
+   wash through it. The core is centred 150px down from the top of the
+   column (below the ~64px topbar), so the topbar zone stays pale like
+   the reference and the bright core lands behind the page heading /
+   title row instead. The content area itself goes transparent (it used
+   to paint the same stack and would double it); the overview dashboard
+   keeps its own wash, so the overview top is the same double layer
+   verified in #754. The sidebar is a sibling of this column and is
+   untouched. Visual only: no data, feature, entry or permission
+   change. ---- */
+.admin-shell-v3 .admin-workspace.is-reference-dashboard .admin-workspace-main {
   background:
-    radial-gradient(900px 420px at 72% 0px, rgba(255, 184, 64, .92), rgba(255, 158, 46, .50) 40%, transparent 65%),
-    radial-gradient(560px 380px at 6% 60px, rgba(255, 222, 138, .85), transparent 70%),
-    radial-gradient(480px 300px at 45% 150px, rgba(255, 178, 148, .45), transparent 70%),
+    radial-gradient(900px 420px at 72% 120px, rgba(255, 184, 64, .88), rgba(255, 158, 46, .45) 40%, transparent 65%),
+    radial-gradient(560px 380px at 6% 180px, rgba(255, 222, 138, .85), transparent 70%),
+    radial-gradient(480px 300px at 45% 270px, rgba(255, 178, 148, .45), transparent 70%),
     radial-gradient(900px 560px at 88% -8%, rgba(255, 190, 70, .72), transparent 62%),
     radial-gradient(700px 500px at -4% 10%, rgba(255, 228, 165, .60), transparent 62%),
     radial-gradient(820px 560px at 104% 48%, rgba(255, 178, 88, .58), transparent 62%),
@@ -75,6 +84,49 @@
     radial-gradient(780px 540px at 55% 88%, rgba(255, 188, 128, .50), transparent 62%),
     radial-gradient(620px 460px at 28% 104%, rgba(255, 198, 188, .42), transparent 60%),
     linear-gradient(155deg, #fff8e7 0%, #ffedd2 30%, #ffe6d3 55%, #ffe9c8 78%, #fff3d9 100%) !important;
+}
+
+.admin-shell-v3 .admin-workspace.is-reference-dashboard .admin-workspace-content {
+  background: transparent !important;
+}
+
+/* ---- The shared page heading was a solid white bar (antd-pro layer).
+   On the photo the heading floats straight on the wash, so it goes
+   transparent here — the greeting + tab title print on the photo. ---- */
+.admin-shell-v3 .admin-page-heading {
+  background: transparent !important;
+  border-bottom-color: rgba(255, 255, 255, .5) !important;
+}
+
+/* ---- Glass topbar: the reference top bar is a pale translucent strip
+   with the photo showing through — logo, nav icons, search, avatar.
+   The old topbar was rgba(255,255,255,.96), nearly solid. ---- */
+.admin-shell-v3 .admin-console-topbar {
+  background: rgba(255, 255, 255, .5) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(1.25) !important;
+  backdrop-filter: blur(16px) saturate(1.25) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, .72) !important;
+}
+
+/* ---- More see-through everywhere else (user: "通透一点"): the shared
+   panel token all admin tabs build their cards from becomes translucent
+   glass, so the warm wash bleeds through the cards on every page, not
+   just the overview. Text stays dark (step-4 contrast pass), so
+   readability holds on the wash. ---- */
+.admin-shell-v3 {
+  --admin-surface: rgba(255, 255, 255, .55);
+  --admin-surface-muted: rgba(248, 250, 252, .5);
+}
+
+/* ---- Welcome greeting on every non-overview tab (the shared page
+   heading; the overview tab hides this whole heading and has its own
+   big welcome in Overview.tsx, so there is no duplication). ---- */
+.admin-shell-v3 .admin-page-heading-copy .admin-page-greeting {
+  margin: 0 0 2px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: .01em;
+  color: #7c5e1a;
 }
 
 /* ---- All overview cards become translucent glass. ---- */
@@ -96,7 +148,7 @@
    "系统运行" numbers on one line — give it the same light glass so it
    reads as part of the row, not as another card. ---- */
 .admin-shell-v3 .admin-overview-reference-layout .admin-overview-status-strip {
-  background: rgba(255, 255, 255, .55) !important;
+  background: rgba(255, 255, 255, .42) !important;
   -webkit-backdrop-filter: blur(14px) saturate(1.2) !important;
   backdrop-filter: blur(14px) saturate(1.2) !important;
   border: 1px solid rgba(255, 255, 255, .72) !important;
@@ -104,7 +156,7 @@
 }
 
 .admin-shell-v3 .admin-overview-reference-layout .admin-overview-welcome-actions button {
-  background: rgba(255, 255, 255, .66) !important;
+  background: rgba(255, 255, 255, .55) !important;
   -webkit-backdrop-filter: blur(8px);
   backdrop-filter: blur(8px);
 }

@@ -455,6 +455,10 @@ export default function AdminWorkspace({
           <span className="admin-reference-avatar" aria-label={isSuper ? '超级管理员' : '内容管理员'}>
             {isSuper ? '超' : '管'}
           </span>
+          <button type="button" className="admin-console-icon-button admin-reference-settings"
+            aria-label="设置" title="设置" onClick={() => choose('settings')}>
+            <AdminIcon name="settings" size={17} />
+          </button>
           <button type="button" className="admin-console-logout" onClick={onLogout} aria-label="退出管理员后台">
             <AdminIcon name="logout" size={16} />
             <span>退出</span>
@@ -464,6 +468,7 @@ export default function AdminWorkspace({
         <main className="admin-workspace-content">
           <div className={['admin-page-heading', activeTab === 'overview' ? 'is-dashboard-heading' : ''].filter(Boolean).join(' ')}>
             <div className="admin-page-heading-copy">
+              <p className="admin-page-greeting">欢迎回来，管理员 · {new Intl.DateTimeFormat('zh-CN', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' }).format(new Date())}</p>
               <h1>{current?.[1] ?? '工作台'}</h1>
               <p>{descriptionFor(activeTab)}</p>
             </div>

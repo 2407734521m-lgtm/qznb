@@ -2328,6 +2328,10 @@ export default function Chat() {
         night: 'radial-gradient(ellipse at 50% -6%,rgba(64,156,255,.5),transparent 46%),radial-gradient(ellipse at 88% 34%,rgba(38,190,190,.22),transparent 40%),linear-gradient(180deg,#0a2a4a 0%,#06182e 55%,#030a19 100%)',
       } as Record<string, string>)[chatBackground] ?? '#ffffff';
 
+  // 壁纸深浅：浅色预设（清透白/晴空/薰衣草/薄荷/晚霞）用深色字 + 浅色玻璃输入框；
+  // 夜海与自定义照片走深色，名字/输入框用白字 + 深色玻璃（#767 的做法）。
+  const wallpaperTone = ['default', 'sky', 'lavender', 'mint', 'sunset'].includes(chatBackground) ? 'light' : 'dark';
+
   // Paint the active conversation wallpaper on the full-screen shell as well as
   // the chat surface, so safe-area and viewport-height differences never expose
   // the app's underlying black canvas above or below the conversation.
@@ -2354,7 +2358,7 @@ export default function Chat() {
   }, [chatWallpaper]);
 
   return (
-    <div ref={pageRef} className="im-page" style={{
+    <div ref={pageRef} className="im-page" data-im-tone={wallpaperTone} style={{
       '--im-wallpaper': chatWallpaper,
     } as React.CSSProperties}>
       <style>{`

@@ -4776,3 +4776,105 @@
   background: #72c9a5 !important;
   box-shadow: none !important;
 }
+
+
+/* 2026-11-21 录屏跟进（fix/chat-fix-video-1121）：#804 把输入框换成白玻璃胶囊后，
+   浅色壁纸（默认清透白）上白字 / 白占位 / 白 Aa / 白麦克风全部隐形，只剩 + 号能看见。
+   按壁纸深浅分两套：浅色壁纸用浅色玻璃 + 深色字；深色壁纸（夜海 / 自定义照片）
+   用深色玻璃 + 白字。顶栏名字与在线状态同理：浅色壁纸沿用 2baa689 的透明底 +
+   深色字，深色壁纸只改字色为白（不恢复药丸底，头像周围仍不留任何底板）。
+   头像本身：有照片时背景 / 边框 / 阴影全清（:has(img) 只管有图的情况，没图的
+   首字母头像仍保留渐变底盘，那是头像本身不是底板）。视频通话未开放，按钮再弱化
+   一档，点按仍弹已有的提示。首条气泡与顶栏之间留 16px，不再贴着顶栏。 */
+.im-page .im-feed {
+  padding-top: 16px !important;
+}
+.im-page .im-head .im-video-call {
+  opacity: .55 !important;
+}
+.im-page .im-head .im-contact-stack .im-avatar:has(img) {
+  background: transparent !important;
+  background-color: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  outline: 0 !important;
+}
+
+/* 浅色壁纸：浅色玻璃输入框 + 深色字/图标，占位字与 Aa/麦克风都看得见。 */
+.im-page[data-im-tone="light"] .im-input-wrap,
+.im-page[data-im-tone="light"] .im-input-wrap:focus-within {
+  background: rgba(255,255,255,.78) !important;
+  background-color: rgba(255,255,255,.78) !important;
+  border: 1px solid rgba(38,52,74,.16) !important;
+  box-shadow: 0 5px 18px rgba(38,52,74,.10), inset 0 1px 0 rgba(255,255,255,.9) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(1.3) !important;
+  backdrop-filter: blur(20px) saturate(1.3) !important;
+}
+.im-page[data-im-tone="light"] .im-input-wrap:focus-within {
+  background: rgba(255,255,255,.88) !important;
+  background-color: rgba(255,255,255,.88) !important;
+  border-color: rgba(10,132,255,.55) !important;
+  box-shadow: 0 0 0 3px rgba(10,132,255,.16), inset 0 1px 0 rgba(255,255,255,.9) !important;
+}
+.im-page[data-im-tone="light"] .im-input-wrap > textarea.im-input {
+  color: #1d293b !important;
+}
+.im-page[data-im-tone="light"] .im-input-wrap > textarea.im-input::placeholder {
+  color: rgba(38,52,74,.55) !important;
+  opacity: 1 !important;
+}
+.im-page[data-im-tone="light"] .im-input-wrap > .im-format-btn,
+.im-page[data-im-tone="light"] .im-input-wrap > .im-mic {
+  color: #4a5a70 !important;
+}
+.im-page[data-im-tone="light"] .im-composer > .im-plus {
+  color: #3d4b60 !important;
+  border: 1px solid rgba(38,52,74,.16) !important;
+  background: rgba(255,255,255,.78) !important;
+  box-shadow: 0 5px 16px rgba(38,52,74,.10), inset 0 1px 0 rgba(255,255,255,.9) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(1.3) !important;
+  backdrop-filter: blur(20px) saturate(1.3) !important;
+}
+
+/* 深色壁纸：深色玻璃输入框 + 白字（#767/#804 在夜海上的样子）；顶栏只改字色为白，
+   2baa689 拆掉的药丸底不恢复。 */
+.im-page[data-im-tone="dark"] .im-input-wrap,
+.im-page[data-im-tone="dark"] .im-input-wrap:focus-within {
+  background: rgba(10,34,40,.42) !important;
+  background-color: rgba(10,34,40,.42) !important;
+  border: 1px solid rgba(255,255,255,.26) !important;
+  box-shadow: 0 5px 20px rgba(0,0,0,.12), inset 0 1px 0 rgba(255,255,255,.14) !important;
+  -webkit-backdrop-filter: blur(22px) saturate(1.36) !important;
+  backdrop-filter: blur(22px) saturate(1.36) !important;
+}
+.im-page[data-im-tone="dark"] .im-input-wrap > textarea.im-input {
+  color: #fff !important;
+}
+.im-page[data-im-tone="dark"] .im-input-wrap > textarea.im-input::placeholder {
+  color: rgba(255,255,255,.72) !important;
+  opacity: 1 !important;
+}
+.im-page[data-im-tone="dark"] .im-input-wrap > .im-format-btn,
+.im-page[data-im-tone="dark"] .im-input-wrap > .im-mic {
+  color: rgba(255,255,255,.86) !important;
+}
+.im-page[data-im-tone="dark"] .im-head .im-back,
+.im-page[data-im-tone="dark"] .im-head .im-video-call {
+  color: rgba(255,255,255,.92) !important;
+}
+.im-page[data-im-tone="dark"] .im-contact-stack {
+  color: #fff !important;
+}
+.im-page[data-im-tone="dark"] .im-contact-name-pill .im-title {
+  color: #fff !important;
+  text-shadow: 0 1px 9px rgba(0,0,0,.24) !important;
+}
+.im-page[data-im-tone="dark"] .im-contact-chevron {
+  color: rgba(255,255,255,.78) !important;
+}
+.im-page[data-im-tone="dark"] .im-encryption-meta,
+.im-page[data-im-tone="dark"] .im-encryption-title,
+.im-page[data-im-tone="dark"] .im-encryption-status {
+  color: rgba(255,255,255,.88) !important;
+  text-shadow: 0 1px 9px rgba(0,0,0,.34) !important;
+}

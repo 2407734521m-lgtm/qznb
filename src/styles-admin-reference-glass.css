@@ -108,6 +108,16 @@
   border-bottom: 1px solid rgba(255, 255, 255, .72) !important;
 }
 
+/* ---- The avatar at the top right was hidden on phones (match.css hides
+   .admin-reference-avatar below 600px), so the user never saw it — but
+   the reference photo has the avatar at the top right. Show it again;
+   the flexible spacer absorbs the 31px, the topbar still fits. ---- */
+@media (max-width: 600px) {
+  .admin-shell-v3 .admin-reference-avatar {
+    display: inline-flex !important;
+  }
+}
+
 /* ---- More see-through everywhere else (user: "通透一点"): the shared
    panel token all admin tabs build their cards from becomes translucent
    glass, so the warm wash bleeds through the cards on every page, not

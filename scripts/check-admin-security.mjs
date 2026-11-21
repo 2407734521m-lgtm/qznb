@@ -101,6 +101,17 @@ assert.ok(securityCenter.includes('admin_list_own_sessions') && securityCenter.i
 assert.ok(securityCenter.includes("signOut({ scope: 'others' })"), 'security center must retain supported revoke-other-sessions behavior');
 assert.ok(adminShared.includes('Promise<boolean>') && adminShared.includes('return false'), 'audit helper must report whether the write succeeded');
 
+const profileEditGuard = read('supabase/migrations/20261121114000_guard_admin_profile_edit_target_role.sql');
+const memberModal = read('src/components/AdminMemberModal.tsx');
+assert.ok(profileEditGuard.includes("v_role <> 'super_admin' and v_target_role is distinct from 'member'"),
+  'ordinary admins must not edit admin or super-admin profiles through the SECURITY DEFINER RPC');
+assert.ok(profileEditGuard.includes('for update'),
+  'the target profile role must be locked while the authorization decision and update run');
+assert.ok(memberModal.includes("const canEditProfile = isSuper || f?.role === 'member';"),
+  'the member editor must hide profile editing for admin targets unless the operator is super admin');
+assert.ok(memberModal.includes("if (!isSuper && f?.role !== 'member')"),
+  'the save handler must reject an admin-profile edit before invoking the RPC');
+
 const securityOverviewGuard = read('supabase/migrations/20261117000859_admin_security_overview_null_role_guard.sql');
 assert.ok(securityOverviewGuard.includes("coalesce(public.my_role(), '') <> 'super_admin'"),
   'admin security overview must reject authenticated sessions whose role lookup returns NULL');

@@ -4030,3 +4030,133 @@
 @media (prefers-reduced-motion: reduce) {
   .im-page .im-contact-stack:active { transform: translateX(-50%) !important; }
 }
+
+
+/* Full-screen chat canvas: keep the wallpaper under system-safe areas and
+   prevent the parent WebView canvas from appearing as top/bottom black bands. */
+.wrap.chat-shell {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 2;
+  display: block !important;
+  width: 100vw !important;
+  height: 100dvh !important;
+  min-height: 0 !important;
+  max-width: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  isolation: isolate;
+  background-color: #101a20;
+  background-size: cover !important;
+  background-position: center 56% !important;
+  background-repeat: no-repeat !important;
+}
+.wrap.chat-shell::before {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  inset: -5%;
+  pointer-events: none;
+  background: inherit;
+  background-size: cover !important;
+  background-position: center 56% !important;
+  background-repeat: no-repeat !important;
+}
+.wrap.chat-shell > div {
+  position: absolute !important;
+  z-index: 1;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  background: transparent !important;
+}
+.im-page.im-page {
+  width: 100% !important;
+  min-height: 0 !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+}
+
+/* Remove the separate avatar/name plate: the contact stack now sits directly
+   on the same wallpaper as the messages, like the reference conversation. */
+.im-page .im-contact-stack,
+.im-page .im-contact-stack:active,
+.im-page .im-contact-stack:focus {
+  background: transparent !important;
+  background-color: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+.im-page .im-contact-stack .im-avatar {
+  background: transparent !important;
+  background-color: transparent !important;
+  box-shadow: 0 2px 10px rgba(0,0,0,.10) !important;
+}
+.im-page .im-contact-name-pill {
+  min-height: 30px !important;
+  padding: 4px 5px !important;
+  color: #fff !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+.im-page .im-contact-name-pill .im-title {
+  text-shadow: 0 1px 7px rgba(0,0,0,.38) !important;
+}
+.im-page .im-contact-chevron { text-shadow: 0 1px 7px rgba(0,0,0,.38); }
+
+/* The old header left an unnecessarily tall empty panel behind the avatar.
+   Tighten the vertical stack so the actual conversation starts sooner. */
+.im-page .im-head {
+  flex: 0 0 clamp(204px, 25svh, 222px) !important;
+  min-height: clamp(204px, 25svh, 222px) !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+.im-page .im-contact-stack {
+  top: calc(env(safe-area-inset-top) + 8px) !important;
+}
+.im-page .im-contact-stack .im-avatar {
+  width: 80px !important;
+  min-width: 80px !important;
+  height: 80px !important;
+  margin-bottom: 5px !important;
+}
+.im-page .im-contact-name-pill { margin-top: 0 !important; }
+.im-page .im-encryption-meta { margin-top: 10px !important; }
+
+@media (max-width: 600px) {
+  .im-page .im-head {
+    flex-basis: clamp(204px, 25svh, 216px) !important;
+    min-height: clamp(204px, 25svh, 216px) !important;
+  }
+  .im-page .im-contact-stack .im-avatar {
+    width: 80px !important;
+    min-width: 80px !important;
+    height: 80px !important;
+  }
+  .im-page .im-encryption-meta { margin-top: 9px !important; }
+}
+@media (max-height: 620px) and (max-width: 700px) {
+  .im-page .im-head { flex-basis: 174px !important; min-height: 174px !important; }
+  .im-page .im-contact-stack .im-avatar {
+    width: 64px !important;
+    min-width: 64px !important;
+    height: 64px !important;
+  }
+  .im-page .im-encryption-meta { margin-top: 6px !important; }
+}

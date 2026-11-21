@@ -4748,3 +4748,31 @@
 .im-page .im-head .im-encryption-meta {
   -webkit-tap-highlight-color: transparent !important;
 }
+
+
+/* Match the header text/icons to the white conversation canvas after removing
+   the old dark glass plates; keep every control readable without a disc. */
+.im-page .im-head .im-back,
+.im-page .im-head .im-video-call {
+  color: #596579 !important;
+}
+.im-page .im-head .im-contact-stack {
+  color: #26344a !important;
+}
+.im-page .im-head .im-contact-name-pill .im-title {
+  color: #26344a !important;
+  text-shadow: none !important;
+}
+.im-page .im-head .im-contact-chevron {
+  color: rgba(38, 52, 74, .58) !important;
+}
+.im-page .im-head .im-encryption-meta,
+.im-page .im-head .im-encryption-title,
+.im-page .im-head .im-encryption-status {
+  color: #8792a2 !important;
+  text-shadow: none !important;
+}
+.im-page .im-head .im-encryption-dot {
+  background: #72c9a5 !important;
+  box-shadow: none !important;
+}

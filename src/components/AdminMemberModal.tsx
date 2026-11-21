@@ -39,6 +39,7 @@ export default function AdminMemberModal({ memberId, onClose, onChanged, isSuper
   const [msg, setMsg] = useState('');
   const [busy, setBusy] = useState(false);
   const videoUrl = useSignedUrl('videos', f?.intro_video_path);
+  const canEditProfile = isSuper || f?.role === 'member';
 
   useEffect(() => {
     (async () => {
@@ -91,6 +92,11 @@ export default function AdminMemberModal({ memberId, onClose, onChanged, isSuper
   }, [memberId, isSuper]);
 
   async function save() {
+    if (!isSuper && f?.role !== 'member') {
+      setMsg('仅超级管理员可修改管理员账号资料');
+      setEdit(false);
+      return;
+    }
     setBusy(true); setMsg('');
     const ageNum = form.age.trim() === '' ? null : parseInt(form.age, 10);
     const { error } = await supabase.rpc('admin_update_profile', {
@@ -205,9 +211,13 @@ export default function AdminMemberModal({ memberId, onClose, onChanged, isSuper
           )}
 
           <div className="row" style={{ gap: 8, marginBottom: edit ? 10 : 0 }}>
-            <button className="mini" onClick={() => setEdit(e => !e)}>{edit ? '取消编辑' : '高级修改'}</button>
+            {canEditProfile ? (
+              <button className="mini" onClick={() => setEdit(e => !e)}>{edit ? '取消编辑' : '高级修改'}</button>
+            ) : (
+              <span className="mut" style={{ fontSize: 12 }}>管理员账号资料仅超级管理员可修改</span>
+            )}
           </div>
-          {edit && (
+          {edit && canEditProfile && (
             <div style={{ marginBottom: 8 }}>
               {[['display_name', '显示名'], ['age', '年龄'], ['personality', '性格'], ['signature', '签名'], ['bio', '个人简介'], ['hobbies', '兴趣爱好']].map(([k, label]) => (
                 <div key={k} style={{ marginBottom: 8 }}>

@@ -22,7 +22,7 @@
     "@supabase/supabase-js": "^2.119.0",
     "@tanstack/react-virtual": "^3.14.26",
     "@use-gesture/react": "^10.3.1",
-    "framer-motion": "^14.12.0",
+    "framer-motion": "^14.14.0",
     "liquid-glass-react": "^1.1.1",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",

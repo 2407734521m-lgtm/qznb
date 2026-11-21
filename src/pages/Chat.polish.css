@@ -4448,3 +4448,121 @@
     padding: 3px 8px !important;
   }
 }
+
+
+/* Composer normalization (item 7): the global textarea rule was painting a
+   second surface inside the glass pill. The wrapper owns the only background;
+   Aa, textarea and microphone are transparent flex children. */
+.im-page .im-input-wrap {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  min-width: 0 !important;
+  overflow: hidden !important;
+  gap: 7px !important;
+  background: rgba(10,34,40,.42) !important;
+  border: 1px solid rgba(255,255,255,.28) !important;
+  border-radius: 999px !important;
+  box-shadow: 0 5px 20px rgba(0,0,0,.12), inset 0 1px 0 rgba(255,255,255,.14) !important;
+  -webkit-backdrop-filter: blur(22px) saturate(1.36) !important;
+  backdrop-filter: blur(22px) saturate(1.36) !important;
+}
+.im-page .im-input-wrap:focus-within {
+  background: rgba(10,34,40,.48) !important;
+  border-color: rgba(255,255,255,.44) !important;
+  box-shadow: 0 0 0 2px rgba(255,255,255,.08), 0 5px 20px rgba(0,0,0,.12), inset 0 1px 0 rgba(255,255,255,.14) !important;
+}
+.im-page textarea.im-input {
+  display: block !important;
+  flex: 1 1 0% !important;
+  width: 0 !important;
+  min-width: 0 !important;
+  min-height: 44px !important;
+  max-height: 116px !important;
+  margin: 0 !important;
+  padding: 10px 0 !important;
+  color: #fff !important;
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  outline: 0 !important;
+  box-shadow: none !important;
+  resize: none !important;
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  font-size: 16px !important;
+  line-height: 1.35 !important;
+  caret-color: #fff !important;
+}
+.im-page textarea.im-input:focus,
+.im-page textarea.im-input:focus-visible {
+  color: #fff !important;
+  background: transparent !important;
+  border: 0 !important;
+  outline: 0 !important;
+  box-shadow: none !important;
+}
+.im-page .im-input-wrap > .im-format-btn {
+  display: grid !important;
+  flex: 0 0 31px !important;
+  width: 31px !important;
+  min-width: 31px !important;
+  max-width: 31px !important;
+  height: 36px !important;
+  min-height: 36px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  color: rgba(255,255,255,.88) !important;
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 50% !important;
+  box-shadow: none !important;
+}
+.im-page .im-input-wrap > .im-format-btn--on {
+  color: #fff !important;
+  background: rgba(255,255,255,.16) !important;
+  box-shadow: none !important;
+}
+.im-page .im-input-wrap > .im-mic {
+  display: grid !important;
+  flex: 0 0 31px !important;
+  width: 31px !important;
+  min-width: 31px !important;
+  max-width: 31px !important;
+  height: 36px !important;
+  min-height: 36px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  place-items: center !important;
+  color: rgba(255,255,255,.9) !important;
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 50% !important;
+  box-shadow: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+.im-page .im-input-wrap > .im-mic.recording,
+.im-page .im-input-wrap > .im-mic.cancel-armed {
+  color: #fff !important;
+  background: #d95f6e !important;
+  box-shadow: none !important;
+}
+.im-page .im-input-wrap > .im-format-btn:hover,
+.im-page .im-input-wrap > .im-format-btn:active,
+.im-page .im-input-wrap > .im-mic:hover,
+.im-page .im-input-wrap > .im-mic:active {
+  background: transparent !important;
+  box-shadow: none !important;
+}
+.im-page .im-input-wrap > .im-format-btn.im-format-btn--on:hover {
+  background: rgba(255,255,255,.16) !important;
+}
+.im-page .im-input-wrap > .im-mic.recording:hover,
+.im-page .im-input-wrap > .im-mic.cancel-armed:hover {
+  background: #d95f6e !important;
+}
+.im-page textarea.im-input::placeholder {
+  color: rgba(255,255,255,.76) !important;
+  opacity: 1 !important;
+}

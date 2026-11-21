@@ -390,6 +390,40 @@
   to { opacity: 1; transform: scale(1); }
 }
 
+/* Expanded card background: the song's own cover, blurred into a tinted wash.
+   Painted on the expanded Slot itself ([data-slot="expanded"]), so it covers
+   the whole card and is clipped by the morphing shape with everything else.
+   (A node inside any region would only cover that region: the region's own
+   transform makes it the containing block.) The image comes from
+   --qz-music-cover, set on the island host while a track with a cover is
+   playing and cleared the moment it ends; with no track both layers are
+   empty, so a call or reminder card never inherits a music wash. The blur
+   input is the downscaled cover and never changes, so the browser rasterizes
+   it once into a composited layer (own transform) and the morph only
+   re-clips it — no repaint per frame. The shade deepens the card edges so
+   white text stays readable over a bright cover. */
+[data-slot="expanded"]::before,
+[data-slot="expanded"]::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+}
+
+[data-slot="expanded"]::before {
+  background-image: var(--qz-music-cover, none);
+  background-size: cover;
+  background-position: center;
+  filter: blur(28px) saturate(1.35) brightness(.72);
+  transform: scale(1.45) translateZ(0);
+  opacity: .55;
+}
+
+[data-slot="expanded"]::after {
+  background: var(--qz-music-shade, none);
+}
+
 /* Header row: round cover with the title and artist right after it. The cap
    keeps a long title from squeezing the middle column (and the trailing
    buttons) out on narrow cards; the meta ellipsizes inside it. */

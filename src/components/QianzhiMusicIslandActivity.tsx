@@ -1,4 +1,5 @@
 import { haptic } from '../lib/haptics';
+import { smallMusicCoverUrl } from '../lib/musicCover';
 import { createContext, useContext, useEffect, useRef, useState, type CSSProperties, type RefObject } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Island, useIslandActions, useIslandActivity, useIslandPresentation, useIslandReducedMotion } from '../lib/island';
@@ -92,7 +93,9 @@ const AlbumArt = ({ size, expanded = false }: { size: number; expanded?: boolean
     track.isPlaying && 'is-playing',
   ].filter(Boolean).join(' ');
   if (track.coverUrl) {
-    return <img className={artClass} src={track.coverUrl} alt="" width={size} height={size} />;
+    // The island only ever shows the art at 22–52px: ask for a small variant
+    // so opening the card never pays to decode the full-size image.
+    return <img className={artClass} src={smallMusicCoverUrl(track.coverUrl) ?? track.coverUrl} alt="" width={size} height={size} decoding="async" />;
   }
   return (
     <span className={artClass + ' qz-island-art-fallback'} aria-hidden="true">

@@ -4,10 +4,8 @@ import {
   MUSIC_RESUME_MAX_AGE_MS,
   clearMusicResumeSession,
   readMusicResumeSession,
-  resumeSessionToTrack,
   saveMusicResumeSession,
   sessionFromTrack,
-  shouldMountMusicFrameForResume,
   shouldResumeSession,
   shouldSaveResumeSession,
   type MusicResumeSession,
@@ -87,19 +85,6 @@ describe('music resume session storage', () => {
   });
 });
 
-describe('resumeSessionToTrack', () => {
-  it('restores the pill paused at the saved position', () => {
-    expect(resumeSessionToTrack(session())).toEqual({
-      title: '岷江夜曲',
-      artist: 'Internet Archive contributor',
-      coverUrl: 'https://example.com/cover.jpg',
-      isPlaying: false,
-      currentTime: 17,
-      duration: 214,
-    });
-  });
-});
-
 describe('shouldResumeSession', () => {
   it('resumes the same song mid-track', () => {
     expect(shouldResumeSession(session(), track({ isPlaying: false, currentTime: 0 }), NOW)).toBe(true);
@@ -132,24 +117,6 @@ describe('shouldResumeSession', () => {
 
   it('ignores a changed cover when matching the song', () => {
     expect(shouldResumeSession(session(), track({ coverUrl: null }), NOW)).toBe(true);
-  });
-});
-
-describe('shouldMountMusicFrameForResume', () => {
-  it('mounts nothing without a session', () => {
-    expect(shouldMountMusicFrameForResume(null)).toBe(false);
-  });
-
-  it('mounts when the session was playing', () => {
-    expect(shouldMountMusicFrameForResume(session({ isPlaying: true, position: 3 }))).toBe(true);
-  });
-
-  it('mounts for a paused session far into the track', () => {
-    expect(shouldMountMusicFrameForResume(session({ isPlaying: false, position: 30 }))).toBe(true);
-  });
-
-  it('skips a paused session barely into the track', () => {
-    expect(shouldMountMusicFrameForResume(session({ isPlaying: false, position: 5 }))).toBe(false);
   });
 });
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { EQUALIZER_BANDS, EQUALIZER_REST_LEVEL, MUSIC_ISLAND_INACTIVE_HIDE_DELAY_MS, isEndedTrackPush, isMusicTrackFinished, isSameMusicTrack, musicTrackIdentity, resolveMusicEqualizerMode, resolveMusicIslandLabel, shouldCrossfadeMusicTrack, shouldMirrorEqualizerToRoot, shouldShowMainIsland } from './MusicIsland';
+import { EQUALIZER_BANDS, EQUALIZER_REST_LEVEL, MUSIC_ISLAND_INACTIVE_HIDE_DELAY_MS, isEndedTrackPush, isMusicTrackFinished, isSameMusicTrack, musicTrackIdentity, resolveMusicEqualizerMode, resolveMusicIslandLabel, shouldCrossfadeMusicTrack, shouldMirrorEqualizerToRoot, shouldShowMainIsland, shouldWriteSpectrumBands } from './MusicIsland';
 import { hasNewIslandActivity, resolveIslandDockGesture, resolveIslandGestureSource, shouldCancelPendingIslandDock, shouldEndTracklessMusicActivity, shouldShowIslandHost, shouldShowMusicEmptyState } from './QianzhiMusicIslandActivity';
 import { resolveMetrics } from '../lib/island/config';
 import { createQianzhiIslandMetrics, qianzhiIslandMetrics } from '../lib/island/qianzhi-metrics';
@@ -330,5 +330,26 @@ describe('equalizer mirror on <html>', () => {
   it('keeps the four band names and the rest level the stylesheets read', () => {
     expect([...EQUALIZER_BANDS]).toEqual(['bass', 'lowMid', 'vocal', 'treble']);
     expect(EQUALIZER_REST_LEVEL).toBe('.12');
+  });
+});
+
+describe('shouldWriteSpectrumBands', () => {
+  const bands = { bass: 0.5, lowMid: 0.4, vocal: 0.6, treble: 0.3 };
+
+  it('writes the first sample even when nothing was written before', () => {
+    expect(shouldWriteSpectrumBands(null, bands, 1000, 0)).toBe(true);
+  });
+
+  it('writes again once the minimum interval has passed, and not a millisecond before', () => {
+    expect(shouldWriteSpectrumBands(bands, bands, 1000, 880)).toBe(true);
+    expect(shouldWriteSpectrumBands(bands, bands, 1000, 881)).toBe(false);
+  });
+
+  it('skips a sample that arrives too soon and changes nothing visible', () => {
+    expect(shouldWriteSpectrumBands(bands, { ...bands, vocal: 0.62 }, 1000, 950)).toBe(false);
+  });
+
+  it('writes a soon sample when a band moves visibly', () => {
+    expect(shouldWriteSpectrumBands(bands, { ...bands, bass: 0.56 }, 1000, 950)).toBe(true);
   });
 });

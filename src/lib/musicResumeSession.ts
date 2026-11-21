@@ -7,10 +7,17 @@
  * and the main site keeps the track in memory only. When the station
  * reloads, it restores the queue but reports the song paused at 0:00 — and
  * nothing ever told it to carry on. So the main site persists the session
- * on every accepted STATE (throttled), mounts the hidden frame on boot when
- * a fresh session exists, and on (re)connect seeks back to the saved
- * position and plays again. No Folia change is needed: the existing
+ * on every accepted STATE (throttled), and on (re)connect seeks back to the
+ * saved position and plays again. No Folia change is needed: the existing
  * seek + toggle commands compose the resume.
+ *
+ * What it never does: a stored session is only a bookmark for the next
+ * visit to the music page. A fresh entry to the site must not show a music
+ * pill and must not start playback by itself — the pill appears only after
+ * the user enters the music page, plays something, and leaves it. So nothing
+ * here seeds a track on boot and nothing mounts the hidden music frame for
+ * a stored session; the resume only fires once the bridge is live, which
+ * happens after the user opens the music page.
  *
  * Boundaries: after a refresh with no user gesture yet, the browser's
  * autoplay policy may refuse audible playback (a fresh profile has no media
@@ -69,23 +76,6 @@ export function sessionFromTrack(track: MusicResumeTrack, at: number = Date.now(
     duration: Number.isFinite(track.duration) ? Math.max(0, Math.floor(track.duration)) : 0,
     isPlaying: track.isPlaying === true,
     at,
-  };
-}
-
-/**
- * The pill's optimistic track for a freshly loaded page: paused at the saved
- * position until live STATE arrives and takes over. Previous/next are
- * optimistic (the queue normally has neighbours); the first live STATE
- * corrects them within seconds.
- */
-export function resumeSessionToTrack(session: MusicResumeSession): MusicResumeTrack {
-  return {
-    title: session.title,
-    artist: session.artist,
-    coverUrl: session.coverUrl,
-    isPlaying: false,
-    currentTime: session.position,
-    duration: session.duration,
   };
 }
 
@@ -151,14 +141,7 @@ export function shouldResumeSession(
   return true;
 }
 
-/** Whether the hidden music frame is worth mounting on boot to resume this session. */
-export function shouldMountMusicFrameForResume(session: MusicResumeSession | null): boolean {
-  if (!session) return false;
-  return session.isPlaying || session.position >= 10;
-}
-
-/**
- * Whether the incoming track is worth persisting over the last saved
+/** Whether the incoming track is worth persisting over the last saved
  * snapshot: a new song, a play/pause flip, or at least a step of progress.
  */
 export function shouldSaveResumeSession(

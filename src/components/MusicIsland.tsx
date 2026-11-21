@@ -5,16 +5,15 @@ import { createMusicIslandActivity, MusicIslandView } from './QianzhiMusicIsland
 import MusicFullscreenPlayer from './MusicFullscreenPlayer';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { haptic } from '../lib/haptics';
+import { smallMusicCoverUrl } from '../lib/musicCover';
 import { saveIslandLastTrack } from '../lib/islandLastTrack';
 import {
   MUSIC_RESUME_MAX_ATTEMPTS,
   MUSIC_RESUME_MIN_SEEK_POSITION,
   clearMusicResumeSession,
   readMusicResumeSession,
-  resumeSessionToTrack,
   saveMusicResumeSession,
   sessionFromTrack,
-  shouldMountMusicFrameForResume,
   shouldResumeSession,
   shouldSaveResumeSession,
   type MusicResumeSession,
@@ -91,6 +90,31 @@ export const EQUALIZER_REST_LEVEL = '.12';
  */
 export function shouldMirrorEqualizerToRoot(fullPlayerOpen: boolean, hasTrack: boolean, isMusicPage: boolean): boolean {
   return fullPlayerOpen && hasTrack && !isMusicPage;
+}
+
+/** How often the equalizer bars may rewrite their CSS variables at most: the
+    bars ease over 150ms, so writing faster than this only forces style
+    recalculation without any visible change — and while the island is
+    morphing open, those recalculations land between the morph's own frames. */
+export const MUSIC_SPECTRUM_WRITE_MIN_INTERVAL_MS = 120;
+/** A band change smaller than this is invisible under the bars' own easing. */
+export const MUSIC_SPECTRUM_WRITE_CHANGE_THRESHOLD = 0.05;
+
+export type MusicSpectrumBands = { bass: number; lowMid: number; vocal: number; treble: number };
+
+/** Whether the next spectrum sample is worth writing to the bars: either
+    enough time has passed, or at least one band moved visibly. */
+export function shouldWriteSpectrumBands(
+  previous: MusicSpectrumBands | null,
+  next: MusicSpectrumBands,
+  now: number,
+  lastWrittenAt: number,
+): boolean {
+  if (now - lastWrittenAt >= MUSIC_SPECTRUM_WRITE_MIN_INTERVAL_MS) return true;
+  if (!previous) return true;
+  return (Object.keys(next) as (keyof MusicSpectrumBands)[]).some(
+    (name) => Math.abs(next[name] - previous[name]) >= MUSIC_SPECTRUM_WRITE_CHANGE_THRESHOLD,
+  );
 }
 
 /** Use real spectrum/RMS data when it carries energy; otherwise keep the playing bars animated. */
@@ -213,15 +237,16 @@ function MusicIsland() {
   const [frameLoaded, setFrameLoaded] = useState(false);
   const [connected, setConnected] = useState(false);
   const [showFallback, setShowFallback] = useState(false);
-  // A playback session saved before a reload or an iframe reset: the pill
-  // shows it (paused, at the saved position) until live STATE arrives, and
-  // the hidden frame mounts so the bridge can reconnect and resume it.
+  // A playback session saved before a reload or an iframe reset. It is only
+  // a bookmark for the next visit to the music page: the stored position is
+  // what the resume arm seeks back to once the bridge is live again. It never
+  // shows a pill and never mounts the music frame on its own — a fresh entry
+  // to the site shows no island until the user opens the music page, plays
+  // something, and leaves it.
   const [initialResumeSession] = useState<MusicResumeSession | null>(() => readMusicResumeSession());
-  const [track, setTrack] = useState<MusicTrack | null>(() => {
-    if (!initialResumeSession) return null;
-    const resumed = resumeSessionToTrack(initialResumeSession);
-    return { ...resumed, canPrevious: true, canNext: true, canToggle: true, volume: null, isMuted: false };
-  });
+  // No track until live STATE arrives in this visit: seeding one from the
+  // stored session put a music pill on the island the moment the site opened.
+  const [track, setTrack] = useState<MusicTrack | null>(null);
   const [seekDraft, setSeekDraft] = useState<number | null>(null);
   const [fullPlayerOpen, setFullPlayerOpen] = useState(false);
   const fullscreenPlayerVisible = shouldMirrorEqualizerToRoot(fullPlayerOpen, track !== null, isMusicPage);
@@ -254,8 +279,16 @@ function MusicIsland() {
   const resumeAttemptsRef = useRef(0);
   // Last snapshot written to storage, so STATE pushes (every 700ms) don't rewrite it constantly.
   const lastSavedResumeRef = useRef<MusicResumeSession | null>(initialResumeSession);
-  const mountForResume = shouldMountMusicFrameForResume(initialResumeSession);
-  const shouldMountFrame = openedOnce || isMusicPage || mountForResume;
+  // Last spectrum bands written to the equalizer bars, and when: the bars ease
+  // over 150ms, so samples arriving faster than that are throttled (see
+  // shouldWriteSpectrumBands) instead of forcing a style recalculation each time.
+  const lastSpectrumBandsRef = useRef<MusicSpectrumBands | null>(null);
+  const lastSpectrumWriteAtRef = useRef(0);
+  // The hidden music frame mounts only once the user has opened the music page
+  // in this visit (or is on it). A stored resume session never mounts it:
+  // mounting it on boot reconnected the bridge and auto-resumed playback, so a
+  // fresh entry showed — and played — music the user never started.
+  const shouldMountFrame = openedOnce || isMusicPage;
 
   // A paused song remains available briefly, then its activity disappears. This also covers
   // a paused resume-session restored before the music iframe has sent its first STATE.
@@ -332,6 +365,31 @@ function MusicIsland() {
     };
   }, [fullscreenPlayerVisible]);
 
+  // The expanded card's background is the song's own cover, painted on the
+  // expanded Slot via CSS vars (see MusicIsland.css). Set them while a track
+  // with a cover is playing; clear them the moment it ends, so a later call
+  // or reminder card never inherits a music wash. The host element itself
+  // mounts a render after the activity starts (the activity id lands a beat
+  // after the page flip), so the effect also re-runs when the activity set
+  // changes — the cover and the page alone would not re-fire after the host
+  // appears.
+  useEffect(() => {
+    const host = islandWrapRef.current;
+    if (!host) return;
+    const cover = track?.coverUrl ? smallMusicCoverUrl(track.coverUrl, 160) : null;
+    if (cover) {
+      host.style.setProperty('--qz-music-cover', `url("${cover}")`);
+      host.style.setProperty('--qz-music-shade', 'linear-gradient(180deg, rgba(0,0,0,.45) 0%, rgba(0,0,0,.16) 45%, rgba(0,0,0,.62) 100%)');
+    } else {
+      host.style.removeProperty('--qz-music-cover');
+      host.style.removeProperty('--qz-music-shade');
+    }
+    return () => {
+      host.style.removeProperty('--qz-music-cover');
+      host.style.removeProperty('--qz-music-shade');
+    };
+  }, [track?.coverUrl, isMusicPage, activityIds]);
+
   useEffect(() => {
     if (!shouldMountFrame) return;
     // The island host always rests; <html> only when the fullscreen player is mirroring it.
@@ -375,11 +433,23 @@ function MusicIsland() {
         const rmsLevel = spectrum.mode === 'level'
           ? Math.max(0, Math.min(1, Number.isFinite(spectrum.level) ? spectrum.level : 0))
           : 0;
+        // Frequency mode keeps four independent bands; RMS mode moves all bars with overall loudness.
+        const nextBands: MusicSpectrumBands = { bass: 0, lowMid: 0, vocal: 0, treble: 0 };
         for (const name of names) {
           const raw = spectrumBands ? spectrumBands[name] : rmsLevel * levelMultipliers[name];
-          const energy = Number.isFinite(raw) ? Math.max(0, Math.min(1, raw ?? 0)) : 0;
-          // Frequency mode keeps four independent bands; RMS mode moves all bars with overall loudness.
-          const measured = String(0.12 + energy * 0.88);
+          nextBands[name] = Number.isFinite(raw) ? Math.max(0, Math.min(1, raw ?? 0)) : 0;
+        }
+        // Samples arrive many times a second, but the bars ease over 150ms: skip
+        // the ones that would change nothing visible, so the island's morph
+        // doesn't fight a style recalculation on every spectrum push.
+        const now = Date.now();
+        if (!shouldWriteSpectrumBands(lastSpectrumBandsRef.current, nextBands, now, lastSpectrumWriteAtRef.current)) {
+          return;
+        }
+        lastSpectrumBandsRef.current = nextBands;
+        lastSpectrumWriteAtRef.current = now;
+        for (const name of names) {
+          const measured = String(0.12 + nextBands[name] * 0.88);
           style.setProperty(`--qz-music-eq-${name}`, measured);
           root?.style.setProperty(`--qz-music-eq-${name}`, measured);
         }

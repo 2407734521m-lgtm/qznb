@@ -24,7 +24,7 @@ export default function AdminSongWall({ setMsg }: { setMsg: (s: string) => void 
   const [busy, setBusy] = useState<string | null>(null);
   async function load() {
     const { data, error } = await supabase.from('song_posts').select('*').order('created_at', { ascending: false }).limit(200);
-    if (error) { setMsg('歌声墙管理不可用：请先执行 010_song_wall.sql 数据库迁移。'); return; }
+    if (error) { setMsg('歌声墙管理不可用：请检查管理员数据库权限。'); return; }
     setRows(data ?? []);
   }
   useEffect(() => { void load(); }, []);

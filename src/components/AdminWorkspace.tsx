@@ -20,8 +20,8 @@ interface AdminWorkspaceProps {
 const NAV_GROUPS = [
   { label: '工作台', ids: ['overview', 'analytics'] },
   { label: '成员与权限', ids: ['accounts', 'invite', 'approvals', 'mySecurity'] },
-  { label: '内容运营', ids: ['moderate', 'loveWall', 'songWall', 'authorizedRequests', 'board', 'events', 'game'] },
-  { label: '消息与反馈', ids: ['notifications', 'bulkEmail', 'broadcast', 'feedback'] },
+  { label: '内容运营', ids: ['moderate', 'reviewCenter', 'loveWall', 'songWall', 'musicDownloads', 'authorizedRequests', 'board', 'events', 'game'] },
+  { label: '消息与反馈', ids: ['notifications', 'communication', 'bulkEmail', 'broadcast', 'feedback'] },
   { label: '系统管理', ids: ['backups', 'release', 'appCenter', 'logs', 'security', 'system', 'guestAccess', 'settings', 'test'] },
 ] as const;
 
@@ -33,6 +33,9 @@ const ICON_PATHS: Record<string, string> = {
   mySecurity: 'M6 11V7a6 6 0 1 1 12 0v4 M4 11h16v10H4z M12 15v3',
   approvals: 'M5 12l4 4L19 6 M3 3h18v18H3z',
   moderate: 'M4 5h16 M4 12h16 M4 19h10 M7 2v6 M17 9v6',
+  reviewCenter: 'M9 11l3 3L22 4 M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11',
+  musicDownloads: 'M12 3v10 M7 8l5 5 5-5 M4 21h16',
+  notifications: 'M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9 M13.7 21a2 2 0 0 1-3.4 0',
   loveWall: 'M20.8 8.7c0 5.2-8.8 10.3-8.8 10.3S3.2 13.9 3.2 8.7A4.7 4.7 0 0 1 12 6.2a4.7 4.7 0 0 1 8.8 2.5z',
   songWall: 'M9 18V5l12-2v13 M9 18a3 3 0 1 1-3-3c1.7 0 3 1.3 3 3z M21 16a3 3 0 1 1-3-3c1.7 0 3 1.3 3 3z',
   authorizedRequests: 'M12 3v18 M3 12h18 M5 5l14 14 M19 5L5 19',
@@ -82,6 +85,9 @@ function descriptionFor(id: string) {
     mySecurity: '修改当前管理员账号的二级密码。',
     approvals: '集中处理需要超级管理员审批的申请。',
     moderate: '处理举报、违规内容与社区审核任务。',
+    reviewCenter: '集中处理歌声墙、表白墙、游戏段位、举报与反馈的待审核事项。',
+    musicDownloads: '查看成员下载音乐的记录。',
+    notifications: '查看全站通知与发送通知活动。',
     loveWall: '管理表白墙内容与发布状态。',
     songWall: '管理匿名歌声投稿与审核状态。',
     authorizedRequests: '查看并处理经过授权的申请队列。',
@@ -455,10 +461,14 @@ export default function AdminWorkspace({
           <span className="admin-reference-avatar" aria-label={isSuper ? '超级管理员' : '内容管理员'}>
             {isSuper ? '超' : '管'}
           </span>
-          <button type="button" className="admin-console-icon-button admin-reference-settings"
-            aria-label="设置" title="设置" onClick={() => choose('settings')}>
-            <AdminIcon name="settings" size={17} />
-          </button>
+          {/* 设置页签仅超管可见，内容管理员点齿轮会进空白页（审计 FIX-4-2），
+              因此齿轮本身只对超管渲染。 */}
+          {isSuper && (
+            <button type="button" className="admin-console-icon-button admin-reference-settings"
+              aria-label="设置" title="设置" onClick={() => choose('settings')}>
+              <AdminIcon name="settings" size={17} />
+            </button>
+          )}
           <button type="button" className="admin-console-logout" onClick={onLogout} aria-label="退出管理员后台">
             <AdminIcon name="logout" size={16} />
             <span>退出</span>

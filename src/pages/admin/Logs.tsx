@@ -93,21 +93,33 @@ export default function Logs() {
   const [names, setNames] = useState<Record<string, string>>({});
   const [q, setQ] = useState('');
   const [actionFilter, setActionFilter] = useState('all');
+  const [loadError, setLoadError] = useState('');
 
   useEffect(() => {
-    supabase.from('admin_audit_logs').select('id, actor, action, target, detail, created_at')
-      .order('created_at', { ascending: false }).limit(100)
-      .then(async ({ data }) => {
+    let alive = true;
+    (async () => {
+      try {
+        const { data, error } = await supabase.from('admin_audit_logs').select('id, actor, action, target, detail, created_at')
+          .order('created_at', { ascending: false }).limit(100);
+        if (!alive) return;
+        // 查询失败不要显示「暂无记录」空态，那会误导管理员以为没有日志（审计 FIX-4-6）。
+        if (error) { setLoadError('日志读取失败：' + error.message); return; }
+        setLoadError('');
         const rows = (data ?? []) as Log[];
         setLogs(rows);
         const ids = [...new Set(rows.flatMap(l => [l.actor, l.target]).filter((x): x is string => !!x && UUID_RE.test(x)))];
         if (ids.length) {
           const { data: profs } = await supabase.from('profiles').select('id, username, display_name').in('id', ids);
+          if (!alive) return;
           const map: Record<string, string> = {};
           (profs || []).forEach(p => { map[p.id] = p.display_name || p.username || p.id; });
           setNames(map);
         }
-      });
+      } catch {
+        if (alive) setLoadError('日志读取失败：网络错误，请稍后重试。');
+      }
+    })();
+    return () => { alive = false; };
   }, []);
 
   const actionCounts = useMemo(() => {
@@ -160,7 +172,8 @@ export default function Logs() {
           </div>
         </div>
       ))}
-      {shown.length === 0 && <p style={mut}>暂无记录</p>}
+      {loadError && <p style={mut}>{loadError}</p>}
+      {!loadError && shown.length === 0 && <p style={mut}>暂无记录</p>}
       <p style={{ ...mut, marginTop: 10 }}>日志仅管理员可见，不可删除或修改。</p>
     </div>
   );

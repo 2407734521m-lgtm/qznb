@@ -28,8 +28,15 @@ export default function GameTab({ setMsg }: { setMsg: (s: string) => void }) {
   }
   async function revoke(pid: string) {
     if (!(await confirmDialog('撤销这个段位认证？', { danger: true, confirmText: '确认撤销' }))) return;
-    const { error } = await supabase.rpc('review_game_profile', { pid, approve: false });
-    if (!error) { await alog('game_revoke', { pid }); load(); } else setMsg('操作失败：' + error.message);
+    // review_game_profile 只更新 status='pending' 的行，对已通过的行调用必定
+    // 抛错（审计 FIX-4-4）；撤销直接把行改回待审核——该 RPC 除了改状态不做
+    // 别的（无审计、无通知），而 gp_admin 策略允许管理员直接写这张表。
+    const { data, error } = await supabase.from('game_profiles')
+      .update({ status: 'pending', updated_at: new Date().toISOString() })
+      .eq('profile_id', pid).eq('status', 'approved').select('profile_id').maybeSingle();
+    if (error) { setMsg('操作失败：' + error.message); return; }
+    if (!data) { setMsg('操作失败：该段位已不是已通过状态。'); return; }
+    await alog('game_revoke', { pid }); load();
   }
   return (
     <div style={card}>

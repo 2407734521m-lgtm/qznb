@@ -41,6 +41,7 @@ import AdminMusicDownloads from '../components/AdminMusicDownloads';
 import AdminBulkEmail from '../components/AdminBulkEmail';
 import AdminAccountManagement from '../components/AdminAccountManagement';
 import AdminCommunicationCenter from '../components/AdminCommunicationCenter';
+import AdminNotificationCenter from '../components/AdminNotificationCenter';
 import AdminSecondaryPassword from '../components/AdminSecondaryPassword';
 import Logs from './admin/Logs';
 import InviteTab from './admin/InviteTab';
@@ -73,6 +74,7 @@ const TABS_ALL: [string, string, boolean][] = [
   ['musicDownloads', '音乐下载记录', false],
   ['bulkEmail', '批量邮件', false],
   ['communication', '沟通中心', false],
+  ['notifications', '通知中心', false],
   ['feedback', '反馈', false],
   ['game', '段位', false],
   ['board', '公告', false],
@@ -216,11 +218,22 @@ export default function Admin({ verifiedRole }: { verifiedRole: 'admin' | 'super
     : undefined;
   const tabs = TABS_ALL.filter(([, , sup]) => !sup || isSuper);
 
-
+  // switchTab 是所有入口（侧栏、命令面板、收藏、总览药丸、系统中心按钮）
+  // 的唯一切页点：在这里拦住不存在的 id 与当前角色无权访问的超管页签，
+  // 否则内容区只剩空白（审计 FIX-4-2）。被拦时留在当前页并给提示。
   function switchTab(id: string) {
+    const def = TABS_ALL.find(([tabId]) => tabId === id);
+    if (!def) { setMsg('这个管理功能不存在或已被移除。'); return; }
+    if (def[2] && !isSuper) { setMsg('需要超级管理员权限才能打开这个功能。'); return; }
     setTab(id); setMsg('');
     window.scrollTo({ top: 0 });
   }
+
+  // 当前页签若因角色变化不再可达（例如收藏里存了旧的超管页签），
+  // 同样显示提示而不是空白。
+  const activeTabDef = TABS_ALL.find(([tabId]) => tabId === tab);
+  const activeTabForbidden = Boolean(activeTabDef?.[2] && !isSuper);
+  const activeTabUnknown = !activeTabDef;
 
   function signOut() {
     void supabase.auth.signOut({ scope: 'local' }).then(({ error }) => {
@@ -276,7 +289,7 @@ export default function Admin({ verifiedRole }: { verifiedRole: 'admin' | 'super
             exit={reduceMotion ? undefined : { opacity: 0, y: -4, transition: { duration: 0.12, ease: [0.22, 1, 0.36, 1] } }}
             transition={reduceMotion ? { duration: 0 } : { duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
           >
-          {tab === 'overview' && <Overview setMsg={setMsg} go={switchTab} />}
+          {tab === 'overview' && <Overview setMsg={setMsg} go={switchTab} isSuper={isSuper} />}
           {tab === 'analytics' && isSuper && <AdminAnalyticsCenter setMsg={setMsg} />}
           {tab === 'backups' && isSuper && <AdminBackupCenter setMsg={setMsg} />}
           {tab === 'release' && isSuper && <AdminReleaseCenter />}
@@ -291,6 +304,7 @@ export default function Admin({ verifiedRole }: { verifiedRole: 'admin' | 'super
           {tab === 'musicDownloads' && <AdminMusicDownloads setMsg={setMsg} />}
           {tab === 'bulkEmail' && <AdminBulkEmail setMsg={setMsg} />}
           {tab === 'communication' && <AdminCommunicationCenter me={me} isSuper={isSuper} setMsg={setMsg} />}
+          {tab === 'notifications' && <AdminNotificationCenter setMsg={setMsg} />}
           {tab === 'board' && <BoardMgr me={me} setMsg={setMsg} />}
           {tab === 'events' && <EventTab me={me} setMsg={setMsg} />}
           {tab === 'logs' && <Logs />}
@@ -304,6 +318,11 @@ export default function Admin({ verifiedRole }: { verifiedRole: 'admin' | 'super
           {tab === 'feedback' && <FeedbackTab me={me} isSuper={isSuper} setMsg={setMsg} />}
           {tab === 'game' && <GameTab setMsg={setMsg} />}
           {tab === 'test' && isSuper && <TestTab setMsg={setMsg} />}
+          {(activeTabUnknown || activeTabForbidden) && (
+            <div className="center" style={{ minHeight: '40vh' }}>
+              {activeTabForbidden ? '需要超级管理员权限才能打开这个功能。' : '这个管理功能不存在或已被移除。'}
+            </div>
+          )}
           </motion.div>
         </AnimatePresence>
       </AdminWorkspace>

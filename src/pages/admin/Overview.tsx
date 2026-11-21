@@ -202,7 +202,7 @@ function ClientStatsCard() {
   </motion.section>;
 }
 
-export default function Overview({ setMsg, go }: { setMsg: (s: string) => void; go: (tab: string) => void }) {
+export default function Overview({ setMsg, go, isSuper }: { setMsg: (s: string) => void; go: (tab: string) => void; isSuper: boolean }) {
   const reduce = useReducedMotion();
   const [st, setSt] = useState<any>(null);
   const [presence, setPresence] = useState<{ online: number; active: number; sampledAt: string; error: boolean } | null>(null);
@@ -374,13 +374,16 @@ export default function Overview({ setMsg, go }: { setMsg: (s: string) => void; 
   /* STEP 3: guide checklist — same four entries, now with a real completion
      circle each and a progress bar on top. Progress = done / 4. */
   const guide = st.guide as { queuesClear: boolean; board: boolean; appVersion: boolean } | undefined;
-  const guideItems: { key: string; title: string; desc: string; tab: string; done: boolean }[] = [
-    { key: 'members', title: '成员与权限', desc: '查看成员账号、角色及状态', tab: 'accounts', done: st.members >= 1 },
+  const guideItems: { key: string; title: string; desc: string; tab: string; done: boolean; super?: boolean }[] = [
+    { key: 'members', title: '成员与权限', desc: '查看成员账号、角色及状态', tab: 'accounts', done: st.members >= 1, super: true },
     { key: 'moderate', title: '内容审核', desc: '处理举报与待审核内容', tab: 'moderate', done: guide?.queuesClear ?? false },
     { key: 'board', title: '发布公告', desc: '更新站点公告与通知', tab: 'board', done: guide?.board ?? false },
     { key: 'app', title: '应用管理', desc: '查看软件版本和更新说明', tab: 'appCenter', done: guide?.appVersion ?? false },
   ];
-  const guideDone = guideItems.filter(i => i.done).length;
+  // 超管专属入口对内容管理员隐藏，否则点后是空白页（审计 FIX-4-2）；
+  // 进度按可见项算，Admin.tsx 的 switchTab 兜底还会再拦一次。
+  const visibleGuideItems = guideItems.filter(item => !item.super || isSuper);
+  const guideDone = visibleGuideItems.filter(i => i.done).length;
   const recentLogs = (st.recentLogs as any[]).slice(0, 4);
   /* STEP 5: the trend hero number is the real 30-day new-member count —
      the sum of the 30 daily registration buckets. */
@@ -402,10 +405,12 @@ export default function Overview({ setMsg, go }: { setMsg: (s: string) => void; 
           <p>{new Intl.DateTimeFormat('zh-CN', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' }).format(new Date())} · 数据更新于 {new Date(st.loadedAt).toLocaleTimeString()}</p>
         </div>
         {/* STEP 3 (Flux rebuild): five action pills like the reference.
-            Destinations are real tabs only — no dead buttons. Two honest
-            approximations, because the admin has no dedicated page for
-            them (the overseas-video system was removed, and there is no
-            file-manager tab):
+            Destinations are real tabs only — no dead buttons. 超管专属的
+            药丸（数据分析、文件管理）对内容管理员隐藏，否则点后是空白页
+            （审计 FIX-4-2）；Admin.tsx 的 switchTab 兜底还会再拦一次。
+            Two honest approximations, because the admin has no dedicated
+            page for them (the overseas-video system was removed, and there
+            is no file-manager tab):
             - 文件管理 → 设置页 (settings): the media-upload switches live
               there (相册照片上传 / 共享媒体上传).
             - 视频管理 → 公告页 (board): the homepage banner media is
@@ -416,12 +421,12 @@ export default function Overview({ setMsg, go }: { setMsg: (s: string) => void; 
             the reference. */}
         <div className="admin-overview-welcome-actions">
           {([
-            ['新任务', 'board'],
-            ['数据分析', 'analytics'],
-            ['报表分析', 'logs'],
-            ['文件管理', 'settings'],
-            ['视频管理', 'board'],
-          ] as [string, string][]).map(([label, tab], i, arr) => (
+            ['新任务', 'board', false],
+            ['数据分析', 'analytics', true],
+            ['报表分析', 'logs', false],
+            ['文件管理', 'settings', true],
+            ['视频管理', 'board', false],
+          ] as [string, string, boolean][]).filter(([, , sup]) => !sup || isSuper).map(([label, tab], i, arr) => (
             <motion.button key={label} type="button" className={i === arr.length - 1 ? 'is-amber' : undefined} onClick={() => go(tab)} {...tapProps(reduce)}>{label}</motion.button>
           ))}
         </div>
@@ -448,12 +453,12 @@ export default function Overview({ setMsg, go }: { setMsg: (s: string) => void; 
             {/* STEP 6: the bar fills with a 0.5s easeOut instead of jumping
                 to its width; the check circles pop when their item is done. */}
             <div className="admin-overview-guide-progress-track"><motion.i
-              initial={reduce ? false : { width: 0 }} animate={{ width: `${(guideDone / guideItems.length) * 100}%` }}
+              initial={reduce ? false : { width: 0 }} animate={{ width: `${visibleGuideItems.length ? (guideDone / visibleGuideItems.length) * 100 : 0}%` }}
               transition={{ duration: 0.5, ease: 'easeOut' }} /></div>
-            <span>已完成 {guideDone}/{guideItems.length}</span>
+            <span>已完成 {guideDone}/{visibleGuideItems.length}</span>
           </div>
           <div className="admin-overview-guide-list">
-            {guideItems.map(item => (
+            {visibleGuideItems.map(item => (
               <motion.button key={item.key} type="button" onClick={() => go(item.tab)} {...tapProps(reduce)}>
                 <motion.span className={['admin-overview-guide-check', item.done ? 'is-done' : ''].join(' ')} aria-hidden="true"
                   initial={reduce || !item.done ? false : { scale: 0 }} animate={{ scale: 1 }}

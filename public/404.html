@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#ffffff" />
+<title>页面不存在 · Class Memory</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: #ffffff; color: #1f2a3a;
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; }
+  .wrap { min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; text-align: center; padding: 24px; }
+  .brand { font-size: 13px; letter-spacing: .18em; color: #7a8894; margin-bottom: 20px; }
+  .code { font-size: 64px; font-weight: 700; color: #b0404f; line-height: 1; margin: 0 0 12px; }
+  h1 { font-size: 20px; font-weight: 600; margin: 0 0 10px; }
+  p { font-size: 15px; line-height: 1.7; color: #7a8894; margin: 0 0 8px; max-width: 320px; }
+  .home { display: inline-block; margin-top: 20px; padding: 11px 28px; border-radius: 999px;
+    background: #b0404f; color: #ffffff; text-decoration: none; font-size: 15px; }
+  .home:active { opacity: .85; }
+  .note { margin-top: 16px; font-size: 13px; color: #7a8894; }
+</style>
+</head>
+<body>
+  <main class="wrap">
+    <div class="brand">CLASS MEMORY · OUR CLASS · OUR STORY</div>
+    <div class="code">404</div>
+    <h1>这个页面不存在</h1>
+    <p>地址可能输错了，或者这个页面已经被移走。<br />不用担心，班级首页还在。</p>
+    <a class="home" href="/#/home">回到首页</a>
+    <div class="note" id="countdown">5 秒后自动回到首页</div>
+  </main>
+  <script>
+    (function () {
+      var left = 5;
+      var el = document.getElementById('countdown');
+      var timer = setInterval(function () {
+        left -= 1;
+        if (left <= 0) {
+          clearInterval(timer);
+          location.replace('/#/home');
+        } else if (el) {
+          el.textContent = left + ' 秒后自动回到首页';
+        }
+      }, 1000);
+    })();
+  </script>
+</body>
+</html>

@@ -24,11 +24,30 @@
    The same 0,4,0 selector + !important from round 3 is kept, so this
    still wins over the mosaic #f7f8f8 fill and the `background:
    transparent !important` override in second.css. ---- */
+/* ---- TOP-WASH FIX (user 2026-11-21: "the top should melt into the
+   photo"): the step-1 wash never read as the reference on a phone.
+   Root cause, verified against the step-6 mobile shot: the six radial
+   glows are positioned in % of the dashboard element's height, and on
+   mobile the stacked page is ~4000px tall — so `at 88% -8%` puts the
+   bright core's centre ~320px ABOVE the page and its 280px radius never
+   reaches the visible top. The title + pills end up on the flat pale
+   linear base, not on a photo. The reference top is one photographic
+   sunset wash: a saturated amber core centre-right, pale gold left,
+   peach cloud below, with the title and pills printed straight on it.
+   Fix: three new core layers ANCHORED IN PX FROM THE TOP (`at 70% 30px`
+   etc.), so they land behind the title / pills / status strip on every
+   width and every page height. They are painted first (topmost) in both
+   stacks; the old six glows + linear base stay underneath for the
+   page-wide warmth. Visual only: no data, feature, entry or
+   permission change. ---- */
 .admin-shell-v3 .admin-content .admin-overview-dashboard.admin-overview-reference-layout {
   padding: clamp(14px, 1.8vw, 22px) !important;
   border: 1px solid rgba(255, 255, 255, .55) !important;
   border-radius: 26px !important;
   background:
+    radial-gradient(900px 420px at 72% 0px, rgba(255, 184, 64, .92), rgba(255, 158, 46, .50) 40%, transparent 65%),
+    radial-gradient(560px 380px at 6% 60px, rgba(255, 222, 138, .85), transparent 70%),
+    radial-gradient(480px 300px at 45% 150px, rgba(255, 178, 148, .45), transparent 70%),
     radial-gradient(900px 560px at 88% -8%, rgba(255, 190, 70, .72), transparent 62%),
     radial-gradient(700px 500px at -4% 10%, rgba(255, 228, 165, .60), transparent 62%),
     radial-gradient(820px 560px at 104% 48%, rgba(255, 178, 88, .58), transparent 62%),
@@ -46,6 +65,9 @@
    are untouched. ---- */
 .admin-shell-v3 .admin-workspace.is-reference-dashboard:has(.admin-overview-reference-layout) .admin-workspace-content {
   background:
+    radial-gradient(900px 420px at 72% 0px, rgba(255, 184, 64, .92), rgba(255, 158, 46, .50) 40%, transparent 65%),
+    radial-gradient(560px 380px at 6% 60px, rgba(255, 222, 138, .85), transparent 70%),
+    radial-gradient(480px 300px at 45% 150px, rgba(255, 178, 148, .45), transparent 70%),
     radial-gradient(900px 560px at 88% -8%, rgba(255, 190, 70, .72), transparent 62%),
     radial-gradient(700px 500px at -4% 10%, rgba(255, 228, 165, .60), transparent 62%),
     radial-gradient(820px 560px at 104% 48%, rgba(255, 178, 88, .58), transparent 62%),

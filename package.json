@@ -26,7 +26,7 @@
     "liquid-glass-react": "^1.1.1",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
-    "react-router-dom": "^7.18.5",
+    "react-router-dom": "^7.18.6",
     "simple-liquid-glass": "^5.7.3",
     "sonner": "^2.0.8",
     "wavesurfer.js": "^7.12.12"

@@ -227,6 +227,16 @@ export default function Settings({ me, setMsg }: { me: string; setMsg: (s: strin
     const tables: Record<string, { expected_rows: number; exported_rows: number; rows: any[] }> = {};
     try {
       for (const table of tableNames) {
+        // 胶囊标题与内容列已对 authenticated 收紧，直连 select('*') 会被拒；
+        // 管理员备份改走 SECURITY DEFINER 的 admin_export_time_capsules()，
+        // 返全部行全部列（仅 admin/super_admin 可调）。
+        if (table === 'time_capsules') {
+          const { data, error } = await supabase.rpc('admin_export_time_capsules');
+          if (error) throw new Error('time_capsules 导出失败：' + error.message);
+          const capsuleRows = (data as any[] | null) ?? [];
+          tables[table] = { expected_rows: capsuleRows.length, exported_rows: capsuleRows.length, rows: capsuleRows };
+          continue;
+        }
         const rows: any[] = [];
         let expected: number | null = null;
         for (let offset = 0; ; offset += pageSize) {

@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase';
 import { useSignedUrls } from '../lib/media';
 import { timeAgo } from '../lib/time';
 import { FeedSkeleton, useDelayedLoading } from '../components/fx/Skeleton';
-import BlurImg from '../components/fx/BlurImg';
+import PostMedia from '../components/PostMedia';
 import './GuestPosts.css';
 import './Guest.cruip.css';
 
@@ -55,7 +55,7 @@ function GuestPostCard({ post, imageUrl, onLoginRequired, index }: {
 
       {post.image_url && (
         imageUrl
-          ? <BlurImg className="guest-post-image" src={imageUrl} alt="动态配图" />
+          ? <PostMedia url={imageUrl} className="guest-post-image" />
           : <div className="fx-skel-wrap" role="status" aria-label="图片加载中"><div className="fx-skel" style={{ width: '100%', height: 180 }} /></div>
       )}
 

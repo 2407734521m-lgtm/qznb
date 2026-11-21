@@ -9,7 +9,7 @@ import LargeTitleBar from '../components/LargeTitleBar';
 import SettingIcon from '../components/SettingIcon';
 import { ME_QUICK_ENTRIES } from '../lib/meQuickEntries';
 import NumberTicker from '../components/fx/NumberTicker';
-import BlurImg from '../components/fx/BlurImg';
+import PostMedia from '../components/PostMedia';
 
 type GameProfile = { game_name: string; rank: string | null; status: string };
 type ModerationRestriction = {
@@ -383,7 +383,7 @@ export default function MeHub() {
                     </div>
                     <p className="me-hub-feed-text">{item.content}</p>
                     {item.image_url && feedImageUrls[item.image_url] && (
-                      <BlurImg src={feedImageUrls[item.image_url]} alt="" style={{ width: '100%', borderRadius: 10, marginTop: 8 }} />
+                      <PostMedia url={feedImageUrls[item.image_url]} style={{ width: '100%', borderRadius: 10, marginTop: 8 }} />
                     )}
                     <div className="me-hub-feed-foot"><span>♥ {item.likes}</span><span>💬 {item.comments}</span><span className="me-hub-feed-more">查看 ›</span></div>
                   </>

@@ -15,6 +15,7 @@ import type { FeedPost as Post, FeedComment as Cmt } from '../types/content';
 import { confirmDialog, alertDialog, promptDialog } from '../lib/dialog';
 import { toast } from 'sonner';
 import BlurImg from './fx/BlurImg';
+import PostMedia from './PostMedia';
 import ShimmerButton from './fx/ShimmerButton';
 import SmoothProgress from './fx/SmoothProgress';
 import { FeedSkeleton, useDelayedLoading } from './fx/Skeleton';
@@ -38,7 +39,7 @@ function Avatar({ p, url, size = 42, loading = 'lazy' }: { p?: Profile; url?: st
   );
 }
 function PostImg({ url }: { url?: string }) {
-  return url ? <BlurImg className="bdimg" src={url} alt="" /> : null;
+  return url ? <PostMedia url={url} /> : null;
 }
 
 
@@ -305,7 +306,8 @@ export default function PostList({ section, searchQuery = '', embedded = false, 
     try {
       let image_url: string | null = null;
       if (img) {
-        image_url = await uploadMediaWithProgress('media', await downscaleImage(img), undefined, pct => setUpPct(pct));
+        const mediaFile = img.type === 'image/gif' || img.type.startsWith('video/') ? img : await downscaleImage(img);
+        image_url = await uploadMediaWithProgress('media', mediaFile, undefined, pct => setUpPct(pct));
         uploadedPath = image_url;
       }
       const content = text.trim() || (impressionEnabled ? '来收集一下大家对我的印象吧。' : '');
@@ -454,7 +456,7 @@ export default function PostList({ section, searchQuery = '', embedded = false, 
     let nextImageUrl = imageUrl;
     try {
       if (editPostImage) {
-        const image = await downscaleImage(editPostImage);
+        const image = editPostImage.type === 'image/gif' || editPostImage.type.startsWith('video/') ? editPostImage : await downscaleImage(editPostImage);
         if (image.size > 10 * 1024 * 1024) throw new Error('图片处理后仍超过 10 MB。');
         uploadedPath = await uploadMedia('media', image);
         nextImageUrl = uploadedPath;
@@ -688,15 +690,15 @@ export default function PostList({ section, searchQuery = '', embedded = false, 
           <p className="impression-privacy-note">每人只能投一票，可修改自己的选择。其他人看不到是谁投的，只能看到各选项票数。</p>
         </section>}
         <div className="row">
-          <button className="ghost" onClick={() => fref.current?.click()}>{img ? (isFeed ? '重新选图' : '已选图片 ✓') : '＋ 图片'}</button>
-          <input ref={fref} type="file" accept="image/*" hidden onChange={e => setImg(e.target.files?.[0] ?? null)} />
+          <button className="ghost" onClick={() => fref.current?.click()}>{img ? (isFeed ? '重新选图' : '已选图片 ✓') : '＋ 图片 / 视频'}</button>
+          <input ref={fref} type="file" accept="image/*,video/*" hidden onChange={e => setImg(e.target.files?.[0] ?? null)} />
           <div className="sp" style={{ flex: 1 }} />
           <ShimmerButton style={{ width: 'auto', padding: '10px 28px' }} disabled={busy} onClick={publish}>
             {busy ? '发布中…' : '发布'}</ShimmerButton>
         </div>
         {isFeed && img && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8, fontSize: 12.5, color: '#5b6472' }}>
-            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>已选：{img.name}（{(img.size / 1024).toFixed(0)} KB，发布时自动压缩）</span>
+            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>已选：{img.name}（{(img.size / 1024).toFixed(0)} KB）</span>
             <button type="button" className="ghost" style={{ padding: '2px 10px', flexShrink: 0 }} disabled={busy} onClick={() => setImg(null)}>删除</button>
           </div>
         )}
@@ -754,7 +756,7 @@ export default function PostList({ section, searchQuery = '', embedded = false, 
               <div className="card" style={{ margin: '10px 0', padding: 12 }}>
                 <textarea value={editPostText} onChange={e => setEditPostText(e.target.value)} rows={3} maxLength={2000} />
                 <label style={{ display: 'block', fontSize: 11, margin: '8px 0' }}>替换配图（不选择则保留原图）
-                  <input type="file" accept="image/*" onChange={e => { setEditPostImage(e.target.files?.[0] ?? null); if (e.target.files?.[0]) setRemovePostImage(false); }} />
+                  <input type="file" accept="image/*,video/*" onChange={e => { setEditPostImage(e.target.files?.[0] ?? null); if (e.target.files?.[0]) setRemovePostImage(false); }} />
                 </label>
                 {p.image_url && <label style={{ display: 'block', fontSize: 11, margin: '8px 0' }}><input type="checkbox" checked={removePostImage} onChange={e => setRemovePostImage(e.target.checked)} /> 移除原配图</label>}
                 <div className="row" style={{ gap: 8 }}>

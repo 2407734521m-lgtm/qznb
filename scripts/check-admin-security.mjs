@@ -132,6 +132,12 @@ assert.ok(defaultPrivilegesGuard.includes('revoke all on sequences from anon, au
 assert.ok(defaultPrivilegesGuard.includes('revoke execute on functions from anon, authenticated, public'),
   'new public RPCs must require explicit execution grants');
 
+const friendRequestWithdrawalGuard = read('supabase/migrations/20261121124000_revoke_anon_withdraw_friend_request.sql');
+assert.ok(friendRequestWithdrawalGuard.includes('revoke all on function public.withdraw_friend_request(uuid) from public, anon'),
+  'friend request withdrawal must not be callable by anonymous users');
+assert.ok(friendRequestWithdrawalGuard.includes('grant execute on function public.withdraw_friend_request(uuid) to authenticated'),
+  'signed-in users must retain friend request withdrawal');
+
 const securityOverviewGuard = read('supabase/migrations/20261117000859_admin_security_overview_null_role_guard.sql');
 assert.ok(securityOverviewGuard.includes("coalesce(public.my_role(), '') <> 'super_admin'"),
   'admin security overview must reject authenticated sessions whose role lookup returns NULL');

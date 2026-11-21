@@ -1,3 +1,4 @@
+import { useCallback } from 'react';
 import { useReducedMotion } from 'framer-motion';
 import BlurImg from './fx/BlurImg';
 
@@ -16,10 +17,19 @@ export default function PostMedia({ url, className = '', style }: {
   style?: React.CSSProperties;
 }) {
   const reduce = useReducedMotion();
+  // 只靠 autoPlay 属性在部分手机浏览器/WebView 里播不起来：这里直接把 muted 写进
+  // 元素属性再调 play()，播不起来也不报错；点视频可以暂停/继续。
+  const videoRef = useCallback((el: HTMLVideoElement | null) => {
+    if (!el || reduce) return;
+    el.muted = true;
+    const result = el.play();
+    if (result) result.catch(() => {});
+  }, [reduce]);
   if (!url) return null;
   if (isVideoUrl(url)) {
     return (
       <video
+        ref={videoRef}
         className={className || 'bdimg'}
         style={{ width: '100%', borderRadius: 12, display: 'block', ...style }}
         src={url}
@@ -29,6 +39,11 @@ export default function PostMedia({ url, className = '', style }: {
         playsInline
         controls={reduce ? true : undefined}
         preload="metadata"
+        onClick={event => {
+          const video = event.currentTarget;
+          if (video.paused) void video.play();
+          else video.pause();
+        }}
       />
     );
   }

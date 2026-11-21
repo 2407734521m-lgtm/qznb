@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useIslandActions, useIslandActivityIds, useIslandReducedMotion } from '../lib/island';
-import { createMusicIslandActivity } from './QianzhiMusicIslandActivity';
+import { createMusicIslandActivity, MusicIslandView } from './QianzhiMusicIslandActivity';
 import MusicFullscreenPlayer from './MusicFullscreenPlayer';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { haptic } from '../lib/haptics';
@@ -747,9 +747,30 @@ function MusicIsland() {
         )}
       </AnimatePresence>
 
-      {/* Keep the hidden equalizer state target so fullscreen music retains its live bars.
-          The global floating island, task drawer, stopwatch trigger and dock affordance are removed. */}
-      <div ref={islandWrapRef} hidden aria-hidden="true" />
+      {/* Restore the global floating island host (2026-11-21): it was
+          unmounted here, leaving only a hidden div, so no island pill could
+          ever appear after leaving the music page even while a song played.
+          MusicIslandView renders nothing when there is no live activity; on
+          the music page itself it only mounts for non-music activities. */}
+      {shouldShowMainIsland(isMusicPage, activityIds) && (
+        <MusicIslandView
+          hostRef={islandWrapRef}
+          value={{
+            track,
+            connected,
+            sendCommand,
+            openMusic: () => navigate('/music'),
+            openFullscreenPlayer,
+            seekDraft,
+            setSeekDraft: updateSeekDraft,
+            commitSeekDraft,
+            cancelSeekDraft,
+            collapse: () => islandApi.collapse(),
+            isExpanded: () => islandApi.presentation === 'expanded',
+            activityIds,
+          }}
+        />
+      )}
     </>
   );
 }

@@ -134,9 +134,10 @@ const workflowFiles = [
 ];
 for (const workflowFile of workflowFiles) {
   const workflow = read(workflowFile);
-  for (const line of workflow.split(/\\r?\\n/)) {
-    if (!/^\\s*uses:\\s*/.test(line)) continue;
-    const action = line.replace(/^\\s*uses:\\s*/, '').split(/\\s+#/)[0].trim();
+  for (const line of workflow.split('\n')) {
+    const trimmed = line.trim();
+    if (!trimmed.startsWith('uses:')) continue;
+    const action = trimmed.slice('uses:'.length).trim().split(' #')[0].trim();
     if (action.startsWith('docker://')) continue;
     const reference = action.slice(action.lastIndexOf('@') + 1);
     assert.match(reference, /^[0-9a-f]{40}$/i,

@@ -145,6 +145,16 @@
   .preview-title { min-width:0; color:#344054; font-size:12px; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .preview-countdown { color:#667085; font-size:11px; white-space:nowrap; }
   #previewAudio { display:block; width:100%; height:38px; }
+  .ncm-intro { margin:8px 0 12px; color:#667085; font-size:13px; line-height:1.6; }
+  .ncm-toolbar { display:flex; flex-wrap:wrap; gap:8px; margin:10px 0; }
+  .ncm-list { display:grid; gap:8px; margin-top:12px; }
+  .ncm-item { display:grid; grid-template-columns:22px minmax(0,1fr); gap:10px; padding:12px; border:1px solid #e5e7eb; border-radius:14px; background:#fff; }
+  .ncm-item-main { min-width:0; }
+  .ncm-item-title { color:#1f2937; font-size:14px; font-weight:600; overflow-wrap:anywhere; }
+  .ncm-item-meta,.ncm-item-status { margin-top:4px; color:#667085; font-size:12px; line-height:1.5; overflow-wrap:anywhere; }
+  .ncm-progress { height:5px; margin-top:8px; border-radius:99px; background:#edf0f4; overflow:hidden; }
+  .ncm-progress > span { display:block; width:0; height:100%; background:#3b82f6; transition:width .18s ease; }
+  .ncm-item-error { color:#b42318; }
   @media (max-width:420px) {
     .track { align-items:flex-start; }
     .track-actions { flex-direction:column; align-items:stretch; }
@@ -182,6 +192,23 @@
     <h2>网易云登录</h2>
     <div id="loginBox"><p class="mut">请先登录本站账号。</p></div>
   </div>
+
+  <section class="card" id="ncmCard" aria-labelledby="ncmTitle">
+    <h2 id="ncmTitle">NCM 音乐转换</h2>
+    <p class="ncm-intro">扫描你授权的手机文件夹及子文件夹，找出 .ncm 文件。转换在手机本地完成，保留原文件；MP3 / FLAC 按源格式输出。</p>
+    <div class="ncm-toolbar">
+      <button class="btn" id="scanNcmBtn" type="button">扫描手机 NCM 文件</button>
+      <button class="btn ghost" id="selectAllNcmBtn" type="button" disabled>全选</button>
+      <button class="btn ghost" id="clearNcmSelectionBtn" type="button" disabled>清除选择</button>
+    </div>
+    <p class="mut" id="ncmMeta" style="margin:8px 0;">尚未扫描文件夹。</p>
+    <div class="ncm-list" id="ncmItems"></div>
+    <div class="ncm-toolbar" style="margin-top:14px;">
+      <button class="btn" id="convertNcmBtn" type="button" disabled>一键转换所选文件</button>
+      <button class="btn ghost" id="cancelNcmBtn" type="button" hidden>取消转换</button>
+    </div>
+    <p class="mut" id="ncmStatus" role="status" aria-live="polite">仅在千栀音乐下载 Android 软件中可扫描手机文件夹。</p>
+  </section>
 
   <div class="card">
     <h2 id="plTitle">我的歌单</h2>
@@ -1211,6 +1238,134 @@
         $('loginBox').innerHTML = '<p class="mut">登录状态检查失败，检查网络后刷新页面重试。</p>';
       });
   }
+
+  // ---- 本地 NCM 转换：网页负责选择/展示，Android MusicDLBridge 负责 SAF 与离线转换 ----
+  var ncmItems = [];
+  var ncmConverting = false;
+  function ncmBytes(value) {
+    var n = Number(value) || 0;
+    if (n < 1024) return n + ' B';
+    if (n < 1024 * 1024) return (n / 1024).toFixed(1) + ' KB';
+    if (n < 1024 * 1024 * 1024) return (n / 1024 / 1024).toFixed(1) + ' MB';
+    return (n / 1024 / 1024 / 1024).toFixed(2) + ' GB';
+  }
+  function selectedNcmIds() {
+    return Array.prototype.slice.call(document.querySelectorAll('.ncm-select:checked')).map(function (el) { return el.value; });
+  }
+  function updateNcmControls() {
+    var available = ncmItems.filter(function (item) { return !item.error; }).length;
+    var chosen = selectedNcmIds().length;
+    $('selectAllNcmBtn').disabled = ncmConverting || available === 0;
+    $('clearNcmSelectionBtn').disabled = ncmConverting || chosen === 0;
+    $('convertNcmBtn').disabled = ncmConverting || chosen === 0;
+    $('scanNcmBtn').disabled = ncmConverting;
+    $('ncmMeta').textContent = ncmItems.length
+      ? ('找到 ' + ncmItems.length + ' 个 NCM 文件，可转换 ' + available + ' 个，已选择 ' + chosen + ' 个。')
+      : $('ncmMeta').textContent;
+  }
+  function renderNcmItems() {
+    var host = $('ncmItems');
+    host.innerHTML = '';
+    ncmItems.forEach(function (item) {
+      var row = document.createElement('div');
+      row.className = 'ncm-item';
+      row.setAttribute('data-ncm-row', item.id);
+      var checkbox = document.createElement('input');
+      checkbox.type = 'checkbox'; checkbox.className = 'ncm-select'; checkbox.value = item.id;
+      checkbox.disabled = !!item.error || ncmConverting;
+      checkbox.setAttribute('aria-label', '选择 ' + (item.title || item.name));
+      var main = document.createElement('div'); main.className = 'ncm-item-main';
+      var title = document.createElement('div'); title.className = 'ncm-item-title';
+      title.textContent = item.title || item.name || '未知文件';
+      var meta = document.createElement('div'); meta.className = 'ncm-item-meta';
+      meta.textContent = [item.artist, item.album, item.format, ncmBytes(item.size)].filter(Boolean).join(' · ');
+      var status = document.createElement('div'); status.className = 'ncm-item-status' + (item.error ? ' ncm-item-error' : '');
+      status.textContent = item.error || item.status || '等待转换';
+      var bar = document.createElement('div'); bar.className = 'ncm-progress';
+      var fill = document.createElement('span'); fill.setAttribute('data-ncm-progress', item.id); bar.appendChild(fill);
+      main.appendChild(title); main.appendChild(meta); main.appendChild(status); main.appendChild(bar);
+      row.appendChild(checkbox); row.appendChild(main); host.appendChild(row);
+      checkbox.addEventListener('change', updateNcmControls);
+    });
+    updateNcmControls();
+  }
+  window.__musicdlNcmScanStarted = function () {
+    ncmItems = []; renderNcmItems();
+    $('ncmMeta').textContent = '正在扫描授权文件夹及子文件夹…';
+    $('ncmStatus').textContent = '正在读取文件信息，请保持页面打开。';
+  };
+  window.__musicdlNcmScanError = function (message) {
+    $('ncmStatus').textContent = message || 'NCM 操作失败';
+  };
+  window.__musicdlNcmScanned = function (payload) {
+    try { ncmItems = JSON.parse(payload || '[]'); } catch (e) { ncmItems = []; }
+    ncmItems.forEach(function (item) { item.status = item.error || '等待转换'; });
+    renderNcmItems();
+    $('ncmStatus').textContent = ncmItems.length ? '扫描完成。原始 NCM 文件不会被删除。' : '所选文件夹中没有找到 .ncm 文件。';
+  };
+  window.__musicdlNcmProgress = function (id, percent) {
+    var row = document.querySelector('[data-ncm-row="' + id + '"]');
+    if (!row) return;
+    var fill = row.querySelector('[data-ncm-progress]');
+    var status = row.querySelector('.ncm-item-status');
+    if (fill) fill.style.width = Math.max(0, Math.min(100, Number(percent) || 0)) + '%';
+    if (status) status.textContent = '正在转换 · ' + Math.max(0, Math.min(100, Number(percent) || 0)) + '%';
+  };
+  window.__musicdlNcmItemDone = function (payload) {
+    var result;
+    try { result = JSON.parse(payload || '{}'); } catch (e) { return; }
+    var item = ncmItems.find(function (entry) { return entry.id === result.id; });
+    if (item) item.status = result.ok ? ('已保存：' + result.outputName) : ('转换失败：' + result.error);
+    var row = document.querySelector('[data-ncm-row="' + result.id + '"]');
+    if (row) {
+      var status = row.querySelector('.ncm-item-status');
+      var fill = row.querySelector('[data-ncm-progress]');
+      if (status) status.textContent = item ? item.status : (result.ok ? '转换完成' : result.error);
+      if (fill && result.ok) fill.style.width = '100%';
+      if (status && !result.ok) status.classList.add('ncm-item-error');
+    }
+  };
+  window.__musicdlNcmFinished = function (success, failed, cancelled) {
+    ncmConverting = false;
+    $('cancelNcmBtn').hidden = true;
+    $('ncmStatus').textContent = (cancelled ? '已取消。' : '转换结束。') + ' 成功 ' + success + ' 个，失败 ' + failed + ' 个。原始 NCM 文件已保留。';
+    renderNcmItems();
+  };
+  $('scanNcmBtn').addEventListener('click', function () {
+    if (!window.MusicDL || typeof window.MusicDL.scanNcmFolder !== 'function') {
+      $('ncmStatus').textContent = '请在千栀音乐下载 Android 软件中使用手机文件夹扫描。';
+      return;
+    }
+    window.MusicDL.scanNcmFolder();
+  });
+  $('selectAllNcmBtn').addEventListener('click', function () {
+    document.querySelectorAll('.ncm-select:not(:disabled)').forEach(function (el) { el.checked = true; });
+    updateNcmControls();
+  });
+  $('clearNcmSelectionBtn').addEventListener('click', function () {
+    document.querySelectorAll('.ncm-select').forEach(function (el) { el.checked = false; });
+    updateNcmControls();
+  });
+  $('convertNcmBtn').addEventListener('click', function () {
+    if (ncmConverting) return;
+    var ids = selectedNcmIds();
+    if (!ids.length) return;
+    if (!window.MusicDL || typeof window.MusicDL.convertNcm !== 'function') {
+      $('ncmStatus').textContent = '当前环境不支持原生 NCM 转换，请使用千栀音乐下载 Android 软件。';
+      return;
+    }
+    ncmConverting = true; $('cancelNcmBtn').hidden = false;
+    $('ncmStatus').textContent = '正在本地转换，切勿强制关闭软件。';
+    ncmItems.forEach(function (item) { if (ids.indexOf(item.id) >= 0) item.status = '排队中'; });
+    renderNcmItems();
+    window.MusicDL.convertNcm(JSON.stringify(ids));
+  });
+  $('cancelNcmBtn').addEventListener('click', function () {
+    if (window.MusicDL && typeof window.MusicDL.cancelNcmConversion === 'function') {
+      window.MusicDL.cancelNcmConversion();
+      $('ncmStatus').textContent = '正在停止当前任务…';
+    }
+  });
 
   $('searchBtn').addEventListener('click', doSearch);
   $('kw').addEventListener('keydown', function (e) { if (e.key === 'Enter') doSearch(); });

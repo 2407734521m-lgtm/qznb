@@ -3634,3 +3634,399 @@
   -webkit-backdrop-filter: none !important;
   backdrop-filter: none !important;
 }
+
+
+/* Screenshot-matched iMessage conversation shell.
+   Keep the wallpaper continuous behind header, message list and composer. */
+.im-page.im-page {
+  color: #f7fbff !important;
+  background: var(--im-wallpaper, #10232b) !important;
+  background-size: cover !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+}
+
+.im-page .im-head {
+  position: relative !important;
+  display: flex !important;
+  flex: 0 0 clamp(236px, 31svh, 276px) !important;
+  align-items: flex-start !important;
+  justify-content: center !important;
+  box-sizing: border-box !important;
+  width: 100% !important;
+  min-height: clamp(236px, 31svh, 276px) !important;
+  gap: 0 !important;
+  padding: 0 !important;
+  color: #fff !important;
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  z-index: 4 !important;
+}
+
+.im-page .im-head .im-back,
+.im-page .im-head .im-video-call {
+  position: absolute !important;
+  top: calc(env(safe-area-inset-top) + 16px) !important;
+  display: grid !important;
+  place-items: center !important;
+  width: 46px !important;
+  min-width: 46px !important;
+  height: 46px !important;
+  padding: 0 !important;
+  color: #fff !important;
+  border: 1px solid rgba(255,255,255,.25) !important;
+  border-radius: 50% !important;
+  background: rgba(8,23,32,.28) !important;
+  box-shadow: 0 5px 18px rgba(0,0,0,.12), inset 0 1px 0 rgba(255,255,255,.16) !important;
+  -webkit-backdrop-filter: blur(18px) saturate(1.35) !important;
+  backdrop-filter: blur(18px) saturate(1.35) !important;
+  z-index: 2 !important;
+}
+.im-page .im-back { left: max(18px, env(safe-area-inset-left)) !important; }
+.im-page .im-video-call { right: max(18px, env(safe-area-inset-right)) !important; }
+.im-page .im-back > span {
+  display: block;
+  margin-top: -3px;
+  font-size: 34px;
+  font-weight: 350;
+  line-height: 1;
+}
+.im-page .im-video-call svg { display: block; width: 24px; height: 24px; }
+
+.im-page .im-contact-stack {
+  position: absolute !important;
+  top: calc(env(safe-area-inset-top) + 14px) !important;
+  left: 50% !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  gap: 0 !important;
+  width: min(78vw, 250px) !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  color: #fff !important;
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  transform: translateX(-50%) !important;
+  -webkit-tap-highlight-color: transparent;
+  z-index: 1 !important;
+}
+.im-page .im-contact-stack:active { transform: translateX(-50%) scale(.985) !important; }
+.im-page .im-contact-stack .im-avatar {
+  display: grid !important;
+  place-items: center !important;
+  width: clamp(82px, 14vw, 104px) !important;
+  min-width: clamp(82px, 14vw, 104px) !important;
+  height: clamp(82px, 14vw, 104px) !important;
+  margin: 0 0 7px !important;
+  overflow: hidden !important;
+  color: #fff !important;
+  border: 2px solid rgba(255,255,255,.78) !important;
+  border-radius: 50% !important;
+  background: rgba(13,29,39,.5) !important;
+  box-shadow: 0 7px 24px rgba(0,0,0,.24), 0 0 0 1px rgba(255,255,255,.08) !important;
+}
+.im-page .im-contact-stack .im-avatar img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: inherit;
+}
+.im-page .im-contact-name-pill {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 5px !important;
+  max-width: 100% !important;
+  min-height: 36px !important;
+  margin: 0 !important;
+  padding: 6px 16px !important;
+  color: #fff !important;
+  border: 1px solid rgba(255,255,255,.2) !important;
+  border-radius: 999px !important;
+  background: rgba(8,24,34,.34) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.12) !important;
+  -webkit-backdrop-filter: blur(18px) saturate(1.25) !important;
+  backdrop-filter: blur(18px) saturate(1.25) !important;
+}
+.im-page .im-contact-name-pill .im-title {
+  max-width: 190px;
+  overflow: hidden;
+  color: #fff !important;
+  font-size: 16px !important;
+  font-weight: 720 !important;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-shadow: 0 1px 9px rgba(0,0,0,.24) !important;
+}
+.im-page .im-contact-chevron {
+  color: rgba(255,255,255,.78);
+  font-size: 21px;
+  line-height: 1;
+}
+.im-page .im-encryption-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  margin-top: 26px;
+  color: rgba(255,255,255,.92);
+  text-shadow: 0 1px 9px rgba(0,0,0,.34);
+}
+.im-page .im-encryption-title {
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 1.25;
+  letter-spacing: .015em;
+}
+.im-page .im-encryption-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: rgba(255,255,255,.82);
+  font-size: 12px;
+  font-weight: 550;
+  line-height: 1.25;
+}
+.im-page .im-encryption-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #9de2c3;
+  box-shadow: 0 0 8px rgba(157,226,195,.55);
+}
+.im-page .im-contact-stack .im-sub {
+  margin-top: 7px;
+  color: rgba(255,255,255,.9) !important;
+  font-size: 12px;
+  text-shadow: 0 1px 8px rgba(0,0,0,.35);
+}
+
+.im-page .im-feed {
+  position: relative !important;
+  z-index: 1;
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  padding: 2px 16px 18px !important;
+  color: #fff !important;
+  background: transparent !important;
+}
+.im-page .im-day {
+  padding: 5px 12px !important;
+  color: rgba(255,255,255,.92) !important;
+  border: 1px solid rgba(255,255,255,.18) !important;
+  border-radius: 999px !important;
+  background: rgba(8,23,31,.34) !important;
+  box-shadow: 0 4px 14px rgba(0,0,0,.10) !important;
+  -webkit-backdrop-filter: blur(14px) saturate(1.2) !important;
+  backdrop-filter: blur(14px) saturate(1.2) !important;
+}
+.im-page .im-message-column { max-width: min(82%, 560px) !important; }
+.im-page .im-message-column .im-bubble {
+  max-width: 100% !important;
+  color: #fff !important;
+  border: 1px solid rgba(255,255,255,.2) !important;
+  border-radius: 20px 20px 20px 6px !important;
+  background: rgba(28,39,45,.7) !important;
+  box-shadow: 0 5px 18px rgba(0,0,0,.13), inset 0 1px 0 rgba(255,255,255,.10) !important;
+  -webkit-backdrop-filter: blur(13px) saturate(1.22) !important;
+  backdrop-filter: blur(13px) saturate(1.22) !important;
+}
+.im-page .im-message-column .im-bubble.mine {
+  color: #fff !important;
+  border-color: rgba(255,255,255,.22) !important;
+  border-radius: 20px 20px 6px 20px !important;
+  background: rgba(0,122,255,.82) !important;
+  box-shadow: 0 5px 17px rgba(0,71,160,.2), inset 0 1px 0 rgba(255,255,255,.2) !important;
+}
+.im-page .im-message-column .im-bubble.theirs {
+  color: #fff !important;
+  border-color: rgba(255,255,255,.19) !important;
+  border-radius: 20px 20px 20px 6px !important;
+  background: rgba(28,39,45,.7) !important;
+}
+.im-page .im-message-column .im-bubble.mine::after { background: rgba(0,122,255,.82) !important; }
+.im-page .im-message-column .im-bubble.theirs::after { background: rgba(28,39,45,.7) !important; }
+.im-page .im-message-column .im-bubble.mine.im-bubble-grouped-prev { border-top-right-radius: 7px !important; }
+.im-page .im-message-column .im-bubble.theirs.im-bubble-grouped-prev { border-top-left-radius: 7px !important; }
+.im-page .im-message-column .im-bubble.mine.im-bubble-grouped-next { border-bottom-right-radius: 7px !important; }
+.im-page .im-message-column .im-bubble.theirs.im-bubble-grouped-next { border-bottom-left-radius: 7px !important; }
+.im-page .im-message-footer,
+.im-page .im-inline-meta,
+.im-page .im-read-status {
+  color: rgba(255,255,255,.82) !important;
+  text-shadow: 0 1px 7px rgba(0,0,0,.34);
+}
+.im-page .im-empty,
+.im-page .im-empty > div,
+.im-page .im-empty p { color: rgba(255,255,255,.92) !important; text-shadow: 0 1px 8px rgba(0,0,0,.3) !important; }
+
+.im-page .im-composer {
+  position: relative !important;
+  z-index: 5 !important;
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  align-items: center !important;
+  gap: 9px !important;
+  margin: 0 14px calc(9px + env(safe-area-inset-bottom)) !important;
+  padding: 0 !important;
+  color: #fff !important;
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+.im-page .im-plus {
+  display: grid !important;
+  place-items: center !important;
+  width: 46px !important;
+  min-width: 46px !important;
+  height: 46px !important;
+  padding: 0 !important;
+  color: #fff !important;
+  border: 1px solid rgba(255,255,255,.25) !important;
+  border-radius: 50% !important;
+  background: rgba(8,25,33,.34) !important;
+  box-shadow: 0 5px 17px rgba(0,0,0,.13), inset 0 1px 0 rgba(255,255,255,.16) !important;
+  -webkit-backdrop-filter: blur(19px) saturate(1.32) !important;
+  backdrop-filter: blur(19px) saturate(1.32) !important;
+  font-size: 26px !important;
+  line-height: 1 !important;
+}
+.im-page .im-timer { display: none !important; }
+.im-page .im-input-wrap {
+  display: flex !important;
+  flex: 1 1 0% !important;
+  align-items: center !important;
+  gap: 7px !important;
+  min-width: 0 !important;
+  width: auto !important;
+  min-height: 49px !important;
+  padding: 0 8px 0 14px !important;
+  color: #fff !important;
+  border: 1px solid rgba(255,255,255,.26) !important;
+  border-radius: 999px !important;
+  background: rgba(10,34,40,.34) !important;
+  box-shadow: 0 5px 20px rgba(0,0,0,.12), inset 0 1px 0 rgba(255,255,255,.14) !important;
+  -webkit-backdrop-filter: blur(22px) saturate(1.36) !important;
+  backdrop-filter: blur(22px) saturate(1.36) !important;
+}
+.im-page .im-input-wrap:focus-within {
+  border-color: rgba(255,255,255,.42) !important;
+  background: rgba(8,29,37,.48) !important;
+  box-shadow: 0 0 0 2px rgba(255,255,255,.08), inset 0 1px 0 rgba(255,255,255,.14) !important;
+}
+.im-page .im-input {
+  min-height: 45px !important;
+  padding: 10px 0 !important;
+  color: #fff !important;
+  font-size: 16px !important;
+  line-height: 1.35 !important;
+  caret-color: #fff;
+}
+.im-page .im-input::placeholder { color: rgba(255,255,255,.72) !important; opacity: 1; }
+.im-page .im-format-btn {
+  flex: none !important;
+  width: 27px !important;
+  height: 30px !important;
+  margin: 0 !important;
+  color: rgba(255,255,255,.78) !important;
+  border: 0 !important;
+  background: transparent !important;
+}
+.im-page .im-mic {
+  display: grid !important;
+  place-items: center !important;
+  width: 30px !important;
+  min-width: 30px !important;
+  height: 36px !important;
+  padding: 0 !important;
+  color: rgba(255,255,255,.86) !important;
+  border: 0 !important;
+  border-radius: 50% !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+.im-page .im-send {
+  color: #fff !important;
+  background: #087cff !important;
+  box-shadow: 0 4px 12px rgba(0,90,190,.24) !important;
+}
+.im-page .im-sticker-tray {
+  margin: 0 14px 8px !important;
+  border: 1px solid rgba(255,255,255,.22) !important;
+  border-radius: 22px !important;
+  background: rgba(9,28,37,.58) !important;
+  -webkit-backdrop-filter: blur(22px) saturate(1.3) !important;
+  backdrop-filter: blur(22px) saturate(1.3) !important;
+}
+.im-page .im-reply-banner {
+  color: #fff !important;
+  border-color: rgba(255,255,255,.18) !important;
+  background: rgba(9,28,37,.52) !important;
+  -webkit-backdrop-filter: blur(17px) saturate(1.25) !important;
+  backdrop-filter: blur(17px) saturate(1.25) !important;
+}
+.im-page .im-reply-banner-main { color: rgba(255,255,255,.8) !important; }
+
+@media (max-width: 600px) {
+  .im-page .im-head {
+    flex-basis: clamp(236px, 31svh, 258px) !important;
+    min-height: clamp(236px, 31svh, 258px) !important;
+  }
+  .im-page .im-head .im-back,
+  .im-page .im-head .im-video-call {
+    width: 43px !important;
+    min-width: 43px !important;
+    height: 43px !important;
+  }
+  .im-page .im-contact-stack { width: min(78vw, 230px) !important; }
+  .im-page .im-contact-stack .im-avatar {
+    width: 86px !important;
+    min-width: 86px !important;
+    height: 86px !important;
+  }
+  .im-page .im-encryption-meta { margin-top: 21px; }
+  .im-page .im-feed { padding: 2px 13px 14px !important; }
+  .im-page .im-composer { margin-left: 12px !important; margin-right: 12px !important; gap: 8px !important; }
+  .im-page .im-plus { width: 43px !important; min-width: 43px !important; height: 43px !important; }
+  .im-page .im-input-wrap { min-height: 47px !important; }
+  .im-page .im-input { min-height: 43px !important; }
+}
+@media (max-height: 620px) and (max-width: 700px) {
+  .im-page .im-head { flex-basis: 205px !important; min-height: 205px !important; }
+  .im-page .im-contact-stack .im-avatar { width: 68px !important; min-width: 68px !important; height: 68px !important; }
+  .im-page .im-encryption-meta { margin-top: 12px; }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .im-page .im-head .im-back,
+  .im-page .im-head .im-video-call,
+  .im-page .im-contact-name-pill,
+  .im-page .im-plus,
+  .im-page .im-input-wrap {
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+  }
+  .im-page .im-head .im-back,
+  .im-page .im-head .im-video-call,
+  .im-page .im-plus { background: rgba(10,24,32,.88) !important; }
+  .im-page .im-input-wrap { background: rgba(10,34,40,.92) !important; }
+  .im-page .im-bubble.mine { background: #087cff !important; }
+  .im-page .im-bubble.theirs { background: #202a31 !important; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .im-page .im-contact-stack:active { transform: translateX(-50%) !important; }
+}

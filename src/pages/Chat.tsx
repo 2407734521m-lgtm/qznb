@@ -2239,7 +2239,7 @@ export default function Chat() {
   return (
     <div ref={pageRef} className="im-page" style={{
       '--im-wallpaper': backgroundPath && wallpaperUrl
-        ? `linear-gradient(rgba(255,255,255,.38),rgba(255,255,255,.48)), url("${wallpaperUrl}") center / cover no-repeat`
+        ? `linear-gradient(180deg, rgba(6,18,28,.24) 0%, rgba(6,18,28,.08) 48%, rgba(6,18,28,.16) 100%), url("${wallpaperUrl}") center / cover no-repeat`
         : ({
             default: '#ffffff',
             sky: 'linear-gradient(155deg,#f5faff 0%,#eaf3ff 52%,#f9fbff 100%)',
@@ -2311,12 +2311,19 @@ export default function Chat() {
           </span>
           <span className="im-contact-name-pill">
             <span className="im-title">{name}</span>
+            <span className="im-contact-chevron" aria-hidden="true">›</span>
+          </span>
+          <span className="im-encryption-meta" aria-label="私信信息，安全连接">
+            <span className="im-encryption-title">私信信息</span>
+            <span className="im-encryption-status"><span className="im-encryption-dot" aria-hidden="true" />安全连接</span>
           </span>
           {typingLabel && <span className="im-sub">{typingDisplayLabel}</span>}
         </button>
-        <button type="button" className="im-icon im-info-button" aria-label="更多聊天选项" title="更多聊天选项" onClick={() => setShowDetails(true)}>
-          <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor" aria-hidden="true">
-            <circle cx="5" cy="12" r="1.8" /><circle cx="12" cy="12" r="1.8" /><circle cx="19" cy="12" r="1.8" />
+        <button type="button" className="im-icon im-video-call" aria-label="视频通话（暂未开放）" title="视频通话暂未开放"
+          onClick={() => toast.info('当前版本仅支持语音通话，视频通话尚未开放。')}>
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <rect x="2.8" y="5.5" width="13.2" height="13" rx="2.8" />
+            <path d="m16 10 5.2-3v10L16 14" />
           </svg>
         </button>
       </header>
@@ -3099,7 +3106,7 @@ export default function Chat() {
               composerSelRef.current = sel;
             }}
             onFocus={() => setInputFocused(true)} onBlur={() => setInputFocused(false)}
-            placeholder={recording ? '正在录音…' : voiceDraft ? '语音已录好，可试听后发送' : uploading ? '正在发送媒体…' : '私信'} disabled={recording || Boolean(voiceDraft) || uploading} maxLength={2000} autoComplete="off" aria-label="输入消息"></textarea>
+            placeholder={recording ? '正在录音…' : voiceDraft ? '语音已录好，可试听后发送' : uploading ? '正在发送媒体…' : 'iMessage 信息'} disabled={recording || Boolean(voiceDraft) || uploading} maxLength={2000} autoComplete="off" aria-label="输入消息"></textarea>
           {!text.trim() && !voiceDraft && <button
             type="button"
             className={'im-mic' + (recording ? ' recording' : '') + (recordCancelProgress >= 1 ? ' cancel-armed' : '')}

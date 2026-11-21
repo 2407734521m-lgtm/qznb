@@ -122,9 +122,26 @@ assert.ok(
   activity.includes('shouldShowIslandHost(value.activityIds)'),
   'The island host must still appear when another live activity exists.',
 );
+// The equalizer state target is the island host itself now (2026-11-21, #785):
+// MusicIslandView mounts once, gated by shouldShowMainIsland, and renders the
+// host div with ref={hostRef}. The old always-mounted hidden div is gone on
+// purpose — giving it the same ref would steal the target from the visible
+// island host (React points a ref at the last element that mounts with it)
+// and freeze the pill's equalizer bars. When music plays, the activity is
+// live so the host is mounted; on the music page the island does not mount
+// for music-only activity, but there the island bars are not visible and the
+// fullscreen player cannot be open, so no equalizer state is needed.
 assert.ok(
-  parent.includes('<div ref={islandWrapRef} hidden aria-hidden="true" />'),
-  'The music component must retain its hidden equalizer state target without mounting a duplicate island.',
+  parent.includes('hostRef={islandWrapRef}'),
+  'The island host must carry the equalizer state ref.',
+);
+assert.ok(
+  parent.includes('{shouldShowMainIsland(isMusicPage, activityIds) && ('),
+  'The island must mount once, gated by shouldShowMainIsland, without a duplicate island.',
+);
+assert.ok(
+  !parent.includes('<div ref={islandWrapRef} hidden aria-hidden="true" />'),
+  'The old hidden equalizer div must stay gone: it would steal the ref from the island host.',
 );
 assert.ok(
   activity.includes('ref={hostRef}'),

@@ -4566,3 +4566,37 @@
   color: rgba(255,255,255,.76) !important;
   opacity: 1 !important;
 }
+
+
+/* Compact mobile message rhythm (item 8): reduce the stacked spacing from
+   virtual-row padding + bubble margins + receipt margin, while leaving the
+   centered day separators visibly distinct. */
+@media (max-width: 600px) {
+  .im-page .im-vrow {
+    padding-top: 1px !important;
+    padding-bottom: 1px !important;
+  }
+  .im-page .im-row {
+    margin: 2px 0 !important;
+  }
+  .im-page .im-row-grouped-prev {
+    margin-top: 0 !important;
+  }
+  .im-page .im-row-grouped-next {
+    margin-bottom: 0 !important;
+  }
+  .im-page .im-message-footer {
+    min-height: 12px !important;
+    margin-top: 3px !important;
+    padding-inline: 3px !important;
+  }
+  .im-page .im-inline-meta {
+    margin-left: 6px !important;
+  }
+  .im-page .im-day {
+    margin: 6px auto 8px !important;
+  }
+  .im-page .im-day-system {
+    margin: 6px auto 8px !important;
+  }
+}

@@ -8,6 +8,8 @@ import VisitCounter from '../components/VisitCounter';
 import LargeTitleBar from '../components/LargeTitleBar';
 import PullToRefresh from '../components/PullToRefresh';
 import Marquee from '../components/fx/Marquee';
+import PostMedia from '../components/PostMedia';
+import { useSignedUrls } from '../lib/media';
 import CardSwitcher from '../components/CardSwitcher';
 import BorderBeam from '../components/fx/BorderBeam';
 import { InlineLoading, useDelayedLoading } from '../components/fx/Skeleton';
@@ -36,6 +38,7 @@ type FeedPost = {
   id: number;
   author_id: string;
   content: string;
+  image_url: string | null;
   created_at: string;
 };
 
@@ -70,6 +73,7 @@ type HomeCache = {
   lovePosts: LovePost[];
   feedPosts: FeedPost[];
   names: Record<string, string>;
+  avatars: Record<string, string>;
 };
 let homeCache: HomeCache | null = null;
 const HOME_CACHE_TTL = 5 * 60 * 1000;
@@ -83,6 +87,9 @@ export default function Home() {
   const [lovePosts, setLovePosts] = useState<LovePost[]>([]);
   const [feedPosts, setFeedPosts] = useState<FeedPost[]>([]);
   const [names, setNames] = useState<Record<string, string>>({});
+  const [avatars, setAvatars] = useState<Record<string, string>>({});
+  const feedImageUrls = useSignedUrls('media', feedPosts.map(post => post.image_url));
+  const avatarUrls = useSignedUrls('avatars', Object.values(avatars));
   const [annPop, setAnnPop] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const showWallLoading = useDelayedLoading(loading);
@@ -118,6 +125,7 @@ export default function Home() {
       setLovePosts(fresh.lovePosts);
       setFeedPosts(fresh.feedPosts);
       setNames(fresh.names);
+      setAvatars(fresh.avatars ?? {});
       setLoading(false);
     } else {
       setLoading(true);
@@ -143,7 +151,7 @@ export default function Home() {
             .or(`expires_at.is.null,expires_at.gt.${nowIso}`)
             .order('is_pinned', { ascending: false }).order('created_at', { ascending: false }).limit(3),
           supabase.rpc('love_wall_published'),
-          supabase.from('posts').select('id, author_id, content, created_at').eq('section', 'feed').is('deleted_at', null)
+          supabase.from('posts').select('id, author_id, content, image_url, created_at').eq('section', 'feed').is('deleted_at', null)
             .order('created_at', { ascending: false }).limit(100),
         ]);
         if (!live) return;
@@ -160,6 +168,7 @@ export default function Home() {
         }
 
         let nextNames: Record<string, string> = {};
+        let nextAvatars: Record<string, string> = {};
         const ids = new Set<string>();
         nextFeed.forEach((x: FeedPost) => ids.add(x.author_id));
         if (ids.size) {
@@ -169,13 +178,16 @@ export default function Home() {
             setLoadError('成员资料暂时无法加载，请稍后重试。');
           } else {
             const mp: Record<string, string> = {};
-            ((dir ?? []) as any[]).forEach((x: any) => { mp[x.id] = x.display_name ?? x.username; });
+            const av: Record<string, string> = {};
+            ((dir ?? []) as any[]).forEach((x: any) => { mp[x.id] = x.display_name ?? x.username; if (x.avatar_path) av[x.id] = x.avatar_path; });
             nextNames = mp;
+            nextAvatars = av;
           }
         }
         setNames(nextNames);
+        setAvatars(nextAvatars);
         if (!hasQueryError) {
-          homeCache = { at: Date.now(), title: nextTitle, subtitle: nextSubtitle, notices: nextNotices, lovePosts: nextLove, feedPosts: nextFeed, names: nextNames };
+          homeCache = { at: Date.now(), title: nextTitle, subtitle: nextSubtitle, notices: nextNotices, lovePosts: nextLove, feedPosts: nextFeed, names: nextNames, avatars: nextAvatars };
         }
       } catch {
         if (live) setLoadError('首页内容加载失败，请检查网络后重试。');
@@ -320,8 +332,16 @@ export default function Home() {
             ) : (
               <Link className="vh-wall-card" key={`feed-${item.id}`} to="/feed" aria-label="去动态查看">
                 <span className="vh-cat-tag vh-cat-feed">动态</span>
-                <span className="vh-wall-to">{names[item.feed.author_id] || '成员'}</span>
+                <span className="vh-wall-author">
+                  {avatars[item.feed.author_id] && avatarUrls[avatars[item.feed.author_id]]
+                    ? <img className="vh-wall-avatar" src={avatarUrls[avatars[item.feed.author_id]]} alt="" />
+                    : <span className="vh-wall-avatar vh-wall-avatar-fallback">{(names[item.feed.author_id] || '成').slice(0, 1)}</span>}
+                  <span className="vh-wall-to">{names[item.feed.author_id] || '成员'}</span>
+                </span>
                 <p className="vh-wall-content">{item.feed.content || '分享了一条动态'}</p>
+                {item.feed.image_url && feedImageUrls[item.feed.image_url] && (
+                  <PostMedia url={feedImageUrls[item.feed.image_url]} className="vh-wall-media" />
+                )}
                 <span className="vh-wall-meta">{timeAgo(item.created_at)}</span>
               </Link>
             ))}

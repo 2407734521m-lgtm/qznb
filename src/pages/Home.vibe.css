@@ -1050,6 +1050,41 @@ body:has(.vibe-home), body:has(.vibe-home) #root, body:has(.vibe-home) .qz-ios26
   font-weight: 700;
 }
 
+.vh-wall-author {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.vh-wall-author .vh-wall-to {
+  margin-top: 0;
+}
+
+.vh-wall-avatar {
+  width: 28px;
+  height: 28px;
+  flex: none;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.vh-wall-avatar-fallback {
+  display: grid;
+  place-items: center;
+  background: #e8f1f3;
+  color: #386271;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.vh-wall-media {
+  display: block;
+  width: 100%;
+  margin-top: 10px;
+  border-radius: 12px;
+}
+
 .vh-wall-content {
   display: -webkit-box;
   -webkit-line-clamp: 8;

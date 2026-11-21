@@ -37,7 +37,7 @@ export default function AdminLoveWall({ setMsg }: { setMsg: (s: string) => void 
       .order('created_at', { ascending: false })
       .limit(500);
     if (error) {
-      setMsg('表白墙管理暂不可用：请检查 007_love_wall.sql 是否已执行，以及管理员数据库权限。');
+      setMsg('表白墙管理暂不可用：请检查管理员数据库权限。');
       if (!quiet) setLoading(false);
       return;
     }

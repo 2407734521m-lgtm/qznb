@@ -154,6 +154,9 @@ export default function Moderate({ setMsg }: { setMsg: (s: string) => void }) {
   const filteredTrashP = trashP.filter(p => matches(p.content) || matches(names[p.author_id]) || matches(String(p.id)));
   const filteredTrashC = trashC.filter(comment => matches(comment.content) || matches(names[comment.author_id]) || matches(String(comment.post_id)));
   const filteredTrashB = trashB.filter(b => matches(b.title) || matches(b.content) || matches(names[b.author_id || '']));
+  const filteredQuestions = anonymousQuestions.filter(q =>
+    matches(q.question) || matches(q.answer) || matches(q.asker_name) || matches(q.recipient_name)
+  );
 
   async function batchSetPostsHidden(hide: boolean) {
     const targets = filteredPosts.filter(post =>
@@ -354,6 +357,22 @@ export default function Moderate({ setMsg }: { setMsg: (s: string) => void }) {
         </div>
       ))}
       {filteredComments.length === 0 && <div style={card}><p style={mut}>没有符合条件的评论</p></div>}
+    </>)}
+
+    {sub === 'questions' && (<>
+      {filteredQuestions.map(q => (
+        <div key={q.id} style={{ ...card, opacity: q.moderation_hidden ? 0.55 : 1 }}>
+          <div style={{ fontSize: 13.5 }}>{q.question}</div>
+          {q.answer && <div style={{ fontSize: 13, marginTop: 4 }}>回答：{q.answer}</div>}
+          <div style={mut}>{q.asker_name || '匿名提问'} → {q.recipient_name || '…'} · {q.status === 'answered' ? '已回答' : q.status === 'pending' ? '待回答' : q.status}{q.is_public ? ' · 公开' : ' · 不公开'}{q.moderation_hidden ? ' · 已隐藏' : ''} · {timeAgo(q.created_at)}</div>
+          <div style={rowBtn}>
+            {q.moderation_hidden
+              ? <button className="mini" onClick={() => setAnonymousQuestionHidden(q, false)}>恢复</button>
+              : <button className="mini ghost" onClick={() => setAnonymousQuestionHidden(q, true)}>隐藏</button>}
+          </div>
+        </div>
+      ))}
+      {filteredQuestions.length === 0 && <div style={card}><p style={mut}>没有符合条件的匿名提问</p></div>}
     </>)}
 
     {sub === 'trash' && (<>

@@ -16,7 +16,7 @@
 | 第 1 阶段 | 网站基础、导航与公共页面 | 已完成（FIX-1 已回归通过） | `AUDIT_PHASE_1.md` |
 | 第 2 阶段 | 用户账号与社交功能 | 已完成（FIX-2 12 项已修复，登录态 106 项待验证） | `AUDIT_PHASE_2.md` |
 | 第 3 阶段 | 个人中心与扩展功能 | 已完成（FIX-3 11 项已修复，登录态 152 项待验证） | `AUDIT_PHASE_3.md` |
-| 第 4 阶段 | 管理员后台 | NOT_TESTED（尚未开始） | — |
+| 第 4 阶段 | 管理员后台 | 已完成（FIX-4 7 项已修复，登录态 175 项待验证） | `AUDIT_PHASE_4.md` |
 | 第 5 阶段 | 独立服务、移动应用与部署链路 | NOT_TESTED（尚未开始） | — |
 
 > 注意：2026-11-21 写报告时，`origin/main` 已比基线多 1 个提交（后台总览暖光修复 PR #754，属后台样式，不在第 1 阶段范围内）。本阶段结论以基线 `54d3dd4` 为准，没有把该提交算进去；后续阶段开始前应先确认新基线。
@@ -178,6 +178,34 @@
 
 未修项（产品决策待定或需真机验证）：时光胶囊 `tc_sel` 隐私缺口（简单加门控会藏掉锁信封 UI，正确修法是 RPC 只返元数据，需另立方案等用户定夺）；灵动岛全套保留还是彻底删除；“卡片进原页”只跳列表、“我的评论”无列表、各列表 50/100 条上限无分页、热门特效自动上新无实现等产品决策类；全新环境重放迁移仍会在更早的迁移处失败（历史迁移引用顺序问题，需改动历史迁移，不在本范围）。详见 `AUDIT_PHASE_3.md` §5。
 
+## 第 4 阶段计数（逐项表共 268 行，数字与 `AUDIT_PHASE_4.md` 逐项表对得上）
+
+| 状态 | 数量 |
+|---|---|
+| PASS | 0 |
+| PARTIAL | 81 |
+| FAIL | 7 |
+| BLOCKED | 175 |
+| NOT_IMPLEMENTED | 5 |
+| NOT_TESTED | 0 |
+| 合计 | 268 |
+
+分线：A 线运营总览 62 项（PARTIAL 6、FAIL 2、BLOCKED 53、NOT_IMPLEMENTED 1）；B 线成员与内容 118 项（PARTIAL 12、FAIL 4、BLOCKED 98、NOT_IMPLEMENTED 4）；C 线沟通与安全 88 项（PARTIAL 63、FAIL 1、BLOCKED 24）。本阶段 7 项 FAIL 均为代码层面已证明不可用（三个页签无入口、全站通知中心死链、总览药丸与顶栏齿轮对普通管理员空白、匿名提问子栏无渲染分支、段位撤销必失败），已全部由 FIX-4 修复。
+
+## 第 4 阶段修复清单（FIX-4，7 项）
+
+| 编号 | 问题 | 严重程度 | 修复内容 | 状态 |
+|---|---|---|---|---|
+| FIX-4-1 | 三个已注册页签无入口；「全站通知中心」按钮通向空白页 | 高 | NAV_GROUPS 加 reviewCenter、musicDownloads、communication（+ 图标 + 描述）；Admin.tsx 加 notifications 页签（TABS_ALL + 渲染分支，渲染现成的 AdminNotificationCenter）并进 NAV_GROUPS | 已修复，管理员登录态待验证 |
+| FIX-4-2 | 总览药丸与顶栏齿轮对普通管理员是死路 | 高 | Overview 接 isSuper，超管专属药丸与入门指南项对内容管理员隐藏；顶栏设置齿轮只对超管渲染；Admin.tsx switchTab 拦不存在 id 与无权超管页签并 toast 提示；渲染层加兜底提示卡而不是空白 | 已修复，管理员登录态待验证 |
+| FIX-4-3 | 内容审核「匿名提问」子栏是死标签 | 高 | Moderate.tsx 补 `sub === 'questions'` 渲染分支，接通已有的 setAnonymousQuestionHidden 做隐藏/恢复；搜索过滤一并接通 | 已修复，管理员登录态待验证 |
+| FIX-4-4 | 游戏段位「撤销已审核」必定失败 | 高 | 选了前端修法，没动生产函数：revoke() 改为直接 update game_profiles（status='pending' + updated_at，限 status='approved' 的行，0 行时报错），alog('game_revoke') 保留 | 已修复，管理员登录态待验证 |
+| FIX-4-5 | 四处 RPC 旧式 NULL-role 写法 | 中 | 四个函数守卫改成 (my_role() is null or my_role() <> 'super_admin')，与 010 写法一致；每函数只改 1 行、其余逐字保留 | 已应用到生产并回读核对 |
+| FIX-4-6 | 五处小修 | 低 | BoardMgr「移除图片」清空后立即保存；下载记录「刷新」改重拉查询；两处报错文案改「请检查管理员数据库权限」；Logs 加失败文案；TestTab 测试账号邮箱加 isQQEmail 校验 | 已修复，管理员登录态待验证 |
+| FIX-4-7 | 仓库与生产库漂移收敛（part 3） | 中 | 新增幂等迁移 `20261121094500_audit_phase4_drift_convergence.sql`：site_settings / backup_logs 建表 + RLS + 5 条策略（ss_sel 保持 using (true) 未动）；四个 RPC 定义逐字收录 | 已应用到生产并回读核对（策略仍 5 条，生产无非预期变化） |
+
+未修项（产品决策待定或需真机验证）：邀请码权限口径、公告横幅保存口径、admin_update_profile 禁改超管目标、ss_sel=true 收紧、nt_sel 全站通知、定向消息超管门、健康检查探针 key 归属、审核中心「退回待审核/重新打开」与回收站「彻底清理」是否补。详见 `AUDIT_PHASE_4.md` §5。
+
 ## 工作底稿（审计过程文件，不计入交付计数）
 
 - `audit-phase1-work/route-audit.md`（A 线：47 条路由、访客、404、错误边界）
@@ -190,4 +218,5 @@
 - 第 1 阶段：只做了第 1 阶段，完成后停止，未进入第 2 阶段；未改任何产品代码，未提交、未合并，未跑生产写入，未删真实用户数据，未向真实用户发测试私信/通知/邮件，未清理生产 Storage，未执行生产数据库迁移；线上实测全程只读、未登录。
 - 第 2 阶段：三条代码审计线全程只读，未登录任何账号，未向真实用户发任何消息，未发测试邮件，未删真实用户数据，未清理生产 Storage；唯一生产写入是幂等收敛迁移 FIX-2-12（已回读核对，生产无变化）；代码修复 11 项在独立 worktree 的 `fix/audit-phase2-code` 分支上，`npm run typecheck` / `npm run build` / `npm run check:styles` / `npm run check:admin-styles` 全部通过；登录态 106 项因无可登录测试账号记 BLOCKED，未猜测为可用。
 - 第 3 阶段：三条代码审计线全程只读，未登录任何账号，未向真实用户发任何消息，未发测试邮件，未删真实用户数据，未清理生产 Storage；唯一生产写入是幂等收敛迁移 FIX-3-11（已回读核对，策略仍 30 条、`tc_sel` 仍为原表达式，生产无变化）；代码修复 10 项在独立 worktree 的 `fix/audit-phase3-code` 分支上，`npm run typecheck` / `npm run build` / `npm run check:styles` / `npm run check:admin-styles` 全部通过（主代理独立复跑 typecheck + build 通过）；登录态 152 项因无可登录测试账号记 BLOCKED，未猜测为可用；时光胶囊隐私缺口与灵动岛去留未擅自改，等用户定夺。
+- 第 4 阶段：三条代码审计线全程只读，未登录任何账号，未向真实用户发任何消息，未发测试邮件，未删真实用户数据，未清理生产 Storage；备份/恢复、版本发布、应用发布、批量邮件、批量通知等生产写操作只核对入口与调用链，未实际执行；唯一生产写入是两处幂等迁移 FIX-4-5（NULL-role 守卫，每函数恰好只改 1 行）与 FIX-4-7（漂移收敛，策略仍 5 条），均已回读核对、生产无非预期变化；代码修复 6 项在独立 worktree 的 `fix/audit-phase4-code` 分支上，`npm run typecheck` / `npm run build` / `npm run check:styles` / `npm run check:admin-styles` 全部通过（主代理独立复跑 typecheck + build 通过）；登录态 175 项因无可登录管理员测试账号记 BLOCKED，未猜测为可用；邀请码/横幅/改资料等权限口径未擅自改，等用户定夺。
 - 未把“组件存在 / 接口 200 / 构建通过”当成可用；代码已确认、线上未验证的不算 PASS。

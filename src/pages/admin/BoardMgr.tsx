@@ -113,7 +113,7 @@ export default function BoardMgr({ me, setMsg }: { me: string; setMsg: (s: strin
       <input value={bannerText} onChange={e=>setBannerText(e.target.value)} maxLength={100} placeholder="横幅标题文字" />
       <input value={bannerUrl} onChange={e=>setBannerUrl(e.target.value)} placeholder="图片 HTTPS 地址（可留空）" />
       <input ref={bannerFileRef} type="file" accept="image/*" style={{display:'none'}} onChange={e=>{ void uploadBanner(e.target.files?.[0]); e.target.value=''; }} />
-      <div style={rowBtn}><button className="pri" style={{width:'auto',padding:'10px 20px'}} disabled={bannerBusy} onClick={()=>void saveBanner()}>{bannerBusy?'保存中…':'保存横幅'}</button><button className="mini ghost" disabled={bannerBusy || bannerUploading} onClick={()=>bannerFileRef.current?.click()}>{bannerUploading?'上传中…':'上传图片'}</button><button className="mini ghost" disabled={bannerBusy} onClick={()=>setBannerUrl('')}>移除图片</button></div>
+      <div style={rowBtn}><button className="pri" style={{width:'auto',padding:'10px 20px'}} disabled={bannerBusy} onClick={()=>void saveBanner()}>{bannerBusy?'保存中…':'保存横幅'}</button><button className="mini ghost" disabled={bannerBusy || bannerUploading} onClick={()=>bannerFileRef.current?.click()}>{bannerUploading?'上传中…':'上传图片'}</button><button className="mini ghost" disabled={bannerBusy} onClick={()=>{ setBannerUrl(''); void saveBanner(''); }}>移除图片</button></div>
       <hr style={{border:0,borderTop:'1px solid #e5e7eb',margin:'18px 0'}} />
       <h3 style={h3}>公告管理</h3>
       <input value={title} onChange={e => setTitle(e.target.value)} maxLength={60} placeholder="公告标题（可选）" style={{ marginBottom: 8 }} />

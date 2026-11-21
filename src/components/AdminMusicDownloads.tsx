@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { card, h3, mut } from '../pages/admin/shared';
 
@@ -42,20 +42,26 @@ export default function AdminMusicDownloads({ setMsg }: { setMsg?: (s: string) =
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState('');
 
-  useEffect(() => {
-    let alive = true;
+  const aliveRef = useRef(true);
+
+  // 「刷新」以前是整页重载，会丢掉当前筛选与滚动位置（审计 FIX-4-6）；
+  // 现在只重拉查询，其他管理页也是这个模式。
+  async function load() {
     setLoading(true);
-    supabase.from('music_download_logs')
+    const { data, error } = await supabase.from('music_download_logs')
       .select('id, created_at, song_id, song_name, artist, status, file_size, error, device_label, site_user_id, site_username')
       .order('created_at', { ascending: false })
-      .limit(100)
-      .then(({ data, error }) => {
-        if (!alive) return;
-        if (error) { setErr('读取失败：' + error.message); setRows([]); }
-        else { setErr(''); setRows((data ?? []) as Row[]); }
-        setLoading(false);
-      });
-    return () => { alive = false; };
+      .limit(100);
+    if (!aliveRef.current) return;
+    if (error) { setErr('读取失败：' + error.message); setRows([]); }
+    else { setErr(''); setRows((data ?? []) as Row[]); }
+    setLoading(false);
+  }
+
+  useEffect(() => {
+    aliveRef.current = true;
+    void load();
+    return () => { aliveRef.current = false; };
   }, []);
 
   const counts = useMemo(() => {
@@ -87,7 +93,7 @@ export default function AdminMusicDownloads({ setMsg }: { setMsg?: (s: string) =
           ))}
           <button
             type="button"
-            onClick={() => { setMsg && setMsg(''); window.location.reload(); }}
+            onClick={() => { setMsg && setMsg(''); void load(); }}
             style={{ border: '1px solid #e2e8f0', borderRadius: 999, padding: '6px 14px', fontSize: 13, background: '#fff', color: '#22314a', cursor: 'pointer' }}
           >
             刷新

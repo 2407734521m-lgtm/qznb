@@ -3,6 +3,7 @@ import { useAuth } from '../../auth';
 import { supabase } from '../../lib/supabase';
 import { card, h3, mut } from './shared';
 import { confirmDialog } from '../../lib/dialog';
+import { isQQEmail } from '../../lib/validate';
 import { setTestingMark, getTestingMark, clearTestingMark } from '../../lib/testSwitch';
 
 type TA = { id: string; label: string; email: string };
@@ -96,6 +97,9 @@ export default function TestTab({ setMsg }: { setMsg: (s: string) => void }) {
         <input placeholder="QQ 邮箱" value={email} onChange={e => setEmail(e.target.value)} inputMode="email" style={{ flex: '1 1 140px', minWidth: 0 }} />
         <button className="mini" onClick={() => {
           if (!email.trim()) return setMsg('请填写测试账号邮箱');
+          // 邮箱只校验格式（站内 QQ 邮箱口径，见 lib/validate.ts），无效邮箱
+          // 存下来切换时才报错（审计 FIX-4-6）。
+          if (!isQQEmail(email)) return setMsg('测试账号邮箱格式不正确，请填写 QQ 邮箱（如 123456@qq.com）。');
           save([...tas, { id: String(Date.now()), label: label.trim(), email: email.trim() }]);
           setLabel(''); setEmail(''); setMsg('已保存测试账号资料；密码会在切换时临时输入。');
         }}>保存账号</button>

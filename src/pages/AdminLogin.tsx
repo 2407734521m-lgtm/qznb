@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import PasswordField from '../components/PasswordField';
@@ -34,15 +34,6 @@ export default function AdminLogin({
   const [step, setStep] = useState<Step>('credentials');
   // 六格输满自动提交与回车/按钮提交可能同一次触发，用 ref 挡住重复验证。
   const pinVerifyRef = useRef(false);
-
-  useEffect(() => {
-    try {
-      if (sessionStorage.getItem('qz_admin_idle_logout') === '1') {
-        sessionStorage.removeItem('qz_admin_idle_logout');
-        setErr('管理员后台因超过 20 分钟无操作已退出，请重新登录。');
-      }
-    } catch { /* storage may be unavailable */ }
-  }, []);
 
   async function recordFailure(failureClass: 'invalid_credentials' | 'rate_limited' | 'network' | 'other') {
     const { error: monitorError } = await supabase.rpc('record_auth_login_failure' as any, {

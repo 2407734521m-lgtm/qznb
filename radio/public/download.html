@@ -704,7 +704,10 @@
         previewRemaining = 30;
         previewPlayedSeconds = 0;
         previewLastCurrentTime = 0;
-        audio.src = d.url;
+        // 不能把网易云原始 CDN 地址直接交给浏览器：部分音源要求 music.163.com Referer，
+        // 手机浏览器直连时会返回拒绝页，导致 MEDIA_ERR_SRC_NOT_SUPPORTED。
+        // 复用 Worker 的 /api/audio 代理，由服务端补齐 Referer/UA，并转发 Range 请求。
+        audio.src = '/api/audio?url=' + encodeURIComponent(d.url);
         audio.load();
 
         audio.onplay = function () {

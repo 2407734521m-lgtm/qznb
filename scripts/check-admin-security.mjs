@@ -124,6 +124,14 @@ assert.equal(
   'all three super-admin-only RPC guards must reject NULL role lookups'
 );
 
+const defaultPrivilegesGuard = read('supabase/migrations/20261121123000_secure_public_default_privileges.sql');
+assert.ok(defaultPrivilegesGuard.includes('revoke all on tables from anon, authenticated, public'),
+  'new public tables must not inherit anonymous or authenticated access');
+assert.ok(defaultPrivilegesGuard.includes('revoke all on sequences from anon, authenticated, public'),
+  'new public sequences must not inherit client access');
+assert.ok(defaultPrivilegesGuard.includes('revoke execute on functions from anon, authenticated, public'),
+  'new public RPCs must require explicit execution grants');
+
 const securityOverviewGuard = read('supabase/migrations/20261117000859_admin_security_overview_null_role_guard.sql');
 assert.ok(securityOverviewGuard.includes("coalesce(public.my_role(), '') <> 'super_admin'"),
   'admin security overview must reject authenticated sessions whose role lookup returns NULL');

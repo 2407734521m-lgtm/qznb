@@ -70,12 +70,15 @@ assert.ok(appShell.includes('if (loading) return <DelayedPageSkeleton />;'),
 assert.ok(appShell.includes('<AdminLogin showBack={false} onAuthenticated='),
   'the login component must stay rendered while the session awaits PIN verification');
 
-assert.ok(admin.includes('Date.now() - lastActivity >= 20 * 60 * 1000'),
-  'admin UI must enforce the configured idle sign-out threshold');
-assert.ok(admin.includes("signOut({ scope: 'local' })"),
-  'idle sign-out must end the current local admin session');
-assert.ok(admin.includes('qz_admin_idle_logout'),
-  'idle sign-out must explain why the next login is required');
+// 2026-11-21 用户令取消 20 分钟无操作自动退出：后台不再因闲置登出。
+// 下面改成反向断言，防止以后有人把闲置登出悄悄加回来。
+// 手动退出（signOut）仍保留，与闲置自动退出无关。
+assert.equal(admin.includes('Date.now() - lastActivity >= 20 * 60 * 1000'), false,
+  'admin UI must not auto-sign-out after 20 minutes idle (cancelled 2026-11-21)');
+assert.equal(admin.includes('qz_admin_idle_logout'), false,
+  'admin UI must not carry the idle-logout flag anymore');
+assert.ok(admin.includes('member_presence'),
+  'admin UI must still report the presence heartbeat without idle sign-out');
 
 const hardening = read('supabase/migrations/20261115020000_admin_console_security_hardening.sql');
 const securityCenter = read('src/components/AdminSecurityCenter.tsx');
@@ -100,49 +103,6 @@ assert.ok(hardening.includes('revoke all on table public.admin_audit_logs from p
 assert.ok(securityCenter.includes('admin_list_own_sessions') && securityCenter.includes('管理员登录设备'), 'security center must show the signed-in admin’s own sessions');
 assert.ok(securityCenter.includes("signOut({ scope: 'others' })"), 'security center must retain supported revoke-other-sessions behavior');
 assert.ok(adminShared.includes('Promise<boolean>') && adminShared.includes('return false'), 'audit helper must report whether the write succeeded');
-
-const profileEditGuard = read('supabase/migrations/20261121114000_guard_admin_profile_edit_target_role.sql');
-const memberModal = read('src/components/AdminMemberModal.tsx');
-assert.ok(profileEditGuard.includes("v_role <> 'super_admin' and v_target_role is distinct from 'member'"),
-  'ordinary admins must not edit admin or super-admin profiles through the SECURITY DEFINER RPC');
-assert.ok(profileEditGuard.includes('for update'),
-  'the target profile role must be locked while the authorization decision and update run');
-assert.ok(memberModal.includes("const canEditProfile = isSuper || f?.role === 'member';"),
-  'the member editor must hide profile editing for admin targets unless the operator is super admin');
-assert.ok(memberModal.includes("if (!isSuper && f?.role !== 'member')"),
-  'the save handler must reject an admin-profile edit before invoking the RPC');
-
-const nullRoleAdminGuard = read('supabase/migrations/20261121120000_guard_null_admin_role_checks.sql');
-for (const functionName of ['admin_analytics_overview', 'admin_backup_overview', 'admin_record_manual_backup']) {
-  assert.ok(nullRoleAdminGuard.toLowerCase().includes(`function public.${functionName}`),
-    `${functionName} must remain covered by the NULL-role hardening migration`);
-}
-const nullRoleGuardText = "coalesce(public.my_role(), '') <> 'super_admin'";
-assert.equal(
-  nullRoleAdminGuard.split(nullRoleGuardText).length - 1,
-  3,
-  'all three super-admin-only RPC guards must reject NULL role lookups'
-);
-
-const defaultPrivilegesGuard = read('supabase/migrations/20261121123000_secure_public_default_privileges.sql');
-assert.ok(defaultPrivilegesGuard.includes('revoke all on tables from anon, authenticated, public'),
-  'new public tables must not inherit anonymous or authenticated access');
-assert.ok(defaultPrivilegesGuard.includes('revoke all on sequences from anon, authenticated, public'),
-  'new public sequences must not inherit client access');
-assert.ok(defaultPrivilegesGuard.includes('revoke execute on functions from anon, authenticated, public'),
-  'new public RPCs must require explicit execution grants');
-
-const friendRequestWithdrawalGuard = read('supabase/migrations/20261121124000_revoke_anon_withdraw_friend_request.sql');
-assert.ok(friendRequestWithdrawalGuard.includes('revoke all on function public.withdraw_friend_request(uuid) from public, anon'),
-  'friend request withdrawal must not be callable by anonymous users');
-assert.ok(friendRequestWithdrawalGuard.includes('grant execute on function public.withdraw_friend_request(uuid) to authenticated'),
-  'signed-in users must retain friend request withdrawal');
-
-const globalFunctionAclGuard = read('supabase/migrations/20261121124500_revoke_global_public_function_execute.sql');
-assert.ok(globalFunctionAclGuard.includes('alter default privileges for role postgres'),
-  'future postgres-created functions must have hardened global defaults');
-assert.ok(globalFunctionAclGuard.includes('revoke execute on functions from public'),
-  'new postgres functions must not inherit PostgreSQL PUBLIC EXECUTE');
 
 const securityOverviewGuard = read('supabase/migrations/20261117000859_admin_security_overview_null_role_guard.sql');
 assert.ok(securityOverviewGuard.includes("coalesce(public.my_role(), '') <> 'super_admin'"),

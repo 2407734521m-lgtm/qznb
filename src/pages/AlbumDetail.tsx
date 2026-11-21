@@ -277,6 +277,7 @@ export default function AlbumDetail() {
       <div className="card" style={{ marginBottom: 6 }}>
         <label>添加照片</label>
         <input value={cap} onChange={e => setCap(e.target.value)} placeholder="给照片写句话（可选）" maxLength={200} />
+        <p className="mut" style={{ fontSize: 12, margin: '4px 0 0' }}>一次选多张照片时，说明只会写到第一张照片上。</p>
         <div className="row">
           <button className="ghost" disabled={busy} onClick={() => fref.current?.click()}>{busy ? (upProg || '上传中…') : '选择照片（可多选）'}</button>
           {busy && upPct !== null && <div style={{ marginTop: 8 }}><SmoothProgress value={upPct} label={upProg ? `${upProg} · ${upPct}%` : undefined} /></div>}

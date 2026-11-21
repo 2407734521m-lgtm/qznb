@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useSignedUrl, uploadMedia } from '../lib/media';
 import { withRetry } from '../lib/retry';
@@ -65,6 +66,7 @@ function Collapsible({ icon, title, sub, open, onToggle, children, sid }: {
 }
 
 export default function MyProfile() {
+  const nav = useNavigate();
   const uid = useAuth().session!.user.id;
   const [v, setV] = useState<Record<string, string>>({}); const [priv, setPriv] = useState<Record<string, boolean>>({});
   // 折叠栏的展开/收起要记住，下次打开保持上次的样子
@@ -444,7 +446,7 @@ export default function MyProfile() {
             </div>
           ))}
         <button type="button" className="mini ghost" style={{ marginTop: 10, width: '100%' }}
-          onClick={() => { window.location.hash = '#/me/notifications'; }}>
+          onClick={() => nav('/me/notifications')}>
           查看与管理全部通知
         </button>
       </Collapsible>

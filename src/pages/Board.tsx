@@ -36,6 +36,7 @@ export default function Board() {
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
+  const [loadError, setLoadError] = useState('');
   const [isAdmin, setIsAdmin] = useState(false);
   const [showKaibox, setShowKaibox] = useState(false);
   const titleTaps = useRef({ count: 0, last: 0 });
@@ -53,12 +54,15 @@ export default function Board() {
 
   async function load() {
     const nowIso = new Date().toISOString();
-    const { data } = await supabase.from('board_messages')
+    const { data, error } = await supabase.from('board_messages')
       .select('id, author_id, title, content, is_admin_msg, is_pinned, created_at')
       .is('deleted_at', null)
       .in('audience', isInApp() ? ['all', 'app'] : ['all'])
       .or(`expires_at.is.null,expires_at.gt.${nowIso}`)
       .order('is_pinned', { ascending: false }).order('is_admin_msg', { ascending: false }).order('created_at', { ascending: false }).limit(100);
+    // 查询失败不要显示“还没有留言”空态，那会误导用户以为板上是空的（审计 FIX-3-3）。
+    if (error) { setLoadError('公告板暂时无法加载：' + error.message); setLoading(false); return; }
+    setLoadError('');
     const list = (data ?? []) as Msg[];
     setMsgs(list);
     const { data: dir } = await supabase.rpc('member_directory', { q: '', lim: 50, skip: 0 });
@@ -144,7 +148,8 @@ export default function Board() {
       </>}
 
       {showSkeleton && <FeedSkeleton count={2} />}
-      {!loading && displayMsgs.length === 0 && <div className="center" style={{ minHeight: 160 }}><div className="card">{searchQuery ? '公告板没有匹配内容。' : '还没有留言，来发第一条吧'}</div></div>}
+      {!loading && loadError && <div className="center" style={{ minHeight: 160 }}><div className="card">{loadError}</div></div>}
+      {!loading && !loadError && displayMsgs.length === 0 && <div className="center" style={{ minHeight: 160 }}><div className="card">{searchQuery ? '公告板没有匹配内容。' : '还没有留言，来发第一条吧'}</div></div>}
 
       <div style={{ height: 70 }} />
 

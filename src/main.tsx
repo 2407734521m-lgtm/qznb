@@ -211,6 +211,13 @@ function SiteIntro() {
   );
 }
 
+// 字体大小设置（设置页写入 qznb_font_size_v1）启动时重读应用，否则刷新后
+// 回到默认、当次设置白调（审计 FIX-3-1）。无效值忽略，不并入云端同步。
+try {
+  const savedFontSize = Number(localStorage.getItem('qznb_font_size_v1'));
+  if ([13, 14, 16, 18].includes(savedFontSize)) document.body.style.fontSize = savedFontSize + 'px';
+} catch { /* storage unavailable */ }
+
 createRoot(document.getElementById('root')!).render(
   <React.StrictMode><HashRouter><AuthProvider>
     <ErrorBoundary>

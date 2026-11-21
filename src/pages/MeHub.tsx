@@ -396,7 +396,7 @@ export default function MeHub() {
                       <time>{formatFeedTime(item.created_at)}</time>
                     </div>
                     <p className="me-hub-feed-text">{item.content}</p>
-                    <div className="me-hub-feed-foot"><span>{item.status === 'published' ? '已公开展示' : item.status === 'pending' ? '审核通过后公开展示' : '未公开展示'}</span><span className="me-hub-feed-more">查看 ›</span></div>
+                    <div className="me-hub-feed-foot"><span>{item.status === 'published' ? '已公开展示' : item.status === 'pending' ? '待展示' : '未公开展示'}</span><span className="me-hub-feed-more">查看 ›</span></div>
                   </>
                 )}
                 {item.kind === 'answer' && (

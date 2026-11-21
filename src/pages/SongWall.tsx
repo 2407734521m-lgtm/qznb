@@ -66,7 +66,7 @@ export default function SongWall() {
     if (cleanTitle.length < 1 || cleanTitle.length > 80) { setNotice('歌名请填写 1–80 个字。'); return; }
     if (!file) { setNotice('请先选择一段音频文件。'); return; }
     if (file.size > 20 * 1024 * 1024) { setNotice('音频不能超过 20 MB。'); return; }
-    if (!(file.type.startsWith('audio/') || /\.(mp3|m4a|aac|ogg|wav|webm)$/i.test(file.name))) { setNotice('请选择 MP3、M4A、AAC、OGG、WAV 或 WebM 音频。'); return; }
+    if (!(file.type.startsWith('audio/') || /\.(mp3|m4a|aac|ogg|wav|webm|flac)$/i.test(file.name))) { setNotice('请选择 MP3、M4A、AAC、OGG、WAV、WebM 或 FLAC 音频。'); return; }
     setBusy(true); setNotice('');
     let uploadedPath = '';
     try {
@@ -86,11 +86,11 @@ export default function SongWall() {
       if (picker) picker.value = '';
       setNotice('已匿名发布，作品现在就会出现在歌声墙。管理员可对违规投稿进行隐藏或处理。');
       await load();
-    } catch {
+    } catch (error) {
       if (uploadedPath) {
         try { await supabase.storage.from('song-audio').remove([uploadedPath]); } catch { /* best-effort cleanup */ }
       }
-      setNotice('提交失败：请稍后重试；如果持续失败，请联系管理员。');
+      setNotice('提交失败：' + (error instanceof Error ? error.message : '请稍后重试；如果持续失败，请联系管理员。'));
     } finally { setBusy(false); }
   }
 
@@ -100,18 +100,17 @@ export default function SongWall() {
     setDeletingId(song.id);
     setNotice('');
     try {
-      // The existing Storage policy authorizes deletion through this user's upload record.
-      const { error: storageError } = await supabase.storage.from('song-audio').remove([song.audio_path]);
-      if (storageError) throw new Error('音频文件清理失败：' + storageError.message);
-
+      // 先删行再删文件：行删失败时音频原样保留，不留无音频的残留投稿；
+      // 行已删而文件清理失败时只提示，残留文件无害（审计 FIX-3-9）。
       const { data: deleted, error } = await supabase.from('song_posts')
         .delete().eq('id', song.id).eq('author_id', session.user.id)
         .select('id').maybeSingle();
       if (error) throw error;
       if (!deleted) throw new Error('投稿记录未删除，可能已不存在或当前账号没有权限。');
 
+      const { error: storageError } = await supabase.storage.from('song-audio').remove([song.audio_path]);
       await load();
-      setNotice('投稿已删除，音频文件也已清理。');
+      setNotice(storageError ? '投稿已删除，但音频文件清理失败（可忽略）。' : '投稿已删除，音频文件也已清理。');
     } catch (error) {
       await load();
       setNotice(error instanceof Error ? '删除失败：' + error.message : '删除失败，请稍后重试。');
@@ -134,7 +133,7 @@ export default function SongWall() {
       <label style={label}>作品介绍（选填）</label>
       <textarea value={description} onChange={e => setDescription(e.target.value)} maxLength={300} rows={2} placeholder="写几句关于这首歌的话" style={{ ...field, resize: 'vertical' }} />
       <label style={label}>音频文件（最大 20 MB）</label>
-      <input id="song-audio-picker" type="file" accept="audio/*,.mp3,.m4a,.aac,.ogg,.wav,.webm" onChange={e => setFile(e.target.files?.[0] || null)} style={{ width: '100%', color: '#333946', fontSize: 12, margin: '4px 0 12px' }} />
+      <input id="song-audio-picker" type="file" accept="audio/*,.mp3,.m4a,.aac,.ogg,.wav,.webm,.flac" onChange={e => setFile(e.target.files?.[0] || null)} style={{ width: '100%', color: '#333946', fontSize: 12, margin: '4px 0 12px' }} />
       {file && <p style={{ fontSize: 11, color: '#606673', margin: '0 0 10px' }}>{file.name} · {(file.size / 1024 / 1024).toFixed(1)} MB</p>}
       <button onClick={() => void publish()} disabled={busy} style={primary}>{busy ? '上传中…' : '匿名发布'}</button>
       {notice && <p role="status" style={{ color: '#333946', fontSize: 11, lineHeight: 1.6, marginBottom: 0 }}>{notice}</p>}

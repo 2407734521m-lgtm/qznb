@@ -15,7 +15,7 @@
 |---|---|---|---|
 | 第 1 阶段 | 网站基础、导航与公共页面 | 已完成（FIX-1 已回归通过） | `AUDIT_PHASE_1.md` |
 | 第 2 阶段 | 用户账号与社交功能 | 已完成（FIX-2 12 项已修复，登录态 106 项待验证） | `AUDIT_PHASE_2.md` |
-| 第 3 阶段 | 个人中心与扩展功能 | NOT_TESTED（尚未开始） | — |
+| 第 3 阶段 | 个人中心与扩展功能 | 已完成（FIX-3 11 项已修复，登录态 152 项待验证） | `AUDIT_PHASE_3.md` |
 | 第 4 阶段 | 管理员后台 | NOT_TESTED（尚未开始） | — |
 | 第 5 阶段 | 独立服务、移动应用与部署链路 | NOT_TESTED（尚未开始） | — |
 
@@ -146,6 +146,38 @@
 
 未修项（产品决策待定或需真机验证）：信任设备开关与限流登录链接是否开启、通行密钥登录入口、表白墙点赞/动态头像进主页/拉黑隐藏内容是否补、设备清单、改密码验旧密码、两套改密 UI 统一、聊天核心四表建表迁移、`mark_conversation_read` 两版本 diff、无 TURN 跨网通话、撤回图片直链残留、长会话首屏耗时。详见 `AUDIT_PHASE_2.md` §5。
 
+## 第 3 阶段计数（逐项表共 177 行，数字与 `AUDIT_PHASE_3.md` 逐项表对得上）
+
+| 状态 | 数量 |
+|---|---|
+| PASS | 0 |
+| PARTIAL | 24 |
+| FAIL | 0 |
+| BLOCKED | 152 |
+| NOT_IMPLEMENTED | 1 |
+| NOT_TESTED | 0 |
+| 合计 | 177 |
+
+分线：A 线个人中心本体 52 项（PARTIAL 13、BLOCKED 39）；B 线内容扩展页 44 项（BLOCKED 43、NOT_IMPLEMENTED 1）；C 线趣味/活动页 81 项（PARTIAL 11、BLOCKED 70）。本阶段无 FAIL；唯一 NOT_IMPLEMENTED 是公告详情页（B14，无 `/board/:id` 路由，正文全文 inline 展示，不影响阅读）。
+
+## 第 3 阶段修复清单（FIX-3，11 项）
+
+| 编号 | 问题 | 严重程度 | 修复内容 | 状态 |
+|---|---|---|---|---|
+| FIX-3-1 | 字体大小设置刷新后失效 | 中 | main.tsx 启动时读一次 `qznb_font_size_v1` 并应用 | 已修复，登录态待验证 |
+| FIX-3-2 | 表白 pending 文案与先发后审矛盾 | 低 | MeHub 表白卡 pending 由“审核通过后公开展示”→“待展示” | 已修复 |
+| FIX-3-3 | 四处加载失败显示误导性空态 | 中 | Board / Timeline / Wishes / Events 的 load() 改判查询 error，失败显示错误卡片；Events 取消报名判 delete error；Wishes post() 加 busy 锁 | 已修复，登录态待验证 |
+| FIX-3-4 | “堯”品牌残留 | 低 | MusicIsland iframe title→“千栀音乐空间”；返回按钮→“返回 Class Memory”；岛 label→“Class Memory 实时活动” | 已修复 |
+| FIX-3-5 | 歌声墙前端白名单不含 FLAC | 低 | SongWall 白名单正则 + accept 属性补 flac，与桶一致 | 已修复，登录态待验证 |
+| FIX-3-6 | 时间线添加正文无长度校验；他人页标题缺名 | 低 | add() 加正文 2000 字校验 + textarea maxLength；member_detail 失败时标题兜底“这位同学” | 已修复，登录态待验证 |
+| FIX-3-7 | 相册批量上传说明只写第一张、无提示 | 低 | 说明输入框下方加提示；上传逻辑未动 | 已修复 |
+| FIX-3-8 | 编辑页通知栏跳转绕过 router | 低 | MyProfile 通知栏按钮由直接改 location.hash 改为 nav('/me/notifications') | 已修复 |
+| FIX-3-9 | 歌声墙失败提示丢具体原因；删除先文件后行 | 低 | publish() 的 catch 改带 error.message；deleteSong() 改先删行再删文件 | 已修复，登录态待验证 |
+| FIX-3-10 | 指尖生花“全屏/横屏”名不副实 | 低 | 进入体验时 try requestFullscreen；切横屏时 try screen.orientation.lock，均 try/catch 兜底 | 已修复，登录态/真机待验证 |
+| FIX-3-11 | 仓库与生产库漂移收敛（part 2） | 中 | 新增幂等迁移 `20261121093000_audit_phase3_drift_convergence.sql`：八张表建表 + RLS、albums.deleted_at 列、缺失的 21 条策略、song_audio_delete_own_submission 存储策略、bump_hot_snippet_view 函数定义 | 已应用到生产并回读核对（策略仍 30 条、tc_sel 仍为原表达式，生产无变化） |
+
+未修项（产品决策待定或需真机验证）：时光胶囊 `tc_sel` 隐私缺口（简单加门控会藏掉锁信封 UI，正确修法是 RPC 只返元数据，需另立方案等用户定夺）；灵动岛全套保留还是彻底删除；“卡片进原页”只跳列表、“我的评论”无列表、各列表 50/100 条上限无分页、热门特效自动上新无实现等产品决策类；全新环境重放迁移仍会在更早的迁移处失败（历史迁移引用顺序问题，需改动历史迁移，不在本范围）。详见 `AUDIT_PHASE_3.md` §5。
+
 ## 工作底稿（审计过程文件，不计入交付计数）
 
 - `audit-phase1-work/route-audit.md`（A 线：47 条路由、访客、404、错误边界）
@@ -157,4 +189,5 @@
 
 - 第 1 阶段：只做了第 1 阶段，完成后停止，未进入第 2 阶段；未改任何产品代码，未提交、未合并，未跑生产写入，未删真实用户数据，未向真实用户发测试私信/通知/邮件，未清理生产 Storage，未执行生产数据库迁移；线上实测全程只读、未登录。
 - 第 2 阶段：三条代码审计线全程只读，未登录任何账号，未向真实用户发任何消息，未发测试邮件，未删真实用户数据，未清理生产 Storage；唯一生产写入是幂等收敛迁移 FIX-2-12（已回读核对，生产无变化）；代码修复 11 项在独立 worktree 的 `fix/audit-phase2-code` 分支上，`npm run typecheck` / `npm run build` / `npm run check:styles` / `npm run check:admin-styles` 全部通过；登录态 106 项因无可登录测试账号记 BLOCKED，未猜测为可用。
+- 第 3 阶段：三条代码审计线全程只读，未登录任何账号，未向真实用户发任何消息，未发测试邮件，未删真实用户数据，未清理生产 Storage；唯一生产写入是幂等收敛迁移 FIX-3-11（已回读核对，策略仍 30 条、`tc_sel` 仍为原表达式，生产无变化）；代码修复 10 项在独立 worktree 的 `fix/audit-phase3-code` 分支上，`npm run typecheck` / `npm run build` / `npm run check:styles` / `npm run check:admin-styles` 全部通过（主代理独立复跑 typecheck + build 通过）；登录态 152 项因无可登录测试账号记 BLOCKED，未猜测为可用；时光胶囊隐私缺口与灵动岛去留未擅自改，等用户定夺。
 - 未把“组件存在 / 接口 200 / 构建通过”当成可用；代码已确认、线上未验证的不算 PASS。

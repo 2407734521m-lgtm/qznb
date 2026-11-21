@@ -35,6 +35,7 @@ import { canLongPressMessage, getSwipeReplyVisual, isSwipeToReply } from '../lib
 import { createChatForwardAttachmentPlan } from '../lib/chatForwarding';
 import { findNextChatMediaMessageId } from '../lib/chatPlayback';
 import { formatVoiceDuration, getVoiceCancelProgress, MAX_VOICE_RECORDING_SECONDS, resolveVoiceRecordingFormat } from '../lib/chatVoiceRecording';
+import { parseChatDateOnlyLabel } from '../lib/chatDateSeparator';
 import './Chat.polish.css';
 
 type ChatReaction = { message_id: number; profile_id: string; reaction: string; created_at: string };
@@ -2797,6 +2798,9 @@ export default function Chat() {
           const canEdit = mine && !deleted && !editBody.startsWith('[[im-image:') && !editBody.startsWith('[[im-audio:') && !editBody.startsWith('[[im-video:') && !editBody.startsWith('[[im-file:');
           // 正在消失的消息即使已被清理打上 deleted_at，也继续显示原文，不中途变成“撤回”。
           const displayBody = deleted && !vanishingIds.has(m.id) ? (mine ? '你撤回了一条消息' : '对方撤回了一条消息') : m.body;
+          const dateOnlyLabel = !deleted && editingId !== m.id
+            ? parseChatDateOnlyLabel(m.body, m.created_at)
+            : null;
           const inlineMeta = editingId !== m.id && canShowInlineMeta(displayBody, Boolean(m.reply_to_id));
           const receiptLabel = mine && m.id === latestOutgoingMessageId && userPreferences.chat.showReadReceipts
             ? (isGroup
@@ -2808,8 +2812,12 @@ export default function Chat() {
               className={'im-vrow' + (freshId === m.id ? ' im-vrow-fresh' : '')}
               onAnimationEnd={() => { if (freshId === m.id) setFreshId(null); }}
               style={{ position: 'absolute', top: 0, left: 0, width: '100%', transform: `translateY(${virtualRow.start}px)`, padding: `${samePrevious ? 1 : 3}px 0 ${sameNext ? 1 : 3}px 0`, boxSizing: 'border-box' }}>
-              {dateLabel(m.created_at, msgs[i - 1]?.created_at) && <div className="im-day">{dateLabel(m.created_at, msgs[i - 1]?.created_at)}</div>}
-              <div className={'im-row ' + (mine ? 'mine ' : '') + (mine && m.id === latestOutgoingMessageId && userPreferences.chat.showReadReceipts ? 'im-row-has-receipt ' : '') + (samePrevious ? 'im-row-grouped-prev ' : '') + (sameNext ? 'im-row-grouped-next ' : '') + (swappedIdsRef.current.has(m.id) ? 'im-row-static' : '') + (vanishingIds.has(m.id) ? 'im-row-vanishing ' : '')}>
+              {dateOnlyLabel ? (
+                <div className="im-day im-day-system" role="separator">{dateOnlyLabel}</div>
+              ) : (
+                <>
+                  {dateLabel(m.created_at, msgs[i - 1]?.created_at) && <div className="im-day">{dateLabel(m.created_at, msgs[i - 1]?.created_at)}</div>}
+                  <div className={'im-row ' + (mine ? 'mine ' : '') + (mine && m.id === latestOutgoingMessageId && userPreferences.chat.showReadReceipts ? 'im-row-has-receipt ' : '') + (samePrevious ? 'im-row-grouped-prev ' : '') + (sameNext ? 'im-row-grouped-next ' : '') + (swappedIdsRef.current.has(m.id) ? 'im-row-static' : '') + (vanishingIds.has(m.id) ? 'im-row-vanishing ' : '')}>
                 <div className={'im-message-column ' + (mine ? 'mine' : 'theirs')}>
                   {isGroup && !mine && !samePrevious && <span className="chatcn-group-sender-name">{groupMembers.find(member => member.id === m.sender_id)?.display_name ?? groupMembers.find(member => member.id === m.sender_id)?.username ?? '群成员'}</span>}
                   <div className={'im-bubble ' + (mine ? 'mine' : 'theirs') + (samePrevious ? ' im-bubble-grouped-prev' : '') + (sameNext ? ' im-bubble-grouped-next' : '')}
@@ -2848,7 +2856,9 @@ export default function Chat() {
                     {receiptLabel && <span>{receiptLabel}</span>}
                   </div>}
                 </div>
-              </div>
+                  </div>
+                </>
+              )}
             </div>
           );
             })}

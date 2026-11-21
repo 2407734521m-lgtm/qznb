@@ -2849,7 +2849,6 @@ export default function Chat() {
                     ) : (
                       <MessageContent onMentionClick={openMemberPage} body={displayBody} messageId={m.id} autoPlayMedia={autoPlayMediaId === m.id} onMediaEnded={handleMediaEnded} onMediaAutoplayBlocked={handleMediaAutoplayBlocked} />
                     )}
-                    {!deleted && editingId !== m.id && getChatBubbleEffect(m.body) === 'invisible-ink' && <span className="im-ink-hint">滑动显示</span>}
                     {inlineMeta && <span className={'im-inline-meta ' + (mine ? 'mine' : 'theirs')}>{messageTimeLabel(m.created_at)}{receiptLabel ? ' · ' + receiptLabel : ''}</span>}
                     {m.edited_at && !deleted && <div className="im-edited-mark">已编辑</div>}
                     {groups.length > 0 && <div className="im-reaction-groups">
@@ -2888,7 +2887,6 @@ export default function Chat() {
                   data-message-id={e.tempKey}>
                   {e.replyToId !== null && <div className="im-reply-quote">回复：{e.replySummary ?? ''}</div>}
                   <MessageContent onMentionClick={openMemberPage} body={e.body} />
-                  {getChatBubbleEffect(e.body) === 'invisible-ink' && <span className="im-ink-hint">滑动显示</span>}
                   {inlineMeta && <span className="im-inline-meta mine">{messageTimeLabel(e.createdAtMs)} · {phaseLabel}</span>}
                 </div>
                 {!inlineMeta && <div className="im-message-footer mine">

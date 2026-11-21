@@ -4381,3 +4381,12 @@
   text-align: center !important;
   white-space: nowrap;
 }
+
+
+/* The instruction belongs to InvisibleInk itself, not the surrounding message
+   bubble: this also covers rich-text spoilers written as ||text||. */
+.im-page .im-ink .im-ink-hint {
+  display: block !important;
+  margin: 0 !important;
+  pointer-events: none !important;
+}

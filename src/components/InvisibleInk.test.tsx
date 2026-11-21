@@ -167,6 +167,7 @@ describe('InvisibleInk 读屏保护（盖着时不读原文）', () => {
     expect(root.getAttribute('aria-label')).toBe('隐形消息，滑动擦除或点按显示内容');
     expect(content.getAttribute('aria-hidden')).toBe('true');
     expect(link.getAttribute('tabindex')).toBe('-1');
+    expect(root.querySelector('.im-ink-hint')?.textContent).toBe('滑动擦除 · 点按显示');
 
     tap(root);
     // 揭示后外层退回普通容器：role/tabIndex/aria-label 都去掉，链接恢复默认可聚焦。
@@ -175,6 +176,7 @@ describe('InvisibleInk 读屏保护（盖着时不读原文）', () => {
     expect(root.getAttribute('aria-label')).toBeNull();
     expect(content.getAttribute('aria-hidden')).toBe('false');
     expect(link.getAttribute('tabindex')).toBeNull();
+    expect(root.querySelector('.im-ink-hint')).toBeNull();
   });
 
   it('回车揭示后读屏能读到原文', () => {

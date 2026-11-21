@@ -2809,7 +2809,15 @@ export default function Chat() {
           const dateOnlyLabel = !deleted && editingId !== m.id
             ? parseChatDateOnlyLabel(m.body, m.created_at)
             : null;
-          const inlineMeta = editingId !== m.id && canShowInlineMeta(displayBody, Boolean(m.reply_to_id));
+          // The day separator already carries this first message's timestamp.
+          // Do not repeat the same time inside/below the bubble.
+          const dateSeparatorLabel = dateOnlyLabel
+            ? ''
+            : dateLabel(m.created_at, msgs[i - 1]?.created_at);
+          const showMessageTimestamp = !dateSeparatorLabel;
+          const inlineMeta = showMessageTimestamp
+            && editingId !== m.id
+            && canShowInlineMeta(displayBody, Boolean(m.reply_to_id));
           const receiptLabel = mine && m.id === latestOutgoingMessageId && userPreferences.chat.showReadReceipts
             ? (isGroup
               ? (groupReadMemberCount > 0 ? `已读 ${groupReadMemberCount} 人` : '已送达')
@@ -2824,7 +2832,7 @@ export default function Chat() {
                 <div className="im-day im-day-system" role="separator">{dateOnlyLabel}</div>
               ) : (
                 <>
-                  {dateLabel(m.created_at, msgs[i - 1]?.created_at) && <div className="im-day">{dateLabel(m.created_at, msgs[i - 1]?.created_at)}</div>}
+                  {dateSeparatorLabel && <div className="im-day">{dateSeparatorLabel}</div>}
                   <div className={'im-row ' + (mine ? 'mine ' : '') + (mine && m.id === latestOutgoingMessageId && userPreferences.chat.showReadReceipts ? 'im-row-has-receipt ' : '') + (samePrevious ? 'im-row-grouped-prev ' : '') + (sameNext ? 'im-row-grouped-next ' : '') + (swappedIdsRef.current.has(m.id) ? 'im-row-static' : '') + (vanishingIds.has(m.id) ? 'im-row-vanishing ' : '')}>
                 <div className={'im-message-column ' + (mine ? 'mine' : 'theirs')}>
                   {isGroup && !mine && !samePrevious && <span className="chatcn-group-sender-name">{groupMembers.find(member => member.id === m.sender_id)?.display_name ?? groupMembers.find(member => member.id === m.sender_id)?.username ?? '群成员'}</span>}
@@ -2858,8 +2866,8 @@ export default function Chat() {
                       })}
                     </div>}
                   </div>
-                  {!inlineMeta && <div className={'im-message-footer ' + (mine ? 'mine' : 'theirs')}>
-                    <span>{messageTimeLabel(m.created_at)}</span>
+                  {!inlineMeta && (showMessageTimestamp || receiptLabel) && <div className={'im-message-footer ' + (mine ? 'mine' : 'theirs')}>
+                    {showMessageTimestamp && <span>{messageTimeLabel(m.created_at)}</span>}
                     {receiptLabel && <span>{receiptLabel}</span>}
                   </div>}
                 </div>

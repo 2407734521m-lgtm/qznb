@@ -4390,3 +4390,62 @@
   margin: 0 !important;
   pointer-events: none !important;
 }
+
+
+/* Header safe-area refinement (item 3): the Android WebView reports a 0px
+   safe-area inset while the camera cutout still occupies the centered top edge.
+   Keep the side controls below the status bar and move only the centered stack
+   below the cutout; compact the avatar so the status line still fits in the header. */
+.im-page .im-contact-stack {
+  top: calc(max(env(safe-area-inset-top, 0px), 48px) + 8px) !important;
+}
+.im-page .im-contact-stack .im-avatar {
+  width: 68px !important;
+  min-width: 68px !important;
+  height: 68px !important;
+  margin: 0 0 5px !important;
+}
+.im-page .im-contact-name-pill {
+  min-height: 34px !important;
+  padding: 5px 14px !important;
+}
+.im-page .im-contact-name-pill .im-title {
+  color: #fff !important;
+  text-shadow: 0 1px 8px rgba(0,0,0,.4) !important;
+}
+.im-page .im-encryption-meta {
+  gap: 2px !important;
+  margin-top: 7px !important;
+  padding: 4px 10px !important;
+}
+.im-page .im-encryption-title {
+  color: rgba(255,255,255,.98) !important;
+  text-shadow: 0 1px 8px rgba(0,0,0,.4) !important;
+}
+.im-page .im-encryption-status {
+  color: rgba(255,255,255,.9) !important;
+  text-shadow: 0 1px 8px rgba(0,0,0,.4) !important;
+}
+.im-page .im-feed {
+  padding-top: 12px !important;
+}
+
+@media (max-height: 620px) and (max-width: 700px) {
+  .im-page .im-contact-stack {
+    top: calc(max(env(safe-area-inset-top, 0px), 32px) + 6px) !important;
+  }
+  .im-page .im-contact-stack .im-avatar {
+    width: 56px !important;
+    min-width: 56px !important;
+    height: 56px !important;
+    margin-bottom: 3px !important;
+  }
+  .im-page .im-contact-name-pill {
+    min-height: 30px !important;
+    padding: 4px 12px !important;
+  }
+  .im-page .im-encryption-meta {
+    margin-top: 5px !important;
+    padding: 3px 8px !important;
+  }
+}

@@ -112,6 +112,17 @@ assert.ok(memberModal.includes("const canEditProfile = isSuper || f?.role === 'm
 assert.ok(memberModal.includes("if (!isSuper && f?.role !== 'member')"),
   'the save handler must reject an admin-profile edit before invoking the RPC');
 
+const nullRoleAdminGuard = read('supabase/migrations/20261121120000_guard_null_admin_role_checks.sql');
+for (const functionName of ['admin_analytics_overview', 'admin_backup_overview', 'admin_record_manual_backup']) {
+  assert.ok(nullRoleAdminGuard.includes(`function public.${functionName}`),
+    `${functionName} must remain covered by the NULL-role hardening migration`);
+}
+assert.equal(
+  (nullRoleAdminGuard.match(/coalesce\\(public\\.my_role\\(\\), ''\\) <> 'super_admin'/g) ?? []).length,
+  3,
+  'all three super-admin-only RPC guards must reject NULL role lookups'
+);
+
 const securityOverviewGuard = read('supabase/migrations/20261117000859_admin_security_overview_null_role_guard.sql');
 assert.ok(securityOverviewGuard.includes("coalesce(public.my_role(), '') <> 'super_admin'"),
   'admin security overview must reject authenticated sessions whose role lookup returns NULL');

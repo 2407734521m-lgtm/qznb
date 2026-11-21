@@ -124,6 +124,32 @@ assert.equal(
   'all three super-admin-only RPC guards must reject NULL role lookups'
 );
 
+const workflowFiles = [
+  '.github/workflows/deploy-music.yml',
+  '.github/workflows/deploy-radio.yml',
+  '.github/workflows/deploy.yml',
+  '.github/workflows/migrate.yml',
+  '.github/workflows/verify-music.yml',
+  '.github/workflows/verify-pr.yml',
+];
+for (const workflowFile of workflowFiles) {
+  const workflow = read(workflowFile);
+  for (const line of workflow.split('\n')) {
+    const trimmed = line.trim();
+    const marker = trimmed.startsWith('- uses:')
+      ? '- uses:'
+      : trimmed.startsWith('uses:')
+        ? 'uses:'
+        : null;
+    if (!marker) continue;
+    const action = trimmed.slice(marker.length).trim().split(' #')[0].trim();
+    if (action.startsWith('docker://')) continue;
+    const reference = action.slice(action.lastIndexOf('@') + 1);
+    assert.match(reference, /^[0-9a-f]{40}$/i,
+      `${workflowFile} must pin every GitHub Action to a full commit SHA: ${action}`);
+  }
+}
+
 const defaultPrivilegesGuard = read('supabase/migrations/20261121123000_secure_public_default_privileges.sql');
 assert.ok(defaultPrivilegesGuard.includes('revoke all on tables from anon, authenticated, public'),
   'new public tables must not inherit anonymous or authenticated access');

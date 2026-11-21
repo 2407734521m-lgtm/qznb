@@ -25,6 +25,8 @@ A green build does not replace visual inspection; verify on mobile and desktop v
 ## Data and permissions
 
 - New database changes go in a separate, time-ordered SQL migration under `supabase/migrations`; review RLS and rollback impact first.
+- New objects created by `postgres` in the exposed `public` schema have secure defaults: no client grants are inherited. For each new table, explicitly enable RLS and grant only the required operations to `authenticated` or `anon`; for each new RPC, explicitly grant execution to the intended role. Public endpoints must be deliberate and input-bounded.
+- Every `SECURITY DEFINER` function must use an empty/fixed `search_path`, schema-qualify referenced objects, and enforce its caller/ownership authorization inside the function body.
 - Never put service-role keys, Resend API keys or other server secrets in frontend code or commits.
 - Production state is decided by GitHub Actions and Supabase, not by a merged PR alone.
 

@@ -10,6 +10,7 @@ import VoiceGlow, { resolveVoiceGlow } from '../components/fx/VoiceGlow';
 import { useDelayedLoading } from '../components/fx/Skeleton';
 import BlurImg from '../components/fx/BlurImg';
 import { useCall } from '../lib/call';
+import { useGroupCall } from '../lib/groupCall';
 import { goBackOr } from '../components/BackButton';
 import { confirmDialog } from '../lib/dialog';
 import { toast } from 'sonner';
@@ -362,6 +363,15 @@ export default function Chat() {
   const attachmentButtonRef = useRef<HTMLButtonElement>(null);
   const attachmentTrayRef = useRef<HTMLDivElement>(null);
   const { startCall, busy: callBusy } = useCall();
+  const { joinGroupCall, watchConversation, activeConversationId, activeParticipantCount, currentConversationId, busy: groupCallBusy } = useGroupCall();
+  // 群语音：打开群聊时订阅该群的通话状态（有人在聊时资料页显示“进行中”）；切走时取消订阅。
+  useEffect(() => {
+    if (isGroup && cid) {
+      watchConversation(Number(cid));
+      return () => watchConversation(null);
+    }
+    watchConversation(null);
+  }, [cid, isGroup, watchConversation]);
   const fileRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState('');
   const [showDetails, setShowDetails] = useState(false);
@@ -2381,6 +2391,20 @@ export default function Chat() {
                     </svg>
                   </span>
                   <span>更多</span>
+                </button>
+              </div>}
+              {isGroup && <div className="im-profile-actions" role="group" aria-label="群语音">
+                <button type="button" className="im-profile-action" disabled={groupCallBusy && currentConversationId !== Number(cid)}
+                  onClick={() => {
+                    setShowDetails(false);
+                    if (cid) void joinGroupCall(Number(cid), name);
+                  }}>
+                  <span className="im-profile-action-icon">
+                    <svg viewBox="0 0 24 24" width="23" height="23" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M17 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9.5" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M15.5 3.13a4 4 0 0 1 0 7.75" />
+                    </svg>
+                  </span>
+                  <span>{currentConversationId === Number(cid) && groupCallBusy ? '回到群语音' : activeConversationId === Number(cid) ? `加入群语音（${activeParticipantCount} 人在聊）` : '加入群语音'}</span>
                 </button>
               </div>}
               {showProfileMore && !isGroup && (

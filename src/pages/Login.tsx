@@ -296,40 +296,6 @@ export default function Login({ siteTitle, siteSubtitle, onGuestLogin }: { siteT
     } finally { setBusy(false); }
   }
 
-  async function doReg() {
-    setErr('');
-    if (!policyAccepted) return setErr('请先阅读并勾选同意《隐私政策与用户协议》');
-    const nm = name.trim(), rl = real.trim(), em = email.trim();
-    if (nm.length < 1 || nm.length > 30) return setErr('用户名 1～30 个字');
-    if (!rl || rl.length > 30) return setErr('请填写真实姓名（仅管理员可见）');
-    const ph = phone.trim(); if (ph && !/^1\d{10}$/.test(ph)) return setErr('手机号填 11 位数字，也可以留空');
-    if (!/^[1-9]\d{4,10}@qq\.com$/i.test(em)) return setErr('请填写正确的 QQ 邮箱');
-    if (pw.length < 8) return setErr('密码至少 8 位');
-    if (pw !== pw2) return setErr('两次输入的密码不一致');
-    setBusy(true);
-    try {
-      const { data, error } = await supabase.auth.signUp({
-        email: em, password: pw,
-        options: { data: { username: nm, real_name: rl, ...(ph ? { phone: ph } : {}), privacy_policy_version: PRIVACY_POLICY_VERSION, privacy_policy_accepted_at: new Date().toISOString() } },
-      });
-      if (error) throw error;
-      if (data.user && Array.isArray((data.user as any).identities) && (data.user as any).identities.length === 0) {
-        setErr('这个 QQ 邮箱已经注册过，直接登录吧');
-        return;
-      }
-      if (!data.session) {
-        // 邮箱验证已打开：没有 session，先转到验证屏；展示名和邀请码加入等验证成功后在 doVerify 里补做
-        setVerifyEmail(em); setCode(''); setResendIn(60);
-        return;
-      }
-      await finishJoin(data.session.user.id);
-    } catch (e: any) {
-      const m = e?.message || '';
-      setErr(/already registered|already exists/i.test(m) ? '这个 QQ 邮箱已经注册过，直接登录吧'
-        : '注册失败：' + (m || '网络错误'));
-    } finally { setBusy(false); }
-  }
-
   async function doVerify() {
     const c = code.trim();
     if (!/^\d{6,10}$/.test(c)) return setErr('请输入邮箱收到的数字验证码');

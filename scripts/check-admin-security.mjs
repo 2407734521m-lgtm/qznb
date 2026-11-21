@@ -117,8 +117,9 @@ for (const functionName of ['admin_analytics_overview', 'admin_backup_overview',
   assert.ok(nullRoleAdminGuard.includes(`function public.${functionName}`),
     `${functionName} must remain covered by the NULL-role hardening migration`);
 }
+const nullRoleGuardText = "coalesce(public.my_role(), '') <> 'super_admin'";
 assert.equal(
-  (nullRoleAdminGuard.match(/coalesce\\(public\\.my_role\\(\\), ''\\) <> 'super_admin'/g) ?? []).length,
+  nullRoleAdminGuard.split(nullRoleGuardText).length - 1,
   3,
   'all three super-admin-only RPC guards must reject NULL role lookups'
 );

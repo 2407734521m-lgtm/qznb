@@ -4699,3 +4699,52 @@
     backdrop-filter: none !important;
   }
 }
+
+
+/* 2026-11-21 follow-up: the contact header must have no separate plates.
+   Keep the avatar image itself; remove only the surfaces around it and the
+   label/status pills so the conversation wallpaper runs continuously behind. */
+.im-page .im-head,
+.im-page .im-head::before,
+.im-page .im-head::after,
+.im-page .im-head .im-back,
+.im-page .im-head .im-icon,
+.im-page .im-head .im-video-call,
+.im-page .im-head .im-contact-stack,
+.im-page .im-head .im-contact-stack::before,
+.im-page .im-head .im-contact-stack::after,
+.im-page .im-head .im-contact-stack .im-avatar,
+.im-page .im-head .im-contact-stack .im-avatar::before,
+.im-page .im-head .im-contact-stack .im-avatar::after,
+.im-page .im-head .im-contact-name-pill,
+.im-page .im-head .im-encryption-meta,
+.im-page .im-head .im-encryption-status {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+.im-page .im-head .im-contact-stack .im-avatar {
+  outline: 0 !important;
+  filter: none !important;
+  overflow: hidden !important;
+  border-radius: 50% !important;
+}
+
+.im-page .im-head .im-contact-stack .im-avatar img {
+  display: block !important;
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  border-radius: inherit !important;
+}
+
+.im-page .im-head .im-contact-stack,
+.im-page .im-head .im-contact-name-pill,
+.im-page .im-head .im-encryption-meta {
+  -webkit-tap-highlight-color: transparent !important;
+}

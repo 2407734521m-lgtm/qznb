@@ -2655,6 +2655,19 @@ export type Database = {
         }
         Returns: undefined
       }
+      admin_export_time_capsules: {
+        Args: never
+        Returns: {
+          author_id: string
+          content: string
+          created_at: string
+          deleted_at: string
+          id: number
+          is_public: boolean
+          open_at: string
+          title: string
+        }[]
+      }
       admin_get_guest_access_settings: { Args: never; Returns: Json }
       admin_list_admin_app_releases: {
         Args: never
@@ -3061,6 +3074,18 @@ export type Database = {
         }
         Returns: number
       }
+      list_time_capsules: {
+        Args: { p_trash: boolean }
+        Returns: {
+          author_id: string
+          created_at: string
+          deleted_at: string
+          id: number
+          is_public: boolean
+          open_at: string
+          title: string
+        }[]
+      }
       love_wall_guest_published: {
         Args: never
         Returns: {
@@ -3271,6 +3296,19 @@ export type Database = {
       public_app_update: { Args: never; Returns: Json }
       public_guest_landing: { Args: never; Returns: Json }
       public_musicdl_app_update: { Args: never; Returns: Json }
+      read_time_capsule: {
+        Args: { p_id: number }
+        Returns: {
+          author_id: string
+          content: string
+          created_at: string
+          deleted_at: string
+          id: number
+          is_public: boolean
+          open_at: string
+          title: string
+        }[]
+      }
       record_auth_login_failure: {
         Args: { p_failure_class: string; p_method: string }
         Returns: undefined

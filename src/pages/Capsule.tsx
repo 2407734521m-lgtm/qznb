@@ -71,8 +71,9 @@ export default function Capsule() {
 
   async function load() {
     // 主列表只显示未删除且当前账号有权读取的胶囊；回收站仅显示本人已删除记录。
-    const { data, error } = await supabase.from('time_capsules').select('*')
-      .is('deleted_at', null).order('open_at', { ascending: true }).limit(50);
+    // 列表经 RPC 只返元数据 + 已开封/本人/管理员的标题，不返 content：
+    // title/content 列已对 authenticated 收紧，直连 select('*') 会被拒。
+    const { data, error } = await supabase.rpc('list_time_capsules', { p_trash: false });
     if (error) {
       setMsg('胶囊加载失败：' + error.message);
       setLoading(false);
@@ -94,9 +95,7 @@ export default function Capsule() {
       setReadIds([]);
     }
 
-    const { data: trashData, error: trashError } = await supabase.from('time_capsules').select('*')
-      .eq('author_id', me).not('deleted_at', 'is', null)
-      .order('deleted_at', { ascending: false }).limit(50);
+    const { data: trashData, error: trashError } = await supabase.rpc('list_time_capsules', { p_trash: true });
     if (trashError) setMsg('回收站加载失败：' + trashError.message);
     else setTrash(trashData ?? []);
     setLoading(false);
@@ -137,6 +136,16 @@ export default function Capsule() {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [reading]);
+
+  // 开封读信：标题与内容只经 RPC 取（未开封/无权时 RPC 返 0 行）。
+  async function openCapsule(c: any) {
+    const { data, error } = await supabase.rpc('read_time_capsule', { p_id: c.id });
+    if (error) { setMsg('读信失败：' + error.message); return; }
+    const full = (data as any[] | null)?.[0];
+    if (!full) { setMsg('这封胶囊还没到开启时间，或者不存在。'); return; }
+    setReading(full);
+    void markRead(c.id);
+  }
 
   async function markRead(id: number) {
     if (readIds.includes(id)) return;
@@ -266,7 +275,7 @@ export default function Capsule() {
                     onClick={() => {
                       if (swipedRef.current) { swipedRef.current = false; return; }
                       if (!isTop) { setOrder(o => [c.id, ...o.filter(x => x !== c.id)]); return; }
-                      if (opened) { setReading(c); void markRead(c.id); } else setShakeId(c.id);
+                      if (opened) { void openCapsule(c); } else setShakeId(c.id);
                     }}
                     onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); (e.target as HTMLElement).click(); } }}
                     aria-label={isTop

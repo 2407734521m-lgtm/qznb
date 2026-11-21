@@ -108,8 +108,8 @@ export default function AdminApprovalCenter({ setMsg, me }: { setMsg: (message: 
         <button className="mini" disabled={loading} onClick={() => void load()}>{loading ? '刷新中…' : '刷新'}</button>
       </div>
       <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-        <button className={'mini' + (filter === 'pending' ? '' : ' ghost')} onClick={() => setFilter('pending')}>待审批</button>
-        <button className={'mini' + (filter === 'all' ? '' : ' ghost')} onClick={() => setFilter('all')}>最近记录</button>
+        <button className={'mini' + (filter === 'pending' ? '' : ' ghost')} aria-pressed={filter === 'pending'} onClick={() => setFilter('pending')}>待审批</button>
+        <button className={'mini' + (filter === 'all' ? '' : ' ghost')} aria-pressed={filter === 'all'} onClick={() => setFilter('all')}>最近记录</button>
       </div>
       <div style={{ ...mut, marginTop: 9 }}>申请有效期为 72 小时。批准时会重新检查目标账号状态，防止过期或目标已变化的申请被执行。</div>
       {error && <p style={{ color: '#b42336', fontSize: 12.5, marginBottom: 0 }}>读取失败：{error}</p>}

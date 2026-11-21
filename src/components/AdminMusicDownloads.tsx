@@ -82,10 +82,11 @@ export default function AdminMusicDownloads({ setMsg }: { setMsg?: (s: string) =
             <button
               key={k}
               type="button"
+              aria-pressed={filter === k}
               onClick={() => setFilter(k)}
               style={{
                 border: '1px solid #e2e8f0', borderRadius: 999, padding: '6px 14px', fontSize: 13,
-                background: filter === k ? '#22314a' : '#fff', color: filter === k ? '#fff' : '#22314a', cursor: 'pointer',
+                background: filter === k ? '#f6c453' : '#fff', color: filter === k ? '#4a3716' : '#22314a', cursor: 'pointer',
               }}
             >
               {label}（{counts[k] ?? 0}）

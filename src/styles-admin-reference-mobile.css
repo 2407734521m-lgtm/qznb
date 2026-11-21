@@ -1,0 +1,183 @@
+/* Admin mobile cleanup + one button set (user 2026-11-21: the phone top
+   bar is crammed, the page heading gets sliced under the sticky bar
+   after a tab switch, and the primary buttons are navy / blue / pale
+   cream on different pages — make them one set).
+   Loaded last from Admin.tsx, after the motion layer, so these rules
+   win the old layer soup: cinematic (blue gradient), unified (teal
+   gradient), pages (blue #2563eb), paper (navy #22314a !important) and
+   reference-second (pale cream #f6e7c5) all define the same buttons.
+   The one set, taken from the existing amber overview pill
+   (glass.css .is-amber: #f6c453 fill, #4a3716 text):
+   - primary: amber pill (every .pri, the member-search 定位 button,
+     and plain action buttons on the pages paper.css used to paint navy);
+   - secondary: one glass outline (every .mini / .ghost);
+   - selected (aria-pressed): amber fill, everywhere;
+   - danger: untouched (stays red).
+   Visual only: no data, feature, entry, permission or navigation
+   change. Reduced motion is already handled by the polish/motion
+   layers; this file adds no animation. */
+
+.admin-shell-v3 {
+  --admin-amber: #f6c453;
+  --admin-amber-ink: #4a3716;
+  --admin-amber-border: rgba(233, 201, 90, .9);
+  --admin-amber-hover: #f2bd3d;
+  --admin-amber-shadow: 0 4px 14px rgba(98, 73, 32, .08), inset 0 1px 0 rgba(255, 255, 255, .70);
+}
+
+/* ---- (a1) Primary: every .pri, including the page-scoped variants
+   paper.css used to paint navy. Same selector shapes as paper.css, so
+   equal specificity + later file + !important wins deterministically.
+   (Doubled .admin-shell-v3 / .admin-content: the base rule must beat
+   paper's (0,4,1) page variants outright, not just tie them.) ---- */
+.admin-shell-v3.admin-shell-v3 .admin-content.admin-content button.pri,
+.admin-shell-v3 .admin-content .admin-analytics-page button.pri,
+.admin-shell-v3 .admin-content .admin-announcements-page button.pri {
+  color: var(--admin-amber-ink) !important;
+  background: var(--admin-amber) !important;
+  background-image: none !important;
+  border: 1px solid var(--admin-amber-border) !important;
+  border-radius: 999px !important;
+  box-shadow: var(--admin-amber-shadow) !important;
+  min-height: 42px !important;
+  font-weight: 700 !important;
+}
+
+.admin-shell-v3.admin-shell-v3 .admin-content.admin-content button.pri:hover:not(:disabled) {
+  background: var(--admin-amber-hover) !important;
+}
+
+/* ---- (a2) Plain action buttons on the pages paper.css painted navy
+   (system / release / backup / logs / approvals / security / settings):
+   same amber primary. Switches and aria-pressed toggles are excluded —
+   switches keep their own track style (restored below) and toggles get
+   the selected-state rule instead, so selected / unselected stay
+   distinguishable. ---- */
+.admin-shell-v3.admin-shell-v3 .admin-content .admin-approvals-page button:not(.ghost):not(.danger):not([role="switch"]):not([aria-pressed]),
+.admin-shell-v3.admin-shell-v3 .admin-content .admin-security-page button:not(.ghost):not(.danger):not([role="switch"]):not([aria-pressed]),
+.admin-shell-v3.admin-shell-v3 .admin-content .admin-system-page button:not(.ghost):not(.danger):not([role="switch"]):not([aria-pressed]),
+.admin-shell-v3.admin-shell-v3 .admin-content .admin-release-page button:not(.ghost):not(.danger):not([role="switch"]):not([aria-pressed]),
+.admin-shell-v3.admin-shell-v3 .admin-content .admin-backup-page button:not(.ghost):not(.danger):not([role="switch"]):not([aria-pressed]),
+.admin-shell-v3.admin-shell-v3 .admin-content .admin-logs-page button:not(.ghost):not(.danger):not([role="switch"]):not([aria-pressed]),
+.admin-shell-v3.admin-shell-v3 .admin-content .admin-settings-page button:not(.ghost):not(.danger):not([role="switch"]):not(.admin-setting-switch):not([aria-pressed]) {
+  color: var(--admin-amber-ink) !important;
+  background: var(--admin-amber) !important;
+  background-image: none !important;
+  border: 1px solid var(--admin-amber-border) !important;
+  border-radius: 999px !important;
+  box-shadow: var(--admin-amber-shadow) !important;
+  font-weight: 700 !important;
+}
+
+.admin-shell-v3.admin-shell-v3 .admin-content .admin-approvals-page button:not(.ghost):not(.danger):not([role="switch"]):not([aria-pressed]):hover:not(:disabled),
+.admin-shell-v3.admin-shell-v3 .admin-content .admin-security-page button:not(.ghost):not(.danger):not([role="switch"]):not([aria-pressed]):hover:not(:disabled),
+.admin-shell-v3.admin-shell-v3 .admin-content .admin-system-page button:not(.ghost):not(.danger):not([role="switch"]):not([aria-pressed]):hover:not(:disabled),
+.admin-shell-v3.admin-shell-v3 .admin-content .admin-release-page button:not(.ghost):not(.danger):not([role="switch"]):not([aria-pressed]):hover:not(:disabled),
+.admin-shell-v3.admin-shell-v3 .admin-content .admin-backup-page button:not(.ghost):not(.danger):not([role="switch"]):not([aria-pressed]):hover:not(:disabled),
+.admin-shell-v3.admin-shell-v3 .admin-content .admin-logs-page button:not(.ghost):not(.danger):not([role="switch"]):not([aria-pressed]):hover:not(:disabled),
+.admin-shell-v3.admin-shell-v3 .admin-content .admin-settings-page button:not(.ghost):not(.danger):not([role="switch"]):not(.admin-setting-switch):not([aria-pressed]):hover:not(:disabled) {
+  background: var(--admin-amber-hover) !important;
+}
+
+/* ---- (a3) The member-search 定位 button: it was blue fill (antd-pro),
+   then navy (paper), then pale cream + blue border (reference-second) —
+   three layers, three colours. Same amber pill, kept compact (28px) so
+   it still fits its 32px search control. ---- */
+.admin-shell-v3 .admin-member-search-control button {
+  color: var(--admin-amber-ink) !important;
+  background: var(--admin-amber) !important;
+  background-image: none !important;
+  border: 1px solid var(--admin-amber-border) !important;
+  border-radius: 999px !important;
+  box-shadow: var(--admin-amber-shadow) !important;
+  min-height: 28px !important;
+  font-weight: 700 !important;
+}
+
+.admin-shell-v3 .admin-member-search-control button:hover:not(:disabled) {
+  background: var(--admin-amber-hover) !important;
+}
+
+/* ---- (a4) Secondary: ONE glass outline for every .mini / .ghost.
+   Beats paper.css §6 (solid white, navy-ish text) and pages.css
+   (blue hover). Danger is excluded and stays red.
+   (Doubled shell/content: contrast.css paints every non-.pri button
+   inside a light inline-styled panel solid white at (0,5,1)
+   !important, and paper's navy page rule is (0,6,1) — this must win
+   both outright, not tie.) ---- */
+.admin-shell-v3.admin-shell-v3 .admin-content.admin-content button.mini:not(.danger),
+.admin-shell-v3.admin-shell-v3 .admin-content.admin-content button.ghost:not(.danger) {
+  color: #22314a !important;
+  background: rgba(255, 255, 255, .72) !important;
+  background-image: none !important;
+  border: 1px solid rgba(34, 49, 74, .20) !important;
+  border-radius: 999px !important;
+  box-shadow: none !important;
+}
+
+.admin-shell-v3.admin-shell-v3 .admin-content.admin-content button.mini:not(.danger):hover:not(:disabled),
+.admin-shell-v3.admin-shell-v3 .admin-content.admin-content button.ghost:not(.danger):hover:not(:disabled) {
+  color: var(--admin-amber-ink) !important;
+  background: rgba(246, 196, 83, .16) !important;
+  border-color: var(--admin-amber-border) !important;
+}
+
+/* ---- (a5) Selected state (aria-pressed): amber fill everywhere, so a
+   selected filter / toggle reads the same on every page. Same doubled
+   specificity as paper.css's navy selected rule, later file wins; the
+   .mini variant beats paper's pale #f3ead6 selected tint the same way.
+   (Inline selected backgrounds — account / download filters, board
+   audience toggles — lose to this !important rule; their values were
+   also updated in the components so the code reads true.) ---- */
+.admin-shell-v3.admin-shell-v3 .admin-content.admin-content button[aria-pressed="true"][aria-pressed="true"],
+.admin-shell-v3.admin-shell-v3 .admin-content button.mini[aria-pressed="true"][aria-pressed="true"] {
+  color: var(--admin-amber-ink) !important;
+  background: var(--admin-amber) !important;
+  background-image: none !important;
+  border-color: var(--admin-amber-border) !important;
+}
+
+/* ---- (a6) Settings switches: paper.css's navy page rule also paints
+   them navy (they are plain buttons on .admin-settings-page), which
+   hides their designed white/blue track style. Restore it.
+   (Doubled shell/content: paper's navy rule is (0,5,1) !important —
+   this must beat it outright.) ---- */
+.admin-shell-v3.admin-shell-v3 .admin-content.admin-content .admin-settings-page button.admin-setting-switch {
+  color: #475569 !important;
+  background: #fff !important;
+  background-image: none !important;
+  border: 1px solid #dbe3ed !important;
+  box-shadow: none !important;
+}
+
+.admin-shell-v3.admin-shell-v3 .admin-content.admin-content .admin-settings-page button.admin-setting-switch.is-on {
+  color: #1d4ed8 !important;
+  background: #f8fbff !important;
+  border-color: #bfd3f4 !important;
+}
+
+/* ---- (b) Mobile top bar: at 390px the 8-icon topnav was squeezed to
+   ~60px (two icons visible, the rest hidden in an invisible horizontal
+   scroll) while the brand truncated to "Class Me…". The topnav only
+   duplicates the sidebar, so it leaves the bar on narrow screens; the
+   hamburger (sidebar), search (command palette), avatar, settings and
+   logout all stay. Brand text is untruncated — the freed width fits
+   the full "Class Memory". ---- */
+@media (max-width: 600px) {
+  .admin-shell-v3 .admin-reference-topnav {
+    display: none !important;
+  }
+
+  .admin-shell-v3 .admin-reference-brand strong {
+    max-width: none !important;
+  }
+}
+
+/* ---- (c) Heading: never rest half-hidden under the sticky top bar.
+   scroll-margin-top keeps the heading below the ~58–66px bar whenever
+   anything scrolls it into view; the instant scroll reset on tab switch
+   (Admin.tsx switchTab + the post-commit effect in AdminWorkspace) does
+   the rest. ---- */
+.admin-shell-v3 .admin-page-heading {
+  scroll-margin-top: 76px;
+}

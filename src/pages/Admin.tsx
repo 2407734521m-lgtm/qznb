@@ -24,6 +24,7 @@ import '../styles-admin-reference-match.css'; // 按用户参考图重做顶部�
 import '../styles-admin-reference-glass.css'; // 总览毛玻璃通透层：只覆盖总览页，必须最后引入
 import '../styles-admin-reference-polish.css'; // 第 6 步收尾打磨：动效与按压反馈层，只覆盖总览页 + 后台小按钮，必须最后引入
 import '../styles-admin-reference-motion.css'; // 全站动效层：切页过渡、全部页面入场 stagger、导航按压反馈，必须最后引入
+import '../styles-admin-reference-mobile.css'; // 手机端清理 + 按钮统一：390px 顶栏去重、主键统一琥珀药丸、标题防切，必须最最后引入
 import AdminWorkspace from '../components/AdminWorkspace';
 import AdminGuestAccess from '../components/AdminGuestAccess';
 import AdminSystemCenter from '../components/AdminSystemCenter';
@@ -226,7 +227,10 @@ export default function Admin({ verifiedRole }: { verifiedRole: 'admin' | 'super
     if (!def) { setMsg('这个管理功能不存在或已被移除。'); return; }
     if (def[2] && !isSuper) { setMsg('需要超级管理员权限才能打开这个功能。'); return; }
     setTab(id); setMsg('');
-    window.scrollTo({ top: 0 });
+    // 全局 quiet-premium.css 把 html 设了 scroll-behavior: smooth，裸
+    // scrollTo 会变成约 300ms 的滑动，切页中途标题正好一半藏在 sticky
+    // 顶栏下（用户手机截图同款）。显式 instant 立即归零。
+    window.scrollTo({ top: 0, behavior: 'instant' });
   }
 
   // 当前页签若因角色变化不再可达（例如收藏里存了旧的超管页签），

@@ -184,7 +184,7 @@ export default function AdminNotificationCenter({ setMsg }: { setMsg: (s: string
         <input value={noticeTitle} onChange={e => setNoticeTitle(e.target.value)} maxLength={120} placeholder="通知标题（最多 120 字）" style={{ width: '100%', boxSizing: 'border-box', padding: 10, borderRadius: 10, border: '1px solid #ffffff20', background: '#080d1c', color: '#fff' }} />
         <textarea value={noticeBody} onChange={e => setNoticeBody(e.target.value)} maxLength={2000} rows={4} placeholder="通知正文（最多 2000 字）" style={{ width: '100%', boxSizing: 'border-box', padding: 10, borderRadius: 10, border: '1px solid #ffffff20', background: '#080d1c', color: '#fff', resize: 'vertical' }} />
         <input value={noticeLink} onChange={e => setNoticeLink(e.target.value)} maxLength={300} placeholder="站内跳转路径，例如 /me/notifications" style={{ width: '100%', boxSizing: 'border-box', padding: 10, borderRadius: 10, border: '1px solid #ffffff20', background: '#080d1c', color: '#fff' }} />
-        <button style={{ ...button, background: '#687cff', opacity: sending ? .6 : 1 }} disabled={sending} onClick={() => void sendNotification()}>{sending ? '发送中…' : '确认发送站内通知'}</button>
+        <button className="pri" style={{ ...button, opacity: sending ? .6 : 1 }} disabled={sending} onClick={() => void sendNotification()}>{sending ? '发送中…' : '确认发送站内通知'}</button>
       </div>}
     </div>
     <div style={panel}>
@@ -219,7 +219,7 @@ export default function AdminNotificationCenter({ setMsg }: { setMsg: (s: string
           ['all', '全部', counts.all],
           ['unread', '未读', counts.unread],
           ['read', '已读', counts.read],
-        ] as const).map(([v, label, count]) => <button key={v} style={{ ...button, background: filter === v ? '#687cff' : '#ffffff0d' }} aria-pressed={filter === v} onClick={() => setFilter(v)}>{label} {count}</button>)}
+        ] as const).map(([v, label, count]) => <button key={v} style={{ ...button, background: filter === v ? '#f6c453' : '#ffffff0d', color: filter === v ? '#4a3716' : undefined }} aria-pressed={filter === v} onClick={() => setFilter(v)}>{label} {count}</button>)}
       </div>
       <div style={{ color: '#8491b1', fontSize: 11, marginTop: 9 }}>最近最多 200 条记录；发送操作只新增站内通知，不修改或删除历史通知。</div>
     </div>

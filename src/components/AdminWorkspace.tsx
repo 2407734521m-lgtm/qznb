@@ -251,6 +251,13 @@ export default function AdminWorkspace({
       : previous);
   }, [activeTab]);
 
+  // 切页后兜底：新内容挂载后再立即归零一次，防止残留滚动把页标题
+  // 顶进 sticky 顶栏下（switchTab 里的 scrollTo 在 React 尚未提交新
+  // 内容时也可能被后续渲染顶回去）。instant 盖掉全局 smooth。
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  }, [activeTab]);
+
   useEffect(() => {
     if (!mobileOpen) return;
     const previousOverflow = document.body.style.overflow;

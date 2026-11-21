@@ -151,7 +151,7 @@ export default function AdminAnalyticsCenter({ setMsg }: { setMsg: (message: str
         <button className="mini" disabled={loading} onClick={() => void load()}>{loading ? '刷新中…' : '刷新数据'}</button>
       </div>
       <div style={{ display: 'flex', gap: 6, marginTop: 12, flexWrap: 'wrap' }}>
-        {[7, 14, 30, 90].map(value => <button key={value} className={'mini' + (days === value ? '' : ' ghost')} onClick={() => setDays(value)}>{value} 天</button>)}
+        {[7, 14, 30, 90].map(value => <button key={value} className={'mini' + (days === value ? '' : ' ghost')} aria-pressed={days === value} onClick={() => setDays(value)}>{value} 天</button>)}
       </div>
       {data && <div style={{ ...muted, marginTop: 8 }}>统计区间：近 {data.days} 天 · 更新于 {new Date(data.generated_at).toLocaleString()}</div>}
       {error && <p style={{ color: '#b42336', fontSize: 12.5, marginBottom: 0 }}>读取失败：{error}</p>}

@@ -1,0 +1,135 @@
+/* Global admin motion layer: animations on EVERY admin page, not just Overview.
+   Loaded last from Admin.tsx, after the polish layer. Three pieces:
+   (a) the page-switch transition is owned by one place only — framer-motion
+   in Admin.tsx (0.32s rise + fade in, 0.12s fade out). The older CSS panel
+   animation from styles-admin-cinematic.css is neutralized here so the two
+   never fight over the same transform on .admin-content.
+   (b) a pure-CSS staggered entrance for every non-overview page: top-level
+   blocks rise in one after another, then their inner cards and rows follow
+   with a softer rise. Overview is excluded on purpose — it already has its
+   own framer-motion stagger from step 6, and stacking a second one on top
+   would only make it slower. The data-tab hook comes from Admin.tsx.
+   (c) press feedback on every navigation control (sidebar, topbar, mobile
+   quickbar, command palette, group toggles, logout): a short scale to .96
+   plus smooth colour transitions, so every tap answers visibly.
+   Visual only: no data, feature, entry, permission or navigation change.
+   Durations follow DESIGN.md §6 (panel transitions 200–320ms, prompt start,
+   smooth settle, no overshoot). Reduced motion turns everything still. */
+
+@keyframes admin-motion-rise {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes admin-motion-rise-soft {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ---- (a) One owner for the panel transition: framer-motion. ---- */
+.admin-shell-v3 .admin-content {
+  animation: none;
+}
+
+/* ---- Page heading re-enters on every tab switch: AdminWorkspace keys
+   it by activeTab, so this short rise replays whenever the page changes. ---- */
+.admin-shell-v3 .admin-page-heading {
+  animation: admin-motion-rise .3s cubic-bezier(.22, 1, .36, 1) both;
+}
+
+/* ---- (b) Staggered entrance, level 1: the page's top-level blocks. ---- */
+.admin-shell-v3 .admin-content[data-tab]:not([data-tab="overview"]) > * {
+  animation: admin-motion-rise .35s cubic-bezier(.22, 1, .36, 1) both;
+}
+
+.admin-shell-v3 .admin-content[data-tab]:not([data-tab="overview"]) > *:nth-child(1) { animation-delay: 0ms; }
+.admin-shell-v3 .admin-content[data-tab]:not([data-tab="overview"]) > *:nth-child(2) { animation-delay: 35ms; }
+.admin-shell-v3 .admin-content[data-tab]:not([data-tab="overview"]) > *:nth-child(3) { animation-delay: 70ms; }
+.admin-shell-v3 .admin-content[data-tab]:not([data-tab="overview"]) > *:nth-child(4) { animation-delay: 105ms; }
+.admin-shell-v3 .admin-content[data-tab]:not([data-tab="overview"]) > *:nth-child(5) { animation-delay: 140ms; }
+.admin-shell-v3 .admin-content[data-tab]:not([data-tab="overview"]) > *:nth-child(6) { animation-delay: 175ms; }
+.admin-shell-v3 .admin-content[data-tab]:not([data-tab="overview"]) > *:nth-child(7) { animation-delay: 210ms; }
+.admin-shell-v3 .admin-content[data-tab]:not([data-tab="overview"]) > *:nth-child(8) { animation-delay: 245ms; }
+.admin-shell-v3 .admin-content[data-tab]:not([data-tab="overview"]) > *:nth-child(n+9) { animation-delay: 245ms; }
+
+/* ---- (b) Staggered entrance, level 2: cards and rows inside each block.
+   Softer rise so it reads as one cascade with the panel, not two. ---- */
+.admin-shell-v3 .admin-content[data-tab]:not([data-tab="overview"]) > * > * {
+  animation: admin-motion-rise-soft .3s cubic-bezier(.22, 1, .36, 1) both;
+}
+
+.admin-shell-v3 .admin-content[data-tab]:not([data-tab="overview"]) > * > *:nth-child(1) { animation-delay: 40ms; }
+.admin-shell-v3 .admin-content[data-tab]:not([data-tab="overview"]) > * > *:nth-child(2) { animation-delay: 70ms; }
+.admin-shell-v3 .admin-content[data-tab]:not([data-tab="overview"]) > * > *:nth-child(3) { animation-delay: 100ms; }
+.admin-shell-v3 .admin-content[data-tab]:not([data-tab="overview"]) > * > *:nth-child(4) { animation-delay: 130ms; }
+.admin-shell-v3 .admin-content[data-tab]:not([data-tab="overview"]) > * > *:nth-child(5) { animation-delay: 160ms; }
+.admin-shell-v3 .admin-content[data-tab]:not([data-tab="overview"]) > * > *:nth-child(6) { animation-delay: 190ms; }
+.admin-shell-v3 .admin-content[data-tab]:not([data-tab="overview"]) > * > *:nth-child(7) { animation-delay: 210ms; }
+.admin-shell-v3 .admin-content[data-tab]:not([data-tab="overview"]) > * > *:nth-child(8) { animation-delay: 210ms; }
+.admin-shell-v3 .admin-content[data-tab]:not([data-tab="overview"]) > * > *:nth-child(n+9) { animation-delay: 210ms; }
+
+/* ---- (c) Press feedback on every navigation control. ---- */
+.admin-shell-v3 button.admin-nav-item:not(:disabled),
+.admin-shell-v3 button.admin-reference-topnav-item:not(:disabled),
+.admin-shell-v3 button.admin-mobile-quick-item:not(:disabled),
+.admin-shell-v3 button.admin-command-result:not(:disabled),
+.admin-shell-v3 button.admin-nav-pin:not(:disabled),
+.admin-shell-v3 button.admin-nav-group-title:not(:disabled),
+.admin-shell-v3 button.admin-console-icon-button:not(:disabled),
+.admin-shell-v3 button.admin-command-trigger:not(:disabled),
+.admin-shell-v3 button.admin-console-logout:not(:disabled),
+.admin-shell-v3 button.admin-sidebar-logout:not(:disabled),
+.admin-shell-v3 button.admin-sidebar-close:not(:disabled) {
+  transition: transform .16s ease, background-color .2s ease, color .2s ease, border-color .2s ease;
+}
+
+.admin-shell-v3 button.admin-nav-item:not(:disabled):active,
+.admin-shell-v3 button.admin-reference-topnav-item:not(:disabled):active,
+.admin-shell-v3 button.admin-mobile-quick-item:not(:disabled):active,
+.admin-shell-v3 button.admin-command-result:not(:disabled):active,
+.admin-shell-v3 button.admin-nav-pin:not(:disabled):active,
+.admin-shell-v3 button.admin-nav-group-title:not(:disabled):active,
+.admin-shell-v3 button.admin-console-icon-button:not(:disabled):active,
+.admin-shell-v3 button.admin-command-trigger:not(:disabled):active,
+.admin-shell-v3 button.admin-console-logout:not(:disabled):active,
+.admin-shell-v3 button.admin-sidebar-logout:not(:disabled):active,
+.admin-shell-v3 button.admin-sidebar-close:not(:disabled):active {
+  transform: scale(.96);
+}
+
+/* ---- Reduced motion: everything new goes still. ---- */
+@media (prefers-reduced-motion: reduce) {
+  .admin-shell-v3 .admin-page-heading,
+  .admin-shell-v3 .admin-content[data-tab]:not([data-tab="overview"]) > *,
+  .admin-shell-v3 .admin-content[data-tab]:not([data-tab="overview"]) > * > * {
+    animation: none !important;
+  }
+
+  .admin-shell-v3 button.admin-nav-item,
+  .admin-shell-v3 button.admin-reference-topnav-item,
+  .admin-shell-v3 button.admin-mobile-quick-item,
+  .admin-shell-v3 button.admin-command-result,
+  .admin-shell-v3 button.admin-nav-pin,
+  .admin-shell-v3 button.admin-nav-group-title,
+  .admin-shell-v3 button.admin-console-icon-button,
+  .admin-shell-v3 button.admin-command-trigger,
+  .admin-shell-v3 button.admin-console-logout,
+  .admin-shell-v3 button.admin-sidebar-logout,
+  .admin-shell-v3 button.admin-sidebar-close {
+    transition: none !important;
+  }
+
+  .admin-shell-v3 button.admin-nav-item:not(:disabled):active,
+  .admin-shell-v3 button.admin-reference-topnav-item:not(:disabled):active,
+  .admin-shell-v3 button.admin-mobile-quick-item:not(:disabled):active,
+  .admin-shell-v3 button.admin-command-result:not(:disabled):active,
+  .admin-shell-v3 button.admin-nav-pin:not(:disabled):active,
+  .admin-shell-v3 button.admin-nav-group-title:not(:disabled):active,
+  .admin-shell-v3 button.admin-console-icon-button:not(:disabled):active,
+  .admin-shell-v3 button.admin-command-trigger:not(:disabled):active,
+  .admin-shell-v3 button.admin-console-logout:not(:disabled):active,
+  .admin-shell-v3 button.admin-sidebar-logout:not(:disabled):active,
+  .admin-shell-v3 button.admin-sidebar-close:not(:disabled):active {
+    transform: none !important;
+  }
+}

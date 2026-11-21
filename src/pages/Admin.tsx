@@ -23,6 +23,7 @@ import '../styles-admin-wallpaper.css'; // 后台壁纸承载与旧深色背景�
 import '../styles-admin-reference-match.css'; // 按用户参考图重做顶部导航与总览结构，最终样式层
 import '../styles-admin-reference-glass.css'; // 总览毛玻璃通透层：只覆盖总览页，必须最后引入
 import '../styles-admin-reference-polish.css'; // 第 6 步收尾打磨：动效与按压反馈层，只覆盖总览页 + 后台小按钮，必须最后引入
+import '../styles-admin-reference-motion.css'; // 全站动效层：切页过渡、全部页面入场 stagger、导航按压反馈，必须最后引入
 import AdminWorkspace from '../components/AdminWorkspace';
 import AdminGuestAccess from '../components/AdminGuestAccess';
 import AdminSystemCenter from '../components/AdminSystemCenter';
@@ -268,11 +269,12 @@ export default function Admin({ verifiedRole }: { verifiedRole: 'admin' | 'super
           <motion.div
             className="admin-content"
             key={tab}
+            data-tab={tab}
             aria-live="polite"
-            initial={reduceMotion ? false : { opacity: 0, y: 8 }}
+            initial={reduceMotion ? false : { opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={reduceMotion ? undefined : { opacity: 0, y: -4 }}
-            transition={reduceMotion ? { duration: 0 } : { duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+            exit={reduceMotion ? undefined : { opacity: 0, y: -4, transition: { duration: 0.12, ease: [0.22, 1, 0.36, 1] } }}
+            transition={reduceMotion ? { duration: 0 } : { duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
           >
           {tab === 'overview' && <Overview setMsg={setMsg} go={switchTab} />}
           {tab === 'analytics' && isSuper && <AdminAnalyticsCenter setMsg={setMsg} />}

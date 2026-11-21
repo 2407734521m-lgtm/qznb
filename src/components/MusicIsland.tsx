@@ -695,7 +695,7 @@ function MusicIsland() {
         >
           <iframe
             ref={frameRef}
-            title="堯音乐空间"
+            title="千栀音乐空间"
             src={MUSIC_URL}
             allow="autoplay; encrypted-media"
             referrerPolicy="strict-origin"
@@ -713,10 +713,10 @@ function MusicIsland() {
                 type="button"
                 className="qz-music-return"
                 onClick={() => navigate('/explore', { replace: true })}
-                aria-label="返回堯网站"
+                aria-label="返回 Class Memory"
               >
                 <span aria-hidden="true">←</span>
-                <span>返回堯</span>
+                <span>返回 Class Memory</span>
               </button>
               {!connected && (
                 <div className="qz-music-connect" role="status">

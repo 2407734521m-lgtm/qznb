@@ -671,7 +671,7 @@ export const MusicIslandView = ({
             <Island
               className="qz-island-call-anchor"
               placement="viewport"
-              label="堯实时活动"
+              label="Class Memory 实时活动"
               keyline="off"
               style={{ top: 'var(--qz-island-anchor-top, max(env(safe-area-inset-top, 0px), 18px))', zIndex: 4001 }}
             />

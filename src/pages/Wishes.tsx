@@ -17,9 +17,14 @@ export default function Wishes() {
   const [editId, setEditId] = useState<number | null>(null);
   const [editText, setEditText] = useState('');
   const [editBusy, setEditBusy] = useState(false);
+  const [postBusy, setPostBusy] = useState(false);
+  const [loadError, setLoadError] = useState('');
 
   async function load() {
-    const { data } = await supabase.from('wishes').select('*').order('created_at', { ascending: false }).limit(100);
+    const { data, error } = await supabase.from('wishes').select('*').order('created_at', { ascending: false }).limit(100);
+    // 查询失败不要显示“还没有愿望”空态，那会误导用户以为墙是空的（审计 FIX-3-3）。
+    if (error) { setLoadError('愿望墙暂时无法加载：' + error.message); setLoading(false); return; }
+    setLoadError('');
     setList(data ?? []);
     const ids = [...new Set((data ?? []).map((x: any) => x.author_id).filter(Boolean))];
     if (ids.length) {
@@ -33,10 +38,13 @@ export default function Wishes() {
   useEffect(() => { load(); }, []);
 
   async function post() {
-    const c = text.trim(); if (!c) return;
-    const { error } = await supabase.from('wishes').insert({ author_id: me, content: c.slice(0, 300) });
-    if (error) setMsg('发布失败：' + error.message);
-    else { setText(''); load(); }
+    const c = text.trim(); if (!c || postBusy) return;
+    setPostBusy(true); setMsg('');
+    try {
+      const { error } = await supabase.from('wishes').insert({ author_id: me, content: c.slice(0, 300) });
+      if (error) setMsg('发布失败：' + error.message);
+      else { setText(''); load(); }
+    } finally { setPostBusy(false); }
   }
   function beginEdit(w: any) {
     setEditId(w.id);
@@ -78,7 +86,7 @@ export default function Wishes() {
       <div className="hero"><h1>愿望墙</h1><p>写 下 共 同 的 愿 望</p></div>
       <div className="card">
         <textarea value={text} onChange={e => setText(e.target.value)} placeholder="我的愿望是…" rows={3} maxLength={300} style={{ width: '100%', marginBottom: 8 }} />
-        <button className="pri" onClick={post}>许愿</button>
+        <button className="pri" disabled={postBusy} onClick={post}>{postBusy ? '发布中…' : '许愿'}</button>
         {msg && <p className="err" style={{ marginTop: 8 }}>{msg}</p>}
       </div>
       <div style={{ columns: 2, columnGap: 10 }}>
@@ -100,7 +108,8 @@ export default function Wishes() {
         ))}
       </div>
       {showSkeleton && <FeedSkeleton count={2} />}
-      {!loading && list.length === 0 && <div className="center"><div className="card">还没有愿望，来许第一个吧</div></div>}
+      {!loading && loadError && <div className="center"><div className="card">{loadError}</div></div>}
+      {!loading && !loadError && list.length === 0 && <div className="center"><div className="card">还没有愿望，来许第一个吧</div></div>}
     </div>
   );
 }

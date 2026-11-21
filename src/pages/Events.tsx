@@ -13,9 +13,13 @@ export default function Events() {
   const showSkeleton = useDelayedLoading(loading);
   const [regs, setRegs] = useState<Record<number, string[]>>({});
   const [names, setNames] = useState<Record<string, string>>({});
+  const [loadError, setLoadError] = useState('');
 
   async function load() {
-    const { data } = await supabase.from('events').select('*').order('event_at', { ascending: true }).limit(30);
+    const { data, error } = await supabase.from('events').select('*').order('event_at', { ascending: true }).limit(30);
+    // 查询失败不要显示“暂无活动”空态，那会误导用户以为没有活动（审计 FIX-3-3）。
+    if (error) { setLoadError('活动暂时无法加载：' + error.message); setLoading(false); return; }
+    setLoadError('');
     setList(data ?? []);
     const { data: r } = await supabase.from('event_regs').select('event_id, profile_id');
     const mp: Record<number, string[]> = {};
@@ -35,7 +39,8 @@ export default function Events() {
   async function toggle(id: number, joined: boolean) {
     if (joined) {
       if (!(await confirmDialog('取消报名？', { confirmText: '确认取消报名' }))) return;
-      await supabase.from('event_regs').delete().eq('event_id', id).eq('profile_id', me);
+      const { error } = await supabase.from('event_regs').delete().eq('event_id', id).eq('profile_id', me);
+      if (error) return alertDialog('取消报名失败：' + error.message);
     } else {
       const { error } = await supabase.from('event_regs').insert({ event_id: id, profile_id: me });
       if (error) return alertDialog('报名失败：' + error.message);
@@ -73,7 +78,8 @@ export default function Events() {
         );
       })}
       {showSkeleton && <FeedSkeleton count={2} />}
-      {!loading && list.length === 0 && <div className="center"><div className="card">暂无活动，敬请期待</div></div>}
+      {!loading && loadError && <div className="center"><div className="card">{loadError}</div></div>}
+      {!loading && !loadError && list.length === 0 && <div className="center"><div className="card">暂无活动，敬请期待</div></div>}
       <p style={{ textAlign: 'center', color: 'var(--mut)', fontSize: 12.5 }}>活动由管理员发布</p>
     </div>
   );

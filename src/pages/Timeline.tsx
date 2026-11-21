@@ -35,6 +35,7 @@ export default function Timeline() {
   const [title, setTitle] = useState(''); const [content, setContent] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [busy, setBusy] = useState(false); const [err, setErr] = useState(''); const [upPct, setUpPct] = useState<number | null>(null);
+  const [loadError, setLoadError] = useState('');
   const [editId, setEditId] = useState<number | null>(null);
   const [editDate, setEditDate] = useState('');
   const [editTitle, setEditTitle] = useState('');
@@ -46,12 +47,15 @@ export default function Timeline() {
   const fref = useRef<HTMLInputElement>(null);
 
   async function load() {
-    const { data } = await supabase.from('timelines').select('*').eq('profile_id', target)
+    const { data, error } = await supabase.from('timelines').select('*').eq('profile_id', target)
       .order('happened_on', { ascending: false }).order('id', { ascending: false });
+    // 查询失败不要显示“还没有记录”空态，那会误导用户以为时间线是空的（审计 FIX-3-3）。
+    if (error) { setLoadError('时间线暂时无法加载：' + error.message); setLoading(false); return; }
+    setLoadError('');
     setRows((data ?? []) as T[]);
     if (!mine) {
       const { data: d } = await supabase.rpc('member_detail', { uid: target });
-      setWho(d?.[0] ? (d[0].display_name ?? d[0].username) : '');
+      setWho(d?.[0] ? (d[0].display_name ?? d[0].username ?? '这位同学') : '这位同学');
     }
     setLoading(false);
   }
@@ -59,6 +63,7 @@ export default function Timeline() {
 
   async function add() {
     if (!title.trim() || !date) return setErr('请填写日期和标题');
+    if (content.length > 2000) return setErr('正文最多 2000 字。');
     setBusy(true); setErr('');
     try {
       let media_url: string | null = null;
@@ -144,7 +149,7 @@ export default function Timeline() {
         {show && <div className="card" style={{ marginTop: 12 }}>
           <label>日期</label><DateTimeField mode="date" value={date} onChange={setDate} />
           <label>标题</label><input value={title} onChange={e => setTitle(e.target.value)} placeholder="如：第一次班级春游" maxLength={80} />
-          <label>文字</label><textarea value={content} onChange={e => setContent(e.target.value)} placeholder="写下当时的心情…" rows={3} />
+          <label>文字</label><textarea value={content} onChange={e => setContent(e.target.value)} placeholder="写下当时的心情…" rows={3} maxLength={2000} />
           <label>照片 / 视频（可选）</label>
           <div className="row" style={{ marginBottom: 10 }}>
             <button className="ghost" onClick={() => fref.current?.click()}>{file ? '已选：' + file.name.slice(0, 18) : '选择文件'}</button>
@@ -157,7 +162,8 @@ export default function Timeline() {
       </>}
       <div className="tl">
         {showSkeleton && <FeedSkeleton count={2} />}
-        {!loading && rows.length === 0 && <p className="mut" style={{ padding: '20px 0' }}>还没有记录，去创造第一条吧</p>}
+        {!loading && loadError && <p className="mut" style={{ padding: '20px 0' }}>{loadError}</p>}
+        {!loading && !loadError && rows.length === 0 && <p className="mut" style={{ padding: '20px 0' }}>还没有记录，去创造第一条吧</p>}
         {years.map(y => (
           <div key={y}>
             <div className="tl-year">{y}</div>

@@ -566,6 +566,11 @@ export default function ParticleFlower() {
 
   const startCamera = useCallback(async (tool: ExperienceTool = 'flower') => {
     if (loading || startGuardRef.current) return;
+    // “进入全屏互动”不只是沉浸布局：尽量调浏览器全屏 API，失败（不支持或
+    // 被拒）就继续用沉浸布局，不报错不拦截（审计 FIX-3-10）。
+    if (!document.fullscreenElement) {
+      try { await document.documentElement.requestFullscreen(); orientationFullscreenRef.current = true; } catch { /* 全屏不可用时继续沉浸布局 */ }
+    }
     experienceToolRef.current = tool;
     setExperienceTool(tool);
     autoDemoRef.current = false; setAutoDemo(false);
@@ -874,11 +879,16 @@ export default function ParticleFlower() {
     return () => window.cancelAnimationFrame(frame);
   }, [layoutOrientation, orientationFallback]);
 
-  const changeOrientation = useCallback((next: LayoutOrientation) => {
+  const changeOrientation = useCallback(async (next: LayoutOrientation) => {
     // Choosing a layout in the settings panel must not enter fullscreen by itself.
     layoutOrientationRef.current = next;
     setLayoutOrientation(next);
     setOrientationFallback(next === 'landscape' && !window.matchMedia('(orientation: landscape)').matches);
+    // “横屏”不只是布局 class：已在全屏时顺手锁方向，锁不住就只用布局横屏（审计 FIX-3-10）。
+    try {
+      if (next === 'landscape') await (screen as any).orientation?.lock?.('landscape');
+      else (screen as any).orientation?.unlock?.();
+    } catch { /* 方向锁不可用时继续用布局横屏 */ }
   }, []);
 
   const applyQualityPreset = useCallback((preset: 'auto' | 'soft' | 'standard' | 'ultra') => {

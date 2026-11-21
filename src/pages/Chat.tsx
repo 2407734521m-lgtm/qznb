@@ -36,6 +36,7 @@ import { createChatForwardAttachmentPlan } from '../lib/chatForwarding';
 import { findNextChatMediaMessageId } from '../lib/chatPlayback';
 import { formatVoiceDuration, getVoiceCancelProgress, MAX_VOICE_RECORDING_SECONDS, resolveVoiceRecordingFormat } from '../lib/chatVoiceRecording';
 import { parseChatDateOnlyLabel } from '../lib/chatDateSeparator';
+import { normalizeStandaloneNumericUnderline } from '../lib/chatMessagePresentation';
 import './Chat.polish.css';
 
 type ChatReaction = { message_id: number; profile_id: string; reaction: string; created_at: string };
@@ -136,9 +137,10 @@ function fileExtLabel(name: string) {
 function MessageContent({ body, onMentionClick, messageId, autoPlayMedia = false, onMediaEnded, onMediaAutoplayBlocked }: { body: string; onMentionClick?: (profileId: string) => void; messageId?: number; autoPlayMedia?: boolean; onMediaEnded?: (messageId: number) => void; onMediaAutoplayBlocked?: (messageId: number) => void }) {
   const bubbleEffect = getChatBubbleEffect(body);
   const contentBody = stripChatBubbleEffect(body);
+  const normalizedContentBody = normalizeStandaloneNumericUnderline(contentBody);
   const renderBody = bubbleEffect === 'invisible-ink' && !contentBody.startsWith('[[')
     ? `||${unwrapRichText(contentBody)}||`
-    : contentBody;
+    : normalizedContentBody;
   const imagePath = contentBody.startsWith('[[im-image:') && contentBody.endsWith(']]') ? contentBody.slice(11, -2) : null;
   const audioPath = contentBody.startsWith('[[im-audio:') && contentBody.endsWith(']]') ? contentBody.slice(11, -2) : null;
   const videoParts = contentBody.startsWith('[[im-video:') && contentBody.endsWith(']]') ? contentBody.slice(11, -2).split('|') : null;

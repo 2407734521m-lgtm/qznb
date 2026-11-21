@@ -4275,11 +4275,10 @@
   text-shadow: 0 1px 6px rgba(0,0,0,.28) !important;
 }
 
-/* 6. 短消息不成圆：给气泡一个最小宽度，单字也保持胶囊形。
-   （“1”下面的下划线查过了：没有任何 CSS 给气泡加下划线，那是消息内容自带
-   的 ++下划线++ 格式，富文本本就该这样渲染，不动。） */
+/* 6. 短消息不成圆：略加宽、保持足够高度，单字也呈横向胶囊。 */
 .im-page .im-bubble {
-  min-width: 56px !important;
+  min-width: 68px !important;
+  min-height: 42px !important;
 }
 
 /* 7. 输入框合成一个胶囊：Aa 和麦克风不再有自己的浅色底，和输入区同一种

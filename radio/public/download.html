@@ -49,6 +49,11 @@
   .gate-card h2 { font-size:17px; margin:0 0 8px; }
   .gate-card p { color:var(--mut); font-size:13px; line-height:1.7; margin:0 0 8px; }
   .gate-card .btn { width:100%; margin-top:8px; }
+  .gate-card.upd-card { position:relative; text-align:left; }
+  .gate-card.upd-card h2 { text-align:center; }
+  .upd-close { position:absolute; top:8px; right:12px; border:0; background:transparent; font-size:22px; line-height:1; color:var(--mut); cursor:pointer; padding:6px; }
+  .upd-versions { font-size:13px; font-weight:700; text-align:center; margin:2px 0 10px; }
+  .upd-notes { text-align:left; background:#f8fafc; border:1px solid var(--line); border-radius:12px; padding:10px 12px; font-size:13px; line-height:1.7; color:var(--ink); white-space:pre-line; max-height:180px; overflow:auto; margin:0 0 4px; }
 
   /* Mobile-first refresh: clean white surface, clearer hierarchy, compact controls. */
   :root {
@@ -170,6 +175,16 @@
     <button class="btn seal" id="gateRegisterBtn" type="button">去网站注册</button>
     <button class="btn" id="gateLoginBtn" type="button">我有账号，去登录</button>
     <button class="btn ghost" id="gateCloseBtn" type="button">稍后再说</button>
+  </div>
+</div>
+<div class="gate-modal" id="updateModal" role="dialog" aria-modal="true" aria-labelledby="updateTitle">
+  <div class="gate-card upd-card">
+    <button class="upd-close" id="updateCloseBtn" type="button" aria-label="关闭">×</button>
+    <h2 id="updateTitle">版本更新</h2>
+    <div class="upd-versions" id="updateVersions"></div>
+    <div class="upd-notes" id="updateNotes"></div>
+    <button class="btn" id="updateGoBtn" type="button">立即更新</button>
+    <button class="btn ghost" id="updateIgnoreBtn" type="button">忽略</button>
   </div>
 </div>
 <div class="wrap">
@@ -1378,8 +1393,68 @@
   $('gateLoginBtn').addEventListener('click', function () { hideSiteGatePopup(); var el = $('siteIdent'); if (el) el.focus(); });
   $('gateCloseBtn').addEventListener('click', hideSiteGatePopup);
 
+  // ---- 站内更新提醒：只在千栀音乐下载 App 内显示，替代原生系统弹窗 ----
+  // App 的 UA 自带 QianzhiMusicDL/<版本名> (<code>)；只有带
+  // MusicDL.downloadUpdate 桥的新版 App 才会弹这张卡，旧版 App 看不到，
+  // 仍走它自己的原生更新框。版本文件允许跨域拉取。
+  var UPDATE_CHECK_URL = 'https://qianzhi.pw/app/musicdl-version.json';
+  var UPDATE_IGNORED_KEY = 'qz_musicdl_update_ignored';
+  function appUpdateCurrent() {
+    var m = String(navigator.userAgent || '').match(/QianzhiMusicDL\/([\d.]+) \((\d+)\)/);
+    if (!m) return null;
+    return { name: m[1], code: parseInt(m[2], 10) || 0 };
+  }
+  function hideUpdateModal() {
+    var el = $('updateModal');
+    if (el) el.classList.remove('open');
+  }
+  function checkAppUpdate() {
+    var current = appUpdateCurrent();
+    if (!current) return;
+    if (typeof window.MusicDL === 'undefined' || typeof window.MusicDL.downloadUpdate !== 'function') return;
+    fetch(UPDATE_CHECK_URL, { cache: 'no-store' }).then(function (res) {
+      if (!res.ok) throw new Error('bad status');
+      return res.json();
+    }).then(function (info) {
+      var latestCode = Number(info && info.versionCode) || 0;
+      if (!latestCode || latestCode <= current.code) return;
+      var apkUrl = String((info && info.apkUrl) || '');
+      if (!/^https:\/\//.test(apkUrl)) return;
+      var forced = !!(info && info.forceUpdate === true);
+      try {
+        if (!forced && window.localStorage.getItem(UPDATE_IGNORED_KEY) === String(latestCode)) return;
+      } catch (e) { /* 存取失败就照常显示 */ }
+      $('updateVersions').textContent = '当前 ' + current.name + ' → ' + (info.versionName || '新版本') + ' · Build ' + latestCode;
+      $('updateNotes').textContent = String(info.notes || '修复了一些问题，体验更流畅了。').trim();
+      $('updateCloseBtn').style.display = forced ? 'none' : '';
+      $('updateIgnoreBtn').style.display = forced ? 'none' : '';
+      var go = $('updateGoBtn');
+      go.disabled = false;
+      go.textContent = '立即更新';
+      go.onclick = function () {
+        go.disabled = true;
+        go.textContent = '正在下载…';
+        try {
+          window.MusicDL.downloadUpdate(apkUrl);
+          hideUpdateModal();
+        } catch (e) {
+          go.disabled = false;
+          go.textContent = '立即更新';
+        }
+      };
+      var ignore = function () {
+        try { window.localStorage.setItem(UPDATE_IGNORED_KEY, String(latestCode)); } catch (e) {}
+        hideUpdateModal();
+      };
+      $('updateIgnoreBtn').onclick = ignore;
+      $('updateCloseBtn').onclick = ignore;
+      $('updateModal').classList.add('open');
+    }).catch(function () { /* 拉不到版本文件就不弹，下次打开再查 */ });
+  }
+
   // 启动：先验本站会话；没登录只显示本站登录，不调任何网易云接口、不显示歌单。
   (function init() {
+    checkAppUpdate();
     var saved = loadSiteSession();
     if (!saved) {
       setLocked(true);

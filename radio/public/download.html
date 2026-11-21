@@ -1315,7 +1315,7 @@
     var result;
     try { result = JSON.parse(payload || '{}'); } catch (e) { return; }
     var item = ncmItems.find(function (entry) { return entry.id === result.id; });
-    if (item) item.status = result.ok ? ('已保存：' + result.outputName) : ('转换失败：' + result.error);
+    if (item) item.status = result.ok ? ('已保存：' + result.outputName + (result.warning ? '（标签提醒：' + result.warning + '）' : '')) : ('转换失败：' + result.error);
     var row = document.querySelector('[data-ncm-row="' + result.id + '"]');
     if (row) {
       var status = row.querySelector('.ncm-item-status');

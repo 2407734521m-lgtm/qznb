@@ -132,6 +132,12 @@ assert.ok(defaultPrivilegesGuard.includes('revoke all on sequences from anon, au
 assert.ok(defaultPrivilegesGuard.includes('revoke execute on functions from anon, authenticated, public'),
   'new public RPCs must require explicit execution grants');
 
+const globalFunctionAclGuard = read('supabase/migrations/20261121124500_revoke_global_public_function_execute.sql');
+assert.ok(globalFunctionAclGuard.includes('alter default privileges for role postgres'),
+  'future postgres-created functions must have hardened global defaults');
+assert.ok(globalFunctionAclGuard.includes('revoke execute on functions from public'),
+  'new postgres functions must not inherit PostgreSQL PUBLIC EXECUTE');
+
 const securityOverviewGuard = read('supabase/migrations/20261117000859_admin_security_overview_null_role_guard.sql');
 assert.ok(securityOverviewGuard.includes("coalesce(public.my_role(), '') <> 'super_admin'"),
   'admin security overview must reject authenticated sessions whose role lookup returns NULL');

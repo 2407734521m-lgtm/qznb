@@ -392,17 +392,20 @@ function Shell() {
     const uid = session?.user.id;
 
     // Presence 上报只是统计信息，失败不能阻断版本检查和更新公告。
+    // 但 public_app_update 要求 member_presence 有 mobile 行：新装首次启动时
+    // 必须等这一行写完再调 RPC，否则本次查不到更新、不弹框（审计 FIX-5-7）。
     if (appInfo && uid) {
       const device = parseDevice(navigator.userAgent || '');
-      // 显式调用 then 触发 Supabase thenable 请求；统计写入失败不影响更新检查。
-      void supabase.from('member_presence').upsert({
-        profile_id: uid,
-        device: device || null,
-        client_platform: 'mobile',
-        app_version_name: appInfo.name,
-        app_version_code: appInfo.code,
-        updated_at: new Date().toISOString(),
-      }, { onConflict: 'profile_id' }).then(() => undefined, () => undefined);
+      try {
+        await supabase.from('member_presence').upsert({
+          profile_id: uid,
+          device: device || null,
+          client_platform: 'mobile',
+          app_version_name: appInfo.name,
+          app_version_code: appInfo.code,
+          updated_at: new Date().toISOString(),
+        }, { onConflict: 'profile_id' });
+      } catch { /* 统计写入失败不影响更新检查 */ }
     }
 
     const [updateResult, announcementResult] = await Promise.all([

@@ -232,7 +232,7 @@ export default function AdminAppCenter({ setMsg }: { setMsg: (s: string) => void
             />
           )}
         </div>
-        <p style={{ ...mut, margin: '8px 0 0' }}>注意：现在装的 1.0 版收不到推送，得靠这个链接/二维码手动装一次 1.1；从 1.1 起就都能在上面推送了。</p>
+        <p style={{ ...mut, margin: '8px 0 0' }}>注意：现在装的 1.0 版收不到推送，得靠这个链接/二维码手动装一次 {saved.app_version_name || '最新版'}；从 1.1 起就都能在上面推送了。</p>
       </div>
 
       <div style={card}>
@@ -290,7 +290,7 @@ export default function AdminAppCenter({ setMsg }: { setMsg: (s: string) => void
           <div>1. 先把新版安装包放好（替换网站里的安装包文件，或拿到新的直链）。</div>
           <div>2. 在「版本推送」里把版本号和版本序号一起改大，序号必须比现在的大。</div>
           <div>3. 学生版和管理版分别使用各自的发布按钮，发布后会生成对应版本记录。</div>
-          <div>4. 想先自己验一遍：把序号临时再多加 1，打开自己的应用（装的得是旧一版）看弹不弹框，验完改回来。</div>
+          <div>4. 想先自己验一遍：把序号临时再多加 1，打开自己的应用（装的得是旧一版）看弹不弹框；发布后立即生效并写入版本历史，序号改不回旧值，只能再发更高序号的版本。</div>
           <div>5. 重要版本可以打开强制更新，或把最低可用序号设成新版序号，老版本就必须更了。</div>
         </div>
       </div>

@@ -9,9 +9,9 @@ const RECOVER_DELAY = 5000;
 const RECOVER_FADE_MS = 900;
 const FRAME_INTERVAL_MS = 30;
 const MAX_PARTICLES = 2200;
-// 遮罩底色不完全 opaque：留 12% 让字形淡淡透出来（看得出是文字、读不出内容，
-// 和 iMessage 隐形墨水一样），擦掉和 5 秒盖回的行为不动。
-const INK_FIELD_ALPHA = 0.88;
+// Use the exact opaque bubble color. A translucent fill makes an inner rectangle
+// visible over the text span, especially on saturated blue outgoing bubbles.
+const INK_FIELD_ALPHA = 1;
 
 type Particle = {
   x: number;
@@ -702,6 +702,8 @@ export default function InvisibleInk({ children }: { children: ReactNode }) {
         userSelect: 'none',
         WebkitUserSelect: 'none',
         cursor: 'pointer',
+        // Reserve room for the instruction so it never overlaps the last line of text.
+        paddingBottom: revealed ? 0 : 15,
       }}
     >
       <span
@@ -727,6 +729,31 @@ export default function InvisibleInk({ children }: { children: ReactNode }) {
           mixBlendMode: 'normal',
         }}
       />
+      {!revealed && (
+        <span
+          className="im-ink-hint"
+          aria-hidden="true"
+          style={{
+            position: 'absolute',
+            zIndex: 2,
+            right: 0,
+            bottom: 1,
+            left: 0,
+            margin: 0,
+            color: 'rgba(255,255,255,.84)',
+            fontSize: 10,
+            fontWeight: 600,
+            lineHeight: '13px',
+            textAlign: 'center',
+            letterSpacing: '.02em',
+            textShadow: '0 1px 5px rgba(0,0,0,.42)',
+            pointerEvents: 'none',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          滑动擦除 · 点按显示
+        </span>
+      )}
     </span>
   );
 }

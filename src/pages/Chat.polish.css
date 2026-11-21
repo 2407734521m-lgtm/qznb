@@ -3666,8 +3666,8 @@
   z-index: 4 !important;
 }
 
-.im-page .im-back,
-.im-page .im-video-call {
+.im-page .im-head .im-back,
+.im-page .im-head .im-video-call {
   position: absolute !important;
   top: calc(env(safe-area-inset-top) + 16px) !important;
   display: grid !important;
@@ -3987,8 +3987,8 @@
     flex-basis: clamp(236px, 31svh, 258px) !important;
     min-height: clamp(236px, 31svh, 258px) !important;
   }
-  .im-page .im-back,
-  .im-page .im-video-call {
+  .im-page .im-head .im-back,
+  .im-page .im-head .im-video-call {
     width: 43px !important;
     min-width: 43px !important;
     height: 43px !important;
@@ -4012,16 +4012,16 @@
   .im-page .im-encryption-meta { margin-top: 12px; }
 }
 @media (prefers-reduced-transparency: reduce) {
-  .im-page .im-back,
-  .im-page .im-video-call,
+  .im-page .im-head .im-back,
+  .im-page .im-head .im-video-call,
   .im-page .im-contact-name-pill,
   .im-page .im-plus,
   .im-page .im-input-wrap {
     -webkit-backdrop-filter: none !important;
     backdrop-filter: none !important;
   }
-  .im-page .im-back,
-  .im-page .im-video-call,
+  .im-page .im-head .im-back,
+  .im-page .im-head .im-video-call,
   .im-page .im-plus { background: rgba(10,24,32,.88) !important; }
   .im-page .im-input-wrap { background: rgba(10,34,40,.92) !important; }
   .im-page .im-bubble.mine { background: #087cff !important; }

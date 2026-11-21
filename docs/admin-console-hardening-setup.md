@@ -20,7 +20,7 @@
 
 1. 在 Supabase Dashboard 的 Auth 设置中核对密码登录、邮箱 OTP、MFA verify 的服务端 rate limits；调整前确认现有站点流量与邮件发送限制。
 2. 启用并检查 Supabase Auth Audit Logs。至少关注登录成功/失败、MFA factor 新增/移除、恢复码生成/验证等事件。若需要告警或长期保留，配置官方支持的日志导出/外部只追加存储；不要假定每条 Auth 事件都带 IP，也不要将 JWT、密码、TOTP 秘钥或恢复码写入业务日志。
-3. 管理员前端本次实现 20 分钟无操作退出，这是浏览器端补充。项目级 Supabase 最大 session 时长/闲置时间设置可能影响所有普通用户，并受套餐限制；确认其作用范围、套餐与全站体验后再决定，先在 staging 验证。
+3. ~~管理员前端本次实现 20 分钟无操作退出，这是浏览器端补充。~~2026-11-21 用户令取消：后台不再因 20 分钟无操作自动退出。项目级 Supabase 最大 session 时长/闲置时间设置可能影响所有普通用户，并受套餐限制；确认其作用范围、套餐与全站体验后再决定，先在 staging 验证。
 4. 每项 `service_role` Edge Function 都要独立检查用户身份、角色和目标资源权限。客户端隐藏页面、Access Cookie、CORS 和 WAF 都不能代替这些服务端检查。
 
 ## GitHub Actions：数据库迁移与发布审批
@@ -32,7 +32,7 @@
 - 管理员专用 Supabase client 启用 experimental Recovery Codes；主站客户端不启用。
 - 登录页允许恢复码触发登录恢复，但恢复码验证后强制重新绑定并验证 TOTP；数据库角色门禁仍只认可 `aal2 + amr.method=totp`。
 - 每个管理员有个人“账户安全”页面；生成/轮换本人恢复码前会重新挑战 TOTP，页面不把明文写入 localStorage/sessionStorage 或审计日志。
-- 后台 20 分钟无操作后退出当前本地管理员会话。
+- ~~后台 20 分钟无操作后退出当前本地管理员会话。~~（2026-11-21 已取消，不再自动退出。）
 - 恢复码生成/轮换及恢复后 TOTP 重绑写入现有管理员操作日志；Auth 认证事件仍需另行启用 Supabase Auth Audit Logs。
 
 本次改动在独立 PR 分支中，尚未合并或部署。先运行 `npm run check:admin-security`、`npm run test:admin-mfa-sql`、`npm run typecheck` 和 `npm run build`，再在 Supabase staging 验证 Auth 服务端实际支持 Recovery Codes API；不要假设 Dashboard 一定存在对应开关。若服务端返回 `*_not_enabled`，先核对当前官方支持状态或向 Supabase 支持渠道确认，不要让管理员依赖此功能。

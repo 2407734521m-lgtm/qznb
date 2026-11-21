@@ -114,22 +114,11 @@ export default function Admin({ verifiedRole }: { verifiedRole: 'admin' | 'super
     let alive = true;
     let lastActivity = Date.now();
     let inFlight = false;
-    let signingOutForIdle = false;
     const markActivity = () => { lastActivity = Date.now(); };
-    const expireIdleSession = async () => {
-      if (!alive || signingOutForIdle) return;
-      signingOutForIdle = true;
-      try { sessionStorage.setItem('qz_admin_idle_logout', '1'); } catch { /* storage may be unavailable */ }
-      try { await supabase.auth.signOut({ scope: 'local' }); }
-      catch { /* reload still clears the local app state and presents the login screen */ }
-      finally { if (alive) window.location.reload(); }
-    };
+    // 2026-11-21 用户令取消：后台不再因 20 分钟无操作自动退出。
+    // 只保留在线心跳；超过 5 分钟无操作时暂停上报在线状态，不登出。
     const heartbeat = async () => {
-      if (!alive || signingOutForIdle) return;
-      if (Date.now() - lastActivity >= 20 * 60 * 1000) {
-        await expireIdleSession();
-        return;
-      }
+      if (!alive) return;
       if (inFlight || document.visibilityState !== 'visible' || Date.now() - lastActivity > 5 * 60 * 1000) return;
       inFlight = true;
       try {
@@ -142,7 +131,6 @@ export default function Admin({ verifiedRole }: { verifiedRole: 'admin' | 'super
     };
     const onVisibility = () => {
       if (document.visibilityState !== 'visible') return;
-      if (Date.now() - lastActivity >= 20 * 60 * 1000) { void expireIdleSession(); return; }
       markActivity();
       void heartbeat();
     };

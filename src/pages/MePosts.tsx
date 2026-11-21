@@ -8,7 +8,7 @@ import SwipeToDelete, { showUndoToast } from '../components/SwipeToDelete';
 import { confirmDialog, alertDialog } from '../lib/dialog';
 import { useSignedUrls } from '../lib/media';
 import { FeedSkeleton, useDelayedLoading } from '../components/fx/Skeleton';
-import BlurImg from '../components/fx/BlurImg';
+import PostMedia from '../components/PostMedia';
 
 /** 把条目插回原位（撤销用），下标夹在合法范围内。 */
 function insertAt<T>(list: T[], item: T, index: number): T[] {
@@ -108,7 +108,7 @@ export default function MePosts() {
             <SwipeToDelete onSwipeDelete={() => swipeDeletePost(p, index)}>
               <div className="card">
                 <div style={{ fontSize: 13.5, lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>{p.content}</div>
-                {p.image_url && imageUrls[p.image_url] && <BlurImg src={imageUrls[p.image_url]} alt="" style={{ width: '100%', borderRadius: 10, marginTop: 8 }} />}
+                {p.image_url && imageUrls[p.image_url] && <PostMedia url={imageUrls[p.image_url]} style={{ width: '100%', borderRadius: 10, marginTop: 8 }} />}
                 <div className="row" style={{ justifyContent: 'space-between', marginTop: 8 }}>
                   <span style={{ fontSize: 11.5, color: 'var(--mut)' }}><span style={{ marginRight: 6, padding: '1px 6px', borderRadius: 999, background: '#eef2ff', color: '#4c5ec2' }}>{p.section === 'daily' ? '日常' : '动态'}</span>{(p.created_at || '').slice(0, 16).replace('T', ' ')}</span>
                   <div className="row" style={{ gap: 6 }}>

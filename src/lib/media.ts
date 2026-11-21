@@ -308,6 +308,8 @@ export async function downloadMediaWithProgress(
 
 /** 把图片在前端压到合适尺寸再上传（省流量、省空间）。 */
 export function downscaleImage(file: File, maxDim = 1280, quality = 0.82): Promise<File> {
+  // 动图（GIF）和视频不要走 canvas 压图：canvas 转 JPEG 会把动图压成静帧、视频压坏，原样返回。
+  if (file.type === 'image/gif' || file.type.startsWith('video/')) return Promise.resolve(file);
   return new Promise((resolve) => {
     const url = URL.createObjectURL(file);
     const img = new Image();

@@ -466,7 +466,7 @@ export default function AdminWorkspace({
         </header>
 
         <main className="admin-workspace-content">
-          <div className={['admin-page-heading', activeTab === 'overview' ? 'is-dashboard-heading' : ''].filter(Boolean).join(' ')}>
+          <div key={activeTab} className={['admin-page-heading', activeTab === 'overview' ? 'is-dashboard-heading' : ''].filter(Boolean).join(' ')}>
             <div className="admin-page-heading-copy">
               <p className="admin-page-greeting">欢迎回来，管理员 · {new Intl.DateTimeFormat('zh-CN', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' }).format(new Date())}</p>
               <h1>{current?.[1] ?? '工作台'}</h1>

@@ -11,7 +11,7 @@ import { RowSkeleton, useDelayedLoading } from '../components/fx/Skeleton';
 const ROWS: [string, string][] = [
   ['show_avatar', '个人照片'], ['show_title', '主页称号'], ['show_name', '名字'], ['show_age', '年龄'],
   ['show_personality', '性格'], ['show_signature', '个性签名'], ['show_bio', '个人简介'],
-  ['show_hobbies', '兴趣爱好'], ['show_contact', '联系方式'], ['show_social', '社交平台'],
+  ['show_hobbies', '兴趣爱好'], ['show_game_id', '游戏 ID'], ['show_contact', '联系方式'], ['show_social', '社交平台'],
 ];
 const ALL_FLAGS = [...ROWS.map(([f]) => f), 'show_game_id', 'hide_love_wall_name'];
 

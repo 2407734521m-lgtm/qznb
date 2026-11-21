@@ -221,7 +221,12 @@ export default function PostList({ section, searchQuery = '', embedded = false, 
     let postQuery = supabase.from('posts').select('*').eq('section', section).is('deleted_at', null)
       .order('created_at', { ascending: false }).range(offset, offset + PAGE_SIZE - 1);
     if (searchQuery.trim()) postQuery = postQuery.ilike('content', `%${searchQuery.trim()}%`);
-    const { data: ps } = await postQuery;
+    const { data: ps, error: loadError } = await postQuery;
+    if (loadError) {
+      // 主查询失败不要静默显示“这里还没有动态”空态，要明确告诉用户加载失败。
+      toast.error('动态加载失败，请稍后重试');
+      return;
+    }
     const list = ps ?? [];
     if (append) setPosts(current => [...current, ...list]); else setPosts(list);
     setHasMore(list.length === PAGE_SIZE);
@@ -362,9 +367,11 @@ export default function PostList({ section, searchQuery = '', embedded = false, 
 
   async function toggleLike(p: Post) {
     if (liked[p.id]) {
-      await supabase.from('post_likes').delete().eq('post_id', p.id).eq('profile_id', me);
+      const { error } = await supabase.from('post_likes').delete().eq('post_id', p.id).eq('profile_id', me);
+      if (error) { toast.error('取消点赞失败，请稍后重试'); return; }
     } else {
-      await supabase.from('post_likes').insert({ post_id: p.id, profile_id: me });
+      const { error } = await supabase.from('post_likes').insert({ post_id: p.id, profile_id: me });
+      if (error) { toast.error('点赞失败，请稍后重试'); return; }
     }
     load();
   }
@@ -628,7 +635,7 @@ export default function PostList({ section, searchQuery = '', embedded = false, 
         <div className="feed-filters" role="group" aria-label="动态筛选">
           <button type="button" className={feedScope === 'all' ? 'on' : ''} onClick={() => setFeedScope('all')}>全部动态</button>
           <button type="button" className={feedScope === 'friends' ? 'on' : ''} onClick={() => setFeedScope('friends')}>好友动态</button>
-          {searchQuery.trim() && <span className="feed-search-note">搜索：{searchQuery}</span>}
+          {searchQuery.trim() && <span className="feed-search-note">搜索：{searchQuery}<button type="button" onClick={() => nav('/feed', { replace: true })}>清除搜索</button></span>}
         </div>
       </> : <>
         <div className="hero">

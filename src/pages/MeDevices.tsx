@@ -1,5 +1,4 @@
 import { useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../auth';
 import { confirmDialog } from '../lib/dialog';
@@ -30,7 +29,6 @@ function getBrowserLabel(ua: string) {
 type Notice = { kind: 'success' | 'error'; text: string };
 
 export default function MeDevices() {
-  const nav = useNavigate();
   const { session } = useAuth();
   const [busyAction, setBusyAction] = useState<'others' | 'all' | null>(null);
   const [notice, setNotice] = useState<Notice | null>(null);
@@ -80,7 +78,7 @@ export default function MeDevices() {
     try {
       const { error } = await supabase.auth.signOut({ scope: 'global' });
       if (error) throw error;
-      nav('/login', { replace: true });
+      // 登录态变化后 Shell 会自动渲染登录页，不需要再跳不存在的 /login 路由。
     } catch (error) {
       setNotice({
         kind: 'error',

@@ -58,6 +58,7 @@ export default function TagInput({ value, onChange, placeholder, maxTags = 10, m
         }}
         onBlur={() => commit(draft)}
       />
+      {tags.length >= maxTags && <span style={{ fontSize: 12, opacity: .65 }}>已达到上限（{maxTags} 个），删掉一个才能再加</span>}
     </div>
   );
 }

@@ -27,7 +27,7 @@ const THEMES = [['aurora', '极光', '#7c9cff', '#c27cff'], ['sunset', '晚霞',
   ['forest', '森林', '#4ade80', '#14b8a6'], ['mono', '黑白', '#e8e8e8', '#777777'],
   ['stars', '星空', '#818cf8', '#38bdf8'], ['ocean', '海洋', '#22d3ee', '#3b82f6']];
 const LAYOUTS = [['left', '照片在左'], ['right', '照片在右'], ['center', '居中']];
-const PRIV_ROWS: [string, string][] = [['show_avatar', '个人照片'], ...ALL_FIELDS.map(([, label, flag]) => [flag, label] as [string, string]), ['show_title', '主页称号']];
+const PRIV_ROWS: [string, string][] = [['show_avatar', '个人照片'], ...ALL_FIELDS.map(([, label, flag]) => [flag, label] as [string, string]), ['show_game_id', '游戏 ID'], ['show_title', '主页称号']];
 
 // 通用折叠栏
 // 折叠栏展开/收起状态持久化：记住，下次打开保持上次的样子
@@ -133,8 +133,8 @@ export default function MyProfile() {
       });
   }, [uid]);
   async function logout() {
-    if (!(await confirmDialog('确定退出登录吗？退出后需要重新登录才能进入。', { danger: true, confirmText: '退出登录' }))) return;
-    await supabase.auth.signOut();
+    if (!(await confirmDialog('只退出当前设备，其他设备会继续保持登录。确定退出吗？', { danger: true, confirmText: '退出当前设备' }))) return;
+    await supabase.auth.signOut({ scope: 'local' });
   }
 
   useEffect(() => { (async () => {
@@ -245,7 +245,7 @@ export default function MyProfile() {
   }
   function closeCrop() { if (cropSrc) URL.revokeObjectURL(cropSrc); setCropSrc(null); }
 
-  // 自我介绍视频：选文件 → 弹窗提示 → 确认上传 → 直接显示（无需审核）
+  // 自我介绍视频：选文件 → 弹窗提示 → 确认上传 → 进入审核，通过后他人可见
   function pickVideo(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
     e.target.value = '';
@@ -293,12 +293,13 @@ export default function MyProfile() {
     try {
       const { error } = await supabase.auth.registerPasskey();
       if (error) throw error;
-      setMsg('通行密钥已注册，下次登录可用指纹 / 面容 ID 一键登录');
+      setMsg('通行密钥已注册（当前版本登录页暂未提供通行密钥登录入口，入口上线后可用指纹 / 面容 ID 一键登录）');
       loadKeys();
     } catch (x) { setMsg('注册失败：' + (x as Error).message); }
   }
 
   async function delKey(id: string) {
+    if (!(await confirmDialog('确定删除这个通行密钥吗？删除后需要重新注册才能再用。', { danger: true, confirmText: '删除' }))) return;
     const { error } = await supabase.auth.passkey.delete({ passkeyId: id });
     setMsg(error ? '删除失败：' + error.message : '通行密钥已删除');
     loadKeys();

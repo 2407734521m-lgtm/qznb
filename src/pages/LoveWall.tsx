@@ -592,7 +592,7 @@ export default function LoveWall() {
           </div>
           <div style={{ margin: '6px 0 12px', fontSize: 12, color: '#606673', lineHeight: 1.6 }}>开关默认按个人中心的隐私设置（表白墙隐藏姓名），每次发帖都能单独改；只影响新帖子。</div>
           {formErr && <p role="status" style={{ color: '#b3261e', fontSize: 12, lineHeight: 1.6 }}>{formErr}</p>}
-          <button onClick={publish} disabled={busy} style={{ ...primary, width: '100%' }}>{busy ? '提交中…' : '提交审核'}</button>
+          <button onClick={publish} disabled={busy} style={{ ...primary, width: '100%' }}>{busy ? '提交中…' : '发布'}</button>
         </section>
       </div>
     )}

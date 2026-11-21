@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { trustedLoginAvailable } from '../lib/trustedLogin';
 import { useAuth } from '../auth';
@@ -8,7 +7,6 @@ import { confirmDialog } from '../lib/dialog';
 
 /** 账号安全：改密码 / 退出登录 */
 export default function MeAccount() {
-  const nav = useNavigate();
   const { session } = useAuth();
   const [pw, setPw] = useState('');
   const [pw2, setPw2] = useState('');
@@ -47,7 +45,7 @@ export default function MeAccount() {
         setMsg('退出失败：' + error.message);
         return;
       }
-      nav('/login', { replace: true });
+      // 登录态变化后 Shell 会自动渲染登录页，不需要再跳不存在的 /login 路由。
     } catch (error) {
       setMsg('退出失败：' + (error instanceof Error ? error.message : '网络异常，请重试'));
     } finally {

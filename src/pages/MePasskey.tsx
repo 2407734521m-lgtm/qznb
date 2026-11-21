@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import SettingsShell from '../components/SettingsShell';
+import { confirmDialog } from '../lib/dialog';
 import { RowSkeleton, useDelayedLoading } from '../components/fx/Skeleton';
 
 type PasskeyItem = { id: string; friendly_name?: string | null; created_at?: string };
@@ -26,12 +27,13 @@ export default function MePasskey() {
     try {
       const { error } = await supabase.auth.registerPasskey();
       if (error) throw error;
-      setMsg('通行密钥已注册，下次登录可用指纹 / 面容 ID 一键登录');
+      setMsg('通行密钥已注册（当前版本登录页暂未提供通行密钥登录入口，入口上线后可用指纹 / 面容 ID 一键登录）');
       void loadKeys();
     } catch (x) { setMsg('注册失败：' + (x as Error).message); }
   }
 
   async function delKey(id: string) {
+    if (!(await confirmDialog('确定删除这个通行密钥吗？删除后需要重新注册才能再用。', { danger: true, confirmText: '删除' }))) return;
     const { error } = await supabase.auth.passkey.delete({ passkeyId: id });
     setMsg(error ? '删除失败：' + error.message : '通行密钥已删除');
     void loadKeys();
@@ -39,7 +41,7 @@ export default function MePasskey() {
 
   return (
     <SettingsShell title="通行密钥">
-      <p>注册后，下次登录可用指纹 / 面容 ID 一键登录，不用输密码。</p>
+      <p>注册后，通行密钥登录入口上线时可用指纹 / 面容 ID 一键登录，不用输密码。</p>
       <div className="qz-settings-choice">
         <button type="button" onClick={() => void regKey()}>注册通行密钥</button>
       </div>

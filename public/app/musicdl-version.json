@@ -1,6 +1,7 @@
 {
-  "versionName": "1.2.1",
-  "versionCode": 4,
+  "versionName": "1.2.2",
+  "versionCode": 5,
   "apkUrl": "https://qianzhi.pw/app/qianzhi-musicdl.apk",
-  "notes": "新版本 1.2.1：\n· 修好 NCM 扫描点不动：1.2 里点“扫描手机 NCM 文件”只报错、打不开文件夹选择器，这次修好了\n点「立即更新」下载安装，覆盖旧版。"
+  "forceUpdate": false,
+  "notes": "新版本 1.2.2：\n· 更新提醒换成站内样式：以后新版提醒直接在下载页里显示，不再弹系统灰框\n· 包含 1.2.1 的修复：NCM 扫描点不动已修好\n点「立即更新」下载安装，覆盖旧版。"
 }

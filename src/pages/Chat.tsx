@@ -3106,7 +3106,7 @@ export default function Chat() {
               composerSelRef.current = sel;
             }}
             onFocus={() => setInputFocused(true)} onBlur={() => setInputFocused(false)}
-            placeholder={recording ? '正在录音…' : voiceDraft ? '语音已录好，可试听后发送' : uploading ? '正在发送媒体…' : '私信'} disabled={recording || Boolean(voiceDraft) || uploading} maxLength={2000} autoComplete="off" aria-label="输入消息"></textarea>
+            placeholder={recording ? '正在录音…' : voiceDraft ? '语音已录好，可试听后发送' : uploading ? '正在发送媒体…' : 'iMessage 信息'} disabled={recording || Boolean(voiceDraft) || uploading} maxLength={2000} autoComplete="off" aria-label="输入消息"></textarea>
           {!text.trim() && !voiceDraft && <button
             type="button"
             className={'im-mic' + (recording ? ' recording' : '') + (recordCancelProgress >= 1 ? ' cancel-armed' : '')}

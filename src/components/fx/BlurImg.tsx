@@ -6,8 +6,10 @@ import './fx.css';
  * 加载完成后模糊程度和透明度一起回到正常，700ms cubic-bezier(0.16, 1, 0.3, 1)。
  * 已缓存的图片也能正确入场（ref 里检查 complete）。
  */
-export default function BlurImg({ src, alt = '', className = '', style, loading = 'lazy', draggable, onError }: {
+export default function BlurImg({ src, srcSet, sizes, alt = '', className = '', style, loading = 'lazy', draggable, onError }: {
   src: string;
+  srcSet?: string;
+  sizes?: string;
   alt?: string;
   className?: string;
   style?: React.CSSProperties;
@@ -23,6 +25,8 @@ export default function BlurImg({ src, alt = '', className = '', style, loading 
     <img
       ref={ref}
       src={src}
+      srcSet={srcSet}
+      sizes={sizes}
       alt={alt}
       className={`${className} fx-blur-in${loaded ? ' fx-in' : ''}`}
       style={style}

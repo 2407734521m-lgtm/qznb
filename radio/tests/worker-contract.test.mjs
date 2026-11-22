@@ -218,6 +218,57 @@ test('download log forwards the verified site-user token and ignores client-supp
   }
 });
 
+test('app click log forwards the verified site-user token to log_app_click', async () => {
+  const originalFetch = globalThis.fetch;
+  const calls = [];
+  globalThis.fetch = async (input, init = {}) => {
+    const url = new URL(typeof input === 'string' ? input : input.url);
+    calls.push({ url, init });
+    if (url.pathname === '/auth/v1/user') {
+      return new Response(JSON.stringify({ id: '11111111-1111-4111-8111-111111111111', email: 'member@example.test' }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      });
+    }
+    if (url.pathname === '/rest/v1/rpc/log_app_click') {
+      return new Response('7', { status: 200, headers: { 'content-type': 'application/json' } });
+    }
+    throw new Error('Unexpected upstream request: ' + url.pathname);
+  };
+
+  try {
+    const response = await request('/api/dl/log-app-click', {
+      method: 'POST',
+      headers: {
+        authorization: 'Bearer verified-site-token',
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        p_app: 'musicdl',
+        p_event: 'update_click',
+        p_source: 'update_dialog',
+        p_app_version_name: '1.2.2',
+        p_app_version_code: 5,
+        p_client_platform: 'musicdl',
+        p_device_label: 'Android',
+        p_user_agent: 'test-agent',
+      }),
+    });
+
+    assert.equal(response.status, 200);
+    assert.equal(await response.text(), '7');
+    assert.equal(calls.length, 2);
+    assert.equal(calls[1].url.pathname, '/rest/v1/rpc/log_app_click');
+    assert.equal(calls[1].init.headers.Authorization, 'Bearer verified-site-token');
+    const rpc = JSON.parse(calls[1].init.body);
+    assert.equal(rpc.p_app, 'musicdl');
+    assert.equal(rpc.p_event, 'update_click');
+    assert.equal('p_site_user_id' in rpc, false);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test('unknown API routes return a JSON 404 with the requested path', async () => {
   const response = await request('/api/__unknown_contract_test__');
   assert.equal(response.status, 404);

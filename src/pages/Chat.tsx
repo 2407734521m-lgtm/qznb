@@ -432,7 +432,6 @@ export default function Chat() {
   const [showStickers, setShowStickers] = useState(false);
   const [showStickerEmojis, setShowStickerEmojis] = useState(false);
   const [chatBackground, setChatBackground] = useState('default');
-  const [customWallpaperTone, setCustomWallpaperTone] = useState<'light' | 'dark'>('light');
   const [backgroundSaving, setBackgroundSaving] = useState(false);
   const [typingMembers, setTypingMembers] = useState<Record<string, string>>({});
   const typingTimersRef = useRef<Map<string, number>>(new Map());
@@ -2416,51 +2415,11 @@ export default function Chat() {
         night: 'radial-gradient(ellipse at 50% -6%,rgba(64,156,255,.5),transparent 46%),radial-gradient(ellipse at 88% 34%,rgba(38,190,190,.22),transparent 40%),linear-gradient(180deg,#0a2a4a 0%,#06182e 55%,#030a19 100%)',
       } as Record<string, string>)[chatBackground] ?? '#ffffff';
 
-  // 壁纸深浅：浅色预设（清透白/晴空/薰衣草/薄荷/晚霞）用深色字 + 浅色玻璃输入框；
-  // 夜海与自定义照片走深色，名字/输入框用白字 + 深色玻璃（#767 的做法）。
-  useEffect(() => {
-    if (!backgroundPath || !wallpaperUrl) {
-      setCustomWallpaperTone('light');
-      return;
-    }
-    let active = true;
-    const image = new Image();
-    image.crossOrigin = 'anonymous';
-    image.onload = () => {
-      if (!active) return;
-      try {
-        const canvas = document.createElement('canvas');
-        canvas.width = 24;
-        canvas.height = 24;
-        const context = canvas.getContext('2d', { willReadFrequently: true });
-        if (!context) throw new Error('Canvas 2D context unavailable');
-        context.drawImage(image, 0, 0, canvas.width, canvas.height);
-        const pixels = context.getImageData(0, 0, canvas.width, canvas.height).data;
-        let total = 0;
-        let samples = 0;
-        for (let index = 0; index < pixels.length; index += 4) {
-          if (pixels[index + 3] < 32) continue;
-          total += pixels[index] * 0.2126 + pixels[index + 1] * 0.7152 + pixels[index + 2] * 0.0722;
-          samples += 1;
-        }
-        setCustomWallpaperTone(samples > 0 && total / samples >= 150 ? 'light' : 'dark');
-      } catch {
-        // If the image server blocks canvas sampling, prefer the light controls
-        // used by the default chat canvas instead of rendering white-on-white.
-        setCustomWallpaperTone('light');
-      }
-    };
-    image.onerror = () => { if (active) setCustomWallpaperTone('light'); };
-    image.src = wallpaperUrl;
-    return () => {
-      active = false;
-      image.onload = null;
-      image.onerror = null;
-    };
-  }, [backgroundPath, wallpaperUrl]);
-  const wallpaperTone = backgroundPath
-    ? customWallpaperTone
-    : (['default', 'sky', 'lavender', 'mint', 'sunset'].includes(chatBackground) ? 'light' : 'dark');
+  // The current chat canvas is white for every preset except the explicit night theme.
+  // Keep the palette tied to the selected wallpaper mode instead of sampling a
+  // signed image URL (CORS failures and stale image loads previously selected
+  // white text over the white canvas).
+  const wallpaperTone = chatBackground === 'night' ? 'dark' : 'light';
 
   // Paint the active conversation wallpaper on the full-screen shell as well as
   // the chat surface, so safe-area and viewport-height differences never expose
@@ -2543,6 +2502,56 @@ export default function Chat() {
         .im-retry-dot{width:18px;height:18px;border-radius:50%;background:#e5484d;color:#fff;display:grid;place-items:center;font-size:12px;line-height:1;flex:none}
         @media(min-width:700px){.im-page{height:var(--im-viewport-height,100dvh);min-height:0}.im-feed{padding:24px 28px}.im-composer{padding:14px 20px}}
         @media(max-width:600px){.im-head{gap:10px}.im-avatar{width:40px;height:40px}.im-back,.im-icon{min-width:40px;height:40px}.im-feed{padding:14px 12px 18px}.im-bubble{max-width:84%;font-size:15px}.im-composer{gap:8px}.im-plus{width:40px;height:40px}}\n        @media(prefers-reduced-motion:reduce){.im-row{animation:none}.im-row-out{animation:none}.im-vrow-fresh{animation:none}.im-row-vanishing{transition:none}}
+        /* Final mobile visual contract: this style is colocated with the page so
+           it wins over legacy stylesheet imports and the component's old defaults. */
+        .im-page[data-im-tone="light"] .im-head,
+        .im-page[data-im-tone="light"] .im-head .im-contact-stack,
+        .im-page[data-im-tone="light"] .im-head .im-contact-name-pill,
+        .im-page[data-im-tone="light"] .im-head .im-encryption-meta,
+        .im-page[data-im-tone="light"] .im-head .im-encryption-status {
+          color:#26344a!important;background:transparent!important;background-color:transparent!important;
+          background-image:none!important;border:0!important;border-radius:0!important;box-shadow:none!important;
+          -webkit-backdrop-filter:none!important;backdrop-filter:none!important;text-shadow:none!important;
+        }
+        .im-page[data-im-tone="light"] .im-head .im-contact-name-pill .im-title,
+        .im-page[data-im-tone="light"] .im-head .im-encryption-title,
+        .im-page[data-im-tone="light"] .im-head .im-encryption-status,
+        .im-page[data-im-tone="light"] .im-head .im-contact-chevron {color:#26344a!important;text-shadow:none!important}
+        .im-page[data-im-tone="light"] .im-head .im-encryption-status {color:#697586!important}
+        .im-page[data-im-tone="light"] .im-head .im-back,
+        .im-page[data-im-tone="light"] .im-head .im-video-call {color:#586575!important;background:transparent!important;border:0!important;box-shadow:none!important}
+        .im-page[data-im-tone="light"] .im-composer {
+          background:transparent!important;background-color:transparent!important;border:0!important;box-shadow:none!important;
+          -webkit-backdrop-filter:none!important;backdrop-filter:none!important;padding-top:8px!important;
+        }
+        .im-page[data-im-tone="light"] .im-input-wrap,
+        .im-page[data-im-tone="light"] .im-input-wrap:focus-within {
+          background:#eef1f4!important;background-color:#eef1f4!important;border:1px solid rgba(55,68,82,.12)!important;
+          border-radius:999px!important;box-shadow:none!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;
+        }
+        .im-page[data-im-tone="light"] .im-input-wrap > textarea.im-input,
+        .im-page[data-im-tone="light"] .im-input-wrap > textarea.im-input:focus,
+        .im-page[data-im-tone="light"] .im-input-wrap > textarea.im-input:focus-visible {
+          color:#263342!important;background:transparent!important;background-color:transparent!important;
+          border:0!important;box-shadow:none!important;outline:0!important;
+        }
+        .im-page[data-im-tone="light"] .im-input-wrap > textarea.im-input::placeholder {color:#788391!important;opacity:1!important}
+        .im-page[data-im-tone="light"] .im-input-wrap > .im-format-btn,
+        .im-page[data-im-tone="light"] .im-input-wrap > .im-mic {
+          color:#586575!important;background:transparent!important;background-color:transparent!important;
+          border:0!important;box-shadow:none!important;
+        }
+        .im-page[data-im-tone="light"] .im-composer > .im-plus {
+          color:#586575!important;background:#eef1f4!important;background-color:#eef1f4!important;
+          border:1px solid rgba(55,68,82,.12)!important;box-shadow:none!important;
+          -webkit-backdrop-filter:none!important;backdrop-filter:none!important;
+        }
+        .im-page .im-bubble,
+        .im-page .im-bubble.mine,
+        .im-page .im-bubble.theirs {box-shadow:none!important;filter:none!important;-webkit-filter:none!important}
+        .im-page .im-row {filter:none!important;-webkit-filter:none!important}
+        .im-page .im-bubble::before {filter:none!important;box-shadow:none!important}
+
       `}</style>
       <header className="im-head">
         <button className="im-back" aria-label="返回会话列表" onClick={() => goBackOr(nav, '/friends')}>

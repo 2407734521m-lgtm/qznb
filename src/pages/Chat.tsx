@@ -2551,6 +2551,34 @@ export default function Chat() {
         .im-page .im-bubble.theirs {box-shadow:none!important;filter:none!important;-webkit-filter:none!important}
         .im-page .im-row {filter:none!important;-webkit-filter:none!important}
         .im-page .im-bubble::before {filter:none!important;box-shadow:none!important}
+        /* The contact control is one transparent button containing the real avatar,
+           name and status. Only the avatar image should paint pixels in its avatar slot. */
+        .im-page .im-head .im-contact-stack,
+        .im-page .im-head .im-back,
+        .im-page .im-head .im-video-call {
+          appearance:none!important;-webkit-appearance:none!important;
+          background:transparent!important;background-color:transparent!important;background-image:none!important;
+          border:0!important;border-radius:0!important;box-shadow:none!important;filter:none!important;
+          -webkit-backdrop-filter:none!important;backdrop-filter:none!important;
+        }
+        .im-page .im-head .im-contact-stack .im-avatar {
+          display:grid!important;place-items:center!important;
+          background:transparent!important;background-color:transparent!important;background-image:none!important;
+          border:0!important;border-radius:50%!important;outline:0!important;box-shadow:none!important;filter:none!important;
+          overflow:hidden!important;
+        }
+        .im-page .im-head .im-contact-stack .im-avatar img {
+          display:block!important;width:100%!important;height:100%!important;
+          object-fit:cover!important;border:0!important;border-radius:inherit!important;
+          background:transparent!important;box-shadow:none!important;filter:none!important;
+        }
+        .im-page .im-head .im-contact-name-pill,
+        .im-page .im-head .im-encryption-meta,
+        .im-page .im-head .im-encryption-status {
+          background:transparent!important;background-color:transparent!important;background-image:none!important;
+          border:0!important;border-radius:0!important;box-shadow:none!important;
+          -webkit-backdrop-filter:none!important;backdrop-filter:none!important;
+        }
 
       `}</style>
       <header className="im-head">

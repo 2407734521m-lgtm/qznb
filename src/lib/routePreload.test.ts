@@ -18,7 +18,8 @@ describe('route preload matching', () => {
   it('does not match sub-pages that live in a different chunk', () => {
     expect(match('/me/settings')).toBeUndefined();
     expect(match('/me/account')).toBeUndefined();
-    expect(match('/love-wall')).toBeUndefined();
+    // LoveWall is now intentionally present in the route-preload table.
+    expect(match('/love-wall')?.key).toBe('love-wall');
     expect(match('/')).toBeUndefined();
     expect(match('/chat')).toBeUndefined();
   });

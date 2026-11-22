@@ -41,6 +41,29 @@ import './Chat.polish.css';
 
 type ChatReaction = { message_id: number; profile_id: string; reaction: string; created_at: string };
 type ChatPeer = { id: string; username: string; display_name: string | null; avatar_path: string | null };
+
+function areChatMessagesUnchanged(previous: ChatMessage[], next: ChatMessage[]): boolean {
+  if (previous === next) return true;
+  if (previous.length !== next.length) return false;
+  for (let index = 0; index < previous.length; index += 1) {
+    const oldRow = previous[index] as unknown as Record<string, unknown>;
+    const newRow = next[index] as unknown as Record<string, unknown>;
+    const oldKeys = Object.keys(oldRow);
+    const newKeys = Object.keys(newRow);
+    if (oldKeys.length !== newKeys.length) return false;
+    for (const key of newKeys) if (oldRow[key] !== newRow[key]) return false;
+  }
+  return true;
+}
+
+function areChatReactionsUnchanged(previous: ChatReaction[], next: ChatReaction[]): boolean {
+  if (previous === next) return true;
+  if (previous.length !== next.length) return false;
+  const keyOf = (row: ChatReaction) => `${row.message_id}:${row.profile_id}:${row.reaction}`;
+  const indexed = new Map<string, string>();
+  for (const row of previous) indexed.set(keyOf(row), row.created_at);
+  return next.every(row => indexed.get(keyOf(row)) === row.created_at);
+}
 type ForwardDestination = {
   conversationId: number;
   label: string;
@@ -409,6 +432,7 @@ export default function Chat() {
   const [showStickers, setShowStickers] = useState(false);
   const [showStickerEmojis, setShowStickerEmojis] = useState(false);
   const [chatBackground, setChatBackground] = useState('default');
+  const [customWallpaperTone, setCustomWallpaperTone] = useState<'light' | 'dark'>('light');
   const [backgroundSaving, setBackgroundSaving] = useState(false);
   const [typingMembers, setTypingMembers] = useState<Record<string, string>>({});
   const typingTimersRef = useRef<Map<string, number>>(new Map());
@@ -462,6 +486,7 @@ export default function Chat() {
   const pageRef = useRef<HTMLDivElement>(null);
   const mountedRef = useRef(true);
   const loadSequenceRef = useRef(0);
+  const rowRefCallbacksRef = useRef(new Map<number, (element: HTMLDivElement | null) => void>());
   const backgroundPath = chatBackground.startsWith('image:') ? chatBackground.slice(6) : null;
   const peerAvatarUrl = useSignedUrl('avatars', peer?.avatar_path);
   const myAvatarUrl = useSignedUrl('avatars', myAvatarPath);
@@ -504,18 +529,37 @@ export default function Chat() {
     count: msgs.length,
     getScrollElement: () => feedRef.current,
     estimateSize: () => 76,
-    overscan: 8,
+    overscan: 4,
     // 行必须按消息 id 取 key，不能用默认的下标：消失动画直接写在行节点上
     // （height:0 / overflow:hidden），下标 key 会让下一条消息复用这条
     // 已收起的节点、被裁成看不见；id key 让消失行直接卸载、样式跟着走。
     getItemKey: (index) => msgs[index].id,
   });
+  // Keep each virtual row's ref stable. An inline ref callback is detached and
+  // reattached on every Chat render, repeatedly measuring rows and churning
+  // ResizeObservers while the user scrolls.
+  const getRowRef = useCallback((messageId: number) => {
+    let callback = rowRefCallbacksRef.current.get(messageId);
+    if (!callback) {
+      callback = element => {
+        if (element) {
+          virtualizer.measureElement(element);
+          rowElsRef.current.set(messageId, element);
+        } else {
+          rowElsRef.current.delete(messageId);
+        }
+      };
+      rowRefCallbacksRef.current.set(messageId, callback);
+    }
+    return callback;
+  }, [virtualizer]);
   // 新消息只保留一个透明度淡入（不做位移/缩放，避免影响行高测量与滚动锚点）。
   const prevMsgsLenRef = useRef(0);
   const [freshId, setFreshId] = useState<number | null>(null);
 
   useEffect(() => {
     prevMsgsLenRef.current = 0;
+    rowRefCallbacksRef.current.clear();
     const activeTouch = messageTouchRef.current;
     if (activeTouch) {
       activeTouch.element.classList.remove('im-swipe-active');
@@ -703,7 +747,7 @@ export default function Chat() {
     if (data) {
       // 正在播消失动画的消息先留着，等动画跑完再由定时器移除，避免中途被抽掉。
       const visible = data.filter(message => !isExpiredMessage(message) || vanishingIdsRef.current.has(message.id));
-      setMsgs(visible);
+      setMsgs(previous => areChatMessagesUnchanged(previous, visible) ? previous : visible);
       setError('');
       // 已到期的消息还没被清理时，在这里触发一次软删；删完经 Realtime 再刷新。
       // 清理函数在迁移上线前还不存在，失败时静默跳过、不影响消息加载。
@@ -719,7 +763,10 @@ export default function Chat() {
           .from('message_reactions').select('message_id,profile_id,reaction,created_at')
           .in('message_id', messageIds);
         if (requestId !== loadSequenceRef.current) return;
-        if (!reactionError) setReactions((reactionRows ?? []) as ChatReaction[]);
+        if (!reactionError) {
+          const nextReactions = (reactionRows ?? []) as ChatReaction[];
+          setReactions(previous => areChatReactionsUnchanged(previous, nextReactions) ? previous : nextReactions);
+        }
       } else {
         setReactions([]);
       }
@@ -761,6 +808,24 @@ export default function Chat() {
     }
   }
 
+  // Refresh only reactions during the healthy realtime session. The previous
+  // 12-second fallback reran the full message, member, conversation and
+  // mark-as-read pipeline even when nothing had changed.
+  async function refreshReactions() {
+    const currentMessages = msgsRef.current;
+    if (!currentMessages.length) {
+      setReactions(previous => previous.length ? [] : previous);
+      return;
+    }
+    const { data, error: reactionRefreshError } = await supabase
+      .from('message_reactions')
+      .select('message_id,profile_id,reaction,created_at')
+      .in('message_id', currentMessages.map(message => message.id));
+    if (reactionRefreshError) return;
+    const nextReactions = (data ?? []) as ChatReaction[];
+    setReactions(previous => areChatReactionsUnchanged(previous, nextReactions) ? previous : nextReactions);
+  }
+
   useEffect(() => {
     load();
     let peerLookupActive = true;
@@ -785,29 +850,47 @@ export default function Chat() {
       const found = ((friends ?? []) as ChatPeer[]).find(item => item.id === other);
       if (peerLookupActive && found) { setPeer(found); setName(found.display_name ?? found.username ?? loc.state?.name ?? '聊天'); }
     })();
+    let realtimeConnected = false;
+    let pendingLoadTimer: number | null = null;
+    const scheduleLoad = () => {
+      if (pendingLoadTimer !== null) window.clearTimeout(pendingLoadTimer);
+      pendingLoadTimer = window.setTimeout(() => {
+        pendingLoadTimer = null;
+        void load();
+      }, 140);
+    };
     const channel = supabase.channel('chat-' + cid)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'messages', filter: 'conversation_id=eq.' + cid }, () => { load(); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'messages', filter: 'conversation_id=eq.' + cid }, scheduleLoad)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'conversation_members', filter: 'conversation_id=eq.' + cid }, (payload) => {
         // Our own read-cursor UPDATE is caused by load(); ignoring it prevents
         // a Realtime -> load -> mark-read -> Realtime feedback loop.
-        if ((payload.new as { profile_id?: string } | null)?.profile_id !== me) load();
+        if ((payload.new as { profile_id?: string } | null)?.profile_id !== me) scheduleLoad();
       })
-      // message_reactions has no conversation_id; do not subscribe globally and
-      // refetch every open chat for unrelated reactions. The existing 12s refresh
-      // keeps this conversation's reactions in sync.
-      .subscribe();
-    // 切到后台标签时不轮询：visibilitychange 回来时会立刻重拉一次，
-    // 既省流量省电，又不会漏掉回来后的新消息。
-    const fallback = setInterval(() => {
-      if (document.visibilityState === 'visible') load();
-    }, 12000);
+      .subscribe((status, subscribeError) => {
+        realtimeConnected = status === 'SUBSCRIBED';
+        if (status === 'SUBSCRIBED') scheduleLoad();
+        else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          console.error('chat realtime subscription failed', status, subscribeError);
+        }
+      });
+    // Healthy realtime sessions refresh reactions only. A full message sync is
+    // retained as a 15-second safety net only while realtime is disconnected.
+    const fallback = window.setInterval(() => {
+      if (document.visibilityState !== 'visible') return;
+      void refreshReactions();
+      if (!realtimeConnected) scheduleLoad();
+    }, 15000);
     const onVisibilityChange = () => {
-      if (document.visibilityState === 'visible') load();
+      if (document.visibilityState === 'visible') {
+        scheduleLoad();
+        void refreshReactions();
+      }
     };
     document.addEventListener('visibilitychange', onVisibilityChange);
     return () => {
       peerLookupActive = false;
-      clearInterval(fallback);
+      window.clearInterval(fallback);
+      if (pendingLoadTimer !== null) window.clearTimeout(pendingLoadTimer);
       document.removeEventListener('visibilitychange', onVisibilityChange);
       loadSequenceRef.current += 1;
       supabase.removeChannel(channel);
@@ -2305,7 +2388,12 @@ export default function Chat() {
     }
   }, [showDetails]);
 
-  const latestOutgoingMessageId = [...msgs].reverse().find(message => message.sender_id === me)?.id ?? null;
+  const latestOutgoingMessageId = useMemo(() => {
+    for (let index = msgs.length - 1; index >= 0; index -= 1) {
+      if (msgs[index].sender_id === me) return msgs[index].id;
+    }
+    return null;
+  }, [msgs, me]);
   const typingNames = Object.values(typingMembers);
   const typingLabel = formatChatTypingLabel(typingNames, isGroup);
   const typingDisplayLabel = isGroup ? typingLabel : (typingLabel ? `${name} 正在输入…` : '');
@@ -2330,7 +2418,49 @@ export default function Chat() {
 
   // 壁纸深浅：浅色预设（清透白/晴空/薰衣草/薄荷/晚霞）用深色字 + 浅色玻璃输入框；
   // 夜海与自定义照片走深色，名字/输入框用白字 + 深色玻璃（#767 的做法）。
-  const wallpaperTone = ['default', 'sky', 'lavender', 'mint', 'sunset'].includes(chatBackground) ? 'light' : 'dark';
+  useEffect(() => {
+    if (!backgroundPath || !wallpaperUrl) {
+      setCustomWallpaperTone('light');
+      return;
+    }
+    let active = true;
+    const image = new Image();
+    image.crossOrigin = 'anonymous';
+    image.onload = () => {
+      if (!active) return;
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = 24;
+        canvas.height = 24;
+        const context = canvas.getContext('2d', { willReadFrequently: true });
+        if (!context) throw new Error('Canvas 2D context unavailable');
+        context.drawImage(image, 0, 0, canvas.width, canvas.height);
+        const pixels = context.getImageData(0, 0, canvas.width, canvas.height).data;
+        let total = 0;
+        let samples = 0;
+        for (let index = 0; index < pixels.length; index += 4) {
+          if (pixels[index + 3] < 32) continue;
+          total += pixels[index] * 0.2126 + pixels[index + 1] * 0.7152 + pixels[index + 2] * 0.0722;
+          samples += 1;
+        }
+        setCustomWallpaperTone(samples > 0 && total / samples >= 150 ? 'light' : 'dark');
+      } catch {
+        // If the image server blocks canvas sampling, prefer the light controls
+        // used by the default chat canvas instead of rendering white-on-white.
+        setCustomWallpaperTone('light');
+      }
+    };
+    image.onerror = () => { if (active) setCustomWallpaperTone('light'); };
+    image.src = wallpaperUrl;
+    return () => {
+      active = false;
+      image.onload = null;
+      image.onerror = null;
+    };
+  }, [backgroundPath, wallpaperUrl]);
+  const wallpaperTone = backgroundPath
+    ? customWallpaperTone
+    : (['default', 'sky', 'lavender', 'mint', 'sunset'].includes(chatBackground) ? 'light' : 'dark');
 
   // Paint the active conversation wallpaper on the full-screen shell as well as
   // the chat surface, so safe-area and viewport-height differences never expose
@@ -2830,7 +2960,7 @@ export default function Chat() {
               : (otherLastReadMessageId !== null && otherLastReadMessageId >= m.id ? '已读' : '已送达'))
             : '';
           return (
-            <div key={virtualRow.key} data-index={virtualRow.index} ref={el => { virtualizer.measureElement(el); if (el) rowElsRef.current.set(m.id, el); else rowElsRef.current.delete(m.id); }}
+            <div key={virtualRow.key} data-index={virtualRow.index} ref={getRowRef(m.id)}
               className={'im-vrow' + (freshId === m.id ? ' im-vrow-fresh' : '')}
               onAnimationEnd={() => { if (freshId === m.id) setFreshId(null); }}
               style={{ position: 'absolute', top: 0, left: 0, width: '100%', transform: `translateY(${virtualRow.start}px)`, padding: `${samePrevious ? 1 : 3}px 0 ${sameNext ? 1 : 3}px 0`, boxSizing: 'border-box' }}>

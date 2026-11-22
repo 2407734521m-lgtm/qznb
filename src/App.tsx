@@ -1431,7 +1431,7 @@ function Shell() {
         : { backgroundImage: `url(${wp.src === 'default' ? bgUrl : wp.src})`, filter: `blur(${wp.blur}px) brightness(${100 - wp.dark}%)` }} />
       <MusicIsland />
       {showAppUpdate && installedApp && appUpdate && (
-        <AppUpdateDialog currentName={installedApp.name} info={{ ...appUpdate, app_force_update: appForced ? 'true' : 'false' }} onIgnore={ignoreAppUpdate} />
+        <AppUpdateDialog app="main" currentName={installedApp.name} info={{ ...appUpdate, app_force_update: appForced ? 'true' : 'false' }} onIgnore={ignoreAppUpdate} />
       )}
       {!showAppUpdate && detectInstalledApp() && appAnnouncements.length > 0 && (
         <Suspense fallback={null}>

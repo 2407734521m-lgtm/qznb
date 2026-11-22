@@ -181,7 +181,7 @@ function AdminShell() {
     setUpdateDismissed(true);
   };
   const adminUpdateDialog = showAdminUpdate && adminApp ? (
-    <AppUpdateDialog currentName={adminApp.name} info={{ ...adminUpdate, app_force_update: adminForced ? 'true' : 'false' }} onIgnore={ignoreAdminUpdate} />
+    <AppUpdateDialog app="admin" currentName={adminApp.name} info={{ ...adminUpdate, app_force_update: adminForced ? 'true' : 'false' }} onIgnore={ignoreAdminUpdate} />
   ) : null;
   if (!isAdmin) return (<><div className="glow" />{adminUpdateDialog}<PaperToaster /><AdminLogin showBack={false} onAuthenticated={() => setRoleRefresh(value => value + 1)} /></>);
   return (<>

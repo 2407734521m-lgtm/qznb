@@ -10,6 +10,7 @@ import { useAuth } from '../auth';
 import { useSignedUrls, uploadMedia, uploadMediaWithProgress, downscaleImage, removeOwnedMedia } from '../lib/media';
 import { timeAgo } from '../lib/time';
 import { withRetry } from '../lib/retry';
+import { fetchMembersByIds } from '../lib/memberDirectory';
 import type { ProfileSummary as Profile } from '../types/profile';
 import type { FeedPost as Post, FeedComment as Cmt } from '../types/content';
 import { confirmDialog, alertDialog, promptDialog } from '../lib/dialog';
@@ -238,9 +239,8 @@ export default function PostList({ section, searchQuery = '', embedded = false, 
     const ids = [...new Set(list.map(p => p.author_id))];
     const pids = list.map(p => p.id);
     if (isFeed) await refreshImpressionPolls(pids);
-    const { data: pr } = await supabase.from('profiles').select('id, username, display_name, avatar_path').in('id', ids);
-    const pm: Record<string, Profile> = {};
-    (pr ?? []).forEach((x) => { pm[x.id] = x; });
+    // R1：普通成员直读他人 profiles 行会被 RLS 静默过滤，作者名会掉成 …，改走 member_directory RPC。
+    const pm: Record<string, Profile> = await fetchMembersByIds(ids);
     if (append) setProfiles(current => ({ ...current, ...pm })); else setProfiles(pm);
     const { data: lk } = await supabase.from('post_likes').select('post_id, profile_id').in('post_id', pids);
     const cnt: Record<number, number> = {}; const mine: Record<number, boolean> = {};
@@ -253,9 +253,7 @@ export default function PostList({ section, searchQuery = '', embedded = false, 
     if (append) setCmts(current => ({ ...current, ...cm })); else setCmts(cm);
     const missing = [...aids].filter(a => !pm[a]);
     if (missing.length) {
-      const { data: pr2 } = await supabase.from('profiles').select('id, username, display_name, avatar_path').in('id', missing);
-      const pm2 = { ...pm };
-      (pr2 ?? []).forEach((x) => { pm2[x.id] = x; });
+      const pm2 = { ...pm, ...(await fetchMembersByIds(missing)) };
       if (append) setProfiles(current => ({ ...current, ...pm2 })); else setProfiles(pm2);
     }
     const { data: r } = await supabase.rpc('my_role');
@@ -423,15 +421,17 @@ export default function PostList({ section, searchQuery = '', embedded = false, 
       setCmtText(current => ({ ...current, [p.id]: '' }));
       setOpenCmt(current => ({ ...current, [p.id]: true }));
       void load();
-      // 通知动态作者（不是自己评论自己才发）
+      // 通知动态作者（不是自己评论自己才发）。notifications 表禁客户端直插（018），
+      // 改调服务端 notify_post_author RPC：服务端校验评论存在后再插，失败只记日志不挡评论。
       if (p.author_id !== me) {
-        const who = profiles[me];
-        void supabase.from('notifications').insert({
-          profile_id: p.author_id, type: 'comment',
-          title: isFeed ? '有人评论了你的动态' : (embedded ? '有人评论了你的帖子' : '有人评论了你的日常'),
-          body: `${who ? (who.display_name ?? who.username) : '同学'}：${t.slice(0, 60)}`,
-          link: isFeed ? '/feed' : '/daily',
-        }).then(() => {});
+        void supabase.rpc('notify_post_author', {
+          p_post_id: p.id,
+          p_title: isFeed ? '有人评论了你的动态' : (embedded ? '有人评论了你的帖子' : '有人评论了你的日常'),
+          p_link: isFeed ? '/feed' : '/daily',
+          p_body: t.slice(0, 60),
+        }).then(({ error: notifyError }) => {
+          if (notifyError) console.error('comment notification failed', notifyError);
+        });
       }
     } catch (error) {
       alertDialog('评论发送失败：' + (error instanceof Error ? error.message : '请检查网络后重试。'));

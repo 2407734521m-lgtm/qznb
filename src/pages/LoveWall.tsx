@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+import { fetchMembersByIds } from '../lib/memberDirectory';
 import { useAuth } from '../auth';
 import { confirmDialog } from '../lib/dialog';
 import { getSignedUrls, downscaleImage, uploadWithProgress } from '../lib/media';
@@ -176,8 +177,9 @@ export default function LoveWall() {
     const ids = [...new Set(rows.map(r => r.author_id))];
     const names: Record<string, string> = {};
     if (ids.length) {
-      const { data: profs } = await supabase.from('profiles').select('id,username,display_name').in('id', ids);
-      (profs || []).forEach(pr => { names[pr.id] = pr.display_name || pr.username || '班级同学'; });
+      // R1：普通成员直读他人 profiles 行会被 RLS 静默过滤，评论者名会掉成“班级同学”，改走 member_directory RPC。
+      const found = await fetchMembersByIds(ids);
+      Object.values(found).forEach(pr => { names[pr.id] = pr.display_name || pr.username || '班级同学'; });
     }
     setCommentsByPost(prev => ({ ...prev, [postId]: rows.map(r => ({ ...r, name: names[r.author_id] || '班级同学' })) }));
   }

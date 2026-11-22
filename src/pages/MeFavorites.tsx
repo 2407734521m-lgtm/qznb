@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MotionConfig, motion } from 'framer-motion';
 import { supabase } from '../lib/supabase';
+import { fetchMembersByIds } from '../lib/memberDirectory';
 import { useAuth } from '../auth';
 import BackButton from '../components/BackButton';
 import SwipeToDelete, { showUndoToast } from '../components/SwipeToDelete';
@@ -41,9 +42,10 @@ export default function MeFavorites() {
     const rows = data ?? [];
     if (!rows.length) { setItems([]); setInitialLoading(false); return; }
     if (t === 'member') {
-      const { data: ps } = await supabase.from('profiles').select('id, display_name, username').in('id', rows.map(r => r.target_id));
+      // R1：普通成员直读他人 profiles 行会被 RLS 静默过滤，收藏的同学会整条消失，改走 member_directory RPC。
+      const found = await fetchMembersByIds(rows.map(r => r.target_id));
       const m: Record<string, any> = {};
-      (ps ?? []).forEach((p: any) => { m[p.id] = p; });
+      Object.values(found).forEach((p) => { m[p.id] = p; });
       setItems(rows.map(r => ({ ...r, info: m[r.target_id] })).filter(r => r.info));
     } else {
       const { data: ps } = await supabase.from('posts').select('id, content, author_id, created_at, section').in('id', rows.map(r => Number(r.target_id))).eq('section', postSection).is('deleted_at', null);

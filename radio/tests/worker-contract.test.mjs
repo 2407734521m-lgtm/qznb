@@ -174,7 +174,7 @@ test('download log forwards the verified site-user token and ignores client-supp
     calls.push({ url, init });
     if (url.pathname === '/auth/v1/user') {
       assert.equal(init.headers.Authorization, 'Bearer verified-site-token');
-      return new Response(JSON.stringify({ id: '11111111-1111-4111-8111-111111111111', email: 'member@example.test' }), {
+      return new Response(JSON.stringify({ id: '11111111-1111-4111-8111-111111111111' }), {
         status: 200,
         headers: { 'content-type': 'application/json' },
       });
@@ -212,7 +212,7 @@ test('download log forwards the verified site-user token and ignores client-supp
     assert.equal(calls[1].init.headers.Authorization, 'Bearer verified-site-token');
     const rpc = JSON.parse(calls[1].init.body);
     assert.equal(rpc.p_site_user_id, '11111111-1111-4111-8111-111111111111');
-    assert.equal(rpc.p_site_username, 'member@example.test');
+    assert.equal(Object.hasOwn(rpc, 'p_site_username'), false);
   } finally {
     globalThis.fetch = originalFetch;
   }

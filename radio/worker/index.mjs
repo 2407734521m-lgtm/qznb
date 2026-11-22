@@ -443,7 +443,7 @@ async function requireSiteAuth(request) {
     if (res.status !== 200) return null;
     const user = await res.json();
     if (!user || !user.id) return null;
-    return { id: user.id, email: user.email || '', accessToken: token };
+    return { id: user.id, accessToken: token };
   } catch (_) {
     return null;
   }
@@ -508,7 +508,6 @@ async function proxyLogDownload(site, request) {
     p_error: String(body.p_error || ''),
     p_device_label: String(body.p_device_label || ''),
     p_site_user_id: site.id,
-    p_site_username: site.email || '',
   };
   try {
     const res = await fetch(SUPABASE_URL + '/rest/v1/rpc/log_music_download', {

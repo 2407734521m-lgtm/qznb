@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { motion, useReducedMotion } from 'framer-motion';
 import { SPRING_GENTLE } from '../lib/motion';
+import { logAppClick, type AppClickApp } from '../lib/appClicks';
 import LargeTitleBar from '../components/LargeTitleBar';
 import PullToRefresh from '../components/PullToRefresh';
 import './Explore.css';
@@ -20,6 +21,8 @@ type DiscoverCard = {
   title: string;
   description: string;
   action: string;
+  // 单独软件入口卡才填：点一次记一次 entry_click（软件点击统计）。
+  app?: AppClickApp;
 };
 
 const sections: {
@@ -73,6 +76,7 @@ const sections: {
         title: '动态签名',
         description: '逐笔书写中英文名字，切换字体并导出视频。',
         action: '开始写名',
+        app: 'signature',
       },
       {
         to: '/music',
@@ -82,6 +86,7 @@ const sections: {
         title: '音乐',
         description: '搜索曲目、发现音乐，创建自己的播放体验。',
         action: '进入音乐空间',
+        app: 'music',
       },
     ],
   },
@@ -166,8 +171,8 @@ export default function Explore() {
                     transition={reduce ? { duration: 0.01 } : { ...SPRING_GENTLE, delay: sequence * 0.025 }}
                   >
                     {card.external
-                      ? <a href={card.to} target="_blank" rel="noopener noreferrer" className="discover-card-link">{content}</a>
-                      : <Link to={card.to} className="discover-card-link">{content}</Link>}
+                      ? <a href={card.to} target="_blank" rel="noopener noreferrer" className="discover-card-link" onClick={() => { if (card.app) logAppClick(card.app, 'entry_click', 'explore'); }}>{content}</a>
+                      : <Link to={card.to} className="discover-card-link" onClick={() => { if (card.app) logAppClick(card.app, 'entry_click', 'explore'); }}>{content}</Link>}
                   </motion.article>
                 );
               })}

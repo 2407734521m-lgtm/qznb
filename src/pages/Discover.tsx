@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom';
 import Feed from './Feed';
 import Album from './Album';
 import PullToRefresh from '../components/PullToRefresh';
+import { invalidateFeedFirstPageCache } from '../components/PostList';
 
 // 动态 + 相册合并为一页，内部切换
 export default function Discover() {
@@ -17,6 +18,8 @@ export default function Discover() {
   // loading 状态可等，指示条至少停留 700ms 再回弹。
   const [refreshKey, setRefreshKey] = useState(0);
   const handleRefresh = async () => {
+    // 下拉刷新要拉最新：先清掉第一页缓存，再重挂载重拉。
+    invalidateFeedFirstPageCache('feed');
     setRefreshKey(value => value + 1);
     await new Promise(resolve => setTimeout(resolve, 700));
   };

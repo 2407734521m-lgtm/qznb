@@ -240,17 +240,10 @@ export default function QianzhiIslandTaskDrawer({ docked }: { docked: boolean })
           aria-haspopup="dialog"
           onClick={() => setOpen(value => !value)}
         >
-          {activities.length ? (
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <rect x="4" y="4" width="16" height="16" rx="4" />
-              <path d="M8 9h8M8 12h8M8 15h5" />
-            </svg>
-          ) : (
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <circle cx="12" cy="13" r="8" />
-              <path d="M12 9v4l2.8 1.8M9 2h6M12 2v3" />
-            </svg>
-          )}
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <rect x="4" y="4" width="16" height="16" rx="4" />
+            <path d="M8 9h8M8 12h8M8 15h5" />
+          </svg>
           {activities.length > 0 && <span>{activities.length > 9 ? '9+' : activities.length}</span>}
         </button>
       </div>

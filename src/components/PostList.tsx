@@ -6,6 +6,7 @@ import { useWindowVirtualizer } from '@tanstack/react-virtual';
 import './PostList.layout.css';
 import './PostList.longform.css';
 import { supabase } from '../lib/supabase';
+import { fetchRouteData, invalidateRouteDataCache, prefetchRouteData } from '../lib/routeDataCache';
 import { useAuth } from '../auth';
 import { useSignedUrls, uploadMedia, uploadMediaWithProgress, downscaleImage, removeOwnedMedia } from '../lib/media';
 import { timeAgo } from '../lib/time';
@@ -30,6 +31,30 @@ type ImpressionPoll = {
 };
 const DEFAULT_IMPRESSION_OPTIONS = ['阳光开朗', '安静慢热', '幽默有趣', '认真靠谱'];
 const PAGE_SIZE = 30;
+
+// 动态/日常第一页缓存：切页回来直接显示，不用等重拉；下拉刷新与本地改动时清掉。
+// 只缓存帖子行本身（首屏骨架就卡在这一步），点赞/评论/头像等附属数据每次照常拉。
+const FEED_FIRST_PAGE_KEY = (section: PostSection, searchQuery: string) =>
+  `feed-first:${section}:${searchQuery.trim()}`;
+
+async function queryFeedFirstPage(section: PostSection, searchQuery: string): Promise<Post[]> {
+  let postQuery = supabase.from('posts').select('*').eq('section', section).is('deleted_at', null)
+    .order('created_at', { ascending: false }).range(0, PAGE_SIZE - 1);
+  if (searchQuery.trim()) postQuery = postQuery.ilike('content', `%${searchQuery.trim()}%`);
+  const { data, error } = await postQuery;
+  if (error) throw error;
+  return (data ?? []) as Post[];
+}
+
+/** 导航预取用：Dock/顶栏按下时先把第一页拉进缓存，切页挂载直接命中。 */
+export function prefetchFeedFirstPage(section: PostSection, searchQuery = ''): void {
+  prefetchRouteData(FEED_FIRST_PAGE_KEY(section, searchQuery), () => queryFeedFirstPage(section, searchQuery));
+}
+
+/** 本地改动（发布/编辑/删除）与下拉刷新后清掉，下一拉取回最新。 */
+export function invalidateFeedFirstPageCache(section?: PostSection): void {
+  invalidateRouteDataCache(section ? `feed-first:${section}:` : 'feed-first:');
+}
 
 
 function Avatar({ p, url, size = 42, loading = 'lazy' }: { p?: Profile; url?: string; size?: number; loading?: 'lazy' | 'eager' }) {
@@ -220,16 +245,28 @@ export default function PostList({ section, searchQuery = '', embedded = false, 
   async function load(append = false) {
     try {
     const offset = append ? posts.length : 0;
-    let postQuery = supabase.from('posts').select('*').eq('section', section).is('deleted_at', null)
-      .order('created_at', { ascending: false }).range(offset, offset + PAGE_SIZE - 1);
-    if (searchQuery.trim()) postQuery = postQuery.ilike('content', `%${searchQuery.trim()}%`);
-    const { data: ps, error: loadError } = await postQuery;
-    if (loadError) {
-      // 主查询失败不要静默显示“这里还没有动态”空态，要明确告诉用户加载失败。
-      toast.error('动态加载失败，请稍后重试');
-      return;
+    let list: Post[];
+    if (append) {
+      let postQuery = supabase.from('posts').select('*').eq('section', section).is('deleted_at', null)
+        .order('created_at', { ascending: false }).range(offset, offset + PAGE_SIZE - 1);
+      if (searchQuery.trim()) postQuery = postQuery.ilike('content', `%${searchQuery.trim()}%`);
+      const { data: ps, error: loadError } = await postQuery;
+      if (loadError) {
+        // 主查询失败不要静默显示“这里还没有动态”空态，要明确告诉用户加载失败。
+        toast.error('动态加载失败，请稍后重试');
+        return;
+      }
+      list = (ps ?? []) as Post[];
+    } else {
+      // 第一页走 5 分钟内存缓存：切页回来直接显示，不等重拉；
+      // 缓存里没有（首次进、过期、刚清过）才发请求，失败照常报错。
+      try {
+        list = await fetchRouteData(FEED_FIRST_PAGE_KEY(section, searchQuery), () => queryFeedFirstPage(section, searchQuery));
+      } catch {
+        toast.error('动态加载失败，请稍后重试');
+        return;
+      }
     }
-    const list = ps ?? [];
     if (append) setPosts(current => [...current, ...list]); else setPosts(list);
     setHasMore(list.length === PAGE_SIZE);
     // 帖子一上屏就撤掉骨架屏，不等点赞/评论等附属数据慢慢回来；
@@ -333,6 +370,7 @@ export default function PostList({ section, searchQuery = '', embedded = false, 
         setImpressionQuestion('你觉得我给人的第一印象是？');
         setImpressionOptions(DEFAULT_IMPRESSION_OPTIONS);
       }
+      invalidateFeedFirstPageCache(section);
       if (isFeed) {
         await load();
       } else {
@@ -469,6 +507,7 @@ export default function PostList({ section, searchQuery = '', embedded = false, 
       if (!data) throw new Error('内容不存在或当前账号没有编辑权限。');
 
       setEditPostId(null); setEditPostText(''); setEditPostImage(null); setRemovePostImage(false);
+      invalidateFeedFirstPageCache(section);
       await load();
       if (p.image_url && p.image_url !== nextImageUrl) {
         const cleanupError = await removeOwnedMedia(p.image_url, me);
@@ -490,6 +529,7 @@ export default function PostList({ section, searchQuery = '', embedded = false, 
     if (error) { alertDialog('删除失败：' + error.message); return; }
     if (!data) { alertDialog('删除未完成：内容不存在或当前账号没有权限。'); return; }
     const cleanupError = await removeOwnedMedia(p.image_url, p.author_id);
+    invalidateFeedFirstPageCache(section);
     await load();
     if (cleanupError) alertDialog('内容已删除，但原配图清理失败：' + cleanupError);
   }

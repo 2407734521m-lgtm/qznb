@@ -22,7 +22,7 @@ const NAV_GROUPS = [
   { label: '成员与权限', ids: ['accounts', 'invite', 'approvals', 'mySecurity'] },
   { label: '内容运营', ids: ['moderate', 'reviewCenter', 'loveWall', 'songWall', 'musicDownloads', 'authorizedRequests', 'board', 'events', 'game'] },
   { label: '消息与反馈', ids: ['notifications', 'communication', 'bulkEmail', 'broadcast', 'feedback'] },
-  { label: '系统管理', ids: ['backups', 'release', 'appCenter', 'logs', 'security', 'system', 'guestAccess', 'settings', 'test'] },
+  { label: '系统管理', ids: ['backups', 'release', 'appCenter', 'appClickStats', 'logs', 'security', 'system', 'guestAccess', 'settings', 'test'] },
 ] as const;
 
 const ICON_PATHS: Record<string, string> = {
@@ -47,6 +47,7 @@ const ICON_PATHS: Record<string, string> = {
   broadcast: 'M4 10v4h3l7 5V5l-7 5H4z M18 9a4 4 0 0 1 0 6 M20.5 6.5a8 8 0 0 1 0 11',
   feedback: 'M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.4 8.4 0 0 1 3.8-.9h.5a8.5 8.5 0 0 1 8 8z',
   backups: 'M4 7h16 M4 12h16 M4 17h16 M7 4v6 M17 14v6',
+  appClickStats: 'M4 20V10 M10 20V4 M16 20v-7 M22 20H2',
   release: 'M12 3v12 M7 10l5 5 5-5 M4 20h16',
   logs: 'M5 4h14v16H5z M8 8h8 M8 12h8 M8 16h5',
   security: 'M12 3l8 3v5c0 5-3.5 8-8 10-4.5-2-8-5-8-10V6z M9 12l2 2 4-4',
@@ -101,6 +102,7 @@ function descriptionFor(id: string) {
     backups: '查看备份任务与恢复点。',
     release: '查看网站与项目的版本发布和更新记录。',
     appCenter: '发布移动端软件版本和专属公告，查看网页版与移动端成员。',
+    appClickStats: '查看谁点了哪个单独软件、点了多少次。',
     logs: '审查重要管理操作和系统日志。',
     security: '检查登录安全、会话与风险记录。',
     system: '查看系统诊断、维护与运行状态。',

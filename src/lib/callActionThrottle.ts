@@ -17,3 +17,8 @@ export function createCallActionThrottle(windowMs = 300) {
     },
   };
 }
+
+/** A session is actionable only while its ID is current and teardown has not started. */
+export function isCurrentCallSession(expectedId: string, activeId: string | null, ending: boolean): boolean {
+  return expectedId === activeId && !ending;
+}

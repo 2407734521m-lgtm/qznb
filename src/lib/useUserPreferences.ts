@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type Dispatch, type SetStateAction } from 'react';
 import { supabase } from './supabase';
-import { DEFAULT_USER_PREFERENCES, normalizeUserPreferences, type UserPreferences } from './userPreferences';
+import { clearPendingUserPreferences, DEFAULT_USER_PREFERENCES, hasPendingUserPreferences, markUserPreferencesPending, mergeUserPreferences, normalizeUserPreferences, resolveAccountUserPreferences, type UserPreferences } from './userPreferences';
 
 export type PreferencesSyncState = 'loading' | 'saved' | 'error';
 
@@ -31,18 +31,37 @@ const CLOUD_RETRY_MAX_ATTEMPTS = 6;
 // 账号级偏好：本地 localStorage 即时生效 + 云端 profile_notification_preferences 同步。
 // 原本写在设置页里，2026-11-07 设置子页拆分后抽成共用 hook，设置页与各子页共用同一份逻辑。
 export function useUserPreferences(uid: string | null | undefined) {
-  const [prefs, setPrefs] = useState<UserPreferences>(() => readUserPreferences(uid));
+  const accountUid = uid ?? null;
+  const [accountPrefs, setAccountPrefs] = useState<{ uid: string | null; prefs: UserPreferences }>(() => ({ uid: accountUid, prefs: readUserPreferences(uid) }));
+  // Derive the visible value against the requested account during render. An
+  // effect-only reset would expose the previous account's settings for a frame.
+  const prefs = resolveAccountUserPreferences(accountPrefs.uid, accountUid, accountPrefs.prefs, readUserPreferences(uid));
   const [prefsReady, setPrefsReady] = useState(false);
   const [loadedUid, setLoadedUid] = useState<string | null>(null);
   const [syncState, setSyncState] = useState<PreferencesSyncState>('loading');
   const [reloadNonce, setReloadNonce] = useState(0);
   const prevUidRef = useRef<string | null | undefined>(uid);
   const prefsRef = useRef(prefs);
+  const prefsOwnerRef = useRef(accountUid);
+  const editRevisionRef = useRef<Record<string, number>>({});
   const retryTimerRef = useRef<number | null>(null);
   const retryCountRef = useRef(0);
   const mountedRef = useRef(true);
 
-  useEffect(() => { prefsRef.current = prefs; }, [prefs]);
+  prefsRef.current = prefs;
+  prefsOwnerRef.current = accountUid;
+  const setPrefs = useCallback<Dispatch<SetStateAction<UserPreferences>>>(action => {
+    const targetUid = uid ?? null;
+    if (targetUid) {
+      markUserPreferencesPending(targetUid);
+      editRevisionRef.current[targetUid] = (editRevisionRef.current[targetUid] || 0) + 1;
+    }
+    const base = prefsOwnerRef.current === targetUid ? prefsRef.current : readUserPreferences(targetUid);
+    const next = typeof action === 'function' ? action(base) : action;
+    prefsOwnerRef.current = targetUid;
+    prefsRef.current = next;
+    setAccountPrefs({ uid: targetUid, prefs: next });
+  }, [uid]);
   useEffect(() => {
     mountedRef.current = true;
     return () => { mountedRef.current = false; };
@@ -62,13 +81,17 @@ export function useUserPreferences(uid: string | null | undefined) {
   const flushWithRetry = useCallback(async (next: UserPreferences, forUid: string, resetCount = false): Promise<void> => {
     if (resetCount) retryCountRef.current = 0;
     if (retryTimerRef.current) { window.clearTimeout(retryTimerRef.current); retryTimerRef.current = null; }
-    const ok = await flushToCloud(next, forUid);
+    const revision = editRevisionRef.current[forUid] || 0;
+    let ok = false;
+    try { ok = await flushToCloud(next, forUid); } catch {}
     if (!mountedRef.current) return;
+    if (ok && (editRevisionRef.current[forUid] || 0) === revision) clearPendingUserPreferences(forUid);
     setSyncState(ok ? 'saved' : 'error');
     if (!ok && retryCountRef.current < CLOUD_RETRY_MAX_ATTEMPTS) {
       retryCountRef.current += 1;
       retryTimerRef.current = window.setTimeout(() => {
-        void flushWithRetry(prefsRef.current, forUid);
+        const latest = prefsOwnerRef.current === forUid ? prefsRef.current : readUserPreferences(forUid);
+        void flushWithRetry(latest, forUid);
       }, CLOUD_RETRY_DELAY_MS);
     }
   }, [flushToCloud]);
@@ -79,48 +102,47 @@ export function useUserPreferences(uid: string | null | undefined) {
     if (uidChanged) {
       // 账号切换时立刻换成新账号自己的本地缓存，不要让新账号的页面
       // 在云端返回前一直用着旧账号的设置。
-      setPrefs(readUserPreferences(uid));
+      setAccountPrefs({ uid: accountUid, prefs: readUserPreferences(uid) });
       setLoadedUid(null);
       setPrefsReady(false);
     }
     setSyncState('loading');
     if (!uid) {
-      setPrefs(DEFAULT_USER_PREFERENCES);
+      setAccountPrefs({ uid: null, prefs: DEFAULT_USER_PREFERENCES });
       setLoadedUid(null);
       setSyncState('saved');
       setPrefsReady(true);
       return;
     }
+    const activeUid = uid;
     let active = true;
     async function loadCloudPreferences() {
-      const localPreferences = readUserPreferences(uid);
-      const { data, error } = await (supabase as any).from('profile_notification_preferences').select('preferences').eq('profile_id', uid).maybeSingle();
+      const localPreferences = readUserPreferences(activeUid);
+      const { data, error } = await (supabase as any).from('profile_notification_preferences').select('preferences').eq('profile_id', activeUid).maybeSingle();
       if (!active) return;
+      const pending = hasPendingUserPreferences(activeUid) || (editRevisionRef.current[activeUid] || 0) > 0;
+      const currentLocal = pending ? prefsRef.current : localPreferences;
       if (error) {
-        setPrefs(localPreferences); setSyncState('error'); setLoadedUid(uid ?? null); setPrefsReady(true); return;
+        setAccountPrefs({ uid: accountUid, prefs: currentLocal }); setSyncState('error'); setLoadedUid(activeUid); setPrefsReady(true); return;
       }
       if (data?.preferences && typeof data.preferences === 'object') {
         const remote = data.preferences as Partial<UserPreferences>;
-        setPrefs(normalizeUserPreferences({
-          ...localPreferences,
-          ...remote,
-          notifications: { ...DEFAULT_USER_PREFERENCES.notifications, ...localPreferences.notifications, ...(remote.notifications || {}) },
-          chat: { ...localPreferences.chat, ...(remote.chat || {}) },
-          quietHours: { ...localPreferences.quietHours, ...(remote.quietHours || {}) },
-          island: { ...localPreferences.island, ...(remote.island || {}) },
-        }));
+        setAccountPrefs({ uid: accountUid, prefs: mergeUserPreferences(currentLocal, remote, pending) });
         setSyncState('saved');
       } else {
-        const { error: insertError } = await (supabase as any).from('profile_notification_preferences').upsert({ profile_id: uid, preferences: localPreferences }, { onConflict: 'profile_id' });
+        const hasLocalChanges = hasPendingUserPreferences(activeUid) || (editRevisionRef.current[activeUid] || 0) > 0;
+        const toSave = hasLocalChanges ? prefsRef.current : localPreferences;
+        const { error: insertError } = await (supabase as any).from('profile_notification_preferences').upsert({ profile_id: activeUid, preferences: toSave }, { onConflict: 'profile_id' });
         if (!active) return;
-        setPrefs(localPreferences); setSyncState(insertError ? 'error' : 'saved');
+        if (!insertError && (editRevisionRef.current[activeUid] || 0) === 0) clearPendingUserPreferences(activeUid);
+        setAccountPrefs({ uid: accountUid, prefs: hasPendingUserPreferences(activeUid) || (editRevisionRef.current[activeUid] || 0) > 0 ? prefsRef.current : toSave }); setSyncState(insertError ? 'error' : 'saved');
       }
-      setLoadedUid(uid ?? null);
+      setLoadedUid(activeUid);
       setPrefsReady(true);
     }
     void loadCloudPreferences();
     return () => { active = false; };
-  }, [uid, reloadNonce]);
+  }, [accountUid, uid, reloadNonce]);
 
   useEffect(() => {
     if (!prefsReady || !uid || loadedUid !== uid) return;

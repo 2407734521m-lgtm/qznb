@@ -5,7 +5,7 @@ import type { ReactNode } from 'react';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import { supabase } from './supabase';
 import { useIslandActions, useIslandReducedMotion } from './island';
-import { createCallActionThrottle } from './callActionThrottle';
+import { createCallActionThrottle, isCurrentCallSession } from './callActionThrottle';
 import { CallElapsedTime, createCallIslandActivity, resolveCallIslandTargetRect } from '../components/QianzhiCallIslandActivity';
 import { useAuth } from '../auth';
 import '../styles-call.css';
@@ -66,6 +66,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
   // belongs to a dead session and must release its tracks instead of wiring
   // a microphone and a PeerConnection into the next (or no) call.
   const callEpochRef = useRef(0);
+  const endingCallRef = useRef(false);
   // Shared throttle for the four phase-changing actions (see callActionThrottle).
   const callActionThrottleRef = useRef(createCallActionThrottle());
   const callIdRef = useRef<string | null>(null);
@@ -106,6 +107,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
     // Bump first: any getUserMedia() still awaiting permission for this session
     // must see a stale epoch when it resolves and release its tracks.
     callEpochRef.current += 1;
+    endingCallRef.current = false;
     stopRing();
     if (minimizeTimerRef.current) { window.clearTimeout(minimizeTimerRef.current); minimizeTimerRef.current = null; }
     minimizeFinishedRef.current = false;
@@ -166,10 +168,17 @@ export function CallProvider({ children }: { children: ReactNode }) {
   }, [myId]);
 
   const endCall = useCallback(async (notifyEvent: string | null, noteText?: string) => {
+    if (phaseRef.current === 'idle' || endingCallRef.current) return;
+    const endedCallId = callIdRef.current;
+    // Invalidate pending permission prompts immediately; the broadcast below
+    // can take up to 1.8s, during which a late accept must not revive the call.
+    endingCallRef.current = true;
+    callEpochRef.current += 1;
     // Broadcast first; only tear down the session after the peer has had a
     // chance to receive the end/reject/cancel event. The timeout keeps the
     // local hang-up responsive if the network is unavailable.
     if (notifyEvent) await sendSession(notifyEvent, { fromId: myId });
+    if (callIdRef.current !== endedCallId) return;
     void recordCallMessage();
     cleanup();
     if (noteText) showNote(noteText);
@@ -216,7 +225,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
     } catch { /* 设备不支持网页音频路由时保留系统默认输出 */ }
     const epoch = callEpochRef.current;
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    if (epoch !== callEpochRef.current || phaseRef.current === 'idle') {
+    if (epoch !== callEpochRef.current || phaseRef.current === 'idle' || endingCallRef.current) {
       // The user hung up (or the session ended) while the permission prompt was
       // still open: never wire this stream into a PeerConnection. Stop it at
       // once so no microphone stays live after the call is gone.
@@ -226,16 +235,21 @@ export function CallProvider({ children }: { children: ReactNode }) {
     localStreamRef.current = stream;
     const pc = new RTCPeerConnection(RTC_CONFIG);
     pcRef.current = pc;
+    const sessionId = callIdRef.current;
     stream.getAudioTracks().forEach(t => pc.addTrack(t, stream));
     pc.ontrack = event => {
+      if (epoch !== callEpochRef.current || sessionId !== callIdRef.current || endingCallRef.current) return;
       const remoteStream = event.streams[0] ?? null;
       if (remoteAudioRef.current) remoteAudioRef.current.srcObject = remoteStream;
       setRemoteAudioRevision(version => version + 1);
     };
     pc.onicecandidate = event => {
-      if (event.candidate) sendSession('ice', { candidate: event.candidate.toJSON(), fromId: myId });
+      if (event.candidate && epoch === callEpochRef.current && sessionId === callIdRef.current && !endingCallRef.current) {
+        sendSession('ice', { candidate: event.candidate.toJSON(), fromId: myId });
+      }
     };
     pc.onconnectionstatechange = () => {
+      if (epoch !== callEpochRef.current || sessionId !== callIdRef.current || endingCallRef.current) return;
       if (pc.connectionState === 'connected') {
         connectedRef.current = true;
         if (callStartedAtRef.current === null) {
@@ -258,49 +272,58 @@ export function CallProvider({ children }: { children: ReactNode }) {
   const joinSession = useCallback((callId: string) => {
     const ch = supabase.channel('call-session-' + callId, { config: { broadcast: { self: false } } });
     sessionChRef.current = ch;
+    const isCurrentSession = () => isCurrentCallSession(callId, callIdRef.current, endingCallRef.current);
     ch.on('broadcast', { event: 'accept' }, () => {
-      if (!isCallerRef.current || phaseRef.current !== 'outgoing') return;
+      if (!isCurrentSession() || !isCallerRef.current || phaseRef.current !== 'outgoing') return;
       stopRing();
       setPhaseBoth('connecting');
       void (async () => {
         try {
           const pc = await setupPeerConnection();
-          if (!pc) return;
+          if (!pc || !isCurrentSession()) return;
           const offer = await pc.createOffer();
+          if (!isCurrentSession()) return;
           await pc.setLocalDescription(offer);
+          if (!isCurrentSession()) return;
           sendSession('offer', { sdp: offer.sdp, fromId: myId });
         } catch {
           // If the session already ended (user hung up while the permission
           // prompt was open), cleanup ran and there is nothing to end.
-          if (phaseRef.current !== 'idle') void endCall('end', '需要麦克风权限才能通话');
+          if (isCurrentSession() && phaseRef.current !== 'idle') void endCall('end', '需要麦克风权限才能通话');
         }
       })();
     });
     ch.on('broadcast', { event: 'offer' }, ({ payload }) => {
-      if (isCallerRef.current) return;
+      if (!isCurrentSession() || isCallerRef.current) return;
       void (async () => {
         try {
           const pc = pcRef.current ?? (await setupPeerConnection());
-          if (!pc) return;
+          if (!pc || !isCurrentSession()) return;
           await pc.setRemoteDescription({ type: 'offer', sdp: String(payload?.sdp ?? '') });
+          if (!isCurrentSession()) return;
           await flushIce();
           const answer = await pc.createAnswer();
+          if (!isCurrentSession()) return;
           await pc.setLocalDescription(answer);
+          if (!isCurrentSession()) return;
           sendSession('answer', { sdp: answer.sdp, fromId: myId });
         } catch { /* 连接建立失败由状态变化兜底 */ }
       })();
     });
     ch.on('broadcast', { event: 'answer' }, ({ payload }) => {
+      if (!isCurrentSession()) return;
       void (async () => {
         const pc = pcRef.current;
         if (!pc) return;
         try {
           await pc.setRemoteDescription({ type: 'answer', sdp: String(payload?.sdp ?? '') });
+          if (!isCurrentSession()) return;
           await flushIce();
         } catch { /* 同上 */ }
       })();
     });
     ch.on('broadcast', { event: 'ice' }, ({ payload }) => {
+      if (!isCurrentSession()) return;
       const candidate = payload?.candidate as RTCIceCandidateInit | undefined;
       if (!candidate) return;
       const pc = pcRef.current;
@@ -308,16 +331,16 @@ export function CallProvider({ children }: { children: ReactNode }) {
       else iceQueueRef.current.push(candidate);
     });
     ch.on('broadcast', { event: 'reject' }, () => {
-      if (phaseRef.current === 'outgoing' || phaseRef.current === 'connecting') {
+      if (isCurrentSession() && (phaseRef.current === 'outgoing' || phaseRef.current === 'connecting')) {
         cleanup();
         showNote('对方拒绝了通话');
       }
     });
     ch.on('broadcast', { event: 'cancel' }, () => {
-      if (phaseRef.current === 'incoming') { cleanup(); showNote('对方已取消通话'); }
+      if (isCurrentSession() && phaseRef.current === 'incoming') { cleanup(); showNote('对方已取消通话'); }
     });
     ch.on('broadcast', { event: 'end' }, () => {
-      if (phaseRef.current !== 'idle') {
+      if (isCurrentSession() && phaseRef.current !== 'idle') {
         void recordCallMessage();
         cleanup();
         showNote('对方已结束通话');
@@ -394,16 +417,17 @@ export function CallProvider({ children }: { children: ReactNode }) {
   }, [endCall, joinSession, myId, setPhaseBoth, startRing]);
 
   const acceptCall = useCallback(() => {
-    if (phaseRef.current !== 'incoming') return;
+    if (phaseRef.current !== 'incoming' || endingCallRef.current) return;
     // A fast double-tap must not fire twice: the second tap would land after
     // the phase already changed to 'connecting'.
     if (!callActionThrottleRef.current.tryRun()) return;
+    const acceptedCallId = callIdRef.current;
     stopRing();
     setPhaseBoth('connecting');
     sendSession('accept', { fromId: myId });
     void setupPeerConnection()
-      .then(pc => { if (pc === null && phaseRef.current !== 'idle') void endCall('end', '需要麦克风权限才能通话'); })
-      .catch(() => { if (phaseRef.current !== 'idle') void endCall('end', '需要麦克风权限才能通话'); });
+      .then(pc => { if (pc === null && callIdRef.current === acceptedCallId && !endingCallRef.current && phaseRef.current !== 'idle') void endCall('end', '需要麦克风权限才能通话'); })
+      .catch(() => { if (callIdRef.current === acceptedCallId && !endingCallRef.current && phaseRef.current !== 'idle') void endCall('end', '需要麦克风权限才能通话'); });
   }, [endCall, myId, sendSession, setPhaseBoth, setupPeerConnection, stopRing]);
 
   const rejectCall = useCallback(() => {

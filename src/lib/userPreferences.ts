@@ -56,6 +56,52 @@ export const DEFAULT_USER_PREFERENCES: UserPreferences = {
   island: DEFAULT_ISLAND_PREFERENCE,
 };
 
+export function userPreferencesPendingKey(profileId: string): string {
+  return 'qznb_user_preferences_pending_v1:' + profileId;
+}
+
+export function hasPendingUserPreferences(profileId: string | null | undefined): boolean {
+  if (!profileId) return false;
+  try { return localStorage.getItem(userPreferencesPendingKey(profileId)) === '1'; } catch { return false; }
+}
+
+export function resolveAccountUserPreferences(
+  stateUid: string | null,
+  requestedUid: string | null,
+  statePreferences: UserPreferences,
+  requestedLocalPreferences: UserPreferences,
+): UserPreferences {
+  return stateUid === requestedUid ? statePreferences : requestedLocalPreferences;
+}
+
+export function markUserPreferencesPending(profileId: string | null | undefined): void {
+  if (!profileId) return;
+  try { localStorage.setItem(userPreferencesPendingKey(profileId), '1'); } catch {}
+}
+
+export function clearPendingUserPreferences(profileId: string | null | undefined): void {
+  if (!profileId) return;
+  try { localStorage.removeItem(userPreferencesPendingKey(profileId)); } catch {}
+}
+
+/** Merge remote settings normally, or prefer the local snapshot while it has unsynced edits. */
+export function mergeUserPreferences(
+  local: UserPreferences,
+  remote: Partial<UserPreferences>,
+  preferLocal = false,
+): UserPreferences {
+  const base = preferLocal ? remote : local;
+  const overlay = preferLocal ? local : remote;
+  return normalizeUserPreferences({
+    ...base,
+    ...overlay,
+    notifications: { ...DEFAULT_USER_PREFERENCES.notifications, ...base.notifications, ...(overlay.notifications || {}) },
+    chat: { ...base.chat, ...(overlay.chat || {}) },
+    quietHours: { ...base.quietHours, ...(overlay.quietHours || {}) },
+    island: { ...base.island, ...(overlay.island || {}) },
+  });
+}
+
 function isClockValue(value: unknown): value is string {
   return typeof value === 'string' && /^(?:[01]\d|2[0-3]):[0-5]\d$/.test(value);
 }
@@ -141,15 +187,20 @@ export function useUserPreferences(profileId: string | null | undefined): UserPr
       return;
     }
     let active = true;
+    let revision = 0;
     const cacheKey = 'qznb_user_preferences_v1:' + profileId;
-    const syncLocal = () => setPreferences(readCachedUserPreferences(profileId));
+    const syncLocal = () => {
+      revision += 1;
+      setPreferences(readCachedUserPreferences(profileId));
+    };
     const syncCloud = async () => {
+      const requestRevision = ++revision;
       const { data, error } = await (supabase as any)
         .from('profile_notification_preferences')
         .select('preferences')
         .eq('profile_id', profileId)
         .maybeSingle();
-      if (!active || error || !data?.preferences) return;
+      if (!active || error || !data?.preferences || requestRevision !== revision || hasPendingUserPreferences(profileId)) return;
       const next = normalizeUserPreferences(data.preferences);
       try { localStorage.setItem(cacheKey, JSON.stringify(next)); } catch {}
       setPreferences(next);

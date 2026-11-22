@@ -36,6 +36,7 @@ import AdminApprovalCenter from '../components/AdminApprovalCenter';
 import AdminLoveWall from '../components/AdminLoveWall';
 import AdminReviewCenter from '../components/AdminReviewCenter';
 import AdminAppCenter from '../components/AdminAppCenter';
+import AdminAppClickStats from '../components/AdminAppClickStats';
 import AdminAuthorizedRequests from '../components/AdminAuthorizedRequests';
 import AdminSongWall from '../components/AdminSongWall';
 import AdminMusicDownloads from '../components/AdminMusicDownloads';
@@ -65,6 +66,7 @@ const TABS_ALL: [string, string, boolean][] = [
   ['backups', '备份与恢复', true],
   ['release', '版本发布', true],
   ['appCenter', '应用管理', false],
+  ['appClickStats', '软件点击统计', false],
   ['accounts', '账号管理', true],
   ['invite', '邀请码', false],
   ['moderate', '审核', false],
@@ -286,6 +288,7 @@ export default function Admin({ verifiedRole }: { verifiedRole: 'admin' | 'super
           {tab === 'backups' && isSuper && <AdminBackupCenter setMsg={setMsg} />}
           {tab === 'release' && isSuper && <AdminReleaseCenter />}
           {tab === 'appCenter' && <AdminAppCenter setMsg={setMsg} />}
+          {tab === 'appClickStats' && <AdminAppClickStats setMsg={setMsg} />}
           {tab === 'accounts' && isSuper && <AdminAccountManagement me={me} isSuper={isSuper} setMsg={setMsg} extQ={q0} />}
           {tab === 'moderate' && <Moderate setMsg={setMsg} />}
           {tab === 'reviewCenter' && <AdminReviewCenter me={me} isSuper={isSuper} setMsg={setMsg} go={switchTab} />}

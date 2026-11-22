@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
+import { logAppClick } from '../lib/appClicks';
 import { card, h3, mut } from '../pages/admin/shared';
 import AdminSoftwareOperations from './AdminSoftwareOperations';
 import { confirmDialog } from '../lib/dialog';
@@ -120,6 +121,12 @@ export default function AdminAppCenter({ setMsg }: { setMsg: (s: string) => void
   async function copyUrl() {
     const url = (saved.app_apk_url ?? '').trim();
     if (!url) { setMsg('还没填下载地址。'); return; }
+    // 管理员复制一次下载链接记一次（软件点击统计）；扫码本身无法统计，
+    // 只能记管理员点开二维码那一下，见下面二维码 onClick。
+    logAppClick('main', 'copy_link', 'admin_app_center', {
+      appVersionName: saved.app_version_name,
+      appVersionCode: saved.app_version_code ? Number(saved.app_version_code) : undefined,
+    });
     try {
       await navigator.clipboard.writeText(url);
       toast.success('下载链接已复制，去班群粘贴发送即可。');
@@ -226,9 +233,14 @@ export default function AdminAppCenter({ setMsg }: { setMsg: (s: string) => void
             <img
               src={`https://api.qrserver.com/v1/create-qr-code/?size=176x176&margin=8&data=${encodeURIComponent(savedUrl)}`}
               alt="应用下载二维码"
+              title="点一下记一次二维码查看（软件点击统计）"
               width={176}
               height={176}
-              style={{ borderRadius: 12, border: '1px solid #e5eaf2', background: '#fff' }}
+              style={{ borderRadius: 12, border: '1px solid #e5eaf2', background: '#fff', cursor: 'pointer' }}
+              onClick={() => logAppClick('main', 'qr_view', 'admin_app_center', {
+                appVersionName: saved.app_version_name,
+                appVersionCode: saved.app_version_code ? Number(saved.app_version_code) : undefined,
+              })}
             />
           )}
         </div>

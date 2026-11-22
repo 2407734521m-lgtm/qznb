@@ -26,12 +26,12 @@ type GuestSettings = Record<string, string>;
 
 export default function AdminGuestAccess({ setMsg }: { setMsg: (message: string) => void }) {
   const [settings, setSettings] = useState<GuestSettings>({
-    guest_browse_enabled: 'true',
-    guest_entry_visible: 'true',
+    guest_browse_enabled: 'false',
+    guest_entry_visible: 'false',
     guest_session_minutes: '60',
     guest_session_epoch: '1',
-    guest_show_love_wall: 'true',
-    guest_show_announcements: 'true',
+    guest_show_love_wall: 'false',
+    guest_show_announcements: 'false',
     guest_schedule: '{"enabled":false,"start_at":null,"end_at":null}',
   });
   const [scheduleStart, setScheduleStart] = useState('');
@@ -141,6 +141,7 @@ export default function AdminGuestAccess({ setMsg }: { setMsg: (message: string)
           <span style={{ ...mut, fontSize: 11 }}>只读访问 · 不计入成员</span>
         </div>
         <p style={mut}>游客无需邮箱和密码，只能查看你允许公开的内容。昵称只保存在当前浏览器标签页，不创建正式账号，也不会计入成员人数或在线成员统计。</p>
+        <p style={{ ...mut, fontSize: 11.5, margin: '6px 0 0' }}>未单独设置过的开关按「关闭」生效；上面显示的就是当前实际生效的值。</p>
         {loading ? <p style={mut}>正在读取游客设置…</p> : (
           <>
             <div style={{ display: 'grid', gap: 9 }}>

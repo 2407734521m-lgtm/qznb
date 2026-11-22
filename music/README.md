@@ -4,15 +4,15 @@ This folder prepares the independent `music.qianzhi.pw` service. It pins Folia a
 
 ## Runtime base
 
-- Folia: `v0.7.27`
-- Pinned commit: `4a545c96229664c0e07d4fb04971264e8d75fdd2`
+- Folia: `v0.7.29`
+- Pinned commit: `4c4c3c3befee3f3305832fff958f14167e8d7537`
 - Location: `music/folia` Git submodule
 - Build: Node.js 24+
 - Runtime: Cloudflare Workers + Static Assets
 - Isolated worker name: `qianzhi-music`
 - Custom domain: `music.qianzhi.pw`
 
-The pin was advanced after reviewing the v0.7.27 release notes and comparing it with v0.7.26. The player capsule file used by the Lark gesture overlay is unchanged in this release-to-release diff; the overlay will be validated again by CI.
+The pin was advanced after reviewing the v0.7.29 release notes and comparing it with v0.7.28: Lattice radio wall, Metaphor lyric style, shuffle options and the line-level TTML fix. The settings touch-targets overlay needed anchor updates for this release (the settings search field moved to `SettingsSearchField.tsx`); the overlay will be validated again by CI.
 
 See [Folia upstream and license](FOLIA_UPSTREAM.md) and [deployment instructions](DEPLOYMENT.md).
 

@@ -25,7 +25,7 @@ import { createVoiceRecordingIslandActivity } from './components/QianzhiIslandVo
 import { createPausableDismissTimer } from './components/islandTaskDismissTimer';
 import type { MediaDownloadIslandEvent, MediaUploadIslandEvent } from './lib/media';
 import { lazyWithRetry } from './lib/lazyWithRetry';
-import { preloadRoute } from './lib/routePreload';
+import { preloadRoute, preloadRouteData, warmRoute } from './lib/routePreload';
 // 只在特定时刻才出现的覆盖层/弹窗：懒加载，不占首屏包体积。
 // （WelcomeOverlay、GuideCarousel、WallpaperOnboarding、LoginSuccessOverlay、
 //  BroadcastPopup、AppAnnouncementDialog 首次打开时才下载对应分包。）
@@ -197,8 +197,8 @@ async function fetchMessageUnread(client: typeof supabase, uid: string): Promise
 
 // 切页回顶：点链接进新页面时回到顶部；浏览器前进/后退（POP）时保持原来的滚动位置，
 // 比如从动态详情返回列表时还停在刚才那条附近。没有这个，/feed、/me 等页从别处跳过来会停在半中间。
-function ScrollToTopOnPush() {
-  const { pathname } = useLocation();
+// 回顶跟显示中的路由走（不是地址刚变的瞬间），否则旧页还在屏幕上时就会先被顶到顶部。
+function ScrollToTopOnPush({ pathname }: { pathname: string }) {
   const navType = useNavigationType();
   useEffect(() => {
     if (navType !== 'POP') window.scrollTo(0, 0);
@@ -376,6 +376,38 @@ function Shell() {
   const loc = useLocation();
   const currentLocationRef = useRef({ pathname: loc.pathname, search: loc.search });
   currentLocationRef.current = { pathname: loc.pathname, search: loc.search };
+  // 切页保留旧内容：地址变了先不换路由，等目标分块 + 首屏数据都就绪再切过去。
+  // 等待期间旧页完整留在屏幕上，只在顶部露一条细进度条，不闪整页骨架。
+  // 同一路径只换了 state（搜索、聚焦某条帖子）：页已挂载，直接切。
+  // 最多等 1200ms，超时也切（走原来的 Suspense 逻辑），不把用户卡在旧页上。
+  const displayLocRef = useRef(loc);
+  const [displayLoc, setDisplayLoc] = useState(loc);
+  const [routePending, setRoutePending] = useState(false);
+  useEffect(() => {
+    if (loc === displayLocRef.current) return;
+    if (loc.pathname === displayLocRef.current.pathname) {
+      displayLocRef.current = loc;
+      setDisplayLoc(loc);
+      return;
+    }
+    let cancelled = false;
+    setRoutePending(true);
+    const target = loc;
+    const switchToTarget = () => {
+      if (cancelled) return;
+      displayLocRef.current = target;
+      setDisplayLoc(target);
+      setRoutePending(false);
+    };
+    const timer = window.setTimeout(switchToTarget, 1200);
+    // 分块和数据一起等：只等分块不等数据的话，页一挂上还是骨架。
+    // 数据已在缓存里时立刻兑现；分块/数据任一失败也兑现，不卡切页。
+    void Promise.all([warmRoute(target.pathname), preloadRouteData(target.pathname)]).then(() => {
+      window.clearTimeout(timer);
+      switchToTarget();
+    });
+    return () => { cancelled = true; window.clearTimeout(timer); };
+  }, [loc]);
   // 安卓应用更新：应用壳在 UA 里带 QianzhiApp/版本名 (序号)，与后台最新版本比对后弹更新框。
   // 1.0 旧壳没有这个标识，但系统 WebView 的 UA 带「; wv)」记号，detectInstalledApp 会把它按 1.0 认出来。
   const [appUpdate, setAppUpdate] = useState<any>(null);
@@ -573,7 +605,21 @@ function Shell() {
     const target = (event.target as HTMLElement | null)?.closest?.('.qz-floating-dock-tab');
     const label = target?.getAttribute('aria-label');
     const tab = TABS.find((t) => t.label === label);
-    if (tab) preloadRoute(tab.to);
+    if (tab) {
+      preloadRoute(tab.to);
+      preloadRouteData(tab.to);
+    }
+  };
+  // 顶栏导航预热：手指按下（或桌面悬停）时就开始取目标页的分块和首屏数据，
+  // 切页时直接命中缓存。只认站内 hash 链接，管理后台外链不碰。
+  const preloadTopNavFromEvent = (event: ReactPointerEvent<HTMLElement> | ReactMouseEvent<HTMLElement>) => {
+    const anchor = (event.target as HTMLElement | null)?.closest?.('a[href^="#/"]');
+    const href = anchor?.getAttribute('href');
+    if (!href) return;
+    const path = href.slice(1);
+    if (!path.startsWith('/')) return;
+    preloadRoute(path);
+    preloadRouteData(path);
   };
   // 搜索入口已从 dock 移到首页：首页搜索条发这个事件打开全站搜索。
   useEffect(() => {
@@ -1119,6 +1165,10 @@ function Shell() {
   // 公共站点配置由受限 RPC 返回：只暴露访客首页所需字段，不开放成员表读取。
   const [siteConfig, setSiteConfig] = useState<any>(null);
   const [siteConfigLoading, setSiteConfigLoading] = useState(true);
+  // 配置拿到过一次之后，切页/定时刷新只在后台静默更新，不再亮整页骨架。
+  // 之前这里每次 pathname 变化都先 setSiteConfigLoading(true)，切页必闪白屏，
+  // 再加上分块与数据等待，就是基线里首页→动态 5.1 秒、切页 2.5 秒骨架的根因之一。
+  const siteConfigReadyRef = useRef(false);
   const [showLogin, setShowLogin] = useState(false);
   const [guestEntryOpen, setGuestEntryOpen] = useState(false);
   const [maintenanceAccess, setMaintenanceAccess] = useState(false);
@@ -1156,13 +1206,15 @@ function Shell() {
   useEffect(() => {
     let alive = true;
     let inFlight = false;
-    setSiteConfigLoading(true);
+    // 只有首屏第一次拉配置才亮骨架；之后切页/定时刷新走后台静默更新，
+    // 否则每次切页整站都会先闪成 DelayedPageSkeleton 再回来。
+    if (!siteConfigReadyRef.current) setSiteConfigLoading(true);
     const refreshSiteConfig = async (initial = false) => {
       if (inFlight) return;
       inFlight = true;
       try {
         const { data, error } = await supabase.rpc('public_guest_landing');
-        if (alive && !error) setSiteConfig(data ?? null);
+        if (alive && !error) { setSiteConfig(data ?? null); siteConfigReadyRef.current = true; }
       } catch {
         // 保留上一次成功配置；短暂网络故障不应让维护页闪烁。
       } finally {
@@ -1423,7 +1475,7 @@ function Shell() {
 
   return (
     <LiquidGlassScene className="qz-ios26-scene">
-      <ScrollToTopOnPush />
+      <ScrollToTopOnPush pathname={displayLoc.pathname} />
       <>
       <div className="glow" />
       <div className="app-bg qz-ios26-backdrop" style={wp.kind === 'grad'
@@ -1472,7 +1524,7 @@ function Shell() {
           display: 'block',
         }}
       >
-      <nav className="topnav">
+      <nav className="topnav" onPointerDown={preloadTopNavFromEvent} onMouseOver={preloadTopNavFromEvent}>
         <span className="links">
           {TABS.map(t => (
             <NavLink key={t.to} to={t.to} className={isTabActive(t.to, loc.pathname) ? 'on' : ''}>{t.label}</NavLink>
@@ -1487,15 +1539,16 @@ function Shell() {
       ) : null}
 
       <div className={isChatPage ? "wrap chat-shell" : loc.pathname === '/friends' ? "wrap inbox-shell" : "wrap"}>
+        {routePending && <div className="qz-route-progress" role="status" aria-label="正在打开…" />}
         <AnimatePresence mode="wait">
-          <motion.div key={loc.pathname}
+          <motion.div key={displayLoc.pathname}
             className={isImmersivePage ? "qz-route-transition qz-route-transition--fullscreen" : "qz-route-transition"}
             initial={reduce ? false : isImmersivePage ? { opacity: 0 } : { opacity: 0, y: 12, scale: 0.992 }}
             animate={isImmersivePage ? { opacity: 1 } : { opacity: 1, y: 0, scale: 1 }}
             exit={reduce ? { opacity: 1 } : isImmersivePage ? { opacity: 0 } : { opacity: 0, y: -7, scale: 0.996 }}
             transition={{ duration: reduce ? 0 : DUR.base + 0.06, ease: EASE }}>
-            <Suspense fallback={<RouteTransitionSkeleton pathname={loc.pathname} />}>
-            <Routes location={loc}>
+            <Suspense fallback={<RouteTransitionSkeleton pathname={displayLoc.pathname} />}>
+            <Routes location={displayLoc}>
               <Route path="/" element={<Navigate to="/home" replace />} />
               <Route path="/board" element={<Board />} />
               <Route path="/explore" element={<Explore />} />
@@ -1509,8 +1562,8 @@ function Shell() {
               <Route path="/questions/:id" element={<QuestionBox />} />
               <Route path="/songs" element={<SongWall />} />
               <Route path="/daily" element={<Daily
-                searchQuery={typeof (loc.state as any)?.searchQuery === 'string' ? (loc.state as any).searchQuery : ''}
-                focusPostId={typeof (loc.state as any)?.focusPostId === 'number' ? (loc.state as any).focusPostId : null}
+                searchQuery={typeof (displayLoc.state as any)?.searchQuery === 'string' ? (displayLoc.state as any).searchQuery : ''}
+                focusPostId={typeof (displayLoc.state as any)?.focusPostId === 'number' ? (displayLoc.state as any).focusPostId : null}
               />} />
               <Route path="/members/:id" element={<Member />} />
               <Route path="/feed" element={<Discover />} />

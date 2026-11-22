@@ -10,6 +10,7 @@ import BlurImg from '../components/fx/BlurImg';
 import SmoothProgress from '../components/fx/SmoothProgress';
 import { FeedSkeleton, useDelayedLoading } from '../components/fx/Skeleton';
 import { fetchReviewEstimates, estimateText, type ReviewEstimates } from '../lib/reviewEstimate';
+import { fetchRouteData, invalidateRouteDataCache, prefetchRouteData } from '../lib/routeDataCache';
 import OptionSheet from '../components/OptionSheet';
 import Daily from './Daily';
 
@@ -30,6 +31,26 @@ const ALLOWED_MEDIA_TYPES = new Set([
 const MAX_VIDEOS = 3;
 
 const categories = ['暗恋心事', '认真表白', '感谢与祝福', '毕业寄语'];
+
+// 公开表白列表缓存：切页回来直接显示，不用等重拉；本地投稿/删除后清掉。
+// 只缓存公开列表（love_wall_published），自己的投稿每次照常拉。
+const LOVE_WALL_KEY = 'love-wall-published';
+
+async function queryLoveWallPublished(): Promise<PublicPost[]> {
+  const { data, error } = await supabase.rpc('love_wall_published');
+  if (error) throw error;
+  return (data || []) as PublicPost[];
+}
+
+/** 导航预取用：Dock/顶栏按下时先把公开列表拉进缓存，切页挂载直接命中。 */
+export function prefetchLoveWallData(): void {
+  prefetchRouteData(LOVE_WALL_KEY, queryLoveWallPublished);
+}
+
+/** 本地投稿/删除后清掉，下一拉取回最新。 */
+export function invalidateLoveWallCache(): void {
+  invalidateRouteDataCache(LOVE_WALL_KEY);
+}
 const catColor: Record<string, { bg: string; fg: string }> = {
   '暗恋心事': { bg: '#fdeef3', fg: '#c2437b' },
   '认真表白': { bg: '#fdecec', fg: '#c22f3d' },
@@ -96,9 +117,13 @@ export default function LoveWall() {
   const fileRef = useRef<HTMLInputElement>(null);
 
   async function load() {
-    const { data, error } = await supabase.rpc('love_wall_published');
-    if (error) { setNotice('暂时无法加载表白墙，请稍后再试。'); setLoading(false); return; }
-    const pubList = (data || []) as PublicPost[];
+    let pubList: PublicPost[];
+    try {
+      // 公开列表走 5 分钟内存缓存：切页回来直接显示，不等重拉。
+      pubList = await fetchRouteData(LOVE_WALL_KEY, queryLoveWallPublished);
+    } catch {
+      setNotice('暂时无法加载表白墙，请稍后再试。'); setLoading(false); return;
+    }
     setPosts(pubList);
     let mineList: MyPost[] = [];
     if (session) {
@@ -279,6 +304,8 @@ export default function LoveWall() {
       }
 
       setMyPosts(prev => prev.filter(item => item.id !== p.id));
+      // 公开列表缓存里还有这条，删掉它，下次进表白墙不再出现。
+      invalidateLoveWallCache();
       setMediaByPost(prev => {
         const next = { ...prev };
         delete next[p.id];
@@ -382,6 +409,7 @@ export default function LoveWall() {
       setNotice(attachFailed
         ? (cleanupFailed ? '投稿已提交，但附件关联失败且部分文件未清理，请联系管理员。' : '投稿已提交，附件没有关联成功，已清理未关联文件。')
         : recipientId ? '已发布，现在就能在表白墙看到，收件人会收到匿名通知。' : '已发布，现在就能在表白墙看到。');
+      invalidateLoveWallCache();
       await load();
     } catch (err) {
       // 失败发生在附件记录提交之前时，清理已上传的文件，避免产生孤立对象。

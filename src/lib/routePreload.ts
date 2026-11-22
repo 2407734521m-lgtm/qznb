@@ -48,6 +48,43 @@ export const ROUTE_PRELOAD_ENTRIES: PreloadEntry[] = [
   { pattern: /^\/explore$/, key: 'explore', load: () => import('../pages/Explore') },
   { pattern: /^\/feed$/, key: 'discover', load: () => import('../pages/Discover') },
   { pattern: /^\/me$/, key: 'me', load: () => import('../pages/MeHub') },
+  { pattern: /^\/love-wall$/, key: 'love-wall', load: () => import('../pages/LoveWall') },
+  { pattern: /^\/board$/, key: 'board', load: () => import('../pages/Board') },
+  { pattern: /^\/daily$/, key: 'daily', load: () => import('../pages/Daily') },
+  { pattern: /^\/topics$/, key: 'topics', load: () => import('../pages/Topics') },
 ];
 
 export const { preload: preloadRoute } = createRoutePreloader(ROUTE_PRELOAD_ENTRIES);
+
+/**
+ * 等目标分块暖好再切页用：返回一个 promise，分块已在缓存里时立刻兑现，
+ * 不在预热表里时也立刻兑现（调用方直接切页，走原来的 Suspense 逻辑）。
+ * 失败也兑现，不让一次失败的分块把用户卡在旧页上。
+ */
+export function warmRoute(pathname: string): Promise<void> {
+  const entry = ROUTE_PRELOAD_ENTRIES.find((item) => item.pattern.test(pathname));
+  if (!entry) return Promise.resolve();
+  return entry.load().then(
+    () => undefined,
+    () => undefined,
+  );
+}
+
+// 导航数据预取：手指按下/悬停时先把目标页的首屏数据拉进缓存，
+// 切页挂载直接命中，不用等挂载后再从零拉数据。失败静默，挂载时正常重拉。
+// 动态 import 与页面里已有的 import 解析到同一分块，不会多下一份代码。
+// 返回的 promise 在预取落定后兑现（未知路径立刻兑现），供切页等待用：
+// 只等分块不等数据的话，页一挂上还是骨架；分块+数据一起等满，旧页才能
+// 一直留到新页真正能画出来为止（调用方另有 1200ms 上限兜底）。
+export function preloadRouteData(pathname: string): Promise<void> {
+  if (pathname === '/feed') {
+    return import('../components/PostList')
+      .then((m) => m.prefetchFeedFirstPage('feed', ''))
+      .then(() => undefined, () => undefined);
+  } else if (pathname === '/love-wall') {
+    return import('../pages/LoveWall')
+      .then((m) => m.prefetchLoveWallData())
+      .then(() => undefined, () => undefined);
+  }
+  return Promise.resolve();
+}

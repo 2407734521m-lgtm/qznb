@@ -226,3 +226,11 @@
 @media (prefers-reduced-motion: reduce) {
   .fx-border-beam { display: none; }
 }
+
+/* 切页进度条：旧内容保留在屏等待新页时，顶部一条细线表示正在切页；只动 transform。 */
+.qz-route-progress { position: fixed; top: 0; left: 0; right: 0; height: 2px; z-index: 80; overflow: hidden; pointer-events: none; }
+.qz-route-progress::before { content: ""; display: block; height: 100%; width: 34%; background: #22314a; animation: qz-route-progress-slide 1.1s ease-in-out infinite; }
+@keyframes qz-route-progress-slide { 0% { transform: translateX(-100%); } 100% { transform: translateX(320%); } }
+@media (prefers-reduced-motion: reduce) {
+  .qz-route-progress::before { animation: none; width: 100%; }
+}

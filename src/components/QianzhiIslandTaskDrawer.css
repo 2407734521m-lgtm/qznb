@@ -32,13 +32,14 @@
   justify-content: center;
   gap: 0;
   padding: 0;
-  border: 1px solid rgba(255,255,255,.16);
-  border-radius: 50%;
-  color: rgba(255,255,255,.96);
-  background: rgba(18,20,25,.88);
-  box-shadow: 0 4px 15px rgba(0,0,0,.2), inset 0 1px rgba(255,255,255,.1);
-  -webkit-backdrop-filter: blur(22px) saturate(1.5);
-  backdrop-filter: blur(22px) saturate(1.5);
+  border: 0;
+  border-radius: 0;
+  color: #596579;
+  background: transparent;
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  filter: none;
   transform: translateY(-50%);
   pointer-events: auto;
   cursor: pointer;
@@ -92,7 +93,8 @@
 
 .qz-island-task-trigger:active {
   transform: translateY(-50%) scale(.92);
-  background: rgba(38,41,48,.96);
+  background: transparent;
+  box-shadow: none;
 }
 
 .qz-island-task-trigger:focus-visible,

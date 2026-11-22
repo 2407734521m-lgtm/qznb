@@ -3274,6 +3274,10 @@ export type Database = {
           status: string
         }[]
       }
+      notify_post_author: {
+        Args: { p_body: string; p_link: string; p_post_id: number; p_title: string }
+        Returns: number
+      }
       public_admin_app_update: { Args: never; Returns: Json }
       public_anonymous_question_answers: {
         Args: { p_profile_id: string }

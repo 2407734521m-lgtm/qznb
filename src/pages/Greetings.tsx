@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
+import { fetchAllMembers, fetchMembersByIds } from '../lib/memberDirectory';
 import { useAuth } from '../auth';
 import BackButton from '../components/BackButton';
 import OptionSheet from '../components/OptionSheet';
@@ -27,14 +28,14 @@ export default function Greetings() {
     setList(rows);
     const ids = [...new Set(rows.flatMap(r => [r.author_id, r.target_id]).filter((id): id is string => typeof id === 'string' && id.length > 0))];
     if (ids.length) {
-      const { data: ps } = await supabase.from('profiles').select('id, display_name, username').in('id', ids);
+      // R1：普通成员直读他人 profiles 行会被 RLS 静默过滤，改走 member_directory RPC。
+      const found = await fetchMembersByIds(ids);
       const m: Record<string, string> = {};
-      (ps ?? []).forEach((p: any) => { m[p.id] = p.display_name || p.username; });
+      Object.values(found).forEach((p) => { m[p.id] = p.display_name || p.username; });
       setNames(m);
     }
-    const { data: ms } = await supabase.from('profiles')
-      .select('id, display_name, username').eq('joined', true).order('created_at', { ascending: false }).limit(200);
-    setMembers(ms ?? []);
+    // R1：成员选择器同上，直读 joined 成员列表只剩自己，改走 member_directory RPC。
+    setMembers(await fetchAllMembers(200));
     setLoading(false);
   }
   useEffect(() => { load(); }, []);

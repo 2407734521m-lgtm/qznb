@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+import { fetchMembersByIds } from '../lib/memberDirectory';
 import BackButton from '../components/BackButton';
 import { useDelayedLoading } from '../components/fx/Skeleton';
 
@@ -74,11 +75,10 @@ export default function Topics() {
         setPosts(rows);
         const authorIds = [...new Set(rows.map(post => post.author_id).filter(Boolean))];
         if (authorIds.length) {
-          const { data: people } = await supabase.from('profiles')
-            .select('id, username, display_name')
-            .in('id', authorIds);
+          // R1：普通成员直读他人 profiles 行会被 RLS 静默过滤，改走 member_directory RPC。
+          const found = await fetchMembersByIds(authorIds);
           if (active) {
-            setProfiles(Object.fromEntries(((people ?? []) as TopicProfile[]).map(person => [person.id, person])));
+            setProfiles(Object.fromEntries(Object.values(found).map(person => [person.id, { id: person.id, username: person.username, display_name: person.display_name ?? null }])));
           }
         } else if (active) {
           setProfiles({});

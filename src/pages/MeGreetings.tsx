@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+import { fetchMembersByIds } from '../lib/memberDirectory';
 import { useAuth } from '../auth';
 import BackButton from '../components/BackButton';
 import { confirmDialog } from '../lib/dialog';
@@ -24,9 +25,10 @@ export default function MeGreetings() {
     setList(rows);
     const ids = [...new Set(rows.map(r => r.target_id).filter((id): id is string => typeof id === 'string' && id.length > 0))];
     if (ids.length) {
-      const { data: ps } = await supabase.from('profiles').select('id, display_name, username').in('id', ids);
+      // R1：普通成员直读他人 profiles 行会被 RLS 静默过滤，改走 member_directory RPC。
+      const found = await fetchMembersByIds(ids);
       const m: Record<string, string> = {};
-      (ps ?? []).forEach((p: any) => { m[p.id] = p.display_name || p.username; });
+      Object.values(found).forEach((p) => { m[p.id] = p.display_name || p.username; });
       setNames(m);
     }
     setLoading(false);

@@ -7,7 +7,7 @@ The music hostname is isolated from the existing site:
 - Hosting runtime: Cloudflare Workers + Static Assets
 - Production Worker: `qianzhi-music`
 - Preview Worker: `qianzhi-music-preview`
-- Source: Folia `v0.7.27`, pinned in `music/folia`
+- Source: Folia `v0.7.29`, pinned in `music/folia`
 
 ## Build locally
 

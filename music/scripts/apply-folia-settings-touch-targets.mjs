@@ -42,18 +42,24 @@ await write(tabsPath, tabs);
 const sideListPath = resolve(root, 'src/components/modal/settings/navigation/SettingsSideList.tsx');
 let sideList = await read(sideListPath);
 sideList = replaceOnce(sideList,
-    'className={`flex h-8 shrink-0 items-center gap-2.5 whitespace-nowrap rounded-lg px-2.5 text-left text-[13px] transition-colors md:w-full',
-    'className={`flex h-8 pointer-coarse:h-11 shrink-0 items-center gap-2.5 whitespace-nowrap rounded-lg px-2.5 text-left text-[13px] transition-colors md:w-full',
+    'className={`flex h-8 w-full shrink-0 items-center gap-2.5 whitespace-nowrap rounded-lg px-2.5 text-left text-[13px] transition-colors ',
+    'className={`flex h-8 pointer-coarse:h-11 w-full shrink-0 items-center gap-2.5 whitespace-nowrap rounded-lg px-2.5 text-left text-[13px] transition-colors ',
     'settings side-list row');
-sideList = replaceOnce(sideList,
-    'className="flex h-8 shrink-0 items-center gap-2 rounded-lg border border-transparent bg-[var(--st-fill)] px-2.5 text-[color:var(--st-t3)] transition-colors focus-within:border-[var(--st-line2)]"',
-    'className="flex h-8 pointer-coarse:h-11 shrink-0 items-center gap-2 rounded-lg border border-transparent bg-[var(--st-fill)] px-2.5 text-[color:var(--st-t3)] transition-colors focus-within:border-[var(--st-line2)]"',
+await write(sideListPath, sideList);
+
+// 0.7.29 moved the settings search field (and its clear button) out of SettingsSideList.tsx
+// into its own SettingsSearchField.tsx, shared by the wide side list and the compact top bar.
+const searchFieldPath = resolve(root, 'src/components/modal/settings/navigation/SettingsSearchField.tsx');
+let searchField = await read(searchFieldPath);
+searchField = replaceOnce(searchField,
+    'className={`flex h-8 items-center gap-2 rounded-lg border border-transparent bg-[var(--st-fill)] px-2.5 text-[color:var(--st-t3)] transition-colors focus-within:border-[var(--st-line2)] ${className}`}',
+    'className={`flex h-8 pointer-coarse:h-11 items-center gap-2 rounded-lg border border-transparent bg-[var(--st-fill)] px-2.5 text-[color:var(--st-t3)] transition-colors focus-within:border-[var(--st-line2)] ${className}`}',
     'settings search field');
-sideList = replaceOnce(sideList,
+searchField = replaceOnce(searchField,
     'className="shrink-0 transition-colors hover:text-[color:var(--st-t1)]"',
     'className="grid h-8 w-8 shrink-0 place-items-center transition-colors hover:text-[color:var(--st-t1)] pointer-coarse:h-11 pointer-coarse:w-11"',
     'settings search clear button');
-await write(sideListPath, sideList);
+await write(searchFieldPath, searchField);
 
 const buttonPath = resolve(root, 'src/components/modal/settings/kit/Button.tsx');
 let button = await read(buttonPath);

@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import { useReducedMotion } from 'framer-motion';
 import BlurImg from './fx/BlurImg';
+import { twimgVariants } from '../lib/responsiveImage';
 
 /** 动态配图是视频（.mp4/.webm/.mov/.m4v，或 video.twimg.com 直链）时按动图处理：静音循环自动播放。 */
 export function isVideoUrl(url?: string | null): boolean {
@@ -47,5 +48,16 @@ export default function PostMedia({ url, className = '', style }: {
       />
     );
   }
-  return <BlurImg className={className || 'bdimg'} src={url} alt="" style={style} />;
+  // 推特原图直链按显示尺寸取小图：卡片手机上只显示约 332px，没必要拉 1200px 原图。
+  const variants = twimgVariants(url);
+  return (
+    <BlurImg
+      className={className || 'bdimg'}
+      src={variants?.src ?? url}
+      srcSet={variants?.srcSet}
+      sizes={variants?.sizes}
+      alt=""
+      style={style}
+    />
+  );
 }

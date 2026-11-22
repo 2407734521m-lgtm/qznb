@@ -833,6 +833,22 @@
     }).catch(function () { /* 记录失败不影响下载本身 */ });
   }
 
+  // 软件点击统计：更新卡片弹出来、点立即更新、点忽略各记一次，走同源代理
+  // /api/dl/log-app-click（与下载日志同一路，不直连 supabase.co）。
+  // 失败静默，不影响更新本身。
+  function logAppClick(event, versionName, versionCode) {
+    var body = { p_app: 'musicdl', p_event: event, p_source: 'update_dialog', p_app_version_name: versionName || '', p_app_version_code: versionCode || null, p_client_platform: 'musicdl', p_device_label: deviceLabel(), p_user_agent: String(navigator.userAgent || '').slice(0, 500) };
+    return ensureSiteToken().then(function () {
+      var headers = { 'Content-Type': 'application/json' };
+      if (siteSession && siteSession.access_token) headers['Authorization'] = 'Bearer ' + siteSession.access_token;
+      return fetch(API + '/api/dl/log-app-click', {
+        method: 'POST',
+        headers: headers,
+        body: JSON.stringify(body)
+      });
+    }).catch(function () { /* 记录失败不影响更新本身 */ });
+  }
+
   function setTrackStatus(id, text) {
     var el = document.querySelector('[data-stat="' + id + '"]');
     if (el) el.textContent = text || '';
@@ -1434,6 +1450,7 @@
       go.onclick = function () {
         go.disabled = true;
         go.textContent = '正在下载…';
+        logAppClick('update_click', info.versionName, latestCode);
         try {
           window.MusicDL.downloadUpdate(apkUrl);
           hideUpdateModal();
@@ -1443,12 +1460,14 @@
         }
       };
       var ignore = function () {
+        logAppClick('update_ignored', info.versionName, latestCode);
         try { window.localStorage.setItem(UPDATE_IGNORED_KEY, String(latestCode)); } catch (e) {}
         hideUpdateModal();
       };
       $('updateIgnoreBtn').onclick = ignore;
       $('updateCloseBtn').onclick = ignore;
       $('updateModal').classList.add('open');
+      logAppClick('update_prompt_shown', info.versionName, latestCode);
     }).catch(function () { /* 拉不到版本文件就不弹，下次打开再查 */ });
   }
 

@@ -60,7 +60,8 @@ function areChatReactionsUnchanged(previous: ChatReaction[], next: ChatReaction[
   if (previous === next) return true;
   if (previous.length !== next.length) return false;
   const keyOf = (row: ChatReaction) => `${row.message_id}:${row.profile_id}:${row.reaction}`;
-  const indexed = new Map(previous.map(row => [keyOf(row), row.created_at]));
+  const indexed = new Map<string, string>();
+  for (const row of previous) indexed.set(keyOf(row), row.created_at);
   return next.every(row => indexed.get(keyOf(row)) === row.created_at);
 }
 type ForwardDestination = {
@@ -558,6 +559,7 @@ export default function Chat() {
 
   useEffect(() => {
     prevMsgsLenRef.current = 0;
+    rowRefCallbacksRef.current.clear();
     const activeTouch = messageTouchRef.current;
     if (activeTouch) {
       activeTouch.element.classList.remove('im-swipe-active');

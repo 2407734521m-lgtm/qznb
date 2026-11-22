@@ -133,7 +133,7 @@ export default function Home() {
     setLoadError(null);
     (async () => {
       try {
-        const { data: ss, error: settingsError } = await supabase.from('site_settings').select('key, value');
+        const { data: ss, error: settingsError } = await supabase.from('site_settings').select('key, value').in('key', ['site_title', 'site_subtitle']);
         if (!live) return;
         let nextTitle = BRAND_NAME;
         let nextSubtitle = BRAND_SUBTITLE;

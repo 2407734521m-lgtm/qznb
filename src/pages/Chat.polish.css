@@ -4878,3 +4878,202 @@
   color: rgba(255,255,255,.88) !important;
   text-shadow: 0 1px 9px rgba(0,0,0,.34) !important;
 }
+
+
+/* 2026-11-22: compact mobile conversation, real wallpaper tone and low-cost scrolling.
+   These final scoped rules replace the accumulated header/composer overrides above. */
+.im-page .im-bubble {
+  box-shadow: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+.im-page .im-message-footer,
+.im-page .im-day,
+.im-page .im-typing {
+  box-shadow: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  text-shadow: none !important;
+}
+.im-page .im-vrow-fresh .im-row:not(.im-row-out):not(.im-row-static) {
+  animation: im-vrow-fade .18s ease-out both !important;
+}
+
+@media (max-width: 600px) {
+  .im-page .im-head {
+    flex: 0 0 160px !important;
+    min-height: 160px !important;
+    height: 160px !important;
+    padding: 0 !important;
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+  }
+  .im-page .im-contact-stack {
+    top: calc(max(env(safe-area-inset-top, 0px), 48px) + 4px) !important;
+    gap: 0 !important;
+    padding: 0 !important;
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+  }
+  .im-page .im-contact-stack .im-avatar,
+  .im-page .im-head .im-contact-stack .im-avatar:has(img) {
+    width: 44px !important;
+    min-width: 44px !important;
+    height: 44px !important;
+    margin: 0 0 3px !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 50% !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    outline: 0 !important;
+  }
+  .im-page .im-contact-stack .im-avatar img {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+    border-radius: 50% !important;
+  }
+  .im-page .im-contact-name-pill {
+    min-height: 22px !important;
+    margin: 0 !important;
+    padding: 0 5px !important;
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+  }
+  .im-page .im-encryption-meta {
+    gap: 1px !important;
+    margin: 2px 0 0 !important;
+    padding: 0 !important;
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+  }
+  .im-page .im-feed {
+    padding-top: 8px !important;
+    padding-bottom: 20px !important;
+  }
+  .im-page .im-composer {
+    margin: 0 12px calc(8px + env(safe-area-inset-bottom)) !important;
+    padding: 0 !important;
+    gap: 8px !important;
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+  }
+}
+
+/* Light wallpapers (including light custom photos) must not inherit the dark
+   composer palette or white header labels. All controls sit directly on the
+   wallpaper; no avatar/name/status plates are painted. */
+.im-page[data-im-tone="light"] .im-head,
+.im-page[data-im-tone="light"] .im-head .im-contact-stack,
+.im-page[data-im-tone="light"] .im-head .im-contact-name-pill,
+.im-page[data-im-tone="light"] .im-head .im-encryption-meta,
+.im-page[data-im-tone="light"] .im-head .im-encryption-status {
+  color: #586575 !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+.im-page[data-im-tone="light"] .im-head .im-contact-name-pill .im-title,
+.im-page[data-im-tone="light"] .im-head .im-encryption-title,
+.im-page[data-im-tone="light"] .im-head .im-encryption-status {
+  color: #667382 !important;
+  text-shadow: none !important;
+}
+.im-page[data-im-tone="light"] .im-head .im-back,
+.im-page[data-im-tone="light"] .im-head .im-video-call {
+  color: #586575 !important;
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+.im-page[data-im-tone="light"] .im-input-wrap,
+.im-page[data-im-tone="light"] .im-input-wrap:focus-within {
+  background: rgba(246, 248, 250, .96) !important;
+  background-color: rgba(246, 248, 250, .96) !important;
+  border: 1px solid rgba(65, 78, 94, .16) !important;
+  border-radius: 999px !important;
+  box-shadow: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+.im-page[data-im-tone="light"] .im-input-wrap > textarea.im-input,
+.im-page[data-im-tone="light"] .im-input-wrap > textarea.im-input:focus,
+.im-page[data-im-tone="light"] .im-input-wrap > textarea.im-input:focus-visible {
+  color: #263342 !important;
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+.im-page[data-im-tone="light"] .im-input-wrap > textarea.im-input::placeholder {
+  color: #7d8793 !important;
+  opacity: 1 !important;
+}
+.im-page[data-im-tone="light"] .im-input-wrap > .im-format-btn,
+.im-page[data-im-tone="light"] .im-input-wrap > .im-mic {
+  color: #586575 !important;
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+.im-page[data-im-tone="light"] .im-composer > .im-plus {
+  color: #586575 !important;
+  background: rgba(246, 248, 250, .96) !important;
+  border: 1px solid rgba(65, 78, 94, .16) !important;
+  box-shadow: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+.im-page[data-im-tone="light"] .im-bubble.theirs,
+.im-page[data-im-tone="light"] .im-bubble.theirs[data-im-effect="invisible-ink"] {
+  color: #20252b !important;
+  background: #e9e9eb !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+.im-page[data-im-tone="light"] .im-bubble.theirs::after,
+.im-page[data-im-tone="light"] .im-bubble.theirs[data-im-effect="invisible-ink"]::after {
+  background: #e9e9eb !important;
+}
+.im-page[data-im-tone="light"] .im-message-footer {
+  color: #77818b !important;
+  background: transparent !important;
+  border: 0 !important;
+}
+.im-page[data-im-tone="light"] .im-day,
+.im-page[data-im-tone="light"] .im-day-system {
+  color: #77818b !important;
+  background: #f0f1f3 !important;
+  border: 0 !important;
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .im-page[data-im-tone="light"] .im-input-wrap,
+  .im-page[data-im-tone="light"] .im-input-wrap:focus-within {
+    background: #f2f4f6 !important;
+    border-color: rgba(65, 78, 94, .16) !important;
+  }
+  .im-page[data-im-tone="light"] .im-composer > .im-plus {
+    background: #f2f4f6 !important;
+  }
+  .im-page[data-im-tone="light"] .im-bubble.theirs {
+    background: #e9e9eb !important;
+  }
+}

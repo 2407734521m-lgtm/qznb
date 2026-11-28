@@ -12,9 +12,10 @@ export {
   isFavoritePositionId,
   isRecruitClosed,
   loadFavoritePositionIds,
+  parseSalaryRange,
   toggleFavoritePositionId,
 } from './recruitHelpers';
-export type { TimelineApplicationInput, TimelineStep } from './recruitHelpers';
+export type { ParsedSalaryRange, TimelineApplicationInput, TimelineStep } from './recruitHelpers';
 
 export const RECRUIT_COMPANY = '瑞氏集团有限公司';
 
@@ -378,6 +379,105 @@ export function describeInterviewError(message: string): string {
 export function describeReviewError(message: string): string {
   if (message.includes('position full')) return '这个职位已经招满了，无法再通过。';
   if (message.includes('already reviewed')) return '这条申请已经审核过了。';
+  if (message.includes('forbidden')) return '需要超级管理员权限。';
+  return '审核失败，请稍后重试。';
+}
+
+// ---------- 申请新增岗位 ----------
+
+export type PositionRequestStatus = 'pending' | 'approved' | 'rejected';
+
+export interface RecruitPositionRequest {
+  id: number;
+  created_at: string;
+  title: string;
+  department: string;
+  salary_min: number | null;
+  salary_max: number | null;
+  description: string;
+  qq_email: string;
+  status: PositionRequestStatus;
+  admin_note: string;
+  reviewed_at: string | null;
+  created_position_id: number | null;
+}
+
+export const POSITION_REQUEST_STATUS_LABEL: Record<PositionRequestStatus, string> = {
+  pending: '待审核',
+  approved: '已通过',
+  rejected: '未通过',
+};
+
+export interface SubmitPositionRequestInput {
+  title: string;
+  department: string;
+  salaryMin: number | null;
+  salaryMax: number | null;
+  description: string;
+  qqEmail: string;
+}
+
+/** 游客申请新增岗位：同名岗位已在招、或同名申请还在待审，服务端直接拒绝。 */
+export async function submitPositionRequest(input: SubmitPositionRequestInput): Promise<number> {
+  const { data, error } = await db.rpc('submit_recruit_position_request', {
+    p_title: input.title,
+    p_department: input.department,
+    p_salary_min: input.salaryMin,
+    p_salary_max: input.salaryMax,
+    p_description: input.description,
+    p_qq_email: input.qqEmail,
+  });
+  if (error) throw new Error(error.message);
+  return data as number;
+}
+
+export function describePositionRequestError(message: string): string {
+  if (message.includes('position exists')) return '这个岗位已经在招聘了，不用再申请。';
+  if (message.includes('already requested')) return '这个岗位已经有人申请过了，正在审核中，请耐心等一下。';
+  if (message.includes('bad email')) return 'QQ 邮箱格式不对，请检查一下。';
+  if (message.includes('bad title')) return '请填写岗位名称（30 字以内）。';
+  if (message.includes('bad department')) return '部门名称不对（20 字以内）。';
+  if (message.includes('bad salary')) return '薪资范围格式不对，例如 6000–9000。';
+  if (message.includes('bad text')) return '岗位描述太长了（2000 字以内）。';
+  return '提交失败，请稍后重试。';
+}
+
+/** 管理端：新增岗位申请列表（status 传 'all' 查全部）。 */
+export async function adminListPositionRequests(status: string): Promise<RecruitPositionRequest[]> {
+  const { data, error } = await db.rpc('admin_list_recruit_position_requests', {
+    p_status: status === 'all' ? null : status,
+  });
+  if (error) throw new Error(error.message);
+  return (data ?? []) as RecruitPositionRequest[];
+}
+
+export interface ReviewPositionRequestResult {
+  id: number;
+  title: string;
+  status: PositionRequestStatus;
+  created_position_id: number | null;
+}
+
+/** 管理端：审核新增岗位申请。通过时服务端自动新建该职位（名额 1 人）。 */
+export async function adminReviewPositionRequest(
+  id: number,
+  status: 'approved' | 'rejected',
+  note: string,
+): Promise<ReviewPositionRequestResult> {
+  const { data, error } = await db.rpc('admin_review_recruit_position_request', {
+    p_id: id,
+    p_status: status,
+    p_note: note,
+  });
+  if (error) throw new Error(error.message);
+  const row = Array.isArray(data) ? data[0] : data;
+  return row as ReviewPositionRequestResult;
+}
+
+export function describePositionRequestReviewError(message: string): string {
+  if (message.includes('already reviewed')) return '这条申请已经审核过了。';
+  if (message.includes('request not found')) return '这条申请找不到了。';
+  if (message.includes('position exists')) return '这个岗位已经在职位列表里了。';
   if (message.includes('forbidden')) return '需要超级管理员权限。';
   return '审核失败，请稍后重试。';
 }

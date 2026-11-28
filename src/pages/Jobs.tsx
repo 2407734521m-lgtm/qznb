@@ -17,6 +17,23 @@ import {
 } from '../lib/recruit';
 import './Jobs.css';
 
+// 现任团队名单：静态展示，用户 2026-11-28 提供的名单，顺序照用户给的来。
+// 与 11 个招聘职位无关，不参与名额与申请逻辑。
+const TEAM_ROSTER: { role: string; name: string }[] = [
+  { role: '董事长', name: '王瑞' },
+  { role: '总经理', name: '刘俊威' },
+  { role: '人事经理', name: '谢铭辛' },
+  { role: '财务经理', name: '陈泽洋' },
+  { role: '股东', name: '苟龙翔' },
+  { role: '主管', name: '何达' },
+  { role: '秘书', name: '何皓然' },
+  { role: '保安', name: '李柯' },
+  { role: '保安', name: '严浩溢' },
+  { role: '女优', name: '李炫宇' },
+  { role: '男优', name: '米乔睿' },
+  { role: '摄影师', name: '袁梓航' },
+];
+
 function StarIcon({ filled }: { filled: boolean }) {
   return (
     <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true" fill={filled ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round">
@@ -243,6 +260,22 @@ export default function Jobs() {
           </div>
         </>
       )}
+
+      <section className="rj-team" aria-label="现任团队">
+        <h2>现任团队</h2>
+        <p className="rj-team-sub">瑞氏集团的现任团队成员。</p>
+        <div className="rj-team-grid">
+          {TEAM_ROSTER.map((m) => (
+            <div key={`${m.role}-${m.name}`} className="rj-team-card">
+              <span className="rj-team-avatar" aria-hidden="true">{m.name.slice(0, 1)}</span>
+              <span className="rj-team-info">
+                <span className="rj-team-role">{m.role}</span>
+                <span className="rj-team-name">{m.name}</span>
+              </span>
+            </div>
+          ))}
+        </div>
+      </section>
     </div>
   );
 }

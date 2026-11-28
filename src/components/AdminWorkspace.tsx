@@ -21,7 +21,7 @@ const NAV_GROUPS = [
   { label: '工作台', ids: ['overview', 'analytics'] },
   { label: '成员与权限', ids: ['accounts', 'invite', 'approvals', 'mySecurity'] },
   { label: '内容运营', ids: ['moderate', 'reviewCenter', 'loveWall', 'songWall', 'musicDownloads', 'authorizedRequests', 'board', 'events', 'game', 'recruit'] },
-  { label: '消息与反馈', ids: ['notifications', 'communication', 'bulkEmail', 'broadcast', 'feedback'] },
+  { label: '消息与反馈', ids: ['notifications', 'communication', 'bulkEmail', 'broadcast', 'feedback', 'zhiOrders'] },
   { label: '系统管理', ids: ['backups', 'release', 'appCenter', 'appClickStats', 'logs', 'security', 'system', 'guestAccess', 'settings', 'test'] },
 ] as const;
 
@@ -46,6 +46,7 @@ const ICON_PATHS: Record<string, string> = {
   bulkEmail: 'M3 5h18v14H3z M3 6l9 7 9-7',
   broadcast: 'M4 10v4h3l7 5V5l-7 5H4z M18 9a4 4 0 0 1 0 6 M20.5 6.5a8 8 0 0 1 0 11',
   feedback: 'M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.4 8.4 0 0 1 3.8-.9h.5a8.5 8.5 0 0 1 8 8z',
+  zhiOrders: 'M9 11l3 3L22 4 M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11',
   backups: 'M4 7h16 M4 12h16 M4 17h16 M7 4v6 M17 14v6',
   appClickStats: 'M4 20V10 M10 20V4 M16 20v-7 M22 20H2',
   recruit: 'M3 7h18v13H3z M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2 M3 13h18 M9 3v4 M15 3v4',
@@ -100,6 +101,7 @@ function descriptionFor(id: string) {
     bulkEmail: '管理面向成员的邮件通知。',
 
     feedback: '查看成员反馈、建议与问题报告。',
+    zhiOrders: '给栀提交改站工单：先提交、再确认，确认后才执行。',
     backups: '查看备份任务与恢复点。',
     release: '查看网站与项目的版本发布和更新记录。',
     appCenter: '发布移动端软件版本和专属公告，查看网页版与移动端成员。',
@@ -207,6 +209,7 @@ export default function AdminWorkspace({
           supabase.from('game_profiles').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
           supabase.from('reports').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
           supabase.from('feedbacks').select('id', { count: 'exact', head: true }).eq('status', 'open'),
+          supabase.from('zhi_work_orders').select('id', { count: 'exact', head: true }).eq('status', 'awaiting_confirm'),
         ]);
         if (!alive) return;
         if (results.some(result => result.error)) return;
@@ -216,6 +219,7 @@ export default function AdminWorkspace({
           game: results[2].count ?? 0,
           moderate: results[3].count ?? 0,
           feedback: results[4].count ?? 0,
+          zhiOrders: results[5].count ?? 0,
         });
       } catch {
         // 保持上一次成功结果；首次读取失败时不显示误导性的零数量。

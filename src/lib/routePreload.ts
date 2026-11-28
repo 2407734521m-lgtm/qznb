@@ -50,6 +50,9 @@ export const ROUTE_PRELOAD_ENTRIES: PreloadEntry[] = [
   { pattern: /^\/me$/, key: 'me', load: () => import('../pages/MeHub') },
   { pattern: /^\/love-wall$/, key: 'love-wall', load: () => import('../pages/LoveWall') },
   { pattern: /^\/board$/, key: 'board', load: () => import('../pages/Board') },
+  { pattern: /^\/jobs$/, key: 'jobs', load: () => import('../pages/Jobs') },
+  { pattern: /^\/jobs\/status$/, key: 'job-status', load: () => import('../pages/JobStatus') },
+  { pattern: /^\/jobs\/\d+$/, key: 'job-detail', load: () => import('../pages/JobDetail') },
   { pattern: /^\/daily$/, key: 'daily', load: () => import('../pages/Daily') },
   { pattern: /^\/topics$/, key: 'topics', load: () => import('../pages/Topics') },
 ];

@@ -4,11 +4,31 @@ import {
   QQ_EMAIL_RE,
   RECRUIT_COMPANY,
   STATUS_LABEL,
+  applicationTimelineSteps,
   formatDate,
+  formatDateTime,
   myApplications,
   type RecruitMyApplication,
 } from '../lib/recruit';
 import './Jobs.css';
+
+function Timeline({ app }: { app: RecruitMyApplication }) {
+  const steps = applicationTimelineSteps(app);
+  return (
+    <ol className="rj-timeline" aria-label={`${app.position_title}申请进度`}>
+      {steps.map(step => (
+        <li key={step.key} className={`rj-timeline-step rj-timeline-step--${step.state}`}>
+          <span className="rj-timeline-dot" aria-hidden="true" />
+          <div className="rj-timeline-body">
+            <b>{step.label}</b>
+            {step.time ? <small>{step.key === 'interview' ? formatDateTime(step.time) : formatDate(step.time)}</small> : null}
+            {step.note ? <small className="rj-status-reason">{step.key === 'interview' ? `说明：${step.note}` : `原因：${step.note}`}</small> : null}
+          </div>
+        </li>
+      ))}
+    </ol>
+  );
+}
 
 export default function JobStatus() {
   const [qqEmail, setQqEmail] = useState('');
@@ -38,9 +58,10 @@ export default function JobStatus() {
 
   return (
     <div className="rj-page">
-      <header className="rj-header">
-        <h1>{RECRUIT_COMPANY}</h1>
-        <p>输入你应聘时填的 QQ 邮箱，就能查到申请进度。</p>
+      <header className="rj-hero rj-hero--compact">
+        <p className="rj-hero-kicker">{RECRUIT_COMPANY} · 招聘中心</p>
+        <h1>查询申请进度</h1>
+        <p className="rj-hero-sub">输入你应聘时填的 QQ 邮箱，就能查到申请进度。</p>
         <nav className="rj-nav" aria-label="招聘导航">
           <NavLink to="/jobs">职位列表</NavLink>
           <NavLink to="/jobs/status" aria-current="page">查询申请进度</NavLink>
@@ -72,15 +93,15 @@ export default function JobStatus() {
             <div className="rj-empty">这个邮箱（{searchedEmail}）还没有申请记录。<br />请确认邮箱填得和应聘时一致。</div>
           ) : (
             rows.map(r => (
-              <div className="rj-status-row" key={r.id}>
-                <div>
+              <div className="rj-status-card" key={r.id}>
+                <div className="rj-status-head">
                   <b>{r.position_title}</b>
-                  <small>申请于 {formatDate(r.created_at)}{r.reviewed_at ? ` · ${formatDate(r.reviewed_at)}审核` : ''}</small>
-                  {r.status === 'rejected' && r.admin_note ? (
-                    <small className="rj-status-reason">原因：{r.admin_note}</small>
-                  ) : null}
+                  <span className={`rj-badge rj-badge--${r.status}`}>{STATUS_LABEL[r.status]}</span>
                 </div>
-                <span className={`rj-badge rj-badge--${r.status}`}>{STATUS_LABEL[r.status]}</span>
+                <Timeline app={r} />
+                {r.status === 'approved' && (
+                  <p className="rj-status-hint">审核已通过，录用通知已发到你的 QQ 邮箱，请留意查收。</p>
+                )}
               </div>
             ))
           )}

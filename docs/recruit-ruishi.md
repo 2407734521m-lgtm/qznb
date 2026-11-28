@@ -43,6 +43,17 @@
   - 注意：从没换过头像的真人 QQ 也会被拒绝，这是用户定的规则，不是 bug。
 - 迁移只改 `recruit_my_applications` 的返回结构（加 `admin_note`），须先 DROP 再重建；后台申请列表本来就显示 `admin_note`，不用改。
 
+## 优化第一批（迁移 20261128170000_recruit_polish_batch1.sql）
+
+界面：招聘页顶部加暖色渐变门面横幅（CSS 渐变，无外部图片）；职位卡片部门圆点配色、薪资放大、招满置灰更明显；详情页加职位亮点与三步指示（填写资料 → 提交申请 → 等待审核），描述/要求按段落显示；进度页改成时间线（已提交 → 审核中/通过/未通过 → 面试安排）；列表卡片依次浮现（0.3 秒，减动效时关闭）、按钮按压回缩；小屏收紧、输入框与按钮放大。
+
+功能：
+- 投递确认信：提交成功后 `recruit-apply` 再经 `email-dispatch` 给应聘者发一封“已收到申请”的确认信（类别 `recruit_notice` / 来源 `recruit-notify` 已在白名单里，不用另加；事件 key `recruit:received:<id>` 防重复）。发信失败不影响提交结果。
+- 收藏与分享：职位收藏只存本机 localStorage（`rj_fav_positions_v1`，不用登录、不用建表），列表可“只看收藏”；分享优先调系统分享，不支持时复制链接。
+- 批量审核：新 RPC `admin_review_recruit_applications_batch(ids, status, note)`（超管），按顺序逐份走和单个审核一样的加锁数人数逻辑，名额满了的那份及之后同职位的份记为 full 并跳过，不超员；返回 `{processed, skipped, stopped_full, results}`。批量通过后前端逐份发录用通知邮件。
+- 面试：`recruit_applications` 加 `interview_at` / `interview_note` 两列；通过时可在后台一并填面试时间（`admin_review_recruit_application` 加两个可选参数，仅 approved 生效），通过后也可改（新 RPC `admin_set_recruit_interview`，仅已通过的申请）；进度页时间线里显示面试时间；录用通知正文里有面试时间就带上。
+- 统计：后台各职位行加“收到几份 · 通过率”，招满的职位在顶部出提示横幅。
+
 ## 邮件（复用站内 email-dispatch + Resend）
 
 - 新 Edge Function `supabase/functions/recruit-notify`：只接受超管调用，读库里的申请与职位，按审核状态发录用通知或婉拒邮件，再经 `email-dispatch` 发出（事件 key `recruit:offer:<id>` / `recruit:rejection:<id>`，防重复发送），并回写 `email_sent_at` / `email_status`。
@@ -51,7 +62,7 @@
 
 ## 上线步骤（合并后按顺序做）
 
-1. 合并 PR 后跑迁移：`supabase db push`（或在 Supabase 控制台执行迁移文件）。迁移只新增表与函数，不动现有数据。QQ 头像校验那则（20261128160000）只改 `recruit_my_applications` 返回结构。
-2. 部署 Edge Function：`supabase functions deploy recruit-notify`，以及因改了白名单要重新部署 `email-dispatch`；再部署 `supabase functions deploy recruit-apply --no-verify-jwt`（公开入口，申请人没有登录态，必须关 JWT 校验）。
+1. 合并 PR 后跑迁移：`supabase db push`（或在 Supabase 控制台执行迁移文件）。迁移只新增表与函数，不动现有数据。QQ 头像校验那则（20261128160000）只改 `recruit_my_applications` 返回结构。优化第一批那则（20261128170000）只加面试两列与两个新 RPC、扩展两个列表函数的返回列。
+2. 部署 Edge Function：`supabase functions deploy recruit-notify`，以及因改了白名单要重新部署 `email-dispatch`；再部署 `supabase functions deploy recruit-apply --no-verify-jwt`（公开入口，申请人没有登录态，必须关 JWT 校验）。优化第一批改了 `recruit-apply`（投递确认信）与 `recruit-notify`（录用邮件带面试时间），这两个都要重新部署；`email-dispatch` 本身没改，不用重部署。
 3. 等 GitHub Pages 部署成功后，打开 `https://qianzhi.pw/#/jobs` 核对：11 个职位都在、董事长显示招 1 人；后台 `admin.qianzhi.pw` 里「招聘管理」页签能点开。
 4. 真机验收（登录态 / 游客态）：投一份测试申请 → 后台通过 → 查 QQ 邮箱是否收到录用通知；再投一份到已满的职位应为“已满”不可报名。

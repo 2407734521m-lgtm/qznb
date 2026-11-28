@@ -165,6 +165,12 @@ export default function Jobs() {
   const [department, setDepartment] = useState('all');
   const [favorites, setFavorites] = useState<number[]>(() => loadFavoritePositionIds());
   const [favOnly, setFavOnly] = useState(false);
+  const hasActiveFilters = query.trim().length > 0 || department !== 'all' || favOnly;
+  function clearFilters() {
+    setQuery('');
+    setDepartment('all');
+    setFavOnly(false);
+  }
   const [toast, setToast] = useState('');
   const [reqOpen, setReqOpen] = useState(false);
 
@@ -326,15 +332,37 @@ export default function Jobs() {
         </button>
       </div>
 
+      {hasActiveFilters ? (
+        <div className="rj-active-filters" aria-label="当前筛选条件">
+          <span className="rj-active-label">筛选中</span>
+          {query.trim() ? <span className="rj-filter-chip">关键词：{query.trim()}</span> : null}
+          {department !== 'all' ? <span className="rj-filter-chip">{department}</span> : null}
+          {favOnly ? <span className="rj-filter-chip">只看收藏</span> : null}
+          <button type="button" onClick={clearFilters}>清除全部</button>
+        </div>
+      ) : null}
+
       {loading ? (
         <div className="rj-empty">正在加载职位…</div>
       ) : visible.length === 0 ? (
         <div className="rj-empty">
-          {positions.length === 0
-            ? '目前没有正在招聘的职位，请过段时间再来看看。'
-            : favOnly
-              ? '还没有收藏任何职位，看到喜欢的点一下星标就能收藏。'
-              : '没有符合条件的职位，换个关键词或部门试试。'}
+          <span className="rj-empty-title">
+            {positions.length === 0
+              ? '目前没有正在招聘的职位'
+              : favOnly && favorites.length === 0
+                ? '你还没有收藏职位'
+                : '没有找到符合条件的职位'}
+          </span>
+          <span className="rj-empty-description">
+            {positions.length === 0
+              ? '请过段时间再来看看。'
+              : favOnly && favorites.length === 0
+                ? '在岗位卡片上点星标，收藏后就能在这里集中查看。'
+                : '试试调整关键词或部门筛选。'}
+          </span>
+          {hasActiveFilters ? (
+            <button type="button" className="rj-empty-reset" onClick={clearFilters}>清除筛选条件</button>
+          ) : null}
         </div>
       ) : (
         <>

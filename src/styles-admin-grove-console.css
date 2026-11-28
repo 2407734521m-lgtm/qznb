@@ -252,8 +252,10 @@
 
 /* Shared panel family for analytics, moderation, approvals, settings and tools.
    Keep semantic success / warning / danger badges on their own colors. */
-.admin-shell-v3 .admin-content :is([class*="-panel"], [class*="-card"]):not([class*="overview"]) {
+.admin-shell-v3 .admin-content :is([class*="-panel"], [class*="-card"]):not([class*="overview"]):not([class*="badge"]):not([class*="avatar"]) {
   color: var(--admin-grove-ink) !important;
+  background: rgba(255, 255, 255, .78) !important;
+  background-image: none !important;
   border-color: var(--admin-grove-line) !important;
   border-radius: 22px !important;
   box-shadow: 0 9px 28px rgba(43, 33, 19, .055), inset 0 1px 0 rgba(255, 255, 255, .58) !important;
@@ -389,7 +391,7 @@
 .admin-shell-v3 .admin-command-palette,
 .admin-shell-v3 .admin-shell-v3 .admin-modal-card,
 .admin-shell-v3 .admin-content .admin-modal-card,
-.admin-dialog-card {
+.admin-shell-v3 .admin-dialog-card {
   color: var(--admin-grove-ink) !important;
   background: rgba(255, 255, 255, .94) !important;
   border: 1px solid rgba(255, 255, 255, .86) !important;
@@ -401,7 +403,7 @@
 
 .admin-shell-v3 .admin-command-palette :is(strong, p, small, span, label),
 .admin-shell-v3 .admin-content .admin-modal-card :is(strong, p, small, span, label),
-.admin-dialog-card :is(strong, p, small, span, label) {
+.admin-shell-v3 .admin-dialog-card :is(strong, p, small, span, label) {
   color: #62553f !important;
 }
 

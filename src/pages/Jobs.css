@@ -567,6 +567,7 @@
 .rj-jobs-page .rj-card:nth-child(4n + 2) { grid-column: span 5; }
 .rj-jobs-page .rj-card:nth-child(4n + 3) { grid-column: span 5; }
 .rj-jobs-page .rj-card:nth-child(4n + 4) { grid-column: span 7; }
+.rj-jobs-page .rj-card:last-child:nth-child(odd) { grid-column: 1 / -1; }
 .rj-jobs-page .rj-card:first-child:not(.rj-card--full) {
   background:
     radial-gradient(ellipse at 0% 100%, rgba(93, 168, 83, .12), transparent 54%),

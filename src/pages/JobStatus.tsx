@@ -57,7 +57,7 @@ export default function JobStatus() {
   }
 
   return (
-    <div className="rj-page">
+    <div className="rj-page rj-status-page">
       <header className="rj-hero rj-hero--compact">
         <p className="rj-hero-kicker">{RECRUIT_COMPANY} · 招聘中心</p>
         <h1>查询申请进度</h1>
@@ -68,7 +68,7 @@ export default function JobStatus() {
         </nav>
       </header>
 
-      <form className="rj-form" style={{ marginTop: 0, paddingTop: 0, borderTop: 'none' }} onSubmit={onSearch}>
+      <form className="rj-form rj-status-search" onSubmit={onSearch}>
         {err ? <div className="rj-error" role="alert">{err}</div> : null}
         <div className="rj-field">
           <label htmlFor="rj-status-email">QQ 邮箱</label>
@@ -88,14 +88,27 @@ export default function JobStatus() {
       </form>
 
       {searched && !loading && (
-        <div style={{ marginTop: 20 }}>
+        <section className="rj-status-results" aria-live="polite">
+          <div className="rj-status-results-head">
+            <div>
+              <h2>查询结果</h2>
+              <p>你的申请记录与当前审核进度</p>
+            </div>
+            <span>{rows.length} 条记录</span>
+          </div>
           {rows.length === 0 ? (
-            <div className="rj-empty">这个邮箱（{searchedEmail}）还没有申请记录。<br />请确认邮箱填得和应聘时一致。</div>
+            <div className="rj-empty rj-status-empty">
+              <strong>暂时没有申请记录</strong>
+              <span>请确认邮箱是否与应聘时填写的一致。</span>
+            </div>
           ) : (
             rows.map(r => (
               <div className="rj-status-card" key={r.id}>
                 <div className="rj-status-head">
-                  <b>{r.position_title}</b>
+                  <div>
+                    <span className="rj-status-card-kicker">应聘职位</span>
+                    <b>{r.position_title}</b>
+                  </div>
                   <span className={`rj-badge rj-badge--${r.status}`}>{STATUS_LABEL[r.status]}</span>
                 </div>
                 <Timeline app={r} />
@@ -105,7 +118,7 @@ export default function JobStatus() {
               </div>
             ))
           )}
-        </div>
+        </section>
       )}
     </div>
   );

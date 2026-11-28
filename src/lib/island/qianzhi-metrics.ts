@@ -26,10 +26,15 @@ export const qianzhiIslandMetrics = {
   },
   /**
    * The compact player layout is sized around a 52px cover, progress, controls
-   * and volume row. Keep enough headroom for the complete controls while
-   * avoiding the oversized 300px expansion on mobile.
+   * and volume row. The full player needs about 211px of content plus the
+   * expanded padding on a phone, so 224 left only ~13px of slack — on a real
+   * phone (Android Chrome range inputs, system font) the volume row, the last
+   * row, was cut in half by the card's bottom edge (user screenshot
+   * 2026-11-28). 248 keeps headroom for the complete controls while staying
+   * well under the oversized 300px expansion on mobile. The cap is a maximum:
+   * shorter cards (calls, alerts) still size to their own content.
    */
-  expanded: { maxHeight: 224 },
+  expanded: { maxHeight: 248 },
 } satisfies IslandMetricsOverrides;
 
 

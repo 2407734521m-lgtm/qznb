@@ -379,7 +379,7 @@ function MusicIsland() {
     const cover = track?.coverUrl ? smallMusicCoverUrl(track.coverUrl, 160) : null;
     if (cover) {
       host.style.setProperty('--qz-music-cover', `url("${cover}")`);
-      host.style.setProperty('--qz-music-shade', 'linear-gradient(180deg, rgba(0,0,0,.45) 0%, rgba(0,0,0,.16) 45%, rgba(0,0,0,.62) 100%)');
+      host.style.setProperty('--qz-music-shade', 'linear-gradient(180deg, rgba(0,0,0,.36) 0%, rgba(0,0,0,.10) 45%, rgba(0,0,0,.48) 100%)');
     } else {
       host.style.removeProperty('--qz-music-cover');
       host.style.removeProperty('--qz-music-shade');

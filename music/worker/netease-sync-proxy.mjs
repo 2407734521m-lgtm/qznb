@@ -22,9 +22,14 @@ const jsonResponse = (data, status = 200) => new Response(JSON.stringify(data), 
   headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' },
 });
 
-// The radio Worker returns the restored session as Set-Cookie: mr_session=<cookie>; ...
-// Read it back (getSetCookie where available) and return the decoded cookie string.
-function mrSessionFromSetCookie(headers) {
+// The radio Worker returns the restored session as Set-Cookie headers. The
+// session is chunked (mr_session_parts=N plus mr_session_0..N-1, each value
+// percent-encoded), and the leading mr_session= header only clears the legacy
+// single cookie, so it is always empty. A naive "first mr_session=" read
+// returns '' and the frontend never receives the session, so every restore
+// fails on the page even though the server side succeeded. Reassemble the
+// chunks; fall back to a non-empty legacy single mr_session value.
+export function mrSessionFromSetCookie(headers) {
   let values = [];
   try {
     if (typeof headers.getSetCookie === 'function') values = headers.getSetCookie();
@@ -33,11 +38,25 @@ function mrSessionFromSetCookie(headers) {
     const single = headers.get('set-cookie');
     if (single) values = [single];
   }
-  for (const value of values) {
-    const first = String(value || '').split(';')[0].trim();
-    if (!first.startsWith('mr_session=')) continue;
-    const raw = first.slice('mr_session='.length);
-    try { return decodeURIComponent(raw); } catch (_) { return raw; }
+  // Chunk values are percent-encoded, so they never contain ';', ',' or
+  // whitespace; matching on the exact names is safe in both the array form
+  // and the comma-joined single-header form.
+  const text = values.join('\n');
+  const partsMatch = text.match(/mr_session_parts=(\d+)/);
+  const parts = partsMatch ? Number(partsMatch[1]) : 0;
+  if (Number.isInteger(parts) && parts >= 1 && parts <= 8) {
+    let encoded = '';
+    for (let i = 0; i < parts; i++) {
+      const chunk = text.match(new RegExp('mr_session_' + i + '=([^;\\s,]+)'));
+      if (!chunk) return '';
+      encoded += chunk[1];
+    }
+    if (!encoded) return '';
+    try { return decodeURIComponent(encoded); } catch (_) { return encoded; }
+  }
+  const single = text.match(/mr_session=([^;\s,]+)/);
+  if (single && single[1]) {
+    try { return decodeURIComponent(single[1]); } catch (_) { return single[1]; }
   }
   return '';
 }

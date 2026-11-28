@@ -49,6 +49,7 @@ export interface RecruitMyApplication {
   status: 'pending' | 'approved' | 'rejected';
   created_at: string;
   reviewed_at: string | null;
+  admin_note: string;
 }
 
 export interface RecruitStats {
@@ -133,18 +134,30 @@ export interface SubmitApplicationInput {
   experience: string;
 }
 
-/** 提交申请。名额已满 / 已投过，服务端直接拒绝并抛错。 */
-export async function submitApplication(input: SubmitApplicationInput): Promise<number> {
-  const { data, error } = await db.rpc('submit_recruit_application', {
-    p_position_id: input.positionId,
-    p_name: input.name,
-    p_qq_email: input.qqEmail,
-    p_phone: input.phone,
-    p_intro: input.intro,
-    p_experience: input.experience,
+export interface SubmitApplicationResult {
+  ok: boolean;
+  id?: number;
+  reason?: string;
+  avatarCheck?: 'ok' | 'missing' | 'unavailable';
+}
+
+/**
+ * 提交申请：走服务端 recruit-apply 函数，先校验 QQ 有没有头像。
+ * 没头像直接拒绝并返回原因；名额与重复投递校验仍在 submit_recruit_application RPC 里。
+ */
+export async function submitApplicationChecked(input: SubmitApplicationInput): Promise<SubmitApplicationResult> {
+  const { data, error } = await supabase.functions.invoke('recruit-apply', {
+    body: {
+      positionId: input.positionId,
+      name: input.name,
+      qqEmail: input.qqEmail,
+      phone: input.phone,
+      intro: input.intro,
+      experience: input.experience,
+    },
   });
   if (error) throw new Error(error.message);
-  return data as number;
+  return data as SubmitApplicationResult;
 }
 
 export function describeSubmitError(message: string): string {
@@ -154,6 +167,21 @@ export function describeSubmitError(message: string): string {
   if (message.includes('bad email')) return 'QQ 邮箱格式不对，请检查一下。';
   if (message.includes('bad name')) return '请填写姓名（20 字以内）。';
   return '提交失败，请稍后重试。';
+}
+
+/** recruit-apply 返回的原因：RPC 原样错误走上面的映射，没头像那句中文直接显示。 */
+export function describeApplyResultError(reason: string): string {
+  if (!reason) return '提交失败，请稍后重试。';
+  if (
+    reason.includes('position full') ||
+    reason.includes('position closed') ||
+    reason.includes('already applied') ||
+    reason.includes('bad email') ||
+    reason.includes('bad name')
+  ) {
+    return describeSubmitError(reason);
+  }
+  return reason;
 }
 
 /** 凭 QQ 邮箱查自己的申请进度。 */

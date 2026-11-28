@@ -5,14 +5,17 @@ import { supabase } from './supabase';
 export {
   applicationTimelineSteps,
   departmentColor,
-  FILLED_POSITIONS,
-  filledHolders,
   formatCloseDeadline,
   formatDateTime,
+  formatHolderNames,
   isFavoritePositionId,
+  isPositionFull,
   isRecruitClosed,
   loadFavoritePositionIds,
+  parseHolderNames,
   parseSalaryRange,
+  positionOccupied,
+  positionRemaining,
   toggleFavoritePositionId,
 } from './recruitHelpers';
 export type { ParsedSalaryRange, TimelineApplicationInput, TimelineStep } from './recruitHelpers';
@@ -34,6 +37,8 @@ export interface RecruitPosition {
   requirements: string;
   is_open: boolean;
   sort_order: number;
+  /** 已入职的任职人姓名（库里 holder_names，后台可改；占名额）。 */
+  holder_names: string[];
 }
 
 export interface RecruitPositionAdmin extends RecruitPosition {
@@ -116,7 +121,7 @@ export function formatDate(value: string | null | undefined): string {
 export async function listOpenPositions(): Promise<RecruitPosition[]> {
   const { data, error } = await db
     .from('recruit_positions')
-    .select('id,created_at,title,department,quota,salary_min,salary_max,description,requirements,is_open,sort_order')
+    .select('id,created_at,title,department,quota,salary_min,salary_max,description,requirements,is_open,sort_order,holder_names')
     .eq('is_open', true)
     .order('sort_order', { ascending: true })
     .order('id', { ascending: true });
@@ -138,7 +143,7 @@ export async function getPositionCounts(): Promise<Record<number, number>> {
 export async function getOpenPosition(id: number): Promise<RecruitPosition | null> {
   const { data, error } = await db
     .from('recruit_positions')
-    .select('id,created_at,title,department,quota,salary_min,salary_max,description,requirements,is_open,sort_order')
+    .select('id,created_at,title,department,quota,salary_min,salary_max,description,requirements,is_open,sort_order,holder_names')
     .eq('id', id)
     .eq('is_open', true)
     .maybeSingle();
@@ -262,6 +267,7 @@ export interface UpsertPositionInput {
   requirements: string;
   isOpen: boolean;
   sortOrder: number;
+  holderNames: string[];
 }
 
 /** 管理端：新增 / 编辑职位。 */
@@ -277,9 +283,16 @@ export async function adminUpsertPosition(input: UpsertPositionInput): Promise<n
     p_requirements: input.requirements,
     p_is_open: input.isOpen,
     p_sort_order: input.sortOrder,
+    p_holder_names: input.holderNames,
   });
   if (error) throw new Error(error.message);
   return data as number;
+}
+
+export function describeUpsertPositionError(message: string): string {
+  if (message.includes('bad holders')) return '任职人名字不对：每人 20 字以内，多个名字用顿号隔开。';
+  if (message.includes('forbidden')) return '需要超级管理员权限。';
+  return '保存失败：' + (message || '请稍后重试。');
 }
 
 /** 管理端：申请列表。 */

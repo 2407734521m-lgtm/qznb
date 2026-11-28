@@ -21,10 +21,13 @@ import {
   describeInterviewError,
   describePositionRequestReviewError,
   describeReviewError,
+  describeUpsertPositionError,
   formatDate,
   formatDateTime,
+  formatHolderNames,
   getRecruitCloseAt,
   isRecruitClosed,
+  parseHolderNames,
   salaryText,
   sendRecruitEmail,
   type RecruitApplication,
@@ -44,12 +47,14 @@ interface PositionForm {
   requirements: string;
   isOpen: boolean;
   sortOrder: string;
+  /** 任职人输入框文本：多个名字用顿号隔开。 */
+  holders: string;
 }
 
 const EMPTY_FORM: PositionForm = {
   id: null, title: '', department: '', quota: '1',
   salaryMin: '', salaryMax: '', description: '', requirements: '',
-  isOpen: true, sortOrder: '0',
+  isOpen: true, sortOrder: '0', holders: '',
 };
 
 function toForm(p: RecruitPositionAdmin): PositionForm {
@@ -64,6 +69,7 @@ function toForm(p: RecruitPositionAdmin): PositionForm {
     requirements: p.requirements,
     isOpen: p.is_open,
     sortOrder: String(p.sort_order),
+    holders: formatHolderNames(p.holder_names),
   };
 }
 
@@ -151,7 +157,7 @@ export default function AdminRecruit({ setMsg }: { setMsg: (s: string) => void }
   const pendingCount = stats?.pending ?? 0;
 
   const fullPositions = useMemo(
-    () => positions.filter(p => p.is_open && p.approved_count >= p.quota),
+    () => positions.filter(p => p.is_open && (p.approved_count + (p.holder_names ?? []).length) >= p.quota),
     [positions],
   );
 
@@ -367,6 +373,8 @@ export default function AdminRecruit({ setMsg }: { setMsg: (s: string) => void }
     if (salaryMin !== null && (!Number.isInteger(salaryMin) || salaryMin < 0)) { setMsg('薪资下限格式不对。'); return; }
     if (salaryMax !== null && (!Number.isInteger(salaryMax) || salaryMax < 0)) { setMsg('薪资上限格式不对。'); return; }
     if (salaryMin !== null && salaryMax !== null && salaryMin > salaryMax) { setMsg('薪资下限不能大于上限。'); return; }
+    const holderNames = parseHolderNames(form.holders);
+    if (holderNames.some(n => n.length > 20)) { setMsg('任职人名字不能超过 20 个字。'); return; }
     setSaving(true);
     try {
       const id = await adminUpsertPosition({
@@ -380,13 +388,14 @@ export default function AdminRecruit({ setMsg }: { setMsg: (s: string) => void }
         requirements: form.requirements.trim(),
         isOpen: form.isOpen,
         sortOrder: Number(form.sortOrder) || 0,
+        holderNames,
       });
       void alog('recruit_position_save', { position_id: id, title: form.title.trim(), quota });
       setMsg(form.id === null ? '职位已新增。' : '职位已保存。');
       setForm(null);
       await load(positionFilter, statusFilter, requestFilter);
     } catch (e) {
-      setMsg('保存失败：' + (e instanceof Error ? e.message : '请稍后重试。'));
+      setMsg(describeUpsertPositionError(e instanceof Error ? e.message : ''));
     } finally {
       setSaving(false);
     }
@@ -531,6 +540,11 @@ export default function AdminRecruit({ setMsg }: { setMsg: (s: string) => void }
             <label style={labelStyle} htmlFor="rc-req">任职要求</label>
             <textarea id="rc-req" style={{ ...inputStyle, minHeight: 72, resize: 'vertical' }} value={form.requirements} maxLength={2000} onChange={e => setForm({ ...form, requirements: e.target.value })} />
           </div>
+          <div style={fieldStyle}>
+            <label style={labelStyle} htmlFor="rc-holders">任职人（已入职人员）</label>
+            <input id="rc-holders" style={inputStyle} value={form.holders} maxLength={500} onChange={e => setForm({ ...form, holders: e.target.value })} placeholder="例如：王瑞、李柯，多个名字用顿号隔开" />
+            <p style={{ ...mut, margin: '4px 0 0' }}>任职人会算进已占名额：名额占满后前台显示“已满员”，不能再报名；留空表示暂无任职人员。</p>
+          </div>
           <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, marginBottom: 12 }}>
             <input type="checkbox" checked={form.isOpen} onChange={e => setForm({ ...form, isOpen: e.target.checked })} />
             对外开放招聘（关掉后游客看不到这个职位，也不能再报名）
@@ -547,12 +561,15 @@ export default function AdminRecruit({ setMsg }: { setMsg: (s: string) => void }
       <div style={card}>
         <h3 style={h3}>各职位招录情况</h3>
         {positions.length === 0 ? <p style={mut}>暂无职位，先新增一个。</p> : positions.map(p => {
-          const remaining = Math.max(0, p.quota - p.approved_count);
+          const holders = p.holder_names ?? [];
+          const occupied = p.approved_count + holders.length;
+          const remaining = Math.max(0, p.quota - occupied);
           const rate = p.total_count > 0 ? `${Math.round((p.approved_count / p.total_count) * 100)}%` : '—';
           return (
             <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, fontSize: 13.5, lineHeight: 2, flexWrap: 'wrap' }}>
               <span>
-                <b>{p.title}</b>（{p.department}）· {salaryText(p)} · 名额 {p.quota} · 已招 {p.approved_count} · 待审 {p.pending_count} · 收到 {p.total_count} 份 · 通过率 {rate}
+                <b>{p.title}</b>（{p.department}）· {salaryText(p)} · 名额 {p.quota} · 已招 {occupied}{holders.length > 0 ? `（通过 ${p.approved_count} + 任职 ${holders.length}）` : ''} · 待审 {p.pending_count} · 收到 {p.total_count} 份 · 通过率 {rate}
+                {holders.length > 0 ? ` · 任职：${holders.join('、')}` : ''}
                 {p.is_open ? (remaining === 0 ? ' · 已满' : ` · 还剩 ${remaining}`) : ' · 已关闭'}
               </span>
               <button type="button" style={btnStyle} onClick={() => setForm(toForm(p))}>编辑</button>

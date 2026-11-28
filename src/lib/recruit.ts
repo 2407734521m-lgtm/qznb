@@ -1,5 +1,17 @@
 import { supabase } from './supabase';
 
+// 纯函数（日期、收藏、时间线、部门配色）放在 recruitHelpers 里，不依赖 supabase，
+// 这样 node 单测环境也能跑；这里 re-export，页面照旧从本文件引用。
+export {
+  applicationTimelineSteps,
+  departmentColor,
+  formatDateTime,
+  isFavoritePositionId,
+  loadFavoritePositionIds,
+  toggleFavoritePositionId,
+} from './recruitHelpers';
+export type { TimelineApplicationInput, TimelineStep } from './recruitHelpers';
+
 export const RECRUIT_COMPANY = '瑞氏集团有限公司';
 
 // 新表不在生成的 Database 类型里，与站内已有新表的做法一致，用 any 调用。
@@ -40,6 +52,8 @@ export interface RecruitApplication {
   reviewed_at: string | null;
   email_sent_at: string | null;
   email_status: string;
+  interview_at: string | null;
+  interview_note: string;
 }
 
 export interface RecruitMyApplication {
@@ -50,6 +64,8 @@ export interface RecruitMyApplication {
   created_at: string;
   reviewed_at: string | null;
   admin_note: string;
+  interview_at: string | null;
+  interview_note: string;
 }
 
 export interface RecruitStats {
@@ -139,6 +155,7 @@ export interface SubmitApplicationResult {
   id?: number;
   reason?: string;
   avatarCheck?: 'ok' | 'missing' | 'unavailable';
+  confirmationEmailSent?: boolean;
 }
 
 /**
@@ -260,20 +277,75 @@ export interface ReviewResult {
   status: 'approved' | 'rejected';
 }
 
-/** 管理端：审核通过 / 驳回。满员时服务端拒绝通过。 */
+/** 管理端：审核通过 / 驳回。满员时服务端拒绝通过。通过时可一并记面试时间与说明。 */
 export async function adminReviewApplication(
   id: number,
   status: 'approved' | 'rejected',
   note: string,
+  interviewAt: string | null = null,
+  interviewNote = '',
 ): Promise<ReviewResult> {
   const { data, error } = await db.rpc('admin_review_recruit_application', {
     p_id: id,
     p_status: status,
     p_note: note,
+    p_interview_at: interviewAt,
+    p_interview_note: interviewNote,
   });
   if (error) throw new Error(error.message);
   const row = Array.isArray(data) ? data[0] : data;
   return row as ReviewResult;
+}
+
+export interface BatchReviewResult {
+  processed: number;
+  skipped: number;
+  stopped_full: boolean;
+  results: { id: number; result: 'done' | 'skipped' | 'full' }[];
+}
+
+/** 管理端：批量审核多份申请。名额满了的那份及之后同职位的份会被跳过，不超员。 */
+export async function adminReviewApplicationsBatch(
+  ids: number[],
+  status: 'approved' | 'rejected',
+  note: string,
+): Promise<BatchReviewResult> {
+  const { data, error } = await db.rpc('admin_review_recruit_applications_batch', {
+    p_ids: ids,
+    p_status: status,
+    p_note: note,
+  });
+  if (error) throw new Error(error.message);
+  return data as BatchReviewResult;
+}
+
+export function describeBatchReviewError(message: string): string {
+  if (message.includes('forbidden')) return '需要超级管理员权限。';
+  if (message.includes('bad ids')) return '请选择要审核的申请。';
+  if (message.includes('bad status')) return '审核状态不正确。';
+  return '批量审核失败，请稍后重试。';
+}
+
+/** 管理端：通过后补填 / 修改面试时间（传 null 可清除）。 */
+export async function adminSetRecruitInterview(
+  id: number,
+  interviewAt: string | null,
+  interviewNote: string,
+): Promise<{ id: number; interview_at: string | null; interview_note: string }> {
+  const { data, error } = await db.rpc('admin_set_recruit_interview', {
+    p_id: id,
+    p_interview_at: interviewAt,
+    p_interview_note: interviewNote,
+  });
+  if (error) throw new Error(error.message);
+  const row = Array.isArray(data) ? data[0] : data;
+  return row as { id: number; interview_at: string | null; interview_note: string };
+}
+
+export function describeInterviewError(message: string): string {
+  if (message.includes('not approved')) return '只有已通过的申请才能安排面试。';
+  if (message.includes('forbidden')) return '需要超级管理员权限。';
+  return '保存面试时间失败，请稍后重试。';
 }
 
 export function describeReviewError(message: string): string {
@@ -296,4 +368,46 @@ export async function sendRecruitEmail(
     return { ok: false, error: String((data as { error: unknown }).error) };
   }
   return { ok: true };
+}
+
+// ---------- 分享 ----------
+
+/** 分享职位：优先调系统分享，不支持时复制链接。返回分享 / 已复制 / 失败。 */
+export async function sharePosition(
+  title: string,
+  positionId: number,
+): Promise<'shared' | 'copied' | 'failed'> {
+  const url = `${window.location.origin}/#/jobs/${positionId}`;
+  const text = `${RECRUIT_COMPANY}正在招聘「${title}」，来看看。`;
+  try {
+    const nav = navigator as Navigator & { share?: (data: ShareData) => Promise<void> };
+    if (typeof nav.share === 'function') {
+      await nav.share({ title: `${RECRUIT_COMPANY}招聘：${title}`, text, url });
+      return 'shared';
+    }
+  } catch {
+    // 用户在系统分享里点了取消，也按失败处理，不报错。
+    return 'failed';
+  }
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(url);
+      return 'copied';
+    }
+  } catch {
+    // 走下面的兜底复制。
+  }
+  try {
+    const ta = document.createElement('textarea');
+    ta.value = url;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    return 'copied';
+  } catch {
+    return 'failed';
+  }
 }

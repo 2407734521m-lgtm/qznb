@@ -133,6 +133,27 @@ export function applicationTimelineSteps(app: TimelineApplicationInput): Timelin
   return steps;
 }
 
+// ---------- 申请新增岗位：薪资范围解析 ----------
+
+export interface ParsedSalaryRange { min: number | null; max: number | null; }
+
+/**
+ * 解析薪资范围文本，如“6000–9000”“6000-9000”“6000~9000”“6000”“6000–9000元/月”。
+ * 空白或“面议”返回 {min:null,max:null}（面议）；单个数字算下限；格式不对返回 null。
+ */
+export function parseSalaryRange(text: string): ParsedSalaryRange | null {
+  const raw = text.trim();
+  if (raw === '' || raw === '面议') return { min: null, max: null };
+  const cleaned = raw.replace(/[^\d–—\-~～至到]/g, '');
+  const parts = cleaned.split(/[–—\-~～至到]/).filter(Boolean);
+  if (parts.length === 0 || parts.length > 2) return null;
+  const nums = parts.map(s => (/^\d+$/.test(s) ? Number(s) : NaN));
+  if (nums.some(n => !Number.isInteger(n) || n < 0 || n > 10000000)) return null;
+  if (parts.length === 1) return { min: nums[0], max: null };
+  if (nums[0] > nums[1]) return null;
+  return { min: nums[0], max: nums[1] };
+}
+
 // ---------- 部门配色 ----------
 
 /** 部门配色：按部门名稳定取一个暖色，用于卡片上的部门圆点。 */

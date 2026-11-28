@@ -75,7 +75,7 @@ const DOT_DIGITS: Record<string, readonly string[]> = {
 /** 5×7 圆点字形：只用于招聘概览数字，不改变真实数值或统计逻辑。 */
 function DotMatrixNumber({ value }: { value: number }) {
   const digits = String(Math.max(0, Math.trunc(value)));
-  const circles = digits.flatMap((digit, digitIndex) => {
+  const circles = Array.from(digits).flatMap((digit: string, digitIndex: number) => {
     const glyph = DOT_DIGITS[digit] ?? DOT_DIGITS['0'];
     return glyph.flatMap((row, rowIndex) =>
       Array.from(row).map((cell, columnIndex) => (

@@ -5,9 +5,12 @@ import {
   QQ_EMAIL_RE,
   departmentColor,
   describeApplyResultError,
+  formatCloseDeadline,
   getOpenPosition,
   getPositionCounts,
+  getRecruitCloseAt,
   isFavoritePositionId,
+  isRecruitClosed,
   salaryText,
   sharePosition,
   submitApplicationChecked,
@@ -44,6 +47,7 @@ export default function JobDetail() {
   const positionId = Number(id);
   const [position, setPosition] = useState<RecruitPosition | null>(null);
   const [filled, setFilled] = useState(0);
+  const [closeAt, setCloseAt] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [name, setName] = useState('');
@@ -67,13 +71,19 @@ export default function JobDetail() {
         return;
       }
       try {
-        const [pos, counts] = await Promise.all([getOpenPosition(positionId), getPositionCounts()]);
+        const [pos, counts, close] = await Promise.all([
+          getOpenPosition(positionId),
+          getPositionCounts(),
+          // 关闭时间读不到也不影响详情，按未设置处理。
+          getRecruitCloseAt().catch(() => null),
+        ]);
         if (!alive) return;
         if (!pos) {
           setNotFound(true);
         } else {
           setPosition(pos);
           setFilled(counts[pos.id] ?? 0);
+          setCloseAt(close);
           setFav(isFavoritePositionId(pos.id));
         }
       } catch {
@@ -93,10 +103,11 @@ export default function JobDetail() {
   }, [toast]);
 
   const full = position != null && filled >= position.quota;
+  const closed = isRecruitClosed(closeAt);
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
-    if (!position || submitting) return;
+    if (!position || submitting || closed) return;
     const trimmedName = name.trim();
     const trimmedEmail = qqEmail.trim();
     if (!trimmedName) { setFormError('请填写姓名。'); return; }
@@ -167,11 +178,16 @@ export default function JobDetail() {
               <span className="rj-dept-dot" style={{ background: departmentColor(position.department) }} aria-hidden="true" />
               {position.department}
             </span>
-            {full
-              ? <span className="rj-badge rj-badge--full">已满</span>
-              : <span className="rj-badge rj-badge--open">招聘中</span>}
+            {closed
+              ? <span className="rj-badge rj-badge--rejected">已结束</span>
+              : full
+                ? <span className="rj-badge rj-badge--full">已满</span>
+                : <span className="rj-badge rj-badge--open">招聘中</span>}
             <span className="rj-quota">招 <b>{position.quota}</b> 人 · 已招 <b>{filled}</b> 人</span>
           </div>
+          {!closed && closeAt ? (
+            <p className="rj-deadline">报名截止：{formatCloseDeadline(closeAt)}（北京时间）</p>
+          ) : null}
           <div className="rj-card-actions rj-detail-actions">
             <button
               type="button"
@@ -190,7 +206,7 @@ export default function JobDetail() {
             <span>薪资 {salaryText(position)}</span>
             <span>招 {position.quota} 人</span>
             <span>{position.department}</span>
-            <span>{full ? '已招满' : '正在招聘'}</span>
+            <span>{closed ? '已结束' : full ? '已招满' : '正在招聘'}</span>
           </div>
 
           <section className="rj-section">
@@ -220,6 +236,10 @@ export default function JobDetail() {
                 ? <p>确认信已经发到你的 QQ 邮箱，请留意查收。</p>
                 : <p>确认信发送失败也没关系，申请已经收到，审核结果仍会发到你的 QQ 邮箱。</p>}
               <p><Link to="/jobs/status">查询申请进度 →</Link></p>
+            </div>
+          ) : closed ? (
+            <div className="rj-closed" role="status" style={{ marginTop: 24 }}>
+              招聘已结束，不能再报名了。可以回职位列表看看其他职位，或者在“查询申请进度”里查看已提交申请的审核进度。
             </div>
           ) : full ? (
             <div className="rj-error" role="status" style={{ marginTop: 24 }}>

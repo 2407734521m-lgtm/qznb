@@ -6,14 +6,15 @@ import {
   QQ_EMAIL_RE,
   departmentColor,
   describePositionRequestError,
-  filledHolders,
   formatCloseDeadline,
   getPositionCounts,
   getRecruitCloseAt,
+  isPositionFull,
   isRecruitClosed,
   listOpenPositions,
   loadFavoritePositionIds,
   parseSalaryRange,
+  positionOccupied,
   salaryText,
   sharePosition,
   submitPositionRequest,
@@ -217,30 +218,30 @@ export default function Jobs() {
   const fullIds = useMemo(() => {
     const set = new Set<number>();
     for (const p of positions) {
-      if ((counts[p.id] ?? 0) >= p.quota) set.add(p.id);
+      if (isPositionFull(p.quota, counts[p.id] ?? 0, p.holder_names)) set.add(p.id);
     }
     return set;
   }, [positions, counts]);
 
   const closed = isRecruitClosed(closeAt);
 
-  // 只统计仍有名额且没有任职人员的职位。
+  // 只统计仍有名额的职位（已通过申请数 + 任职人数 < 名额）。
   const openCount = useMemo(
     () => closed ? 0 : positions.filter(p =>
-      filledHolders(p.title).length === 0 && (counts[p.id] ?? 0) < p.quota
+      !isPositionFull(p.quota, counts[p.id] ?? 0, p.holder_names)
     ).length,
     [positions, counts, closed],
   );
   const openVisibleCount = useMemo(
     () => closed ? 0 : visible.filter(p =>
-      filledHolders(p.title).length === 0 && (counts[p.id] ?? 0) < p.quota
+      !isPositionFull(p.quota, counts[p.id] ?? 0, p.holder_names)
     ).length,
     [visible, counts, closed],
   );
   const orderedVisible = useMemo(
     () => [...visible].sort((a, b) => {
-      const aAvailable = !closed && filledHolders(a.title).length === 0 && (counts[a.id] ?? 0) < a.quota;
-      const bAvailable = !closed && filledHolders(b.title).length === 0 && (counts[b.id] ?? 0) < b.quota;
+      const aAvailable = !closed && !isPositionFull(a.quota, counts[a.id] ?? 0, a.holder_names);
+      const bAvailable = !closed && !isPositionFull(b.quota, counts[b.id] ?? 0, b.holder_names);
       return Number(bAvailable) - Number(aAvailable);
     }),
     [visible, counts, closed],
@@ -344,17 +345,17 @@ export default function Jobs() {
           </div>
           <div className="rj-list">
             {orderedVisible.map((p, i) => {
-              const filled = counts[p.id] ?? 0;
-              const full = fullIds.has(p.id);
-              const holders = filledHolders(p.title);
+              const holders = p.holder_names ?? [];
               const taken = holders.length > 0;
+              const occupied = positionOccupied(counts[p.id] ?? 0, holders);
+              const full = fullIds.has(p.id);
               const fav = favorites.includes(p.id);
               return (
                 <article
                   key={p.id}
-                  className={`rj-card rj-card--enter${full || closed || taken ? ' rj-card--full' : ''}`}
+                  className={`rj-card rj-card--enter${full || closed ? ' rj-card--full' : ''}`}
                   style={{ animationDelay: `${Math.min(i, 8) * 45}ms` }}
-                  aria-label={`${p.title}，${closed ? '招聘已结束' : taken ? `已入职：${holders.join('、')}` : full ? '已招满' : `招${p.quota}人，已招${filled}人`}`}
+                  aria-label={`${p.title}，${closed ? '招聘已结束' : taken && full ? `已入职：${holders.join('、')}` : full ? '已招满' : `招${p.quota}人，已招${occupied}人`}`}
                 >
                   <div className="rj-card-top">
                     <h2><Link to={`/jobs/${p.id}`}>{p.title}</Link></h2>
@@ -367,7 +368,7 @@ export default function Jobs() {
                     </span>
                     {closed
                       ? <span className="rj-badge rj-badge--rejected">已结束</span>
-                      : taken
+                      : taken && full
                         ? <span className="rj-badge rj-badge--full">已入职</span>
                         : full
                           ? <span className="rj-badge rj-badge--full">已满</span>
@@ -376,7 +377,7 @@ export default function Jobs() {
                   <p className="rj-desc">{p.description}</p>
                   {taken ? <p className="rj-filled">已入职：{holders.join('、')}</p> : null}
                   <div className="rj-card-foot">
-                    {taken ? null : <span className="rj-quota">招 <b>{p.quota}</b> 人 · 已招 <b>{filled}</b> 人</span>}
+                    {taken && full ? null : <span className="rj-quota">招 <b>{p.quota}</b> 人 · 已招 <b>{occupied}</b> 人</span>}
                     <span className="rj-card-actions">
                       <button
                         type="button"
@@ -395,7 +396,7 @@ export default function Jobs() {
                       >
                         <ShareIcon />分享
                       </button>
-                      {taken
+                      {taken && full
                         ? <span className="rj-cta--full">已满员</span>
                         : <Link className={closed || full ? 'rj-cta--full' : 'rj-cta'} to={`/jobs/${p.id}`}>
                           {closed ? '招聘已结束' : full ? '已招满' : '查看并应聘 →'}

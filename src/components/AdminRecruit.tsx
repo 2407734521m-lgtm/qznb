@@ -4,18 +4,22 @@ import OptionSheet from './OptionSheet';
 import { confirmDialog, promptDialog } from '../lib/dialog';
 import { alog, card, h3, mut, rowBtn } from '../pages/admin/shared';
 import {
+  POSITION_REQUEST_STATUS_LABEL,
   STATUS_LABEL,
   adminListApplications,
   adminListPositions,
+  adminListPositionRequests,
   adminRecruitStats,
   adminReviewApplication,
   adminReviewApplicationsBatch,
+  adminReviewPositionRequest,
   adminSetRecruitCloseAt,
   adminSetRecruitInterview,
   adminUpsertPosition,
   describeBatchReviewError,
   describeCloseAtError,
   describeInterviewError,
+  describePositionRequestReviewError,
   describeReviewError,
   formatDate,
   formatDateTime,
@@ -25,6 +29,7 @@ import {
   sendRecruitEmail,
   type RecruitApplication,
   type RecruitPositionAdmin,
+  type RecruitPositionRequest,
   type RecruitStats,
 } from '../lib/recruit';
 
@@ -112,22 +117,27 @@ export default function AdminRecruit({ setMsg }: { setMsg: (s: string) => void }
   const [closeAt, setCloseAt] = useState<string | null>(null);
   const [closeDraft, setCloseDraft] = useState('');
   const [closeBusy, setCloseBusy] = useState(false);
+  const [requests, setRequests] = useState<RecruitPositionRequest[]>([]);
+  const [requestFilter, setRequestFilter] = useState('all');
+  const [requestBusyId, setRequestBusyId] = useState<number | null>(null);
 
-  const load = useCallback(async (posFilter: string, stFilter: string) => {
+  const load = useCallback(async (posFilter: string, stFilter: string, reqFilter: string) => {
     setLoading(true);
     try {
-      const [statData, posData, appData, closeData] = await Promise.all([
+      const [statData, posData, appData, closeData, reqData] = await Promise.all([
         adminRecruitStats(),
         adminListPositions(),
         adminListApplications(posFilter === 'all' ? null : Number(posFilter), stFilter),
         // 关闭时间读不到也不影响列表，按未设置处理。
         getRecruitCloseAt().catch(() => null),
+        adminListPositionRequests(reqFilter),
       ]);
       setStats(statData);
       setPositions(posData);
       setApplications(appData);
       setCloseAt(closeData);
       setCloseDraft(toDateTimeLocal(closeData));
+      setRequests(reqData);
       setErr('');
     } catch (e) {
       setErr('读取失败：' + (e instanceof Error ? e.message : '请稍后重试。'));
@@ -136,7 +146,7 @@ export default function AdminRecruit({ setMsg }: { setMsg: (s: string) => void }
     }
   }, []);
 
-  useEffect(() => { void load(positionFilter, statusFilter); }, [load, positionFilter, statusFilter]);
+  useEffect(() => { void load(positionFilter, statusFilter, requestFilter); }, [load, positionFilter, statusFilter, requestFilter]);
 
   const pendingCount = stats?.pending ?? 0;
 
@@ -209,7 +219,7 @@ export default function AdminRecruit({ setMsg }: { setMsg: (s: string) => void }
       } else {
         setMsg(`已驳回「${app.name}」的申请。如需通知对方，可在列表里点“发送婉拒邮件”。`);
       }
-      await load(positionFilter, statusFilter);
+      await load(positionFilter, statusFilter, requestFilter);
     } catch (e) {
       setMsg(describeReviewError(e instanceof Error ? e.message : ''));
     } finally {
@@ -257,7 +267,7 @@ export default function AdminRecruit({ setMsg }: { setMsg: (s: string) => void }
         processed: result.processed, skipped: result.skipped,
       });
       setSelectedIds([]);
-      await load(positionFilter, statusFilter);
+      await load(positionFilter, statusFilter, requestFilter);
     } catch (e) {
       setMsg(describeBatchReviewError(e instanceof Error ? e.message : ''));
     } finally {
@@ -277,7 +287,7 @@ export default function AdminRecruit({ setMsg }: { setMsg: (s: string) => void }
         ? '面试时间已保存。如需把面试时间发给对方，可点“重发录用邮件”。'
         : '面试时间已清除。');
       setInterviewOpen(prev => ({ ...prev, [app.id]: false }));
-      await load(positionFilter, statusFilter);
+      await load(positionFilter, statusFilter, requestFilter);
     } catch (e) {
       setMsg(describeInterviewError(e instanceof Error ? e.message : ''));
     } finally {
@@ -337,7 +347,7 @@ export default function AdminRecruit({ setMsg }: { setMsg: (s: string) => void }
       const sent = await sendRecruitEmail(app.id, kind);
       if (sent.ok) {
         setMsg(kind === 'offer' ? '录用通知邮件已发送。' : '婉拒邮件已发送。');
-        await load(positionFilter, statusFilter);
+        await load(positionFilter, statusFilter, requestFilter);
       } else {
         setMsg(`邮件发送失败：${sent.error ?? '请稍后重试。'}`);
       }
@@ -374,11 +384,44 @@ export default function AdminRecruit({ setMsg }: { setMsg: (s: string) => void }
       void alog('recruit_position_save', { position_id: id, title: form.title.trim(), quota });
       setMsg(form.id === null ? '职位已新增。' : '职位已保存。');
       setForm(null);
-      await load(positionFilter, statusFilter);
+      await load(positionFilter, statusFilter, requestFilter);
     } catch (e) {
       setMsg('保存失败：' + (e instanceof Error ? e.message : '请稍后重试。'));
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handleReviewRequest(req: RecruitPositionRequest, status: 'approved' | 'rejected') {
+    if (requestBusyId !== null) return;
+    let note = '';
+    if (status === 'approved') {
+      const ok = await confirmDialog(
+        `通过「${req.title}」的新增岗位申请？\n通过后会在职位列表里新增「${req.title}」这个职位，名额 1 人，开放招聘。`,
+        { confirmText: '通过并新增职位' },
+      );
+      if (!ok) return;
+    } else {
+      const input = await promptDialog('驳回备注（可选，只记在后台，不会通知申请人）', {
+        placeholder: '例如：已有相同职位',
+        confirmText: '确认驳回',
+      });
+      if (input === null) return;
+      note = input.trim();
+    }
+    setRequestBusyId(req.id);
+    setMsg('');
+    try {
+      const result = await adminReviewPositionRequest(req.id, status, note);
+      void alog('recruit_position_request_review', { request_id: req.id, title: result.title, status });
+      setMsg(status === 'approved'
+        ? `已通过「${result.title}」的新增岗位申请，职位已加到列表里（名额 1 人）。`
+        : `已驳回「${result.title}」的新增岗位申请。`);
+      await load(positionFilter, statusFilter, requestFilter);
+    } catch (e) {
+      setMsg(describePositionRequestReviewError(e instanceof Error ? e.message : ''));
+    } finally {
+      setRequestBusyId(null);
     }
   }
 
@@ -413,7 +456,7 @@ export default function AdminRecruit({ setMsg }: { setMsg: (s: string) => void }
           </div>
         )}
         <div style={rowBtn}>
-          <button type="button" style={btnStyle} onClick={() => { setMsg(''); void load(positionFilter, statusFilter); }}>刷新</button>
+          <button type="button" style={btnStyle} onClick={() => { setMsg(''); void load(positionFilter, statusFilter, requestFilter); }}>刷新</button>
           <button type="button" style={primaryBtnStyle} onClick={() => setForm({ ...EMPTY_FORM })}>新增职位</button>
         </div>
       </div>
@@ -516,6 +559,52 @@ export default function AdminRecruit({ setMsg }: { setMsg: (s: string) => void }
             </div>
           );
         })}
+      </div>
+
+      <div style={card}>
+        <h3 style={h3}>新增岗位申请</h3>
+        <p style={mut}>访客在招聘页“申请新增岗位”提交的都在这里审核。通过后自动在职位列表里新增该职位（名额 1 人，开放招聘）；驳回只记在后台，不通知申请人。</p>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 10 }}>
+          <OptionSheet title="选择状态" value={requestFilter}
+            options={[
+              { value: 'all', label: '全部状态' },
+              { value: 'pending', label: '待审核' },
+              { value: 'approved', label: '已通过' },
+              { value: 'rejected', label: '未通过' },
+            ]}
+            onChange={setRequestFilter}
+            buttonText={requestFilter === 'all' ? '全部状态' : POSITION_REQUEST_STATUS_LABEL[requestFilter as 'pending' | 'approved' | 'rejected']} />
+        </div>
+        {requests.length === 0 ? (
+          <p style={mut}>没有符合条件的申请。</p>
+        ) : requests.map(req => (
+          <div key={req.id} style={{ borderTop: '1px solid #eef2f7', padding: '12px 0' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap', fontSize: 14 }}>
+              <span><b>{req.title}</b> · {req.department} · {salaryText(req)} · {req.qq_email}</span>
+              <span style={{ fontSize: 13, color: req.status === 'approved' ? '#23845b' : req.status === 'rejected' ? '#737b86' : '#a96f19' }}>
+                {POSITION_REQUEST_STATUS_LABEL[req.status]}{req.reviewed_at ? ` · ${formatDate(req.reviewed_at)}` : ''}
+              </span>
+            </div>
+            {req.description ? <p style={{ ...mut, margin: '6px 0 0' }}>岗位描述：{req.description}</p> : null}
+            {req.admin_note ? <p style={{ ...mut, margin: '4px 0 0' }}>备注：{req.admin_note}</p> : null}
+            <p style={{ ...mut, margin: '4px 0 0' }}>
+              申请于 {formatDate(req.created_at)}
+              {req.status === 'approved' && req.created_position_id !== null ? (
+                <> · 已加上：<a href={`https://qianzhi.pw/#/jobs/${req.created_position_id}`} target="_blank" rel="noreferrer">在前台查看这个职位</a></>
+              ) : null}
+            </p>
+            {req.status === 'pending' && (
+              <div style={rowBtn}>
+                <button type="button" style={primaryBtnStyle} disabled={requestBusyId === req.id} onClick={() => void handleReviewRequest(req, 'approved')}>
+                  {requestBusyId === req.id ? '处理中…' : '通过并新增职位'}
+                </button>
+                <button type="button" style={dangerBtnStyle} disabled={requestBusyId === req.id} onClick={() => void handleReviewRequest(req, 'rejected')}>
+                  驳回
+                </button>
+              </div>
+            )}
+          </div>
+        ))}
       </div>
 
       <div style={card}>

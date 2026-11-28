@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { supabase } from '../lib/supabase';
+import DotDigits from './admin/DotDigits';
 
 type Totals = {
   members: number;
@@ -58,7 +59,7 @@ const metricStyle: React.CSSProperties = {
 function Metric({ label, value, hint }: { label: string; value: number; hint?: string }) {
   return <div style={metricStyle}>
     <div style={{ ...muted, fontSize: 11 }}>{label}</div>
-    <div style={{ fontSize: 25, fontWeight: 850, letterSpacing: '-.5px', margin: '4px 0 2px' }}>{value.toLocaleString()}</div>
+    <div style={{ margin: '4px 0 2px' }}><DotDigits value={value.toLocaleString()} size="md" /></div>
     {hint && <div style={{ ...muted, fontSize: 10.5 }}>{hint}</div>}
   </div>;
 }
@@ -73,10 +74,10 @@ function TrendChart({ data }: { data: DailyPoint[] }) {
   const x = (i: number) => left + (data.length <= 1 ? 0 : i / (data.length - 1) * (width - left - right));
   const y = (value: number) => height - bottom - value / axisMax * (height - top - bottom);
   const lines = [
-    { key: 'posts', label: '动态', color: '#77a7ff' },
-    { key: 'comments', label: '评论', color: '#b49aff' },
-    { key: 'photos', label: '照片', color: '#75ddb0' },
-    { key: 'chat_messages', label: '聊天消息', color: '#f4bd72' },
+    { key: 'posts', label: '动态', color: '#D97831' },
+    { key: 'comments', label: '评论', color: '#F27D9D' },
+    { key: 'photos', label: '照片', color: '#5DBE63' },
+    { key: 'chat_messages', label: '聊天消息', color: '#A2C8D2' },
   ] as const;
   const labelIndexes = [...new Set([0, Math.floor((data.length - 1) / 3), Math.floor((data.length - 1) * 2 / 3), data.length - 1])];
   return <div style={{ overflowX: 'auto' }}>
@@ -177,7 +178,7 @@ export default function AdminAnalyticsCenter({ setMsg }: { setMsg: (message: str
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 8 }}>
           {countItems.map(([key, label]) => <div key={key} style={{ padding: 10, borderRadius: 11, background: '#f8fafc', border: '1px solid #e5eaf2' }}>
             <div style={muted}>{label}</div>
-            <div style={{ fontSize: 20, fontWeight: 800, marginTop: 3 }}>{totals[key].toLocaleString()}</div>
+            <div style={{ marginTop: 3 }}><DotDigits value={totals[key].toLocaleString()} size="sm" /></div>
           </div>)}
         </div>
       </section>

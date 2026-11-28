@@ -106,7 +106,7 @@ Deno.serve(async (req: Request) => {
   // 先看职位还在不在招。没头像的直接拒绝不走 RPC，所以这里自己查一次。
   const { data: position } = await admin
     .from('recruit_positions')
-    .select('id, is_open')
+    .select('id, title, is_open')
     .eq('id', positionId)
     .maybeSingle();
   if (!position || !position.is_open) {
@@ -168,5 +168,35 @@ Deno.serve(async (req: Request) => {
       .update({ admin_note: AVATAR_UNAVAILABLE_NOTE })
       .eq('id', applicationId);
   }
-  return response({ ok: true, id: applicationId, avatarCheck: avatar });
+
+  // 提交成功：给应聘者发一封“已收到申请”的确认信（走已有的 email-dispatch，
+  // 类别 recruit_notice / 来源 recruit-notify 已在白名单里，不用另加类别）。
+  // 事件 key 带申请 id，重复调用不会重复发信。发信失败也不影响提交结果。
+  let confirmationEmailSent = false;
+  try {
+    const r = await fetch(`${url}/functions/v1/email-dispatch`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${serviceKey}`,
+        apikey: serviceKey,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        to: qqEmail,
+        subject: `已收到您的应聘申请——${position.title}`,
+        text:
+          `${name} 您好：\n\n我们已收到您应聘${COMPANY}「${position.title}」一职的申请，正在审核中。\n\n` +
+          `审核结果会发到这个 QQ 邮箱，请留意查收；也可以随时在招聘页“查询申请进度”里凭这个邮箱查看进度。\n\n${COMPANY} 人事部`,
+        category: 'recruit_notice',
+        source: 'recruit-notify',
+        eventKey: `recruit:received:${applicationId}`,
+        referenceId: String(applicationId),
+      }),
+    });
+    const dispatchResult = await r.json().catch(() => ({}));
+    confirmationEmailSent = r.ok && dispatchResult?.ok === true;
+  } catch {
+    confirmationEmailSent = false;
+  }
+  return response({ ok: true, id: applicationId, avatarCheck: avatar, confirmationEmailSent });
 });

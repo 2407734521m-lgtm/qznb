@@ -76,6 +76,9 @@ export default function JobStatus() {
                 <div>
                   <b>{r.position_title}</b>
                   <small>申请于 {formatDate(r.created_at)}{r.reviewed_at ? ` · ${formatDate(r.reviewed_at)}审核` : ''}</small>
+                  {r.status === 'rejected' && r.admin_note ? (
+                    <small className="rj-status-reason">原因：{r.admin_note}</small>
+                  ) : null}
                 </div>
                 <span className={`rj-badge rj-badge--${r.status}`}>{STATUS_LABEL[r.status]}</span>
               </div>

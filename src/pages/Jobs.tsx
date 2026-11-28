@@ -230,7 +230,8 @@ export default function Jobs() {
         </div>
       ) : (
         <>
-          <div className="rj-results-head">\n            <div><h2>招聘职位</h2><p>{closed ? "本轮招聘已结束" : `当前筛选下有 ${openVisibleCount} 个岗位开放申请`}</p></div>\n            <span>{visible.length} 个职位</span>\n          </div>
+          <div className="rj-results-head">
+            <div><h2>招聘职位</h2><p>{closed ? "本轮招聘已结束" : `当前筛选下有 ${openVisibleCount} 个岗位开放申请`}</p></div>\n            <span>{visible.length} 个职位</span>\n          </div>
           <div className="rj-list">
             {orderedVisible.map((p, i) => {
               const filled = counts[p.id] ?? 0;

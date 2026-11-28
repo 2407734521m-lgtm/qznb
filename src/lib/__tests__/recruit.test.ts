@@ -8,6 +8,7 @@ import {
   isFavoritePositionId,
   isRecruitClosed,
   loadFavoritePositionIds,
+  parseSalaryRange,
   toggleFavoritePositionId,
 } from '../recruitHelpers';
 
@@ -155,5 +156,28 @@ describe('filledHolders', () => {
     expect(filledHolders('会计')).toEqual([]);
     expect(filledHolders('前端工程师')).toEqual([]);
     expect(filledHolders('不存在的职位')).toEqual([]);
+  });
+});
+
+describe('parseSalaryRange', () => {
+  it('空白与“面议”算面议', () => {
+    expect(parseSalaryRange('')).toEqual({ min: null, max: null });
+    expect(parseSalaryRange('   ')).toEqual({ min: null, max: null });
+    expect(parseSalaryRange('面议')).toEqual({ min: null, max: null });
+  });
+  it('区间支持多种分隔符与“元/月”后缀', () => {
+    expect(parseSalaryRange('6000–9000')).toEqual({ min: 6000, max: 9000 });
+    expect(parseSalaryRange('6000-9000')).toEqual({ min: 6000, max: 9000 });
+    expect(parseSalaryRange('6000~9000')).toEqual({ min: 6000, max: 9000 });
+    expect(parseSalaryRange('6000–9000元/月')).toEqual({ min: 6000, max: 9000 });
+    expect(parseSalaryRange(' 6000 – 9000 ')).toEqual({ min: 6000, max: 9000 });
+  });
+  it('单个数字算下限', () => {
+    expect(parseSalaryRange('5000')).toEqual({ min: 5000, max: null });
+  });
+  it('下限大于上限、纯文字、三段区间都算格式不对', () => {
+    expect(parseSalaryRange('9000–6000')).toBeNull();
+    expect(parseSalaryRange('abc')).toBeNull();
+    expect(parseSalaryRange('6000–9000–12000')).toBeNull();
   });
 });

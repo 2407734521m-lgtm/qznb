@@ -10,13 +10,17 @@ import {
   adminRecruitStats,
   adminReviewApplication,
   adminReviewApplicationsBatch,
+  adminSetRecruitCloseAt,
   adminSetRecruitInterview,
   adminUpsertPosition,
   describeBatchReviewError,
+  describeCloseAtError,
   describeInterviewError,
   describeReviewError,
   formatDate,
   formatDateTime,
+  getRecruitCloseAt,
+  isRecruitClosed,
   salaryText,
   sendRecruitEmail,
   type RecruitApplication,
@@ -105,18 +109,25 @@ export default function AdminRecruit({ setMsg }: { setMsg: (s: string) => void }
   const [interviewDrafts, setInterviewDrafts] = useState<Record<number, InterviewDraft>>({});
   const [interviewOpen, setInterviewOpen] = useState<Record<number, boolean>>({});
   const [interviewBusyId, setInterviewBusyId] = useState<number | null>(null);
+  const [closeAt, setCloseAt] = useState<string | null>(null);
+  const [closeDraft, setCloseDraft] = useState('');
+  const [closeBusy, setCloseBusy] = useState(false);
 
   const load = useCallback(async (posFilter: string, stFilter: string) => {
     setLoading(true);
     try {
-      const [statData, posData, appData] = await Promise.all([
+      const [statData, posData, appData, closeData] = await Promise.all([
         adminRecruitStats(),
         adminListPositions(),
         adminListApplications(posFilter === 'all' ? null : Number(posFilter), stFilter),
+        // 关闭时间读不到也不影响列表，按未设置处理。
+        getRecruitCloseAt().catch(() => null),
       ]);
       setStats(statData);
       setPositions(posData);
       setApplications(appData);
+      setCloseAt(closeData);
+      setCloseDraft(toDateTimeLocal(closeData));
       setErr('');
     } catch (e) {
       setErr('读取失败：' + (e instanceof Error ? e.message : '请稍后重试。'));
@@ -274,6 +285,43 @@ export default function AdminRecruit({ setMsg }: { setMsg: (s: string) => void }
     }
   }
 
+  async function handleSaveCloseAt() {
+    if (closeBusy) return;
+    if (!closeDraft) { setMsg('请先选择关闭时间。'); return; }
+    const at = new Date(closeDraft);
+    if (Number.isNaN(at.getTime())) { setMsg('关闭时间格式不对，请重新选择。'); return; }
+    setCloseBusy(true);
+    try {
+      const saved = await adminSetRecruitCloseAt(at.toISOString());
+      void alog('recruit_close_at', { close_at: saved });
+      setCloseAt(saved);
+      setCloseDraft(toDateTimeLocal(saved));
+      setMsg(`关闭时间已保存：${formatDateTime(saved)}（北京时间）。到了时间，招聘板块自动关闭，不再接受新申请。`);
+    } catch (e) {
+      setMsg(describeCloseAtError(e instanceof Error ? e.message : ''));
+    } finally {
+      setCloseBusy(false);
+    }
+  }
+
+  async function handleClearCloseAt() {
+    if (closeBusy) return;
+    const ok = await confirmDialog('清除关闭时间，重新开放招聘？', { confirmText: '重新开放' });
+    if (!ok) return;
+    setCloseBusy(true);
+    try {
+      await adminSetRecruitCloseAt(null);
+      void alog('recruit_close_at', { close_at: null });
+      setCloseAt(null);
+      setCloseDraft('');
+      setMsg('关闭时间已清除，招聘已重新开放。');
+    } catch (e) {
+      setMsg(describeCloseAtError(e instanceof Error ? e.message : ''));
+    } finally {
+      setCloseBusy(false);
+    }
+  }
+
   async function handleSendMail(app: RecruitApplication) {
     if (mailBusyId !== null) return;
     const kind = app.status === 'approved' ? 'offer' : 'rejection';
@@ -367,6 +415,37 @@ export default function AdminRecruit({ setMsg }: { setMsg: (s: string) => void }
         <div style={rowBtn}>
           <button type="button" style={btnStyle} onClick={() => { setMsg(''); void load(positionFilter, statusFilter); }}>刷新</button>
           <button type="button" style={primaryBtnStyle} onClick={() => setForm({ ...EMPTY_FORM })}>新增职位</button>
+        </div>
+      </div>
+
+      <div style={card}>
+        <h3 style={h3}>关闭时间</h3>
+        <p style={mut}>
+          {closeAt
+            ? isRecruitClosed(closeAt)
+              ? `当前：已结束（关闭时间 ${formatDateTime(closeAt)}，北京时间），前台不再接受新申请。`
+              : `当前：将于 ${formatDateTime(closeAt)}（北京时间）截止报名，前台正在显示截止时间。`
+            : '当前：未设置关闭时间，正常开放招聘。'}
+        </p>
+        <div style={fieldStyle}>
+          <label style={labelStyle}>关闭时间</label>
+          <DateTimeField
+            value={closeDraft}
+            onChange={setCloseDraft}
+            mode="datetime"
+            placeholder="选择关闭日期和时间"
+          />
+        </div>
+        <p style={mut}>到了关闭时间，招聘板块自动关闭，不再接受新申请；已提交的申请照常审核，进度查询不受影响。</p>
+        <div style={rowBtn}>
+          <button type="button" style={primaryBtnStyle} disabled={closeBusy} onClick={() => void handleSaveCloseAt()}>
+            {closeBusy ? '保存中…' : '保存关闭时间'}
+          </button>
+          {closeAt && (
+            <button type="button" style={dangerBtnStyle} disabled={closeBusy} onClick={() => void handleClearCloseAt()}>
+              清除（重新开放）
+            </button>
+          )}
         </div>
       </div>
 

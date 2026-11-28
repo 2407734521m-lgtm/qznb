@@ -4,6 +4,7 @@ import OptionSheet from '../components/OptionSheet';
 import {
   RECRUIT_COMPANY,
   departmentColor,
+  filledHolders,
   formatCloseDeadline,
   getPositionCounts,
   getRecruitCloseAt,
@@ -119,6 +120,17 @@ export default function Jobs() {
     return set;
   }, [positions, counts]);
 
+  // 在招计数只计仍开放的职位：已有任职人的职位不再算在招。
+  const openCount = useMemo(
+    () => positions.filter(p => filledHolders(p.title).length === 0).length,
+    [positions],
+  );
+
+  const openVisibleCount = useMemo(
+    () => visible.filter(p => filledHolders(p.title).length === 0).length,
+    [visible],
+  );
+
   const closed = isRecruitClosed(closeAt);
 
   function onToggleFavorite(id: number) {
@@ -140,7 +152,7 @@ export default function Jobs() {
         <h1>加入瑞氏，和我们一起做事</h1>
         <p className="rj-hero-sub">选一个适合你的职位，填好资料就能应聘。审核通过后，我们会发邮件到你的 QQ 邮箱通知你。</p>
         {loading ? null : (
-          <p className="rj-hero-stats">在招 {positions.length} 个职位 · {departments.length} 个部门{favorites.length > 0 ? ` · 已收藏 ${favorites.length} 个` : ''}</p>
+          <p className="rj-hero-stats">在招 {openCount} 个职位 · {departments.length} 个部门{favorites.length > 0 ? ` · 已收藏 ${favorites.length} 个` : ''}</p>
         )}
         <nav className="rj-nav" aria-label="招聘导航">
           <NavLink to="/jobs" end aria-current="page">职位列表</NavLink>
@@ -200,18 +212,20 @@ export default function Jobs() {
         </div>
       ) : (
         <>
-          <p className="rj-count">{closed ? `共 ${visible.length} 个职位（招聘已结束）` : `共 ${visible.length} 个职位正在招聘`}</p>
+          <p className="rj-count">{closed ? `共 ${visible.length} 个职位（招聘已结束）` : `共 ${openVisibleCount} 个职位正在招聘`}</p>
           <div className="rj-list">
             {visible.map((p, i) => {
               const filled = counts[p.id] ?? 0;
               const full = fullIds.has(p.id);
+              const holders = filledHolders(p.title);
+              const taken = holders.length > 0;
               const fav = favorites.includes(p.id);
               return (
                 <article
                   key={p.id}
-                  className={`rj-card rj-card--enter${full || closed ? ' rj-card--full' : ''}`}
+                  className={`rj-card rj-card--enter${full || closed || taken ? ' rj-card--full' : ''}`}
                   style={{ animationDelay: `${Math.min(i, 8) * 45}ms` }}
-                  aria-label={`${p.title}，${closed ? '招聘已结束' : full ? '已招满' : `招${p.quota}人，已招${filled}人`}`}
+                  aria-label={`${p.title}，${closed ? '招聘已结束' : taken ? `已入职：${holders.join('、')}` : full ? '已招满' : `招${p.quota}人，已招${filled}人`}`}
                 >
                   <div className="rj-card-top">
                     <h2><Link to={`/jobs/${p.id}`}>{p.title}</Link></h2>
@@ -224,13 +238,16 @@ export default function Jobs() {
                     </span>
                     {closed
                       ? <span className="rj-badge rj-badge--rejected">已结束</span>
-                      : full
-                        ? <span className="rj-badge rj-badge--full">已满</span>
-                        : <span className="rj-badge rj-badge--open">招聘中</span>}
+                      : taken
+                        ? <span className="rj-badge rj-badge--full">已入职</span>
+                        : full
+                          ? <span className="rj-badge rj-badge--full">已满</span>
+                          : <span className="rj-badge rj-badge--open">招聘中</span>}
                   </div>
                   <p className="rj-desc">{p.description}</p>
+                  {taken ? <p className="rj-filled">已入职：{holders.join('、')}</p> : null}
                   <div className="rj-card-foot">
-                    <span className="rj-quota">招 <b>{p.quota}</b> 人 · 已招 <b>{filled}</b> 人</span>
+                    {taken ? null : <span className="rj-quota">招 <b>{p.quota}</b> 人 · 已招 <b>{filled}</b> 人</span>}
                     <span className="rj-card-actions">
                       <button
                         type="button"
@@ -249,9 +266,11 @@ export default function Jobs() {
                       >
                         <ShareIcon />分享
                       </button>
-                      <Link className={closed || full ? 'rj-cta--full' : 'rj-cta'} to={`/jobs/${p.id}`}>
-                        {closed ? '招聘已结束' : full ? '已招满' : '查看并应聘 →'}
-                      </Link>
+                      {taken
+                        ? <span className="rj-cta--full">已满员</span>
+                        : <Link className={closed || full ? 'rj-cta--full' : 'rj-cta'} to={`/jobs/${p.id}`}>
+                          {closed ? '招聘已结束' : full ? '已招满' : '查看并应聘 →'}
+                        </Link>}
                     </span>
                   </div>
                 </article>

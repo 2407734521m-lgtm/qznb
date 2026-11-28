@@ -25,7 +25,8 @@ import '../styles-admin-reference-glass.css'; // 总览毛玻璃通透层：只�
 import '../styles-admin-reference-polish.css'; // 第 6 步收尾打磨：动效与按压反馈层，只覆盖总览页 + 后台小按钮，必须最后引入
 import '../styles-admin-reference-motion.css'; // 全站动效层：切页过渡、全部页面入场 stagger、导航按压反馈，必须最后引入
 import '../styles-admin-reference-mobile.css'; // 手机端清理 + 按钮统一：390px 顶栏去重、主键统一琥珀药丸、标题防切，必须最最后引入
-import '../styles-admin-overview-grove.css'; // 总览 Grove 改版：只覆盖总览页，必须最后引入
+import '../styles-admin-overview-grove.css';
+import '../styles-admin-grove.css'; // 总览 Grove 改版：只覆盖总览页，必须最后引入
 import AdminWorkspace from '../components/AdminWorkspace';
 import AdminGuestAccess from '../components/AdminGuestAccess';
 import AdminSystemCenter from '../components/AdminSystemCenter';

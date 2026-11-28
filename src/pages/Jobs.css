@@ -303,3 +303,127 @@
   .rj-submit { min-height: 52px; font-size: 16px; }
   .rj-steps li { font-size: 12px; }
 }
+/* 招聘列表页专属改版：白底、低装饰、明确的岗位信息层级。 */
+.rj-jobs-page { max-width: 1040px; padding-top: 30px; }
+.rj-jobs-hero {
+  display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(250px, .9fr);
+  align-items: center; gap: 22px 28px; margin: 0 0 24px; padding: 4px 0 20px;
+  color: #20242a; background: #fff; border-bottom: 1px solid #e9ebef;
+}
+.rj-jobs-hero-main { min-width: 0; }
+.rj-jobs-hero .rj-hero-kicker { margin-bottom: 10px; color: #737b86; letter-spacing: .08em; }
+.rj-jobs-hero h1 {
+  margin: 0 0 10px; color: #20242a; font-size: clamp(24px, 3vw, 32px);
+  line-height: 1.25; font-weight: 700; letter-spacing: -.03em;
+}
+.rj-jobs-hero .rj-hero-sub { max-width: 580px; color: #68717d; font-size: 14px; line-height: 1.75; }
+.rj-jobs-hero .rj-nav { grid-column: 1 / -1; margin: 0; }
+.rj-jobs-hero .rj-nav a { background: #fff; border-color: #e7eaee; }
+.rj-jobs-hero .rj-nav a[aria-current="page"] { color: #fff; background: #252a31; border-color: #252a31; }
+.rj-jobs-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; min-width: 0; }
+.rj-jobs-stats > div {
+  display: flex; flex-direction: column; justify-content: center; min-width: 0; min-height: 76px;
+  padding: 12px; background: #f7f8fa; border: 1px solid #eceef1; border-radius: 13px;
+}
+.rj-jobs-stats strong { color: #20242a; font-size: 24px; line-height: 1.15; font-weight: 700; font-variant-numeric: tabular-nums; }
+.rj-jobs-stats span { margin-top: 5px; color: #737b86; font-size: 11px; line-height: 1.35; white-space: nowrap; }
+.rj-jobs-page .rj-jobs-toolbar { display: grid; grid-template-columns: minmax(220px, 1fr) auto auto; gap: 10px; margin-bottom: 22px; }
+.rj-jobs-page .rj-search {
+  height: 46px; padding-left: 15px; border-color: #e1e4e8; border-radius: 13px; background: #fafbfc;
+}
+.rj-jobs-page .rj-search:focus { background: #fff; outline: 2px solid rgba(37, 42, 49, .12); border-color: #aab1ba; }
+.rj-jobs-page .rj-filter-btn { height: 46px; border-color: #e1e4e8; border-radius: 13px; background: #fff; }
+.rj-jobs-page .rj-filter-btn:hover { background: #f7f8fa; border-color: #cfd4db; }
+.rj-results-head {
+  display: flex; align-items: end; justify-content: space-between; gap: 12px; margin: 0 0 13px;
+}
+.rj-results-head h2 { margin: 0; color: #20242a; font-size: 18px; line-height: 1.35; font-weight: 650; }
+.rj-results-head p { margin: 4px 0 0; color: #737b86; font-size: 12px; line-height: 1.5; }
+.rj-results-head > span { color: #737b86; font-size: 12px; white-space: nowrap; }
+.rj-jobs-page .rj-list { gap: 12px; }
+.rj-jobs-page .rj-card {
+  display: flex; flex-direction: column; min-width: 0; min-height: 100%; padding: 18px;
+  border: 1px solid #e7eaee; border-radius: 16px; background: #fff; box-shadow: none;
+}
+.rj-jobs-page .rj-card:not(.rj-card--full) { border-left: 3px solid #343a42; padding-left: 16px; }
+.rj-jobs-page .rj-card:hover {
+  transform: translateY(-2px); border-color: #cfd4db; background: #fff;
+  box-shadow: 0 9px 24px rgba(32, 36, 42, .055);
+}
+.rj-jobs-page .rj-card--full { opacity: 1; background: #fafbfc; }
+.rj-jobs-page .rj-card--full .rj-desc,
+.rj-jobs-page .rj-card--full .rj-quota { color: #858d98; }
+.rj-jobs-page .rj-card-top { align-items: flex-start; }
+.rj-jobs-page .rj-card-top h2 { color: #20242a; font-size: 18px; font-weight: 650; }
+.rj-jobs-page .rj-salary { color: #252a31; font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.rj-jobs-page .rj-desc { flex: 1 0 auto; min-height: 44px; margin-top: 13px; color: #626b76; line-height: 1.7; }
+.rj-jobs-page .rj-filled { color: #626b76; background: #f1f3f5; border-color: #e7eaee; }
+.rj-jobs-page .rj-card-foot { align-items: center; margin-top: 16px; padding-top: 13px; border-top: 1px solid #eef0f2; }
+.rj-jobs-page .rj-quota { color: #737b86; font-size: 12px; }
+.rj-jobs-page .rj-quota b { color: #30363e; }
+.rj-jobs-page .rj-card-actions { gap: 6px; }
+.rj-jobs-page .rj-icon-btn { padding: 7px 9px; border-color: transparent; background: #f5f6f8; }
+.rj-jobs-page .rj-icon-btn:hover { border-color: #e1e4e8; background: #eef0f3; }
+.rj-jobs-page .rj-icon-btn--on { color: #8a641e; border-color: #eadfca; background: #f8f3e9; }
+.rj-jobs-page .rj-cta {
+  display: inline-flex; align-items: center; justify-content: center; min-height: 34px; padding: 0 12px;
+  color: #fff; background: #252a31; border-radius: 10px; font-size: 12px;
+  transition: background .18s ease, transform .18s ease;
+}
+.rj-jobs-page .rj-cta:hover { background: #3a414a; }
+.rj-jobs-page .rj-cta:active { transform: scale(.97); }
+.rj-jobs-page .rj-cta--full { color: #858d98; font-size: 12px; }
+.rj-jobs-page .rj-badge--full { color: #626b76; background: #edf0f3; }
+.rj-jobs-page .rj-team { margin-top: 34px; padding-top: 24px; }
+.rj-jobs-page .rj-team h2 { font-size: 19px; }
+.rj-jobs-page .rj-team-card { background: #fafbfc; border-color: #eceef1; border-radius: 13px; }
+.rj-jobs-page .rj-team-avatar { color: #424a54; background: #e9edf1; }
+.rj-jobs-page .rj-team-role { color: #737b86; }
+@media (min-width: 760px) {
+  .rj-jobs-page .rj-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 640px) {
+  .rj-jobs-page { padding-top: 18px; }
+  .rj-jobs-hero { grid-template-columns: minmax(0, 1fr); gap: 17px; padding-bottom: 17px; }
+  .rj-jobs-hero .rj-nav { grid-column: auto; }
+  .rj-jobs-stats > div { min-height: 68px; padding: 10px; }
+  .rj-jobs-stats strong { font-size: 21px; }
+  .rj-jobs-page .rj-jobs-toolbar { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; }
+  .rj-jobs-page .rj-search { grid-column: 1 / -1; width: 100%; }
+  .rj-jobs-page .rj-filter-btn { width: 100%; justify-content: center; padding: 0 10px; }
+  .rj-results-head { align-items: center; }
+  .rj-jobs-page .rj-card { padding: 15px; }
+  .rj-jobs-page .rj-card:not(.rj-card--full) { padding-left: 13px; }
+  .rj-jobs-page .rj-card-top { flex-wrap: wrap; gap: 6px 10px; }
+  .rj-jobs-page .rj-card-top h2 { font-size: 17px; }
+  .rj-jobs-page .rj-salary { font-size: 14px; }
+  .rj-jobs-page .rj-card-foot { align-items: flex-start; }
+  .rj-jobs-page .rj-card-actions { width: 100%; justify-content: space-between; }
+  .rj-jobs-page .rj-icon-btn { padding: 7px 8px; }
+  .rj-jobs-page .rj-cta { margin-left: auto; }
+  .rj-jobs-page .rj-team-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .rj-jobs-page .rj-team-card { padding: 10px; gap: 8px; }
+}
+@media (prefers-reduced-motion: reduce) { .rj-jobs-page .rj-cta { transition: none; } }
+
+/* 招聘页头部与新增岗位入口统一为白底极简样式。 */
+.rj-jobs-page .rj-jobs-hero {
+  border: 0;
+  border-bottom: 1px solid #e9ebef;
+  border-radius: 0;
+  box-shadow: none;
+}
+.rj-jobs-page .rj-hero-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.rj-jobs-page .rj-request-btn {
+  color: #fff;
+  background: #252a31;
+  border-color: #252a31;
+  border-radius: 10px;
+}
+.rj-jobs-page .rj-request-btn:hover { background: #3a414a; }
+.rj-jobs-page .rj-request-hint { color: #737b86; }

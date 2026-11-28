@@ -3,11 +3,11 @@ import { Link, NavLink, useParams } from 'react-router-dom';
 import {
   RECRUIT_COMPANY,
   QQ_EMAIL_RE,
-  describeSubmitError,
+  describeApplyResultError,
   getOpenPosition,
   getPositionCounts,
   salaryText,
-  submitApplication,
+  submitApplicationChecked,
   type RecruitPosition,
 } from '../lib/recruit';
 import './Jobs.css';
@@ -67,7 +67,7 @@ export default function JobDetail() {
     setFormError('');
     setSubmitting(true);
     try {
-      await submitApplication({
+      const result = await submitApplicationChecked({
         positionId: position.id,
         name: trimmedName,
         qqEmail: trimmedEmail,
@@ -75,9 +75,13 @@ export default function JobDetail() {
         intro: intro.trim(),
         experience: experience.trim(),
       });
-      setSubmitted(true);
+      if (result.ok) {
+        setSubmitted(true);
+      } else {
+        setFormError(describeApplyResultError(result.reason ?? ''));
+      }
     } catch (err) {
-      setFormError(describeSubmitError(err instanceof Error ? err.message : ''));
+      setFormError(describeApplyResultError(err instanceof Error ? err.message : ''));
     } finally {
       setSubmitting(false);
     }
@@ -142,7 +146,7 @@ export default function JobDetail() {
               <div className="rj-field">
                 <label htmlFor="rj-email">QQ 邮箱 <span>*</span></label>
                 <input id="rj-email" type="email" value={qqEmail} maxLength={254} onChange={e => setQqEmail(e.target.value)} placeholder="例如：123456@qq.com" autoComplete="email" />
-                <p className="rj-field-hint">审核通过后，录用通知会发到这个邮箱，请务必填写正确。</p>
+                <p className="rj-field-hint">请使用已设置头像的 QQ 邮箱；没有头像的 QQ 邮箱会被系统自动拒绝。审核通过后，录用通知会发到这个邮箱，请务必填写正确。</p>
               </div>
               <div className="rj-field">
                 <label htmlFor="rj-phone">手机号</label>

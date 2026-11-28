@@ -5,6 +5,8 @@ import { supabase } from './supabase';
 export {
   applicationTimelineSteps,
   departmentColor,
+  FILLED_POSITIONS,
+  filledHolders,
   formatCloseDeadline,
   formatDateTime,
   isFavoritePositionId,

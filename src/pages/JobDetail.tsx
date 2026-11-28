@@ -5,6 +5,7 @@ import {
   QQ_EMAIL_RE,
   departmentColor,
   describeApplyResultError,
+  filledHolders,
   formatCloseDeadline,
   getOpenPosition,
   getPositionCounts,
@@ -104,10 +105,12 @@ export default function JobDetail() {
 
   const full = position != null && filled >= position.quota;
   const closed = isRecruitClosed(closeAt);
+  const holders = position ? filledHolders(position.title) : [];
+  const isFilled = holders.length > 0;
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
-    if (!position || submitting || closed) return;
+    if (!position || submitting || closed || isFilled) return;
     const trimmedName = name.trim();
     const trimmedEmail = qqEmail.trim();
     if (!trimmedName) { setFormError('请填写姓名。'); return; }
@@ -180,10 +183,14 @@ export default function JobDetail() {
             </span>
             {closed
               ? <span className="rj-badge rj-badge--rejected">已结束</span>
-              : full
-                ? <span className="rj-badge rj-badge--full">已满</span>
-                : <span className="rj-badge rj-badge--open">招聘中</span>}
-            <span className="rj-quota">招 <b>{position.quota}</b> 人 · 已招 <b>{filled}</b> 人</span>
+              : isFilled
+                ? <span className="rj-badge rj-badge--full">已入职</span>
+                : full
+                  ? <span className="rj-badge rj-badge--full">已满</span>
+                  : <span className="rj-badge rj-badge--open">招聘中</span>}
+            {isFilled
+              ? <span className="rj-quota">已入职：<b>{holders.join('、')}</b></span>
+              : <span className="rj-quota">招 <b>{position.quota}</b> 人 · 已招 <b>{filled}</b> 人</span>}
           </div>
           {!closed && closeAt ? (
             <p className="rj-deadline">报名截止：{formatCloseDeadline(closeAt)}（北京时间）</p>
@@ -206,7 +213,7 @@ export default function JobDetail() {
             <span>薪资 {salaryText(position)}</span>
             <span>招 {position.quota} 人</span>
             <span>{position.department}</span>
-            <span>{closed ? '已结束' : full ? '已招满' : '正在招聘'}</span>
+            <span>{closed ? '已结束' : isFilled ? '已入职' : full ? '已招满' : '正在招聘'}</span>
           </div>
 
           <section className="rj-section">
@@ -222,11 +229,13 @@ export default function JobDetail() {
               : <p>暂无要求。</p>}
           </section>
 
-          <ol className="rj-steps" aria-label="应聘流程">
-            <li className={submitted ? 'rj-step--done' : 'rj-step--current'}><span>1</span>填写资料</li>
-            <li className={submitted ? 'rj-step--done' : ''}><span>2</span>提交申请</li>
-            <li className={submitted ? 'rj-step--current' : ''}><span>3</span>等待审核</li>
-          </ol>
+          {isFilled ? null : (
+            <ol className="rj-steps" aria-label="应聘流程">
+              <li className={submitted ? 'rj-step--done' : 'rj-step--current'}><span>1</span>填写资料</li>
+              <li className={submitted ? 'rj-step--done' : ''}><span>2</span>提交申请</li>
+              <li className={submitted ? 'rj-step--current' : ''}><span>3</span>等待审核</li>
+            </ol>
+          )}
 
           {submitted ? (
             <div className="rj-success" role="status" style={{ marginTop: 24 }}>
@@ -240,6 +249,12 @@ export default function JobDetail() {
           ) : closed ? (
             <div className="rj-closed" role="status" style={{ marginTop: 24 }}>
               招聘已结束，不能再报名了。可以回职位列表看看其他职位，或者在“查询申请进度”里查看已提交申请的审核进度。
+            </div>
+          ) : isFilled ? (
+            <div className="rj-closed" role="status" style={{ marginTop: 24 }}>
+              该职位已有任职人员，不再接受申请。
+              <br />任职人员：{holders.join('、')}
+              <br /><Link to="/jobs">回职位列表看看其他职位</Link>
             </div>
           ) : full ? (
             <div className="rj-error" role="status" style={{ marginTop: 24 }}>

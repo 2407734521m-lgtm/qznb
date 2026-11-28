@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   applicationTimelineSteps,
   departmentColor,
+  filledHolders,
   formatCloseDeadline,
   formatDateTime,
   isFavoritePositionId,
@@ -137,5 +138,22 @@ describe('formatCloseDeadline', () => {
   it('空值与非法值返回破折号', () => {
     expect(formatCloseDeadline(null)).toBe('—');
     expect(formatCloseDeadline('not-a-date')).toBe('—');
+  });
+});
+
+describe('filledHolders', () => {
+  it('已有人任职的职位返回任职人姓名', () => {
+    expect(filledHolders('董事长')).toEqual(['王瑞']);
+    expect(filledHolders('总经理')).toEqual(['刘俊威']);
+    expect(filledHolders('人事经理')).toEqual(['谢铭辛']);
+    expect(filledHolders('保安')).toEqual(['李柯', '严浩溢']);
+  });
+  it('财务总监按用户名单里的“财务经理”映射到陈泽洋', () => {
+    expect(filledHolders('财务总监')).toEqual(['陈泽洋']);
+  });
+  it('没人任职的职位返回空数组', () => {
+    expect(filledHolders('会计')).toEqual([]);
+    expect(filledHolders('前端工程师')).toEqual([]);
+    expect(filledHolders('不存在的职位')).toEqual([]);
   });
 });

@@ -145,3 +145,23 @@ export function departmentColor(department: string): string {
   }
   return DEPARTMENT_COLORS[hash % DEPARTMENT_COLORS.length];
 }
+
+// ---------- 已入职人员（静态映射，纯前端展示） ----------
+
+/**
+ * 已有人任职的职位（按招聘职位名映射到任职人姓名）。
+ * 名单由用户 2026-11-28 直接提供；这些职位不再接受新申请，前端直接置灰、不显示表单。
+ * 注意：用户名单里写的是“财务经理”，招聘页的职位名叫“财务总监”，是同一个财务负责人职位。
+ */
+export const FILLED_POSITIONS: Record<string, string[]> = {
+  '董事长': ['王瑞'],
+  '总经理': ['刘俊威'],
+  '人事经理': ['谢铭辛'],
+  '财务总监': ['陈泽洋'],
+  '保安': ['李柯', '严浩溢'],
+};
+
+/** 取某职位的任职人姓名；没人任职返回空数组（职位仍开放）。 */
+export function filledHolders(title: string): string[] {
+  return FILLED_POSITIONS[title] ?? [];
+}

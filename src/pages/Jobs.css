@@ -126,6 +126,11 @@
   padding: 14px 16px; margin-bottom: 12px; font-size: 14px; line-height: 1.6; color: #4a3716;
   background: #fdf6e7; border: 1px solid #f0dfae; border-radius: 12px;
 }
+/* 已入职职位行（列表卡片内）：暖琥珀底，与 .rj-closed 同色系。 */
+.rj-filled {
+  margin: 10px 0 0; padding: 8px 12px; font-size: 13px; font-weight: 600; line-height: 1.5;
+  color: #4a3716; background: #fdf6e7; border: 1px solid #f0dfae; border-radius: 10px;
+}
 .rj-success {
   padding: 16px; font-size: 14px; line-height: 1.7; color: #23845b;
   background: #e9f6ef; border: 1px solid #cfe8d8; border-radius: 12px;

@@ -2987,6 +2987,10 @@ export type Database = {
         Args: { p_email_hash: string }
         Returns: boolean
       }
+      count_account_posts: {
+        Args: { p_target: string }
+        Returns: Json
+      }
       create_invite_code: {
         Args: { new_code: string; nick: string }
         Returns: undefined
@@ -3003,6 +3007,10 @@ export type Database = {
       delete_anonymous_question: {
         Args: { p_question_id: string }
         Returns: boolean
+      }
+      delete_account_posts: {
+        Args: { p_target: string }
+        Returns: Json
       }
       delete_chat_message: {
         Args: { p_message_id: number }

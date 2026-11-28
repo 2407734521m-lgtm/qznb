@@ -239,6 +239,53 @@ export default function AdminAccountManagement({
     await load();
   }
 
+  async function deletePosts(account: Account) {
+    if (!isSuper) {
+      setMsg('删除帖子仅限超级管理员操作。');
+      return;
+    }
+    if (account.id === me) {
+      setMsg('不能删除自己的帖子。');
+      return;
+    }
+    if (account.role !== 'member') {
+      setMsg('为防止误删管理员，只允许删除普通成员账号的帖子。');
+      return;
+    }
+    const label = account.display_name || account.username;
+    setBusy(account.id);
+    const { data, error } = await supabase.rpc('count_account_posts', { p_target: account.id });
+    setBusy(null);
+    if (error) {
+      setMsg(`读取帖子数量失败：${error.message}`);
+      return;
+    }
+    const counts = (data ?? {}) as { posts?: number; love_wall_posts?: number; song_posts?: number; total?: number };
+    const posts = counts.posts ?? 0;
+    const love = counts.love_wall_posts ?? 0;
+    const songs = counts.song_posts ?? 0;
+    const total = counts.total ?? posts + love + songs;
+    if (total === 0) {
+      setMsg(`「${label}」没有可删除的帖子。`);
+      return;
+    }
+    const confirmed = await confirmDialog(
+      `确定删除「${label}」的全部帖子吗？动态 ${posts} 条、表白墙 ${love} 条、歌声墙 ${songs} 条，共 ${total} 条，删除后不可恢复；账号本身保留。`,
+      { danger: true, confirmText: '确认删除全部帖子' }
+    );
+    if (!confirmed) return;
+    setBusy(account.id);
+    const { data: result, error: delError } = await supabase.rpc('delete_account_posts', { p_target: account.id });
+    setBusy(null);
+    if (delError) {
+      setMsg(`删除帖子失败：${delError.message}`);
+      return;
+    }
+    const done = (result ?? {}) as { posts?: number; love_wall_posts?: number; song_posts?: number; total?: number };
+    setMsg(`已删除「${label}」的全部帖子：动态 ${done.posts ?? 0} 条、表白墙 ${done.love_wall_posts ?? 0} 条、歌声墙 ${done.song_posts ?? 0} 条，共 ${done.total ?? total} 条。操作已写入审计日志。`);
+    await load();
+  }
+
   function toggleDetails(id: string) {
     setExpanded((old) => {
       const next = new Set(old);
@@ -378,6 +425,12 @@ export default function AdminAccountManagement({
           {busy === r.id ? '处理中…' : r.joined ? '暂停班级权限' : '恢复班级权限'}
         </button>
         {isSuper && r.role === 'member' && <button
+          style={{ ...btn, borderColor: '#e6a85c66', color: '#f1c37d' }}
+          disabled={r.id === me || busy === r.id}
+          onClick={() => void deletePosts(r)}>
+          {busy === r.id ? '处理中…' : '删除全部帖子'}
+        </button>}
+        {isSuper && r.role === 'member' && <button
           style={{ ...btn, borderColor: '#ff5d6c88', color: '#ff9da7', background: '#ff5d6c12' }}
           disabled={r.id === me || busy === r.id}
           onClick={() => void deleteAccount(r)}>
@@ -412,6 +465,7 @@ export default function AdminAccountManagement({
     <div style={{ ...panel, ...muted }}>
       <strong style={{ color: '#dce5ff' }}>管理边界说明</strong>
       <div>本版的“暂停班级权限”沿用现有 set_joined 权限函数，只限制班级成员权限，不会阻止 Supabase 登录，也不等同于远程撤销会话。</div>
+      <div>“删除全部帖子”只删该成员的动态、表白墙与歌声墙帖子，账号本身保留；删除前会先显示数量并二次确认，操作写入审计日志。管理员账号与自己的帖子不能用这个按钮删除。</div>
       <div>社区禁言、私聊禁言和全站互动限制由数据库 RLS 与受保护的管理函数执行；浏览、登录和举报能力保持独立。</div>
     </div>
   </section>;

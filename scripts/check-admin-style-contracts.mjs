@@ -39,6 +39,8 @@ for(const [name,css] of [['cinematic',cinematic],['unified',unified]]){
 }
 assert(tokens.includes('--admin-bg-0: #f7f9fc;')&&tokens.includes('--admin-surface: #ffffff;'),'admin tokens must define light surfaces');
 assert(admin.includes("import '../styles-admin-pages.css';"),'admin page refinements must load from the admin entry');
+assert(admin.includes("import '../styles-admin-grove.css';"),'admin Grove layer must load last so its tokens win');
+assert(admin.indexOf("import '../styles-admin-grove.css';") > admin.indexOf("import '../styles-admin-overview-grove.css';"),'admin Grove layer must load after the overview Grove layer');
 assert(accounts.includes('className=\"admin-accounts-page\"'),'account page must have a local style root');
 assert(notifications.includes('className=\"admin-notifications-page\"'),'notification page must have a local style root');
 assert(moderate.includes('className=\"admin-moderation-page\"'),'moderation page must have a local style root');

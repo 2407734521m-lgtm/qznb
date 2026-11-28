@@ -272,7 +272,7 @@ export default function Jobs() {
       <header className="rj-hero rj-jobs-hero">
         <div className="rj-jobs-hero-main">
           <p className="rj-hero-kicker">{RECRUIT_COMPANY} · 招聘中心</p>
-          <h1>加入瑞氏，和我们一起做事</h1>
+          <h1>指尖相触，心意相通——瑞氏集团，职等你来</h1>
           <p className="rj-hero-sub">选一个适合你的职位，填好资料就能应聘。审核通过后，我们会发邮件到你的 QQ 邮箱通知你。</p>
         </div>
         {loading ? null : (

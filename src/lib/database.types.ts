@@ -2590,6 +2590,51 @@ export type Database = {
           },
         ]
       }
+      zhi_work_orders: {
+        Row: {
+          admin_reply: string | null
+          code_verified: boolean
+          confirmed_at: string | null
+          confirmed_by: string | null
+          content: string
+          created_at: string
+          created_by: string | null
+          handled_at: string | null
+          id: number
+          source: string
+          status: string
+          title: string
+        }
+        Insert: {
+          admin_reply?: string | null
+          code_verified?: boolean
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          content: string
+          created_at?: string
+          created_by?: string | null
+          handled_at?: string | null
+          id?: never
+          source?: string
+          status?: string
+          title: string
+        }
+        Update: {
+          admin_reply?: string | null
+          code_verified?: boolean
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          content?: string
+          created_at?: string
+          created_by?: string | null
+          handled_at?: string | null
+          id?: never
+          source?: string
+          status?: string
+          title?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -2925,6 +2970,7 @@ export type Database = {
         Args: { p_identifier_hash: string }
         Returns: undefined
       }
+      confirm_zhi_work_order: { Args: { p_order_id: number }; Returns: undefined }
       consume_dev_feedback_attempt: {
         Args: { p_profile_id: string }
         Returns: boolean
@@ -2950,6 +2996,10 @@ export type Database = {
         Returns: boolean
       }
       create_song_audio_upload: { Args: { p_ext: string }; Returns: string }
+      create_zhi_work_order: {
+        Args: { p_content: string; p_title: string }
+        Returns: number
+      }
       delete_anonymous_question: {
         Args: { p_question_id: string }
         Returns: boolean
@@ -3414,6 +3464,10 @@ export type Database = {
       submit_intro_video: { Args: { p_path: string }; Returns: undefined }
       unblock_member: { Args: { target: string }; Returns: undefined }
       unhide_conversation: { Args: { p_conversation_id: number }; Returns: undefined }
+      update_zhi_work_order: {
+        Args: { p_admin_reply?: string; p_order_id: number; p_status: string }
+        Returns: undefined
+      }
       username_available: { Args: { u: string }; Returns: boolean }
       withdraw_friend_request: { Args: { target: string }; Returns: string }
       create_group_conversation: { Args: { p_group_name: string; p_member_ids: string[] }; Returns: number }

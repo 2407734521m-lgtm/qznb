@@ -49,6 +49,7 @@ import AdminSecondaryPassword from '../components/AdminSecondaryPassword';
 import Logs from './admin/Logs';
 import InviteTab from './admin/InviteTab';
 import FeedbackTab from './admin/FeedbackTab';
+import ZhiWorkOrdersTab from './admin/ZhiWorkOrdersTab';
 import GameTab from './admin/GameTab';
 import TestTab from './admin/TestTab';
 import EventTab from './admin/EventTab';
@@ -81,6 +82,7 @@ const TABS_ALL: [string, string, boolean][] = [
   ['communication', '沟通中心', false],
   ['notifications', '通知中心', false],
   ['feedback', '反馈', false],
+  ['zhiOrders', '给栀的工单', true], // 仅超管：超管的改站指令，提交后须二次确认才执行
   ['game', '段位', false],
   ['board', '公告', false],
   ['events', '活动', false],
@@ -314,6 +316,7 @@ export default function Admin({ verifiedRole }: { verifiedRole: 'admin' | 'super
           {tab === 'settings' && isSuper && <Settings me={me} setMsg={setMsg} />}
           {tab === 'invite' && <InviteTab isSuper={isSuper} setMsg={setMsg} />}
           {tab === 'feedback' && <FeedbackTab me={me} isSuper={isSuper} setMsg={setMsg} />}
+          {tab === 'zhiOrders' && isSuper && <ZhiWorkOrdersTab me={me} isSuper={isSuper} setMsg={setMsg} />}
           {tab === 'game' && <GameTab setMsg={setMsg} />}
           {tab === 'test' && isSuper && <TestTab setMsg={setMsg} />}
           {(activeTabUnknown || activeTabForbidden) && (

@@ -62,10 +62,12 @@ assert.ok(activity.includes('qz-island-volume'), 'The expanded island must rende
 
 // The expanded island is a floating player card, not a fullscreen page: cover,
 // progress and five controls (ten-second skips included) must all fit inside
-// the painted capsule, so the card is sized for its content.
+// the painted capsule, so the card is sized for its content. The cap is a
+// floor, not a pinned value: retuning it must not break this check.
 assert.ok(activity.includes('back10') && activity.includes('forward10'), 'The expanded island must offer ten-second skip buttons like the fullscreen player.');
 assert.ok(activity.includes("sendCommand('seek'"), 'The ten-second skip buttons must seek across the bridge.');
-assert.ok(qianzhiMetrics.includes('expanded: { maxHeight: 224 }'), 'The expanded card must be tall enough for the full player instead of clipping the controls row.');
+const expandedMaxHeight = Number(qianzhiMetrics.match(/expanded: \{ maxHeight: (\d+) \}/)?.[1]);
+assert.ok(Number.isFinite(expandedMaxHeight) && expandedMaxHeight >= 240, 'The expanded card must be tall enough for the full player instead of clipping the controls row.');
 assert.ok(parent.includes('volume: number | null'), 'The main-site track must carry the reported volume, or null when unreported.');
 assert.ok(parent.includes('isMuted: boolean'), 'The main-site track must carry the mute state.');
 assert.ok(parent.includes("'volume' | 'mute'"), 'The main-site command set must include volume and mute.');

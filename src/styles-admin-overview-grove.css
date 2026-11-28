@@ -4,8 +4,9 @@
    「AI设计进阶」EP02 的 Grove 风格）+ 同日交付的 Grove 效果图
    （Space：管理后台总览 Grove 效果图）。只换总览页视觉，不动其他
    26 个页签、不动主站、不动数据/入口/权限（见 Overview.tsx）。
-   本文件由 Admin.tsx 最后引入，只覆盖总览页；每条规则都落在
-   .admin-shell-v3 .admin-content 内，不向公共页泄漏。
+   共用令牌已抽到 src/styles-admin-grove.css（由 Admin.tsx 最后引入，
+   铺到全部页签）；本文件只留总览页自己的规则，令牌继承共用层。
+   每条规则都落在 .admin-shell-v3 .admin-content 内，不向公共页泄漏。
    设计令牌（DESIGN.md §9：新视觉语言先记令牌再铺开）：
    - 底色米白 #F7F3EC；弥散渐变：橙 #FEB66E、绿 #5DBE63、
      粉 #F27D9D、蓝 #A2C8D2，模糊柔和、低透明度，只做背景氛围
@@ -22,38 +23,11 @@
    标签按 space-between 排布，不受分段宽度约束）。
 */
 
-/* ---- 令牌（只在总览画布上定义） ---- */
-.admin-shell-v3 .admin-content .admin-overview-dashboard.admin-overview-reference-layout {
-  --grove-canvas: #F7F3EC;
-  --grove-ink: #2B2113;
-  --grove-ink-2: #6B5A33;
-  --grove-amber: #D97831;
-  --grove-orange: #FEB66E;
-  --grove-green: #5DBE63;
-  --grove-pink: #F27D9D;
-  --grove-blue: #A2C8D2;
-  --grove-track: #E9E2D5;
-  --grove-glass: rgba(255, 255, 255, .46);
-  --grove-glass-border: 1px solid rgba(255, 255, 255, .62);
-  --grove-glass-shadow: 0 8px 24px rgba(43, 33, 19, .08), inset 0 1px 0 rgba(255, 255, 255, .70);
-  --grove-blur: blur(18px) saturate(1.25);
-}
+/* ---- 令牌已抽到共用层 styles-admin-grove.css（.admin-shell-v3 上
+   定义），总览页继承同一份；这里不再重复定义。 ---- */
 
-/* ---- 画布：米白底 + 弥散渐变色块。
-   顶部三团用 px 锚定（Flux #754 的教训：% 定位在手机长页上会把
-   亮芯顶出页外），下方三团用 % 做氛围。工作区主列与画布画同一组
-   渐变（画布不透明，两层不叠加）；工作区那层只在总览页签时生效
-   （:has(.is-dashboard-heading)），其他页签仍是 Flux 暖底。 ---- */
-.admin-shell-v3 .admin-workspace.is-reference-dashboard .admin-workspace-main:has(.admin-page-heading.is-dashboard-heading) {
-  background:
-    radial-gradient(720px 420px at 78% 20px, rgba(254, 182, 110, .38), transparent 65%),
-    radial-gradient(520px 380px at 4% 90px, rgba(93, 190, 99, .28), transparent 70%),
-    radial-gradient(460px 320px at 55% 210px, rgba(242, 125, 157, .26), transparent 70%),
-    radial-gradient(620px 460px at 96% 55%, rgba(162, 200, 210, .32), transparent 65%),
-    radial-gradient(560px 420px at -6% 72%, rgba(254, 182, 110, .22), transparent 65%),
-    radial-gradient(700px 520px at 50% 102%, rgba(162, 200, 210, .20), transparent 65%),
-    linear-gradient(180deg, #F7F3EC 0%, #F7F3EC 100%) !important;
-}
+/* ---- 画布：米白底 + 弥散渐变色块由共用层铺到全部页签（见
+   styles-admin-grove.css），总览页不再单独画。 ---- */
 
 .admin-shell-v3 .admin-content .admin-overview-dashboard.admin-overview-reference-layout {
   border: 1px solid rgba(255, 255, 255, .62) !important;

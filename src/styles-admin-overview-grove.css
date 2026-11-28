@@ -1,0 +1,438 @@
+/* 管理后台总览页 · Grove 改版层
+   ---------------------------------------------------------------
+   视觉来源：用户 2026-11-28 发来的 Dashboard 设计视频（西瓜同学
+   「AI设计进阶」EP02 的 Grove 风格）+ 同日交付的 Grove 效果图
+   （Space：管理后台总览 Grove 效果图）。只换总览页视觉，不动其他
+   26 个页签、不动主站、不动数据/入口/权限（见 Overview.tsx）。
+   本文件由 Admin.tsx 最后引入，只覆盖总览页；每条规则都落在
+   .admin-shell-v3 .admin-content 内，不向公共页泄漏。
+   设计令牌（DESIGN.md §9：新视觉语言先记令牌再铺开）：
+   - 底色米白 #F7F3EC；弥散渐变：橙 #FEB66E、绿 #5DBE63、
+     粉 #F27D9D、蓝 #A2C8D2，模糊柔和、低透明度，只做背景氛围
+   - 毛玻璃卡片：白色 46% 填充、1px 白色 62% 描边、圆角 30px、轻阴影
+   - 文字墨色 #2B2113，次要文字 #6B5A33；色彩只留给重点数据
+     （关键数字琥珀 #D97831，运行正常用绿）
+   - 关键数字用 5x7 点阵数字（DotDigits 组件）；环形图与分布条按
+     Grove 配色；入门指南时间轴保留
+   - 动效：入场依次浮现（Overview.tsx 的 riseProps，0.28s + 30–80ms
+     stagger，只动 transform/opacity）；按压回缩 0.97（tapProps）；
+     卡片悬停轻抬 2px；prefers-reduced-motion 下动画全关
+   已修效果图小毛病：分布条标签在 1280px 下曾折成两行——本层
+   .admin-overview-client-dist-labels 强制单行（white-space: nowrap，
+   标签按 space-between 排布，不受分段宽度约束）。
+*/
+
+/* ---- 令牌（只在总览画布上定义） ---- */
+.admin-shell-v3 .admin-content .admin-overview-dashboard.admin-overview-reference-layout {
+  --grove-canvas: #F7F3EC;
+  --grove-ink: #2B2113;
+  --grove-ink-2: #6B5A33;
+  --grove-amber: #D97831;
+  --grove-orange: #FEB66E;
+  --grove-green: #5DBE63;
+  --grove-pink: #F27D9D;
+  --grove-blue: #A2C8D2;
+  --grove-track: #E9E2D5;
+  --grove-glass: rgba(255, 255, 255, .46);
+  --grove-glass-border: 1px solid rgba(255, 255, 255, .62);
+  --grove-glass-shadow: 0 8px 24px rgba(43, 33, 19, .08), inset 0 1px 0 rgba(255, 255, 255, .70);
+  --grove-blur: blur(18px) saturate(1.25);
+}
+
+/* ---- 画布：米白底 + 弥散渐变色块。
+   顶部三团用 px 锚定（Flux #754 的教训：% 定位在手机长页上会把
+   亮芯顶出页外），下方三团用 % 做氛围。工作区主列与画布画同一组
+   渐变（画布不透明，两层不叠加）；工作区那层只在总览页签时生效
+   （:has(.is-dashboard-heading)），其他页签仍是 Flux 暖底。 ---- */
+.admin-shell-v3 .admin-workspace.is-reference-dashboard .admin-workspace-main:has(.admin-page-heading.is-dashboard-heading) {
+  background:
+    radial-gradient(720px 420px at 78% 20px, rgba(254, 182, 110, .38), transparent 65%),
+    radial-gradient(520px 380px at 4% 90px, rgba(93, 190, 99, .28), transparent 70%),
+    radial-gradient(460px 320px at 55% 210px, rgba(242, 125, 157, .26), transparent 70%),
+    radial-gradient(620px 460px at 96% 55%, rgba(162, 200, 210, .32), transparent 65%),
+    radial-gradient(560px 420px at -6% 72%, rgba(254, 182, 110, .22), transparent 65%),
+    radial-gradient(700px 520px at 50% 102%, rgba(162, 200, 210, .20), transparent 65%),
+    linear-gradient(180deg, #F7F3EC 0%, #F7F3EC 100%) !important;
+}
+
+.admin-shell-v3 .admin-content .admin-overview-dashboard.admin-overview-reference-layout {
+  border: 1px solid rgba(255, 255, 255, .62) !important;
+  border-radius: 26px !important;
+  background:
+    radial-gradient(720px 420px at 78% 20px, rgba(254, 182, 110, .38), transparent 65%),
+    radial-gradient(520px 380px at 4% 90px, rgba(93, 190, 99, .28), transparent 70%),
+    radial-gradient(460px 320px at 55% 210px, rgba(242, 125, 157, .26), transparent 70%),
+    radial-gradient(620px 460px at 96% 55%, rgba(162, 200, 210, .32), transparent 65%),
+    radial-gradient(560px 420px at -6% 72%, rgba(254, 182, 110, .22), transparent 65%),
+    radial-gradient(700px 520px at 50% 102%, rgba(162, 200, 210, .20), transparent 65%),
+    linear-gradient(180deg, #F7F3EC 0%, #F7F3EC 100%) !important;
+}
+
+/* ---- 卡片：Grove 毛玻璃（46% 白 + 62% 白描边 + 30px 圆角 + 轻阴影）。 ---- */
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-guide-panel,
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-client-card,
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-panel,
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-todo > div,
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-recent-members,
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-metric-card {
+  background: var(--grove-glass) !important;
+  -webkit-backdrop-filter: var(--grove-blur) !important;
+  backdrop-filter: var(--grove-blur) !important;
+  border: var(--grove-glass-border) !important;
+  border-radius: 30px !important;
+  box-shadow: var(--grove-glass-shadow) !important;
+}
+
+/* 卡片悬停轻抬 2px（指标卡的抬升由 framer whileHover 做，效果一致）。 */
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-guide-panel:hover,
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-client-card:hover,
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-panel:hover,
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-recent-members:hover {
+  transform: translateY(-2px);
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-metric-card:hover {
+  transform: translateY(-2px) !important;
+}
+
+/* ---- 状态条：同一块玻璃，圆角与卡片一致。 ---- */
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-status-strip {
+  background: var(--grove-glass) !important;
+  -webkit-backdrop-filter: blur(14px) saturate(1.2) !important;
+  backdrop-filter: blur(14px) saturate(1.2) !important;
+  border: var(--grove-glass-border) !important;
+  border-radius: 30px !important;
+  box-shadow: var(--grove-glass-shadow) !important;
+  color: #6B5A33 !important;
+}
+
+.admin-shell-v3 .admin-content .admin-overview-dashboard.admin-overview-reference-layout .admin-overview-status-strip strong {
+  color: #2B2113 !important;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-status-strip small {
+  color: #6B5A33 !important;
+}
+
+/* ---- 标题行与药丸：墨色标题，药丸文字改墨色（填充不动）。 ---- */
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-title-copy h2 {
+  color: #2B2113 !important;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-title-copy > p {
+  color: #6B5A33 !important;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-welcome-actions button {
+  color: #2B2113 !important;
+}
+
+/* ---- 墨色与次要文字（Grove 两档）。 ---- */
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-guide-heading h3,
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-client-card h3,
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-panel h3,
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-recent-members h3,
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-guide-copy strong,
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-client-total strong,
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-client-legend-row strong,
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-runtime-table td strong,
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-runtime-logs-heading strong,
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-list-row strong,
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-todo h3 {
+  color: #2B2113 !important;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-guide-heading > span:last-child,
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-guide-copy small,
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-client-card .admin-overview-panel-heading p,
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-panel-heading p,
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-client-gauge-inner span,
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-client-total span,
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-client-total small,
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-client-versions,
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-metric-label,
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-metric-hint,
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-metric-value small,
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-runtime-table th,
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-runtime-table td,
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-runtime-table td small,
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-runtime-log,
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-runtime-log time,
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-list-row time,
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-client-legend-row,
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-chart-labels,
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-empty,
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-trend-hero span,
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-guide-progress > span,
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-range-label,
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-count {
+  color: #6B5A33 !important;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-range-label,
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-count {
+  background: rgba(255, 255, 255, .55) !important;
+  border-color: rgba(255, 255, 255, .65) !important;
+}
+
+/* 指标卡数值行：点阵数字 30px 高，单位小字与之居中对齐。 */
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-metric-value {
+  align-items: center !important;
+  color: #2B2113 !important;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-trend-hero {
+  align-items: center !important;
+}
+
+/* ---- 入门指南：进度条与完成圈改 Grove 橙→绿；行内按钮圆角加大。 ---- */
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-guide-progress-track {
+  background: rgba(43, 33, 19, .10) !important;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-guide-progress-track i {
+  background: linear-gradient(90deg, #FEB66E, #5DBE63) !important;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-guide-check.is-done {
+  background: #5DBE63 !important;
+  border-color: #5DBE63 !important;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-guide-list > button {
+  border-radius: 16px !important;
+}
+
+/* ---- 客户端分布：环形兜底色与图例圆点改 Grove 配色。 ---- */
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-client-gauge {
+  background: conic-gradient(#c39a43 0 var(--client-ratio), #E9E2D5 var(--client-ratio) 100%) !important;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-client-gauge::before {
+  background: rgba(255, 253, 248, .92) !important;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-client-legend-row i {
+  background: #FEB66E !important;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-client-legend-row i.tone-1 {
+  background: #5DBE63 !important;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-client-legend-row i.tone-2 {
+  background: #A2C8D2 !important;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-client-legend-row i.tone-3 {
+  background: #E3DCCF !important;
+}
+
+/* ---- 分布条：细线圆点刻度。标签一行排开、强制单行（修效果图
+   1280px 下“管理端 20%”折行的问题：标签不按分段宽度约束，
+   用 space-between 排布 + white-space: nowrap）。 ---- */
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-client-dist {
+  margin-top: 10px;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-client-dist-bar {
+  display: flex;
+  height: 8px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: #E9E2D5;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-client-dist-bar i {
+  display: block;
+  min-width: 0;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-client-dist-ticks {
+  position: relative;
+  height: 8px;
+  margin-top: 2px;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-client-dist-ticks i {
+  position: absolute;
+  top: 1px;
+  width: 5px;
+  height: 5px;
+  margin-left: -2.5px;
+  border-radius: 50%;
+  background: #fff;
+  border: 1px solid rgba(43, 33, 19, .35);
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-client-dist-labels {
+  display: flex;
+  flex-wrap: nowrap;
+  justify-content: space-between;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-client-dist-labels span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  white-space: nowrap !important;
+  color: #6B5A33 !important;
+  font-size: 9px;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-client-dist-labels i {
+  flex: 0 0 auto;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+/* ---- 待办与最近加入：墨色标题、暖色分隔线。 ---- */
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-todo button {
+  border-bottom-color: rgba(43, 33, 19, .10) !important;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-list-row {
+  border-bottom-color: rgba(43, 33, 19, .10) !important;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-member-avatar {
+  color: #2B2113 !important;
+  background: rgba(255, 255, 255, .55) !important;
+  border-color: rgba(255, 255, 255, .62) !important;
+}
+
+.admin-shell-v3 .admin-content .admin-overview-dashboard.admin-overview-reference-layout .admin-overview-todo-done {
+  color: #2e7d4f !important;
+}
+
+/* ---- 刷新 ghost 按钮：与卡片同款玻璃。 ---- */
+.admin-shell-v3 .admin-content .admin-overview-dashboard.admin-overview-reference-layout .mini.ghost {
+  background: rgba(255, 255, 255, .55) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+  backdrop-filter: blur(8px) !important;
+  border-color: rgba(255, 255, 255, .65) !important;
+  color: #2B2113 !important;
+}
+
+/* ---- 加载与超时态：同款玻璃，超时按钮用墨色。 ---- */
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-loading {
+  color: #6B5A33 !important;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-timeout {
+  color: #2B2113 !important;
+  background: var(--grove-glass) !important;
+  border: var(--grove-glass-border) !important;
+  border-radius: 30px !important;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-timeout p {
+  color: #6B5A33 !important;
+}
+
+.admin-shell-v3 .admin-overview-reference-layout .admin-overview-timeout button {
+  color: #ffffff !important;
+  background: #2B2113 !important;
+  border-color: #2B2113 !important;
+}
+
+/* ---- 5x7 点阵数字（DotDigits 组件）。亮点琥珀，暗点同色 12%
+   透明度，保留点阵网格感；换值时字形淡入 180ms。 ---- */
+.admin-shell-v3 .dot-digits {
+  --dot-size: 3px;
+  --dot-gap: 1.5px;
+  --dot-color: #D97831;
+  display: inline-flex;
+  align-items: flex-start;
+  gap: calc(var(--dot-size) + var(--dot-gap));
+  line-height: 0;
+}
+
+.admin-shell-v3 .dot-digits-md {
+  --dot-size: 2.5px;
+  --dot-gap: 1.2px;
+}
+
+.admin-shell-v3 .dot-digits-sm {
+  --dot-size: 2px;
+  --dot-gap: 1px;
+}
+
+.admin-shell-v3 .dot-digits-glyph {
+  display: inline-flex;
+  flex-direction: column;
+  gap: var(--dot-gap);
+  animation: dot-digits-in .18s ease-out;
+}
+
+.admin-shell-v3 .dot-digits-row {
+  display: inline-flex;
+  gap: var(--dot-gap);
+}
+
+.admin-shell-v3 .dot-digits-row i {
+  width: var(--dot-size);
+  height: var(--dot-size);
+  border-radius: 50%;
+  background: var(--dot-color);
+  opacity: .12;
+}
+
+.admin-shell-v3 .dot-digits-row i.is-on {
+  opacity: 1;
+}
+
+@keyframes dot-digits-in {
+  from { opacity: 0; transform: translateY(2px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ---- prefers-reduced-motion：点阵淡入与卡片悬停抬升全关
+   （入场与按压动效由 framer-motion 的 useReducedMotion 控制）。 ---- */
+@media (prefers-reduced-motion: reduce) {
+  .admin-shell-v3 .dot-digits-glyph {
+    animation: none !important;
+  }
+
+  .admin-shell-v3 .admin-overview-reference-layout .admin-overview-guide-panel:hover,
+  .admin-shell-v3 .admin-overview-reference-layout .admin-overview-client-card:hover,
+  .admin-shell-v3 .admin-overview-reference-layout .admin-overview-panel:hover,
+  .admin-shell-v3 .admin-overview-reference-layout .admin-overview-recent-members:hover,
+  .admin-shell-v3 .admin-overview-reference-layout .admin-overview-metric-card:hover {
+    transform: none !important;
+    transition: none !important;
+  }
+}
+
+/* ---- prefers-reduced-transparency：玻璃近不透明、去模糊。 ---- */
+@media (prefers-reduced-transparency: reduce) {
+  .admin-shell-v3 .admin-overview-reference-layout .admin-overview-guide-panel,
+  .admin-shell-v3 .admin-overview-reference-layout .admin-overview-client-card,
+  .admin-shell-v3 .admin-overview-reference-layout .admin-overview-panel,
+  .admin-shell-v3 .admin-overview-reference-layout .admin-overview-todo > div,
+  .admin-shell-v3 .admin-overview-reference-layout .admin-overview-recent-members,
+  .admin-shell-v3 .admin-overview-reference-layout .admin-overview-metric-card,
+  .admin-shell-v3 .admin-overview-reference-layout .admin-overview-status-strip,
+  .admin-shell-v3 .admin-overview-reference-layout .admin-overview-timeout {
+    background: rgba(255, 255, 255, .94) !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+  }
+
+  .admin-shell-v3 .admin-overview-reference-layout .admin-overview-client-gauge::before {
+    background: #ffffff !important;
+  }
+}
+
+/* ---- 小屏：模糊减到 12px 省性能，画布收紧。 ---- */
+@media (max-width: 600px) {
+  .admin-shell-v3 .admin-content .admin-overview-dashboard.admin-overview-reference-layout {
+    --grove-blur: blur(12px) saturate(1.2);
+    padding: 12px !important;
+    border-radius: 20px !important;
+  }
+}

@@ -9,12 +9,14 @@ const ALLOWED_CATEGORIES = new Set([
   'friend_notification',
   'product_update',
   'system_notice',
+  'recruit_notice',
 ]);
 const ALLOWED_SOURCES = new Set([
   'admin-bulk-email',
   'maintenance-notify',
   'dev-feedback',
   'friend-request-email',
+  'recruit-notify',
 ]);
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/i;
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;

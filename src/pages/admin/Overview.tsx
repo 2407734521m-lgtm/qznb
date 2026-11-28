@@ -3,7 +3,7 @@ import { motion, useReducedMotion, type MotionProps } from 'framer-motion';
 import { supabase } from '../../lib/supabase';
 import { startSitePresence, type SitePresenceSnapshot } from '../../lib/sitePresence';
 import { card, h3, mut, timeAgo, bucket30 } from './shared';
-import AdminNumberTicker from '../../components/admin/AdminNumberTicker';
+import DotDigits from '../../components/admin/DotDigits';
 import { Spark, SparkBars, TrendChart } from './charts';
 
 /* STEP 3 (Flux rebuild): mini-chart tone is real, never decorative.
@@ -131,12 +131,9 @@ function ClientStatsCard() {
   ] : [];
   const identified = stats ? stats.app + stats.web + stats.admin : 0;
   const ratio = stats && stats.total > 0 ? Math.round(identified / stats.total * 100) : null;
-  /* STEP 3 (Flux rebuild): the ring is a three-segment arc like the
-     reference (orange / green / blue = 用户端应用 / 网页版 / 管理端应用).
-     Segment shares are the real counts over the identified total; the
-     unidentified share stays the grey track. The centre stays the
-     identified ratio. Segment colours match the legend dots exactly. */
-  const gaugeColors = ['#d97831', '#429a65', '#438fc0'];
+  /* Grove 改版：环形三段按 Grove 配色（橙 / 绿 / 蓝 = 用户端应用 /
+     网页版 / 管理端应用），未识别一段走暖灰轨道，与图例圆点一致。 */
+  const gaugeColors = ['#FEB66E', '#5DBE63', '#A2C8D2'];
   let gaugeBackground: string | undefined;
   if (stats && stats.total > 0) {
     if (identified > 0) {
@@ -150,10 +147,21 @@ function ClientStatsCard() {
         parts.push(`${gaugeColors[i]} ${acc.toFixed(2)}% ${Math.max(end - 1.2, acc).toFixed(2)}%`);
         acc = end;
       });
-      gaugeBackground = `conic-gradient(${parts.join(', ')}, #e4e8ea ${acc.toFixed(2)}% 100%)`;
+      gaugeBackground = `conic-gradient(${parts.join(', ')}, #E9E2D5 ${acc.toFixed(2)}% 100%)`;
     } else {
-      gaugeBackground = 'conic-gradient(#e4e8ea 0 100%)';
+      gaugeBackground = 'conic-gradient(#E9E2D5 0 100%)';
     }
+  }
+  /* Grove 改版：分布条与图例共用同一组颜色（第四段未识别走暖灰）；
+     刻度点落在各段按占总数的累计边界上。 */
+  const distColors = [...gaugeColors, '#E3DCCF'];
+  const distBoundaries: number[] = [];
+  if (stats && stats.total > 0) {
+    let acc = 0;
+    rows.forEach(([, count]) => {
+      acc += count;
+      if (count > 0 && acc < stats.total) distBoundaries.push((acc / stats.total) * 100);
+    });
   }
   return <motion.section className="admin-overview-client-card" {...riseProps(reduce, 0.15)}>
     <div className="admin-overview-panel-heading">
@@ -171,7 +179,8 @@ function ClientStatsCard() {
             initial={reduce ? false : { opacity: 0, scale: 0.94 }} animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.35, delay: 0.2, ease: 'easeOut' }}>
             <div className="admin-overview-client-gauge-inner">
-              <strong>{ratio === null ? '—' : <><AdminNumberTicker value={ratio} delay={0.2} />%</>}</strong>
+              {/* Grove 改版：环形中心比率用小号点阵数字（含 % 号）。 */}
+              <strong>{ratio === null ? '—' : <DotDigits value={`${ratio}%`} size="sm" label={`已识别 ${ratio}%`} />}</strong>
               <span>已识别</span>
             </div>
           </motion.div>
@@ -192,6 +201,25 @@ function ClientStatsCard() {
             </motion.div>
           ))}
         </div>
+        {/* Grove 改版：细线圆点刻度分布条——同一组计数按占总数的份额
+            横向展开；标签一行排开、强制单行显示。 */}
+        {stats.total > 0 && (
+          <div className="admin-overview-client-dist">
+            <div className="admin-overview-client-dist-bar" aria-hidden="true">
+              {rows.map(([label, count], index) => count > 0 ? (
+                <i key={label} style={{ flexGrow: count, background: distColors[index] }} />
+              ) : null)}
+            </div>
+            <div className="admin-overview-client-dist-ticks" aria-hidden="true">
+              {distBoundaries.map(pct => <i key={pct} style={{ left: `${pct}%` }} />)}
+            </div>
+            <div className="admin-overview-client-dist-labels">
+              {rows.map(([label, count], index) => (
+                <span key={label}><i style={{ background: distColors[index] }} aria-hidden="true" />{label} {Math.round((count / stats.total) * 100)}%</span>
+              ))}
+            </div>
+          </div>
+        )}
         {stats.versions.length > 0 && (
           <p className="admin-overview-client-versions">
             版本：{stats.versions.map(v => `${v.kind === 'admin' ? '管理端' : '用户端'} ${v.version}（${v.count}）`).join(' · ')}
@@ -480,7 +508,8 @@ export default function Overview({ setMsg, go, isSuper }: { setMsg: (s: string) 
               <span className="admin-overview-metric-label">{label}</span>
               <span className={`admin-overview-metric-icon tone-${index}`}>{['人', '动', '日', '图'][index]}</span>
             </div>
-            <div className="admin-overview-metric-value"><AdminNumberTicker value={value} delay={0.16 + index * 0.05} /><small>{unit}</small></div>
+            {/* Grove 改版：指标大数字用点阵数字（琥珀），单位仍用小字。 */}
+            <div className="admin-overview-metric-value"><DotDigits value={value} size="lg" label={`${label} ${value}${unit}`} /><small>{unit}</small></div>
             <div className="admin-overview-metric-hint">{statSub[label]}</div>
             {kind === 'bars' ? <SparkBars data={trend} color={color} /> : <Spark data={trend} color={color} />}
           </motion.article>
@@ -494,8 +523,8 @@ export default function Overview({ setMsg, go, isSuper }: { setMsg: (s: string) 
             <span className="admin-overview-range-label">近 30 天</span>
           </div>
           <div className="admin-overview-trend-hero">
-            {/* STEP 6: the hero number counts up like the metric cards. */}
-            <strong><AdminNumberTicker value={new30} delay={0.26} /></strong>
+            {/* Grove 改版：趋势主数字用点阵数字（琥珀）。 */}
+            <strong><DotDigits value={new30} size="lg" label={`近 30 天新增成员 ${new30}`} /></strong>
             <span>近 30 天新增成员</span>
           </div>
           <TrendChart data={st.dPro} />

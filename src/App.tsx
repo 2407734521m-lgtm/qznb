@@ -75,6 +75,9 @@ const MeGrowth = lazyWithRetry(() => import('./pages/MeGrowth'));
 import ErrorBoundary from './components/ErrorBoundary';
 const AdminLogin = lazyWithRetry(() => import('./pages/AdminLogin'));
 const Board = lazyWithRetry(() => import('./pages/Board'));
+const Jobs = lazyWithRetry(() => import('./pages/Jobs'));
+const JobDetail = lazyWithRetry(() => import('./pages/JobDetail'));
+const JobStatus = lazyWithRetry(() => import('./pages/JobStatus'));
 const HotSnippets = lazyWithRetry(() => import('./pages/HotSnippets'));
 const LoveWall = lazyWithRetry(() => import('./pages/LoveWall'));
 const Explore = lazyWithRetry(() => import('./pages/Explore'));
@@ -534,6 +537,8 @@ function Shell() {
   }, []);
   const isAdmin = role === 'admin' || role === 'super_admin';
   const isAdminPage = loc.pathname === '/admin';
+  // 招聘页对外公开：未登录游客也能打开 /jobs 看职位、应聘、查进度。
+  const isJobsPage = loc.pathname === '/jobs' || loc.pathname.startsWith('/jobs/');
   const isChatPage = loc.pathname.startsWith('/chat/');
   const isBloomPage = loc.pathname === '/particle-flower';
   const isAirInkPage = loc.pathname === '/air-ink';
@@ -1392,6 +1397,22 @@ function Shell() {
 
   if (loading) return <DelayedPageSkeleton />;
   if (!session && isAdminPage) return (<><div className="glow" /><div style={{ position: 'fixed', inset: 0, background: '#fff' }} /><div style={{ position: 'relative' }}><AdminLogin /></div></>);
+  // 招聘公开页：未登录（包括游客模式）直接渲染招聘路由，不经过登录页。
+  // 维护模式下仍显示维护页，与登录分支口径一致。
+  if (!session && isJobsPage) {
+    if (siteConfigLoading) return <DelayedPageSkeleton />;
+    if (siteConfig?.maintenance === 'true' && !maintenanceAccess) return <MaintenanceScreen title={siteConfig.maintenance_title || ''} msg={siteConfig.maintenance_msg || ''} allowCode={siteConfig?.maintenance_access_codes_enabled === true} hasSession={false} onLogout={logout} onAccessGranted={() => setMaintenanceAccess(true)} />;
+    return (
+      <div style={{ minHeight: '100dvh', background: '#ffffff' }}>
+        <Routes>
+          <Route path="/jobs" element={<Jobs />} />
+          <Route path="/jobs/status" element={<JobStatus />} />
+          <Route path="/jobs/:id" element={<JobDetail />} />
+          <Route path="*" element={<Navigate to="/jobs" replace />} />
+        </Routes>
+      </div>
+    );
+  }
   // 从重置密码邮件回来：优先显示设置新密码页。
   if (pwReset) return (<><div className="glow" /><ResetPassword onDone={() => {
     setPwReset(false);
@@ -1551,6 +1572,9 @@ function Shell() {
             <Routes location={displayLoc}>
               <Route path="/" element={<Navigate to="/home" replace />} />
               <Route path="/board" element={<Board />} />
+              <Route path="/jobs" element={<Jobs />} />
+              <Route path="/jobs/status" element={<JobStatus />} />
+              <Route path="/jobs/:id" element={<JobDetail />} />
               <Route path="/explore" element={<Explore />} />
               <Route path="/music" element={<div className="qz-music-route-anchor" aria-hidden="true" />} />
               <Route path="/topics" element={<Topics />} />

@@ -1,0 +1,128 @@
+/* 瑞氏集团招聘公开页：主站白底极简（DESIGN.md §4.1），只在本页内生效。 */
+.rj-page {
+  box-sizing: border-box;
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 24px 16px calc(48px + env(safe-area-inset-bottom));
+  color: #20242a;
+  background: #ffffff;
+}
+
+.rj-header { margin-bottom: 20px; }
+.rj-header h1 { margin: 0 0 6px; font-size: 26px; line-height: 1.25; font-weight: 600; }
+.rj-header p { margin: 0; font-size: 14px; line-height: 1.6; color: #555d68; }
+.rj-nav { display: flex; gap: 8px; flex-wrap: wrap; margin: 16px 0 0; }
+.rj-nav a {
+  font-size: 13px; line-height: 1; color: #20242a; text-decoration: none;
+  border: 1px solid #e7eaee; border-radius: 999px; padding: 9px 14px; background: #ffffff;
+}
+.rj-nav a[aria-current="page"] { background: #252a31; border-color: #252a31; color: #ffffff; }
+.rj-nav a:focus-visible { outline: 2px solid #4776b8; outline-offset: 2px; }
+
+.rj-toolbar { display: flex; gap: 8px; flex-wrap: wrap; margin: 0 0 16px; }
+.rj-search {
+  flex: 1 1 220px; min-width: 0; height: 42px; padding: 0 14px; font: inherit; font-size: 15px;
+  color: #20242a; background: #ffffff; border: 1px solid #d5dae0; border-radius: 12px;
+  box-sizing: border-box;
+}
+.rj-search:focus { outline: 2px solid #4776b8; outline-offset: 1px; border-color: #4776b8; }
+.rj-filter-btn {
+  height: 42px; padding: 0 16px; font: inherit; font-size: 14px; color: #20242a;
+  background: #ffffff; border: 1px solid #d5dae0; border-radius: 12px; cursor: pointer;
+  white-space: nowrap;
+}
+
+.rj-count { margin: 0 0 12px; font-size: 13px; color: #737b86; }
+
+.rj-list { display: grid; gap: 12px; }
+.rj-card {
+  display: block; padding: 16px; color: inherit; text-decoration: none;
+  background: #ffffff; border: 1px solid #e7eaee; border-radius: 16px;
+}
+.rj-card:hover { border-color: #d5dae0; background: #f6f7f8; }
+.rj-card:focus-visible { outline: 2px solid #4776b8; outline-offset: 2px; }
+.rj-card--full { opacity: 0.75; }
+.rj-card-top { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.rj-card-top h2 { margin: 0; font-size: 18px; line-height: 1.3; font-weight: 600; }
+.rj-salary { font-size: 14px; font-weight: 600; color: #b0404f; white-space: nowrap; }
+.rj-meta { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; font-size: 13px; color: #555d68; }
+.rj-chip {
+  display: inline-block; padding: 3px 10px; font-size: 12px; line-height: 1.5;
+  color: #555d68; background: #f6f7f8; border: 1px solid #e7eaee; border-radius: 999px;
+}
+.rj-desc { margin: 10px 0 0; font-size: 14px; line-height: 1.6; color: #555d68; }
+.rj-card-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 12px; }
+.rj-quota { font-size: 13px; color: #555d68; }
+.rj-quota b { color: #20242a; }
+.rj-cta { font-size: 14px; font-weight: 600; color: #252a31; white-space: nowrap; }
+.rj-cta--full { color: #c44747; font-weight: 600; }
+
+.rj-badge {
+  display: inline-block; padding: 3px 10px; font-size: 12px; line-height: 1.5;
+  border-radius: 999px; white-space: nowrap;
+}
+.rj-badge--open { color: #23845b; background: #e9f6ef; }
+.rj-badge--full { color: #c44747; background: #fbeeee; }
+.rj-badge--pending { color: #a96f19; background: #fdf6e7; }
+.rj-badge--approved { color: #23845b; background: #e9f6ef; }
+.rj-badge--rejected { color: #737b86; background: #f1f3f5; }
+
+.rj-empty {
+  padding: 32px 16px; text-align: center; font-size: 14px; line-height: 1.6; color: #737b86;
+  background: #ffffff; border: 1px solid #e7eaee; border-radius: 16px;
+}
+.rj-error {
+  padding: 14px 16px; margin-bottom: 12px; font-size: 14px; line-height: 1.6; color: #c44747;
+  background: #fbeeee; border: 1px solid #f0d4d4; border-radius: 12px;
+}
+.rj-success {
+  padding: 16px; font-size: 14px; line-height: 1.7; color: #23845b;
+  background: #e9f6ef; border: 1px solid #cfe8d8; border-radius: 12px;
+}
+.rj-success h2 { margin: 0 0 6px; font-size: 17px; color: #23845b; }
+.rj-success p { margin: 0 0 8px; color: #20242a; }
+.rj-success a { color: #252a31; font-weight: 600; }
+
+.rj-detail-meta { display: flex; gap: 8px; flex-wrap: wrap; margin: 12px 0 0; }
+.rj-section { margin-top: 20px; }
+.rj-section h2 { margin: 0 0 8px; font-size: 16px; font-weight: 600; }
+.rj-section p { margin: 0; font-size: 14px; line-height: 1.7; color: #555d68; white-space: pre-wrap; }
+
+.rj-form { margin-top: 24px; padding-top: 20px; border-top: 1px solid #e7eaee; }
+.rj-form h2 { margin: 0 0 4px; font-size: 18px; font-weight: 600; }
+.rj-form > p { margin: 0 0 16px; font-size: 13px; line-height: 1.6; color: #737b86; }
+.rj-field { margin-bottom: 14px; }
+.rj-field label { display: block; margin-bottom: 6px; font-size: 14px; font-weight: 600; }
+.rj-field label span { color: #c44747; }
+.rj-field input,
+.rj-field textarea {
+  width: 100%; padding: 11px 12px; font: inherit; font-size: 15px; color: #20242a;
+  background: #ffffff; border: 1px solid #d5dae0; border-radius: 12px; box-sizing: border-box;
+}
+.rj-field textarea { min-height: 96px; resize: vertical; line-height: 1.6; }
+.rj-field input:focus, .rj-field textarea:focus { outline: 2px solid #4776b8; outline-offset: 1px; border-color: #4776b8; }
+.rj-field-hint { margin: 6px 0 0; font-size: 12px; line-height: 1.5; color: #737b86; }
+.rj-submit {
+  width: 100%; min-height: 46px; font: inherit; font-size: 15px; font-weight: 600;
+  color: #ffffff; background: #252a31; border: 1px solid #252a31; border-radius: 12px; cursor: pointer;
+}
+.rj-submit:hover { background: #3a414a; }
+.rj-submit:disabled { opacity: 0.55; cursor: not-allowed; }
+.rj-submit:focus-visible { outline: 2px solid #4776b8; outline-offset: 2px; }
+
+.rj-back { display: inline-block; margin-bottom: 16px; font-size: 14px; color: #555d68; text-decoration: none; }
+.rj-back:focus-visible { outline: 2px solid #4776b8; outline-offset: 2px; }
+
+.rj-status-row {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
+  padding: 14px 16px; background: #ffffff; border: 1px solid #e7eaee; border-radius: 12px;
+}
+.rj-status-row + .rj-status-row { margin-top: 8px; }
+.rj-status-row b { font-size: 15px; }
+.rj-status-row small { display: block; margin-top: 4px; font-size: 12px; color: #737b86; }
+
+@media (min-width: 720px) {
+  .rj-page { padding-top: 36px; }
+  .rj-header h1 { font-size: 32px; }
+  .rj-list { grid-template-columns: 1fr 1fr; }
+}

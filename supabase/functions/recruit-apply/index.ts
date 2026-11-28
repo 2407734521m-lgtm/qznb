@@ -113,6 +113,18 @@ Deno.serve(async (req: Request) => {
     return response({ ok: false, reason: 'position closed' }, 400);
   }
 
+  // 招聘关闭时间：到了时间整个板块关闭，不再接受新申请。
+  // 服务端强制执行，前端只做展示，绕过前端也提交不进来。
+  const { data: closeRow } = await admin
+    .from('site_settings')
+    .select('value')
+    .eq('key', 'recruit_close_at')
+    .maybeSingle();
+  const closeAt = closeRow?.value ? new Date(closeRow.value as string) : null;
+  if (closeAt && !Number.isNaN(closeAt.getTime()) && Date.now() >= closeAt.getTime()) {
+    return response({ ok: false, reason: 'recruit closed' }, 400);
+  }
+
   const avatar = await checkAvatar(qqNumber);
 
   if (avatar === 'no') {

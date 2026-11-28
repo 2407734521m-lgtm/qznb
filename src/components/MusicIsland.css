@@ -417,7 +417,7 @@
   background-position: center;
   filter: blur(28px) saturate(1.35) brightness(.72);
   transform: scale(1.45) translateZ(0);
-  opacity: .55;
+  opacity: .65;
 }
 
 [data-slot="expanded"]::after {
@@ -507,7 +507,7 @@
   width: 100%;
   min-width: 0;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
   pointer-events: auto;
 }
 
@@ -733,7 +733,7 @@
   align-items: center;
   justify-content: space-evenly;
   gap: 10px;
-  min-height: 48px;
+  min-height: 44px;
 }
 
 .qz-island-controls button {
@@ -750,8 +750,8 @@
 .qz-island-controls button:not(:disabled):active,
 .qz-island-close:active { transform: scale(.92); }
 .qz-island-controls .qz-island-play {
-  width: 48px;
-  height: 48px;
+  width: 44px;
+  height: 44px;
   color: #111216;
   background: #fff;
 }

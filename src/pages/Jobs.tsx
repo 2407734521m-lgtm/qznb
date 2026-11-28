@@ -247,6 +247,7 @@ export default function Jobs() {
   );
 
 
+  function onToggleFavorite(id: number) {
     const nowFav = toggleFavoritePositionId(id);
     setFavorites(loadFavoritePositionIds());
     setToast(nowFav ? '已收藏这个职位。' : '已取消收藏。');

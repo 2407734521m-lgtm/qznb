@@ -405,3 +405,25 @@
   .rj-jobs-page .rj-team-card { padding: 10px; gap: 8px; }
 }
 @media (prefers-reduced-motion: reduce) { .rj-jobs-page .rj-cta { transition: none; } }
+
+/* 招聘页头部与新增岗位入口统一为白底极简样式。 */
+.rj-jobs-page .rj-jobs-hero {
+  border: 0;
+  border-bottom: 1px solid #e9ebef;
+  border-radius: 0;
+  box-shadow: none;
+}
+.rj-jobs-page .rj-hero-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.rj-jobs-page .rj-request-btn {
+  color: #fff;
+  background: #252a31;
+  border-color: #252a31;
+  border-radius: 10px;
+}
+.rj-jobs-page .rj-request-btn:hover { background: #3a414a; }
+.rj-jobs-page .rj-request-hint { color: #737b86; }

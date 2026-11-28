@@ -5,8 +5,10 @@ import { supabase } from './supabase';
 export {
   applicationTimelineSteps,
   departmentColor,
+  formatCloseDeadline,
   formatDateTime,
   isFavoritePositionId,
+  isRecruitClosed,
   loadFavoritePositionIds,
   toggleFavoritePositionId,
 } from './recruitHelpers';
@@ -180,6 +182,7 @@ export async function submitApplicationChecked(input: SubmitApplicationInput): P
 export function describeSubmitError(message: string): string {
   if (message.includes('position full')) return '这个职位已经招满了，暂时不能再报名。';
   if (message.includes('position closed')) return '这个职位已经关闭报名了。';
+  if (message.includes('recruit closed')) return '招聘已结束，不能再报名。';
   if (message.includes('already applied')) return '这个 QQ 邮箱已经投过这个职位了，请等待审核结果。';
   if (message.includes('bad email')) return 'QQ 邮箱格式不对，请检查一下。';
   if (message.includes('bad name')) return '请填写姓名（20 字以内）。';
@@ -192,6 +195,7 @@ export function describeApplyResultError(reason: string): string {
   if (
     reason.includes('position full') ||
     reason.includes('position closed') ||
+    reason.includes('recruit closed') ||
     reason.includes('already applied') ||
     reason.includes('bad email') ||
     reason.includes('bad name')
@@ -199,6 +203,27 @@ export function describeApplyResultError(reason: string): string {
     return describeSubmitError(reason);
   }
   return reason;
+}
+
+/** 公开读招聘关闭时间：没设返回 null。 */
+export async function getRecruitCloseAt(): Promise<string | null> {
+  const { data, error } = await db.rpc('public_recruit_close_at');
+  if (error) throw new Error(error.message);
+  return (data ?? null) as string | null;
+}
+
+/** 管理端：设定 / 清除招聘关闭时间（传 null 清除、重新开放）。返回设定后的值。 */
+export async function adminSetRecruitCloseAt(closeAt: string | null): Promise<string | null> {
+  const { data, error } = await db.rpc('admin_set_recruit_close_at', {
+    p_close_at: closeAt,
+  });
+  if (error) throw new Error(error.message);
+  return (data ?? null) as string | null;
+}
+
+export function describeCloseAtError(message: string): string {
+  if (message.includes('forbidden')) return '需要超级管理员权限。';
+  return '保存关闭时间失败，请稍后重试。';
 }
 
 /** 凭 QQ 邮箱查自己的申请进度。 */

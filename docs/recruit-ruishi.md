@@ -66,3 +66,10 @@
 2. 部署 Edge Function：`supabase functions deploy recruit-notify`，以及因改了白名单要重新部署 `email-dispatch`；再部署 `supabase functions deploy recruit-apply --no-verify-jwt`（公开入口，申请人没有登录态，必须关 JWT 校验）。优化第一批改了 `recruit-apply`（投递确认信）与 `recruit-notify`（录用邮件带面试时间），这两个都要重新部署；`email-dispatch` 本身没改，不用重部署。
 3. 等 GitHub Pages 部署成功后，打开 `https://qianzhi.pw/#/jobs` 核对：11 个职位都在、董事长显示招 1 人；后台 `admin.qianzhi.pw` 里「招聘管理」页签能点开。
 4. 真机验收（登录态 / 游客态）：投一份测试申请 → 后台通过 → 查 QQ 邮箱是否收到录用通知；再投一份到已满的职位应为“已满”不可报名。
+
+## 关闭时间
+
+- 关闭时间存在 `site_settings` 的一行（key `recruit_close_at`，值是 UTC 的 ISO 时间字符串），不新建表。管理员设定走新 RPC `admin_set_recruit_close_at(close_at)`（超管；传 null 删行、重新开放），返回设定后的值。
+- 公开读走新 RPC `public_recruit_close_at()`（匿名可读；没设或值非法返回 null）。前台 `/jobs` 未到时间时显示“报名截止：X月X日 HH:mm（北京时间）”，到了时间显示“招聘已结束”横幅、卡片置灰；`/jobs/:id` 到了时间表单禁用；`/jobs/status` 不受影响。
+- 服务端强制执行：`recruit-apply` 在查职位之后、头像校验之前读 `site_settings` 的关闭时间，到了时间直接拒绝（reason `recruit closed`），不靠前端拦。
+- 上线步骤补充：跑迁移 `20261128180000_recruit_close_schedule.sql`，重新部署 `recruit-apply --no-verify-jwt`（改了关闭判断）。

@@ -2,8 +2,10 @@ import { describe, expect, it } from 'vitest';
 import {
   applicationTimelineSteps,
   departmentColor,
+  formatCloseDeadline,
   formatDateTime,
   isFavoritePositionId,
+  isRecruitClosed,
   loadFavoritePositionIds,
   toggleFavoritePositionId,
 } from '../recruitHelpers';
@@ -109,5 +111,31 @@ describe('departmentColor', () => {
     expect(departmentColor('技术')).toBe(departmentColor('技术'));
     const colors = new Set(['管理层', '人事行政', '财务', '技术', '运营', '后勤'].map(departmentColor));
     expect(colors.size).toBeGreaterThan(1);
+  });
+});
+
+describe('isRecruitClosed', () => {
+  const now = new Date('2026-11-28T14:00:00+08:00');
+  it('没设 / 非法值算未关闭', () => {
+    expect(isRecruitClosed(null, now)).toBe(false);
+    expect(isRecruitClosed(undefined, now)).toBe(false);
+    expect(isRecruitClosed('not-a-date', now)).toBe(false);
+  });
+  it('未来的关闭时间未关闭，过去的已关闭，到点整算关闭', () => {
+    expect(isRecruitClosed('2026-12-01T14:30:00+08:00', now)).toBe(false);
+    expect(isRecruitClosed('2026-11-28T13:59:59+08:00', now)).toBe(true);
+    expect(isRecruitClosed('2026-11-28T14:00:00+08:00', now)).toBe(true);
+  });
+});
+
+describe('formatCloseDeadline', () => {
+  it('按北京时间输出“月日 时:分”', () => {
+    // 06:30Z 就是北京时间 14:30（写死期望值，不随本机时区变）。
+    expect(formatCloseDeadline('2026-12-01T06:30:00Z')).toBe('12月1日 14:30');
+    expect(formatCloseDeadline('2026-11-30T16:30:00Z')).toBe('12月1日 00:30');
+  });
+  it('空值与非法值返回破折号', () => {
+    expect(formatCloseDeadline(null)).toBe('—');
+    expect(formatCloseDeadline('not-a-date')).toBe('—');
   });
 });

@@ -12,6 +12,30 @@ export function formatDateTime(value: string | null | undefined): string {
   return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日 ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
+// ---------- 招聘关闭时间 ----------
+
+/** 关闭时间到了没有：没设 / 非法值都算未关闭。 */
+export function isRecruitClosed(closeAt: string | null | undefined, now: Date = new Date()): boolean {
+  if (!closeAt) return false;
+  const d = new Date(closeAt);
+  if (Number.isNaN(d.getTime())) return false;
+  return now.getTime() >= d.getTime();
+}
+
+/** 报名截止时间，如“12月1日 14:30”，按北京时间显示（服务器与用户都在东八区口径）。 */
+export function formatCloseDeadline(value: string | null | undefined): string {
+  if (!value) return '—';
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return '—';
+  const parts = new Intl.DateTimeFormat('zh-CN', {
+    timeZone: 'Asia/Shanghai',
+    month: 'numeric', day: 'numeric',
+    hour: '2-digit', minute: '2-digit', hour12: false, hourCycle: 'h23',
+  }).formatToParts(d);
+  const get = (t: string) => parts.find((p) => p.type === t)?.value ?? '';
+  return `${get('month')}月${get('day')}日 ${get('hour')}:${get('minute')}`;
+}
+
 // ---------- 收藏（只存本机 localStorage，不用登录、不用建表） ----------
 
 const FAVORITE_KEY = 'rj_fav_positions_v1';

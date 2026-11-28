@@ -120,6 +120,12 @@
   padding: 14px 16px; margin-bottom: 12px; font-size: 14px; line-height: 1.6; color: #c44747;
   background: #fbeeee; border: 1px solid #f0d4d4; border-radius: 12px;
 }
+/* 报名截止时间（未到时间时显示）与招聘已结束横幅（暖琥珀，与后台招满横幅同色）。 */
+.rj-deadline { margin: 12px 0 0; font-size: 13px; font-weight: 600; color: #8a6d1f; }
+.rj-closed {
+  padding: 14px 16px; margin-bottom: 12px; font-size: 14px; line-height: 1.6; color: #4a3716;
+  background: #fdf6e7; border: 1px solid #f0dfae; border-radius: 12px;
+}
 .rj-success {
   padding: 16px; font-size: 14px; line-height: 1.7; color: #23845b;
   background: #e9f6ef; border: 1px solid #cfe8d8; border-radius: 12px;

@@ -4,7 +4,10 @@ import OptionSheet from '../components/OptionSheet';
 import {
   RECRUIT_COMPANY,
   departmentColor,
+  formatCloseDeadline,
   getPositionCounts,
+  getRecruitCloseAt,
+  isRecruitClosed,
   listOpenPositions,
   loadFavoritePositionIds,
   salaryText,
@@ -36,6 +39,7 @@ function ShareIcon() {
 export default function Jobs() {
   const [positions, setPositions] = useState<RecruitPosition[]>([]);
   const [counts, setCounts] = useState<Record<number, number>>({});
+  const [closeAt, setCloseAt] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState('');
   const [query, setQuery] = useState('');
@@ -48,10 +52,16 @@ export default function Jobs() {
     let alive = true;
     (async () => {
       try {
-        const [list, filled] = await Promise.all([listOpenPositions(), getPositionCounts()]);
+        const [list, filled, close] = await Promise.all([
+          listOpenPositions(),
+          getPositionCounts(),
+          // 关闭时间读不到也不影响列表，按未设置处理。
+          getRecruitCloseAt().catch(() => null),
+        ]);
         if (!alive) return;
         setPositions(list);
         setCounts(filled);
+        setCloseAt(close);
         setErr('');
       } catch (e) {
         if (!alive) return;
@@ -92,6 +102,8 @@ export default function Jobs() {
     return set;
   }, [positions, counts]);
 
+  const closed = isRecruitClosed(closeAt);
+
   function onToggleFavorite(id: number) {
     const nowFav = toggleFavoritePositionId(id);
     setFavorites(loadFavoritePositionIds());
@@ -121,6 +133,13 @@ export default function Jobs() {
 
       {err ? <div className="rj-error" role="alert">职位列表读取失败，请刷新重试。</div> : null}
       {toast ? <div className="rj-toast" role="status">{toast}</div> : null}
+      {loading ? null : closed ? (
+        <div className="rj-closed" role="status">
+          招聘已结束，不再接受新申请。已经提交的申请照常审核，可在“查询申请进度”里查看进度。
+        </div>
+      ) : closeAt ? (
+        <p className="rj-deadline">报名截止：{formatCloseDeadline(closeAt)}（北京时间）</p>
+      ) : null}
 
       <div className="rj-toolbar">
         <input
@@ -164,7 +183,7 @@ export default function Jobs() {
         </div>
       ) : (
         <>
-          <p className="rj-count">共 {visible.length} 个职位正在招聘</p>
+          <p className="rj-count">{closed ? `共 ${visible.length} 个职位（招聘已结束）` : `共 ${visible.length} 个职位正在招聘`}</p>
           <div className="rj-list">
             {visible.map((p, i) => {
               const filled = counts[p.id] ?? 0;
@@ -173,9 +192,9 @@ export default function Jobs() {
               return (
                 <article
                   key={p.id}
-                  className={`rj-card rj-card--enter${full ? ' rj-card--full' : ''}`}
+                  className={`rj-card rj-card--enter${full || closed ? ' rj-card--full' : ''}`}
                   style={{ animationDelay: `${Math.min(i, 8) * 45}ms` }}
-                  aria-label={`${p.title}，${full ? '已招满' : `招${p.quota}人，已招${filled}人`}`}
+                  aria-label={`${p.title}，${closed ? '招聘已结束' : full ? '已招满' : `招${p.quota}人，已招${filled}人`}`}
                 >
                   <div className="rj-card-top">
                     <h2><Link to={`/jobs/${p.id}`}>{p.title}</Link></h2>
@@ -186,9 +205,11 @@ export default function Jobs() {
                       <span className="rj-dept-dot" style={{ background: departmentColor(p.department) }} aria-hidden="true" />
                       {p.department}
                     </span>
-                    {full
-                      ? <span className="rj-badge rj-badge--full">已满</span>
-                      : <span className="rj-badge rj-badge--open">招聘中</span>}
+                    {closed
+                      ? <span className="rj-badge rj-badge--rejected">已结束</span>
+                      : full
+                        ? <span className="rj-badge rj-badge--full">已满</span>
+                        : <span className="rj-badge rj-badge--open">招聘中</span>}
                   </div>
                   <p className="rj-desc">{p.description}</p>
                   <div className="rj-card-foot">
@@ -211,8 +232,8 @@ export default function Jobs() {
                       >
                         <ShareIcon />分享
                       </button>
-                      <Link className={full ? 'rj-cta--full' : 'rj-cta'} to={`/jobs/${p.id}`}>
-                        {full ? '已招满' : '查看并应聘 →'}
+                      <Link className={closed || full ? 'rj-cta--full' : 'rj-cta'} to={`/jobs/${p.id}`}>
+                        {closed ? '招聘已结束' : full ? '已招满' : '查看并应聘 →'}
                       </Link>
                     </span>
                   </div>

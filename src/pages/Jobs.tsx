@@ -120,18 +120,32 @@ export default function Jobs() {
     return set;
   }, [positions, counts]);
 
-  // 在招计数只计仍开放的职位：已有任职人的职位不再算在招。
+  const closed = isRecruitClosed(closeAt);
+
+  // 只统计真正仍有名额、且尚未有人任职的职位。
   const openCount = useMemo(
-    () => positions.filter(p => filledHolders(p.title).length === 0).length,
-    [positions],
+    () => closed ? 0 : positions.filter(p =>
+      filledHolders(p.title).length === 0 && (counts[p.id] ?? 0) < p.quota
+    ).length,
+    [positions, counts, closed],
   );
 
   const openVisibleCount = useMemo(
-    () => visible.filter(p => filledHolders(p.title).length === 0).length,
-    [visible],
+    () => closed ? 0 : visible.filter(p =>
+      filledHolders(p.title).length === 0 && (counts[p.id] ?? 0) < p.quota
+    ).length,
+    [visible, counts, closed],
   );
 
-  const closed = isRecruitClosed(closeAt);
+  // 有名额的职位优先展示；其余职位保留原有排序。
+  const orderedVisible = useMemo(
+    () => [...visible].sort((a, b) => {
+      const aAvailable = !closed && filledHolders(a.title).length === 0 && (counts[a.id] ?? 0) < a.quota;
+      const bAvailable = !closed && filledHolders(b.title).length === 0 && (counts[b.id] ?? 0) < b.quota;
+      return Number(bAvailable) - Number(aAvailable);
+    }),
+    [visible, counts, closed],
+  );
 
   function onToggleFavorite(id: number) {
     const nowFav = toggleFavoritePositionId(id);
@@ -146,21 +160,25 @@ export default function Jobs() {
   }
 
   return (
-    <div className="rj-page">
-      <header className="rj-hero">
-        <p className="rj-hero-kicker">{RECRUIT_COMPANY} · 招聘中心</p>
-        <h1>加入瑞氏，和我们一起做事</h1>
-        <p className="rj-hero-sub">选一个适合你的职位，填好资料就能应聘。审核通过后，我们会发邮件到你的 QQ 邮箱通知你。</p>
-        {loading ? null : (
-          <p className="rj-hero-stats">在招 {openCount} 个职位 · {departments.length} 个部门{favorites.length > 0 ? ` · 已收藏 ${favorites.length} 个` : ''}</p>
-        )}
+    <div className="rj-page rj-jobs-page">
+      <header className="rj-jobs-hero">
+        <div className="rj-jobs-hero-main">
+          <p className="rj-hero-kicker">{RECRUIT_COMPANY} · 招聘中心</p>
+          <h1>加入瑞氏，和我们一起做事</h1>
+          <p className="rj-hero-sub">选一个适合你的职位，填好资料就能应聘。审核通过后，我们会发邮件到你的 QQ 邮箱通知你。</p>
+        </div>
+        <div className="rj-jobs-stats" aria-label="招聘概况">
+          <div><strong>{openCount}</strong><span>正在招聘</span></div>
+          <div><strong>{departments.length}</strong><span>招聘部门</span></div>
+          <div><strong>{positions.length}</strong><span>可查看岗位</span></div>
+        </div>
         <nav className="rj-nav" aria-label="招聘导航">
           <NavLink to="/jobs" end aria-current="page">职位列表</NavLink>
           <NavLink to="/jobs/status">查询申请进度</NavLink>
         </nav>
       </header>
 
-      {err ? <div className="rj-error" role="alert">职位列表读取失败，请刷新重试。</div> : null}
+      {err ? <div className="rj-error" role="alert">{err || "职位列表读取失败，请刷新重试。"}</div> : null}
       {toast ? <div className="rj-toast" role="status">{toast}</div> : null}
       {loading ? null : closed ? (
         <div className="rj-closed" role="status">
@@ -170,7 +188,7 @@ export default function Jobs() {
         <p className="rj-deadline">报名截止：{formatCloseDeadline(closeAt)}（北京时间）</p>
       ) : null}
 
-      <div className="rj-toolbar">
+      <div className="rj-toolbar rj-jobs-toolbar">
         <input
           className="rj-search"
           type="search"
@@ -212,9 +230,9 @@ export default function Jobs() {
         </div>
       ) : (
         <>
-          <p className="rj-count">{closed ? `共 ${visible.length} 个职位（招聘已结束）` : `共 ${openVisibleCount} 个职位正在招聘`}</p>
+          <div className="rj-results-head">\n            <div><h2>招聘职位</h2><p>{closed ? "本轮招聘已结束" : `当前筛选下有 ${openVisibleCount} 个岗位开放申请`}</p></div>\n            <span>{visible.length} 个职位</span>\n          </div>
           <div className="rj-list">
-            {visible.map((p, i) => {
+            {orderedVisible.map((p, i) => {
               const filled = counts[p.id] ?? 0;
               const full = fullIds.has(p.id);
               const holders = filledHolders(p.title);

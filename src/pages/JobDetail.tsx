@@ -107,6 +107,8 @@ export default function JobDetail() {
   const closed = isRecruitClosed(closeAt);
   const holders = position ? filledHolders(position.title) : [];
   const isFilled = holders.length > 0;
+  // 新增视觉样式仅应用于普通岗位详情页。
+  const isStandardPosition = position != null && !/(男优|女优)/.test(position.title);
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -153,7 +155,7 @@ export default function JobDetail() {
   }
 
   return (
-    <div className="rj-page">
+    <div className={`rj-page${isStandardPosition ? " rj-standard-detail-page" : ""}`}>
       <Link className="rj-back" to="/jobs">← 返回职位列表</Link>
       <header className="rj-hero rj-hero--compact">
         <p className="rj-hero-kicker">{RECRUIT_COMPANY} · 招聘中心</p>
@@ -172,49 +174,53 @@ export default function JobDetail() {
         <div className="rj-empty">这个职位不存在，或者已经关闭报名了。<br /><Link to="/jobs">回职位列表看看其他职位</Link></div>
       ) : (
         <>
-          <div className="rj-card-top">
-            <h2 style={{ margin: 0, fontSize: 22, fontWeight: 600 }}>{position.title}</h2>
-            <span className="rj-salary rj-salary--big">{salaryText(position)}</span>
-          </div>
-          <div className="rj-detail-meta">
-            <span className="rj-chip">
-              <span className="rj-dept-dot" style={{ background: departmentColor(position.department) }} aria-hidden="true" />
-              {position.department}
-            </span>
-            {closed
-              ? <span className="rj-badge rj-badge--rejected">已结束</span>
-              : isFilled
-                ? <span className="rj-badge rj-badge--full">已入职</span>
-                : full
-                  ? <span className="rj-badge rj-badge--full">已满</span>
-                  : <span className="rj-badge rj-badge--open">招聘中</span>}
-            {isFilled
-              ? <span className="rj-quota">已入职：<b>{holders.join('、')}</b></span>
-              : <span className="rj-quota">招 <b>{position.quota}</b> 人 · 已招 <b>{filled}</b> 人</span>}
-          </div>
-          {!closed && closeAt ? (
-            <p className="rj-deadline">报名截止：{formatCloseDeadline(closeAt)}（北京时间）</p>
-          ) : null}
-          <div className="rj-card-actions rj-detail-actions">
-            <button
-              type="button"
-              className={`rj-icon-btn${fav ? ' rj-icon-btn--on' : ''}`}
-              aria-pressed={fav}
-              onClick={onToggleFavorite}
-            >
-              <StarIcon filled={fav} />{fav ? '已收藏' : '收藏'}
-            </button>
-            <button type="button" className="rj-icon-btn" onClick={() => void onShare()}>
-              <ShareIcon />分享
-            </button>
-          </div>
-
-          <div className="rj-highlights" aria-label="职位亮点">
-            <span>薪资 {salaryText(position)}</span>
-            <span>招 {position.quota} 人</span>
-            <span>{position.department}</span>
-            <span>{closed ? '已结束' : isFilled ? '已入职' : full ? '已招满' : '正在招聘'}</span>
-          </div>
+          <section className="rj-detail-summary" aria-label="职位概况">
+            <div className="rj-detail-titlebar">
+              <div>
+                <p className="rj-detail-eyebrow">岗位详情</p>
+                <h2>{position.title}</h2>
+              </div>
+              <span className="rj-salary rj-salary--big">{salaryText(position)}</span>
+            </div>
+            <div className="rj-detail-meta">
+              <span className="rj-chip">
+                <span className="rj-dept-dot" style={{ background: departmentColor(position.department) }} aria-hidden="true" />
+                {position.department}
+              </span>
+              {closed
+                ? <span className="rj-badge rj-badge--rejected">已结束</span>
+                : isFilled
+                  ? <span className="rj-badge rj-badge--full">已入职</span>
+                  : full
+                    ? <span className="rj-badge rj-badge--full">已满</span>
+                    : <span className="rj-badge rj-badge--open">招聘中</span>}
+              {isFilled
+                ? <span className="rj-quota">已入职：<b>{holders.join("、")}</b></span>
+                : <span className="rj-quota">招 <b>{position.quota}</b> 人 · 已招 <b>{filled}</b> 人</span>}
+            </div>
+            {!closed && closeAt ? (
+              <p className="rj-deadline">报名截止：{formatCloseDeadline(closeAt)}（北京时间）</p>
+            ) : null}
+            <div className="rj-card-actions rj-detail-actions">
+              <button
+                type="button"
+                className={`rj-icon-btn${fav ? " rj-icon-btn--on" : ""}`}
+                aria-pressed={fav}
+                onClick={onToggleFavorite}
+              >
+                <StarIcon filled={fav} />{fav ? "已收藏" : "收藏"}
+              </button>
+              <button type="button" className="rj-icon-btn" onClick={() => void onShare()}>
+                <ShareIcon />分享
+              </button>
+            </div>
+            <div className="rj-highlights" aria-label="职位要点">
+              <span>薪资 {salaryText(position)}</span>
+              <span>招 {position.quota} 人</span>
+              <span>{position.department}</span>
+              <span>{closed ? "已结束" : isFilled ? "已入职" : full ? "已招满" : "正在招聘"}</span>
+            </div>
+          </section>
 
           <section className="rj-section">
             <h2>职位描述</h2>

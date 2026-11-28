@@ -59,6 +59,47 @@ function ShareIcon() {
   );
 }
 
+const DOT_DIGITS: Record<string, readonly string[]> = {
+  '0': ['01110', '10001', '10011', '10101', '11001', '10001', '01110'],
+  '1': ['00100', '01100', '00100', '00100', '00100', '00100', '01110'],
+  '2': ['01110', '10001', '00001', '00010', '00100', '01000', '11111'],
+  '3': ['11110', '00001', '00001', '01110', '00001', '00001', '11110'],
+  '4': ['00010', '00110', '01010', '10010', '11111', '00010', '00010'],
+  '5': ['11111', '10000', '10000', '11110', '00001', '00001', '11110'],
+  '6': ['01110', '10000', '10000', '11110', '10001', '10001', '01110'],
+  '7': ['11111', '00001', '00010', '00100', '01000', '01000', '01000'],
+  '8': ['01110', '10001', '10001', '01110', '10001', '10001', '01110'],
+  '9': ['01110', '10001', '10001', '01111', '00001', '00001', '01110'],
+};
+
+/** 5×7 圆点字形：只用于招聘概览数字，不改变真实数值或统计逻辑。 */
+function DotMatrixNumber({ value }: { value: number }) {
+  const digits = String(Math.max(0, Math.trunc(value)));
+  const circles = Array.from(digits).flatMap((digit: string, digitIndex: number) => {
+    const glyph = DOT_DIGITS[digit] ?? DOT_DIGITS['0'];
+    return glyph.flatMap((row, rowIndex) =>
+      Array.from(row).map((cell, columnIndex) => (
+        cell === '1'
+          ? <circle
+              key={`${digitIndex}-${rowIndex}-${columnIndex}`}
+              cx={digitIndex * 6 + columnIndex + 0.5}
+              cy={rowIndex + 0.5}
+              r={0.36}
+            />
+          : null
+      )),
+    );
+  });
+
+  return (
+    <span className="rj-dot-metric" role="img" aria-label={String(value)}>
+      <svg className="rj-dot-matrix" viewBox={`0 0 ${digits.length * 6 - 1} 7`} aria-hidden="true" focusable="false">
+        {circles}
+      </svg>
+    </span>
+  );
+}
+
 /** 申请新增岗位的站内弹窗表单：游客不用登录就能提交，后台审核通过后建岗。 */
 function PositionRequestDialog({ onClose }: { onClose: () => void }) {
   const [title, setTitle] = useState('');
@@ -277,9 +318,9 @@ export default function Jobs() {
         </div>
         {loading ? null : (
           <div className="rj-jobs-stats" aria-label="招聘概况">
-            <div><strong>{openCount}</strong><span>正在招聘</span></div>
-            <div><strong>{departments.length}</strong><span>招聘部门</span></div>
-            <div><strong>{positions.length}</strong><span>可查看岗位</span></div>
+            <div><strong><DotMatrixNumber value={openCount} /></strong><span>正在招聘</span></div>
+            <div><strong><DotMatrixNumber value={departments.length} /></strong><span>招聘部门</span></div>
+            <div><strong><DotMatrixNumber value={positions.length} /></strong><span>可查看岗位</span></div>
           </div>
         )}
         <nav className="rj-nav" aria-label="招聘导航">

@@ -134,7 +134,7 @@ export default function BoardMgr({ me, setMsg }: { me: string; setMsg: (s: strin
         {list.map(n => (
           <div key={n.id} style={{ padding: '8px 0', borderBottom: '1px solid #ffffff0c' }}>
             <div style={{ fontSize: 13.5 }}>
-              {n.title && <b style={{ color: '#fff' }}>{n.title} </b>}
+              {n.title && <b>{n.title} </b>}
               {(n.content || '').slice(0, 80)}
             </div>
             <div style={mut}>{(n.created_at || '').slice(0, 16).replace('T', ' ')}

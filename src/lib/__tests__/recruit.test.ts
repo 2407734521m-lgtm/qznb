@@ -2,13 +2,17 @@ import { describe, expect, it } from 'vitest';
 import {
   applicationTimelineSteps,
   departmentColor,
-  filledHolders,
   formatCloseDeadline,
   formatDateTime,
+  formatHolderNames,
   isFavoritePositionId,
+  isPositionFull,
   isRecruitClosed,
   loadFavoritePositionIds,
+  parseHolderNames,
   parseSalaryRange,
+  positionOccupied,
+  positionRemaining,
   toggleFavoritePositionId,
 } from '../recruitHelpers';
 
@@ -142,20 +146,41 @@ describe('formatCloseDeadline', () => {
   });
 });
 
-describe('filledHolders', () => {
-  it('已有人任职的职位返回任职人姓名', () => {
-    expect(filledHolders('董事长')).toEqual(['王瑞']);
-    expect(filledHolders('总经理')).toEqual(['刘俊威']);
-    expect(filledHolders('人事经理')).toEqual(['谢铭辛']);
-    expect(filledHolders('保安')).toEqual(['李柯', '严浩溢']);
+describe('parseHolderNames / formatHolderNames', () => {
+  it('顿号、逗号、分号、空格分隔都能切开，去空去重保序', () => {
+    expect(parseHolderNames('王瑞、李柯')).toEqual(['王瑞', '李柯']);
+    expect(parseHolderNames('王瑞,李柯；严浩溢 王瑞')).toEqual(['王瑞', '李柯', '严浩溢']);
+    expect(parseHolderNames('  王瑞  、、 李柯 ')).toEqual(['王瑞', '李柯']);
+    expect(parseHolderNames('')).toEqual([]);
+    expect(parseHolderNames('、，； ')).toEqual([]);
   });
-  it('财务总监按用户名单里的“财务经理”映射到陈泽洋', () => {
-    expect(filledHolders('财务总监')).toEqual(['陈泽洋']);
+  it('数组转回顿号隔开的文本', () => {
+    expect(formatHolderNames(['王瑞', '李柯'])).toBe('王瑞、李柯');
+    expect(formatHolderNames([])).toBe('');
+    expect(formatHolderNames(null)).toBe('');
+    expect(formatHolderNames(undefined)).toBe('');
   });
-  it('没人任职的职位返回空数组', () => {
-    expect(filledHolders('会计')).toEqual([]);
-    expect(filledHolders('前端工程师')).toEqual([]);
-    expect(filledHolders('不存在的职位')).toEqual([]);
+});
+
+describe('名额计算（已通过申请数 + 任职人数）', () => {
+  it('已占 = 通过数 + 任职人数，剩余最小为 0', () => {
+    expect(positionOccupied(0, ['王瑞'])).toBe(1);
+    expect(positionOccupied(1, ['李柯', '严浩溢'])).toBe(3);
+    expect(positionOccupied(0, [])).toBe(0);
+    expect(positionOccupied(0, null)).toBe(0);
+    expect(positionRemaining(1, 0, ['王瑞'])).toBe(0);
+    expect(positionRemaining(2, 0, ['李柯', '严浩溢'])).toBe(0);
+    expect(positionRemaining(2, 0, ['李柯'])).toBe(1);
+    expect(positionRemaining(2, 1, ['李柯'])).toBe(0);
+    expect(positionRemaining(2, 0, [])).toBe(2);
+  });
+  it('已占 >= 名额算满', () => {
+    expect(isPositionFull(1, 0, ['王瑞'])).toBe(true);
+    expect(isPositionFull(2, 0, ['李柯', '严浩溢'])).toBe(true);
+    expect(isPositionFull(2, 0, ['李柯'])).toBe(false);
+    expect(isPositionFull(2, 1, ['李柯'])).toBe(true);
+    expect(isPositionFull(1, 1, [])).toBe(true);
+    expect(isPositionFull(1, 0, [])).toBe(false);
   });
 });
 

@@ -7,6 +7,7 @@ import AdminMemberModeration from './AdminMemberModeration';
 import AdminMemberMessageComposer from './AdminMemberMessageComposer';
 import AdminMemberPopupComposer from './AdminMemberPopupComposer';
 import OptionSheet from './OptionSheet';
+import DotDigits from './admin/DotDigits';
 
 const SORT_OPTIONS = [
   { value: 'newest', label: '最新注册' },
@@ -313,7 +314,7 @@ export default function AdminAccountManagement({
           ['正常成员', activeCount],
           ['已禁用', disabledCount],
         ].map(([label, value]) => <div key={String(label)} style={{ border: '1px solid #ffffff12', borderRadius: 11, padding: 9, background: '#ffffff06' }}>
-          <div style={muted}>{label}</div><div style={{ fontSize: 20, fontWeight: 800, marginTop: 3 }}>{value}</div>
+          <div style={muted}>{label}</div><div style={{ marginTop: 3 }}><DotDigits value={String(value)} size="sm" /></div>
         </div>)}
       </div>
     </div>

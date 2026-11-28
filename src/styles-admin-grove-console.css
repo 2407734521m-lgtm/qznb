@@ -1,0 +1,494 @@
+/* Grove administrator console refresh.
+   Extends the existing Overview Grove visual language to the rest of the
+   administrator workspace. This file is scoped to .admin-shell-v3 only.
+   It changes presentation only: no route, data, permission, action or API changes.
+   The administrator-selected wallpaper remains supported; the default canvas
+   uses a restrained warm-white surface with localized color diffusion.
+*/
+
+.admin-shell-v3 {
+  --admin-grove-canvas: #f7f3ec;
+  --admin-grove-ink: #2b2113;
+  --admin-grove-muted: #766b59;
+  --admin-grove-line: rgba(115, 91, 54, .14);
+  --admin-grove-glass: rgba(255, 255, 255, .78);
+  --admin-grove-glass-strong: rgba(255, 255, 255, .90);
+  --admin-grove-amber: #d97831;
+  --admin-grove-amber-soft: #f6e4c9;
+  --admin-grove-green: #4e9466;
+  --admin-grove-pink: #d9859b;
+  --admin-grove-blue: #83aeb9;
+  color: var(--admin-grove-ink) !important;
+  background-color: var(--admin-grove-canvas);
+}
+
+.admin-shell-v3:not([data-has-admin-wallpaper="true"]) {
+  background:
+    radial-gradient(660px 420px at 82% 0%, rgba(254, 182, 110, .20), transparent 68%),
+    radial-gradient(560px 420px at 0% 26%, rgba(93, 190, 99, .12), transparent 70%),
+    radial-gradient(520px 380px at 92% 72%, rgba(162, 200, 210, .15), transparent 68%),
+    linear-gradient(180deg, #f7f3ec 0%, #f8f6f1 100%) !important;
+}
+
+.admin-shell-v3 .admin-workspace.is-reference-dashboard {
+  color: var(--admin-grove-ink) !important;
+  background: transparent !important;
+}
+
+.admin-shell-v3 .admin-workspace.is-reference-dashboard .admin-workspace-main,
+.admin-shell-v3 .admin-workspace.is-reference-dashboard .admin-workspace-content,
+.admin-shell-v3 .admin-workspace.is-reference-dashboard .admin-workspace-inner {
+  color: var(--admin-grove-ink) !important;
+  background: transparent !important;
+}
+
+/* Top navigation: warm white glass, crisp separators and restrained active state. */
+.admin-shell-v3 .admin-workspace.is-reference-dashboard .admin-console-topbar {
+  color: var(--admin-grove-ink) !important;
+  background: rgba(255, 255, 255, .82) !important;
+  border-bottom: 1px solid rgba(115, 91, 54, .12) !important;
+  box-shadow: 0 8px 28px rgba(43, 33, 19, .045) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(1.18) !important;
+  backdrop-filter: blur(20px) saturate(1.18) !important;
+}
+
+.admin-shell-v3 .admin-reference-brand strong,
+.admin-shell-v3 .admin-reference-brand small {
+  color: var(--admin-grove-ink) !important;
+}
+
+.admin-shell-v3 .admin-reference-brand small {
+  opacity: .55;
+}
+
+.admin-shell-v3 .admin-reference-app-trigger,
+.admin-shell-v3 .admin-reference-search,
+.admin-shell-v3 .admin-console-logout,
+.admin-shell-v3 .admin-console-role {
+  color: #62553f !important;
+  background: rgba(255, 255, 255, .72) !important;
+  border-color: var(--admin-grove-line) !important;
+  box-shadow: 0 2px 8px rgba(43, 33, 19, .035) !important;
+}
+
+.admin-shell-v3 .admin-reference-app-trigger:hover,
+.admin-shell-v3 .admin-reference-search:hover,
+.admin-shell-v3 .admin-console-logout:hover {
+  color: var(--admin-grove-ink) !important;
+  background: #fff !important;
+  border-color: rgba(217, 120, 49, .28) !important;
+}
+
+.admin-shell-v3 .admin-reference-topnav-item {
+  color: #817765 !important;
+  border-color: transparent !important;
+  background: transparent !important;
+}
+
+.admin-shell-v3 .admin-reference-topnav-item:hover {
+  color: var(--admin-grove-ink) !important;
+  background: rgba(255, 255, 255, .76) !important;
+}
+
+.admin-shell-v3 .admin-reference-topnav-item.is-active {
+  color: #72451f !important;
+  background: #f6e9d6 !important;
+  border-color: rgba(217, 120, 49, .17) !important;
+}
+
+.admin-shell-v3 .admin-reference-topnav-item.is-active::after {
+  background: var(--admin-grove-amber) !important;
+}
+
+.admin-shell-v3 .admin-reference-avatar,
+.admin-shell-v3 .admin-sidebar-avatar {
+  color: #72451f !important;
+  background: linear-gradient(145deg, #f8e6cc, #f4d9c4) !important;
+  border-color: rgba(217, 120, 49, .18) !important;
+  box-shadow: 0 3px 10px rgba(217, 120, 49, .08) !important;
+}
+
+/* Slide-out navigation uses the same frosted paper surface. */
+.admin-shell-v3 .admin-workspace.is-reference-dashboard .admin-sidebar {
+  color: var(--admin-grove-ink) !important;
+  background: rgba(255, 255, 255, .90) !important;
+  border: 1px solid rgba(255, 255, 255, .82) !important;
+  border-radius: 24px !important;
+  box-shadow: 0 24px 70px rgba(43, 33, 19, .16), inset 0 1px 0 rgba(255, 255, 255, .8) !important;
+  -webkit-backdrop-filter: blur(22px) saturate(1.18) !important;
+  backdrop-filter: blur(22px) saturate(1.18) !important;
+}
+
+.admin-shell-v3 .admin-sidebar-brand {
+  border-bottom-color: rgba(115, 91, 54, .10) !important;
+}
+
+.admin-shell-v3 .admin-brand-copy strong,
+.admin-shell-v3 .admin-sidebar-account-copy strong {
+  color: var(--admin-grove-ink) !important;
+}
+
+.admin-shell-v3 .admin-brand-copy span,
+.admin-shell-v3 .admin-sidebar-account-copy small {
+  color: var(--admin-grove-muted) !important;
+}
+
+.admin-shell-v3 .admin-nav-group-title {
+  color: #94866f !important;
+}
+
+.admin-shell-v3 .admin-nav-item {
+  color: #625944 !important;
+  border: 1px solid transparent !important;
+  border-radius: 13px !important;
+  background: transparent !important;
+}
+
+.admin-shell-v3 .admin-nav-item:hover {
+  color: var(--admin-grove-ink) !important;
+  background: rgba(246, 228, 201, .42) !important;
+}
+
+.admin-shell-v3 .admin-nav-item.is-active {
+  color: #68421f !important;
+  background: linear-gradient(100deg, rgba(246, 228, 201, .92), rgba(255, 255, 255, .88)) !important;
+  border-color: rgba(217, 120, 49, .18) !important;
+  box-shadow: inset 3px 0 0 var(--admin-grove-amber), 0 4px 12px rgba(43, 33, 19, .045) !important;
+}
+
+.admin-shell-v3 .admin-nav-pin {
+  color: #b8aa91 !important;
+}
+
+.admin-shell-v3 .admin-nav-pin.is-pinned {
+  color: var(--admin-grove-amber) !important;
+}
+
+.admin-shell-v3 .admin-sidebar-footer {
+  border-top-color: rgba(115, 91, 54, .10) !important;
+}
+
+.admin-shell-v3 .admin-sidebar-logout {
+  color: #74634b !important;
+  background: rgba(255, 255, 255, .76) !important;
+  border: 1px solid var(--admin-grove-line) !important;
+  border-radius: 12px !important;
+}
+
+/* Page heading and member search are shared by every non-overview module. */
+.admin-shell-v3 .admin-page-heading:not(.is-dashboard-heading) {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 22px;
+  margin: 0 auto 18px !important;
+  padding: 4px 2px 16px !important;
+  border-bottom: 1px solid rgba(115, 91, 54, .13) !important;
+  background: transparent !important;
+}
+
+.admin-shell-v3 .admin-page-heading-copy {
+  min-width: 0;
+}
+
+.admin-shell-v3 .admin-page-heading .admin-page-greeting {
+  margin: 0 0 7px !important;
+  color: #9a896d !important;
+  font-size: 11px !important;
+  letter-spacing: .025em;
+}
+
+.admin-shell-v3 .admin-page-heading h1 {
+  margin: 0 !important;
+  color: var(--admin-grove-ink) !important;
+  font-size: clamp(24px, 3vw, 34px) !important;
+  font-weight: 760 !important;
+  letter-spacing: -.045em;
+  line-height: 1.18;
+}
+
+.admin-shell-v3 .admin-page-heading-copy > p:last-child {
+  margin: 7px 0 0 !important;
+  color: var(--admin-grove-muted) !important;
+  font-size: 12px !important;
+  line-height: 1.65;
+}
+
+.admin-shell-v3 .admin-member-search {
+  flex: 0 1 330px;
+  min-width: min(260px, 100%);
+}
+
+.admin-shell-v3 .admin-member-search > label {
+  color: #8e7d62 !important;
+  font-size: 10px !important;
+}
+
+.admin-shell-v3 .admin-member-search-control {
+  border: 1px solid rgba(115, 91, 54, .16) !important;
+  border-radius: 999px !important;
+  background: rgba(255, 255, 255, .74) !important;
+  box-shadow: 0 4px 14px rgba(43, 33, 19, .035) !important;
+}
+
+.admin-shell-v3 .admin-member-search-control input {
+  color: var(--admin-grove-ink) !important;
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+.admin-shell-v3 .admin-member-search-control input::placeholder {
+  color: #a99e8b !important;
+}
+
+.admin-shell-v3 .admin-member-search-control button {
+  color: #68421f !important;
+  background: #f3dfbd !important;
+  border: 1px solid rgba(217, 120, 49, .18) !important;
+  border-radius: 999px !important;
+  box-shadow: none !important;
+}
+
+/* Shared panel family for analytics, moderation, approvals, settings and tools.
+   Keep semantic success / warning / danger badges on their own colors. */
+.admin-shell-v3 .admin-content :is([class*="-panel"], [class*="-card"]):not([class*="overview"]) {
+  color: var(--admin-grove-ink) !important;
+  border-color: var(--admin-grove-line) !important;
+  border-radius: 22px !important;
+  box-shadow: 0 9px 28px rgba(43, 33, 19, .055), inset 0 1px 0 rgba(255, 255, 255, .58) !important;
+}
+
+.admin-shell-v3 .admin-content :is([class*="-panel"], [class*="-card"]):not([class*="overview"]):not([class*="badge"]):not([class*="avatar"]) {
+  -webkit-backdrop-filter: blur(14px) saturate(1.12);
+  backdrop-filter: blur(14px) saturate(1.12);
+}
+
+.admin-shell-v3 .admin-content :is(div, section, article)[style*="box-shadow"],
+.admin-shell-v3 .admin-content :is(div, section, article)[style*="linear-gradient(145deg"],
+.admin-shell-v3 .admin-content :is(div, section, article)[style*="linear-gradient(150deg"],
+.admin-shell-v3 .admin-content :is(div, section, article)[style*="linear-gradient(155deg"],
+.admin-shell-v3 .admin-content :is(div, section, article)[style*="linear-gradient(160deg"] {
+  color: var(--admin-grove-ink) !important;
+  background: rgba(255, 255, 255, .78) !important;
+  background-image: none !important;
+  border-color: var(--admin-grove-line) !important;
+  border-radius: 22px !important;
+  box-shadow: 0 9px 28px rgba(43, 33, 19, .055), inset 0 1px 0 rgba(255, 255, 255, .66) !important;
+  -webkit-backdrop-filter: blur(14px) saturate(1.12) !important;
+  backdrop-filter: blur(14px) saturate(1.12) !important;
+}
+
+/* Typography, controls and table surfaces shared across the management modules. */
+.admin-shell-v3 .admin-content :is(h1, h2, h3, h4, h5, strong, b) {
+  color: var(--admin-grove-ink);
+}
+
+.admin-shell-v3 .admin-content :is(p, small, label, dt, dd, th, td, .muted, .hint) {
+  color: var(--admin-grove-muted);
+}
+
+.admin-shell-v3 .admin-content :is(input:not([type="checkbox"]):not([type="radio"]), textarea, select) {
+  color: #342a1b !important;
+  background: rgba(255, 255, 255, .88) !important;
+  border: 1px solid rgba(115, 91, 54, .17) !important;
+  border-radius: 12px;
+  box-shadow: inset 0 1px 2px rgba(43, 33, 19, .025) !important;
+}
+
+.admin-shell-v3 .admin-content :is(input, textarea, select)::placeholder {
+  color: #a79b88 !important;
+}
+
+.admin-shell-v3 .admin-content :is(input, textarea, select):focus {
+  border-color: rgba(217, 120, 49, .55) !important;
+  box-shadow: 0 0 0 3px rgba(217, 120, 49, .12) !important;
+  outline: none !important;
+}
+
+.admin-shell-v3 .admin-content select option {
+  color: #342a1b;
+  background: #fff;
+}
+
+.admin-shell-v3 .admin-content table {
+  color: var(--admin-grove-ink);
+  border-color: rgba(115, 91, 54, .12);
+}
+
+.admin-shell-v3 .admin-content :is(th, td) {
+  border-bottom-color: rgba(115, 91, 54, .12) !important;
+}
+
+.admin-shell-v3 .admin-content th {
+  color: #8b7b61 !important;
+  font-weight: 700;
+}
+
+.admin-shell-v3 .admin-content a {
+  color: #a85c29 !important;
+}
+
+.admin-shell-v3 .admin-content button.pri,
+.admin-shell-v3 .admin-content .pri:not(:disabled) {
+  color: #68421f !important;
+  background: #f3dfbd !important;
+  background-image: none !important;
+  border: 1px solid rgba(217, 120, 49, .24) !important;
+  border-radius: 999px !important;
+  box-shadow: 0 4px 12px rgba(154, 106, 39, .08), inset 0 1px 0 rgba(255, 255, 255, .62) !important;
+}
+
+.admin-shell-v3 .admin-content button.pri:hover:not(:disabled),
+.admin-shell-v3 .admin-content .pri:not(:disabled):hover {
+  background: #efd3a8 !important;
+}
+
+.admin-shell-v3 .admin-content button.mini:not(.danger),
+.admin-shell-v3 .admin-content button.ghost:not(.danger) {
+  color: #65563f !important;
+  background: rgba(255, 255, 255, .74) !important;
+  border: 1px solid rgba(115, 91, 54, .17) !important;
+  border-radius: 999px !important;
+  box-shadow: 0 2px 8px rgba(43, 33, 19, .025) !important;
+}
+
+.admin-shell-v3 .admin-content button.mini:not(.danger):hover:not(:disabled),
+.admin-shell-v3 .admin-content button.ghost:not(.danger):hover:not(:disabled) {
+  color: #68421f !important;
+  background: #fbf0df !important;
+  border-color: rgba(217, 120, 49, .28) !important;
+}
+
+.admin-shell-v3 .admin-content button.danger,
+.admin-shell-v3 .admin-content button[class*="danger"] {
+  color: #a9474a !important;
+  background: rgba(196, 87, 91, .08) !important;
+  border-color: rgba(196, 87, 91, .22) !important;
+}
+
+.admin-shell-v3 .admin-content :is(.is-success, .is-healthy, .status-success, .text-success) {
+  color: #327b59 !important;
+}
+
+.admin-shell-v3 .admin-content :is(.is-warning, .status-warning, .text-warning) {
+  color: #9a742b !important;
+}
+
+.admin-shell-v3 .admin-content :is(.is-error, .is-unhealthy, .status-error, .text-danger) {
+  color: #a9474a !important;
+}
+
+/* Command palette and dialogs inherit the same palette; overlays remain neutral. */
+.admin-shell-v3 .admin-command-overlay {
+  background: rgba(43, 33, 19, .24) !important;
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+}
+
+.admin-shell-v3 .admin-command-palette,
+.admin-shell-v3 .admin-shell-v3 .admin-modal-card,
+.admin-shell-v3 .admin-content .admin-modal-card,
+.admin-dialog-card {
+  color: var(--admin-grove-ink) !important;
+  background: rgba(255, 255, 255, .94) !important;
+  border: 1px solid rgba(255, 255, 255, .86) !important;
+  border-radius: 24px !important;
+  box-shadow: 0 24px 72px rgba(43, 33, 19, .18) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(1.15) !important;
+  backdrop-filter: blur(20px) saturate(1.15) !important;
+}
+
+.admin-shell-v3 .admin-command-palette :is(strong, p, small, span, label),
+.admin-shell-v3 .admin-content .admin-modal-card :is(strong, p, small, span, label),
+.admin-dialog-card :is(strong, p, small, span, label) {
+  color: #62553f !important;
+}
+
+.admin-shell-v3 .admin-command-result {
+  color: var(--admin-grove-ink) !important;
+  border-radius: 13px !important;
+}
+
+.admin-shell-v3 .admin-command-result:hover,
+.admin-shell-v3 .admin-command-result.is-active {
+  background: #fbf0df !important;
+}
+
+.admin-shell-v3 .admin-dialog-overlay {
+  background: rgba(43, 33, 19, .30) !important;
+  -webkit-backdrop-filter: blur(9px) saturate(1.08) !important;
+  backdrop-filter: blur(9px) saturate(1.08) !important;
+}
+
+.admin-shell-v3 .admin-dialog-card {
+  color: var(--admin-grove-ink) !important;
+  background: rgba(255, 255, 255, .95) !important;
+  border-color: rgba(255, 255, 255, .88) !important;
+}
+
+.admin-shell-v3 .admin-dialog-card .admin-dialog-cancel {
+  color: #65563f !important;
+  background: #fff !important;
+  border-color: var(--admin-grove-line) !important;
+}
+
+.admin-shell-v3 .admin-dialog-card .admin-dialog-primary {
+  color: #68421f !important;
+  background: #f3dfbd !important;
+  border-color: rgba(217, 120, 49, .24) !important;
+}
+
+.admin-shell-v3 .admin-toast {
+  color: var(--admin-grove-ink) !important;
+  background: rgba(255, 255, 255, .94) !important;
+  border: 1px solid rgba(255, 255, 255, .88) !important;
+  box-shadow: 0 14px 40px rgba(43, 33, 19, .12) !important;
+  -webkit-backdrop-filter: blur(18px) saturate(1.12);
+  backdrop-filter: blur(18px) saturate(1.12);
+}
+
+/* Responsive layout and reduced motion: the same visual language at all widths. */
+@media (max-width: 760px) {
+  .admin-shell-v3 .admin-workspace.is-reference-dashboard .admin-workspace-content {
+    padding: 16px 14px 32px !important;
+  }
+
+  .admin-shell-v3 .admin-page-heading:not(.is-dashboard-heading) {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 14px;
+    padding-bottom: 14px !important;
+  }
+
+  .admin-shell-v3 .admin-member-search {
+    flex: 1 1 auto;
+    min-width: 0;
+    width: 100%;
+  }
+
+  .admin-shell-v3 .admin-content :is([class*="-panel"], [class*="-card"]):not([class*="overview"]) {
+    border-radius: 18px !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-shell-v3 .admin-nav-item,
+  .admin-shell-v3 .admin-reference-topnav-item,
+  .admin-shell-v3 .admin-content :is([class*="-panel"], [class*="-card"]) {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .admin-shell-v3 .admin-sidebar,
+  .admin-shell-v3 .admin-console-topbar,
+  .admin-shell-v3 .admin-command-palette,
+  .admin-shell-v3 .admin-content :is([class*="-panel"], [class*="-card"]) {
+    background: #fff !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+  }
+}

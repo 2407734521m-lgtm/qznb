@@ -12,6 +12,14 @@ const corsHeaders = {
 
 const COMPANY = '瑞氏集团有限公司';
 
+function formatInterview(value: string | null): string {
+  if (!value) return '';
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return '';
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日 ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
 function response(body: unknown, status = 200) {
 return new Response(JSON.stringify(body), { status, headers: {...corsHeaders, 'Content-Type': 'application/json'}});
 }
@@ -42,7 +50,7 @@ if (!applicationId ||!kind) return response({ error: '参数不正确。'}, 400)
 const admin = createClient(url, serviceKey, { auth: { persistSession: false}});
 const { data: application, error: appError} = await admin
 .from('recruit_applications')
-.select('id, name, qq_email, status, position_id')
+.select('id, name, qq_email, status, position_id, interview_at, interview_note')
 .eq('id', applicationId)
 .maybeSingle();
 if (appError ||!application) return response({ error: '找不到这条申请。'}, 404);
@@ -60,11 +68,17 @@ if (posError ||!position) return response({ error: '找不到这个职位。'}, 
 const name = application.name as string;
 const to = application.qq_email as string;
 const title = position.title as string;
+// 面试时间如果已经约好，一并写进录用通知；没约就不写。
+const interviewAt = (application as { interview_at?: string | null }).interview_at ?? null;
+const interviewNote = ((application as { interview_note?: string | null }).interview_note ?? '').trim();
+const interviewLine = kind === 'offer' && interviewAt
+  ? `\n面试时间：${formatInterview(interviewAt)}${interviewNote ? `（${interviewNote}）` : ''}\n请按时参加面试。`
+  : '';
 const subject = kind === 'offer'
 ? `录用通知——${title}`
 : `应聘反馈——${title}`;
 const text = kind === 'offer'
-? `${name} 您好：\n\n感谢您应聘${COMPANY}「${title}」一职。经审核，您已被录用。\n\n请在收到本邮件后 3 个工作日内回复本邮件，确认入职意向；具体入职时间、地点与所需材料，人事部将通过电话或邮件另行通知。\n\n${COMPANY} 人事部`
+? `${name} 您好：\n\n感谢您应聘${COMPANY}「${title}」一职。经审核，您已被录用。${interviewLine}\n\n请在收到本邮件后 3 个工作日内回复本邮件，确认入职意向；具体入职时间、地点与所需材料，人事部将通过电话或邮件另行通知。\n\n${COMPANY} 人事部`
 : `${name} 您好：\n\n感谢您应聘${COMPANY}「${title}」一职。经综合评估，本次未能录用，感谢您的关注与付出。\n\n欢迎您继续关注我司后续招聘信息，期待未来有机会合作。\n\n${COMPANY} 人事部`;
 
 const eventKey = `recruit:${kind}:${application.id}`;

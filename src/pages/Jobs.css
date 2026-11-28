@@ -27,9 +27,12 @@
 .rj-header p { margin: 0; font-size: 14px; line-height: 1.6; color: #555d68; }
 .rj-nav { display: flex; gap: 8px; flex-wrap: wrap; margin: 16px 0 0; }
 .rj-nav a {
+  display: inline-flex; align-items: center; min-height: 44px; box-sizing: border-box;
   font-size: 13px; line-height: 1; color: #20242a; text-decoration: none;
   border: 1px solid #e7eaee; border-radius: 999px; padding: 9px 14px; background: #ffffff;
+  transition: transform .15s ease, background .15s ease;
 }
+.rj-nav a:active { transform: scale(.97); }
 .rj-nav a[aria-current="page"] { background: #252a31; border-color: #252a31; color: #ffffff; }
 .rj-nav a:focus-visible { outline: 2px solid #4776b8; outline-offset: 2px; }
 
@@ -85,10 +88,14 @@
 .rj-cta--full { color: #c44747; font-weight: 600; text-decoration: none; }
 .rj-card-actions { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .rj-icon-btn {
-  display: inline-flex; align-items: center; gap: 5px; padding: 7px 10px; font: inherit; font-size: 13px;
+  display: inline-flex; align-items: center; gap: 5px; min-height: 44px; padding: 10px 12px; font: inherit; font-size: 13px;
   color: #555d68; background: #ffffff; border: 1px solid #e7eaee; border-radius: 999px; cursor: pointer;
-  white-space: nowrap;
+  white-space: nowrap; box-sizing: border-box;
 }
+/* 整张卡片可点：手指点按有回缩反馈，手机上点卡片空白处也能进详情。 */
+.rj-card--clickable { cursor: pointer; }
+.rj-jobs-page .rj-card--clickable:active { transform: scale(.985); background: #f6f7f8; }
+.rj-page a, .rj-page button { -webkit-tap-highlight-color: transparent; }
 .rj-icon-btn:hover { border-color: #d5dae0; background: #f6f7f8; }
 .rj-icon-btn:active { transform: scale(.96); }
 .rj-icon-btn:focus-visible { outline: 2px solid #4776b8; outline-offset: 2px; }
@@ -154,9 +161,10 @@
 .rj-modal-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
 .rj-modal-head h2 { margin: 0; font-size: 18px; font-weight: 600; }
 .rj-modal-close {
-  flex: none; width: 32px; height: 32px; border-radius: 50%; border: 1px solid #e7eaee;
-  background: #ffffff; color: #555d68; font-size: 16px; line-height: 1; cursor: pointer;
+  flex: none; width: 44px; height: 44px; border-radius: 50%; border: 1px solid #e7eaee;
+  background: #ffffff; color: #555d68; font-size: 18px; line-height: 1; cursor: pointer;
 }
+.rj-modal-close:active { transform: scale(.94); background: #f6f7f8; }
 .rj-modal-close:focus-visible { outline: 2px solid #4776b8; outline-offset: 2px; }
 .rj-modal-card > p { margin: 8px 0 0; font-size: 13px; line-height: 1.6; color: #737b86; }
 .rj-modal-card .rj-form { margin-top: 0; padding-top: 0; border-top: 0; }
@@ -199,7 +207,8 @@
 .rj-submit:disabled { opacity: 0.55; cursor: not-allowed; }
 .rj-submit:focus-visible { outline: 2px solid #4776b8; outline-offset: 2px; }
 
-.rj-back { display: inline-block; margin-bottom: 16px; font-size: 14px; color: #555d68; text-decoration: none; }
+.rj-back { display: inline-flex; align-items: center; min-height: 44px; margin-bottom: 16px; font-size: 14px; color: #555d68; text-decoration: none; }
+.rj-back:active { opacity: .7; }
 .rj-back:focus-visible { outline: 2px solid #4776b8; outline-offset: 2px; }
 
 .rj-status-row {
@@ -366,7 +375,7 @@
 .rj-jobs-page .rj-icon-btn:hover { border-color: #e1e4e8; background: #eef0f3; }
 .rj-jobs-page .rj-icon-btn--on { color: #8a641e; border-color: #eadfca; background: #f8f3e9; }
 .rj-jobs-page .rj-cta {
-  display: inline-flex; align-items: center; justify-content: center; min-height: 34px; padding: 0 12px;
+  display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 0 14px;
   color: #fff; background: #252a31; border-radius: 10px; font-size: 12px;
   transition: background .18s ease, transform .18s ease;
 }
@@ -399,7 +408,7 @@
   .rj-jobs-page .rj-salary { font-size: 14px; }
   .rj-jobs-page .rj-card-foot { align-items: flex-start; }
   .rj-jobs-page .rj-card-actions { width: 100%; justify-content: space-between; }
-  .rj-jobs-page .rj-icon-btn { padding: 7px 8px; }
+  .rj-jobs-page .rj-icon-btn { padding: 10px 10px; }
   .rj-jobs-page .rj-cta { margin-left: auto; }
   .rj-jobs-page .rj-team-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
   .rj-jobs-page .rj-team-card { padding: 10px; gap: 8px; }
@@ -454,8 +463,8 @@
   line-height: 1.3;
 }
 .rj-active-filters > button {
-  min-height: 30px;
-  padding: 0 8px;
+  min-height: 40px;
+  padding: 0 12px;
   color: #4b535e;
   background: transparent;
   border: 0;
@@ -493,9 +502,9 @@
   text-align: center;
 }
 .rj-empty-reset {
-  min-height: 36px;
+  min-height: 44px;
   margin-top: 5px;
-  padding: 0 13px;
+  padding: 0 16px;
   color: #fff;
   background: #252a31;
   border: 1px solid #252a31;
@@ -785,4 +794,26 @@
 @media (prefers-reduced-motion: reduce) {
   .rj-standard-detail-page .rj-card,
   .rj-status-page .rj-status-card { transition: none; }
+}
+
+/* 点按动效（DESIGN.md §6：按压 120–180ms、弹窗 180–260ms、面板 200–320ms）。 */
+@keyframes rj-overlay-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes rj-sheet-up { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: none; } }
+@keyframes rj-toast-in { from { opacity: 0; transform: translateX(-50%) translateY(8px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
+@keyframes rj-pop { 0% { transform: scale(1); } 45% { transform: scale(1.35); } 100% { transform: scale(1); } }
+@keyframes rj-fade-rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@keyframes rj-chip-in { from { opacity: 0; transform: scale(.92); } to { opacity: 1; transform: none; } }
+.rj-modal-overlay { animation: rj-overlay-in .18s ease-out; }
+.rj-modal-card { animation: rj-sheet-up .24s ease-out; }
+.rj-toast { animation: rj-toast-in .2s ease-out; }
+/* 点亮收藏时星星弹一下；取消收藏不弹。 */
+.rj-icon-btn--on svg { animation: rj-pop .18s ease-out; }
+/* 列表页首屏轻微入场：横幅与工具栏依次浮现。 */
+.rj-jobs-page .rj-jobs-hero { animation: rj-fade-rise .3s ease-out backwards; }
+.rj-jobs-page .rj-jobs-toolbar { animation: rj-fade-rise .3s ease-out .06s backwards; }
+.rj-filter-chip { animation: rj-chip-in .16s ease-out; }
+@media (prefers-reduced-motion: reduce) {
+  .rj-modal-overlay, .rj-modal-card, .rj-toast, .rj-icon-btn--on svg,
+  .rj-jobs-page .rj-jobs-hero, .rj-jobs-page .rj-jobs-toolbar, .rj-filter-chip { animation: none; }
+  .rj-jobs-page .rj-card--clickable:active { transform: none; }
 }

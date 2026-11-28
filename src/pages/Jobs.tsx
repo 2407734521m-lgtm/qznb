@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
-import { Link, NavLink } from 'react-router-dom';
+import { Link, NavLink, useNavigate } from 'react-router-dom';
 import OptionSheet from '../components/OptionSheet';
 import {
   RECRUIT_COMPANY,
@@ -157,6 +157,7 @@ function PositionRequestDialog({ onClose }: { onClose: () => void }) {
 }
 
 export default function Jobs() {
+  const navigate = useNavigate();
   const [positions, setPositions] = useState<RecruitPosition[]>([]);
   const [counts, setCounts] = useState<Record<number, number>>({});
   const [closeAt, setCloseAt] = useState<string | null>(null);
@@ -381,9 +382,14 @@ export default function Jobs() {
               return (
                 <article
                   key={p.id}
-                  className={`rj-card rj-card--enter${full || closed ? ' rj-card--full' : ''}`}
+                  className={`rj-card rj-card--enter rj-card--clickable${full || closed ? ' rj-card--full' : ''}`}
                   style={{ animationDelay: `${Math.min(i, 8) * 45}ms` }}
                   aria-label={`${p.title}，${closed ? '招聘已结束' : taken && full ? `已入职：${holders.join('、')}` : full ? '已招满' : `招${p.quota}人，已招${occupied}人`}`}
+                  onClick={(e) => {
+                    // 点卡片空白处直接进详情；收藏/分享/标题/按钮本身已有自己的行为，不重复触发。
+                    if ((e.target as HTMLElement).closest('button, a')) return;
+                    navigate(`/jobs/${p.id}`);
+                  }}
                 >
                   <div className="rj-card-top">
                     <h2><Link to={`/jobs/${p.id}`}>{p.title}</Link></h2>

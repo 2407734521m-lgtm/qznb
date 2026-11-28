@@ -1,9 +1,11 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { Link, NavLink } from 'react-router-dom';
 import OptionSheet from '../components/OptionSheet';
 import {
   RECRUIT_COMPANY,
+  QQ_EMAIL_RE,
   departmentColor,
+  describePositionRequestError,
   filledHolders,
   formatCloseDeadline,
   getPositionCounts,
@@ -11,8 +13,10 @@ import {
   isRecruitClosed,
   listOpenPositions,
   loadFavoritePositionIds,
+  parseSalaryRange,
   salaryText,
   sharePosition,
+  submitPositionRequest,
   toggleFavoritePositionId,
   type RecruitPosition,
 } from '../lib/recruit';
@@ -54,6 +58,103 @@ function ShareIcon() {
   );
 }
 
+/** 申请新增岗位的站内弹窗表单：游客不用登录就能提交，后台审核通过后建岗。 */
+function PositionRequestDialog({ onClose }: { onClose: () => void }) {
+  const [title, setTitle] = useState('');
+  const [department, setDepartment] = useState('');
+  const [salary, setSalary] = useState('');
+  const [description, setDescription] = useState('');
+  const [qqEmail, setQqEmail] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [formError, setFormError] = useState('');
+  const [submitted, setSubmitted] = useState(false);
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) { if (e.key === 'Escape') onClose(); }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
+  async function onSubmit(e: FormEvent) {
+    e.preventDefault();
+    if (submitting) return;
+    const trimmedTitle = title.trim();
+    const trimmedEmail = qqEmail.trim();
+    if (!trimmedTitle) { setFormError('请填写岗位名称。'); return; }
+    if (!QQ_EMAIL_RE.test(trimmedEmail)) { setFormError('QQ 邮箱格式不对，请检查一下。'); return; }
+    const parsed = parseSalaryRange(salary);
+    if (parsed === null) { setFormError('薪资范围格式不对，例如 6000–9000。'); return; }
+    const dept = department.trim();
+    if (dept.length > 20) { setFormError('部门名称不对（20 字以内）。'); return; }
+    setFormError('');
+    setSubmitting(true);
+    try {
+      await submitPositionRequest({
+        title: trimmedTitle,
+        department: dept === '' ? '综合' : dept,
+        salaryMin: parsed.min,
+        salaryMax: parsed.max,
+        description: description.trim(),
+        qqEmail: trimmedEmail,
+      });
+      setSubmitted(true);
+    } catch (err) {
+      setFormError(describePositionRequestError(err instanceof Error ? err.message : ''));
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <div className="rj-modal-overlay" role="dialog" aria-modal="true" aria-label="申请新增岗位" onClick={onClose}>
+      <div className="rj-modal-card" onClick={e => e.stopPropagation()}>
+        <div className="rj-modal-head">
+          <h2>申请新增岗位</h2>
+          <button type="button" className="rj-modal-close" aria-label="关闭" onClick={onClose}>×</button>
+        </div>
+        {submitted ? (
+          <div className="rj-success" role="status" style={{ marginTop: 12 }}>
+            <h2>已提交，待审核</h2>
+            <p>你的新增岗位申请已经收到，正在等待审核。审核通过后，这个岗位会出现在职位列表里。</p>
+            <p><button type="button" className="rj-submit" onClick={onClose}>好的</button></p>
+          </div>
+        ) : (
+          <>
+            <p>没有你想应聘的职位？填一下想加的岗位，管理员审核通过后就会加到列表里。带 * 的是必填项。</p>
+            <form className="rj-form" onSubmit={onSubmit}>
+              {formError ? <div className="rj-error" role="alert">{formError}</div> : null}
+              <div className="rj-field">
+                <label htmlFor="rj-req-title">岗位名称 <span>*</span></label>
+                <input id="rj-req-title" value={title} maxLength={30} onChange={e => setTitle(e.target.value)} placeholder="例如：摄影助理" autoComplete="off" />
+              </div>
+              <div className="rj-field">
+                <label htmlFor="rj-req-dept">部门</label>
+                <input id="rj-req-dept" value={department} maxLength={20} onChange={e => setDepartment(e.target.value)} placeholder="例如：技术，留空为综合" autoComplete="off" />
+              </div>
+              <div className="rj-field">
+                <label htmlFor="rj-req-salary">薪资范围</label>
+                <input id="rj-req-salary" value={salary} maxLength={30} onChange={e => setSalary(e.target.value)} placeholder="例如：6000–9000，留空为面议" autoComplete="off" />
+              </div>
+              <div className="rj-field">
+                <label htmlFor="rj-req-desc">岗位描述</label>
+                <textarea id="rj-req-desc" value={description} maxLength={2000} onChange={e => setDescription(e.target.value)} placeholder="这个岗位主要做什么…" />
+              </div>
+              <div className="rj-field">
+                <label htmlFor="rj-req-email">QQ 邮箱 <span>*</span></label>
+                <input id="rj-req-email" type="email" value={qqEmail} maxLength={254} onChange={e => setQqEmail(e.target.value)} placeholder="例如：123456@qq.com" autoComplete="email" />
+                <p className="rj-field-hint">审核通过后，这个岗位会直接出现在列表里；有问题时管理员会通过这个邮箱联系你。</p>
+              </div>
+              <button className="rj-submit" type="submit" disabled={submitting}>
+                {submitting ? '正在提交…' : '提交申请'}
+              </button>
+            </form>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function Jobs() {
   const [positions, setPositions] = useState<RecruitPosition[]>([]);
   const [counts, setCounts] = useState<Record<number, number>>({});
@@ -65,6 +166,7 @@ export default function Jobs() {
   const [favorites, setFavorites] = useState<number[]>(() => loadFavoritePositionIds());
   const [favOnly, setFavOnly] = useState(false);
   const [toast, setToast] = useState('');
+  const [reqOpen, setReqOpen] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -158,6 +260,12 @@ export default function Jobs() {
           <NavLink to="/jobs" end aria-current="page">职位列表</NavLink>
           <NavLink to="/jobs/status">查询申请进度</NavLink>
         </nav>
+        {closed ? null : (
+          <div className="rj-hero-actions">
+            <button type="button" className="rj-request-btn" onClick={() => setReqOpen(true)}>+ 申请新增岗位</button>
+            <span className="rj-request-hint">没有你想应聘的职位？申请加一个，审核通过后就会出现在列表里。</span>
+          </div>
+        )}
       </header>
 
       {err ? <div className="rj-error" role="alert">职位列表读取失败，请刷新重试。</div> : null}
@@ -295,6 +403,7 @@ export default function Jobs() {
           ))}
         </div>
       </section>
+      {reqOpen ? <PositionRequestDialog onClose={() => setReqOpen(false)} /> : null}
     </div>
   );
 }

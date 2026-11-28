@@ -42,6 +42,7 @@ export default function OptionSheet({ value, options, onChange, buttonText, titl
   const [activeKey, setActiveKey] = useState<string | null>(null);
   const controls = useDragControls();
   const sheetRef = useRef<HTMLElement | null>(null);
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
   const optionRefs = useRef(new Map<string, HTMLButtonElement>());
   const reduceMotion = useReducedMotion();
 
@@ -136,7 +137,7 @@ export default function OptionSheet({ value, options, onChange, buttonText, titl
 
   return (
     <>
-      <button type="button" onClick={() => setOpen(true)} aria-haspopup="dialog" aria-expanded={open}
+      <button type="button" ref={triggerRef} onClick={() => setOpen(true)} aria-haspopup="dialog" aria-expanded={open}
         aria-label={buttonAriaLabel} className={buttonClassName}
         style={{ display: 'inline-flex', alignItems: 'center', gap: 6, ...buttonStyle }}>
         {buttonContent ?? (<>
@@ -154,7 +155,8 @@ export default function OptionSheet({ value, options, onChange, buttonText, titl
                 onClick={() => setOpen(false)}
                 style={{ position: 'fixed', inset: 0, zIndex: 600, background: 'rgba(16,20,28,.45)' }} />
               <motion.section key="qz-sheet" ref={sheetRef} role="dialog" aria-modal="true" aria-label={title}
-                tabIndex={-1} onKeyDown={onSheetKeyDown} className="qz-optionsheet"
+                tabIndex={-1} onKeyDown={onSheetKeyDown}
+                className={triggerRef.current?.closest('.admin-shell-v3') ? 'qz-optionsheet qz-sheet--admin' : 'qz-optionsheet'}
                 drag="y" dragListener={false} dragControls={controls}
                 dragConstraints={{ top: 0, bottom: 0 }} dragElastic={{ top: 0.1, bottom: 0.55 }}
                 initial={reduceMotion ? { opacity: 0 } : { y: '100%' }}
